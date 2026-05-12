@@ -1,0 +1,102 @@
+import { resources } from "../db.js";
+import { BaseRepository } from "./base.repository.js";
+
+const tableRepositories = new Map();
+
+export function repositoryForTable(table) {
+  if (!tableRepositories.has(table)) {
+    tableRepositories.set(table, new BaseRepository(table));
+  }
+  return tableRepositories.get(table);
+}
+
+export function repositoryForResource(resource) {
+  const config = resources[resource];
+  return config ? repositoryForTable(config.table) : null;
+}
+
+export const repositories = {
+  authRefreshTokens: repositoryForTable("auth_refresh_tokens"),
+  analyticsSnapshots: repositoryForTable("analytics_snapshots"),
+  aiInteractions: repositoryForTable("ai_interactions"),
+  appointments: repositoryForTable("appointments"),
+  branches: repositoryForTable("branches"),
+  campaigns: repositoryForTable("campaigns"),
+  clients: repositoryForTable("clients"),
+  couponCodes: repositoryForTable("coupon_codes"),
+  creditNotes: repositoryForTable("credit_notes"),
+  customerIntelligenceSnapshots: repositoryForTable("customer_intelligence_snapshots"),
+  customerTimelineEvents: repositoryForTable("customer_timeline_events"),
+  emailTemplates: repositoryForTable("email_templates"),
+  featureToggles: repositoryForTable("feature_toggles"),
+  financeCashDrawers: repositoryForTable("finance_cash_drawers"),
+  financeDailyClosings: repositoryForTable("finance_daily_closings"),
+  financeExpenses: repositoryForTable("finance_expenses"),
+  financeRefunds: repositoryForTable("finance_refunds"),
+  financeStaffPayouts: repositoryForTable("finance_staff_payouts"),
+  giftCards: repositoryForTable("gift_cards"),
+  aiMarketingGenerations: repositoryForTable("ai_marketing_generations"),
+  bookingPortalEvents: repositoryForTable("booking_portal_events"),
+  bookingRecommendations: repositoryForTable("booking_recommendations"),
+  bookingWaitlist: repositoryForTable("booking_waitlist"),
+  branchBranding: repositoryForTable("branch_branding"),
+  encryptedSecrets: repositoryForTable("encrypted_secrets"),
+  inventoryBatches: repositoryForTable("inventory_batches"),
+  inventoryPredictions: repositoryForTable("inventory_predictions"),
+  inventoryWasteEvents: repositoryForTable("inventory_waste_events"),
+  innovationRuns: repositoryForTable("innovation_runs"),
+  inventory: repositoryForTable("inventory_transactions"),
+  invoiceDocuments: repositoryForTable("invoice_documents"),
+  invoices: repositoryForTable("invoices"),
+  memberships: repositoryForTable("memberships"),
+  mobileDevices: repositoryForTable("mobile_devices"),
+  notifications: repositoryForTable("notifications"),
+  payments: repositoryForTable("payments"),
+  payrollExports: repositoryForTable("payroll_exports"),
+  platformAnalytics: repositoryForTable("platform_analytics_snapshots"),
+  products: repositoryForTable("products"),
+  pushNotifications: repositoryForTable("push_notifications"),
+  pushSubscriptions: repositoryForTable("push_subscriptions"),
+  realtimeEvents: repositoryForTable("realtime_events"),
+  realtimeQueue: repositoryForTable("realtime_queue_items"),
+  roleDefinitions: repositoryForTable("role_definitions"),
+  sales: repositoryForTable("sales"),
+  services: repositoryForTable("services"),
+  settings: repositoryForTable("settings"),
+  staff: repositoryForTable("staff"),
+  staffAttendance: repositoryForTable("staff_attendance"),
+  staffCommissionRuns: repositoryForTable("staff_commission_runs"),
+  staffPresence: repositoryForTable("staff_presence"),
+  staffShifts: repositoryForTable("staff_shifts"),
+  marketingSequences: repositoryForTable("marketing_sequences"),
+  marketingWorkflows: repositoryForTable("marketing_workflows"),
+  kioskSessions: repositoryForTable("kiosk_sessions"),
+  offlineCacheSnapshots: repositoryForTable("offline_cache_snapshots"),
+  offlineSyncItems: repositoryForTable("offline_sync_items"),
+  onlineBookingRequests: repositoryForTable("online_booking_requests"),
+  qrCheckins: repositoryForTable("qr_checkins"),
+  securityActivityEvents: repositoryForTable("security_activity_events"),
+  securityAuditLogs: repositoryForTable("security_audit_logs"),
+  securityBackups: repositoryForTable("security_backups"),
+  securityPermissions: repositoryForTable("security_permissions"),
+  securitySessions: repositoryForTable("security_sessions"),
+  qualityRuns: repositoryForTable("quality_runs"),
+  deploymentEvents: repositoryForTable("deployment_events"),
+  superAdminAudit: repositoryForTable("super_admin_audit"),
+  suppliers: repositoryForTable("suppliers"),
+  tenants: repositoryForTable("tenants"),
+  subscriptionPlans: repositoryForTable("subscription_plans"),
+  subscriptions: repositoryForTable("subscriptions"),
+  tenantUsers: repositoryForTable("tenant_users"),
+  domainMappings: repositoryForTable("domain_mappings"),
+  usageEvents: repositoryForTable("usage_events"),
+  voiceBookingSessions: repositoryForTable("voice_booking_sessions"),
+  whiteLabelProfiles: repositoryForTable("white_label_profiles"),
+  workflowDefinitions: repositoryForTable("workflow_definitions"),
+  workflowRuns: repositoryForTable("workflow_runs"),
+  whatsappThreads: repositoryForTable("whatsapp_threads"),
+  whatsappMessages: repositoryForTable("whatsapp_messages"),
+  whatsappRules: repositoryForTable("whatsapp_automation_rules"),
+  walletTransactions: repositoryForTable("wallet_transactions"),
+  whatsappHandoffs: repositoryForTable("whatsapp_handoffs")
+};
