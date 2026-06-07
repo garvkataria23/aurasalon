@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-ai-marketing-automation',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -23,12 +24,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       <ng-container *ngIf="summary() as summary">
         <div class="metrics-grid">
-          <article class="metric-card teal"><span>Campaigns</span><strong>{{ summary.metrics.campaigns }}</strong><small>Saved campaigns</small></article>
-          <article class="metric-card green"><span>Workflows</span><strong>{{ summary.metrics.activeWorkflows }}</strong><small>Active retargeting</small></article>
-          <article class="metric-card blue"><span>WhatsApp sequences</span><strong>{{ summary.metrics.whatsappSequences }}</strong><small>Automation journeys</small></article>
-          <article class="metric-card amber"><span>Email templates</span><strong>{{ summary.metrics.emailTemplates }}</strong><small>Reusable templates</small></article>
-          <article class="metric-card violet"><span>AI generations</span><strong>{{ summary.metrics.generatedIdeas }}</strong><small>Persisted outputs</small></article>
-          <article class="metric-card rose"><span>Audience</span><strong>{{ summary.metrics.estimatedAudience }}</strong><small>Segment reach</small></article>
+          <aura-kpi-card tone="teal" target="/kpi-details/ai-marketing/campaigns"><span>Campaigns</span><strong>{{ summary.metrics.campaigns }}</strong><small>Saved campaigns</small></aura-kpi-card>
+          <aura-kpi-card tone="green" target="/kpi-details/ai-marketing/workflows"><span>Workflows</span><strong>{{ summary.metrics.activeWorkflows }}</strong><small>Active retargeting</small></aura-kpi-card>
+          <aura-kpi-card tone="blue" target="/kpi-details/ai-marketing/whatsapp-sequences"><span>WhatsApp sequences</span><strong>{{ summary.metrics.whatsappSequences }}</strong><small>Automation journeys</small></aura-kpi-card>
+          <aura-kpi-card tone="amber" target="/kpi-details/ai-marketing/email-templates"><span>Email templates</span><strong>{{ summary.metrics.emailTemplates }}</strong><small>Reusable templates</small></aura-kpi-card>
+          <aura-kpi-card tone="violet" target="/kpi-details/ai-marketing/ai-generations"><span>AI generations</span><strong>{{ summary.metrics.generatedIdeas }}</strong><small>Persisted outputs</small></aura-kpi-card>
+          <aura-kpi-card tone="rose" target="/kpi-details/ai-marketing/audience"><span>Audience</span><strong>{{ summary.metrics.estimatedAudience }}</strong><small>Segment reach</small></aura-kpi-card>
         </div>
 
         <section class="panel">

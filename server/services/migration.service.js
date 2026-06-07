@@ -1,0 +1,1387 @@
+import * as XLSX from "xlsx";
+import { randomUUID } from "node:crypto";
+import { columnsFor, db, insertRow, listRows, updateRow } from "../db.js";
+import { securityService } from "./security.service.js";
+
+const now = () => new Date().toISOString();
+const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
+
+const SOURCE_ADAPTERS = {
+  zenoti: { label: "Zenoti", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
+  salonist: { label: "Salonist", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
+  dingg: { label: "DINGG", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
+  fresha: { label: "Fresha", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
+  tally: { label: "Tally", type: "accounting", formats: ["xlsx", "csv"], status: "scaffold-ready" },
+  busy: { label: "Busy", type: "accounting", formats: ["xlsx", "csv"], status: "scaffold-ready" },
+  marg: { label: "Marg", type: "inventory-accounting", formats: ["xlsx", "csv"], status: "scaffold-ready" },
+  excel: { label: "Generic Excel", type: "spreadsheet", formats: ["xlsx", "xls"], status: "adapter-ready" },
+  csv: { label: "Generic CSV", type: "spreadsheet", formats: ["csv"], status: "adapter-ready" },
+  manual: { label: "Manual records", type: "manual", formats: ["xlsx", "csv"], status: "adapter-ready" }
+};
+
+const RESOURCE_ORDER = [
+  "clients",
+  "staff",
+  "services",
+  "products",
+  "vendors",
+  "expenses",
+  "memberships",
+  "appointments",
+  "sales",
+  "invoices",
+  "payments",
+  "inventory"
+];
+
+const RESOURCE_ALIASES = {
+  clients: ["client", "clients", "customer", "customers", "customer master", "client list"],
+  staff: ["staff", "employee", "employees", "stylist", "therapist", "team"],
+  services: ["service", "services", "menu", "service master"],
+  products: ["product", "products", "items", "stock item", "inventory product"],
+  inventory: ["inventory", "stock", "stock movement", "opening stock", "stock ledger"],
+  vendors: ["vendor", "vendors", "supplier", "suppliers"],
+  expenses: ["expense", "expenses", "purchase expense", "petty cash"],
+  memberships: ["membership", "memberships", "package", "packages", "package balance"],
+  appointments: ["appointment", "appointments", "booking", "bookings", "calendar"],
+  sales: ["sale", "sales", "bill", "bills", "service history"],
+  invoices: ["invoice", "invoices", "tax invoice"],
+  payments: ["payment", "payments", "receipt", "receipts"]
+};
+
+const FIELD_ALIASES = {
+  originalRecordId: ["id", "code", "external id", "record id", "old id", "legacy id", "customer id", "client id", "invoice id", "bill id"],
+  createdAt: ["created at", "created date", "date created", "created"],
+  branchId: ["branch id", "outlet id", "location id"],
+  branchName: ["branch", "branch name", "outlet", "location", "store"],
+  name: ["name", "full name", "client name", "customer name", "staff name", "service name", "product name", "vendor name", "supplier name"],
+  phone: ["phone", "mobile", "mobile number", "mobile no", "contact", "contact number"],
+  email: ["email", "email id", "e-mail"],
+  gender: ["gender", "sex"],
+  birthday: ["birthday", "birth date", "dob", "date of birth"],
+  anniversary: ["anniversary", "anniversary date"],
+  notes: ["notes", "remark", "remarks", "comments", "description"],
+  tags: ["tags", "tag", "segment"],
+  role: ["role", "designation", "job title"],
+  shift: ["shift", "working hours"],
+  category: ["category", "department", "service category", "product category", "expense category"],
+  price: ["price", "selling price", "sale price", "rate", "mrp"],
+  durationMinutes: ["duration", "duration minutes", "service time", "time"],
+  sku: ["sku", "barcode", "item code", "product code"],
+  supplier: ["supplier", "vendor", "brand"],
+  stock: ["stock", "quantity", "qty", "current stock", "available qty", "opening stock"],
+  lowStockThreshold: ["low stock", "minimum stock", "min stock", "reorder level"],
+  unitCost: ["cost", "unit cost", "purchase price", "buying price"],
+  expiryDate: ["expiry", "expiry date", "valid till", "validity"],
+  productId: ["product id", "item id"],
+  productName: ["product", "product name", "item", "item name"],
+  type: ["type", "movement type", "transaction type"],
+  quantity: ["quantity", "qty", "units"],
+  reason: ["reason", "narration"],
+  contactName: ["contact person", "contact name"],
+  gstin: ["gstin", "gst no", "gst number"],
+  address: ["address"],
+  vendor: ["vendor", "supplier", "paid to"],
+  amount: ["amount", "paid amount", "net amount", "total"],
+  taxAmount: ["tax", "gst", "tax amount", "gst amount"],
+  paymentMode: ["payment mode", "mode", "paid by", "payment type"],
+  paidAt: ["paid at", "payment date", "date", "expense date"],
+  clientId: ["client id", "customer id"],
+  clientName: ["client", "customer", "client name", "customer name"],
+  clientPhone: ["client phone", "customer phone", "mobile"],
+  staffId: ["staff id", "employee id"],
+  staffName: ["staff", "stylist", "therapist", "employee", "staff name"],
+  serviceId: ["service id"],
+  serviceName: ["service", "service name", "item name"],
+  serviceIds: ["service ids", "services"],
+  startAt: ["start", "start time", "appointment time", "booking time", "date time"],
+  endAt: ["end", "end time"],
+  status: ["status"],
+  source: ["source", "booking source"],
+  chair: ["chair", "room", "station"],
+  planName: ["plan", "plan name", "membership", "membership name", "package name"],
+  planCredits: ["credits", "total credits", "package credits"],
+  creditsRemaining: ["remaining credits", "balance credits", "balance"],
+  validityDate: ["validity", "valid till", "expiry", "expiry date"],
+  autoRenew: ["auto renew", "auto-renew", "renewal"],
+  invoiceNumber: ["invoice number", "invoice no", "bill no", "bill number", "receipt no"],
+  saleId: ["sale id", "bill id"],
+  invoiceId: ["invoice id"],
+  subtotal: ["subtotal", "gross amount"],
+  discount: ["discount"],
+  gstAmount: ["gst", "gst amount", "tax amount"],
+  total: ["total", "net total", "bill amount", "invoice total", "amount"],
+  paid: ["paid", "paid amount"],
+  balance: ["balance", "due", "outstanding"],
+  reference: ["reference", "transaction id", "utr", "cheque no"],
+  lineItem: ["item", "item name", "service", "product", "description"]
+};
+
+const RESOURCE_TEMPLATES = {
+  clients: {
+    table: "clients",
+    required: ["name", "phone"],
+    fields: ["originalRecordId", "name", "phone", "email", "gender", "birthday", "anniversary", "tags", "notes", "branchId", "branchName", "createdAt"]
+  },
+  staff: {
+    table: "staff",
+    required: ["name", "role", "branchId"],
+    fields: ["originalRecordId", "name", "role", "phone", "email", "branchId", "branchName", "shift", "status", "createdAt"]
+  },
+  services: {
+    table: "services",
+    required: ["name", "category", "price", "durationMinutes"],
+    fields: ["originalRecordId", "name", "category", "price", "durationMinutes", "gstRate", "status", "createdAt"]
+  },
+  products: {
+    table: "products",
+    required: ["name", "sku", "branchId"],
+    fields: ["originalRecordId", "name", "sku", "category", "supplier", "branchId", "branchName", "stock", "lowStockThreshold", "expiryDate", "unitCost", "price", "gstRate", "createdAt"]
+  },
+  inventory: {
+    table: "inventory_transactions",
+    required: ["productId", "branchId", "type", "quantity"],
+    fields: ["originalRecordId", "productId", "productName", "sku", "branchId", "branchName", "type", "quantity", "unitCost", "reason", "createdAt"]
+  },
+  vendors: {
+    table: "suppliers",
+    required: ["name"],
+    fields: ["originalRecordId", "name", "contactName", "phone", "email", "gstin", "address", "status", "createdAt"]
+  },
+  expenses: {
+    table: "finance_expenses",
+    required: ["branchId", "category", "amount"],
+    fields: ["originalRecordId", "branchId", "branchName", "category", "vendor", "amount", "taxAmount", "paymentMode", "paidAt", "notes", "createdAt"]
+  },
+  memberships: {
+    table: "memberships",
+    required: ["clientId", "planName"],
+    fields: ["originalRecordId", "clientId", "clientName", "clientPhone", "planName", "price", "planCredits", "creditsRemaining", "validityDate", "autoRenew", "branchId", "branchName", "createdAt"]
+  },
+  appointments: {
+    table: "appointments",
+    required: ["clientId", "staffId", "branchId", "startAt"],
+    fields: ["originalRecordId", "clientId", "clientName", "clientPhone", "staffId", "staffName", "serviceIds", "serviceName", "branchId", "branchName", "startAt", "endAt", "status", "source", "chair", "notes", "createdAt"]
+  },
+  sales: {
+    table: "sales",
+    required: ["clientId", "branchId", "total"],
+    fields: ["originalRecordId", "clientId", "clientName", "clientPhone", "staffId", "staffName", "branchId", "branchName", "serviceName", "lineItem", "subtotal", "discount", "gstAmount", "total", "status", "createdAt"]
+  },
+  invoices: {
+    table: "invoices",
+    required: ["invoiceNumber", "clientId", "total"],
+    fields: ["originalRecordId", "invoiceNumber", "clientId", "clientName", "clientPhone", "staffId", "staffName", "branchId", "branchName", "subtotal", "discount", "gstAmount", "total", "paid", "balance", "status", "createdAt"]
+  },
+  payments: {
+    table: "payments",
+    required: ["invoiceId", "mode", "amount"],
+    fields: ["originalRecordId", "invoiceId", "invoiceNumber", "mode", "amount", "reference", "branchId", "branchName", "createdAt"]
+  }
+};
+
+export const migrationService = {
+  adapters() {
+    return SOURCE_ADAPTERS;
+  },
+
+  templates(resource = "") {
+    if (resource) return templateFor(resource);
+    return Object.fromEntries(Object.keys(RESOURCE_TEMPLATES).map((key) => [key, templateFor(key)]));
+  },
+
+  mappings(access) {
+    return db
+      .prepare("SELECT * FROM migration_mappings WHERE tenantId = ? ORDER BY updatedAt DESC")
+      .all(access.tenantId)
+      .map((row) => deserializeJson(row, ["mapping", "unmatchedColumns", "requiredFields"]));
+  },
+
+  saveMapping(payload, access) {
+    const resource = canonicalResource(payload.resource || "");
+    if (!resource) throw badRequest("Valid resource is required to save an import mapping.");
+    return insertMigrationRow("migration_mappings", {
+      tenantId: access.tenantId,
+      sourceSoftware: sourceKey(payload.sourceSoftware),
+      resource,
+      name: payload.name || `${SOURCE_ADAPTERS[sourceKey(payload.sourceSoftware)].label} ${resource}`,
+      mapping: payload.mapping || {},
+      unmatchedColumns: payload.unmatchedColumns || [],
+      requiredFields: RESOURCE_TEMPLATES[resource].required
+    });
+  },
+
+  jobs(access) {
+    return db
+      .prepare("SELECT * FROM migration_jobs WHERE tenantId = ? ORDER BY createdAt DESC LIMIT 50")
+      .all(access.tenantId)
+      .map((row) => deserializeJson(row, ["summary", "mapping", "settings"]));
+  },
+
+  job(id, access) {
+    const job = db.prepare("SELECT * FROM migration_jobs WHERE id = ? AND tenantId = ?").get(id, access.tenantId);
+    if (!job) return null;
+    const rows = db
+      .prepare("SELECT * FROM migration_row_results WHERE jobId = ? AND tenantId = ? ORDER BY sourceSheet, sourceRowNumber, createdAt LIMIT 1000")
+      .all(id, access.tenantId)
+      .map((row) => deserializeJson(row, ["payload", "raw", "errors", "warnings"]));
+    return { ...deserializeJson(job, ["summary", "mapping", "settings"]), rows };
+  },
+
+  onboarding(access) {
+    const jobs = this.jobs(access);
+    const lastJob = jobs[0] || null;
+    const errors = jobs.reduce((total, job) => total + Number(job.errorRows || 0), 0);
+    const importedRecords = jobs.reduce((total, job) => total + Number(job.importedRows || 0), 0);
+    const rollbackHistory = jobs.filter((job) => job.status === "rolled_back").length;
+    return {
+      uploadStatus: lastJob ? lastJob.status : "not_started",
+      migrationProgress: lastJob ? progressFor(lastJob) : 0,
+      errorsCount: errors,
+      importedRecordsCount: importedRecords,
+      rollbackHistory,
+      completionChecklist: [
+        { key: "template", label: "Download or review resource template", done: true },
+        { key: "upload", label: "Upload source file", done: Boolean(lastJob) },
+        { key: "dryRun", label: "Run dry-run validation", done: jobs.some((job) => job.dryRun) },
+        { key: "import", label: "Import clean records", done: importedRecords > 0 },
+        { key: "verify", label: "Verify live modules and analytics", done: importedRecords > 0 && errors === 0 }
+      ],
+      recentJobs: jobs.slice(0, 5)
+    };
+  },
+
+  analyze(payload, access) {
+    return previewPayload(payload, access, { persist: false, dryRun: true });
+  },
+
+  dryRun(payload, access) {
+    return previewPayload(payload, access, { persist: false, dryRun: true });
+  },
+
+  import(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: false });
+    const sourceSoftware = sourceKey(payload.sourceSoftware);
+    const batchId = makeId("batch");
+    const jobId = makeId("mig");
+    const branchId = payload.branchId || access.branchId || "";
+    const job = withBusyRetry(() => insertMigrationRow("migration_jobs", {
+      id: jobId,
+      tenantId: access.tenantId,
+      sourceSoftware,
+      adapter: adapterFor(sourceSoftware),
+      resource: payload.resource || "auto",
+      fileName: payload.fileName || preview.fileName,
+      status: "importing",
+      dryRun: 0,
+      migrationMode: payload.migrationMode === false ? 0 : 1,
+      mapping: preview.mapping,
+      settings: importSettings(payload),
+      totalRows: preview.summary.totalRows,
+      summary: preview.summary
+    }));
+    withBusyRetry(() => insertMigrationRow("migration_import_batches", {
+      id: batchId,
+      tenantId: access.tenantId,
+      jobId,
+      sourceSoftware,
+      resource: payload.resource || "auto",
+      branchId,
+      status: "importing",
+      summary: preview.summary,
+      filters: { branchId, resource: payload.resource || "auto" }
+    }));
+
+    const importTx = db.transaction(() => importPreviewRows(preview, { access, batchId, jobId, sourceSoftware, migrationMode: payload.migrationMode !== false }));
+    const result = withBusyRetry(() => importTx());
+    const finalSummary = { ...preview.summary, ...result, completedAt: now() };
+    withBusyRetry(() => updateMigrationRow("migration_jobs", jobId, {
+      status: result.errorRows ? "completed_with_errors" : "completed",
+      importedRows: result.importedRows,
+      skippedRows: result.skippedRows,
+      warningRows: result.warningRows,
+      errorRows: result.errorRows,
+      summary: finalSummary
+    }, { tenantId: access.tenantId }));
+    withBusyRetry(() => updateMigrationRow("migration_import_batches", batchId, { status: "completed", summary: finalSummary }, { tenantId: access.tenantId }));
+    auditMigration("migration.import.completed", { jobId, batchId, summary: finalSummary }, access);
+    return { job, jobId, batchId, summary: finalSummary, details: this.job(jobId, access) };
+  },
+
+  rollback(jobId, access, filters = {}) {
+    return rollbackImports(access, { ...filters, jobId });
+  },
+
+  rollbackByFilter(access, filters = {}) {
+    return rollbackImports(access, filters);
+  },
+
+  rollbackLast(access, filters = {}) {
+    const batch = db
+      .prepare("SELECT * FROM migration_import_batches WHERE tenantId = ? AND status <> 'rolled_back' AND rolledBackAt = '' ORDER BY createdAt DESC LIMIT 1")
+      .get(access.tenantId);
+    if (!batch) return { ok: false, message: "No active import batch found for rollback.", deleted: {} };
+    return rollbackImports(access, { ...filters, batchId: batch.id });
+  }
+};
+
+function previewPayload(payload, access, { persist, dryRun }) {
+  const parsed = parsePayload(payload);
+  const sourceSoftware = sourceKey(payload.sourceSoftware);
+  const normalized = normalizeParsedRows(parsed, payload, access, sourceSoftware);
+  const context = createContext(access, normalized);
+  const summary = emptySummary(sourceSoftware, parsed.fileName, dryRun);
+  const seen = new Set();
+  const rows = normalized.map((row) => {
+    const checked = validatePreparedRow(row, context, seen);
+    addSummary(summary, row.resource, checked);
+    return { ...row, ...checked, sourceSoftware };
+  });
+  summary.affectedRecords = summary.validRows + summary.warningRows;
+  summary.byBranch = branchSummary(rows);
+  const response = {
+    sourceSoftware,
+    fileName: parsed.fileName,
+    mapping: normalized.mapping || {},
+    unmatchedColumns: normalized.unmatchedColumns || [],
+    summary,
+    rows: rows.slice(0, 500)
+  };
+  Object.defineProperty(response, "allRows", { value: rows, enumerable: false });
+  if (persist) persistPreview(response, access, dryRun);
+  auditMigration(dryRun ? "migration.dry_run.completed" : "migration.preview.completed", { summary }, access);
+  return response;
+}
+
+function parsePayload(payload = {}) {
+  if (Array.isArray(payload.rows)) {
+    return {
+      fileName: payload.fileName || "manual-records",
+      sheets: [{ name: payload.resource || "clients", rows: payload.rows }]
+    };
+  }
+  if (!payload.fileBase64) throw badRequest("fileBase64 or rows is required.");
+  const base64 = String(payload.fileBase64).includes(",") ? String(payload.fileBase64).split(",").pop() : payload.fileBase64;
+  const workbook = XLSX.read(Buffer.from(base64, "base64"), { type: "buffer", cellDates: true, raw: false });
+  return {
+    fileName: payload.fileName || "migration.xlsx",
+    sheets: workbook.SheetNames.map((name) => ({
+      name,
+      rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: "", raw: false })
+    }))
+  };
+}
+
+function normalizeParsedRows(parsed, payload, access, sourceSoftware) {
+  const allMappings = {};
+  const allUnmatched = [];
+  const rows = parsed.sheets.flatMap((sheet) => {
+    const resource = canonicalResource(payload.resource || detectResource(sheet.name));
+    if (!resource) return [];
+    const columns = Object.keys(sheet.rows[0] || {});
+    const auto = autoMapColumns(columns, resource);
+    const mapping = mergeMapping(auto.mapping, payload.mapping || {}, columns, resource);
+    allMappings[sheet.name] = mapping;
+    allUnmatched.push(...auto.unmatched.filter((column) => !mapping[column]));
+    return sheet.rows
+      .filter((row) => Object.values(row).some((value) => String(value ?? "").trim() !== ""))
+      .map((raw, index) => prepareRow({ raw, mapping, resource, sourceSheet: sheet.name, sourceRowNumber: index + 2, access, sourceSoftware }));
+  });
+  rows.mapping = allMappings;
+  rows.unmatchedColumns = Array.from(new Set(allUnmatched));
+  return rows.sort((a, b) => RESOURCE_ORDER.indexOf(a.resource) - RESOURCE_ORDER.indexOf(b.resource));
+}
+
+function prepareRow({ raw, mapping, resource, sourceSheet, sourceRowNumber, access, sourceSoftware }) {
+  const fields = {};
+  for (const [column, field] of Object.entries(mapping)) {
+    if (!field || field === "__ignore") continue;
+    fields[field] = raw[column];
+  }
+  const branchId = resolveBranchId(fields, access);
+  const sourceExternalId = cleanText(fields.originalRecordId) || `${sourceSheet}:${sourceRowNumber}`;
+  const payload = buildPayload(resource, fields, { branchId, sourceSoftware, sourceExternalId });
+  return {
+    resource,
+    entity: resource,
+    sourceSheet,
+    sourceRowNumber,
+    sourceExternalId,
+    raw,
+    fields,
+    payload
+  };
+}
+
+function buildPayload(resource, fields, { branchId }) {
+  const createdAt = dateValue(fields.createdAt || fields.paidAt || fields.startAt) || "";
+  if (resource === "clients") {
+    return {
+      name: cleanText(fields.name),
+      phone: normalizePhone(fields.phone),
+      email: cleanText(fields.email),
+      gender: cleanText(fields.gender),
+      birthday: dateValue(fields.birthday),
+      anniversary: dateValue(fields.anniversary),
+      tags: splitList(fields.tags),
+      notes: cleanText(fields.notes),
+      walletBalance: 0,
+      loyaltyPoints: 0,
+      visitCount: 0,
+      totalSpend: 0,
+      visitHistory: [],
+      purchaseHistory: [],
+      whatsappHistory: [],
+      consentForms: [],
+      branchId,
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "staff") {
+    return {
+      name: cleanText(fields.name),
+      role: cleanText(fields.role) || "Stylist",
+      phone: normalizePhone(fields.phone),
+      email: cleanText(fields.email),
+      branchId,
+      shift: cleanText(fields.shift),
+      status: cleanText(fields.status) || "active",
+      assignedServices: [],
+      commissionRule: {},
+      attendance: [],
+      performance: {},
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "services") {
+    return {
+      name: cleanText(fields.name || fields.serviceName),
+      category: cleanText(fields.category) || "Imported",
+      price: money(fields.price),
+      durationMinutes: integer(fields.durationMinutes, 30),
+      gstRate: numberValue(fields.gstRate, 18),
+      status: cleanText(fields.status) || "active",
+      assignedStaff: [],
+      requiredProducts: [],
+      addOns: [],
+      packageServices: [],
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "products") {
+    const name = cleanText(fields.name || fields.productName);
+    return {
+      name,
+      sku: cleanText(fields.sku) || slug(name),
+      category: cleanText(fields.category) || "Imported",
+      usageType: "retail",
+      supplier: cleanText(fields.supplier),
+      branchId,
+      stock: numberValue(fields.stock, 0),
+      lowStockThreshold: numberValue(fields.lowStockThreshold, 5),
+      expiryDate: dateOnly(fields.expiryDate),
+      unitCost: money(fields.unitCost),
+      price: money(fields.price),
+      gstRate: numberValue(fields.gstRate, 18),
+      status: cleanText(fields.status) || "active",
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "inventory") {
+    return {
+      productId: cleanText(fields.productId),
+      productName: cleanText(fields.productName),
+      sku: cleanText(fields.sku),
+      branchId,
+      type: cleanText(fields.type) || "import_opening_stock",
+      quantity: numberValue(fields.quantity ?? fields.stock, 0),
+      unitCost: money(fields.unitCost),
+      totalCost: numberValue(fields.quantity ?? fields.stock, 0) * money(fields.unitCost),
+      reason: cleanText(fields.reason) || "Imported stock movement",
+      referenceType: "migration",
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "vendors") {
+    return {
+      name: cleanText(fields.name || fields.vendor || fields.supplier),
+      contactName: cleanText(fields.contactName),
+      phone: normalizePhone(fields.phone),
+      email: cleanText(fields.email),
+      gstin: cleanText(fields.gstin),
+      address: cleanText(fields.address),
+      status: cleanText(fields.status) || "active",
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "expenses") {
+    return {
+      branchId,
+      category: cleanText(fields.category) || "Imported",
+      vendor: cleanText(fields.vendor),
+      amount: money(fields.amount),
+      taxAmount: money(fields.taxAmount),
+      paymentMode: cleanText(fields.paymentMode) || "cash",
+      paidAt: dateValue(fields.paidAt) || createdAt || now(),
+      notes: cleanText(fields.notes),
+      status: cleanText(fields.status) || "paid",
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "memberships") {
+    return {
+      clientId: cleanText(fields.clientId),
+      clientName: cleanText(fields.clientName || fields.name),
+      clientPhone: normalizePhone(fields.clientPhone || fields.phone),
+      planName: cleanText(fields.planName) || "Imported membership",
+      price: money(fields.price),
+      planCredits: integer(fields.planCredits, integer(fields.creditsRemaining, 0)),
+      creditsRemaining: integer(fields.creditsRemaining, integer(fields.planCredits, 0)),
+      validityDate: dateOnly(fields.validityDate),
+      autoRenew: boolValue(fields.autoRenew),
+      loyaltyMultiplier: 1,
+      status: cleanText(fields.status) || "active",
+      serviceCredits: [],
+      redeemHistory: [],
+      branchId,
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "appointments") {
+    return {
+      clientId: cleanText(fields.clientId),
+      clientName: cleanText(fields.clientName),
+      clientPhone: normalizePhone(fields.clientPhone || fields.phone),
+      staffId: cleanText(fields.staffId),
+      staffName: cleanText(fields.staffName),
+      branchId,
+      serviceIds: splitList(fields.serviceIds || fields.serviceId),
+      serviceName: cleanText(fields.serviceName),
+      startAt: dateValue(fields.startAt || fields.createdAt),
+      endAt: dateValue(fields.endAt),
+      status: cleanText(fields.status) || "completed",
+      source: cleanText(fields.source) || "migration",
+      chair: cleanText(fields.chair),
+      notes: cleanText(fields.notes),
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "sales" || resource === "invoices") {
+    return {
+      saleId: cleanText(fields.saleId),
+      invoiceNumber: cleanText(fields.invoiceNumber),
+      clientId: cleanText(fields.clientId),
+      clientName: cleanText(fields.clientName),
+      clientPhone: normalizePhone(fields.clientPhone || fields.phone),
+      staffId: cleanText(fields.staffId),
+      staffName: cleanText(fields.staffName),
+      branchId,
+      lineItem: cleanText(fields.lineItem || fields.serviceName || fields.productName) || "Imported sale",
+      subtotal: money(fields.subtotal || fields.total),
+      discount: money(fields.discount),
+      gstAmount: money(fields.gstAmount),
+      total: money(fields.total || fields.amount),
+      paid: money(fields.paid),
+      balance: fields.balance === undefined || fields.balance === "" ? undefined : money(fields.balance),
+      status: cleanText(fields.status) || "completed",
+      createdAt: createdAt || undefined
+    };
+  }
+  if (resource === "payments") {
+    return {
+      invoiceId: cleanText(fields.invoiceId),
+      invoiceNumber: cleanText(fields.invoiceNumber),
+      mode: cleanText(fields.mode || fields.paymentMode) || "cash",
+      amount: money(fields.amount || fields.paid),
+      reference: cleanText(fields.reference),
+      branchId,
+      createdAt: createdAt || undefined
+    };
+  }
+  return {};
+}
+
+function validatePreparedRow(row, context, seen) {
+  const errors = [];
+  const warnings = [];
+  const payload = row.payload;
+  const template = RESOURCE_TEMPLATES[row.resource];
+  for (const required of template.required) {
+    if (required === "branchId" && payload.branchId) continue;
+    if (required === "clientId" && (payload.clientId || payload.clientPhone || payload.clientName)) continue;
+    if (required === "staffId" && (payload.staffId || payload.staffName)) continue;
+    if (required === "productId" && (payload.productId || payload.productName || payload.sku)) continue;
+    if (required === "invoiceId" && (payload.invoiceId || payload.invoiceNumber)) continue;
+    if (empty(payload[required])) errors.push(`${required} is required`);
+  }
+  if (payload.branchId && !context.branches.some((branch) => branch.id === payload.branchId)) errors.push(`Unknown branchId ${payload.branchId}`);
+  const duplicate = duplicateFor(row, context, seen);
+  if (duplicate) warnings.push(`Possible duplicate: ${duplicate}`);
+  validateReferences(row, context, warnings, errors);
+  if (errors.length) return { status: "error", errors, warnings, message: errors.join(", "), duplicate: Boolean(duplicate) };
+  if (warnings.length) return { status: "warning", errors, warnings, message: warnings.join(", "), duplicate: Boolean(duplicate) };
+  return { status: "valid", errors, warnings, message: "Ready to import", duplicate: false };
+}
+
+function validateReferences(row, context, warnings, errors) {
+  const payload = row.payload;
+  if (["appointments", "sales", "invoices", "memberships"].includes(row.resource) && !resolveClient(payload, context)) {
+    if (payload.clientName || payload.clientPhone) warnings.push("Client will be auto-created from migrated history");
+    else errors.push("Client reference could not be resolved");
+  }
+  if (row.resource === "appointments" && !resolveStaff(payload, context)) errors.push("Staff reference could not be resolved");
+  if (row.resource === "inventory" && !resolveProduct(payload, context)) errors.push("Product reference could not be resolved");
+  if (row.resource === "payments" && !resolveInvoice(payload, context)) errors.push("Invoice reference could not be resolved");
+}
+
+function duplicateFor(row, context, seen) {
+  const payload = row.payload;
+  const fileKey = `${row.resource}:${cleanText(row.sourceExternalId || payload.invoiceNumber || payload.phone || payload.sku || payload.name).toLowerCase()}`;
+  if (seen.has(fileKey)) return "duplicate row in uploaded file";
+  seen.add(fileKey);
+  if (row.resource === "clients" && findClient(payload, context)) return "client already exists";
+  if (row.resource === "staff" && context.staff.some((item) => (payload.phone && normalizePhone(item.phone) === payload.phone) || (payload.email && same(item.email, payload.email)))) return "staff already exists";
+  if (row.resource === "services" && context.services.some((item) => same(item.name, payload.name))) return "service already exists";
+  if (row.resource === "products" && context.products.some((item) => same(item.sku, payload.sku) && item.branchId === payload.branchId)) return "product SKU already exists in branch";
+  if (row.resource === "vendors" && context.vendors.some((item) => same(item.name, payload.name))) return "vendor already exists";
+  if (row.resource === "invoices" && context.invoices.some((item) => same(item.invoiceNumber, payload.invoiceNumber))) return "invoice number already exists";
+  return "";
+}
+
+function importPreviewRows(preview, options) {
+  const context = createContext(options.access, preview.rows);
+  const counters = { importedRows: 0, skippedRows: 0, warningRows: 0, errorRows: 0, byResource: {} };
+  for (const row of preview.allRows || preview.rows) {
+    const resourceCounter = counters.byResource[row.resource] || { imported: 0, skipped: 0, warnings: 0, errors: 0 };
+    let result = { action: "skipped", targetId: "", status: row.status, message: row.message };
+    if (row.status === "error") {
+      counters.errorRows++;
+      resourceCounter.errors++;
+    } else {
+      try {
+        result = importOne(row, { ...options, context });
+        if (result.action === "skipped" || result.action === "merged") {
+          counters.skippedRows++;
+          resourceCounter.skipped++;
+          counters.warningRows++;
+          resourceCounter.warnings++;
+        } else {
+          counters.importedRows++;
+          resourceCounter.imported++;
+          if (row.status === "warning") {
+            counters.warningRows++;
+            resourceCounter.warnings++;
+          }
+        }
+      } catch (error) {
+        result = { action: "failed", targetId: "", status: "error", message: error.message };
+        counters.errorRows++;
+        resourceCounter.errors++;
+      }
+    }
+    counters.byResource[row.resource] = resourceCounter;
+    insertMigrationRow("migration_row_results", {
+      tenantId: options.access.tenantId,
+      jobId: options.jobId,
+      batchId: options.batchId,
+      resource: row.resource,
+      entity: row.resource,
+      sourceSheet: row.sourceSheet,
+      sourceRowNumber: row.sourceRowNumber,
+      sourceExternalId: row.sourceExternalId,
+      action: result.action,
+      targetId: result.targetId,
+      status: result.status,
+      message: result.message,
+      payload: row.payload,
+      raw: row.raw,
+      errors: row.errors || [],
+      warnings: row.warnings || []
+    });
+  }
+  return counters;
+}
+
+function importOne(row, { access, batchId, sourceSoftware, migrationMode, context }) {
+  const payload = row.payload;
+  const meta = migrationMode ? migrationMeta(row, batchId, sourceSoftware) : {};
+  if (row.resource === "clients") {
+    const existing = findClient(payload, context);
+    if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Client already exists" };
+    const created = insertRow("clients", { ...payload, ...meta });
+    context.clients.push(created);
+    return { action: "created", targetId: created.id, status: row.status, message: "Client imported" };
+  }
+  if (row.resource === "staff") {
+    const existing = context.staff.find((item) => (payload.phone && normalizePhone(item.phone) === payload.phone) || same(item.email, payload.email));
+    if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Staff already exists" };
+    const created = insertRow("staff", { ...payload, ...meta });
+    context.staff.push(created);
+    return { action: "created", targetId: created.id, status: row.status, message: "Staff imported" };
+  }
+  if (row.resource === "services") {
+    const existing = context.services.find((item) => same(item.name, payload.name));
+    if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Service already exists" };
+    const created = insertRow("services", { ...payload, ...meta });
+    context.services.push(created);
+    return { action: "created", targetId: created.id, status: row.status, message: "Service imported" };
+  }
+  if (row.resource === "products") {
+    const existing = context.products.find((item) => same(item.sku, payload.sku) && item.branchId === payload.branchId);
+    if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Product already exists" };
+    const created = insertRow("products", { ...payload, ...meta });
+    context.products.push(created);
+    return { action: "created", targetId: created.id, status: row.status, message: "Product imported" };
+  }
+  if (row.resource === "inventory") {
+    const product = resolveProduct(payload, context);
+    const created = insertRow("inventory_transactions", {
+      productId: product.id,
+      branchId: payload.branchId || product.branchId,
+      type: payload.type,
+      quantity: payload.quantity,
+      unitCost: payload.unitCost,
+      totalCost: payload.totalCost,
+      reason: payload.reason,
+      referenceType: "migration",
+      referenceId: batchId,
+      createdAt: payload.createdAt,
+      ...meta
+    });
+    updateRow("products", product.id, { stock: Number(product.stock || 0) + Number(payload.quantity || 0) }, { tenantId: access.tenantId });
+    product.stock = Number(product.stock || 0) + Number(payload.quantity || 0);
+    return { action: "created", targetId: created.id, status: row.status, message: "Inventory movement imported" };
+  }
+  if (row.resource === "vendors") {
+    const existing = context.vendors.find((item) => same(item.name, payload.name));
+    if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Vendor already exists" };
+    const created = insertRow("suppliers", { ...payload, ...meta });
+    context.vendors.push(created);
+    return { action: "created", targetId: created.id, status: row.status, message: "Vendor imported" };
+  }
+  if (row.resource === "expenses") {
+    const created = insertRow("finance_expenses", { ...payload, ...meta });
+    return { action: "created", targetId: created.id, status: row.status, message: "Expense imported" };
+  }
+  if (row.resource === "memberships") {
+    const client = ensureClient(payload, context, access, meta);
+    const created = insertRow("memberships", { ...payload, clientId: client.id, ...meta });
+    updateRow("clients", client.id, { membershipId: created.id }, { tenantId: access.tenantId });
+    return { action: "created", targetId: created.id, status: row.status, message: "Membership imported" };
+  }
+  if (row.resource === "appointments") {
+    const client = ensureClient(payload, context, access, meta);
+    const staff = resolveStaff(payload, context);
+    const serviceIds = resolveServiceIds(payload, context);
+    const startAt = payload.startAt || now();
+    const created = insertRow("appointments", {
+      ...payload,
+      clientId: client.id,
+      staffId: staff.id,
+      serviceIds,
+      startAt,
+      endAt: payload.endAt || new Date(new Date(startAt).getTime() + 30 * 60000).toISOString(),
+      ...meta
+    });
+    return { action: "created", targetId: created.id, status: row.status, message: "Appointment imported" };
+  }
+  if (row.resource === "sales") {
+    const sale = createImportedSale(payload, context, access, meta);
+    return { action: "created", targetId: sale.id, status: row.status, message: "Sale imported" };
+  }
+  if (row.resource === "invoices") {
+    const invoice = createImportedInvoice(payload, context, access, meta);
+    return { action: "created", targetId: invoice.id, status: row.status, message: "Invoice imported" };
+  }
+  if (row.resource === "payments") {
+    const invoice = resolveInvoice(payload, context);
+    const created = insertRow("payments", {
+      invoiceId: invoice.id,
+      branchId: payload.branchId || invoice.branchId || "",
+      mode: payload.mode,
+      amount: payload.amount,
+      reference: payload.reference,
+      createdAt: payload.createdAt,
+      ...meta
+    });
+    const paid = Number(invoice.paid || 0) + Number(payload.amount || 0);
+    const balance = Math.max(0, Number(invoice.total || 0) - paid);
+    const updated = updateRow("invoices", invoice.id, { paid, balance, status: balance <= 0 ? "paid" : "partial" }, { tenantId: access.tenantId });
+    Object.assign(invoice, updated);
+    return { action: "created", targetId: created.id, status: row.status, message: "Payment imported" };
+  }
+  return { action: "skipped", targetId: "", status: "warning", message: "Unsupported resource" };
+}
+
+function createImportedSale(payload, context, access, meta) {
+  const client = ensureClient(payload, context, access, meta);
+  const staff = resolveStaff(payload, context);
+  const total = money(payload.total);
+  const sale = insertRow("sales", {
+    clientId: client.id,
+    branchId: payload.branchId,
+    staffId: staff?.id || payload.staffId || "",
+    items: [{ type: "imported", name: payload.lineItem || "Imported sale", quantity: 1, price: total, gstRate: 0 }],
+    subtotal: money(payload.subtotal || total),
+    discount: money(payload.discount),
+    gstAmount: money(payload.gstAmount),
+    total,
+    status: payload.status || "completed",
+    createdAt: payload.createdAt,
+    ...meta
+  });
+  context.sales.push(sale);
+  updateClientHistory(client, sale, access);
+  return sale;
+}
+
+function createImportedInvoice(payload, context, access, meta) {
+  const existing = context.invoices.find((invoice) => same(invoice.invoiceNumber, payload.invoiceNumber));
+  if (existing) {
+    const error = new Error(`Invoice number already exists: ${payload.invoiceNumber}`);
+    error.status = 409;
+    throw error;
+  }
+  const sale = payload.saleId ? context.sales.find((item) => item.id === payload.saleId) : createImportedSale(payload, context, access, meta);
+  const paid = payload.balance === undefined ? money(payload.paid) : Math.max(0, money(payload.total) - money(payload.balance));
+  const balance = payload.balance === undefined ? Math.max(0, money(payload.total) - paid) : money(payload.balance);
+  const invoice = insertRow("invoices", {
+    saleId: sale.id,
+    clientId: sale.clientId,
+    invoiceNumber: payload.invoiceNumber || `MIG-${sale.id.slice(-8).toUpperCase()}`,
+    branchId: payload.branchId || sale.branchId,
+    staffId: payload.staffId || sale.staffId || "",
+    lineItems: sale.items,
+    subtotal: money(payload.subtotal || sale.subtotal),
+    discount: money(payload.discount),
+    gstAmount: money(payload.gstAmount),
+    total: money(payload.total || sale.total),
+    paid,
+    balance,
+    status: payload.status || (balance <= 0 ? "paid" : paid > 0 ? "partial" : "unpaid"),
+    createdAt: payload.createdAt,
+    ...meta
+  });
+  context.invoices.push(invoice);
+  return invoice;
+}
+
+function rollbackImports(access, filters = {}) {
+  const batches = findRollbackBatches(access, filters);
+  if (!batches.length) return { ok: false, message: "No active import batch found for rollback.", deleted: {} };
+  const deleted = {};
+  const batchIds = batches.map((batch) => batch.id);
+  const rollbackTx = db.transaction(() => {
+    for (const table of rollbackTableOrder(filters.resource)) {
+      const count = deleteImportedRows(table, batchIds, access, filters);
+      if (count) deleted[table] = count;
+    }
+    for (const batch of batches) {
+      updateMigrationRow("migration_import_batches", batch.id, { status: "rolled_back", rolledBackAt: now() }, { tenantId: access.tenantId });
+      if (batch.jobId) updateMigrationRow("migration_jobs", batch.jobId, { status: "rolled_back" }, { tenantId: access.tenantId });
+    }
+  });
+  withBusyRetry(() => rollbackTx());
+  auditMigration("migration.rollback.completed", { filters, batchIds, deleted }, access);
+  return { ok: true, deleted, batchIds };
+}
+
+function findRollbackBatches(access, filters) {
+  const where = ["tenantId = @tenantId", "status <> 'rolled_back'", "rolledBackAt = ''"];
+  const params = { tenantId: access.tenantId };
+  if (filters.jobId) {
+    where.push("jobId = @jobId");
+    params.jobId = filters.jobId;
+  }
+  if (filters.batchId) {
+    where.push("id = @batchId");
+    params.batchId = filters.batchId;
+  }
+  if (filters.branchId) {
+    where.push("(branchId = @branchId OR branchId = '')");
+    params.branchId = filters.branchId;
+  }
+  if (filters.resource) {
+    where.push("(resource = @resource OR resource = 'auto')");
+    params.resource = canonicalResource(filters.resource);
+  }
+  return db.prepare(`SELECT * FROM migration_import_batches WHERE ${where.join(" AND ")} ORDER BY createdAt DESC`).all(params);
+}
+
+function deleteImportedRows(table, batchIds, access, filters) {
+  const columns = columnsFor(table);
+  if (!columns.includes("imported") || !columns.includes("importBatchId")) {
+    return 0;
+  }
+  const placeholders = batchIds.map((_, index) => `@batch${index}`).join(",");
+  const params = Object.fromEntries(batchIds.map((id, index) => [`batch${index}`, id]));
+  params.tenantId = access.tenantId;
+  const tenantColumn = columns.includes("tenantId") ? "tenantId" : columns.includes("tenant_id") ? "tenant_id" : "";
+  const where = ["imported = 1", `importBatchId IN (${placeholders})`];
+  if (tenantColumn) {
+    where.unshift(`${tenantColumn} = @tenantId`);
+  }
+  if (filters.branchId && tableHasBranch(table) && columns.includes("branchId")) {
+    where.push("branchId = @branchId");
+    params.branchId = filters.branchId;
+  }
+  const result = db.prepare(`DELETE FROM ${table} WHERE ${where.join(" AND ")}`).run(params);
+  return result.changes || 0;
+}
+
+function rollbackTableOrder(resource = "") {
+  const map = {
+    clients: ["clients"],
+    staff: ["staff"],
+    services: ["services"],
+    products: ["inventory_transactions", "products"],
+    inventory: ["inventory_transactions"],
+    vendors: ["suppliers"],
+    expenses: ["finance_expenses"],
+    memberships: ["memberships"],
+    appointments: ["appointments"],
+    sales: ["payments", "invoices", "sales"],
+    invoices: ["payments", "invoices", "sales"],
+    payments: ["payments"]
+  };
+  const canonical = canonicalResource(resource);
+  return canonical ? map[canonical] || [] : ["payments", "invoices", "sales", "appointments", "memberships", "inventory_transactions", "products", "services", "staff", "finance_expenses", "suppliers", "clients"];
+}
+
+function tableHasBranch(table) {
+  return !["services", "suppliers"].includes(table);
+}
+
+function createContext(access, pendingRows = []) {
+  const scope = { tenantId: access.tenantId, limit: 100000 };
+  const branches = listRows("branches", scope);
+  const clients = listRows("clients", scope);
+  const staff = listRows("staff", scope);
+  const services = listRows("services", scope);
+  const products = listRows("products", scope);
+  const vendors = listRows("suppliers", scope);
+  const invoices = listRows("invoices", scope);
+  const sales = listRows("sales", scope);
+  for (const row of pendingRows || []) {
+    if (row.resource === "invoices" && row.payload.invoiceNumber) invoices.push({ id: "", invoiceNumber: row.payload.invoiceNumber, pending: true });
+  }
+  return { access, branches, clients, staff, services, products, vendors, invoices, sales };
+}
+
+function resolveBranchId(fields, access) {
+  const explicit = cleanText(fields.branchId);
+  if (explicit) return explicit;
+  const branchName = cleanText(fields.branchName);
+  if (branchName) {
+    const branch = listRows("branches", { tenantId: access.tenantId, limit: 1000 }).find((row) => same(row.name, branchName) || same(row.city, branchName));
+    if (branch) return branch.id;
+  }
+  return access.branchId || access.branchIds?.[0] || "branch_hyd";
+}
+
+function resolveClient(payload, context) {
+  return payload.clientId ? context.clients.find((client) => client.id === payload.clientId) : findClient(payload, context);
+}
+
+function ensureClient(payload, context, access, meta) {
+  const existing = resolveClient(payload, context);
+  if (existing) return existing;
+  const created = insertRow("clients", {
+    name: payload.clientName || "Imported Client",
+    phone: payload.clientPhone || `imported-${randomUUID().slice(0, 8)}`,
+    branchId: payload.branchId || access.branchId || access.branchIds?.[0] || "branch_hyd",
+    tags: ["imported"],
+    notes: "Auto-created during data migration",
+    visitHistory: [],
+    purchaseHistory: [],
+    whatsappHistory: [],
+    consentForms: [],
+    ...meta
+  });
+  context.clients.push(created);
+  return created;
+}
+
+function findClient(payload, context) {
+  const phone = normalizePhone(payload.phone || payload.clientPhone);
+  const email = cleanText(payload.email).toLowerCase();
+  const name = cleanText(payload.name || payload.clientName).toLowerCase();
+  return context.clients.find((client) =>
+    (phone && normalizePhone(client.phone) === phone) ||
+    (email && cleanText(client.email).toLowerCase() === email) ||
+    (name && cleanText(client.name).toLowerCase() === name)
+  );
+}
+
+function resolveStaff(payload, context) {
+  if (payload.staffId) return context.staff.find((staff) => staff.id === payload.staffId);
+  if (payload.staffName) return context.staff.find((staff) => same(staff.name, payload.staffName));
+  return null;
+}
+
+function resolveProduct(payload, context) {
+  if (payload.productId) return context.products.find((product) => product.id === payload.productId);
+  if (payload.sku) return context.products.find((product) => same(product.sku, payload.sku) && (!payload.branchId || product.branchId === payload.branchId));
+  if (payload.productName) return context.products.find((product) => same(product.name, payload.productName) && (!payload.branchId || product.branchId === payload.branchId));
+  return null;
+}
+
+function resolveInvoice(payload, context) {
+  if (payload.invoiceId) return context.invoices.find((invoice) => invoice.id === payload.invoiceId);
+  if (payload.invoiceNumber) return context.invoices.find((invoice) => same(invoice.invoiceNumber, payload.invoiceNumber) && invoice.id);
+  return null;
+}
+
+function resolveServiceIds(payload, context) {
+  const ids = Array.isArray(payload.serviceIds) ? payload.serviceIds : [];
+  const resolved = ids.filter((id) => context.services.some((service) => service.id === id));
+  if (payload.serviceName) {
+    const service = context.services.find((item) => same(item.name, payload.serviceName));
+    if (service) resolved.push(service.id);
+  }
+  return Array.from(new Set(resolved));
+}
+
+function updateClientHistory(client, sale, access) {
+  const purchaseHistory = Array.isArray(client.purchaseHistory) ? client.purchaseHistory : [];
+  purchaseHistory.push({ date: sale.createdAt, invoice: "Imported", amount: sale.total });
+  updateRow("clients", client.id, {
+    totalSpend: Number(client.totalSpend || 0) + Number(sale.total || 0),
+    visitCount: Number(client.visitCount || 0) + 1,
+    lastVisitAt: sale.createdAt || now(),
+    purchaseHistory
+  }, { tenantId: access.tenantId });
+}
+
+function migrationMeta(row, batchId, sourceSoftware) {
+  const stamp = now();
+  return {
+    imported: 1,
+    originalSystem: sourceSoftware,
+    originalRecordId: row.sourceExternalId,
+    importedAt: stamp,
+    importBatchId: batchId
+  };
+}
+
+function persistPreview(response, access, dryRun) {
+  const job = insertMigrationRow("migration_jobs", {
+    tenantId: access.tenantId,
+    sourceSoftware: response.sourceSoftware,
+    fileName: response.fileName,
+    status: "ready",
+    dryRun: dryRun ? 1 : 0,
+    totalRows: response.summary.totalRows,
+    warningRows: response.summary.warningRows,
+    errorRows: response.summary.errorRows,
+    summary: response.summary,
+    mapping: response.mapping
+  });
+  for (const row of response.rows) {
+    insertMigrationRow("migration_row_results", {
+      tenantId: access.tenantId,
+      jobId: job.id,
+      resource: row.resource,
+      entity: row.resource,
+      sourceSheet: row.sourceSheet,
+      sourceRowNumber: row.sourceRowNumber,
+      sourceExternalId: row.sourceExternalId,
+      action: "preview",
+      status: row.status,
+      message: row.message,
+      payload: row.payload,
+      raw: row.raw,
+      errors: row.errors,
+      warnings: row.warnings
+    });
+  }
+}
+
+function auditMigration(action, details, access) {
+  try {
+    insertMigrationRow("migration_audit_logs", {
+      tenantId: access.tenantId,
+      jobId: details.jobId || "",
+      batchId: details.batchId || "",
+      action,
+      actorUserId: access.userId || "system",
+      details
+    });
+    securityService.audit({
+      action,
+      targetType: "migration",
+      targetId: details.jobId || details.batchId || "",
+      details,
+      severity: action.includes("rollback") ? "warning" : "info"
+    }, access);
+  } catch {
+    // Migration audit must never interrupt the import transaction.
+  }
+}
+
+function templateFor(resource) {
+  const key = canonicalResource(resource);
+  const template = RESOURCE_TEMPLATES[key];
+  if (!template) throw badRequest(`Unsupported migration resource: ${resource}`);
+  return {
+    resource: key,
+    table: template.table,
+    required: template.required,
+    columns: template.fields.map((field) => ({
+      field,
+      required: template.required.includes(field),
+      aliases: FIELD_ALIASES[field] || [field],
+      example: exampleFor(field)
+    }))
+  };
+}
+
+function jsonBind(value) {
+  if (value === undefined || value === null) return value ?? null;
+  if (Buffer.isBuffer(value) || value instanceof Date) return value;
+  if (Array.isArray(value) || typeof value === "object") return JSON.stringify(value);
+  return value;
+}
+
+function jsonBindData(data = {}) {
+  return Object.fromEntries(Object.entries(data).map(([key, value]) => [key, jsonBind(value)]));
+}
+
+function insertMigrationRow(table, data) {
+  return insertRow(table, jsonBindData(data));
+}
+
+function updateMigrationRow(table, rowId, data, scope) {
+  return updateRow(table, rowId, jsonBindData(data), scope);
+}
+
+function autoMapColumns(columns, resource) {
+  const template = RESOURCE_TEMPLATES[resource];
+  const mapping = {};
+  const unmatched = [];
+  for (const column of columns) {
+    const cleanColumn = cleanKey(column);
+    const field = template.fields.find((candidate) => cleanKey(candidate) === cleanColumn || (FIELD_ALIASES[candidate] || []).some((alias) => cleanKey(alias) === cleanColumn));
+    if (field) mapping[column] = field;
+    else unmatched.push(column);
+  }
+  return { mapping, unmatched };
+}
+
+function mergeMapping(autoMapping, provided, columns, resource) {
+  const mapping = { ...autoMapping };
+  const fields = new Set(RESOURCE_TEMPLATES[resource].fields);
+  for (const [key, value] of Object.entries(provided || {})) {
+    if (columns.includes(key) && (fields.has(value) || value === "__ignore")) mapping[key] = value;
+    if (fields.has(key) && columns.includes(value)) mapping[value] = key;
+  }
+  return mapping;
+}
+
+function detectResource(sheetName) {
+  const cleaned = cleanKey(sheetName);
+  for (const [resource, aliases] of Object.entries(RESOURCE_ALIASES)) {
+    if (aliases.some((alias) => cleaned.includes(cleanKey(alias)))) return resource;
+  }
+  return "";
+}
+
+function canonicalResource(resource) {
+  const cleaned = cleanKey(resource);
+  if (!cleaned || cleaned === "auto") return "";
+  if (RESOURCE_TEMPLATES[cleaned]) return cleaned;
+  for (const [key, aliases] of Object.entries(RESOURCE_ALIASES)) {
+    if (aliases.some((alias) => cleanKey(alias) === cleaned)) return key;
+  }
+  if (cleaned === "suppliers") return "vendors";
+  if (cleaned === "finance expenses") return "expenses";
+  return "";
+}
+
+function sourceKey(value) {
+  const cleaned = cleanKey(value || "excel").replace(/\s+/g, "-");
+  return SOURCE_ADAPTERS[cleaned] ? cleaned : "excel";
+}
+
+function adapterFor(sourceSoftware) {
+  return `${sourceSoftware}-${SOURCE_ADAPTERS[sourceSoftware]?.type || "spreadsheet"}`;
+}
+
+function importSettings(payload) {
+  return {
+    migrationMode: payload.migrationMode !== false,
+    preserveCreatedAt: true,
+    preserveInvoiceNumbers: true,
+    preserveHistoricalPayments: true,
+    partialFailureHandling: "row-level",
+    originalSystem: payload.sourceSoftware || "excel"
+  };
+}
+
+function emptySummary(sourceSoftware, fileName, dryRun) {
+  return {
+    sourceSoftware,
+    fileName,
+    dryRun,
+    totalRows: 0,
+    validRows: 0,
+    warningRows: 0,
+    errorRows: 0,
+    duplicateRows: 0,
+    affectedRecords: 0,
+    byEntity: {},
+    byResource: {},
+    byBranch: {}
+  };
+}
+
+function addSummary(summary, resource, checked) {
+  summary.totalRows++;
+  summary.byResource[resource] = summary.byResource[resource] || { total: 0, valid: 0, warnings: 0, errors: 0, duplicates: 0 };
+  summary.byEntity[resource] = summary.byResource[resource];
+  const bucket = summary.byResource[resource];
+  bucket.total++;
+  if (checked.status === "error") {
+    summary.errorRows++;
+    bucket.errors++;
+  } else if (checked.status === "warning") {
+    summary.warningRows++;
+    bucket.warnings++;
+  } else {
+    summary.validRows++;
+    bucket.valid++;
+  }
+  if (checked.duplicate) {
+    summary.duplicateRows++;
+    bucket.duplicates++;
+  }
+}
+
+function branchSummary(rows) {
+  const summary = {};
+  for (const row of rows) {
+    const branchId = row.payload.branchId || "global";
+    summary[branchId] = summary[branchId] || { total: 0, valid: 0, warnings: 0, errors: 0 };
+    summary[branchId].total++;
+    if (row.status === "error") summary[branchId].errors++;
+    else if (row.status === "warning") summary[branchId].warnings++;
+    else summary[branchId].valid++;
+  }
+  return summary;
+}
+
+function progressFor(job) {
+  const total = Number(job.totalRows || 0);
+  if (!total) return 0;
+  return Math.round(((Number(job.importedRows || 0) + Number(job.skippedRows || 0) + Number(job.errorRows || 0)) / total) * 100);
+}
+
+function badRequest(message) {
+  const error = new Error(message);
+  error.status = 400;
+  return error;
+}
+
+function cleanKey(value) {
+  return cleanText(value).toLowerCase().replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function cleanText(value) {
+  return String(value ?? "").trim();
+}
+
+function empty(value) {
+  return cleanText(value) === "";
+}
+
+function same(left, right) {
+  return cleanKey(left) === cleanKey(right);
+}
+
+function normalizePhone(value) {
+  return cleanText(value).replace(/[^\d+]/g, "").replace(/^91(?=\d{10}$)/, "");
+}
+
+function numberValue(value, fallback = 0) {
+  const parsed = Number(cleanText(value).replace(/[₹,\s]/g, ""));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function integer(value, fallback = 0) {
+  return Math.round(numberValue(value, fallback));
+}
+
+function money(value) {
+  return numberValue(value, 0);
+}
+
+function boolValue(value) {
+  return ["1", "true", "yes", "y", "auto", "enabled"].includes(cleanKey(value));
+}
+
+function dateValue(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+  const raw = cleanText(value);
+  if (!raw) return "";
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? raw : parsed.toISOString();
+}
+
+function dateOnly(value) {
+  const date = dateValue(value);
+  return date.includes("T") ? date.slice(0, 10) : date;
+}
+
+function splitList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return cleanText(value).split(/[,|;]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function slug(value) {
+  return cleanText(value).toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || `SKU-${randomUUID().slice(0, 6)}`;
+}
+
+function exampleFor(field) {
+  const examples = {
+    name: "Riya Sharma",
+    phone: "+91 98765 43210",
+    email: "riya@example.com",
+    branchId: "branch_hyd",
+    price: "1200",
+    invoiceNumber: "INV-2024-001",
+    createdAt: "2024-04-01",
+    amount: "1500",
+    startAt: "2024-04-01 11:00"
+  };
+  return examples[field] || "";
+}
+
+function deserializeJson(row, keys) {
+  const out = { ...row };
+  for (const key of keys) {
+    try {
+      out[key] = out[key] ? JSON.parse(out[key]) : null;
+    } catch {
+      out[key] = null;
+    }
+  }
+  return out;
+}
+
+function withBusyRetry(fn, attempts = 12) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return fn();
+    } catch (error) {
+      lastError = error;
+      if (!String(error?.message || "").includes("database is locked")) throw error;
+      sleepSync(50 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}

@@ -1,0 +1,17 @@
+<section class="aura-stat-strip" aria-label="Key metrics">
+  <article class="aura-stat-strip__item" *ngFor="let stat of stats">
+    <div class="aura-stat-strip__label">{{ stat.label }}</div>
+    <div class="aura-stat-strip__value-row">
+      <strong>{{ stat.value }}</strong>
+      <span
+        class="aura-stat-strip__trend"
+        *ngIf="stat.trend"
+        [class.is-up]="stat.trend.direction === 'up'"
+        [class.is-down]="stat.trend.direction === 'down'"
+      >
+        {{ trendIcon(stat.trend.direction) }} {{ stat.trend.value }}
+      </span>
+    </div>
+    <div class="aura-stat-strip__subtext" *ngIf="stat.subtext">{{ stat.subtext }}</div>
+  </article>
+</section>

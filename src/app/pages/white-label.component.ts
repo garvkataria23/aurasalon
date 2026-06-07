@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-white-label',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,10 +23,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Profiles</span><strong>{{ metrics.profiles }}</strong><small>Brand systems</small></article>
-        <article class="metric-card blue"><span>Custom domains</span><strong>{{ metrics.customDomains }}</strong><small>Verified mappings</small></article>
-        <article class="metric-card green"><span>Branded branches</span><strong>{{ metrics.brandedBranches }}</strong><small>Branch overrides</small></article>
-        <article class="metric-card amber"><span>Default profiles</span><strong>{{ metrics.defaultProfiles }}</strong><small>Tenant fallback</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/white-label/profiles"><span>Profiles</span><strong>{{ metrics.profiles }}</strong><small>Brand systems</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/white-label/custom-domains"><span>Custom domains</span><strong>{{ metrics.customDomains }}</strong><small>Verified mappings</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/white-label/branded-branches"><span>Branded branches</span><strong>{{ metrics.brandedBranches }}</strong><small>Branch overrides</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/white-label/default-profiles"><span>Default profiles</span><strong>{{ metrics.defaultProfiles }}</strong><small>Tenant fallback</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

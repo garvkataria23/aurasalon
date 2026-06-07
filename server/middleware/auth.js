@@ -29,7 +29,9 @@ export function authenticateJwt({ required = true } = {}) {
       req.user = {
         id: payload.sub,
         email: payload.email,
+        loginId: payload.loginId || "",
         role: payload.role,
+        staffId: payload.staffId || "",
         branchId: requestedBranchId || payload.branchId || "",
         branchIds: payload.branchIds || []
       };
@@ -37,6 +39,8 @@ export function authenticateJwt({ required = true } = {}) {
         tenantId: payload.tenantId,
         role: payload.role,
         userId: payload.sub,
+        staffId: payload.staffId || "",
+        loginId: payload.loginId || "",
         branchId: requestedBranchId || payload.branchId || "",
         branchIds: payload.branchIds || [],
         requestedBranchId,

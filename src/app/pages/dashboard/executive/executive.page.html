@@ -1,0 +1,240 @@
+<section class="executive-page">
+  <header class="executive-header">
+    <div>
+      <span class="eyebrow">Executive command center</span>
+      <h1>Enterprise dashboard</h1>
+    </div>
+    <div class="header-actions">
+      <select [ngModel]="range()" (ngModelChange)="setRange($event)">
+        <option value="today">Today</option>
+        <option value="week">Week</option>
+        <option value="month">Month</option>
+        <option value="quarter">Quarter</option>
+        <option value="year">Year</option>
+      </select>
+      <select [ngModel]="branchId()" (ngModelChange)="setBranch($event)">
+        <option value="">All branches</option>
+        <option *ngFor="let branch of branches()" [value]="branch['id']">{{ branch['name'] }}</option>
+      </select>
+      <button class="ghost-button" type="button" (click)="load()">Refresh</button>
+      <button class="primary-button live-button" type="button" [class.is-live]="liveMode()" (click)="toggleLive()">
+        {{ liveMode() ? 'Live on' : 'Live off' }}
+      </button>
+    </div>
+  </header>
+
+  <app-state [loading]="loading()" [error]="error()"></app-state>
+
+  <ng-container *ngIf="data() as dashboard">
+    <div class="kpi-strip">
+      <a *ngFor="let kpi of kpis()" class="kpi-tile" [routerLink]="kpi.route">
+        <span>{{ kpi.label }}</span>
+        <strong>{{ kpi.value }}</strong>
+        <small [class.up]="kpi.trend === 'up'" [class.down]="kpi.trend === 'down'">
+          {{ kpi.trend === 'up' ? '▲' : kpi.trend === 'down' ? '▼' : '→' }}
+          {{ kpi.delta }}%
+        </small>
+      </a>
+    </div>
+
+    <div class="executive-grid">
+      <main class="main-column">
+        <section class="panel compact-panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Revenue trend</span>
+              <h2>{{ dashboard.range.from }} → {{ dashboard.range.to }}</h2>
+            </div>
+            <a class="ghost-button" routerLink="/reports">Reports</a>
+          </div>
+          <div class="mini-bars">
+            <div *ngFor="let row of dashboard.charts['revenueTrend'] || []" class="mini-bar">
+              <span [style.height.%]="(toNumber(row['value']) / maxChartValue(dashboard.charts['revenueTrend'] || [])) * 100"></span>
+              <small>{{ row['date'] }}</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="two-grid">
+          <article class="panel compact-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Service profitability</span>
+                <h2>Stars, workhorses and hidden gems</h2>
+              </div>
+            </div>
+            <div class="dense-list">
+              <div *ngFor="let row of rows(dashboard.advanced['serviceProfitabilityMatrix']).slice(0, 6)">
+                <strong>{{ row['service'] }}</strong>
+                <span>{{ row['quadrant'] }} · {{ row['action'] }}</span>
+                <b>{{ row['marginPct'] }}%</b>
+              </div>
+              <p *ngIf="!rows(dashboard.advanced['serviceProfitabilityMatrix']).length" class="empty-note">No service margin data yet.</p>
+            </div>
+          </article>
+
+          <article class="panel compact-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Peak hours heatmap</span>
+                <h2>Occupancy by day and hour</h2>
+              </div>
+            </div>
+            <div class="heatmap" *ngIf="record(dashboard.advanced['occupancyHeatmap']) as heatmap">
+              <div class="heat-row" *ngFor="let day of matrix(heatmap['cells']); let i = index">
+                <small>{{ heatmap['days']?.[i] }}</small>
+                <span *ngFor="let cell of day" [style.opacity]="0.25 + (toNumber(cell) / 140)"></span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="two-grid">
+          <article class="panel compact-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Salon-critical KPIs</span>
+                <h2>Capacity, walk-ins, visit gap</h2>
+              </div>
+            </div>
+            <div class="insight-grid">
+              <div>
+                <span>Chair utilization</span>
+                <strong>{{ record(dashboard.salonCritical['chairUtilization'])['summaryPct'] || 0 }}%</strong>
+                <small>{{ record(dashboard.salonCritical['chairUtilization'])['idleRisk'] }}</small>
+              </div>
+              <div>
+                <span>Walk-in ratio</span>
+                <strong>{{ record(dashboard.salonCritical['walkInVsAppointment'])['ratioPct'] || 0 }}%</strong>
+                <small>{{ record(dashboard.salonCritical['walkInVsAppointment'])['walkins'] || 0 }} walk-ins</small>
+              </div>
+              <div>
+                <span>Avg visit gap</span>
+                <strong>{{ record(dashboard.salonCritical['averageVisitGap'])['avgGapDays'] || 0 }}d</strong>
+                <small>{{ record(dashboard.salonCritical['averageVisitGap'])['atRiskCustomers'] || 0 }} at-risk</small>
+              </div>
+              <div>
+                <span>Tips</span>
+                <strong>{{ currency(record(dashboard.salonCritical['tipDistribution'])['totalTips']) }}</strong>
+                <small>{{ record(dashboard.salonCritical['tipDistribution'])['tipPctOfBill'] || 0 }}% of bill</small>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel compact-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">RFM + CLV</span>
+                <h2>Customer retention engine</h2>
+              </div>
+              <a class="ghost-button" routerLink="/clients">CRM</a>
+            </div>
+            <div class="dense-list">
+              <div *ngFor="let row of rows(dashboard.advanced['rfmSegmentation']).slice(0, 6)">
+                <strong>{{ row['segment'] }}</strong>
+                <span>{{ row['customerCount'] }} customers</span>
+                <b>{{ currency(row['totalCLV']) }}</b>
+              </div>
+              <div *ngFor="let row of rows(dashboard.advanced['cohortAnalysis']).slice(0, 3)">
+                <strong>{{ row['cohort'] }} cohort</strong>
+                <span>{{ row['customers'] }} clients · {{ row['retentionPct'] }}% active</span>
+                <b>{{ row['active'] }}</b>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="two-grid">
+          <article class="panel compact-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">GST and compliance</span>
+                <h2>India-ready billing snapshot</h2>
+              </div>
+              <a class="ghost-button" routerLink="/finance">Finance</a>
+            </div>
+            <div class="insight-grid three">
+              <div>
+                <span>Taxable value</span>
+                <strong>{{ currency(record(dashboard.salonCritical['gstReports'])['taxableValue']) }}</strong>
+                <small>GSTR-1 source</small>
+              </div>
+              <div>
+                <span>GST amount</span>
+                <strong>{{ currency(record(dashboard.salonCritical['gstReports'])['gstAmount']) }}</strong>
+                <small>CGST + SGST</small>
+              </div>
+              <div>
+                <span>Refund rate</span>
+                <strong>{{ record(dashboard.salonCritical['refundsDisputes'])['refundRatePct'] || 0 }}%</strong>
+                <small>{{ currency(record(dashboard.salonCritical['refundsDisputes'])['refundAmount']) }} refunded</small>
+              </div>
+              <div>
+                <span>Gateway settlement</span>
+                <strong>{{ currency(record(dashboard.salonCritical['razorpaySettlement'])['pendingSettlement']) }}</strong>
+                <small>{{ record(dashboard.salonCritical['razorpaySettlement'])['status'] }}</small>
+              </div>
+              <div>
+                <span>NPS / Reviews</span>
+                <strong>{{ record(dashboard.advanced['npsReviewSentiment'])['nps'] || 0 }}</strong>
+                <small>{{ record(dashboard.advanced['npsReviewSentiment'])['reviewsAnalyzed'] || 0 }} reviews</small>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel compact-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Anomaly detection</span>
+                <h2>Open alerts</h2>
+              </div>
+            </div>
+            <div class="alert-list">
+              <div *ngFor="let alert of dashboard.alerts.slice(0, 4)">
+                <strong>{{ alert['title'] }}</strong>
+                <span>{{ alert['message'] }}</span>
+                <button class="ghost-button" type="button" (click)="resolveAlert(alert['id'])">Resolve</button>
+              </div>
+              <p *ngIf="!dashboard.alerts.length" class="empty-note">No open anomaly alerts.</p>
+            </div>
+            <div class="dense-list compact-funnel">
+              <div *ngFor="let row of rows(dashboard.advanced['bookingFunnel'])">
+                <strong>{{ row['step'] }}</strong>
+                <span>{{ row['dropOffPct'] || 0 }}% drop</span>
+                <b>{{ row['count'] }}</b>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+
+      <aside class="side-column">
+        <section class="panel compact-panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Live feed</span>
+              <h2>Realtime activity</h2>
+            </div>
+          </div>
+          <app-activity-feed [items]="activityItems()"></app-activity-feed>
+        </section>
+
+        <section class="panel compact-panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Top performers</span>
+              <h2>Staff and services</h2>
+            </div>
+          </div>
+          <div class="dense-list">
+            <div *ngFor="let row of dashboard.topPerformers.staff">
+              <strong>{{ row['staff'] }}</strong>
+              <span>{{ row['servicesCompleted'] || 0 }} services</span>
+              <b>{{ currency(row['value']) }}</b>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </ng-container>
+</section>

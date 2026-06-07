@@ -5,6 +5,7 @@ export type UserRole =
   | 'owner'
   | 'admin'
   | 'manager'
+  | 'cashier'
   | 'receptionist'
   | 'frontDesk'
   | 'staff'
@@ -13,9 +14,11 @@ export type UserRole =
   | 'analyst'
   | 'customMarketingLead';
 
+const DEFAULT_TENANT_ID = 'tenant_aura';
+
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
-  readonly selectedTenantId = signal(localStorage.getItem('aura.selectedTenantId') || 'tenant_aura');
+  readonly selectedTenantId = signal(this.normalizeTenantId(localStorage.getItem('aura.selectedTenantId')));
   readonly selectedBranchId = signal(localStorage.getItem('aura.selectedBranchId') || '');
   readonly userRole = signal<UserRole>((localStorage.getItem('aura.userRole') as UserRole) || 'owner');
   readonly globalSearch = signal('');
@@ -25,8 +28,9 @@ export class AppStateService {
   readonly canManageSettings = computed(() => ['superAdmin', 'owner', 'admin'].includes(this.userRole()));
 
   setTenant(tenantId: string): void {
-    this.selectedTenantId.set(tenantId || 'tenant_aura');
-    localStorage.setItem('aura.selectedTenantId', tenantId || 'tenant_aura');
+    const normalizedTenantId = this.normalizeTenantId(tenantId);
+    this.selectedTenantId.set(normalizedTenantId);
+    localStorage.setItem('aura.selectedTenantId', normalizedTenantId);
     this.setBranch('');
   }
 
@@ -38,5 +42,11 @@ export class AppStateService {
   setRole(role: UserRole): void {
     this.userRole.set(role);
     localStorage.setItem('aura.userRole', role);
+  }
+
+  private normalizeTenantId(tenantId: string | null): string {
+    const value = tenantId || DEFAULT_TENANT_ID;
+    if (/^tenant_(ai|import)_/i.test(value)) return DEFAULT_TENANT_ID;
+    return value;
   }
 }

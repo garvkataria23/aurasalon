@@ -161,8 +161,8 @@ operationsRouter.get(
 operationsRouter.get(
   "/reports/advanced",
   requirePermission("read", () => "reports"),
-  asyncHandler((_req, res) => {
-    res.json(salonOperationsService.advancedReport(_req.access));
+  asyncHandler((req, res) => {
+    res.json(salonOperationsService.advancedReport(req.query, req.access));
   })
 );
 

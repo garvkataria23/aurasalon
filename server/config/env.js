@@ -6,14 +6,18 @@ export const env = {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
-  requestBodyLimit: process.env.REQUEST_BODY_LIMIT || "1mb",
+  requestBodyLimit: process.env.REQUEST_BODY_LIMIT || "8mb",
   logLevel: process.env.LOG_LEVEL || "info",
   jwtSecret: process.env.JWT_SECRET || "dev-only-change-this-mobile-secret",
   encryptionSecret: process.env.ENCRYPTION_SECRET || process.env.JWT_SECRET || "dev-only-change-this-encryption-secret",
   jwtAccessTtlSeconds: Number(process.env.JWT_ACCESS_TTL_SECONDS || 900),
   jwtRefreshTtlDays: Number(process.env.JWT_REFRESH_TTL_DAYS || 30),
+  requirePasswordAuth: (process.env.REQUIRE_PASSWORD_AUTH || (process.env.NODE_ENV === "production" ? "true" : "false")) === "true",
+  demoAdminPassword: process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026",
   apiVersion: "v1",
   aiProvider: process.env.AI_PROVIDER || "local",
   openaiApiKey: process.env.OPENAI_API_KEY || "",
-  openaiModel: process.env.OPENAI_MODEL || "gpt-4.1-mini"
+  openaiModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  anthropicModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest"
 };

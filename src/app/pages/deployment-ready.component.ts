@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-deployment-ready',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -26,9 +27,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Ready items</span><strong>{{ metrics.readyItems }}/{{ metrics.checklistItems }}</strong><small>Deployment checklist</small></article>
-        <article class="metric-card blue"><span>Events</span><strong>{{ metrics.events }}</strong><small>Deployment records</small></article>
-        <article class="metric-card green"><span>Backups</span><strong>{{ metrics.backups }}</strong><small>Database snapshots</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/deployment/ready-items"><span>Ready items</span><strong>{{ metrics.readyItems }}/{{ metrics.checklistItems }}</strong><small>Deployment checklist</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/deployment/events"><span>Events</span><strong>{{ metrics.events }}</strong><small>Deployment records</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/deployment/backups"><span>Backups</span><strong>{{ metrics.backups }}</strong><small>Database snapshots</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

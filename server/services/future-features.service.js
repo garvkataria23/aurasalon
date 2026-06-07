@@ -21,6 +21,99 @@ const allowedTypes = new Set([
   "ai-receptionist"
 ]);
 
+const workflowDefinitions = [
+  {
+    type: "growth-advisor",
+    label: "AI salon growth advisor",
+    category: "Growth",
+    sourceKeys: ["clients", "sales", "appointments", "products", "campaigns"],
+    modules: ["Client CRM", "POS Billing", "Appointments", "Inventory", "Marketing"],
+    routes: ["/clients", "/pos", "/appointments", "/inventory", "/marketing"],
+    action: "Create weekly growth plan"
+  },
+  {
+    type: "pricing-optimizer",
+    label: "AI pricing optimizer",
+    category: "Revenue",
+    sourceKeys: ["services", "sales", "appointments"],
+    modules: ["Services", "POS Billing", "Appointments"],
+    routes: ["/services", "/pos", "/appointments"],
+    action: "Review service price upside"
+  },
+  {
+    type: "offer-engine",
+    label: "AI offer engine",
+    category: "Marketing",
+    sourceKeys: ["clients", "services", "campaigns", "whatsappThreads"],
+    modules: ["Client CRM", "Services", "Marketing", "WhatsApp"],
+    routes: ["/clients", "/services", "/marketing", "/whatsapp"],
+    action: "Draft segmented WhatsApp offers"
+  },
+  {
+    type: "emotion-analysis",
+    label: "AI customer emotion analysis",
+    category: "Experience",
+    sourceKeys: ["clients", "whatsappThreads", "sales"],
+    modules: ["Client CRM", "WhatsApp", "POS Billing"],
+    routes: ["/clients", "/whatsapp", "/pos"],
+    action: "Detect unhappy clients and recovery scripts"
+  },
+  {
+    type: "no-show-prediction",
+    label: "AI no-show prediction",
+    category: "Calendar",
+    sourceKeys: ["appointments", "clients", "whatsappThreads"],
+    modules: ["Appointments", "Client CRM", "WhatsApp"],
+    routes: ["/appointments", "/clients", "/whatsapp"],
+    action: "Trigger confirmation reminders"
+  },
+  {
+    type: "demand-forecasting",
+    label: "AI demand forecasting",
+    category: "Operations",
+    sourceKeys: ["appointments", "staff", "campaigns", "branches"],
+    modules: ["Appointments", "Staff", "Marketing", "Branches"],
+    routes: ["/appointments", "/staff", "/marketing", "/settings"],
+    action: "Plan staffing and peak slots"
+  },
+  {
+    type: "inventory-prediction",
+    label: "AI inventory prediction",
+    category: "Inventory",
+    sourceKeys: ["products", "services", "sales", "appointments"],
+    modules: ["Inventory", "Services", "POS Billing", "Appointments"],
+    routes: ["/inventory", "/inventory/recipes", "/pos", "/appointments"],
+    action: "Create reorder and stockout prevention list"
+  },
+  {
+    type: "voice-booking-assistant",
+    label: "Voice booking assistant",
+    category: "Front desk",
+    sourceKeys: ["services", "appointments", "branches", "staff"],
+    modules: ["Services", "Appointments", "Branches", "Staff"],
+    routes: ["/services", "/appointments", "/staff"],
+    action: "Recommend bookable slots from voice transcript"
+  },
+  {
+    type: "smart-kiosk-mode",
+    label: "Smart kiosk mode",
+    category: "Front desk",
+    sourceKeys: ["appointments", "clients", "branches"],
+    modules: ["Appointments", "Client CRM", "Branches"],
+    routes: ["/appointments", "/clients"],
+    action: "Start self check-in with queue estimate"
+  },
+  {
+    type: "ai-receptionist",
+    label: "AI receptionist",
+    category: "Front desk",
+    sourceKeys: ["clients", "appointments", "services", "memberships", "whatsappThreads"],
+    modules: ["Client CRM", "Appointments", "Services", "Memberships", "WhatsApp"],
+    routes: ["/clients", "/appointments", "/services", "/memberships", "/whatsapp"],
+    action: "Route booking, complaint, payment or membership intent"
+  }
+];
+
 function scope(access, branchId = "") {
   const scoped = tenantService.accessScope(access || {});
   if (branchId) scoped.branchId = branchId;
@@ -34,6 +127,17 @@ function daysSince(value) {
   return Math.max(0, Math.round((Date.now() - time) / 86400000));
 }
 
+function latestActivity(items, keys = ["updatedAt", "createdAt", "startAt", "date"]) {
+  let latest = "";
+  for (const item of items || []) {
+    for (const key of keys) {
+      const value = item?.[key];
+      if (value && (!latest || new Date(value).getTime() > new Date(latest).getTime())) latest = value;
+    }
+  }
+  return latest;
+}
+
 export class FutureFeaturesService {
   summary(query = {}, access) {
     const branchId = query.branchId || access.branchId || "";
@@ -42,6 +146,10 @@ export class FutureFeaturesService {
     const voiceSessions = repositories.voiceBookingSessions.list({ branchId, limit: 100 }, scope(access, branchId));
     const kioskSessions = repositories.kioskSessions.list({ branchId, limit: 100 }, scope(access, branchId));
     const context = this.context(access, branchId);
+    const liveDataSources = this.liveDataSources(context);
+    const workflowMap = this.workflowMap(runs, liveDataSources);
+    const actionRail = this.actionRail(context, workflowMap);
+    const sourceHealth = this.sourceHealth(liveDataSources, workflowMap);
     return {
       metrics: {
         innovationRuns: runs.length,
@@ -49,23 +157,21 @@ export class FutureFeaturesService {
         kioskSessions: kioskSessions.length,
         noShowRisk: this.noShowPrediction({}, context).highRiskCount,
         demandIndex: this.demandForecasting({}, context).demandIndex,
-        pricingOpportunity: this.pricingOptimizer({}, context).totalMonthlyOpportunity
+        pricingOpportunity: this.pricingOptimizer({}, context).totalMonthlyOpportunity,
+        liveSources: sourceHealth.liveSources,
+        connectedModules: sourceHealth.connectedModules,
+        automationReady: sourceHealth.readyWorkflows,
+        actionPaths: actionRail.length
       },
       runs,
       voiceSessions,
       kioskSessions,
+      liveDataSources,
+      workflowMap,
+      actionRail,
+      sourceHealth,
       advisorPreview: this.growthAdvisor({}, context),
-      featureMap: [
-        "AI salon growth advisor",
-        "AI pricing optimizer",
-        "AI offer engine",
-        "AI customer emotion analysis",
-        "AI no-show prediction",
-        "AI demand forecasting",
-        "Voice booking assistant",
-        "Smart kiosk mode",
-        "AI receptionist"
-      ]
+      featureMap: workflowDefinitions.map((workflow) => workflow.label)
     };
   }
 
@@ -76,20 +182,30 @@ export class FutureFeaturesService {
     if (branchId) tenantService.assertBranchAccess(access, branchId);
     const context = this.context(access, branchId);
     const output = this.dispatch(type, payload, context, access);
-    const actions = output.actions || [];
+    const sourceTrace = this.sourceTraceFor(type, context);
+    const metadata = workflowDefinitions.find((workflow) => workflow.type === type) || {};
+    const outputWithTrace = {
+      ...output,
+      sourceTrace,
+      connectedModules: metadata.modules || [],
+      nextRoutes: metadata.routes || [],
+      safetyMode: "review-before-action",
+      liveEvidence: sourceTrace.map((source) => `${source.name}: ${source.count} records`)
+    };
+    const actions = outputWithTrace.actions || [];
     const run = repositories.innovationRuns.create({
       id: makeId("innov"),
       branchId,
       type,
       input: payload,
       signals: this.signals(context),
-      output,
+      output: outputWithTrace,
       actions,
-      confidence: output.confidence || 0.84,
+      confidence: outputWithTrace.confidence || 0.84,
       status: "generated"
     }, scope(access, branchId));
     tenantService.recordUsage({ tenantId: access.tenantId, metric: `innovation:${type}`, referenceType: "innovation_run", referenceId: run.id });
-    return { run, output };
+    return { run, output: outputWithTrace };
   }
 
   dispatch(type, payload, context, access) {
@@ -138,6 +254,205 @@ export class FutureFeaturesService {
       campaigns: repositories.campaigns.list({ limit: 10000 }, scope(access)),
       whatsappThreads: repositories.whatsappThreads.list(branchQuery, queryScope)
     };
+  }
+
+  liveDataSources(context) {
+    const inactiveClients = context.clients.filter((client) => daysSince(client.lastVisitAt) > 60).length;
+    const lowStock = context.products.filter((item) => Number(item.stock || 0) <= Number(item.lowStockThreshold || 0)).length;
+    const booked = context.appointments.filter((appointment) => ["booked", "arrived"].includes(appointment.status)).length;
+    const revenue = context.sales.reduce((sum, sale) => sum + Number(sale.total || sale.totalAmount || 0), 0);
+    return [
+      {
+        key: "clients",
+        name: "Client CRM",
+        route: "/clients",
+        count: context.clients.length,
+        signal: `${inactiveClients} inactive clients`,
+        freshness: latestActivity(context.clients, ["updatedAt", "createdAt", "lastVisitAt"]),
+        status: context.clients.length ? "live" : "needs data"
+      },
+      {
+        key: "sales",
+        name: "POS Billing",
+        route: "/pos",
+        count: context.sales.length,
+        signal: `INR ${money(revenue)} revenue base`,
+        freshness: latestActivity(context.sales),
+        status: context.sales.length ? "live" : "needs data"
+      },
+      {
+        key: "appointments",
+        name: "Appointments",
+        route: "/appointments",
+        count: context.appointments.length,
+        signal: `${booked} active bookings`,
+        freshness: latestActivity(context.appointments, ["updatedAt", "createdAt", "startAt"]),
+        status: context.appointments.length ? "live" : "needs data"
+      },
+      {
+        key: "services",
+        name: "Services",
+        route: "/services",
+        count: context.services.length,
+        signal: `${context.services.length} priced services`,
+        freshness: latestActivity(context.services),
+        status: context.services.length ? "live" : "needs data"
+      },
+      {
+        key: "products",
+        name: "Inventory",
+        route: "/inventory",
+        count: context.products.length,
+        signal: `${lowStock} low-stock products`,
+        freshness: latestActivity(context.products),
+        status: context.products.length ? "live" : "needs data"
+      },
+      {
+        key: "staff",
+        name: "Staff",
+        route: "/staff",
+        count: context.staff.length,
+        signal: `${context.staff.length} roster records`,
+        freshness: latestActivity(context.staff),
+        status: context.staff.length ? "live" : "needs data"
+      },
+      {
+        key: "campaigns",
+        name: "Marketing",
+        route: "/marketing",
+        count: context.campaigns.length,
+        signal: `${context.campaigns.length} campaign records`,
+        freshness: latestActivity(context.campaigns),
+        status: context.campaigns.length ? "live" : "needs data"
+      },
+      {
+        key: "whatsappThreads",
+        name: "WhatsApp",
+        route: "/whatsapp",
+        count: context.whatsappThreads.length,
+        signal: `${context.whatsappThreads.length} conversation threads`,
+        freshness: latestActivity(context.whatsappThreads),
+        status: context.whatsappThreads.length ? "live" : "needs data"
+      },
+      {
+        key: "memberships",
+        name: "Memberships",
+        route: "/memberships",
+        count: context.memberships.length,
+        signal: `${context.memberships.length} membership records`,
+        freshness: latestActivity(context.memberships),
+        status: context.memberships.length ? "live" : "needs data"
+      },
+      {
+        key: "branches",
+        name: "Branches",
+        route: "/settings",
+        count: context.branches.length,
+        signal: context.branchId ? `Scoped to ${context.branchId}` : `${context.branches.length} branches available`,
+        freshness: latestActivity(context.branches),
+        status: context.branches.length || context.branchId ? "live" : "needs data"
+      }
+    ];
+  }
+
+  workflowMap(runs, liveDataSources) {
+    const sourceByKey = new Map(liveDataSources.map((source) => [source.key, source]));
+    const runStats = new Map();
+    for (const run of runs || []) {
+      const stat = runStats.get(run.type) || { count: 0, lastRunAt: "" };
+      stat.count += 1;
+      if (run.createdAt && (!stat.lastRunAt || new Date(run.createdAt).getTime() > new Date(stat.lastRunAt).getTime())) {
+        stat.lastRunAt = run.createdAt;
+      }
+      runStats.set(run.type, stat);
+    }
+    return workflowDefinitions.map((workflow) => {
+      const sources = workflow.sourceKeys.map((key) => sourceByKey.get(key)).filter(Boolean);
+      const readySources = sources.filter((source) => Number(source.count || 0) > 0 || source.key === "branches").length;
+      const stat = runStats.get(workflow.type) || { count: 0, lastRunAt: "" };
+      return {
+        ...workflow,
+        sourceCount: sources.length,
+        readySources,
+        liveRecordCount: sources.reduce((sum, source) => sum + Number(source.count || 0), 0),
+        status: readySources ? "connected" : "waiting for data",
+        runCount: stat.count,
+        lastRunAt: stat.lastRunAt,
+        sourceSignals: sources.map((source) => `${source.name}: ${source.signal}`)
+      };
+    });
+  }
+
+  actionRail(context, workflowMap) {
+    const inactiveClients = context.clients.filter((client) => daysSince(client.lastVisitAt) > 60).length;
+    const lowStock = context.products.filter((item) => Number(item.stock || 0) <= Number(item.lowStockThreshold || 0)).length;
+    const openBookings = context.appointments.filter((item) => ["booked", "arrived"].includes(item.status)).length;
+    const pricingOpportunity = this.pricingOptimizer({}, context).totalMonthlyOpportunity;
+    return [
+      {
+        title: "Client recovery loop",
+        route: "/clients",
+        source: "Client CRM",
+        target: "WhatsApp + Marketing",
+        count: inactiveClients,
+        workflow: "growth-advisor",
+        status: inactiveClients ? "ready" : "monitoring"
+      },
+      {
+        title: "Price and margin review",
+        route: "/pos",
+        source: "POS Billing + Services",
+        target: "Pricing optimizer",
+        count: pricingOpportunity,
+        workflow: "pricing-optimizer",
+        status: pricingOpportunity > 0 ? "ready" : "monitoring"
+      },
+      {
+        title: "No-show prevention",
+        route: "/appointments",
+        source: "Appointments + Client CRM",
+        target: "WhatsApp reminder",
+        count: openBookings,
+        workflow: "no-show-prediction",
+        status: openBookings ? "ready" : "monitoring"
+      },
+      {
+        title: "Stockout prevention",
+        route: "/inventory",
+        source: "Inventory + Services",
+        target: "Purchase planning",
+        count: lowStock,
+        workflow: "inventory-prediction",
+        status: lowStock ? "ready" : "monitoring"
+      },
+      {
+        title: "Front desk automation",
+        route: "/appointments",
+        source: "Services + Slots + Staff",
+        target: "Voice assistant / kiosk",
+        count: workflowMap.filter((workflow) => workflow.category === "Front desk").length,
+        workflow: "voice-booking-assistant",
+        status: "connected"
+      }
+    ];
+  }
+
+  sourceHealth(liveDataSources, workflowMap) {
+    const connectedModules = new Set(workflowDefinitions.flatMap((workflow) => workflow.modules));
+    return {
+      liveSources: liveDataSources.filter((source) => source.status === "live").length,
+      totalSources: liveDataSources.length,
+      connectedModules: connectedModules.size,
+      readyWorkflows: workflowMap.filter((workflow) => workflow.status === "connected").length,
+      totalWorkflows: workflowMap.length
+    };
+  }
+
+  sourceTraceFor(type, context) {
+    const workflow = workflowDefinitions.find((item) => item.type === type);
+    if (!workflow) return [];
+    const sourceByKey = new Map(this.liveDataSources(context).map((source) => [source.key, source]));
+    return workflow.sourceKeys.map((key) => sourceByKey.get(key)).filter(Boolean);
   }
 
   signals(context) {

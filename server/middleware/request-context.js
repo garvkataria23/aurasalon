@@ -1,5 +1,6 @@
 import { logger } from "../utils/logger.js";
 import { tenantService } from "../services/tenant.service.js";
+import { notFound } from "../utils/app-error.js";
 
 export function requestContext(req, res, next) {
   const startedAt = Date.now();
@@ -8,6 +9,10 @@ export function requestContext(req, res, next) {
     tenantId: req.get("x-tenant-id") || "",
     host: req.get("x-forwarded-host") || req.get("host") || ""
   });
+  if (req.get("x-tenant-id") && !tenant) {
+    next(notFound("Tenant not found"));
+    return;
+  }
   const requestedBranchId = req.get("x-branch-id") || "";
   const user = tenantService.getTenantUser({
     tenantId: tenant?.id,

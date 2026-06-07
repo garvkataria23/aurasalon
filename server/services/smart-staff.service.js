@@ -6,6 +6,7 @@ const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const pct = (value) => Math.round((Number(value) || 0) * 100) / 100;
+const inactiveStaffStatuses = new Set(["archived", "blocked", "deleted", "inactive", "suspended", "terminated"]);
 
 function scope(access, branchId = "") {
   const scoped = tenantService.accessScope(access || {}, "");
@@ -41,6 +42,10 @@ function sum(items, selector) {
   return items.reduce((total, item) => total + Number(selector(item) || 0), 0);
 }
 
+function isActiveStaff(person = {}) {
+  return !inactiveStaffStatuses.has(String(person.status || "active").trim().toLowerCase());
+}
+
 function defaultPeriod(input = {}) {
   const periodEnd = input.periodEnd || now().slice(0, 10);
   const date = new Date(periodEnd);
@@ -61,7 +66,7 @@ export class SmartStaffService {
     const { periodStart, periodEnd } = defaultPeriod(input);
     const queryScope = scope(access, branchId);
     const branchQuery = branchId ? { branchId, limit: 10000 } : { limit: 10000 };
-    const staff = repositories.staff.list(branchQuery, queryScope);
+    const staff = repositories.staff.list(branchQuery, queryScope).filter(isActiveStaff);
     const sales = repositories.sales.list(branchQuery, queryScope).filter((sale) => withinPeriod(sale, periodStart, periodEnd));
     const appointments = repositories.appointments.list(branchQuery, queryScope).filter((appointment) => withinPeriod(appointment, periodStart, periodEnd, "startAt"));
     const attendance = repositories.staffAttendance.list(branchQuery, queryScope).filter((row) => withinPeriod(row, periodStart, periodEnd, "date"));
@@ -77,6 +82,7 @@ export class SmartStaffService {
     const incentives = this.calculateIncentivesFrom(context, ranking, commission.entries);
     const attendanceSummary = this.attendanceSummary(context);
     const payrollPreview = this.payrollRows(context, ranking, commission.entries, incentives.rows);
+    const directory = this.staffDirectory(context, ranking, commission.entries, incentives.rows);
     return {
       periodStart: context.periodStart,
       periodEnd: context.periodEnd,
@@ -96,6 +102,8 @@ export class SmartStaffService {
       commission,
       incentives,
       payrollPreview,
+      directory,
+      integrationHealth: this.integrationHealth(context, commission.entries, incentives.rows, payrollPreview),
       insights: this.insights(ranking, attendanceSummary, incentives.rows)
     };
   }
@@ -210,6 +218,61 @@ export class SmartStaffService {
       commissionRuns: repositories.staffCommissionRuns.list(query, scope(access)),
       payrollExports: repositories.payrollExports.list(query, scope(access))
     };
+  }
+
+  staffDirectory({ staff, services }, ranking, commissionEntries, incentiveRows) {
+    const rankingByStaff = new Map(ranking.map((row) => [row.staffId, row]));
+    const servicesByStaff = new Map();
+    for (const service of services) {
+      const assigned = Array.isArray(service.assignedStaff) ? service.assignedStaff : [];
+      for (const staffId of assigned) {
+        servicesByStaff.set(staffId, (servicesByStaff.get(staffId) || 0) + 1);
+      }
+    }
+    return staff.map((person) => {
+      const rankingRow = rankingByStaff.get(person.id) || {};
+      const assignedServices = Array.isArray(person.assignedServices) ? person.assignedServices.length : Number(servicesByStaff.get(person.id) || 0);
+      return {
+        id: person.id,
+        name: person.name,
+        shortName: person.shortName || person.code || "",
+        role: person.role || person.designation || "Staff",
+        category: person.category || "",
+        designation: person.designation || "",
+        branchId: person.branchId || "",
+        status: person.status || "active",
+        phone: person.phone || person.mobile || person.contact || "",
+        email: person.email || "",
+        shift: person.shift || "",
+        assignedServices,
+        revenue: money(rankingRow.revenue),
+        bookings: Number(rankingRow.bookings || 0),
+        completed: Number(rankingRow.completed || 0),
+        presentDays: Number(rankingRow.presentDays || 0),
+        scheduledShifts: Number(rankingRow.scheduledShifts || 0),
+        minutesWorked: Number(rankingRow.minutesWorked || 0),
+        overtimeMinutes: Number(rankingRow.overtimeMinutes || 0),
+        serviceEfficiency: pct(rankingRow.serviceEfficiency),
+        attendanceScore: pct(rankingRow.attendanceScore),
+        performanceScore: pct(rankingRow.performanceScore),
+        commission: money(sum(commissionEntries.filter((entry) => entry.staffId === person.id), (entry) => entry.commission)),
+        incentive: money(incentiveRows.find((row) => row.staffId === person.id)?.incentive || 0)
+      };
+    }).sort((a, b) => b.performanceScore - a.performanceScore || a.name.localeCompare(b.name));
+  }
+
+  integrationHealth({ staff, sales, appointments, attendance, shifts, services }, commissionEntries, incentiveRows, payrollPreview) {
+    return [
+      { key: "employee-masters", label: "Employee masters", count: staff.length, source: "staff", status: "connected" },
+      { key: "attendance", label: "Attendance records", count: attendance.length, source: "staff_attendance", status: "connected" },
+      { key: "shift", label: "Planned shifts", count: shifts.length, source: "staff_shifts", status: "connected" },
+      { key: "appointments", label: "Staff bookings", count: appointments.length, source: "appointments", status: "connected" },
+      { key: "pos", label: "Staff sales", count: sales.length, source: "sales", status: "connected" },
+      { key: "services", label: "Service catalog", count: services.length, source: "services", status: "connected" },
+      { key: "commission", label: "Commission lines", count: commissionEntries.length, source: "sales", status: "connected" },
+      { key: "incentives", label: "Incentive rows", count: incentiveRows.length, source: "smart_staff", status: "connected" },
+      { key: "payroll", label: "Payroll preview rows", count: payrollPreview.length, source: "staff_payroll", status: "connected" }
+    ];
   }
 
   requireStaff(staffId, access) {

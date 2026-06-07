@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-security-layer',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,12 +23,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Audit logs</span><strong>{{ metrics.auditLogs }}</strong><small>Persisted events</small></article>
-        <article class="metric-card blue"><span>Active sessions</span><strong>{{ metrics.activeSessions }}</strong><small>Session management</small></article>
-        <article class="metric-card amber"><span>Backups</span><strong>{{ metrics.backups }}</strong><small>SQLite snapshots</small></article>
-        <article class="metric-card green"><span>Permissions</span><strong>{{ metrics.permissions }}</strong><small>Role grants</small></article>
-        <article class="metric-card violet"><span>Encrypted secrets</span><strong>{{ metrics.encryptedSecrets }}</strong><small>AES vault entries</small></article>
-        <article class="metric-card red"><span>Risk score</span><strong>{{ metrics.riskScore }}</strong><small>Denied + activity signals</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/security/audit-logs"><span>Audit logs</span><strong>{{ metrics.auditLogs }}</strong><small>Persisted events</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/security/active-sessions"><span>Active sessions</span><strong>{{ metrics.activeSessions }}</strong><small>Session management</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/security/backups"><span>Backups</span><strong>{{ metrics.backups }}</strong><small>SQLite snapshots</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/security/permissions"><span>Permissions</span><strong>{{ metrics.permissions }}</strong><small>Role grants</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/security/encrypted-secrets"><span>Encrypted secrets</span><strong>{{ metrics.encryptedSecrets }}</strong><small>AES vault entries</small></aura-kpi-card>
+        <aura-kpi-card tone="red" target="/kpi-details/security/risk-score"><span>Risk score</span><strong>{{ metrics.riskScore }}</strong><small>Denied + activity signals</small></aura-kpi-card>
       </div>
 
       <div class="three-grid">

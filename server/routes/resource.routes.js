@@ -22,7 +22,9 @@ resourceRouter.get(
   "/:resource/:id",
   requirePermission("read"),
   asyncHandler((req, res) => {
-    res.json(resourceService.get(req.params.resource, req.params.id, req.access));
+    const row = resourceService.get(req.params.resource, req.params.id, req.access);
+    setVersionHeader(req, res, row);
+    res.json(row);
   })
 );
 
@@ -31,9 +33,10 @@ resourceRouter.post(
   requirePermission("write"),
   validateResourcePayload,
   asyncHandler((req, res) => {
-    const row = resourceService.create(req.params.resource, req.body, req.access);
+    const row = resourceService.create(req.params.resource, req.body, req.access, { req });
     auditResource(req, "created", row);
     emitResourceEvent(req.params.resource, "created", row, req.access);
+    setVersionHeader(req, res, row);
     res.status(201).json(row);
   })
 );
@@ -42,9 +45,21 @@ resourceRouter.patch(
   "/:resource/:id",
   requirePermission("write"),
   asyncHandler((req, res) => {
-    const row = resourceService.update(req.params.resource, req.params.id, req.body, req.access);
+    if (req.params.resource === "appointments" && !req.get("If-Match") && req.body?.version === undefined) {
+      res.status(428).json({
+        error: "If-Match header or version body field is required for appointment updates",
+        status: 428,
+        requestId: req.requestId
+      });
+      return;
+    }
+    const row = resourceService.update(req.params.resource, req.params.id, req.body, req.access, {
+      req,
+      ifMatch: req.get("If-Match") || req.body?.version || ""
+    });
     auditResource(req, "updated", row);
     emitResourceEvent(req.params.resource, "updated", row, req.access);
+    setVersionHeader(req, res, row);
     res.json(row);
   })
 );
@@ -110,4 +125,9 @@ function emitResourceEvent(resource, action, row, access) {
   if (["sales", "payments", "invoices", "inventory", "products"].includes(resource)) {
     realtimeService.dashboardUpdated(access, row?.branchId || access.branchId || "", { source: resource, action, id: row?.id });
   }
+}
+
+function setVersionHeader(req, res, row) {
+  if (req.params.resource !== "appointments" || !row?.version) return;
+  res.setHeader("ETag", `W/"${row.version}"`);
 }

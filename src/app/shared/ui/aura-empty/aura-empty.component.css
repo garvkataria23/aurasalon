@@ -1,0 +1,32 @@
+:host {
+  display: block;
+}
+
+.aura-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 360px;
+  margin: auto;
+  padding: 48px var(--aura-space-6);
+  text-align: center;
+}
+
+.aura-empty__icon {
+  font-size: 40px;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+h3 {
+  margin: var(--aura-space-3) 0 0;
+  color: var(--aura-gray-800);
+  font-size: var(--aura-fs-md);
+  font-weight: var(--aura-fw-semibold);
+}
+
+p {
+  margin: var(--aura-space-1) 0 var(--aura-space-4);
+  color: var(--aura-gray-500);
+  font-size: var(--aura-fs-sm);
+}

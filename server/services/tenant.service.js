@@ -18,6 +18,7 @@ export class TenantService {
     if (tenantId) {
       const tenant = repositories.tenants?.getById ? repositories.tenants.getById(tenantId) : repositoryForTable("tenants").getById(tenantId);
       if (tenant) return tenant;
+      return null;
     }
 
     const domain = String(host || "").split(":")[0].toLowerCase();

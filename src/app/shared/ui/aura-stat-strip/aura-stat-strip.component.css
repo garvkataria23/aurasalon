@@ -1,0 +1,91 @@
+:host {
+  display: block;
+}
+
+.aura-stat-strip {
+  display: flex;
+  min-height: 72px;
+  overflow: hidden;
+  border: 1px solid var(--aura-gray-200);
+  border-radius: var(--aura-radius-lg);
+  background: var(--aura-white);
+  box-shadow: var(--aura-shadow-xs);
+}
+
+.aura-stat-strip__item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: var(--aura-space-2) var(--aura-space-4);
+}
+
+.aura-stat-strip__item + .aura-stat-strip__item {
+  border-left: 1px solid var(--aura-gray-200);
+}
+
+.aura-stat-strip__label {
+  overflow: hidden;
+  color: var(--aura-gray-500);
+  font-size: var(--aura-fs-xs);
+  font-weight: var(--aura-fw-semibold);
+  letter-spacing: 0.5px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.aura-stat-strip__value-row {
+  display: flex;
+  align-items: center;
+  gap: var(--aura-space-2);
+  margin-top: var(--aura-space-1);
+}
+
+.aura-stat-strip__value-row strong {
+  color: var(--aura-gray-900);
+  font-size: var(--aura-fs-xl);
+  font-weight: var(--aura-fw-semibold);
+  line-height: var(--aura-lh-tight);
+}
+
+.aura-stat-strip__trend {
+  border-radius: var(--aura-radius-full);
+  padding: 2px 6px;
+  background: var(--aura-gray-100);
+  color: var(--aura-gray-600);
+  font-size: var(--aura-fs-xs);
+  font-weight: var(--aura-fw-semibold);
+  line-height: 1;
+}
+
+.aura-stat-strip__trend.is-up {
+  background: var(--aura-success-bg);
+  color: var(--aura-success);
+}
+
+.aura-stat-strip__trend.is-down {
+  background: var(--aura-danger-bg);
+  color: var(--aura-danger);
+}
+
+.aura-stat-strip__subtext {
+  overflow: hidden;
+  margin-top: var(--aura-space-1);
+  color: var(--aura-gray-500);
+  font-size: var(--aura-fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .aura-stat-strip {
+    flex-direction: column;
+  }
+
+  .aura-stat-strip__item + .aura-stat-strip__item {
+    border-top: 1px solid var(--aura-gray-200);
+    border-left: 0;
+  }
+}

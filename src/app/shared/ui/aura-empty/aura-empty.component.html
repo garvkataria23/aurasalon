@@ -1,0 +1,6 @@
+<section class="aura-empty">
+  <div class="aura-empty__icon" aria-hidden="true">{{ icon }}</div>
+  <h3>{{ title }}</h3>
+  <p *ngIf="description">{{ description }}</p>
+  <aura-button *ngIf="actionLabel" variant="primary" (auraClick)="action.emit()">{{ actionLabel }}</aura-button>
+</section>

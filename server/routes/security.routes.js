@@ -21,6 +21,14 @@ securityRouter.post(
   })
 );
 
+securityRouter.get(
+  "/security/audit",
+  requirePermission("read", () => "security"),
+  asyncHandler((req, res) => {
+    res.json({ auditLogs: securityService.auditTrail(req.query, req.access) });
+  })
+);
+
 securityRouter.post(
   "/security/sessions",
   requirePermission("write", () => "security"),

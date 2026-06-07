@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-prd',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -16,10 +17,10 @@ import { Component } from '@angular/core';
       </div>
 
       <div class="metrics-grid">
-        <article class="metric-card teal"><span>Roles</span><strong>8</strong><small>SaaS, salon and customer roles</small></article>
-        <article class="metric-card blue"><span>Journeys</span><strong>6</strong><small>Critical workflows</small></article>
-        <article class="metric-card amber"><span>New pages</span><strong>6</strong><small>Levels 17-22</small></article>
-        <article class="metric-card green"><span>Rules</span><strong>9</strong><small>Business safeguards</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/prd/roles"><span>Roles</span><strong>8</strong><small>SaaS, salon and customer roles</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/prd/journeys"><span>Journeys</span><strong>6</strong><small>Critical workflows</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/prd/new-pages"><span>New pages</span><strong>6</strong><small>Levels 17-22</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/prd/rules"><span>Rules</span><strong>9</strong><small>Business safeguards</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

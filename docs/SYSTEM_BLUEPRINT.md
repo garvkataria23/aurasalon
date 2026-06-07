@@ -123,7 +123,7 @@ Primary outcomes:
 
 ### Security and Compliance
 
-- JWT access tokens.
+- Password-backed JWT access tokens.
 - Refresh tokens.
 - RBAC and permission matrix.
 - Audit logs.
@@ -230,6 +230,8 @@ Current SQLite schema contains tenant-scoped operational tables. Future migratio
 - `invoices`
 - `payments`
 - `memberships`
+- `packages`
+- `commissions`
 - `gift_cards`
 - `settings`
 
@@ -251,6 +253,7 @@ Current SQLite schema contains tenant-scoped operational tables. Future migratio
 - `customer_timeline_events`
 - `campaigns`
 - `notifications`
+- `message_logs`
 - `ai_interactions`
 - `ai_marketing_generations`
 - `marketing_workflows`
@@ -273,9 +276,20 @@ Current SQLite schema contains tenant-scoped operational tables. Future migratio
 - `offline_cache_snapshots`
 - `offline_sync_items`
 
+
+### Level 27–50 Ecosystem Resources
+
+- `voice_call_logs`, `queue_displays`, `dynamic_pricing_rules`, `growth_advisor_tasks`
+- `franchises`, `franchise_royalties`, `training_lessons`, `training_assignments`
+- `image_analyses`, `reputation_reviews`, `marketplace_connections`, `gamification_events`
+- `fraud_alerts`, `smart_forms`, `form_responses`, `recommendation_events`
+- `warehouse_snapshots`, `kpi_monitors`, `appointment_optimizations`, `api_keys`, `webhooks`
+- `forecasting_models`, `knowledge_base_articles`, `plugin_manifests`, `app_marketplace_apps`, `localization_profiles`
+
 ### Security, Quality and Deployment
 
 - `security_audit_logs`
+- `audit_logs`
 - `security_activity_events`
 - `security_sessions`
 - `security_backups`
@@ -312,8 +326,12 @@ Generic CRUD resources are routed through `/api/:resource`:
 - `invoices`
 - `payments`
 - `memberships`
+- `packages`
+- `commissions`
 - `staff`
 - `marketing`
+- `messageLogs`
+- `auditLogs`
 - `branches`
 - `settings`
 - `giftCards`
@@ -345,6 +363,7 @@ API rules:
 - All tenant-scoped reads/writes must include tenant scope.
 - Financial, booking, security and destructive actions must write audit logs.
 - `/api/v1` should remain JWT-protected.
+- Level 27–50 resource APIs must stay tenant-scoped and exposed via `/api/:resource` plus `/api/ecosystem/level-coverage`.
 - Legacy `/api` may continue for local/admin compatibility until JWT-only migration is complete.
 
 ## 6. User Roles
@@ -471,7 +490,7 @@ The upgrade must be incremental. Old code and existing data must remain safe.
 1. Baseline verification: `npm run quality`, API health, key route smoke tests.
 2. Split `server/db.js` into schema/migrations/seeds/resource metadata in a behavior-preserving refactor.
 3. Add stronger validation schemas for every business route.
-4. Harden authentication: make production mode JWT-only while preserving local demo headers in development.
+4. Continue hardening authentication with password-backed tenant login, production JWT-only legacy access, token refresh UX and optional MFA/device policies.
 5. Complete POS gaps: coupon codes, wallet ledger, credit notes, invoice PDF.
 6. Complete online portal gaps: customer login, booking history, reviews, payment-ready checkout state.
 7. Complete calendar UX: drag/drop, staff lanes, chair/room lanes, better conflict UI.

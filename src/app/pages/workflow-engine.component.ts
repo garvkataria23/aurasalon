@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-workflow-engine',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -25,10 +26,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Workflows</span><strong>{{ metrics.workflows }}</strong><small>Total definitions</small></article>
-        <article class="metric-card green"><span>Active</span><strong>{{ metrics.active }}</strong><small>Runnable workflows</small></article>
-        <article class="metric-card blue"><span>Runs</span><strong>{{ metrics.runs }}</strong><small>Execution history</small></article>
-        <article class="metric-card amber"><span>Messages</span><strong>{{ metrics.messagesSent }}</strong><small>Notifications created</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/workflow/workflows"><span>Workflows</span><strong>{{ metrics.workflows }}</strong><small>Total definitions</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/workflow/active"><span>Active</span><strong>{{ metrics.active }}</strong><small>Runnable workflows</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/workflow/runs"><span>Runs</span><strong>{{ metrics.runs }}</strong><small>Execution history</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/workflow/messages"><span>Messages</span><strong>{{ metrics.messagesSent }}</strong><small>Notifications created</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

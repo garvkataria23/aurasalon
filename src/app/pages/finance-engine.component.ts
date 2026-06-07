@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-finance-engine',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,12 +23,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Revenue</span><strong>{{ metrics.revenue | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Payments today</small></article>
-        <article class="metric-card green"><span>Cash</span><strong>{{ metrics.cash | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Drawer impact</small></article>
-        <article class="metric-card blue"><span>UPI</span><strong>{{ metrics.upi | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Digital payments</small></article>
-        <article class="metric-card amber"><span>Expenses</span><strong>{{ metrics.expenses | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Paid today</small></article>
-        <article class="metric-card red"><span>Outstanding</span><strong>{{ metrics.outstanding | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Open invoice balance</small></article>
-        <article class="metric-card violet"><span>P/L</span><strong>{{ metrics.profitLoss | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Revenue less costs</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/finance/revenue"><span>Revenue</span><strong>{{ metrics.revenue | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Payments today</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/finance/cash"><span>Cash</span><strong>{{ metrics.cash | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Drawer impact</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/finance/upi"><span>UPI</span><strong>{{ metrics.upi | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Digital payments</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/finance/expenses"><span>Expenses</span><strong>{{ metrics.expenses | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Paid today</small></aura-kpi-card>
+        <aura-kpi-card tone="red" target="/kpi-details/finance/outstanding"><span>Outstanding</span><strong>{{ metrics.outstanding | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Open invoice balance</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/finance/p-l"><span>P/L</span><strong>{{ metrics.profitLoss | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Revenue less costs</small></aura-kpi-card>
       </div>
 
       <div class="three-grid">

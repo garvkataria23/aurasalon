@@ -9,12 +9,13 @@ Original Angular + Express + SQLite salon CRM/POS suite for multi-location, mult
 - Client CRM with profiles, visits, purchase history, membership, wallet, loyalty, notes, dates, tags, WhatsApp history and consent forms.
 - POS billing with services/products, discounts, GST, UPI/cash/card/wallet split payments, invoices, inventory deduction and commission basics.
 - Services, products, inventory, memberships, staff, marketing automation, reports, branches and settings.
+- First-class package definitions, commission policies, omnichannel message logs and tenant audit logs are available as real CRUD resources, not static placeholders.
 - AI salon assistant with booking, upsell, service recommendation, chatbot, follow-up copy, review replies, marketing captions, analytics summary and churn prediction.
 - WhatsApp automation engine with auto replies, confirmations, reminders, missed-call follow-up, payment reminders, birthday wishes, campaign broadcasting, lead qualification, intent detection and human handoff.
 - Advanced analytics engine with revenue forecasting, peak-hour analysis, staff productivity scoring, repeat customer analytics, churn risk, lifetime value, heatmaps, conversion funnel, membership performance and branch comparison.
 - Smart staff management with dynamic commissions, attendance, shift planning, productivity ranking, incentive calculation, payroll export and AI-style staff performance insights.
 - Intelligent inventory with supplier management, batch tracking, expiry alerts, purchase prediction, AI reorder suggestions, product usage tracking, waste analysis and batch-aware auto deduction.
-- Mobile-ready backend with JWT auth, refresh tokens, `/api/v1` versioning, secure endpoints, envelope responses, mobile device registration and push notification queues.
+- Mobile-ready backend with password-backed JWT auth, refresh tokens, `/api/v1` versioning, secure endpoints, envelope responses, mobile device registration and push notification queues.
 - Realtime WebSocket layer for live booking updates, dashboard refreshes, staff online status, instant notifications and front-desk queue management.
 - SaaS super admin console for all-salon management, subscription revenue, tenant health, suspension controls, plan management and platform feature toggles.
 - AI marketing automation platform with persisted campaign generation, captions, offer recommendations, segmentation, retargeting workflows, WhatsApp sequences, email templates and festival campaigns.
@@ -23,6 +24,7 @@ Original Angular + Express + SQLite salon CRM/POS suite for multi-location, mult
 - Offline-first workflows for local cache snapshots, offline appointment creation, offline billing and sync conflict handling.
 - White-label SaaS with tenant brand profiles, theme tokens, custom logo/domain support and branch-specific branding.
 - Future salon intelligence lab with AI growth advisor, pricing optimizer, offer engine, emotion analysis, no-show prediction, demand forecasting, inventory prediction, voice booking assistant, kiosk mode and AI receptionist.
+- Level 27–50 ecosystem modules now persist AI voice calls, queue TV displays, dynamic pricing rules, growth tasks, franchises, academy lessons, image analysis, reputation reviews, marketplace connectors, gamification, fraud alerts, smart forms, recommendations, warehouse snapshots, KPI monitors, appointment optimizations, API keys, webhooks, forecasting models, knowledge base articles, plugins, app marketplace listings and localization profiles.
 - Level 17 PRD and Level 18 design system artifacts with user roles, journeys, data flow, business rules, success metrics, color tokens, typography, controls, tables, forms and responsive states.
 - Workflow engine with trigger, condition, action and delay definitions, plus persisted WhatsApp/SMS/email execution history.
 - Finance engine with daily closing, cash drawer, expenses, partial payments, outstanding balances, refunds, staff payout and profit/loss calculations.
@@ -58,9 +60,20 @@ npm run check:server
 npm test
 npm run quality
 npm run seed:demo
+npm run seed:ai-knowledge -- --workbook "path/to/AURASHINE SALON.xlsx"
 npm run backup:db
 docker compose up --build
 ```
+
+## AuraShine AI Knowledge Import
+
+The WhatsApp AI agent reads tenant-scoped knowledge from `ai_knowledge_documents` and `ai_knowledge_chunks`. Seed or refresh the `AURASHINE SALON` Google workbook content after exporting the sheet as XLSX:
+
+```bash
+npm run seed:ai-knowledge -- --workbook "path/to/AURASHINE SALON.xlsx" --tenant tenant_aura
+```
+
+Use `--branch branch_hyd` or `AURASHINE_BRANCH_ID=branch_hyd` to scope the imported FAQs/routes to one branch. Without a branch, the import is global to the tenant and remains visible to branch-scoped WhatsApp agent searches. The script is idempotent: reruns update existing source-keyed documents, rebuild chunks, and remove stale rows from the same workbook unless `--no-delete-stale` is supplied.
 
 ## Multi-Tenant SaaS
 
@@ -213,7 +226,7 @@ All `/api/v1` endpoints return a mobile response envelope:
 { "success": true, "data": {}, "meta": { "requestId": "...", "version": "v1", "timestamp": "..." } }
 ```
 
-Protected `/api/v1` routes require `Authorization: Bearer <accessToken>`. Refresh tokens are persisted in `auth_refresh_tokens`; mobile devices, push subscriptions and push notifications are stored in `mobile_devices`, `push_subscriptions` and `push_notifications`. Configure auth with `JWT_SECRET`, `JWT_ACCESS_TTL_SECONDS` and `JWT_REFRESH_TTL_DAYS`.
+Protected `/api/v1` routes require `Authorization: Bearer <accessToken>`. Tenant users authenticate with email/password; password hashes, lockout counters and last-login timestamps are stored on `tenant_users`, while refresh tokens are persisted in `auth_refresh_tokens`. Mobile devices, push subscriptions and push notifications are stored in `mobile_devices`, `push_subscriptions` and `push_notifications`. Configure auth with `JWT_SECRET`, `JWT_ACCESS_TTL_SECONDS`, `JWT_REFRESH_TTL_DAYS`, `REQUIRE_PASSWORD_AUTH` and `DEMO_ADMIN_PASSWORD` before the first production run.
 
 Realtime endpoints:
 
@@ -291,6 +304,41 @@ POST   /api/future-features/:type/run
 ```
 
 Supported future feature types are `growth-advisor`, `pricing-optimizer`, `offer-engine`, `emotion-analysis`, `no-show-prediction`, `demand-forecasting`, `inventory-prediction`, `voice-booking-assistant`, `smart-kiosk-mode` and `ai-receptionist`. Outputs persist in `innovation_runs`; voice and kiosk workflows also persist in `voice_booking_sessions` and `kiosk_sessions`.
+
+
+Level 27–50 ecosystem endpoints:
+
+```text
+GET    /api/ecosystem/level-coverage
+GET    /api/voiceCallLogs
+GET    /api/queueDisplays
+GET    /api/dynamicPricingRules
+GET    /api/growthAdvisorTasks
+GET    /api/franchises
+GET    /api/franchiseRoyalties
+GET    /api/trainingLessons
+GET    /api/trainingAssignments
+GET    /api/imageAnalyses
+GET    /api/reputationReviews
+GET    /api/marketplaceConnections
+GET    /api/gamificationEvents
+GET    /api/fraudAlerts
+GET    /api/smartForms
+GET    /api/formResponses
+GET    /api/recommendationEvents
+GET    /api/warehouseSnapshots
+GET    /api/kpiMonitors
+GET    /api/appointmentOptimizations
+GET    /api/apiKeys
+GET    /api/webhooks
+GET    /api/forecastingModels
+GET    /api/knowledgeBaseArticles
+GET    /api/pluginManifests
+GET    /api/appMarketplaceApps
+GET    /api/localizationProfiles
+```
+
+Each resource also supports the existing generic CRUD contract (`POST`, `GET /:id`, `PATCH /:id`, `DELETE /:id`) and is tenant-scoped through the repository layer. The `/api/v1` version returns the standard mobile envelope and requires bearer authentication.
 
 Workflow engine endpoints:
 
@@ -393,6 +441,6 @@ src/app/
 - REST endpoints are mounted under `/api`.
 - Generic CRUD routes use repositories and validation.
 - Workflow routes call service methods for checkout, payments, appointment completion, membership redemption, stock transfer, marketing segmentation, SaaS administration, mobile auth, push notifications, realtime events, AI assistance, AI marketing automation, smart booking, enterprise security, permission matrices, compliance audit, quality gates, deployment readiness, offline sync, white-label branding, future salon intelligence, WhatsApp automation, analytics, staff intelligence, inventory intelligence, automation workflows, finance operations, customer intelligence, online booking and reports.
-- `x-tenant-id`, `x-branch-id` and `x-user-role` drive tenant isolation, branch isolation and role-based access control.
+- `/api/v1` uses JWT claims plus `x-tenant-id` / `x-branch-id` for tenant and branch isolation; legacy `/api` demo headers are preserved for local development and are JWT-gated when `NODE_ENV=production`.
 - Structured request logs include request id, route, status, duration and role.
 - Centralized error handling returns `{ error, status, requestId }`.

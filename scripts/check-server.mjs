@@ -16,7 +16,7 @@ const failures = [];
 for (const file of files) {
   const result = spawnSync(process.execPath, ["--check", file], { encoding: "utf8" });
   if (result.status !== 0) {
-    failures.push({ file, stderr: result.stderr.trim() });
+    failures.push({ file, stderr: result.stderr?.trim() || result.error?.message || "node --check failed without stderr" });
   }
 }
 

@@ -124,3 +124,291 @@ test("client wallet endpoint persists ledger-backed balance changes", async () =
     await close(server);
   }
 });
+
+test("purchase orders support Flexi-style GST, supplier terms and GRN variances", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
+  const headers = {
+    "content-type": "application/json",
+    "x-tenant-id": "tenant_aura",
+    "x-user-role": "owner"
+  };
+  try {
+    const [products, branches] = await Promise.all([
+      fetch(`${baseUrl}/products?limit=1`, { headers }).then((response) => response.json()),
+      fetch(`${baseUrl}/branches?limit=1`, { headers }).then((response) => response.json())
+    ]);
+    assert.ok(products[0]?.id);
+    assert.ok(branches[0]?.id);
+    const supplier = await fetch(`${baseUrl}/inventory-intelligence/suppliers`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        name: `PO Supplier ${Date.now()}`,
+        gstin: "27ABCDE1234F1Z5",
+        phone: "+91 90000 00000",
+        preferredPaymentTerms: "7 days",
+        leadTimeDays: 3
+      })
+    }).then((response) => response.json());
+
+    const poResponse = await fetch(`${baseUrl}/inventory-intelligence/purchase-orders`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        branchId: products[0].branchId || branches[0].id,
+        supplierId: supplier.id,
+        expectedDeliveryDate: "2026-06-05",
+        paymentTerms: "7 days",
+        deliveryTerms: "Branch delivery",
+        approvalNote: "Owner approval required",
+        items: [{
+          productId: products[0].id,
+          quantity: 2,
+          unit: "pcs",
+          hsnSac: "3305",
+          mrp: 500,
+          discountPercent: 10,
+          unitCost: 100,
+          gstPercent: 18
+        }]
+      })
+    });
+    const poText = await poResponse.text();
+    assert.equal(poResponse.status, 201, poText);
+    const po = JSON.parse(poText);
+    assert.equal(po.items[0].hsnSac, "3305");
+    assert.equal(Number(po.taxableAmount), 180);
+    assert.equal(Number(po.gstAmount), 32.4);
+    assert.equal(Number(po.grandTotal), 212.4);
+    assert.equal(po.supplier.gstin, "27ABCDE1234F1Z5");
+
+    const approved = await fetch(`${baseUrl}/inventory-intelligence/purchase-orders/${po.id}/approve`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ approvalNote: "Approved for test" })
+    }).then((response) => response.json());
+    assert.equal(approved.status, "approved");
+    assert.equal(approved.approvalStatus, "approved");
+
+    const billDraftResponse = await fetch(`${baseUrl}/inventory-intelligence/purchase-bill-drafts/upload`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        branchId: products[0].branchId || branches[0].id,
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        supplierGstin: supplier.gstin,
+        billNo: "INV-PO-TEST",
+        billDate: "2026-06-05",
+        subtotal: 120,
+        gstAmount: 21.6,
+        totalAmount: 141.6,
+        items: [{
+          productId: products[0].id,
+          productName: products[0].name,
+          rawName: products[0].name,
+          qty: 1,
+          stockQty: 1,
+          purchaseUnit: "pcs",
+          stockUnit: "pcs",
+          unitCost: 120,
+          gstPercent: 18,
+          hsnSac: "3305",
+          lineTotal: 141.6,
+          taxableAmount: 120,
+          gstAmount: 21.6
+        }]
+      })
+    });
+    const billDraftText = await billDraftResponse.text();
+    assert.equal(billDraftResponse.status, 201, billDraftText);
+    const billDraft = JSON.parse(billDraftText);
+
+    const matchedDraftResponse = await fetch(`${baseUrl}/inventory-intelligence/purchase-bill-drafts/${billDraft.id}/match-po`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ purchaseOrderId: po.id })
+    });
+    const matchedDraftText = await matchedDraftResponse.text();
+    assert.equal(matchedDraftResponse.status, 200, matchedDraftText);
+    const matchedDraft = JSON.parse(matchedDraftText);
+    assert.equal(matchedDraft.purchaseOrderId, po.id);
+    assert.equal(matchedDraft.poMatch.linkedPurchaseOrderId, po.id);
+
+    const confirmResponse = await fetch(`${baseUrl}/inventory-intelligence/purchase-bill-drafts/${billDraft.id}/confirm`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ challanNo: "CH-1", grnNumber: "GRN-PO-TEST", receivedBy: "Owner" })
+    });
+    const confirmText = await confirmResponse.text();
+    assert.equal(confirmResponse.status, 200, confirmText);
+    const confirmed = JSON.parse(confirmText);
+    assert.equal(confirmed.status, "confirmed");
+    assert.equal(confirmed.poMatch.confirmedViaPurchaseOrder, true);
+
+    const received = await fetch(`${baseUrl}/inventory-intelligence/purchase-orders/${po.id}`, { headers }).then((response) => response.json());
+    assert.equal(received.status, "partial_receive");
+    assert.equal(received.grnNumber, "GRN-PO-TEST");
+    assert.ok(received.variances.some((variance) => variance.type === "rate_changed"));
+    assert.ok(received.variances.some((variance) => variance.type === "short_qty"));
+    assert.ok(Array.isArray(received.billMatches));
+    assert.ok(received.inventoryImpact);
+  } finally {
+    await close(server);
+  }
+});
+
+test("client beauty and safety profile saves nested preferences safely", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api/v1`;
+  let clientId = "";
+  let authHeaders = null;
+  try {
+    const login = await fetch(`${baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tenantId: "tenant_aura", email: "owner@aurasalon.example", password: process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026" })
+    }).then((response) => response.json());
+    const headers = { authorization: `Bearer ${login.data.accessToken}`, "x-tenant-id": "tenant_aura", "content-type": "application/json" };
+    authHeaders = headers;
+
+    const createdResponse = await fetch(`${baseUrl}/clients`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        name: `Beauty Profile Test ${Date.now()}`,
+        phone: `9${Date.now().toString().slice(-9)}`,
+        tags: ["profile-test"]
+      })
+    });
+    const createdText = await createdResponse.text();
+    assert.equal(createdResponse.status, 201, createdText);
+    clientId = JSON.parse(createdText).data.id;
+
+    const profileResponse = await fetch(`${baseUrl}/clients/${clientId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        allergies: ["BLEACH", "AMONIA"],
+        preferences: {
+          skinType: "Oily",
+          skinConcerns: "ACNE,PIGMENTATION,TANNING",
+          hairType: "Wavy",
+          scalpCondition: "Dry",
+          chemicalHistory: "HAIR STRAIGHTNING",
+          nailShadePreference: "NUDE",
+          nailShapePreference: "Square",
+          preferredStylistId: "staff_aftab",
+          preferredServiceNotes: "WITH SMILE",
+          productsUsed: "WELLA",
+          productsToAvoid: "AMONIA",
+          brandPreference: "WELLA",
+          appointmentPreference: "MORNING",
+          comfortNotes: "COFFEE",
+          lifestyleNotes: "GYM"
+        },
+        safetyFlags: {
+          allergySeverity: "clear",
+          patchTestDate: "2026-05-22",
+          patchTestResult: "passed",
+          productsToAvoid: "AMONIA"
+        },
+        communicationPreferences: {
+          preferredChannel: "whatsapp",
+          preferredLanguage: "en-IN",
+          appointmentPreference: "MORNING"
+        },
+        notes: { frontDesk: "Object notes should not break SQLite binding" }
+      })
+    });
+    const profileText = await profileResponse.text();
+    assert.equal(profileResponse.status, 200, profileText);
+    const profile = JSON.parse(profileText).data;
+    assert.deepEqual(profile.allergies, ["BLEACH", "AMONIA"]);
+    assert.equal(profile.preferences.skinType, "Oily");
+    assert.equal(profile.preferences.productsUsed, "WELLA");
+    assert.equal(profile.safetyFlags.patchTestResult, "passed");
+    assert.equal(profile.communicationPreferences.preferredChannel, "whatsapp");
+    assert.equal(profile.notes, JSON.stringify({ frontDesk: "Object notes should not break SQLite binding" }));
+  } finally {
+    if (clientId && authHeaders) {
+      await fetch(`${baseUrl}/clients/${clientId}`, {
+        method: "DELETE",
+        headers: authHeaders
+      });
+    }
+    await close(server);
+  }
+});
+
+test("versioned API requires JWT and accepts password-backed login", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api/v1`;
+  try {
+    const blocked = await fetch(`${baseUrl}/clients`, { headers: { "x-tenant-id": "tenant_aura" } });
+    assert.equal(blocked.status, 401);
+    const blockedBody = await blocked.json();
+    assert.equal(blockedBody.success, false);
+
+    const badLogin = await fetch(`${baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tenantId: "tenant_aura", email: "owner@aurasalon.example", password: "wrong-password" })
+    });
+    assert.equal(badLogin.status, 401);
+
+    const login = await fetch(`${baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tenantId: "tenant_aura", email: "owner@aurasalon.example", password: process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026" })
+    });
+    assert.equal(login.status, 201);
+    const loginBody = await login.json();
+    assert.equal(loginBody.success, true);
+    assert.ok(loginBody.data.accessToken);
+    assert.ok(loginBody.data.refreshToken);
+
+    const clients = await fetch(`${baseUrl}/clients?limit=1`, {
+      headers: { authorization: `Bearer ${loginBody.data.accessToken}`, "x-tenant-id": "tenant_aura" }
+    });
+    assert.equal(clients.status, 200);
+    const clientsBody = await clients.json();
+    assert.equal(clientsBody.success, true);
+    assert.ok(Array.isArray(clientsBody.data));
+  } finally {
+    await close(server);
+  }
+});
+
+test("level 27-50 ecosystem exposes persisted coverage resources", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api/v1`;
+  try {
+    const login = await fetch(`${baseUrl}/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tenantId: "tenant_aura", email: "owner@aurasalon.example", password: process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026" })
+    }).then((response) => response.json());
+    const headers = { authorization: `Bearer ${login.data.accessToken}`, "x-tenant-id": "tenant_aura", "content-type": "application/json" };
+
+    const coverage = await fetch(`${baseUrl}/ecosystem/level-coverage`, { headers });
+    assert.equal(coverage.status, 200);
+    const body = await coverage.json();
+    assert.equal(body.success, true);
+    assert.equal(body.data.levels.length, 24);
+    assert.equal(body.data.levels[0].level, 27);
+    assert.equal(body.data.levels.at(-1).level, 50);
+    assert.equal(body.data.missing.length, 0);
+
+    const pricingRule = await fetch(`${baseUrl}/dynamicPricingRules`, { headers }).then((response) => response.json());
+    assert.equal(pricingRule.success, true);
+    assert.ok(pricingRule.data.some((rule) => rule.id === "price_peak_weekend"));
+
+    const franchise = await fetch(`${baseUrl}/franchises`, { headers }).then((response) => response.json());
+    assert.equal(franchise.success, true);
+    assert.ok(franchise.data.some((row) => row.id === "franchise_pune_001"));
+  } finally {
+    await close(server);
+  }
+});

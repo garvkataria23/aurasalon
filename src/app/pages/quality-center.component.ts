@@ -2,11 +2,12 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-quality-center',
   standalone: true,
-  imports: [CommonModule, DatePipe, StateComponent],
+  imports: [CommonModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -25,10 +26,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Quality runs</span><strong>{{ metrics.runs }}</strong><small>Persisted checks</small></article>
-        <article class="metric-card green"><span>Last passed</span><strong>{{ metrics.lastPassed ? 'Yes' : 'No' }}</strong><small>Latest run status</small></article>
-        <article class="metric-card blue"><span>Demo clients</span><strong>{{ metrics.demoClients }}</strong><small>Seed data</small></article>
-        <article class="metric-card amber"><span>Demo services</span><strong>{{ metrics.demoServices }}</strong><small>Seed data</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/quality/quality-runs"><span>Quality runs</span><strong>{{ metrics.runs }}</strong><small>Persisted checks</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/quality/last-passed"><span>Last passed</span><strong>{{ metrics.lastPassed ? 'Yes' : 'No' }}</strong><small>Latest run status</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/quality/demo-clients"><span>Demo clients</span><strong>{{ metrics.demoClients }}</strong><small>Seed data</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/quality/demo-services"><span>Demo services</span><strong>{{ metrics.demoServices }}</strong><small>Seed data</small></aura-kpi-card>
       </div>
 
       <section class="panel">

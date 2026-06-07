@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { badRequest, forbidden, unauthorized } from "../utils/app-error.js";
@@ -24,9 +24,13 @@ function hashToken(token) {
 }
 
 function safeEqual(left, right) {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
+  const leftBuffer = Buffer.from(String(left || ""));
+  const rightBuffer = Buffer.from(String(right || ""));
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function passwordHashFor(password, salt) {
+  return scryptSync(String(password || ""), salt, 64).toString("hex");
 }
 
 function addSeconds(seconds) {
@@ -43,16 +47,32 @@ export class AuthService {
     if (!tenant) throw badRequest("Tenant not found");
     tenantService.ensureSubscriptionActive(tenant.id);
     const users = repositories.tenantUsers.list({ limit: 10000 }, { tenantId: tenant.id });
+    const loginIdentity = String(payload.loginId || payload.email || payload.userId || "").trim().toLowerCase();
     const user = users.find((item) =>
       (payload.userId && item.id === payload.userId) ||
-      (payload.email && String(item.email).toLowerCase() === String(payload.email).toLowerCase())
+      (loginIdentity && String(item.email || "").toLowerCase() === loginIdentity) ||
+      (loginIdentity && String(item.loginId || "").toLowerCase() === loginIdentity)
     );
-    if (!user) throw unauthorized("Invalid mobile login credentials");
+    if (!user) throw unauthorized("Invalid login credentials");
     if (user.status && user.status !== "active") throw forbidden("User is not active");
+    if (user.lockedUntil && user.lockedUntil > now()) throw forbidden("User is temporarily locked after repeated failed logins");
+    this.verifyPassword(user, payload.password);
     const branchId = payload.branchId || user.branchIds?.[0] || "";
     if (branchId) tenantService.assertBranchAccess({ tenantId: tenant.id, role: user.role, branchIds: user.branchIds || [], branchId }, branchId);
     const device = payload.device ? this.registerDevice({ ...payload.device, userId: user.id, branchId }, { tenantId: tenant.id, userId: user.id, role: user.role, branchId, branchIds: user.branchIds || [] }) : null;
-    return this.issueTokenPair({ tenant, user, branchId, deviceId: device?.id || payload.deviceId || "" });
+    repositories.tenantUsers.update(user.id, { failedLoginCount: 0, lockedUntil: "", lastLoginAt: now() }, { tenantId: tenant.id });
+    return this.issueTokenPair({ tenant, user: { ...user, failedLoginCount: 0, lockedUntil: "", lastLoginAt: now() }, branchId, deviceId: device?.id || payload.deviceId || "" });
+  }
+
+  verifyPassword(user, password) {
+    const requiresPassword = env.requirePasswordAuth || Boolean(user.passwordHash);
+    if (!requiresPassword) return true;
+    const valid = Boolean(password) && Boolean(user.passwordHash) && Boolean(user.passwordSalt) && safeEqual(passwordHashFor(password, user.passwordSalt), user.passwordHash);
+    if (valid) return true;
+    const failedLoginCount = Number(user.failedLoginCount || 0) + 1;
+    const lockedUntil = failedLoginCount >= 5 ? addSeconds(15 * 60) : user.lockedUntil || "";
+    repositories.tenantUsers.update(user.id, { failedLoginCount, lockedUntil }, { tenantId: user.tenantId });
+    throw unauthorized("Invalid login credentials");
   }
 
   refresh(refreshToken) {
@@ -84,7 +104,9 @@ export class AuthService {
       sub: user.id,
       tenantId: tenant.id,
       email: user.email,
+      loginId: user.loginId || "",
       role: user.role,
+      staffId: user.staffId || "",
       branchId,
       branchIds: user.branchIds || [],
       deviceId,
@@ -111,8 +133,10 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
+        loginId: user.loginId || "",
         email: user.email,
         role: user.role,
+        staffId: user.staffId || "",
         branchId,
         branchIds: user.branchIds || []
       },

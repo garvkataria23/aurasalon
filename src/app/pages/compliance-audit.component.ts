@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-compliance-audit',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,12 +23,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Tracked events</span><strong>{{ metrics.trackedEvents }}</strong><small>Audit log rows</small></article>
-        <article class="metric-card blue"><span>Bookings created</span><strong>{{ metrics.bookingCreates }}</strong><small>Who created booking</small></article>
-        <article class="metric-card amber"><span>Bills edited</span><strong>{{ metrics.billEdits }}</strong><small>Invoice changes</small></article>
-        <article class="metric-card red"><span>Clients deleted</span><strong>{{ metrics.clientDeletes }}</strong><small>Deletion trail</small></article>
-        <article class="metric-card green"><span>Payment changes</span><strong>{{ metrics.paymentChanges }}</strong><small>Payment/refund activity</small></article>
-        <article class="metric-card violet"><span>Logins</span><strong>{{ metrics.logins }}</strong><small>Login history</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/compliance/tracked-events"><span>Tracked events</span><strong>{{ metrics.trackedEvents }}</strong><small>Audit log rows</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/compliance/bookings-created"><span>Bookings created</span><strong>{{ metrics.bookingCreates }}</strong><small>Who created booking</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/compliance/bills-edited"><span>Bills edited</span><strong>{{ metrics.billEdits }}</strong><small>Invoice changes</small></aura-kpi-card>
+        <aura-kpi-card tone="red" target="/kpi-details/compliance/clients-deleted"><span>Clients deleted</span><strong>{{ metrics.clientDeletes }}</strong><small>Deletion trail</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/compliance/payment-changes"><span>Payment changes</span><strong>{{ metrics.paymentChanges }}</strong><small>Payment/refund activity</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/compliance/logins"><span>Logins</span><strong>{{ metrics.logins }}</strong><small>Login history</small></aura-kpi-card>
       </div>
 
       <section class="form-panel">

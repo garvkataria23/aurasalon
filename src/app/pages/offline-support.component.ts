@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-offline-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,12 +23,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card amber"><span>Queued</span><strong>{{ metrics.queued }}</strong><small>Pending sync</small></article>
-        <article class="metric-card green"><span>Synced</span><strong>{{ metrics.synced }}</strong><small>Processed items</small></article>
-        <article class="metric-card red"><span>Conflicts</span><strong>{{ metrics.conflicts }}</strong><small>Needs review</small></article>
-        <article class="metric-card blue"><span>Cache snapshots</span><strong>{{ metrics.cacheSnapshots }}</strong><small>Local data packs</small></article>
-        <article class="metric-card teal"><span>Offline appointments</span><strong>{{ metrics.offlineAppointments }}</strong><small>Queued bookings</small></article>
-        <article class="metric-card violet"><span>Offline bills</span><strong>{{ metrics.offlineBills }}</strong><small>Queued sales</small></article>
+        <aura-kpi-card tone="amber" target="/kpi-details/offline/queued"><span>Queued</span><strong>{{ metrics.queued }}</strong><small>Pending sync</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/offline/synced"><span>Synced</span><strong>{{ metrics.synced }}</strong><small>Processed items</small></aura-kpi-card>
+        <aura-kpi-card tone="red" target="/kpi-details/offline/conflicts"><span>Conflicts</span><strong>{{ metrics.conflicts }}</strong><small>Needs review</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/offline/cache-snapshots"><span>Cache snapshots</span><strong>{{ metrics.cacheSnapshots }}</strong><small>Local data packs</small></aura-kpi-card>
+        <aura-kpi-card tone="teal" target="/kpi-details/offline/offline-appointments"><span>Offline appointments</span><strong>{{ metrics.offlineAppointments }}</strong><small>Queued bookings</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/offline/offline-bills"><span>Offline bills</span><strong>{{ metrics.offlineBills }}</strong><small>Queued sales</small></aura-kpi-card>
       </div>
 
       <div class="three-grid">

@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-whatsapp-automation',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,14 +23,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary() as summary">
-        <article class="metric-card teal"><span>Open threads</span><strong>{{ summary.openThreads }}</strong><small>Active WhatsApp conversations</small></article>
-        <article class="metric-card red"><span>Human handoffs</span><strong>{{ summary.activeHandoffs }}</strong><small>Needs front-desk attention</small></article>
-        <article class="metric-card amber"><span>Hot leads</span><strong>{{ summary.hotLeads }}</strong><small>Lead score 70+</small></article>
-        <article class="metric-card blue"><span>Auto replies</span><strong>{{ summary.autoRepliesToday }}</strong><small>Sent today</small></article>
-        <article class="metric-card green"><span>Broadcasts</span><strong>{{ summary.broadcastsToday }}</strong><small>Campaign messages today</small></article>
-        <article class="metric-card violet"><span>Outbound queue</span><strong>{{ summary.pendingOutbound }}</strong><small>Queued WhatsApp messages</small></article>
-        <article class="metric-card slate"><span>Rules active</span><strong>{{ summary.rulesActive }}</strong><small>Automation rules</small></article>
-        <article class="metric-card rose"><span>Threads stored</span><strong>{{ threads().length }}</strong><small>Persisted conversations</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/whatsapp/open-threads"><span>Open threads</span><strong>{{ summary.openThreads }}</strong><small>Active WhatsApp conversations</small></aura-kpi-card>
+        <aura-kpi-card tone="red" target="/kpi-details/whatsapp/human-handoffs"><span>Human handoffs</span><strong>{{ summary.activeHandoffs }}</strong><small>Needs front-desk attention</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/whatsapp/hot-leads"><span>Hot leads</span><strong>{{ summary.hotLeads }}</strong><small>Lead score 70+</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/whatsapp/auto-replies"><span>Auto replies</span><strong>{{ summary.autoRepliesToday }}</strong><small>Sent today</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/whatsapp/broadcasts"><span>Broadcasts</span><strong>{{ summary.broadcastsToday }}</strong><small>Campaign messages today</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/whatsapp/outbound-queue"><span>Outbound queue</span><strong>{{ summary.pendingOutbound }}</strong><small>Queued WhatsApp messages</small></aura-kpi-card>
+        <aura-kpi-card tone="slate" target="/kpi-details/whatsapp/rules-active"><span>Rules active</span><strong>{{ summary.rulesActive }}</strong><small>Automation rules</small></aura-kpi-card>
+        <aura-kpi-card tone="rose" target="/kpi-details/whatsapp/threads-stored"><span>Threads stored</span><strong>{{ threads().length }}</strong><small>Persisted conversations</small></aura-kpi-card>
       </div>
 
       <div class="ai-layout" *ngIf="!loading()">

@@ -4,11 +4,12 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-booking-portal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, RouterLink, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, RouterLink, StateComponent, AuraKpiCardComponent],
   template: `
     <main class="portal-page">
       <section class="module-hero">
@@ -23,10 +24,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="context()?.paymentReady as payment">
-        <article class="metric-card teal"><span>Online payment</span><strong>{{ payment.onlinePayment ? 'Ready' : 'Disabled' }}</strong><small>{{ payment.captureMode }}</small></article>
-        <article class="metric-card blue"><span>Payment modes</span><strong>{{ payment.modes.length }}</strong><small>{{ payment.modes.join(', ') }}</small></article>
-        <article class="metric-card green"><span>Services</span><strong>{{ services().length }}</strong><small>Available catalog</small></article>
-        <article class="metric-card amber"><span>Staff</span><strong>{{ staffForBranch().length }}</strong><small>Branch-ready team</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/booking-portal/online-payment"><span>Online payment</span><strong>{{ payment.onlinePayment ? 'Ready' : 'Disabled' }}</strong><small>{{ payment.captureMode }}</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/booking-portal/payment-modes"><span>Payment modes</span><strong>{{ payment.modes.length }}</strong><small>{{ payment.modes.join(', ') }}</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/booking-portal/services"><span>Services</span><strong>{{ services().length }}</strong><small>Available catalog</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/booking-portal/staff"><span>Staff</span><strong>{{ staffForBranch().length }}</strong><small>Branch-ready team</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

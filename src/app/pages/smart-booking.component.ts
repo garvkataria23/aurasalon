@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-smart-booking',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -22,12 +23,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="summary()?.metrics as metrics">
-        <article class="metric-card teal"><span>Open bookings</span><strong>{{ metrics.openBookings }}</strong><small>Booked or arrived</small></article>
-        <article class="metric-card amber"><span>Waitlist</span><strong>{{ metrics.waitlist }}</strong><small>Clients waiting</small></article>
-        <article class="metric-card blue"><span>Online requests</span><strong>{{ metrics.onlineRequests }}</strong><small>Portal requests</small></article>
-        <article class="metric-card red"><span>Conflict risks</span><strong>{{ metrics.conflictRisks }}</strong><small>Prevented overlaps</small></article>
-        <article class="metric-card green"><span>QR check-ins</span><strong>{{ metrics.qrCheckinsToday }}</strong><small>Today</small></article>
-        <article class="metric-card violet"><span>Predicted wait</span><strong>{{ metrics.predictedWaitMinutes }}m</strong><small>Queue intelligence</small></article>
+        <aura-kpi-card tone="teal" target="/kpi-details/smart-booking/open-bookings"><span>Open bookings</span><strong>{{ metrics.openBookings }}</strong><small>Booked or arrived</small></aura-kpi-card>
+        <aura-kpi-card tone="amber" target="/kpi-details/smart-booking/waitlist"><span>Waitlist</span><strong>{{ metrics.waitlist }}</strong><small>Clients waiting</small></aura-kpi-card>
+        <aura-kpi-card tone="blue" target="/kpi-details/smart-booking/online-requests"><span>Online requests</span><strong>{{ metrics.onlineRequests }}</strong><small>Portal requests</small></aura-kpi-card>
+        <aura-kpi-card tone="red" target="/kpi-details/smart-booking/conflict-risks"><span>Conflict risks</span><strong>{{ metrics.conflictRisks }}</strong><small>Prevented overlaps</small></aura-kpi-card>
+        <aura-kpi-card tone="green" target="/kpi-details/smart-booking/qr-check-ins"><span>QR check-ins</span><strong>{{ metrics.qrCheckinsToday }}</strong><small>Today</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/smart-booking/predicted-wait"><span>Predicted wait</span><strong>{{ metrics.predictedWaitMinutes }}m</strong><small>Queue intelligence</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

@@ -1,13 +1,21 @@
 import Database from "better-sqlite3";
+import { scryptSync } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, "..", "data");
+export const dataDir = process.env.AURA_DATA_DIR
+  ? resolve(process.env.AURA_DATA_DIR)
+  : join(__dirname, "..", "data");
 mkdirSync(dataDir, { recursive: true });
 
-export const db = new Database(join(dataDir, "salon-crm.sqlite"));
+export const dbPath = process.env.AURA_DB_PATH
+  ? resolve(process.env.AURA_DB_PATH)
+  : join(dataDir, process.env.AURA_DB_FILE || "salon-crm.sqlite");
+mkdirSync(dirname(dbPath), { recursive: true });
+
+export const db = new Database(dbPath);
 db.pragma("foreign_keys = ON");
 db.pragma("journal_mode = WAL");
 
@@ -35,6 +43,17 @@ export const jsonColumns = {
   inventory_predictions: ["metrics", "suggestions"],
   inventory_waste_events: [],
   ai_marketing_generations: ["input", "segment", "output", "actions"],
+  ai_task_overrides: ["allowedRoles", "blockedRoles"],
+  ai_policy_denials: ["details"],
+  ai_response_cache: ["output", "usage"],
+  ai_automation_rules: ["conditions", "actions"],
+  ai_automation_runs: ["summary"],
+  ai_automation_suggestions: ["payload"],
+  migration_mappings: ["mapping", "unmatchedColumns", "requiredFields"],
+  migration_jobs: ["mapping", "settings", "summary"],
+  migration_import_batches: ["summary", "filters"],
+  migration_row_results: ["payload", "raw", "errors", "warnings"],
+  migration_audit_logs: ["details"],
   marketing_workflows: ["triggerRule", "steps", "metrics"],
   marketing_sequences: ["audienceRule", "steps", "metrics"],
   email_templates: ["variables"],
@@ -58,6 +77,33 @@ export const jsonColumns = {
   innovation_runs: ["input", "signals", "output", "actions"],
   voice_booking_sessions: ["transcript", "entities", "actions"],
   kiosk_sessions: ["state", "events"],
+
+  voice_call_logs: ["transcript", "entities", "actions", "providerPayload"],
+  queue_displays: ["layout", "filters", "theme"],
+  dynamic_pricing_rules: ["conditions", "adjustments", "approval"],
+  growth_advisor_tasks: ["signals", "recommendations", "outcomes"],
+  franchises: ["territory", "complianceChecklist", "sharedTemplates"],
+  franchise_royalties: ["calculation", "payments"],
+  training_lessons: ["content", "attachments", "quiz"],
+  training_assignments: ["progress", "quizResult", "certificate"],
+  image_analyses: ["input", "findings", "recommendations", "consent"],
+  reputation_reviews: ["metadata", "aiReply", "alerts"],
+  marketplace_connections: ["credentials", "scopes", "health"],
+  gamification_events: ["points", "badges", "metadata"],
+  fraud_alerts: ["signals", "evidence", "resolution"],
+  smart_forms: ["schema", "rules", "signatureConfig"],
+  form_responses: ["answers", "signature", "metadata"],
+  recommendation_events: ["input", "recommendations", "feedback"],
+  warehouse_snapshots: ["dimensions", "facts", "aggregates"],
+  kpi_monitors: ["target", "current", "alerts"],
+  appointment_optimizations: ["input", "recommendations", "appliedChanges"],
+  api_keys: ["scopes", "rateLimits", "metadata"],
+  webhooks: ["events", "headers", "retryPolicy", "lastDelivery"],
+  forecasting_models: ["features", "metrics", "predictions"],
+  knowledge_base_articles: ["tags", "contentBlocks", "embeddingMetadata"],
+  plugin_manifests: ["permissions", "extensionPoints", "settings"],
+  app_marketplace_apps: ["features", "pricing", "installState"],
+  localization_profiles: ["countries", "currencies", "taxRules", "translations"],
   workflow_definitions: ["trigger", "conditions", "actions"],
   workflow_runs: ["triggerSource", "audience", "actionResult"],
   finance_daily_closings: ["totals", "payments", "expenses", "refunds", "payouts"],
@@ -70,11 +116,14 @@ export const jsonColumns = {
   booking_portal_events: ["payload"],
   analytics_snapshots: ["input", "metrics", "insights"],
   ai_interactions: ["input", "context", "output", "actions"],
+  ai_knowledge_documents: ["metadata"],
+  ai_knowledge_query_logs: ["matches"],
+  ai_whatsapp_drafts: ["detectedIntent", "suggestedAction", "auditTrail"],
   whatsapp_threads: ["tags", "metadata"],
   whatsapp_messages: ["metadata"],
   whatsapp_automation_rules: ["conditions", "actions"],
   whatsapp_handoffs: ["history"],
-  clients: ["tags", "visitHistory", "purchaseHistory", "whatsappHistory", "consentForms"],
+  clients: ["tags", "preferences", "allergies", "safetyFlags", "communicationPreferences", "visitHistory", "purchaseHistory", "whatsappHistory", "consentForms", "familyAccount", "formulas", "segments"],
   appointments: ["serviceIds"],
   services: ["assignedStaff", "requiredProducts", "addOns", "packageServices"],
   products: [],
@@ -83,9 +132,13 @@ export const jsonColumns = {
   invoices: ["lineItems"],
   payments: [],
   memberships: ["serviceCredits", "redeemHistory"],
-  staff: ["assignedServices", "commissionRule", "attendance", "performance"],
+  packages: ["serviceIds", "packageCredits", "rules"],
+  commissions: ["rule", "tiers", "metadata"],
+  staff: ["assignedServices", "permissions", "commissionRule", "attendance", "performance"],
   branches: [],
   campaigns: ["segmentRule"],
+  message_logs: ["payload", "providerResponse"],
+  audit_logs: ["details"],
   notifications: [],
   settings: ["value"],
   gift_cards: ["redeemHistory"]
@@ -139,6 +192,33 @@ export const resources = {
   innovationRuns: { table: "innovation_runs", required: ["type", "output"], tenantScoped: true },
   voiceBookingSessions: { table: "voice_booking_sessions", required: ["channel"], tenantScoped: true },
   kioskSessions: { table: "kiosk_sessions", required: ["branchId", "mode"], tenantScoped: true },
+
+  voiceCallLogs: { table: "voice_call_logs", required: ["branchId", "phone", "intent"], tenantScoped: true },
+  queueDisplays: { table: "queue_displays", required: ["branchId", "name"], tenantScoped: true },
+  dynamicPricingRules: { table: "dynamic_pricing_rules", required: ["name", "scope"], tenantScoped: true },
+  growthAdvisorTasks: { table: "growth_advisor_tasks", required: ["title", "priority"], tenantScoped: true },
+  franchises: { table: "franchises", required: ["name", "ownerName"], tenantScoped: true },
+  franchiseRoyalties: { table: "franchise_royalties", required: ["franchiseId", "periodStart", "periodEnd"], tenantScoped: true },
+  trainingLessons: { table: "training_lessons", required: ["title", "category"], tenantScoped: true },
+  trainingAssignments: { table: "training_assignments", required: ["lessonId", "staffId"], tenantScoped: true },
+  imageAnalyses: { table: "image_analyses", required: ["clientId", "analysisType"], tenantScoped: true },
+  reputationReviews: { table: "reputation_reviews", required: ["platform", "rating", "reviewer"], tenantScoped: true },
+  marketplaceConnections: { table: "marketplace_connections", required: ["provider", "status"], tenantScoped: true },
+  gamificationEvents: { table: "gamification_events", required: ["subjectType", "subjectId", "eventType"], tenantScoped: true },
+  fraudAlerts: { table: "fraud_alerts", required: ["alertType", "severity"], tenantScoped: true },
+  smartForms: { table: "smart_forms", required: ["name", "formType"], tenantScoped: true },
+  formResponses: { table: "form_responses", required: ["formId", "clientId"], tenantScoped: true },
+  recommendationEvents: { table: "recommendation_events", required: ["clientId", "type"], tenantScoped: true },
+  warehouseSnapshots: { table: "warehouse_snapshots", required: ["snapshotType", "periodStart", "periodEnd"], tenantScoped: true },
+  kpiMonitors: { table: "kpi_monitors", required: ["name", "metric"], tenantScoped: true },
+  appointmentOptimizations: { table: "appointment_optimizations", required: ["branchId", "optimizationType"], tenantScoped: true },
+  apiKeys: { table: "api_keys", required: ["name", "keyHash"], tenantScoped: true },
+  webhooks: { table: "webhooks", required: ["name", "url"], tenantScoped: true },
+  forecastingModels: { table: "forecasting_models", required: ["name", "modelType"], tenantScoped: true },
+  knowledgeBaseArticles: { table: "knowledge_base_articles", required: ["title", "audience"], tenantScoped: true },
+  pluginManifests: { table: "plugin_manifests", required: ["name", "version"], tenantScoped: true },
+  appMarketplaceApps: { table: "app_marketplace_apps", required: ["name", "category"], tenantScoped: true },
+  localizationProfiles: { table: "localization_profiles", required: ["name", "primaryCountry"], tenantScoped: true },
   workflowDefinitions: { table: "workflow_definitions", required: ["name"], tenantScoped: true },
   workflowRuns: { table: "workflow_runs", required: ["workflowId"], tenantScoped: true },
   financeCashDrawers: { table: "finance_cash_drawers", required: ["branchId"], tenantScoped: true },
@@ -155,6 +235,10 @@ export const resources = {
   bookingPortalEvents: { table: "booking_portal_events", required: ["type"], tenantScoped: true },
   analyticsSnapshots: { table: "analytics_snapshots", required: ["type", "metrics"], tenantScoped: true },
   aiInteractions: { table: "ai_interactions", required: ["type", "prompt"], tenantScoped: true },
+  aiKnowledgeDocuments: { table: "ai_knowledge_documents", required: ["title", "content"], tenantScoped: true },
+  aiKnowledgeChunks: { table: "ai_knowledge_chunks", required: ["documentId", "content"], tenantScoped: true },
+  aiKnowledgeQueryLogs: { table: "ai_knowledge_query_logs", required: ["query"], tenantScoped: true },
+  aiWhatsappDrafts: { table: "ai_whatsapp_drafts", required: ["message"], tenantScoped: true },
   whatsappThreads: { table: "whatsapp_threads", required: ["phone"], tenantScoped: true },
   whatsappMessages: { table: "whatsapp_messages", required: ["threadId", "direction", "body"], tenantScoped: true },
   whatsappRules: { table: "whatsapp_automation_rules", required: ["name", "trigger", "template"], tenantScoped: true },
@@ -168,8 +252,12 @@ export const resources = {
   invoices: { table: "invoices", required: ["saleId", "clientId", "invoiceNumber"] },
   payments: { table: "payments", required: ["invoiceId", "mode", "amount"] },
   memberships: { table: "memberships", required: ["planName", "clientId"] },
+  packages: { table: "packages", required: ["name", "price", "serviceIds"] },
+  commissions: { table: "commissions", required: ["name", "staffId", "type"] },
   staff: { table: "staff", required: ["name", "role", "branchId"] },
   marketing: { table: "campaigns", required: ["name", "channel"] },
+  messageLogs: { table: "message_logs", required: ["channel", "recipient", "message"] },
+  auditLogs: { table: "audit_logs", required: ["action"] },
   branches: { table: "branches", required: ["name", "city"] },
   settings: { table: "settings", required: ["key", "value"] },
   notifications: { table: "notifications", required: ["channel", "message"] },
@@ -196,7 +284,7 @@ const schema = [
     description TEXT DEFAULT '',
     scope TEXT DEFAULT 'global',
     tenantId TEXT DEFAULT '',
-    planId TEXT DEFAULT '',
+    planId TEXT DEFAULT NULL,
     enabled INTEGER DEFAULT 0,
     rules TEXT DEFAULT '{}',
     createdAt TEXT NOT NULL,
@@ -227,7 +315,7 @@ const schema = [
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     status TEXT DEFAULT 'trialing',
-    planId TEXT DEFAULT '',
+    planId TEXT DEFAULT NULL,
     subscriptionStatus TEXT DEFAULT 'trialing',
     trialEndsAt TEXT DEFAULT '',
     ownerEmail TEXT DEFAULT '',
@@ -255,9 +343,16 @@ const schema = [
     id TEXT PRIMARY KEY,
     tenantId TEXT NOT NULL,
     name TEXT NOT NULL,
+    loginId TEXT DEFAULT '',
     email TEXT NOT NULL,
     role TEXT NOT NULL,
     branchIds TEXT DEFAULT '[]',
+    staffId TEXT DEFAULT '',
+    passwordSalt TEXT DEFAULT '',
+    passwordHash TEXT DEFAULT '',
+    failedLoginCount INTEGER DEFAULT 0,
+    lockedUntil TEXT DEFAULT '',
+    lastLoginAt TEXT DEFAULT '',
     status TEXT DEFAULT 'active',
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
@@ -889,6 +984,407 @@ const schema = [
     FOREIGN KEY(tenantId) REFERENCES tenants(id),
     FOREIGN KEY(branchId) REFERENCES branches(id)
   )`,
+
+  `CREATE TABLE IF NOT EXISTS voice_call_logs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT NOT NULL,
+    clientId TEXT DEFAULT '',
+    phone TEXT NOT NULL,
+    language TEXT DEFAULT 'en-IN',
+    intent TEXT NOT NULL,
+    transcript TEXT DEFAULT '[]',
+    entities TEXT DEFAULT '{}',
+    actions TEXT DEFAULT '[]',
+    providerPayload TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'open',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(branchId) REFERENCES branches(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS queue_displays (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    displayCode TEXT DEFAULT '',
+    layout TEXT DEFAULT '{}',
+    filters TEXT DEFAULT '{}',
+    theme TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(branchId) REFERENCES branches(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS dynamic_pricing_rules (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    conditions TEXT DEFAULT '{}',
+    adjustments TEXT DEFAULT '{}',
+    approval TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'draft',
+    startsAt TEXT DEFAULT '',
+    endsAt TEXT DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS growth_advisor_tasks (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    title TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    ownerUserId TEXT DEFAULT '',
+    dueDate TEXT DEFAULT '',
+    signals TEXT DEFAULT '{}',
+    recommendations TEXT DEFAULT '[]',
+    outcomes TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'open',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS franchises (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    ownerName TEXT NOT NULL,
+    ownerEmail TEXT DEFAULT '',
+    territory TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'onboarding',
+    royaltyPercent REAL DEFAULT 0,
+    complianceScore REAL DEFAULT 0,
+    complianceChecklist TEXT DEFAULT '[]',
+    sharedTemplates TEXT DEFAULT '[]',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS franchise_royalties (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    franchiseId TEXT NOT NULL,
+    periodStart TEXT NOT NULL,
+    periodEnd TEXT NOT NULL,
+    grossRevenue REAL DEFAULT 0,
+    royaltyAmount REAL DEFAULT 0,
+    calculation TEXT DEFAULT '{}',
+    payments TEXT DEFAULT '[]',
+    status TEXT DEFAULT 'pending',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(franchiseId) REFERENCES franchises(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS training_lessons (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    category TEXT NOT NULL,
+    level TEXT DEFAULT 'beginner',
+    durationMinutes INTEGER DEFAULT 0,
+    content TEXT DEFAULT '{}',
+    attachments TEXT DEFAULT '[]',
+    quiz TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'published',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS training_assignments (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    lessonId TEXT NOT NULL,
+    staffId TEXT NOT NULL,
+    dueDate TEXT DEFAULT '',
+    progress TEXT DEFAULT '{}',
+    quizResult TEXT DEFAULT '{}',
+    certificate TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'assigned',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(lessonId) REFERENCES training_lessons(id),
+    FOREIGN KEY(staffId) REFERENCES staff(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS image_analyses (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    clientId TEXT NOT NULL,
+    analysisType TEXT NOT NULL,
+    imageUri TEXT DEFAULT '',
+    input TEXT DEFAULT '{}',
+    findings TEXT DEFAULT '{}',
+    recommendations TEXT DEFAULT '[]',
+    consent TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'generated',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(clientId) REFERENCES clients(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS reputation_reviews (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    platform TEXT NOT NULL,
+    reviewer TEXT NOT NULL,
+    rating REAL NOT NULL,
+    reviewText TEXT DEFAULT '',
+    sentiment TEXT DEFAULT 'neutral',
+    metadata TEXT DEFAULT '{}',
+    aiReply TEXT DEFAULT '{}',
+    alerts TEXT DEFAULT '[]',
+    status TEXT DEFAULT 'new',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS marketplace_connections (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    provider TEXT NOT NULL,
+    accountName TEXT DEFAULT '',
+    credentials TEXT DEFAULT '{}',
+    scopes TEXT DEFAULT '[]',
+    health TEXT DEFAULT '{}',
+    status TEXT NOT NULL,
+    lastSyncAt TEXT DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS gamification_events (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    subjectType TEXT NOT NULL,
+    subjectId TEXT NOT NULL,
+    eventType TEXT NOT NULL,
+    points TEXT DEFAULT '{}',
+    badges TEXT DEFAULT '[]',
+    metadata TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS fraud_alerts (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    alertType TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    subjectType TEXT DEFAULT '',
+    subjectId TEXT DEFAULT '',
+    riskScore REAL DEFAULT 0,
+    signals TEXT DEFAULT '{}',
+    evidence TEXT DEFAULT '[]',
+    resolution TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'open',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS smart_forms (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    formType TEXT NOT NULL,
+    version INTEGER DEFAULT 1,
+    schema TEXT DEFAULT '{}',
+    rules TEXT DEFAULT '{}',
+    signatureConfig TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS form_responses (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    formId TEXT NOT NULL,
+    clientId TEXT NOT NULL,
+    appointmentId TEXT DEFAULT '',
+    answers TEXT DEFAULT '{}',
+    signature TEXT DEFAULT '{}',
+    metadata TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'submitted',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(formId) REFERENCES smart_forms(id),
+    FOREIGN KEY(clientId) REFERENCES clients(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS recommendation_events (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    clientId TEXT NOT NULL,
+    type TEXT NOT NULL,
+    input TEXT DEFAULT '{}',
+    recommendations TEXT DEFAULT '[]',
+    feedback TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'generated',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(clientId) REFERENCES clients(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS warehouse_snapshots (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    snapshotType TEXT NOT NULL,
+    periodStart TEXT NOT NULL,
+    periodEnd TEXT NOT NULL,
+    dimensions TEXT DEFAULT '{}',
+    facts TEXT DEFAULT '{}',
+    aggregates TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'materialized',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS kpi_monitors (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    target TEXT DEFAULT '{}',
+    current TEXT DEFAULT '{}',
+    alerts TEXT DEFAULT '[]',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS appointment_optimizations (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT NOT NULL,
+    optimizationType TEXT NOT NULL,
+    input TEXT DEFAULT '{}',
+    recommendations TEXT DEFAULT '[]',
+    appliedChanges TEXT DEFAULT '[]',
+    score REAL DEFAULT 0,
+    status TEXT DEFAULT 'generated',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(branchId) REFERENCES branches(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    keyPrefix TEXT DEFAULT '',
+    keyHash TEXT NOT NULL,
+    scopes TEXT DEFAULT '[]',
+    rateLimits TEXT DEFAULT '{}',
+    metadata TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    lastUsedAt TEXT DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS webhooks (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    events TEXT DEFAULT '[]',
+    headers TEXT DEFAULT '{}',
+    retryPolicy TEXT DEFAULT '{}',
+    lastDelivery TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS forecasting_models (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    modelType TEXT NOT NULL,
+    horizonDays INTEGER DEFAULT 30,
+    features TEXT DEFAULT '{}',
+    metrics TEXT DEFAULT '{}',
+    predictions TEXT DEFAULT '[]',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS knowledge_base_articles (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    audience TEXT NOT NULL,
+    category TEXT DEFAULT '',
+    body TEXT DEFAULT '',
+    tags TEXT DEFAULT '[]',
+    contentBlocks TEXT DEFAULT '[]',
+    embeddingMetadata TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'published',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS plugin_manifests (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    version TEXT NOT NULL,
+    vendor TEXT DEFAULT '',
+    permissions TEXT DEFAULT '[]',
+    extensionPoints TEXT DEFAULT '[]',
+    settings TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'installed',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS app_marketplace_apps (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    provider TEXT DEFAULT '',
+    features TEXT DEFAULT '[]',
+    pricing TEXT DEFAULT '{}',
+    installState TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'available',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS localization_profiles (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    primaryCountry TEXT NOT NULL,
+    countries TEXT DEFAULT '[]',
+    currencies TEXT DEFAULT '[]',
+    taxRules TEXT DEFAULT '{}',
+    translations TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
   `CREATE TABLE IF NOT EXISTS workflow_definitions (
     id TEXT PRIMARY KEY,
     tenantId TEXT NOT NULL,
@@ -1139,6 +1635,173 @@ const schema = [
     model TEXT DEFAULT 'local-business-rules',
     status TEXT DEFAULT 'completed',
     confidence REAL DEFAULT 0,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_knowledge_documents (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    title TEXT NOT NULL,
+    category TEXT DEFAULT 'policy',
+    content TEXT NOT NULL,
+    sourceType TEXT DEFAULT 'manual',
+    sourceKey TEXT DEFAULT '',
+    status TEXT DEFAULT 'active',
+    metadata TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_knowledge_chunks (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    documentId TEXT NOT NULL,
+    chunkIndex INTEGER DEFAULT 0,
+    title TEXT DEFAULT '',
+    content TEXT NOT NULL,
+    tokenCount INTEGER DEFAULT 0,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(documentId) REFERENCES ai_knowledge_documents(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_knowledge_query_logs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    query TEXT NOT NULL,
+    matches TEXT DEFAULT '[]',
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_whatsapp_drafts (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    threadId TEXT DEFAULT '',
+    clientId TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    message TEXT DEFAULT '',
+    detectedIntent TEXT DEFAULT '{}',
+    confidence REAL DEFAULT 0,
+    suggestedReply TEXT DEFAULT '',
+    suggestedAction TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'draft',
+    approvedAt TEXT DEFAULT '',
+    handoffAt TEXT DEFAULT '',
+    auditTrail TEXT DEFAULT '[]',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_tenant_settings (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL UNIQUE,
+    dailyCallLimit INTEGER DEFAULT 10000,
+    dailyCostLimitUsd REAL DEFAULT 5,
+    providerMode TEXT DEFAULT 'local',
+    fallbackMode TEXT DEFAULT 'local-business-rules',
+    enabled INTEGER DEFAULT 1,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_task_overrides (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    taskKey TEXT NOT NULL,
+    enabled INTEGER DEFAULT 1,
+    allowedRoles TEXT DEFAULT '[]',
+    blockedRoles TEXT DEFAULT '[]',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    UNIQUE(tenantId, taskKey)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_policy_denials (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    taskKey TEXT NOT NULL,
+    role TEXT DEFAULT '',
+    reason TEXT NOT NULL,
+    details TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_response_cache (
+    cache_key TEXT PRIMARY KEY,
+    task_key TEXT NOT NULL,
+    tenantId TEXT NOT NULL,
+    output TEXT DEFAULT '{}',
+    usage TEXT DEFAULT '{}',
+    model TEXT DEFAULT 'local-business-rules',
+    provider TEXT DEFAULT 'local',
+    prompt_version TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    hit_count INTEGER DEFAULT 0,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_cost_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    task_key TEXT NOT NULL,
+    provider TEXT DEFAULT 'local',
+    model TEXT DEFAULT 'local-business-rules',
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    cost_usd REAL DEFAULT 0,
+    cached INTEGER DEFAULT 0,
+    latency_ms REAL DEFAULT 0,
+    request_id TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_automation_rules (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    type TEXT NOT NULL,
+    name TEXT NOT NULL,
+    status TEXT DEFAULT 'active',
+    conditions TEXT DEFAULT '{}',
+    actions TEXT DEFAULT '[]',
+    lastRunAt TEXT DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_automation_runs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    ruleId TEXT DEFAULT '',
+    type TEXT NOT NULL,
+    status TEXT DEFAULT 'completed',
+    summary TEXT DEFAULT '{}',
+    suggestionsCreated INTEGER DEFAULT 0,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS ai_automation_suggestions (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    ruleId TEXT DEFAULT '',
+    runId TEXT DEFAULT '',
+    type TEXT NOT NULL,
+    targetType TEXT DEFAULT '',
+    targetId TEXT DEFAULT '',
+    title TEXT NOT NULL,
+    message TEXT DEFAULT '',
+    payload TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'draft',
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
     FOREIGN KEY(tenantId) REFERENCES tenants(id)
@@ -1403,6 +2066,62 @@ const schema = [
     createdAt TEXT NOT NULL,
     FOREIGN KEY(invoiceId) REFERENCES invoices(id)
   )`,
+  `CREATE TABLE IF NOT EXISTS day_close_locks (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    branch_id TEXT NOT NULL,
+    business_date TEXT NOT NULL,
+    status TEXT DEFAULT 'locked',
+    locked_by TEXT DEFAULT '',
+    locked_at TEXT DEFAULT '',
+    reopened_by TEXT DEFAULT '',
+    reopened_at TEXT DEFAULT '',
+    reopen_reason TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (tenant_id, branch_id, business_date)
+  )`,
+  `CREATE TABLE IF NOT EXISTS z_reports (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    branch_id TEXT NOT NULL,
+    business_date TEXT NOT NULL,
+    report_no TEXT NOT NULL,
+    sales_total REAL DEFAULT 0,
+    refund_total REAL DEFAULT 0,
+    net_sales REAL DEFAULT 0,
+    tax_total REAL DEFAULT 0,
+    discount_total REAL DEFAULT 0,
+    cash_total REAL DEFAULT 0,
+    upi_total REAL DEFAULT 0,
+    card_total REAL DEFAULT 0,
+    wallet_total REAL DEFAULT 0,
+    razorpay_total REAL DEFAULT 0,
+    tips_total REAL DEFAULT 0,
+    invoice_count INTEGER DEFAULT 0,
+    void_count INTEGER DEFAULT 0,
+    refund_count INTEGER DEFAULT 0,
+    opening_cash REAL DEFAULT 0,
+    closing_cash REAL DEFAULT 0,
+    cash_difference REAL DEFAULT 0,
+    generated_by TEXT DEFAULT '',
+    generated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    report_json TEXT NOT NULL DEFAULT '{}',
+    UNIQUE (tenant_id, branch_id, business_date, report_no)
+  )`,
+  `CREATE TABLE IF NOT EXISTS cash_drawer_sessions (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    branch_id TEXT NOT NULL,
+    cashier_id TEXT NOT NULL,
+    terminal_id TEXT DEFAULT '',
+    opening_cash REAL DEFAULT 0,
+    closing_cash REAL DEFAULT 0,
+    expected_cash REAL DEFAULT 0,
+    cash_difference REAL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'open',
+    opened_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    closed_at TEXT DEFAULT ''
+  )`,
   `CREATE TABLE IF NOT EXISTS memberships (
     id TEXT PRIMARY KEY,
     clientId TEXT NOT NULL,
@@ -1421,6 +2140,39 @@ const schema = [
     updatedAt TEXT NOT NULL,
     FOREIGN KEY(clientId) REFERENCES clients(id)
   )`,
+  `CREATE TABLE IF NOT EXISTS packages (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    price REAL DEFAULT 0,
+    validityDays INTEGER DEFAULT 0,
+    serviceIds TEXT DEFAULT '[]',
+    packageCredits TEXT DEFAULT '[]',
+    rules TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS commissions (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    staffId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    value REAL DEFAULT 0,
+    rule TEXT DEFAULT '{}',
+    tiers TEXT DEFAULT '[]',
+    metadata TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'active',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id),
+    FOREIGN KEY(staffId) REFERENCES staff(id)
+  )`,
   `CREATE TABLE IF NOT EXISTS campaigns (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -1433,6 +2185,38 @@ const schema = [
     conversionValue REAL DEFAULT 0,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS message_logs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    campaignId TEXT DEFAULT '',
+    clientId TEXT DEFAULT '',
+    channel TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    message TEXT NOT NULL,
+    direction TEXT DEFAULT 'outbound',
+    status TEXT DEFAULT 'queued',
+    providerMessageId TEXT DEFAULT '',
+    payload TEXT DEFAULT '{}',
+    providerResponse TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS audit_logs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    branchId TEXT DEFAULT '',
+    actorUserId TEXT DEFAULT '',
+    action TEXT NOT NULL,
+    entityType TEXT DEFAULT '',
+    entityId TEXT DEFAULT '',
+    severity TEXT DEFAULT 'info',
+    details TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
   )`,
   `CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY,
@@ -1450,6 +2234,90 @@ const schema = [
     scope TEXT DEFAULT 'global',
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS migration_mappings (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    sourceSoftware TEXT DEFAULT '',
+    resource TEXT NOT NULL,
+    name TEXT NOT NULL,
+    mapping TEXT DEFAULT '{}',
+    unmatchedColumns TEXT DEFAULT '[]',
+    requiredFields TEXT DEFAULT '[]',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS migration_jobs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    sourceSoftware TEXT DEFAULT '',
+    adapter TEXT DEFAULT '',
+    resource TEXT DEFAULT 'auto',
+    fileName TEXT DEFAULT '',
+    status TEXT DEFAULT 'ready',
+    dryRun INTEGER DEFAULT 0,
+    migrationMode INTEGER DEFAULT 1,
+    mapping TEXT DEFAULT '{}',
+    settings TEXT DEFAULT '{}',
+    totalRows INTEGER DEFAULT 0,
+    importedRows INTEGER DEFAULT 0,
+    skippedRows INTEGER DEFAULT 0,
+    warningRows INTEGER DEFAULT 0,
+    errorRows INTEGER DEFAULT 0,
+    summary TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS migration_import_batches (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    jobId TEXT DEFAULT '',
+    sourceSoftware TEXT DEFAULT '',
+    resource TEXT DEFAULT 'auto',
+    branchId TEXT DEFAULT '',
+    status TEXT DEFAULT 'importing',
+    summary TEXT DEFAULT '{}',
+    filters TEXT DEFAULT '{}',
+    rolledBackAt TEXT DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS migration_row_results (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    jobId TEXT DEFAULT '',
+    batchId TEXT DEFAULT '',
+    resource TEXT DEFAULT '',
+    entity TEXT DEFAULT '',
+    sourceSheet TEXT DEFAULT '',
+    sourceRowNumber INTEGER DEFAULT 0,
+    sourceExternalId TEXT DEFAULT '',
+    action TEXT DEFAULT '',
+    targetId TEXT DEFAULT '',
+    status TEXT DEFAULT '',
+    message TEXT DEFAULT '',
+    payload TEXT DEFAULT '{}',
+    raw TEXT DEFAULT '{}',
+    errors TEXT DEFAULT '[]',
+    warnings TEXT DEFAULT '[]',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS migration_audit_logs (
+    id TEXT PRIMARY KEY,
+    tenantId TEXT NOT NULL,
+    jobId TEXT DEFAULT '',
+    batchId TEXT DEFAULT '',
+    action TEXT NOT NULL,
+    actorUserId TEXT DEFAULT '',
+    details TEXT DEFAULT '{}',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY(tenantId) REFERENCES tenants(id)
   )`,
   `CREATE TABLE IF NOT EXISTS gift_cards (
     id TEXT PRIMARY KEY,
@@ -1470,6 +2338,26 @@ schema.forEach((statement) => db.prepare(statement).run());
 const now = () => new Date().toISOString();
 const id = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 const isJsonColumn = (table, key) => (jsonColumns[table] || []).includes(key);
+
+function stringifyBindable(value) {
+  try {
+    return JSON.stringify(value ?? null);
+  } catch {
+    return JSON.stringify(String(value));
+  }
+}
+
+function bindableValue(table, key, value) {
+  if (isJsonColumn(table, key)) return stringifyBindable(value);
+  if (value === null) return null;
+  if (value instanceof Date) return value.toISOString();
+  if (Buffer.isBuffer(value)) return value;
+  const valueType = typeof value;
+  if (["number", "string", "bigint"].includes(valueType)) return value;
+  if (valueType === "boolean") return value ? 1 : 0;
+  if (valueType === "object") return stringifyBindable(value);
+  return String(value);
+}
 export const tenantScopedTables = [
   "branches",
   "clients",
@@ -1482,9 +2370,18 @@ export const tenantScopedTables = [
   "invoices",
   "payments",
   "memberships",
+  "packages",
+  "commissions",
   "campaigns",
+  "message_logs",
+  "audit_logs",
   "notifications",
   "settings",
+  "migration_mappings",
+  "migration_jobs",
+  "migration_import_batches",
+  "migration_row_results",
+  "migration_audit_logs",
   "gift_cards",
   "subscriptions",
   "tenant_users",
@@ -1529,6 +2426,33 @@ export const tenantScopedTables = [
   "innovation_runs",
   "voice_booking_sessions",
   "kiosk_sessions",
+
+  "voice_call_logs",
+  "queue_displays",
+  "dynamic_pricing_rules",
+  "growth_advisor_tasks",
+  "franchises",
+  "franchise_royalties",
+  "training_lessons",
+  "training_assignments",
+  "image_analyses",
+  "reputation_reviews",
+  "marketplace_connections",
+  "gamification_events",
+  "fraud_alerts",
+  "smart_forms",
+  "form_responses",
+  "recommendation_events",
+  "warehouse_snapshots",
+  "kpi_monitors",
+  "appointment_optimizations",
+  "api_keys",
+  "webhooks",
+  "forecasting_models",
+  "knowledge_base_articles",
+  "plugin_manifests",
+  "app_marketplace_apps",
+  "localization_profiles",
   "workflow_definitions",
   "workflow_runs",
   "finance_cash_drawers",
@@ -1545,6 +2469,18 @@ export const tenantScopedTables = [
   "booking_portal_events",
   "analytics_snapshots",
   "ai_interactions",
+  "ai_knowledge_documents",
+  "ai_knowledge_chunks",
+  "ai_knowledge_query_logs",
+  "ai_whatsapp_drafts",
+  "ai_tenant_settings",
+  "ai_task_overrides",
+  "ai_policy_denials",
+  "ai_response_cache",
+  "ai_cost_ledger",
+  "ai_automation_rules",
+  "ai_automation_runs",
+  "ai_automation_suggestions",
   "whatsapp_threads",
   "whatsapp_messages",
   "whatsapp_automation_rules",
@@ -1592,16 +2528,96 @@ migrateTenantSettingsKey();
 db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_settings_tenant_key ON settings(tenantId, key)").run();
 
 function migrateOperationalColumns() {
+  ensureColumn("tenant_users", "loginId", "TEXT DEFAULT ''");
+  ensureColumn("tenant_users", "staffId", "TEXT DEFAULT ''");
+  ensureColumn("tenant_users", "passwordSalt", "TEXT DEFAULT ''");
+  ensureColumn("tenant_users", "passwordHash", "TEXT DEFAULT ''");
+  ensureColumn("tenant_users", "failedLoginCount", "INTEGER DEFAULT 0");
+  ensureColumn("tenant_users", "lockedUntil", "TEXT DEFAULT ''");
+  ensureColumn("tenant_users", "lastLoginAt", "TEXT DEFAULT ''");
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_tenant_users_email ON tenant_users(tenantId, email)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_tenant_users_login_id ON tenant_users(tenantId, loginId)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_tenant_users_staff ON tenant_users(tenantId, staffId)").run();
   ensureColumn("inventory_transactions", "batchId", "TEXT DEFAULT ''");
   ensureColumn("inventory_transactions", "supplierId", "TEXT DEFAULT ''");
   ensureColumn("inventory_transactions", "unitCost", "REAL DEFAULT 0");
   ensureColumn("inventory_transactions", "totalCost", "REAL DEFAULT 0");
   ensureColumn("sales", "couponCode", "TEXT DEFAULT ''");
   ensureColumn("sales", "couponDiscount", "REAL DEFAULT 0");
+  ensureColumn("clients", "preferences", "TEXT DEFAULT '{}'");
+  ensureColumn("clients", "allergies", "TEXT DEFAULT '[]'");
+  ensureColumn("clients", "safetyFlags", "TEXT DEFAULT '{}'");
+  ensureColumn("clients", "communicationPreferences", "TEXT DEFAULT '{}'");
+  ensureColumn("clients", "imported", "INTEGER DEFAULT 0");
+  ensureColumn("clients", "originalSystem", "TEXT DEFAULT ''");
+  ensureColumn("clients", "originalRecordId", "TEXT DEFAULT ''");
+  ensureColumn("clients", "importedAt", "TEXT DEFAULT ''");
+  ensureColumn("clients", "importBatchId", "TEXT DEFAULT ''");
+  ensureColumn("staff", "permissions", "TEXT DEFAULT '[]'");
+  ensureColumn("invoices", "tenant_id", `TEXT DEFAULT '${DEFAULT_TENANT_ID}'`);
+  ensureColumn("invoices", "branch_id", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "customer_id", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "invoice_no", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "payment_status", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "paid_amount", "REAL DEFAULT 0");
+  ensureColumn("invoices", "due_amount", "REAL DEFAULT 0");
+  ensureColumn("invoices", "discount_total", "REAL DEFAULT 0");
+  ensureColumn("invoices", "grand_total", "REAL DEFAULT 0");
+  ensureColumn("invoices", "created_at", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "updated_at", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "branchId", "TEXT DEFAULT ''");
+  ensureColumn("invoices", "staffId", "TEXT DEFAULT ''");
   ensureColumn("invoices", "couponCode", "TEXT DEFAULT ''");
   ensureColumn("invoices", "couponDiscount", "REAL DEFAULT 0");
+  db.prepare(`
+    UPDATE invoices
+    SET tenant_id = tenantId
+    WHERE tenantId IS NOT NULL
+      AND (tenant_id IS NULL OR tenant_id = '')
+  `).run();
+  db.prepare(`
+    UPDATE invoices
+    SET branchId = (
+      SELECT sales.branchId FROM sales WHERE sales.id = invoices.saleId
+    )
+    WHERE (branchId IS NULL OR branchId = '')
+      AND saleId IN (SELECT id FROM sales)
+  `).run();
+  db.prepare(`
+    UPDATE invoices
+    SET branch_id = branchId
+    WHERE branchId IS NOT NULL
+      AND (branch_id IS NULL OR branch_id = '')
+  `).run();
+  db.prepare(`
+    UPDATE invoices
+    SET staffId = (
+      SELECT sales.staffId FROM sales WHERE sales.id = invoices.saleId
+    )
+    WHERE (staffId IS NULL OR staffId = '')
+      AND saleId IN (SELECT id FROM sales)
+  `).run();
+  db.prepare("UPDATE invoices SET customer_id = clientId WHERE (customer_id IS NULL OR customer_id = '') AND clientId IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET invoice_no = invoiceNumber WHERE (invoice_no IS NULL OR invoice_no = '') AND invoiceNumber IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET payment_status = status WHERE (payment_status IS NULL OR payment_status = '') AND status IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET paid_amount = paid WHERE (paid_amount IS NULL OR paid_amount = 0) AND paid IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET due_amount = balance WHERE (due_amount IS NULL OR due_amount = 0) AND balance IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET discount_total = discount WHERE (discount_total IS NULL OR discount_total = 0) AND discount IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET grand_total = total WHERE (grand_total IS NULL OR grand_total = 0) AND total IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET created_at = createdAt WHERE (created_at IS NULL OR created_at = '') AND createdAt IS NOT NULL").run();
+  db.prepare("UPDATE invoices SET updated_at = updatedAt WHERE (updated_at IS NULL OR updated_at = '') AND updatedAt IS NOT NULL").run();
+  ensureColumn("packages", "branchId", "TEXT DEFAULT ''");
+  ensureColumn("packages", "packageCredits", "TEXT DEFAULT '[]'");
+  ensureColumn("packages", "rules", "TEXT DEFAULT '{}'");
   db.prepare("CREATE INDEX IF NOT EXISTS idx_staff_attendance_staff_date ON staff_attendance(tenantId, staffId, date)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_staff_shifts_branch_date ON staff_shifts(tenantId, branchId, date)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_appointments_branch_start ON appointments(tenantId, branchId, startAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_day_close_locks_tenant_branch ON day_close_locks(tenant_id, branch_id, business_date)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_cash_drawer_sessions_tenant_branch_status ON cash_drawer_sessions(tenant_id, branch_id, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_z_reports_tenant_branch_date ON z_reports(tenant_id, branch_id, business_date)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_migration_jobs_tenant_created ON migration_jobs(tenantId, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_migration_batches_tenant_status ON migration_import_batches(tenantId, status, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_migration_rows_job ON migration_row_results(tenantId, jobId, sourceSheet, sourceRowNumber)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_inventory_batches_product ON inventory_batches(tenantId, productId, branchId)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_inventory_transactions_product ON inventory_transactions(tenantId, productId, branchId)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_auth_refresh_user ON auth_refresh_tokens(tenantId, userId, expiresAt)").run();
@@ -1612,6 +2628,18 @@ function migrateOperationalColumns() {
   db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_presence_user ON staff_presence(tenantId, userId)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_feature_toggles_scope ON feature_toggles(scope, tenantId, planId)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_marketing_generations_type ON ai_marketing_generations(tenantId, type, createdAt)").run();
+  ensureColumn("ai_knowledge_documents", "sourceKey", "TEXT DEFAULT ''");
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_knowledge_documents_scope ON ai_knowledge_documents(tenantId, branchId, status, sourceType)").run();
+  db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_knowledge_documents_source ON ai_knowledge_documents(tenantId, branchId, sourceType, sourceKey) WHERE sourceKey <> ''").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_knowledge_chunks_scope ON ai_knowledge_chunks(tenantId, branchId, documentId, updatedAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_knowledge_query_logs_scope ON ai_knowledge_query_logs(tenantId, branchId, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_whatsapp_drafts_scope ON ai_whatsapp_drafts(tenantId, branchId, status, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_cost_ledger_task ON ai_cost_ledger(tenantId, task_key, created_at)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_response_cache_tenant_task ON ai_response_cache(tenantId, task_key, expires_at)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_policy_denials_tenant ON ai_policy_denials(tenantId, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_automation_rules_scope ON ai_automation_rules(tenantId, branchId, type, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_automation_runs_scope ON ai_automation_runs(tenantId, branchId, type, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_ai_automation_suggestions_scope ON ai_automation_suggestions(tenantId, branchId, status, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_marketing_workflows_trigger ON marketing_workflows(tenantId, trigger, status)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_marketing_sequences_channel ON marketing_sequences(tenantId, channel, status)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_booking_recommendations_client ON booking_recommendations(tenantId, branchId, clientId, createdAt)").run();
@@ -1629,6 +2657,18 @@ function migrateOperationalColumns() {
   db.prepare("CREATE INDEX IF NOT EXISTS idx_white_label_domain ON white_label_profiles(tenantId, domain, status)").run();
   db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_branch_branding_branch ON branch_branding(tenantId, branchId)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_innovation_runs_type ON innovation_runs(tenantId, type, createdAt)").run();
+
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_voice_call_logs_intent ON voice_call_logs(tenantId, branchId, intent, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_dynamic_pricing_scope ON dynamic_pricing_rules(tenantId, scope, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_franchise_royalties_period ON franchise_royalties(tenantId, franchiseId, periodStart, periodEnd)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_training_assignments_staff ON training_assignments(tenantId, staffId, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_reputation_reviews_rating ON reputation_reviews(tenantId, platform, rating, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_fraud_alerts_status ON fraud_alerts(tenantId, severity, status, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_recommendation_events_client ON recommendation_events(tenantId, clientId, type, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_kpi_monitors_metric ON kpi_monitors(tenantId, metric, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(tenantId, keyPrefix, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_webhooks_status ON webhooks(tenantId, status, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_plugin_manifests_name ON plugin_manifests(tenantId, name, status)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_workflow_definitions_status ON workflow_definitions(tenantId, status, branchId)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_workflow_runs_workflow ON workflow_runs(tenantId, workflowId, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_finance_drawers_branch ON finance_cash_drawers(tenantId, branchId, status)").run();
@@ -1640,6 +2680,10 @@ function migrateOperationalColumns() {
   db.prepare("CREATE INDEX IF NOT EXISTS idx_wallet_transactions_client ON wallet_transactions(tenantId, clientId, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_credit_notes_invoice ON credit_notes(tenantId, invoiceId, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_invoice_documents_invoice ON invoice_documents(tenantId, invoiceId, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_packages_branch_status ON packages(tenantId, branchId, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_commissions_staff ON commissions(tenantId, staffId, status)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_message_logs_recipient ON message_logs(tenantId, channel, recipient, createdAt)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(tenantId, action, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_customer_intelligence_client ON customer_intelligence_snapshots(tenantId, clientId, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_customer_timeline_client ON customer_timeline_events(tenantId, clientId, createdAt)").run();
   db.prepare("CREATE INDEX IF NOT EXISTS idx_booking_portal_events_appointment ON booking_portal_events(tenantId, appointmentId, createdAt)").run();
@@ -1651,7 +2695,7 @@ export function serialize(table, data) {
   const output = {};
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined) continue;
-    output[key] = isJsonColumn(table, key) ? JSON.stringify(value ?? null) : value;
+    output[key] = bindableValue(table, key, value);
   }
   return output;
 }
@@ -1669,7 +2713,16 @@ export function deserialize(table, row) {
   return output;
 }
 
-export function listRows(table, { q = "", branchId = "", tenantId = "", limit = 250 } = {}) {
+export function listRows(table, {
+  q = "",
+  branchId = "",
+  tenantId = "",
+  limit = 250,
+  from = "",
+  to = "",
+  startAtFrom = "",
+  startAtTo = ""
+} = {}) {
   const columns = columnsFor(table);
   const where = [];
   const params = {};
@@ -1685,9 +2738,38 @@ export function listRows(table, { q = "", branchId = "", tenantId = "", limit = 
     where.push("tenantId = @tenantId");
     params.tenantId = tenantId;
   }
+  const fromBoundary = normalizeDateBoundary(startAtFrom || from, "from");
+  const toBoundary = normalizeDateBoundary(startAtTo || to, "to");
+  if (columns.includes("startAt") && fromBoundary) {
+    where.push("startAt >= @startAtFrom");
+    params.startAtFrom = fromBoundary;
+  }
+  if (columns.includes("startAt") && toBoundary) {
+    where.push("startAt < @startAtTo");
+    params.startAtTo = toBoundary;
+  }
   params.limit = Number(limit) || 250;
-  const sql = `SELECT * FROM ${table}${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY createdAt DESC LIMIT @limit`;
+  const orderBy = columns.includes("startAt") && (fromBoundary || toBoundary)
+    ? "startAt ASC"
+    : columns.includes("createdAt")
+      ? "createdAt DESC"
+      : "id ASC";
+  const sql = `SELECT * FROM ${table}${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY ${orderBy} LIMIT @limit`;
   return db.prepare(sql).all(params).map((row) => deserialize(table, row));
+}
+
+function normalizeDateBoundary(value, side) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    if (side === "to") {
+      const date = new Date(`${text}T00:00:00.000Z`);
+      date.setUTCDate(date.getUTCDate() + 1);
+      return date.toISOString();
+    }
+    return `${text}T00:00:00.000Z`;
+  }
+  return text;
 }
 
 export function getRow(table, rowId, { tenantId = "" } = {}) {
@@ -1861,6 +2943,30 @@ export function updateInvoiceStatus(invoiceId, tenantId = "") {
   const balance = Math.max(0, Number(invoice.total) - Number(paid));
   const status = balance <= 0 ? "paid" : paid > 0 ? "partial" : "unpaid";
   return updateRow("invoices", invoiceId, { paid, balance, status }, { tenantId });
+}
+
+
+function passwordHashFor(password, salt) {
+  return scryptSync(String(password || ""), salt, 64).toString("hex");
+}
+
+function seedPasswordFields(password, salt = "aura-seed-admin-salt") {
+  return {
+    passwordSalt: salt,
+    passwordHash: passwordHashFor(password, salt),
+    failedLoginCount: 0,
+    lockedUntil: "",
+    lastLoginAt: ""
+  };
+}
+
+function ensureTenantUserPassword(userId, password, salt) {
+  const user = db.prepare("SELECT id, passwordHash FROM tenant_users WHERE id = ?").get(userId);
+  if (!user || user.passwordHash) return;
+  const fields = seedPasswordFields(password, salt);
+  db.prepare(`UPDATE tenant_users
+    SET passwordSalt = @passwordSalt, passwordHash = @passwordHash, failedLoginCount = 0, lockedUntil = '', updatedAt = @updatedAt
+    WHERE id = @userId`).run({ ...fields, userId, updatedAt: now() });
 }
 
 export function seedDatabase() {
@@ -2204,6 +3310,7 @@ export function seedDatabase() {
       email: "owner@aurasalon.example",
       role: "owner",
       branchIds: ["branch_hyd", "branch_blr"],
+      ...seedPasswordFields(process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026", "aura-owner-seed-salt"),
       createdAt: stamp,
       updatedAt: stamp
     },
@@ -2214,10 +3321,13 @@ export function seedDatabase() {
       email: "system@aurasalon.example",
       role: "owner",
       branchIds: ["branch_hyd", "branch_blr"],
+      ...seedPasswordFields(process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026", "aura-system-seed-salt"),
       createdAt: stamp,
       updatedAt: stamp
     }
   ]);
+  ensureTenantUserPassword("tu_aura_owner", process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026", "aura-owner-seed-salt");
+  ensureTenantUserPassword("system-user", process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026", "aura-system-seed-salt");
   seedIfEmpty("domain_mappings", [
     {
       id: "domain_aura_localhost",
@@ -2798,6 +3908,46 @@ export function seedDatabase() {
     }
   ]);
   db.prepare("UPDATE clients SET membershipId = ? WHERE id = ?").run("mem_meera_gold", "client_meera");
+  seedIfEmpty("packages", [
+    {
+      id: "pkg_glow_reset",
+      tenantId: DEFAULT_TENANT_ID,
+      branchId: "branch_hyd",
+      name: "Glow Reset Package",
+      description: "Three Hydra Facial visits with one styling add-on credit.",
+      price: 15000,
+      validityDays: 120,
+      serviceIds: ["svc_facial", "svc_haircut"],
+      packageCredits: [
+        { serviceId: "svc_facial", credits: 3 },
+        { serviceId: "svc_haircut", credits: 1 }
+      ],
+      rules: { transferable: false, autoRenewReady: true, loyaltyMultiplier: 1.2 },
+      status: "active",
+      createdAt: stamp,
+      updatedAt: stamp
+    }
+  ]);
+  seedIfEmpty("commissions", [
+    {
+      id: "comm_karan_retail_service",
+      tenantId: DEFAULT_TENANT_ID,
+      branchId: "branch_blr",
+      staffId: "staff_karan",
+      name: "Karan service and retail commission",
+      type: "hybrid",
+      value: 10,
+      rule: { servicePercent: 10, retailPercent: 5, minimumRevenue: 25000 },
+      tiers: [
+        { from: 25000, percent: 10 },
+        { from: 50000, percent: 12 }
+      ],
+      metadata: { payoutCycle: "monthly", source: "seed" },
+      status: "active",
+      createdAt: stamp,
+      updatedAt: stamp
+    }
+  ]);
   seedIfEmpty("campaigns", [
     {
       id: "camp_birthday",
@@ -2822,6 +3972,40 @@ export function seedDatabase() {
       scheduledAt: "",
       sentCount: 0,
       conversionValue: 0,
+      createdAt: stamp,
+      updatedAt: stamp
+    }
+  ]);
+  seedIfEmpty("message_logs", [
+    {
+      id: "msg_birthday_preview",
+      tenantId: DEFAULT_TENANT_ID,
+      branchId: "branch_hyd",
+      campaignId: "camp_birthday",
+      clientId: "client_meera",
+      channel: "WhatsApp",
+      recipient: "+919876500002",
+      message: "Happy birthday Meera! Enjoy 20% off this week.",
+      direction: "outbound",
+      status: "queued",
+      providerMessageId: "",
+      payload: { template: "camp_birthday", variables: { name: "Meera" } },
+      providerResponse: {},
+      createdAt: stamp,
+      updatedAt: stamp
+    }
+  ]);
+  seedIfEmpty("audit_logs", [
+    {
+      id: "audit_seed_platform_ready",
+      tenantId: DEFAULT_TENANT_ID,
+      branchId: "",
+      actorUserId: "system-user",
+      action: "platform.seeded",
+      entityType: "system",
+      entityId: DEFAULT_TENANT_ID,
+      severity: "info",
+      details: { modules: ["crm", "pos", "inventory", "staff", "marketing", "saas"] },
       createdAt: stamp,
       updatedAt: stamp
     }
@@ -3036,6 +4220,32 @@ export function seedDatabase() {
       updatedAt: stamp
     }
   ]);
+  seedIfEmpty("voice_call_logs", [{ id: "voice_call_booking_1", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", clientId: "client_riya", phone: "+919876500001", language: "hi-IN", intent: "booking", transcript: [{ speaker: "client", text: "Hair spa booking chahiye" }], entities: { serviceIntent: "hair spa" }, actions: [{ type: "recommend-slot" }], providerPayload: { provider: "manual-sandbox" }, status: "resolved", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("queue_displays", [{ id: "queue_display_hyd_tv", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", name: "Hyderabad Queue TV", displayCode: "HYD-TV-01", layout: { mode: "tv", showWaitTime: true }, filters: { statuses: ["waiting", "in-service"] }, theme: { accent: "teal" }, status: "active", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("dynamic_pricing_rules", [{ id: "price_peak_weekend", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", name: "Weekend peak optimizer", scope: "services", conditions: { days: ["Saturday", "Sunday"], hours: ["16:00-20:00"] }, adjustments: { type: "percentage", value: 8, maxIncrease: 500 }, approval: { required: true, role: "owner" }, status: "active", startsAt: "2026-05-01", endsAt: "2026-12-31", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("growth_advisor_tasks", [{ id: "growth_task_reactivation", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", title: "Reactivate dormant high-LTV clients", priority: "high", ownerUserId: "tu_aura_owner", dueDate: "2026-05-20", signals: { inactiveClients: 12 }, recommendations: ["Launch win-back WhatsApp offer", "Add facial upgrade bundle"], outcomes: { expectedRevenue: 42000 }, status: "open", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("franchises", [{ id: "franchise_pune_001", tenantId: DEFAULT_TENANT_ID, name: "Aura Pune Franchise", ownerName: "Priya Shah", ownerEmail: "priya.franchise@example.com", territory: { city: "Pune", radiusKm: 8 }, status: "onboarding", royaltyPercent: 7, complianceScore: 92, complianceChecklist: [{ item: "Brand training", status: "passed" }], sharedTemplates: ["invoice", "festival-campaign"], createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("franchise_royalties", [{ id: "royalty_pune_may", tenantId: DEFAULT_TENANT_ID, franchiseId: "franchise_pune_001", periodStart: "2026-05-01", periodEnd: "2026-05-31", grossRevenue: 850000, royaltyAmount: 59500, calculation: { percent: 7 }, payments: [], status: "pending", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("training_lessons", [{ id: "lesson_consultation_basics", tenantId: DEFAULT_TENANT_ID, title: "Consultation and Upsell Basics", category: "front-desk", level: "intermediate", durationMinutes: 35, content: { videoUrl: "https://training.local/consultation" }, attachments: [], quiz: { passPercent: 80, questions: 5 }, status: "published", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("training_assignments", [{ id: "assign_aya_consultation", tenantId: DEFAULT_TENANT_ID, lessonId: "lesson_consultation_basics", staffId: "staff_aya", dueDate: "2026-05-25", progress: { percent: 40 }, quizResult: {}, certificate: {}, status: "in-progress", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("image_analyses", [{ id: "image_skin_riya", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", clientId: "client_riya", analysisType: "skin", imageUri: "secure://client_riya/skin-before", input: { consentId: "consent_riya" }, findings: { hydration: "low", sensitivity: "medium" }, recommendations: [{ serviceId: "svc_facial", reason: "Hydration boost" }], consent: { granted: true, purpose: "consultation" }, status: "generated", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("reputation_reviews", [{ id: "review_google_riya", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", platform: "Google", reviewer: "Riya S", rating: 4.5, reviewText: "Great service and clean salon", sentiment: "positive", metadata: { externalId: "google-001" }, aiReply: { text: "Thank you for visiting Aura Salon!" }, alerts: [], status: "replied", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("marketplace_connections", [{ id: "conn_google_calendar", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", provider: "Google Calendar", accountName: "hyd-calendar@aurasalon.example", credentials: { vaultRef: "encrypted_secret_google_calendar" }, scopes: ["calendar.events"], health: { status: "healthy" }, status: "connected", lastSyncAt: stamp, createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("gamification_events", [{ id: "game_staff_aya_upsell", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", subjectType: "staff", subjectId: "staff_aya", eventType: "upsell-win", points: { earned: 50, balance: 450 }, badges: ["consultation-star"], metadata: { saleId: "sale_seed" }, createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("fraud_alerts", [{ id: "fraud_refund_watch", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", alertType: "refund-spike", severity: "medium", subjectType: "staff", subjectId: "staff_karan", riskScore: 62, signals: { refundsThisWeek: 4 }, evidence: ["Refund count above branch median"], resolution: {}, status: "open", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("smart_forms", [{ id: "form_skin_consult", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", name: "Skin Consultation Form", formType: "consultation", version: 1, schema: { fields: [{ key: "allergies", type: "text" }] }, rules: { requireBeforeFacial: true }, signatureConfig: { required: true }, status: "active", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("form_responses", [{ id: "form_resp_riya_skin", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", formId: "form_skin_consult", clientId: "client_riya", appointmentId: "", answers: { allergies: "None" }, signature: { signedBy: "Riya", signedAt: stamp }, metadata: { device: "front-desk" }, status: "submitted", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("recommendation_events", [{ id: "rec_riya_next_service", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", clientId: "client_riya", type: "next-service", input: { lastService: "facial" }, recommendations: [{ serviceId: "svc_facial", score: 91 }], feedback: {}, status: "generated", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("warehouse_snapshots", [{ id: "warehouse_daily_hyd", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", snapshotType: "daily-ops", periodStart: "2026-05-01", periodEnd: "2026-05-12", dimensions: { branch: "branch_hyd" }, facts: { sales: 12, bookings: 33 }, aggregates: { revenue: 185000 }, status: "materialized", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("kpi_monitors", [{ id: "kpi_revenue_hour", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", name: "Revenue per Hour", metric: "revenue_per_hour", target: { min: 4500 }, current: { value: 5200 }, alerts: [], status: "active", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("appointment_optimizations", [{ id: "appt_opt_gap_hyd", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", optimizationType: "gap-reduction", input: { date: "2026-05-12" }, recommendations: [{ action: "move", expectedGapReductionMinutes: 45 }], appliedChanges: [], score: 78, status: "generated", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("api_keys", [{ id: "api_key_partner_demo", tenantId: DEFAULT_TENANT_ID, name: "Partner Demo API Key", keyPrefix: "aura_demo", keyHash: "sha256:seeded-demo-key-hash", scopes: ["bookings:read", "clients:read"], rateLimits: { perMinute: 120 }, metadata: { owner: "partner" }, status: "active", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("webhooks", [{ id: "webhook_booking_created", tenantId: DEFAULT_TENANT_ID, name: "Booking Created Webhook", url: "https://partner.example/webhooks/aura", events: ["appointment.created"], headers: { authorization: "vault:webhook-token" }, retryPolicy: { maxAttempts: 5 }, lastDelivery: {}, status: "active", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("forecasting_models", [{ id: "forecast_revenue_30d", tenantId: DEFAULT_TENANT_ID, branchId: "branch_hyd", name: "30-day Revenue Forecast", modelType: "revenue", horizonDays: 30, features: { seasonality: true, campaigns: true }, metrics: { mape: 12.5 }, predictions: [{ date: "2026-05-13", revenue: 25000 }], status: "active", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("knowledge_base_articles", [{ id: "kb_refund_sop", tenantId: DEFAULT_TENANT_ID, title: "Refund and Credit Note SOP", audience: "staff", category: "finance", body: "Validate invoice, manager approval, issue credit note, record audit.", tags: ["refund", "finance"], contentBlocks: [{ type: "step", text: "Check invoice status" }], embeddingMetadata: { indexed: false }, status: "published", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("plugin_manifests", [{ id: "plugin_razorpay_stub", tenantId: DEFAULT_TENANT_ID, name: "Razorpay Payments", version: "1.0.0", vendor: "Aura", permissions: ["payments.write"], extensionPoints: ["pos.payment"], settings: { mode: "sandbox" }, status: "installed", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("app_marketplace_apps", [{ id: "app_instagram_leads", tenantId: DEFAULT_TENANT_ID, name: "Instagram Lead Sync", category: "social", provider: "Aura Marketplace", features: ["lead-import", "campaign-attribution"], pricing: { monthly: 999 }, installState: { installed: false }, status: "available", createdAt: stamp, updatedAt: stamp }]);
+  seedIfEmpty("localization_profiles", [{ id: "loc_india_uae", tenantId: DEFAULT_TENANT_ID, name: "India + UAE Expansion", primaryCountry: "IN", countries: ["IN", "AE"], currencies: ["INR", "AED"], taxRules: { IN: "GST", AE: "VAT" }, translations: { en: "English", hi: "Hindi", ar: "Arabic" }, status: "active", createdAt: stamp, updatedAt: stamp }]);
 }
 
 seedDatabase();

@@ -1,0 +1,1746 @@
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { Component, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { finalize, forkJoin } from 'rxjs';
+import { ApiRecord, ApiService } from '../core/api.service';
+import { PosHeldInvoiceDraft, PosPaymentMode, PosSettingsService } from '../core/pos-settings.service';
+import { AppStateService } from '../core/state/app-state.service';
+import { StateComponent } from '../shared/ui/state/state.component';
+
+type InvoiceRegisterRow = {
+  id: string;
+  invoiceNumber: string;
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  branchId: string;
+  branchName: string;
+  staffId: string;
+  staffName: string;
+  appointmentId: string;
+  status: string;
+  createdAt: string;
+  dueDate: string;
+  subtotal: number;
+  discount: number;
+  gst: number;
+  tipTotal: number;
+  total: number;
+  paid: number;
+  balance: number;
+  paymentStatus: string;
+  onlinePaidAmount: number;
+  paymentLinkId: string;
+  items: ApiRecord[];
+  payments: ApiRecord[];
+  tips: ApiRecord[];
+};
+
+type WalletClientRow = {
+  id: string;
+  name: string;
+  phone: string;
+  branchId: string;
+  branchName: string;
+  walletBalance: number;
+  unpaidBalance: number;
+  lastWalletActivity: string;
+  source: string;
+};
+
+type InvoiceApprovalAction = 'delete' | 'edit';
+
+@Component({
+  selector: 'app-pos-invoices',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
+  template: `
+    <section class="page-stack">
+      <div class="module-hero">
+        <div>
+          <span class="eyebrow">POS / invoice register</span>
+          <h2>{{ pageTitle() }}</h2>
+          <p>{{ pageDescription() }}</p>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost-button" routerLink="/pos">Back to POS</a>
+          <a class="ghost-button" routerLink="/reports/invoices">Invoice reports</a>
+          <a class="ghost-button" routerLink="/pos/invoice-activity">Invoice activity</a>
+          <a class="ghost-button" routerLink="/pos/tips">Tip register</a>
+          <button class="primary-button" type="button" (click)="load()">Refresh</button>
+        </div>
+      </div>
+
+      <app-state [loading]="loading()" [error]="error()"></app-state>
+      <div class="state loading" *ngIf="notice()">{{ notice() }}</div>
+
+      <ng-container *ngIf="!loading()">
+        <div class="metrics-grid">
+          <a class="metric-card" routerLink="/pos/invoices" [class.active-filter-card]="isAllView()"><span>Invoices</span><strong>{{ rows().length }}</strong><small>Saved invoices</small></a>
+          <article class="metric-card"><span>Total billed</span><strong>{{ billedTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Invoice grand total</small></article>
+          <article class="metric-card"><span>Collected</span><strong>{{ paidTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Cash, UPI, card and modes</small></article>
+          <a class="metric-card" routerLink="/pos/invoices" [queryParams]="{ filter: 'received-due' }" [class.active-filter-card]="isReceivedDueView()"><span>Received due</span><strong>{{ receivedDueTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Old balance collected</small></a>
+          <a class="metric-card" routerLink="/pos/invoices" [queryParams]="{ filter: 'due' }" [class.active-filter-card]="isDueView()"><span>Due</span><strong>{{ dueTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Pending balance</small></a>
+          <a class="metric-card" routerLink="/pos/invoices" [queryParams]="{ filter: 'wallet' }" [class.active-filter-card]="isWalletView()"><span>Wallet</span><strong>{{ walletTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ walletClientCount() }} clients with balance</small></a>
+        </div>
+
+        <div class="split-layout invoice-register-layout">
+          <section class="panel">
+            <div class="table-toolbar">
+              <label class="search-field">
+                <span>Search invoice or client</span>
+                <input [(ngModel)]="query" placeholder="AURA-2026, client name, phone, staff" />
+              </label>
+              <label class="field fit-field date-filter-field">
+                <span>Date</span>
+                <input type="date" [(ngModel)]="selectedDate" />
+              </label>
+              <div class="date-filter-actions">
+                <button class="ghost-button mini" type="button" (click)="setToday()">Today</button>
+                <button class="ghost-button mini" type="button" (click)="showAllDates()">All dates</button>
+              </div>
+              <label class="field fit-field">
+                <span>Status</span>
+                <select [(ngModel)]="statusFilter">
+                  <option value="">All</option>
+                  <option value="paid">Paid</option>
+                  <option value="partial">Partial</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="active-filter-strip" *ngIf="isFilteredView()">
+              <strong>{{ activeFilterTitle() }}</strong>
+              <span>{{ activeFilterDescription() }}</span>
+              <a class="ghost-button mini" routerLink="/pos/invoices">All invoices</a>
+            </div>
+
+            <div class="date-register-summary">
+              <div>
+                <span class="eyebrow">{{ summaryEyebrow() }}</span>
+                <strong>{{ selectedDateLabel() }}</strong>
+              </div>
+              <div><span>{{ isWalletView() ? 'Clients' : 'Invoices' }}</span><strong>{{ isWalletView() ? filteredWalletClients().length : filteredRows().length }}</strong></div>
+              <div><span>Billed</span><strong>{{ billedTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Collected</span><strong>{{ paidTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Received due</span><strong>{{ receivedDueTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Due</span><strong>{{ dueTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Wallet</span><strong>{{ walletTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            </div>
+
+            <div class="table-wrap" *ngIf="isWalletView(); else invoiceRegisterTable">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Phone</th>
+                    <th>Branch</th>
+                    <th class="right">Wallet balance</th>
+                    <th class="right">Due</th>
+                    <th>Last wallet activity</th>
+                    <th>Source</th>
+                    <th class="right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let client of filteredWalletClients()">
+                    <td><strong>{{ client.name }}</strong></td>
+                    <td>{{ client.phone || '-' }}</td>
+                    <td>{{ client.branchName }}</td>
+                    <td class="right invoice-paid-amount">{{ client.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right invoice-due-amount">{{ client.unpaidBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.lastWalletActivity ? (client.lastWalletActivity | date: 'short') : '-' }}</td>
+                    <td><span class="badge">{{ client.source }}</span></td>
+                    <td class="right">
+                      <button class="ghost-button mini" type="button" (click)="openWalletClient(client)">Open client</button>
+                      <button class="ghost-button mini" type="button" (click)="openWalletRedemption(client)">Open POS</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="inline-hint" *ngIf="isWalletView() && !filteredWalletClients().length">
+              No client wallet balance found for this branch/search.
+            </p>
+
+            <ng-template #invoiceRegisterTable>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Invoice</th>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Staff</th>
+                    <th>Payment mode</th>
+                    <th class="right">Total</th>
+                    <th class="right">Paid</th>
+                    <th class="right">Due</th>
+                    <th>Status</th>
+                    <th class="right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of filteredRows()" class="click-row" [class.selected-row]="selected()?.id === row.id">
+                    <td>
+                      <button class="table-link" type="button" (click)="openDetail(row)">
+                        <strong>{{ row.invoiceNumber }}</strong>
+                      </button>
+                    </td>
+                    <td>{{ row.createdAt | date: 'short' }}</td>
+                    <td>
+                      <button class="table-link invoice-client-button" type="button" (click)="openClientCrm(row, $event)">
+                        {{ row.clientName }}
+                        <small *ngIf="row.clientPhone">{{ row.clientPhone }}</small>
+                      </button>
+                    </td>
+                    <td>{{ row.staffName }}</td>
+                    <td>
+                      <div class="payment-mode-chips" *ngIf="paymentModeSummary(row).length; else noPaymentModes">
+                        <span
+                          class="payment-mode-chip"
+                          [ngClass]="paymentModeClass(paymentMode.mode)"
+                          *ngFor="let paymentMode of paymentModeSummary(row)"
+                        >
+                          {{ paymentMode.label }}
+                          <small>{{ paymentMode.amount | currency: 'INR':'symbol':'1.0-0' }}</small>
+                        </span>
+                      </div>
+                      <ng-template #noPaymentModes>
+                        <span class="muted">No payment</span>
+                      </ng-template>
+                    </td>
+                    <td class="right invoice-total-amount">{{ row.total | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right invoice-paid-amount">{{ row.paid | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right invoice-due-amount">{{ row.balance | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td><span class="badge">{{ row.status }}</span></td>
+              <td class="right invoice-action-cell" style="min-width: 210px;">
+                <div class="invoice-actions invoice-actions--saved" style="display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 8px; min-width: 180px;">
+                  <button
+                    class="ghost-button mini danger invoice-delete-button"
+                    style="min-width: 72px; color: var(--red); border-color: rgba(180, 35, 24, 0.34); background: #fff;"
+                    type="button"
+                    [disabled]="approvalRequesting() === row.id || !canRequestDelete()"
+                    [title]="canRequestDelete() ? 'Manager approval required before soft delete' : 'Your role cannot request invoice deletion'"
+                    (click)="deleteInvoice(row, $event)"
+                  >
+                    {{ approvalRequesting() === row.id ? 'Requesting' : 'Request delete' }}
+                  </button>
+                  <button
+                    class="ghost-button mini whatsapp-pdf-button"
+                    type="button"
+                    [disabled]="whatsappActionLoading() === row.id"
+                    [title]="row.balance > 0 ? 'Send unpaid invoice PDF on WhatsApp' : 'Send paid invoice PDF on WhatsApp'"
+                    (click)="sendInvoicePdfWhatsapp(row, $event)"
+                  >
+                    {{ whatsappActionLoading() === row.id ? 'Sending' : 'WhatsApp PDF' }}
+                  </button>
+                  <button class="ghost-button mini" type="button" *ngIf="row.balance > 0" (click)="receiveDue(row, $event)">Receive due</button>
+                  <button
+                    class="ghost-button mini"
+                    type="button"
+                    [disabled]="approvalRequesting() === row.id"
+                    (click)="editInvoice(row, $event)"
+                  >
+                    {{ editActionLabel(row) }}
+                  </button>
+                </div>
+              </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="inline-hint" *ngIf="!filteredRows().length">
+              No saved invoice found. Use All dates or search by client phone to find older invoices.
+            </p>
+            </ng-template>
+          </section>
+        </div>
+
+        <div class="floating-detail-backdrop" *ngIf="selected() as invoice" (click)="closeDetail()">
+          <section class="panel floating-detail-card invoice-detail-panel" (click)="$event.stopPropagation()">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Invoice detail</span>
+                <h2>{{ invoice.invoiceNumber }}</h2>
+              </div>
+              <div class="hero-actions">
+              <button
+                class="ghost-button danger invoice-delete-button"
+                type="button"
+                [disabled]="approvalRequesting() === invoice.id || !canRequestDelete()"
+                [title]="canRequestDelete() ? 'Manager approval required before soft delete' : 'Your role cannot request invoice deletion'"
+                (click)="deleteInvoice(invoice)"
+              >
+                {{ approvalRequesting() === invoice.id ? 'Requesting approval' : 'Request delete' }}
+              </button>
+              <button
+                class="primary-button"
+                type="button"
+                [disabled]="approvalRequesting() === invoice.id"
+                (click)="editInvoice(invoice)"
+              >
+                {{ editActionLabel(invoice) }}
+              </button>
+                <button
+                  class="ghost-button mini whatsapp-pdf-button"
+                  type="button"
+                  [disabled]="whatsappActionLoading() === invoice.id"
+                  (click)="sendInvoicePdfWhatsapp(invoice)"
+                >
+                  {{ whatsappActionLoading() === invoice.id ? 'Sending PDF' : 'WhatsApp PDF' }}
+                </button>
+                <button class="ghost-button mini" type="button" (click)="downloadInvoice(invoice)">Download</button>
+                <button class="ghost-button mini" type="button" (click)="closeDetail()">Close</button>
+              </div>
+            </div>
+
+            <div class="info-grid compact-info">
+              <div><span>Client</span><strong>{{ invoice.clientName }}</strong></div>
+              <div><span>Branch</span><strong>{{ invoice.branchName }}</strong></div>
+              <div><span>Staff</span><strong>{{ invoice.staffName }}</strong></div>
+              <div><span>Date</span><strong>{{ invoice.createdAt | date: 'short' }}</strong></div>
+            </div>
+
+            <h3>Services</h3>
+            <div class="invoice-line-table-wrap" *ngIf="serviceItems(invoice).length; else noServiceLines">
+              <table class="invoice-line-table">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Staff</th>
+                    <th class="right">Qty</th>
+                    <th class="right">Rate</th>
+                    <th class="right">Discount</th>
+                    <th class="right">Taxable</th>
+                    <th class="right">GST</th>
+                    <th class="right">GST Amt</th>
+                    <th class="right">Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of serviceItems(invoice)">
+                    <td>
+                      <strong>{{ itemName(item) }}</strong>
+                      <small>{{ itemTypeLabel(item) }}</small>
+                    </td>
+                    <td>{{ itemStaffName(item, invoice) }}</td>
+                    <td class="right">{{ itemQuantity(item) }}</td>
+                    <td class="right">{{ lineRate(item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineDiscount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineTaxable(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineGstRate(item) }}%</td>
+                    <td class="right">{{ lineGstAmount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right line-final">{{ lineFinal(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noServiceLines>
+              <p class="inline-hint" *ngIf="!serviceItems(invoice).length">No services on this invoice.</p>
+            </ng-template>
+
+            <h3>Products</h3>
+            <div class="invoice-line-table-wrap" *ngIf="productItems(invoice).length; else noProductLines">
+              <table class="invoice-line-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Staff</th>
+                    <th class="right">Qty</th>
+                    <th class="right">Rate</th>
+                    <th class="right">Discount</th>
+                    <th class="right">Taxable</th>
+                    <th class="right">GST</th>
+                    <th class="right">GST Amt</th>
+                    <th class="right">Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of productItems(invoice)">
+                    <td>
+                      <strong>{{ itemName(item) }}</strong>
+                      <small>{{ itemTypeLabel(item) }}</small>
+                    </td>
+                    <td>{{ itemStaffName(item, invoice) }}</td>
+                    <td class="right">{{ itemQuantity(item) }}</td>
+                    <td class="right">{{ lineRate(item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineDiscount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineTaxable(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineGstRate(item) }}%</td>
+                    <td class="right">{{ lineGstAmount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right line-final">{{ lineFinal(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noProductLines>
+              <p class="inline-hint" *ngIf="!productItems(invoice).length">No products on this invoice.</p>
+            </ng-template>
+
+            <ng-container *ngIf="otherItems(invoice).length">
+              <h3>Other items</h3>
+              <div class="invoice-line-table-wrap">
+                <table class="invoice-line-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Staff</th>
+                      <th class="right">Qty</th>
+                      <th class="right">Rate</th>
+                      <th class="right">Discount</th>
+                      <th class="right">Taxable</th>
+                      <th class="right">GST</th>
+                      <th class="right">GST Amt</th>
+                      <th class="right">Final</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of otherItems(invoice)">
+                      <td>
+                        <strong>{{ itemName(item) }}</strong>
+                        <small>{{ itemTypeLabel(item) }}</small>
+                      </td>
+                      <td>{{ itemStaffName(item, invoice) }}</td>
+                      <td class="right">{{ itemQuantity(item) }}</td>
+                      <td class="right">{{ lineRate(item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                      <td class="right">{{ lineDiscount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                      <td class="right">{{ lineTaxable(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                      <td class="right">{{ lineGstRate(item) }}%</td>
+                      <td class="right">{{ lineGstAmount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                      <td class="right line-final">{{ lineFinal(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </ng-container>
+
+            <h3>Tips</h3>
+            <div class="detail-list">
+              <article *ngFor="let tip of invoice.tips">
+                <div>
+                  <strong>{{ tip.staffName || tip.staffId }}</strong>
+                  <span>{{ modeLabel(tip.paymentMode || 'cash') }}</span>
+                </div>
+                <strong>{{ tip.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <p class="inline-hint" *ngIf="!invoice.tips.length">No tips on this invoice.</p>
+            </div>
+
+            <h3>Payment split</h3>
+            <div class="detail-list">
+              <article *ngFor="let payment of invoice.payments">
+                <div>
+                  <strong>{{ modeLabel(payment.mode) }}</strong>
+                  <span>{{ payment.reference || 'Counter collection' }}</span>
+                  <span class="muted">{{ (payment.createdAt || payment.created_at) | date: 'short' }}</span>
+                </div>
+                <strong>{{ payment.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <p class="inline-hint" *ngIf="!invoice.payments.length">No payment collected yet.</p>
+            </div>
+
+            <ng-container *ngIf="receivedDueLines(invoice).length">
+              <h3>Received due history</h3>
+              <div class="invoice-line-table-wrap">
+                <table class="invoice-line-table">
+                  <thead>
+                    <tr>
+                      <th>Invoice</th>
+                      <th>Due date</th>
+                      <th>Received date</th>
+                      <th>Mode</th>
+                      <th class="right">Due received</th>
+                      <th class="right">Pending after</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let line of receivedDueLines(invoice)">
+                      <td>
+                        <strong>{{ line.invoiceNumber }}</strong>
+                        <small>{{ line.reference }}</small>
+                      </td>
+                      <td>{{ line.dueDate | date: 'short' }}</td>
+                      <td>{{ line.receivedDate | date: 'short' }}</td>
+                      <td>{{ modeLabel(line.mode) }}</td>
+                      <td class="right invoice-paid-amount">{{ line.amount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                      <td class="right invoice-due-amount">{{ line.pendingAfter | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </ng-container>
+
+            <h3>Online payment collection</h3>
+            <app-state [loading]="paymentActionLoading().startsWith(invoice.id)" [error]="paymentError()"></app-state>
+            <div class="info-grid compact-info">
+              <div><span>Payment status</span><strong>{{ invoice.paymentStatus || invoice.status }}</strong></div>
+              <div><span>Online paid</span><strong>{{ invoice.onlinePaidAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Payment link</span><strong>{{ invoice.paymentLinkId || latestPaymentLinkId() || 'Not created' }}</strong></div>
+              <div><span>Due before send</span><strong>{{ invoice.balance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-button" type="button" *ngIf="invoice.balance > 0" [disabled]="paymentActionLoading().startsWith(invoice.id)" (click)="createPaymentLink(invoice)">
+                Create payment link
+              </button>
+              <button class="ghost-button" type="button" *ngIf="invoice.balance > 0" [disabled]="paymentActionLoading().startsWith(invoice.id)" (click)="sendPaymentReminder(invoice)">
+                Send WhatsApp reminder
+              </button>
+              <button class="ghost-button" type="button" [disabled]="paymentActionLoading().startsWith(invoice.id)" (click)="reconcilePayment(invoice)">
+                Reconcile
+              </button>
+            </div>
+            <div class="detail-list" *ngIf="paymentTimeline() as collection">
+              <article *ngFor="let link of collection.links || []">
+                <div>
+                  <strong>{{ link.provider || 'razorpay' }} · {{ link.status }}</strong>
+                  <span>{{ link.providerLinkId }} · expires {{ link.expiresAt | date: 'short' }}</span>
+                  <span class="muted">{{ link.paymentLink }}</span>
+                </div>
+                <strong>{{ link.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article *ngFor="let event of collection.events || []">
+                <div>
+                  <strong>{{ event.event_type || event.eventType }}</strong>
+                  <span>{{ event.message || event.status }} · {{ event.created_at || event.createdAt | date: 'short' }}</span>
+                </div>
+                <strong>{{ event.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <p class="inline-hint" *ngIf="!(collection.links || []).length && !(collection.events || []).length">No online payment timeline yet.</p>
+            </div>
+
+            <div class="summary-lines">
+              <div><span>Subtotal</span><strong>{{ invoice.subtotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Discount</span><strong>{{ invoice.discount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Discount rate</span><strong>{{ invoiceDiscountRate(invoice) }}%</strong></div>
+              <div><span>Taxable value</span><strong>{{ invoiceTaxableTotal(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>GST</span><strong>{{ invoice.gst | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Tips</span><strong>{{ invoice.tipTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div class="total"><span>Total</span><strong>{{ invoice.total | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Paid</span><strong>{{ invoice.paid | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div [class.total]="invoice.balance > 0"><span>Due</span><strong>{{ invoice.balance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            </div>
+          </section>
+        </div>
+      </ng-container>
+
+      <div class="floating-detail-backdrop" *ngIf="approvalDialog() as request" (click)="closeApprovalDialog()">
+        <section class="panel floating-detail-card invoice-detail-panel" (click)="$event.stopPropagation()">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Manager approval</span>
+              <h2>{{ approvalActionTitle(request.action) }}</h2>
+              <p>{{ request.invoice.invoiceNumber }} · {{ request.invoice.clientName }} · {{ request.invoice.total | currency: 'INR':'symbol':'1.0-0' }}</p>
+            </div>
+            <button class="ghost-button mini" type="button" (click)="closeApprovalDialog()">Close</button>
+          </div>
+
+          <app-state [loading]="approvalRequesting() === request.invoice.id" [error]="approvalError()"></app-state>
+
+          <div class="info-grid compact-info">
+            <div><span>Policy</span><strong>{{ approvalPolicyLabel(request.action, request.invoice) }}</strong></div>
+            <div><span>Status</span><strong>Pending request</strong></div>
+            <div><span>Branch</span><strong>{{ request.invoice.branchName }}</strong></div>
+            <div><span>Due</span><strong>{{ request.invoice.balance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+          </div>
+
+          <label class="field">
+            <span>{{ request.action === 'delete' ? 'Delete reason' : 'Edit approval reason' }}</span>
+            <textarea rows="3" [(ngModel)]="approvalReason" placeholder="Enter manager-visible reason"></textarea>
+          </label>
+          <label class="field">
+            <span>Owner PIN/password</span>
+            <input type="password" [(ngModel)]="ownerPin" autocomplete="off" placeholder="Required for sensitive invoice action" />
+          </label>
+
+          <div class="hero-actions">
+            <button class="ghost-button" type="button" (click)="closeApprovalDialog()">Cancel</button>
+            <button class="primary-button" type="button" (click)="submitApprovalRequest()" [disabled]="approvalRequesting() === request.invoice.id">
+              {{ approvalRequesting() === request.invoice.id ? 'Sending request' : approvalSubmitLabel(request.action) }}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div class="floating-detail-backdrop" *ngIf="adjustmentDialog() as request" (click)="closeAdjustmentDialog()">
+        <section class="panel floating-detail-card invoice-detail-panel" (click)="$event.stopPropagation()">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Enterprise control</span>
+              <h2>Adjustment note</h2>
+              <p>{{ request.invoice.invoiceNumber }} · direct edit locked for closed invoices</p>
+            </div>
+            <button class="ghost-button mini" type="button" (click)="closeAdjustmentDialog()">Close</button>
+          </div>
+
+          <app-state [loading]="adjustmentSaving() === request.invoice.id" [error]="adjustmentError()"></app-state>
+
+          <div class="info-grid compact-info">
+            <div><span>Invoice status</span><strong>{{ request.invoice.status }}</strong></div>
+            <div><span>Branch</span><strong>{{ request.invoice.branchName }}</strong></div>
+            <div><span>Invoice date</span><strong>{{ request.invoice.createdAt | date: 'mediumDate' }}</strong></div>
+            <div><span>Original total</span><strong>{{ request.invoice.total | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+          </div>
+
+          <label class="field">
+            <span>Adjustment type</span>
+            <select [(ngModel)]="adjustmentType">
+              <option value="adjustment_note">Adjustment note</option>
+              <option value="credit_note">Credit note required</option>
+              <option value="payment_correction">Payment correction note</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Adjustment amount</span>
+            <input type="number" min="0" [(ngModel)]="adjustmentAmount" placeholder="0" />
+          </label>
+          <label class="field">
+            <span>Reason</span>
+            <textarea rows="3" [(ngModel)]="adjustmentReason" placeholder="Reason is mandatory for closed invoice adjustment"></textarea>
+          </label>
+
+          <div class="hero-actions">
+            <button class="ghost-button" type="button" (click)="closeAdjustmentDialog()">Cancel</button>
+            <button class="primary-button" type="button" (click)="submitAdjustmentNote()" [disabled]="adjustmentSaving() === request.invoice.id">
+              {{ adjustmentSaving() === request.invoice.id ? 'Recording note' : 'Record adjustment note' }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+  `,
+  styles: [`
+    .invoice-line-table-wrap {
+      border: 1px solid rgba(15, 118, 110, 0.16);
+      border-radius: 10px;
+      overflow-x: auto;
+      background: #fff;
+      margin-bottom: 18px;
+    }
+
+    .invoice-line-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .invoice-line-table th,
+    .invoice-line-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .invoice-line-table th {
+      color: #64748b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      background: #f8fafc;
+    }
+
+    .invoice-line-table td:first-child,
+    .invoice-line-table th:first-child {
+      min-width: 190px;
+      white-space: normal;
+    }
+
+    .invoice-line-table strong {
+      display: block;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    .invoice-line-table small {
+      display: block;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .invoice-line-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .invoice-line-table .right {
+      text-align: right;
+    }
+
+    .invoice-line-table .line-final {
+      color: #0f766e;
+      font-weight: 800;
+    }
+  `]
+})
+export class PosInvoicesComponent implements OnInit {
+  readonly rows = signal<InvoiceRegisterRow[]>([]);
+  readonly walletClients = signal<WalletClientRow[]>([]);
+  readonly selected = signal<InvoiceRegisterRow | null>(null);
+  readonly paymentModes = signal<PosPaymentMode[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly notice = signal('');
+  readonly approvalRequesting = signal<string | null>(null);
+  readonly approvalDialog = signal<{ action: InvoiceApprovalAction; invoice: InvoiceRegisterRow } | null>(null);
+  readonly approvalError = signal('');
+  readonly adjustmentDialog = signal<{ invoice: InvoiceRegisterRow } | null>(null);
+  readonly adjustmentSaving = signal<string | null>(null);
+  readonly adjustmentError = signal('');
+  readonly paymentTimeline = signal<ApiRecord | null>(null);
+  readonly paymentActionLoading = signal('');
+  readonly paymentError = signal('');
+  readonly whatsappActionLoading = signal('');
+  readonly highValueApprovalLimit = 5000;
+  query = '';
+  statusFilter = '';
+  selectedDate = '';
+  viewFilter: 'all' | 'received-due' | 'due' | 'wallet' = 'all';
+  approvalReason = '';
+  ownerPin = '';
+  adjustmentType = 'adjustment_note';
+  adjustmentAmount: number | null = null;
+  adjustmentReason = '';
+
+  constructor(
+    private readonly api: ApiService,
+    private readonly settings: PosSettingsService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly appState: AppStateService
+  ) {}
+
+  ngOnInit(): void {
+    this.paymentModes.set(this.settings.loadPaymentModes());
+    this.route.queryParamMap.subscribe((params) => {
+      const filter = params.get('filter');
+      this.viewFilter = filter === 'received-due' || filter === 'due' || filter === 'wallet' ? filter : 'all';
+    });
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    forkJoin({
+      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000 }),
+      sales: this.api.list<ApiRecord[]>('sales', { limit: 1000 }),
+      payments: this.api.list<ApiRecord[]>('payments', { limit: 1000 }),
+      clients: this.api.list<ApiRecord[]>('clients', { limit: 1000 }),
+      staff: this.api.list<ApiRecord[]>('staff', { limit: 1000 }),
+      branches: this.api.list<ApiRecord[]>('branches', { limit: 1000 }),
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000 })
+    }).subscribe({
+      next: ({ invoices, sales, payments, clients, staff, branches, walletTransactions }) => {
+        const clientsWithWallet = this.withWalletBalances(clients || [], walletTransactions || []);
+        this.walletClients.set(this.buildWalletClients(clientsWithWallet, invoices || [], branches || [], walletTransactions || []));
+        this.rows.set(this.buildRows(invoices || [], sales || [], payments || [], clientsWithWallet, staff || [], branches || []));
+        const targetInvoice = this.route.snapshot.queryParamMap.get('invoice');
+        this.selected.set(targetInvoice ? this.rows().find((row) => row.id === targetInvoice) || null : null);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || error?.message || 'Unable to load invoices');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  filteredRows(): InvoiceRegisterRow[] {
+    const query = this.query.trim().toLowerCase();
+    const queryDigits = this.onlyDigits(query);
+    return this.rows().filter((row) => {
+      const status = row.balance <= 0 ? 'paid' : row.paid > 0 ? 'partial' : 'unpaid';
+      const statusMatch = !this.statusFilter || status === this.statusFilter;
+      const searchableText = `${row.invoiceNumber} ${row.clientName} ${row.clientPhone} ${row.staffName} ${row.branchName} ${this.paymentModeSearchText(row)}`;
+      const queryMatch =
+        !query ||
+        searchableText.toLowerCase().includes(query) ||
+        (!!queryDigits && this.onlyDigits(searchableText).includes(queryDigits));
+      const dateMatch = !this.selectedDate || this.rowDateKey(row.createdAt) === this.selectedDate;
+      const receivedDueMatch = !this.isReceivedDueView() || this.rowReceivedDueTotal(row) > 0;
+      const dueMatch = !this.isDueView() || row.balance > 0;
+      return !this.isWalletView() && statusMatch && queryMatch && dateMatch && receivedDueMatch && dueMatch;
+    });
+  }
+
+  filteredWalletClients(): WalletClientRow[] {
+    const query = this.query.trim().toLowerCase();
+    const queryDigits = this.onlyDigits(query);
+    return this.walletClients().filter((client) => {
+      const searchableText = `${client.name} ${client.phone} ${client.branchName} ${client.walletBalance} ${client.unpaidBalance}`;
+      return !query ||
+        searchableText.toLowerCase().includes(query) ||
+        (!!queryDigits && this.onlyDigits(searchableText).includes(queryDigits));
+    });
+  }
+
+  isAllView(): boolean {
+    return this.viewFilter === 'all';
+  }
+
+  isReceivedDueView(): boolean {
+    return this.viewFilter === 'received-due';
+  }
+
+  isDueView(): boolean {
+    return this.viewFilter === 'due';
+  }
+
+  isWalletView(): boolean {
+    return this.viewFilter === 'wallet';
+  }
+
+  isFilteredView(): boolean {
+    return this.viewFilter !== 'all';
+  }
+
+  pageTitle(): string {
+    if (this.isReceivedDueView()) return 'Received due invoices';
+    if (this.isDueView()) return 'Due invoices';
+    if (this.isWalletView()) return 'Client wallet balances';
+    return 'Saved invoices';
+  }
+
+  pageDescription(): string {
+    if (this.isReceivedDueView()) return 'Only invoices where old pending dues were received from POS.';
+    if (this.isDueView()) return 'Only invoices with unpaid or pending balance.';
+    if (this.isWalletView()) return 'All clients with wallet money, balance source, due amount and quick action in one page.';
+    return 'All POS invoices saved from checkout with items, payment split, tips, GST, paid and due amount.';
+  }
+
+  activeFilterTitle(): string {
+    if (this.isReceivedDueView()) return 'Received due invoices';
+    if (this.isDueView()) return 'Due invoices';
+    if (this.isWalletView()) return 'Wallet clients';
+    return 'All invoices';
+  }
+
+  activeFilterDescription(): string {
+    if (this.isReceivedDueView()) return 'Showing only invoices with old balance collections.';
+    if (this.isDueView()) return 'Showing only invoices where client still has pending balance.';
+    if (this.isWalletView()) return 'Showing clients who have wallet credit available for redemption.';
+    return 'Showing all saved invoices.';
+  }
+
+  summaryEyebrow(): string {
+    if (this.isReceivedDueView()) return 'Received due filter';
+    if (this.isDueView()) return 'Due invoice filter';
+    if (this.isWalletView()) return 'Wallet balance filter';
+    return this.selectedDate ? 'Selected date' : 'All invoice dates';
+  }
+
+  setToday(): void {
+    this.selectedDate = this.todayKey();
+  }
+
+  showAllDates(): void {
+    this.selectedDate = '';
+  }
+
+  selectedDateLabel(): string {
+    if (!this.selectedDate) return 'All dates';
+    const [year, month, day] = this.selectedDate.split('-').map(Number);
+    const date = new Date(year, Number(month || 1) - 1, day || 1);
+    return Number.isNaN(date.getTime()) ? this.selectedDate : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  openDetail(row: InvoiceRegisterRow): void {
+    this.selected.set(row);
+    this.loadPaymentTimeline(row);
+  }
+
+  openClientCrm(row: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    this.router.navigate(['/clients'], {
+      queryParams: {
+        q: row.clientPhone || row.clientName || undefined,
+        clientId: row.clientId || undefined
+      }
+    });
+  }
+
+  receiveDue(row: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    this.router.navigate(['/pos'], {
+      queryParams: {
+        clientId: row.clientId || undefined,
+        q: row.clientPhone || row.clientName || undefined,
+        receiveDue: Math.max(0, row.balance || 0)
+      }
+    });
+  }
+
+  openWalletClient(client: WalletClientRow): void {
+    this.router.navigate(['/clients'], {
+      queryParams: {
+        q: client.phone || client.name || undefined,
+        clientId: client.id || undefined
+      }
+    });
+  }
+
+  openWalletRedemption(client: WalletClientRow): void {
+    this.router.navigate(['/pos'], {
+      queryParams: {
+        clientId: client.id || undefined,
+        q: client.phone || client.name || undefined,
+        wallet: client.walletBalance || undefined
+      }
+    });
+  }
+
+  requiresEditApproval(row: InvoiceRegisterRow): boolean {
+    const status = String(row.status || '').toLowerCase();
+    return row.total >= this.highValueApprovalLimit || ['paid', 'billed', 'deleted'].includes(status);
+  }
+
+  requiresAdjustmentNote(row: InvoiceRegisterRow): boolean {
+    const status = String(row.status || '').toLowerCase();
+    return row.balance <= 0
+      || ['paid', 'billed', 'closed', 'finalized', 'settled', 'posted', 'voided', 'cancelled'].some((item) => status.includes(item));
+  }
+
+  editActionLabel(row: InvoiceRegisterRow): string {
+    if (this.requiresAdjustmentNote(row)) return 'Adjustment note';
+    return this.requiresEditApproval(row) ? 'Request edit' : 'Edit invoice';
+  }
+
+  canRequestDelete(): boolean {
+    return ['superAdmin', 'owner', 'admin', 'manager', 'cashier', 'frontDesk'].includes(this.appState.userRole());
+  }
+
+  editInvoice(row: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    if (this.requiresAdjustmentNote(row)) {
+      this.openAdjustmentDialog(row);
+      return;
+    }
+    if (this.requiresEditApproval(row)) {
+      this.openApprovalDialog('edit', row);
+      return;
+    }
+
+    this.openCorrectionDraft(row);
+  }
+
+  deleteInvoice(row: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.canRequestDelete()) {
+      this.notice.set('Your role cannot request invoice deletion.');
+      return;
+    }
+    this.openApprovalDialog('delete', row);
+  }
+
+  closeApprovalDialog(): void {
+    this.approvalDialog.set(null);
+    this.approvalReason = '';
+    this.ownerPin = '';
+    this.approvalError.set('');
+  }
+
+  closeAdjustmentDialog(): void {
+    this.adjustmentDialog.set(null);
+    this.adjustmentType = 'adjustment_note';
+    this.adjustmentAmount = null;
+    this.adjustmentReason = '';
+    this.adjustmentError.set('');
+  }
+
+  submitAdjustmentNote(): void {
+    const request = this.adjustmentDialog();
+    if (!request) return;
+    const reason = this.adjustmentReason.trim();
+    if (!reason) {
+      this.adjustmentError.set('Adjustment reason is required');
+      return;
+    }
+    this.adjustmentError.set('');
+    this.adjustmentSaving.set(request.invoice.id);
+    this.api.post<ApiRecord>(`pos/invoices/${request.invoice.id}/adjustment-note`, {
+      type: this.adjustmentType,
+      amount: this.adjustmentAmount || 0,
+      reason,
+      invoice: this.approvalSnapshot(request.invoice)
+    }).pipe(
+      finalize(() => this.adjustmentSaving.set(null))
+    ).subscribe({
+      next: () => {
+        this.notice.set(`Adjustment note recorded for ${request.invoice.invoiceNumber}.`);
+        this.closeAdjustmentDialog();
+        this.load();
+      },
+      error: (error) => this.adjustmentError.set(error?.error?.error || error?.message || 'Unable to record adjustment note')
+    });
+  }
+
+  submitApprovalRequest(): void {
+    const request = this.approvalDialog();
+    if (!request) return;
+    const reason = this.approvalReason.trim();
+    const ownerPin = this.ownerPin.trim();
+    if (!reason) {
+      this.approvalError.set(request.action === 'delete' ? 'Delete reason is required' : 'Edit approval reason is required');
+      return;
+    }
+    if (!ownerPin) {
+      this.approvalError.set('Owner PIN/password is required');
+      return;
+    }
+
+    this.approvalError.set('');
+    this.approvalRequesting.set(request.invoice.id);
+    this.api.post<ApiRecord>(`pos/invoices/${request.invoice.id}/approval-request`, {
+      actionType: request.action,
+      reason,
+      deleteReason: request.action === 'delete' ? reason : '',
+      ownerPin,
+      invoice: this.approvalSnapshot(request.invoice)
+    }).pipe(
+      finalize(() => this.approvalRequesting.set(null))
+    ).subscribe({
+      next: (response) => {
+        const duplicate = response?.duplicate ? ' Existing pending request was reused.' : '';
+        this.notice.set(`${this.approvalActionTitle(request.action)} submitted for manager approval.${duplicate}`);
+        this.closeApprovalDialog();
+        this.load();
+      },
+      error: (error) => this.approvalError.set(error?.error?.error || error?.message || 'Unable to request invoice approval')
+    });
+  }
+
+  approvalActionTitle(action: InvoiceApprovalAction): string {
+    return action === 'delete' ? 'Delete invoice approval' : 'High-value edit approval';
+  }
+
+  approvalSubmitLabel(action: InvoiceApprovalAction): string {
+    return action === 'delete' ? 'Request delete approval' : 'Request edit approval';
+  }
+
+  approvalPolicyLabel(action: InvoiceApprovalAction, invoice: InvoiceRegisterRow): string {
+    if (action === 'delete') return 'Manager approval required before soft delete';
+    return invoice.total >= this.highValueApprovalLimit ? 'High-value invoice edit approval' : 'Closed or paid invoice edit approval';
+  }
+
+  private openApprovalDialog(action: InvoiceApprovalAction, invoice: InvoiceRegisterRow): void {
+    this.approvalDialog.set({ action, invoice });
+    this.approvalReason = action === 'delete'
+      ? `Delete request for ${invoice.invoiceNumber}`
+      : `Correction request for ${invoice.invoiceNumber}`;
+    this.ownerPin = '';
+    this.approvalError.set('');
+  }
+
+  private openAdjustmentDialog(invoice: InvoiceRegisterRow): void {
+    this.adjustmentDialog.set({ invoice });
+    this.adjustmentType = invoice.balance <= 0 ? 'credit_note' : 'adjustment_note';
+    this.adjustmentAmount = Math.max(0, invoice.balance || 0);
+    this.adjustmentReason = `Adjustment required for closed invoice ${invoice.invoiceNumber}`;
+    this.adjustmentError.set('');
+  }
+
+  private openCorrectionDraft(row: InvoiceRegisterRow): void {
+    const now = new Date().toISOString();
+    const draft: PosHeldInvoiceDraft = {
+      id: `invoice_edit_${row.id}`,
+      title: `${row.invoiceNumber} correction - ₹${row.total}`,
+      clientId: row.clientId,
+      clientName: row.clientName,
+      branchId: row.branchId,
+      branchName: row.branchName,
+      staffId: row.staffId,
+      staffName: row.staffName,
+      appointmentId: row.appointmentId,
+      items: row.items,
+      tips: row.tips,
+      payments: this.paymentDraft(row),
+      discount: row.discount,
+      discountMode: 'amount',
+      couponCode: '',
+      creditsUsed: 0,
+      membershipId: '',
+      subtotal: row.subtotal,
+      total: row.total,
+      balanceDue: row.balance,
+      note: `Correction draft created from saved invoice ${row.invoiceNumber}.`,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this.settings.upsertHeldInvoice(draft);
+    const openCorrectionDraft = () => this.router.navigate(['/pos'], { queryParams: { holdId: draft.id } });
+    this.createInvoiceAudit('invoice.edited', row, 'info', {
+      editMode: 'correction_draft',
+      holdId: draft.id,
+      statusAfter: 'correction_draft_opened'
+    }).subscribe({
+      next: openCorrectionDraft,
+      error: openCorrectionDraft
+    });
+  }
+
+  closeDetail(): void {
+    this.selected.set(null);
+    this.paymentTimeline.set(null);
+    this.paymentError.set('');
+  }
+
+  billedTotal(): number {
+    return this.money(this.filteredRows().reduce((sum, row) => sum + row.total, 0));
+  }
+
+  paidTotal(): number {
+    return this.money(this.filteredRows().reduce((sum, row) => sum + row.paid, 0));
+  }
+
+  dueTotal(): number {
+    return this.money(this.filteredRows().reduce((sum, row) => sum + row.balance, 0));
+  }
+
+  receivedDueTotal(): number {
+    return this.money(this.filteredRows().reduce((sum, row) => sum + this.rowReceivedDueTotal(row), 0));
+  }
+
+  walletTotal(): number {
+    return this.money(this.filteredWalletClients().reduce((sum, client) => sum + client.walletBalance, 0));
+  }
+
+  walletClientCount(): number {
+    return this.filteredWalletClients().length;
+  }
+
+  lineTotal(item: ApiRecord): number {
+    return this.lineGross(item);
+  }
+
+  itemName(item: ApiRecord): string {
+    return String(item.name || item.serviceName || item.productName || item.itemName || item.title || 'Invoice item');
+  }
+
+  itemQuantity(item: ApiRecord): number {
+    return this.money(Number(this.firstValue(item, ['quantity', 'qty', 'units']) || 1));
+  }
+
+  lineRate(item: ApiRecord): number {
+    const explicit = this.firstValue(item, ['rate', 'price', 'unitPrice', 'unit_price', 'sellingPrice', 'selling_price', 'mrp']);
+    if (explicit !== undefined && explicit !== null && explicit !== '') return this.money(Number(explicit));
+    const gross = this.firstValue(item, ['gross', 'grossAmount', 'gross_amount', 'subtotal', 'lineSubtotal', 'line_subtotal']);
+    const qty = this.itemQuantity(item) || 1;
+    return this.money(Number(gross || 0) / qty);
+  }
+
+  lineGross(item: ApiRecord): number {
+    const explicit = this.firstValue(item, ['gross', 'grossAmount', 'gross_amount', 'subtotal', 'lineSubtotal', 'line_subtotal']);
+    if (explicit !== undefined && explicit !== null && explicit !== '') return this.money(Number(explicit));
+    return this.money(this.lineRate(item) * this.itemQuantity(item));
+  }
+
+  lineDiscount(invoice: InvoiceRegisterRow, item: ApiRecord): number {
+    const explicit = this.firstValue(item, ['discount', 'discountAmount', 'discount_amount', 'manualDiscount', 'manual_discount', 'lineDiscount', 'line_discount']);
+    if (explicit !== undefined && explicit !== null && explicit !== '') return this.money(Number(explicit));
+    const grossTotal = this.invoiceGrossTotal(invoice);
+    if (grossTotal <= 0 || invoice.discount <= 0) return 0;
+    return this.money((this.lineGross(item) / grossTotal) * invoice.discount);
+  }
+
+  lineTaxable(invoice: InvoiceRegisterRow, item: ApiRecord): number {
+    const explicit = this.firstValue(item, ['taxable', 'taxableAmount', 'taxable_amount', 'netAmount', 'net_amount']);
+    if (explicit !== undefined && explicit !== null && explicit !== '') return this.money(Number(explicit));
+    return this.money(Math.max(0, this.lineGross(item) - this.lineDiscount(invoice, item)));
+  }
+
+  lineGstRate(item: ApiRecord): number {
+    return this.money(Number(this.firstValue(item, ['gstRate', 'gst_rate', 'taxRate', 'tax_rate', 'gst']) || 0));
+  }
+
+  lineGstAmount(invoice: InvoiceRegisterRow, item: ApiRecord): number {
+    const explicit = this.firstValue(item, ['gstAmount', 'gst_amount', 'taxAmount', 'tax_amount', 'lineTax', 'line_tax']);
+    if (explicit !== undefined && explicit !== null && explicit !== '') return this.money(Number(explicit));
+    const rate = this.lineGstRate(item);
+    return this.money((this.lineTaxable(invoice, item) * rate) / 100);
+  }
+
+  lineFinal(invoice: InvoiceRegisterRow, item: ApiRecord): number {
+    const explicit = this.firstValue(item, ['total', 'lineTotal', 'line_total', 'finalAmount', 'final_amount']);
+    if (explicit !== undefined && explicit !== null && explicit !== '') return this.money(Number(explicit));
+    return this.money(this.lineTaxable(invoice, item) + this.lineGstAmount(invoice, item));
+  }
+
+  invoiceTaxableTotal(invoice: InvoiceRegisterRow): number {
+    const itemTaxable = this.money((invoice.items || []).reduce((sum, item) => sum + this.lineTaxable(invoice, item), 0));
+    if (itemTaxable > 0) return itemTaxable;
+    return this.money(Math.max(0, invoice.subtotal - invoice.discount));
+  }
+
+  invoiceDiscountRate(invoice: InvoiceRegisterRow): number {
+    const base = invoice.subtotal || this.invoiceGrossTotal(invoice);
+    if (!base) return 0;
+    return this.money((invoice.discount / base) * 100);
+  }
+
+  itemStaffName(item: ApiRecord, invoice: InvoiceRegisterRow): string {
+    return String(
+      this.firstValue(item, ['staffName', 'staff_name', 'assignedStaffName', 'assigned_staff_name', 'stylistName', 'stylist_name']) ||
+      invoice.staffName ||
+      'Unassigned'
+    );
+  }
+
+  serviceItems(invoice: InvoiceRegisterRow): ApiRecord[] {
+    return this.invoiceItemsByType(invoice, 'service');
+  }
+
+  productItems(invoice: InvoiceRegisterRow): ApiRecord[] {
+    return this.invoiceItemsByType(invoice, 'product');
+  }
+
+  otherItems(invoice: InvoiceRegisterRow): ApiRecord[] {
+    return (invoice.items || []).filter((item) => {
+      const type = this.normalizedItemType(item);
+      return type !== 'service' && type !== 'product';
+    });
+  }
+
+  itemLineMeta(item: ApiRecord): string {
+    return `${this.itemTypeLabel(item)} · Qty ${this.itemQuantity(item)} · GST ${this.lineGstRate(item)}%`;
+  }
+
+  paymentModeSummary(row: InvoiceRegisterRow): Array<{ mode: string; label: string; amount: number }> {
+    const totals = new Map<string, number>();
+
+    for (const payment of row.payments || []) {
+      const mode = String(payment.mode || 'unknown');
+      const amount = this.money(Number(payment.amount || 0));
+      if (amount <= 0) continue;
+      totals.set(mode, this.money((totals.get(mode) || 0) + amount));
+    }
+
+    return Array.from(totals.entries()).map(([mode, amount]) => ({
+      mode,
+      label: this.modeLabel(mode),
+      amount
+    }));
+  }
+
+  paymentDraft(row: InvoiceRegisterRow): Record<string, number> {
+    const payments: Record<string, number> = {};
+    for (const mode of this.paymentModes()) {
+      payments[mode.id] = 0;
+    }
+
+    for (const payment of row.payments || []) {
+      const mode = String(payment.mode || 'cash');
+      payments[mode] = this.money((payments[mode] || 0) + Number(payment.amount || 0));
+    }
+
+    return payments;
+  }
+
+  paymentModeSearchText(row: InvoiceRegisterRow): string {
+    return this.paymentModeSummary(row)
+      .map((paymentMode) => `${paymentMode.mode} ${paymentMode.label} ${paymentMode.amount}`)
+      .join(' ');
+  }
+
+  paymentModeClass(modeId: string): string {
+    const mode = String(modeId || '').toLowerCase();
+    if (mode.includes('cash')) return 'payment-mode-chip--cash';
+    if (mode.includes('upi') || mode.includes('online') || mode.includes('paytm') || mode.includes('phonepe') || mode.includes('gpay')) {
+      return 'payment-mode-chip--upi';
+    }
+    if (mode.includes('card') || mode.includes('credit') || mode.includes('debit')) return 'payment-mode-chip--card';
+    if (mode.includes('wallet')) return 'payment-mode-chip--wallet';
+    if (mode.includes('bank') || mode.includes('neft') || mode.includes('rtgs') || mode.includes('imps')) return 'payment-mode-chip--bank';
+    return 'payment-mode-chip--other';
+  }
+
+  receivedDueLines(row: InvoiceRegisterRow): Array<{
+    invoiceNumber: string;
+    dueDate: string;
+    receivedDate: string;
+    mode: string;
+    amount: number;
+    reference: string;
+    pendingAfter: number;
+  }> {
+    const receivedPayments = (row.payments || [])
+      .filter((payment) => this.isReceivedDuePayment(payment))
+      .sort((a, b) => this.dateMs(a.createdAt || a.created_at) - this.dateMs(b.createdAt || b.created_at));
+    let pending = this.money(row.balance + receivedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
+    return receivedPayments.map((payment) => {
+      const amount = this.money(Number(payment.amount || 0));
+      pending = this.money(Math.max(0, pending - amount));
+      return {
+        invoiceNumber: row.invoiceNumber,
+        dueDate: row.dueDate || row.createdAt,
+        receivedDate: String(payment.createdAt || payment.created_at || ''),
+        mode: String(payment.mode || 'cash'),
+        amount,
+        reference: String(payment.reference || payment.remarks || 'Old due received'),
+        pendingAfter: pending
+      };
+    });
+  }
+
+  modeLabel(modeId: string): string {
+    return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
+  }
+
+  walletPaidAmount(row: InvoiceRegisterRow): number {
+    return this.money((row.payments || [])
+      .filter((payment) => String(payment.mode || '').toLowerCase().includes('wallet'))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
+  }
+
+  invoiceKindLabel(row: InvoiceRegisterRow): string {
+    const hasService = this.serviceItems(row).length > 0;
+    const hasProduct = this.productItems(row).length > 0;
+    if (hasService && hasProduct) return 'service_product';
+    if (hasProduct) return 'product';
+    if (this.walletPaidAmount(row) > 0) return 'wallet';
+    return 'service';
+  }
+
+  sendInvoicePdfWhatsapp(invoice: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    if (!invoice.id) return;
+    if (!invoice.clientPhone) {
+      this.notice.set(`Client WhatsApp number missing for ${invoice.invoiceNumber}. Add client phone first.`);
+      return;
+    }
+    this.paymentError.set('');
+    this.whatsappActionLoading.set(invoice.id);
+    this.api.post<ApiRecord>(`billing/invoices/${invoice.id}/send-whatsapp`, {
+      phone: invoice.clientPhone,
+      source: 'pos-invoices',
+      invoiceKind: this.invoiceKindLabel(invoice),
+      paymentStatus: invoice.balance > 0 ? 'unpaid' : 'paid',
+      walletPaid: this.walletPaidAmount(invoice)
+    }).pipe(
+      finalize(() => this.whatsappActionLoading.set(''))
+    ).subscribe({
+      next: (response) => {
+        const due = Number(response.due || invoice.balance || 0);
+        const dueText = due > 0 ? ` Due ₹${due.toLocaleString('en-IN')}.` : '';
+        this.notice.set(`WhatsApp PDF queued for ${invoice.invoiceNumber}.${dueText}`);
+        this.loadPaymentTimeline(invoice);
+      },
+      error: (error) => this.paymentError.set(this.api.errorText(error, 'Unable to queue WhatsApp PDF'))
+    });
+  }
+
+  downloadInvoice(invoice: InvoiceRegisterRow): void {
+    if (!invoice.id) return;
+    this.api.post<ApiRecord>(`invoices/${invoice.id}/document`, {}).subscribe({
+      next: (documentRecord) => {
+        const blob = new Blob([String(documentRecord.content || '')], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${invoice.invoiceNumber}.html`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (error) => this.error.set(error?.error?.error || 'Unable to download invoice')
+    });
+  }
+
+  createPaymentLink(invoice: InvoiceRegisterRow): void {
+    this.paymentError.set('');
+    this.paymentActionLoading.set(`${invoice.id}:link`);
+    this.api.post<ApiRecord>(`payments/invoices/${invoice.id}/link`, {
+      amount: invoice.balance,
+      provider: 'razorpay'
+    }).pipe(
+      finalize(() => this.paymentActionLoading.set(''))
+    ).subscribe({
+      next: (response) => {
+        this.paymentTimeline.set(response.timeline || response);
+        this.notice.set(`Payment link ready for ${invoice.invoiceNumber}.`);
+      },
+      error: (error) => this.paymentError.set(this.api.errorText(error, 'Unable to create payment link'))
+    });
+  }
+
+  sendPaymentReminder(invoice: InvoiceRegisterRow): void {
+    this.paymentError.set('');
+    this.paymentActionLoading.set(`${invoice.id}:reminder`);
+    this.api.post<ApiRecord>(`payments/invoices/${invoice.id}/reminder`, {
+      channel: 'whatsapp',
+      provider: 'razorpay'
+    }).pipe(
+      finalize(() => this.paymentActionLoading.set(''))
+    ).subscribe({
+      next: (response) => {
+        this.notice.set(`WhatsApp payment reminder queued for ${invoice.invoiceNumber}.`);
+        this.loadPaymentTimeline(invoice);
+      },
+      error: (error) => this.paymentError.set(this.api.errorText(error, 'Unable to send payment reminder'))
+    });
+  }
+
+  reconcilePayment(invoice: InvoiceRegisterRow): void {
+    this.paymentError.set('');
+    this.paymentActionLoading.set(`${invoice.id}:reconcile`);
+    this.api.post<ApiRecord>(`payments/invoices/${invoice.id}/reconcile`, {
+      provider: 'razorpay',
+      runType: 'manual'
+    }).pipe(
+      finalize(() => this.paymentActionLoading.set(''))
+    ).subscribe({
+      next: (response) => {
+        this.paymentTimeline.set(response.timeline || this.paymentTimeline());
+        this.notice.set(`Payment reconciliation checked ${response.checked || 0} link(s).`);
+      },
+      error: (error) => this.paymentError.set(this.api.errorText(error, 'Unable to reconcile payment'))
+    });
+  }
+
+  latestPaymentLinkId(): string {
+    const links = (this.paymentTimeline()?.links || []) as ApiRecord[];
+    return String(links[0]?.linkId || links[0]?.providerLinkId || '');
+  }
+
+  private loadPaymentTimeline(invoice: InvoiceRegisterRow): void {
+    if (!invoice.id) return;
+    this.paymentError.set('');
+    this.paymentActionLoading.set(`${invoice.id}:timeline`);
+    this.api.list<ApiRecord>(`payments/invoices/${invoice.id}/timeline`).pipe(
+      finalize(() => {
+        if (this.paymentActionLoading() === `${invoice.id}:timeline`) this.paymentActionLoading.set('');
+      })
+    ).subscribe({
+      next: (timeline) => this.paymentTimeline.set(timeline),
+      error: () => this.paymentTimeline.set({ invoice: { id: invoice.id }, links: [], events: [], webhooks: [] })
+    });
+  }
+
+  private buildWalletClients(clients: ApiRecord[], invoices: ApiRecord[], branches: ApiRecord[], walletTransactions: ApiRecord[]): WalletClientRow[] {
+    const branchMap = new Map(branches.map((branch) => [String(branch.id || ''), branch]));
+    const dueByClient = new Map<string, number>();
+    for (const invoice of invoices || []) {
+      const clientId = String(invoice.clientId || invoice.client_id || invoice.customerId || invoice.customer_id || '');
+      if (!clientId) continue;
+      const total = Number(invoice.total ?? invoice.grand_total ?? invoice.grandTotal ?? 0);
+      const paid = Number(invoice.paid ?? invoice.paid_amount ?? invoice.paidAmount ?? 0);
+      const balance = Math.max(0, Number(invoice.balance ?? invoice.due_amount ?? invoice.dueAmount ?? total - paid) || 0);
+      if (balance <= 0) continue;
+      dueByClient.set(clientId, this.money((dueByClient.get(clientId) || 0) + balance));
+    }
+
+    const latestTxByClient = new Map<string, ApiRecord>();
+    for (const transaction of walletTransactions || []) {
+      const clientId = String(transaction.clientId || transaction.client_id || transaction.customerId || transaction.customer_id || '');
+      if (!clientId) continue;
+      const current = latestTxByClient.get(clientId);
+      const currentTime = this.walletTime(current);
+      const transactionTime = this.walletTime(transaction);
+      if (!current || transactionTime >= currentTime) latestTxByClient.set(clientId, transaction);
+    }
+
+    return clients
+      .map((client) => {
+        const id = String(client.id || '');
+        const branchId = String(client.branchId || client.branch_id || '');
+        const branch = branchMap.get(branchId) || {};
+        const latest = latestTxByClient.get(id);
+        const walletBalance = this.clientWalletBalance(client, latest);
+        return {
+          id,
+          name: String(client.name || client.fullName || client.full_name || client.clientName || id || 'Client'),
+          phone: String(client.phone || client.mobile || client.whatsapp || client.contact || ''),
+          branchId,
+          branchName: String(branch.name || client.branchName || client.branch_name || branchId || 'Branch'),
+          walletBalance,
+          unpaidBalance: dueByClient.get(id) || this.money(Number(client.unpaidBalance || client.dueAmount || 0)),
+          lastWalletActivity: String(latest?.createdAt || latest?.created_at || latest?.date || latest?.updatedAt || ''),
+          source: latest ? 'wallet ledger' : 'client balance'
+        };
+      })
+      .filter((client) => client.id && client.walletBalance > 0)
+      .sort((a, b) => b.walletBalance - a.walletBalance || a.name.localeCompare(b.name));
+  }
+
+  private withWalletBalances(clients: ApiRecord[], transactions: ApiRecord[]): ApiRecord[] {
+    const latestByClient = new Map<string, ApiRecord>();
+    for (const transaction of transactions || []) {
+      const clientId = String(transaction.clientId || transaction.client_id || transaction.customerId || transaction.customer_id || '');
+      if (!clientId) continue;
+      const current = latestByClient.get(clientId);
+      if (!current || this.walletTime(transaction) >= this.walletTime(current)) {
+        latestByClient.set(clientId, transaction);
+      }
+    }
+    return clients.map((client) => {
+      const latest = latestByClient.get(String(client.id || ''));
+      return {
+        ...client,
+        walletBalance: this.clientWalletBalance(client, latest)
+      };
+    });
+  }
+
+  private clientWalletBalance(client: ApiRecord, latest?: ApiRecord): number {
+    const linkedBalance = latest?.balanceAfter ?? latest?.balance_after ?? latest?.walletBalance ?? latest?.wallet_balance ?? latest?.balance;
+    if (linkedBalance !== undefined && linkedBalance !== null && linkedBalance !== '') return this.money(Number(linkedBalance));
+    return this.money(Number(client.walletBalance ?? client.wallet_balance ?? client.wallet ?? 0));
+  }
+
+  private walletTime(value?: ApiRecord): number {
+    if (!value) return 0;
+    const date = this.parseDate(String(value.createdAt || value.created_at || value.date || value.updatedAt || value.updated_at || ''));
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  }
+
+  private buildRows(invoices: ApiRecord[], sales: ApiRecord[], payments: ApiRecord[], clients: ApiRecord[], staff: ApiRecord[], branches: ApiRecord[]): InvoiceRegisterRow[] {
+    const saleMap = new Map(sales.map((sale) => [sale.id, sale]));
+    const clientMap = new Map(clients.map((client) => [client.id, client]));
+    const staffMap = new Map(staff.map((person) => [person.id, person]));
+    const branchMap = new Map(branches.map((branch) => [branch.id, branch]));
+    const activeInvoices = invoices.filter((invoice) => {
+      const status = String(invoice.status || invoice.payment_status || '').toLowerCase();
+      return status !== 'deleted';
+    });
+
+    return activeInvoices.map((invoice) => {
+      const sale = saleMap.get(invoice.saleId) || {};
+      const client = clientMap.get(invoice.clientId || sale.clientId) || {};
+      const clientId = String(invoice.clientId || sale.clientId || client.id || '');
+      const branchId = String(sale.branchId || invoice.branchId || '');
+      const staffId = String(sale.staffId || invoice.staffId || '');
+      const appointmentId = String(sale.appointmentId || invoice.appointmentId || '');
+      const person = staffMap.get(staffId) || {};
+      const branch = branchMap.get(branchId) || {};
+      const clientPhone = String(
+        client.phone ||
+          client.mobile ||
+          client.whatsapp ||
+          client.contact ||
+          invoice.clientPhone ||
+          invoice.customerPhone ||
+          invoice.phone ||
+          sale.clientPhone ||
+          ''
+      );
+      const invoicePayments = payments.filter((payment) => payment.invoiceId === invoice.id);
+      const items = this.readArray(invoice.lineItems?.length ? invoice.lineItems : sale.items)
+        .map((item) => {
+          const itemStaffId = String(item.staffId || item.staff_id || item.assignedStaffId || item.assigned_staff_id || staffId || '');
+          const itemStaff = staffMap.get(itemStaffId) || {};
+          return {
+            ...item,
+            staffId: itemStaffId,
+            staffName: item.staffName || item.staff_name || item.assignedStaffName || item.assigned_staff_name || itemStaff.name || person.name || 'Unassigned',
+            type: this.normalizedItemType(item)
+          };
+        });
+      const tips = this.tipLines(sale);
+      const paid = this.money(invoice.paid ?? invoice.paid_amount ?? invoicePayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
+      const total = this.money(invoice.total ?? invoice.grand_total ?? sale.total ?? 0);
+      return {
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber || invoice.invoice_no || invoice.id,
+      clientId,
+      clientName: client.name || invoice.clientName || sale.clientName || 'Walk-in client',
+      clientPhone,
+      branchId,
+        branchName: branch.name || branchId || 'Branch',
+        staffId,
+        staffName: person.name || 'Unassigned',
+        appointmentId,
+        status: invoice.status || invoice.payment_status || (paid >= total ? 'paid' : paid > 0 ? 'partially paid' : 'unpaid'),
+        createdAt: invoice.createdAt || invoice.created_at || sale.createdAt || '',
+        dueDate: invoice.dueDate || invoice.due_date || invoice.createdAt || invoice.created_at || sale.createdAt || '',
+        subtotal: this.money(invoice.subtotal ?? sale.subtotal ?? 0),
+        discount: this.money(invoice.discount ?? sale.discount ?? 0),
+        gst: this.money(invoice.gstAmount ?? invoice.tax_total ?? sale.gstAmount ?? 0),
+        tipTotal: this.money(tips.reduce((sum, tip) => sum + Number(tip.amount || 0), 0)),
+        total,
+        paid,
+        balance: this.money(invoice.balance ?? invoice.due_amount ?? Math.max(0, total - paid)),
+        paymentStatus: String(invoice.payment_status || invoice.status || ''),
+        onlinePaidAmount: this.money(invoice.online_paid_amount ?? 0),
+        paymentLinkId: String(invoice.payment_link_id || ''),
+        items,
+        payments: invoicePayments,
+        tips
+      };
+    }).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+
+  private isReceivedDuePayment(payment: ApiRecord): boolean {
+    const referenceText = `${payment.reference || ''} ${payment.remarks || ''} ${payment.note || ''}`.toLowerCase();
+    return referenceText.includes('pos unpaid receive')
+      || referenceText.includes('old unpaid')
+      || referenceText.includes('receive due')
+      || referenceText.includes('received due');
+  }
+
+  private rowReceivedDueTotal(row: InvoiceRegisterRow): number {
+    return this.money(
+      (row.payments || [])
+        .filter((payment) => this.isReceivedDuePayment(payment))
+        .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    );
+  }
+
+  private invoiceItemsByType(invoice: InvoiceRegisterRow, type: 'service' | 'product'): ApiRecord[] {
+    return (invoice.items || []).filter((item) => this.normalizedItemType(item) === type);
+  }
+
+  itemTypeLabel(item: ApiRecord): string {
+    const type = this.normalizedItemType(item);
+    if (type === 'service') return 'Service';
+    if (type === 'product') return 'Product';
+    return 'Custom';
+  }
+
+  private normalizedItemType(item: ApiRecord): string {
+    const rawType = String(item.type || item.itemType || item.kind || '').toLowerCase();
+    if (rawType.includes('service')) return 'service';
+    if (rawType.includes('product') || rawType.includes('retail')) return 'product';
+    return 'custom';
+  }
+
+  private invoiceGrossTotal(invoice: InvoiceRegisterRow): number {
+    return this.money((invoice.items || []).reduce((sum, item) => sum + this.lineGross(item), 0));
+  }
+
+  private firstValue(record: ApiRecord, keys: string[]): unknown {
+    for (const key of keys) {
+      const value = record[key];
+      if (value !== undefined && value !== null && value !== '') return value;
+    }
+    return undefined;
+  }
+
+  private createInvoiceAudit(
+    action: string,
+    row: InvoiceRegisterRow,
+    severity: 'info' | 'warning',
+    extra: ApiRecord = {}
+  ) {
+    return this.api.create<ApiRecord>('auditLogs', {
+      action,
+      severity,
+      entityType: 'invoice',
+      entityId: row.id,
+      branchId: row.branchId,
+      details: {
+        invoiceId: row.id,
+        invoiceNumber: row.invoiceNumber,
+        clientId: row.clientId,
+        clientName: row.clientName,
+        clientPhone: row.clientPhone,
+        staffId: row.staffId,
+        staffName: row.staffName,
+        branchId: row.branchId,
+        branchName: row.branchName,
+        statusBefore: row.status,
+        total: row.total,
+        paid: row.paid,
+        balance: row.balance,
+        discount: row.discount,
+        items: row.items,
+        payments: row.payments,
+        source: 'pos-invoices',
+        ...extra
+      }
+    });
+  }
+
+  private approvalSnapshot(row: InvoiceRegisterRow): ApiRecord {
+    return {
+      id: row.id,
+      invoiceId: row.id,
+      invoiceNumber: row.invoiceNumber,
+      clientId: row.clientId,
+      clientName: row.clientName,
+      clientPhone: row.clientPhone,
+      staffId: row.staffId,
+      staffName: row.staffName,
+      branchId: row.branchId,
+      branchName: row.branchName,
+      appointmentId: row.appointmentId,
+      status: row.status,
+      subtotal: row.subtotal,
+      discount: row.discount,
+      gst: row.gst,
+      tipTotal: row.tipTotal,
+      total: row.total,
+      paid: row.paid,
+      balance: row.balance,
+      items: row.items,
+      payments: row.payments,
+      tips: row.tips,
+      requestedFrom: 'pos-invoices'
+    };
+  }
+
+  private tipLines(sale: ApiRecord): ApiRecord[] {
+    const membershipRedeem = this.readJson(sale.membershipRedeem, {});
+    return Array.isArray(membershipRedeem.tips) ? membershipRedeem.tips : [];
+  }
+
+  private readArray(value: unknown): ApiRecord[] {
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(String(value));
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private readJson(value: unknown, fallback: ApiRecord): ApiRecord {
+    if (!value) return fallback;
+    if (typeof value === 'object') return value as ApiRecord;
+    try {
+      return JSON.parse(String(value));
+    } catch {
+      return fallback;
+    }
+  }
+
+  private money(value: number | string): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  private onlyDigits(value: unknown): string {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  private todayKey(): string {
+    return this.dateKey(new Date());
+  }
+
+  private rowDateKey(value: string): string {
+    return this.dateKey(value);
+  }
+
+  private dateKey(value: string | Date): string {
+    const date = value instanceof Date ? value : this.parseDate(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private parseDate(value: string): Date {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return new Date(raw);
+  }
+
+  private dateMs(value: unknown): number {
+    const date = this.parseDate(String(value || ''));
+    const time = date.getTime();
+    return Number.isNaN(time) ? 0 : time;
+  }
+}

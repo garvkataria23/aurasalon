@@ -1,0 +1,99 @@
+:host {
+  display: inline-flex;
+}
+
+.aura-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aura-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--aura-radius-md);
+  font-family: var(--aura-font);
+  font-weight: var(--aura-fw-medium);
+  line-height: 1;
+  text-decoration: none;
+  transition: background var(--aura-transition-fast), border-color var(--aura-transition-fast), color var(--aura-transition-fast), box-shadow var(--aura-transition-fast);
+  cursor: pointer;
+}
+
+.aura-button--md {
+  height: var(--aura-h-button);
+  padding: 0 14px;
+  font-size: var(--aura-fs-sm);
+}
+
+.aura-button--sm {
+  height: var(--aura-h-button-sm);
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.aura-button--primary {
+  background: var(--aura-primary-600);
+  color: var(--aura-white);
+}
+
+.aura-button--primary:hover:not(:disabled) {
+  background: var(--aura-primary-700);
+}
+
+.aura-button--secondary {
+  border-color: var(--aura-gray-300);
+  background: var(--aura-white);
+  color: var(--aura-gray-700);
+}
+
+.aura-button--secondary:hover:not(:disabled) {
+  background: var(--aura-gray-50);
+}
+
+.aura-button--ghost {
+  background: transparent;
+  color: var(--aura-gray-700);
+}
+
+.aura-button--ghost:hover:not(:disabled) {
+  background: var(--aura-gray-100);
+}
+
+.aura-button--danger {
+  background: var(--aura-danger);
+  color: var(--aura-white);
+}
+
+.aura-button--link {
+  height: auto;
+  padding: 0;
+  background: transparent;
+  color: var(--aura-primary-600);
+}
+
+.aura-button--link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.aura-button:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--aura-primary-100);
+}
+
+.aura-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.aura-button__spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--aura-radius-full);
+  animation: aura-button-spin 700ms linear infinite;
+}
+
+@keyframes aura-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

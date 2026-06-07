@@ -1,0 +1,1180 @@
+import { CommonModule, CurrencyPipe } from '@angular/common';
+import { Component, OnInit, computed, signal } from '@angular/core';
+import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { ApiRecord, ApiService } from '../core/api.service';
+import { StateComponent } from '../shared/ui/state/state.component';
+
+type RecipeTab = 'recipes' | 'planner' | 'intelligence' | 'usage' | 'alerts';
+
+interface RecipeItemDraft {
+  uid: string;
+  productId: string;
+  quantityPerService: number;
+  unit: string;
+  wastagePct: number;
+  minQuantityPerService: number;
+  maxQuantityPerService: number;
+  allowedSubstitutesText: string;
+  notes: string;
+}
+
+const DEFAULT_MODIFIERS = [
+  { key: 'short', label: 'Short hair', multiplier: 1 },
+  { key: 'medium', label: 'Medium hair', multiplier: 1.5 },
+  { key: 'long', label: 'Long hair', multiplier: 2 }
+];
+
+@Component({
+  selector: 'app-inventory-recipes',
+  standalone: true,
+  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  template: `
+    <section class="page-stack inventory-enterprise-page recipes-page">
+      <div class="module-hero recipe-command-hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Inventory / Auto product consume</span>
+          <h2>Auto Product Consume Service Setup</h2>
+          <p>Set which inventory products a service uses. POS checkout, appointment completion and invoice finalization then auto-consume stock with FIFO live tracking.</p>
+          <div class="hero-signal-row">
+            <span>{{ branchRecipeStatus() }}</span>
+            <span>{{ approvedRecipes().length }} approved BOMs</span>
+            <span>{{ highAlertCount() }} high-risk alerts</span>
+            <span>POS checkout linked</span>
+            <span>No physical stock entry</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost-button" routerLink="/inventory">Inventory</a>
+          <a class="ghost-button" routerLink="/inventory/stock-audit">Stock audit</a>
+        </div>
+      </div>
+
+      <app-state [loading]="loading()" [error]="error()"></app-state>
+      <div class="state success" *ngIf="success()">{{ success() }}</div>
+
+      <div class="metric-grid recipe-kpi-grid">
+        <article class="kpi-card accent-teal">
+          <span>Configured BOMs</span>
+          <strong>{{ metric('configuredRecipes') }}</strong>
+          <small>{{ approvedRecipes().length }} approved · {{ pendingRecipes().length }} pending/draft</small>
+        </article>
+        <article class="kpi-card accent-red">
+          <span>Missing recipes</span>
+          <strong>{{ metric('missingRecipes') }}</strong>
+          <small>{{ coveragePct() }}% service coverage</small>
+        </article>
+        <article class="kpi-card accent-amber">
+          <span>Low stock forecast</span>
+          <strong>{{ metric('lowStockForecast') }}</strong>
+          <small>Next 15 days recipe demand</small>
+        </article>
+        <article class="kpi-card accent-violet">
+          <span>Avg margin</span>
+          <strong>{{ metric('averageMarginPct') }}%</strong>
+          <small>{{ weakMarginRows().length }} recipe(s) below floor</small>
+        </article>
+      </div>
+
+      <section class="recipe-command-strip">
+        <article class="command-card primary">
+          <span class="eyebrow">Decision signal</span>
+          <div class="decision-row">
+            <strong>{{ riskLevel() }}</strong>
+            <span class="recipe-health-pill" [class.watch]="riskLevel() === 'Watch'" [class.danger]="riskLevel() === 'High'">{{ coveragePct() }}% covered</span>
+          </div>
+          <p>{{ decisionSummary() }}</p>
+        </article>
+        <article class="command-card">
+          <span class="eyebrow">Next action</span>
+          <strong>{{ topActionTitle() }}</strong>
+          <p>{{ topActionMessage() }}</p>
+        </article>
+        <article class="command-card compact">
+          <span class="eyebrow">Recipe automation</span>
+          <div class="automation-grid">
+            <div><strong>POS</strong><small>checkout auto consume</small></div>
+            <div><strong>Invoice</strong><small>finalization live track</small></div>
+            <div><strong>FIFO</strong><small>batch deduction</small></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="auto-consume-flow">
+        <article><span>Trigger 1</span><strong>POS service billed</strong><small>Service recipe expands into product usage lines.</small></article>
+        <article><span>Trigger 2</span><strong>Appointment complete</strong><small>Approved recipe can consume stock from the appointment lifecycle.</small></article>
+        <article><span>Trigger 3</span><strong>Invoice finalization</strong><small>Invoice inventory hook posts service usage and live ledger rows.</small></article>
+        <article><span>Live result</span><strong>Inventory tracked</strong><small>FIFO stock, usage logs, shortage and overuse alerts stay connected.</small></article>
+      </section>
+
+      <div class="enterprise-grid two editor-grid">
+        <section class="panel editor-panel recipe-canvas">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Recipe editor</span>
+              <h2>{{ editingRecipeId() ? 'Revise auto-consume recipe' : 'Auto-consume service recipe' }}</h2>
+              <p>{{ selectedService()?.name || 'Select one service, then map every product that should be consumed automatically from live inventory.' }}</p>
+            </div>
+            <button type="button" class="ghost-button mini" (click)="addRecipeItem()">Add product line</button>
+          </div>
+          <form [formGroup]="recipeForm" (ngSubmit)="saveRecipe()" class="enterprise-form">
+            <label class="field"><span>Branch</span><select formControlName="branchId"><option value="">All branches</option><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
+            <label class="field"><span>Service</span><select formControlName="serviceId"><option value="">Select service</option><option *ngFor="let service of services()" [value]="service.id">{{ service.name }} · {{ service.price | currency:'INR':'symbol':'1.0-0' }}</option></select></label>
+            <label class="field"><span>Recipe name</span><input formControlName="recipeName" placeholder="Keratin standard usage" /></label>
+            <label class="field"><span>Approval status</span><select formControlName="approvalStatus"><option value="approved">Approved</option><option value="pending_approval">Pending approval</option><option value="draft">Draft</option></select></label>
+            <label class="field"><span>Margin floor %</span><input type="number" formControlName="marginFloorPct" /></label>
+            <label class="field"><span>Template</span><select [ngModel]="selectedTemplateKey()" [ngModelOptions]="{standalone: true}" (ngModelChange)="selectedTemplateKey.set($event)"><option value="">AI template</option><option *ngFor="let template of templates()" [value]="template.templateKey">{{ template.templateName }}</option></select></label>
+
+            <div class="template-hint full" *ngIf="selectedTemplate() as template">
+              <span>Template guide</span>
+              <strong>{{ template.templateName }}</strong>
+              <small>{{ templateHint(template) }}</small>
+            </div>
+
+            <div class="recipe-lines full">
+              <div class="recipe-line head">
+                <span>Inventory product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Substitutes</span><span></span>
+              </div>
+              <div class="recipe-line" *ngFor="let item of recipeItems(); trackBy: trackRecipeItem">
+                <select [ngModel]="item.productId" [ngModelOptions]="{standalone: true}" (ngModelChange)="setLineProduct(item, $event)">
+                  <option value="">Select consumable</option>
+                  <option *ngFor="let product of recipeProducts()" [value]="product.id">{{ product.name }} · {{ product.stock || 0 }} · {{ productType(product) }}</option>
+                </select>
+                <div class="inline-fields">
+                  <input type="number" min="0" [ngModel]="item.quantityPerService" [ngModelOptions]="{standalone: true}" (ngModelChange)="item.quantityPerService = numberValue($event)" />
+                  <select [ngModel]="item.unit" [ngModelOptions]="{standalone: true}" (ngModelChange)="item.unit = $event">
+                    <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
+                  </select>
+                </div>
+                <input type="number" min="0" [ngModel]="item.wastagePct" [ngModelOptions]="{standalone: true}" (ngModelChange)="item.wastagePct = numberValue($event)" />
+                <div class="inline-fields">
+                  <input type="number" min="0" [ngModel]="item.minQuantityPerService" [ngModelOptions]="{standalone: true}" (ngModelChange)="item.minQuantityPerService = numberValue($event)" />
+                  <input type="number" min="0" [ngModel]="item.maxQuantityPerService" [ngModelOptions]="{standalone: true}" (ngModelChange)="item.maxQuantityPerService = numberValue($event)" />
+                </div>
+                <input [ngModel]="item.allowedSubstitutesText" [ngModelOptions]="{standalone: true}" (ngModelChange)="item.allowedSubstitutesText = $event" placeholder="Alternate product ids/names" />
+                <button type="button" class="ghost-button mini danger" (click)="removeRecipeItem(item.uid)" [disabled]="recipeItems().length <= 1">Remove</button>
+              </div>
+            </div>
+
+            <label class="field full"><span>Notes</span><textarea formControlName="notes" placeholder="Mixing instruction, bowl use, brand preference, staff warning"></textarea></label>
+            <div class="form-actions full">
+              <span class="auto-ready-note">After save, billing uses this recipe. No physical stock entry needed.</span>
+              <button class="ghost-button" type="button" (click)="resetEditor()">Clear</button>
+              <button class="primary-button" type="submit" [disabled]="recipeForm.invalid || saving() || !validLines()">Save auto-consume recipe</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel impact-panel">
+          <div class="section-title"><div><span class="eyebrow">Recipe impact</span><h2>Cost, margin and stock</h2></div></div>
+          <div class="impact-stack">
+            <article><span>Expected service cost</span><strong>{{ expectedCostPreview() | currency:'INR':'symbol':'1.0-0' }}</strong><small>Qty + wastage + product unit cost</small></article>
+            <article><span>Service margin</span><strong>{{ marginPreview() | currency:'INR':'symbol':'1.0-0' }}</strong><small>{{ marginPctPreview() }}% after professional stock</small></article>
+            <article><span>Product filter</span><strong>Consumable / Both</strong><small>{{ recipeProducts().length }} products available for BOM</small></article>
+            <article><span>FIFO mode</span><strong>Enforced</strong><small>Expiry-first batches are consumed before fresh stock</small></article>
+            <article><span>Live tracking</span><strong>SERVICE_USE</strong><small>POS, appointment and invoice usage writes stock ledger rows.</small></article>
+          </div>
+          <div class="margin-meter">
+            <div class="meter-label"><span>Margin health</span><strong>{{ marginPctPreview() }}%</strong></div>
+            <div class="meter-track"><span [style.width.%]="safePercent(marginPctPreview())"></span></div>
+            <small>Floor target: {{ recipeForm.value.marginFloorPct || 0 }}%</small>
+          </div>
+          <div class="line-audit">
+            <div><strong>{{ activeLineCount() }}</strong><span>active lines</span></div>
+            <div><strong>{{ totalWastePct() }}%</strong><span>avg waste</span></div>
+            <div><strong>{{ selectedServicePrice() | currency:'INR':'symbol':'1.0-0' }}</strong><span>service price</span></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="section-title">
+          <div><span class="eyebrow">Control center</span><h2>Recipe intelligence</h2></div>
+          <div class="tab-strip">
+            <button type="button" *ngFor="let tab of tabs" [class.active]="activeTab() === tab.id" (click)="activeTab.set(tab.id)">{{ tab.label }}</button>
+          </div>
+        </div>
+
+        <ng-container *ngIf="activeTab() === 'planner'">
+          <div class="planner-grid">
+            <article class="planner-card">
+              <div><span class="eyebrow">Coverage queue</span><h3>Services needing BOM</h3></div>
+              <button class="planner-row" type="button" *ngFor="let row of dashboardList('missingRecipes').slice(0, 7)">
+                <strong>{{ row.serviceName }}</strong>
+                <span>{{ row.category || 'Service' }} · {{ row.severity || 'medium' }}</span>
+              </button>
+              <p *ngIf="!dashboardList('missingRecipes').length">Every active service has a mapped recipe.</p>
+            </article>
+            <article class="planner-card">
+              <div><span class="eyebrow">Margin watch</span><h3>Below-floor recipes</h3></div>
+              <button class="planner-row" type="button" *ngFor="let row of weakMarginRows().slice(0, 7)">
+                <strong>{{ row.serviceName }}</strong>
+                <span>{{ row.expectedMarginPct }}% margin · floor {{ row.marginFloorPct || 0 }}%</span>
+              </button>
+              <p *ngIf="!weakMarginRows().length">No recipe is below its margin floor.</p>
+            </article>
+            <article class="planner-card">
+              <div><span class="eyebrow">Upcoming demand</span><h3>Recipe stock pressure</h3></div>
+              <button class="planner-row" type="button" *ngFor="let row of upcomingDemandRows().slice(0, 7)">
+                <strong>{{ row.productName }}</strong>
+                <span>{{ row.requiredQty }} {{ row.unit }} · {{ row.appointmentCount }} appointment(s)</span>
+              </button>
+              <p *ngIf="!upcomingDemandRows().length">No upcoming recipe demand in the forecast window.</p>
+            </article>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'recipes'">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Service</th><th>Branch</th><th>Products</th><th>Cost / margin</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let recipe of recipes()">
+                  <td><strong>{{ recipe.serviceName || recipe.recipeName }}</strong><small>{{ recipe.recipeName }}</small></td>
+                  <td>{{ branchName(recipe.branchId) }}</td>
+                  <td><span class="recipe-chip" *ngFor="let item of recipe.items">{{ item.productName }} x {{ item.quantityPerService }} {{ item.unit || 'pcs' }}</span></td>
+                  <td><strong>{{ recipe.expectedCost | currency:'INR':'symbol':'1.0-0' }}</strong><small>{{ recipe.expectedMarginPct || 0 }}% margin</small></td>
+                  <td><span class="badge" [class.warn]="recipe.approvalStatus !== 'approved'">{{ recipe.approvalStatus || 'approved' }}</span><small class="auto-status" *ngIf="recipe.approvalStatus === 'approved'">Auto consume ready</small></td>
+                  <td class="row-actions"><button class="ghost-button mini" type="button" (click)="editRecipe(recipe)">Edit</button><button class="ghost-button mini" type="button" (click)="approveRecipe(recipe)" *ngIf="recipe.approvalStatus !== 'approved'">Approve</button></td>
+                </tr>
+                <tr *ngIf="!recipes().length"><td colspan="6">No service BOMs configured yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'intelligence'">
+          <div class="intel-grid">
+            <article><h3>Missing recipes</h3><p *ngFor="let row of dashboardList('missingRecipes')">{{ row.serviceName }} · {{ row.category || 'Service' }}</p><p *ngIf="!dashboardList('missingRecipes').length">No missing recipes for selected branch.</p></article>
+            <article><h3>Low stock forecast</h3><p *ngFor="let row of dashboardList('lowStockForecast')">{{ row.productName }} · need {{ row.requiredQty }} {{ row.unit }}</p><p *ngIf="!dashboardList('lowStockForecast').length">No forecast shortage in next 15 days.</p></article>
+            <article><h3>AI suggestions</h3><p *ngFor="let row of dashboardList('aiSuggestions')">{{ row.title }} · {{ row.message }}</p><p *ngIf="!dashboardList('aiSuggestions').length">No urgent recipe suggestions.</p></article>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'usage'">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Service</th><th>Staff</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Reference</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of usageLogs()">
+                  <td><strong>{{ row.serviceName || row.serviceId }}</strong><small>{{ row.usageModifierKey }} x {{ row.usageModifierMultiplier }}</small></td>
+                  <td>{{ row.staffId || '-' }}</td>
+                  <td>{{ row.expectedCost | currency:'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.actualCost | currency:'INR':'symbol':'1.0-0' }}</td>
+                  <td><span class="badge" [class.warn]="row.overuseFlag">{{ row.variancePct || 0 }}%</span></td>
+                  <td>{{ row.referenceType }} · {{ row.referenceId }}</td>
+                </tr>
+                <tr *ngIf="!usageLogs().length"><td colspan="6">No service recipe usage logged yet. Logs will appear after POS checkout, appointment completion or invoice finalization consumes an approved recipe.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'alerts'">
+          <div class="alert-grid">
+            <article *ngFor="let alert of alerts()" [class.high]="alert.severity === 'high'">
+              <span>{{ alert.alertType }}</span>
+              <strong>{{ alert.title }}</strong>
+              <small>{{ alert.message }}</small>
+            </article>
+            <article *ngIf="!alerts().length"><strong>No open recipe alerts</strong><small>Overuse, missing BOM and forecast alerts will appear here.</small></article>
+          </div>
+        </ng-container>
+      </section>
+    </section>
+  `,
+  styles: [`
+    :host {
+      display: block;
+      min-width: 0;
+    }
+
+    .recipes-page {
+      --recipe-line: color-mix(in srgb, var(--line) 76%, white);
+      --recipe-soft: color-mix(in srgb, var(--teal) 9%, white);
+      --recipe-glow: 0 22px 58px color-mix(in srgb, var(--ink) 9%, transparent);
+      gap: 18px;
+    }
+
+    .hero-actions,
+    .section-title,
+    .form-actions,
+    .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .recipe-command-hero {
+      align-items: stretch;
+      min-height: 184px;
+      border: 1px solid color-mix(in srgb, var(--teal) 18%, var(--line));
+      background:
+        radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--amber) 18%, transparent), transparent 30%),
+        radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--teal) 20%, transparent), transparent 34%),
+        linear-gradient(135deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 88%, var(--teal)));
+      box-shadow: var(--recipe-glow);
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 10px;
+      max-width: 900px;
+    }
+
+    .hero-copy h2 {
+      max-width: 920px;
+      margin: 0;
+      font-size: clamp(30px, 4vw, 50px);
+      letter-spacing: -0.06em;
+      line-height: 0.98;
+    }
+
+    .hero-copy p,
+    .section-title p,
+    .command-card p,
+    .planner-card p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 650;
+      line-height: 1.5;
+    }
+
+    .hero-signal-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .hero-signal-row span,
+    .recipe-health-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line));
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--surface) 86%, white);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric-grid article,
+    .impact-stack article,
+    .intel-grid article,
+    .alert-grid article {
+      border: 1px solid var(--recipe-line);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
+        var(--surface);
+      padding: 14px;
+      box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 5%, transparent);
+    }
+
+    .recipe-kpi-grid .kpi-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 122px;
+      border-top: 4px solid var(--teal);
+    }
+
+    .recipe-kpi-grid .kpi-card::after {
+      content: "";
+      position: absolute;
+      right: -38px;
+      bottom: -44px;
+      width: 118px;
+      height: 118px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--teal) 10%, transparent);
+    }
+
+    .recipe-kpi-grid .accent-red { border-top-color: var(--red); }
+    .recipe-kpi-grid .accent-amber { border-top-color: var(--amber); }
+    .recipe-kpi-grid .accent-violet { border-top-color: var(--violet); }
+
+    .metric-grid span,
+    .impact-stack span,
+    td small,
+    .alert-grid small {
+      color: var(--muted);
+      display: block;
+    }
+
+    .metric-grid strong,
+    .impact-stack strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 26px;
+      letter-spacing: -0.045em;
+    }
+
+    .recipe-command-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(320px, 0.78fr);
+      gap: 14px;
+    }
+
+    .command-card {
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid var(--recipe-line);
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 92%, white)),
+        var(--surface);
+      box-shadow: var(--recipe-glow);
+    }
+
+    .command-card.primary {
+      color: white;
+      border-color: color-mix(in srgb, var(--teal) 54%, black);
+      background:
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--amber) 24%, transparent), transparent 34%),
+        linear-gradient(135deg, color-mix(in srgb, var(--ink) 90%, var(--teal)), color-mix(in srgb, var(--ink) 82%, black));
+    }
+
+    .command-card.primary .eyebrow,
+    .command-card.primary p {
+      color: color-mix(in srgb, white 72%, transparent);
+    }
+
+    .decision-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .decision-row strong,
+    .command-card > strong {
+      font-size: clamp(22px, 2.4vw, 34px);
+      letter-spacing: -0.05em;
+      line-height: 1;
+    }
+
+    .recipe-health-pill.watch {
+      border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+      background: color-mix(in srgb, var(--amber) 13%, white);
+    }
+
+    .recipe-health-pill.danger {
+      border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+      background: color-mix(in srgb, var(--red) 12%, white);
+      color: #8a1f17;
+    }
+
+    .automation-grid,
+    .line-audit {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .automation-grid div,
+    .line-audit div {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--recipe-line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--surface) 86%, white);
+    }
+
+    .automation-grid strong,
+    .line-audit strong,
+    .automation-grid small,
+    .line-audit span {
+      display: block;
+    }
+
+    .automation-grid small,
+    .line-audit span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .auto-consume-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .auto-consume-flow article {
+      padding: 14px;
+      border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--recipe-line));
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--teal) 9%, white), color-mix(in srgb, var(--amber) 8%, white)),
+        var(--surface);
+      box-shadow: var(--recipe-glow);
+    }
+
+    .auto-consume-flow span,
+    .auto-consume-flow small,
+    .auto-ready-note,
+    .auto-status {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .auto-consume-flow strong,
+    .auto-consume-flow small,
+    .auto-status {
+      display: block;
+    }
+
+    .auto-status {
+      margin-top: 6px;
+      color: #0f766e;
+    }
+
+    .enterprise-grid.two {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr);
+      gap: 14px;
+    }
+
+    .recipe-canvas,
+    .impact-panel {
+      border: 1px solid var(--recipe-line);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
+        var(--surface);
+      box-shadow: var(--recipe-glow);
+    }
+
+    .enterprise-form {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .enterprise-form .full {
+      grid-column: 1 / -1;
+    }
+
+    .enterprise-form textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .template-hint {
+      display: grid;
+      gap: 4px;
+      padding: 12px;
+      border: 1px dashed color-mix(in srgb, var(--teal) 28%, var(--line));
+      border-radius: 16px;
+      background: var(--recipe-soft);
+    }
+
+    .template-hint span,
+    .template-hint small {
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .recipe-lines {
+      border: 1px solid var(--recipe-line);
+      border-radius: 18px;
+      overflow: auto;
+      background: var(--surface);
+    }
+
+    .recipe-line {
+      min-width: 1040px;
+      display: grid;
+      grid-template-columns: 2fr 1.2fr .8fr 1.2fr 1.4fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border-top: 1px solid var(--recipe-line);
+    }
+
+    .recipe-line.head {
+      border-top: 0;
+      background: color-mix(in srgb, var(--surface-2) 86%, white);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .inline-fields {
+      display: grid;
+      grid-template-columns: 1fr 92px;
+      gap: 6px;
+    }
+
+    .impact-stack,
+    .intel-grid,
+    .alert-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .impact-panel {
+      display: grid;
+      align-content: start;
+      gap: 16px;
+    }
+
+    .margin-meter {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 1px solid var(--recipe-line);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--surface) 92%, white);
+    }
+
+    .meter-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .meter-track {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 54%, white);
+    }
+
+    .meter-track span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--red), var(--amber), var(--teal));
+    }
+
+    .intel-grid,
+    .planner-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .alert-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .planner-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .planner-card {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-height: 280px;
+      padding: 16px;
+      border: 1px solid var(--recipe-line);
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
+        var(--surface);
+    }
+
+    .planner-card h3 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.035em;
+    }
+
+    .planner-row {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      border: 1px solid var(--recipe-line);
+      border-radius: 14px;
+      padding: 11px 12px;
+      background: color-mix(in srgb, var(--surface) 88%, white);
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .planner-row:hover {
+      border-color: color-mix(in srgb, var(--teal) 34%, var(--line));
+      background: var(--recipe-soft);
+    }
+
+    .planner-row span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .alert-grid article.high {
+      border-color: #fecaca;
+      background: #fff7f7;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 18px;
+    }
+
+    table {
+      min-width: 980px;
+    }
+
+    .recipe-chip {
+      display: inline-flex;
+      margin: 2px 4px 2px 0;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef8f6;
+      color: #0f766e;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .tab-strip {
+      display: inline-flex;
+      gap: 6px;
+      border: 1px solid var(--recipe-line);
+      border-radius: 999px;
+      padding: 5px;
+      background: color-mix(in srgb, var(--surface) 78%, transparent);
+    }
+
+    .tab-strip button {
+      border: 0;
+      background: transparent;
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .tab-strip button.active {
+      background: #0f766e;
+      color: #fff;
+    }
+
+    .danger {
+      color: #b91c1c;
+    }
+
+    @media (max-width: 1180px) {
+      .metric-grid,
+      .enterprise-grid.two,
+      .enterprise-form,
+      .recipe-command-strip,
+      .auto-consume-flow,
+      .intel-grid,
+      .planner-grid,
+      .alert-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  `]
+})
+export class InventoryRecipesComponent implements OnInit {
+  readonly branches = signal<ApiRecord[]>([]);
+  readonly services = signal<ApiRecord[]>([]);
+  readonly products = signal<ApiRecord[]>([]);
+  readonly recipes = signal<ApiRecord[]>([]);
+  readonly templates = signal<ApiRecord[]>([]);
+  readonly usageLogs = signal<ApiRecord[]>([]);
+  readonly alerts = signal<ApiRecord[]>([]);
+  readonly dashboard = signal<ApiRecord | null>(null);
+  readonly approvedRecipes = computed(() => this.recipes().filter((recipe) => String(recipe.approvalStatus || 'approved') === 'approved'));
+  readonly pendingRecipes = computed(() => this.recipes().filter((recipe) => String(recipe.approvalStatus || 'approved') !== 'approved'));
+  readonly recipeItems = signal<RecipeItemDraft[]>([]);
+  readonly selectedTemplateKey = signal('');
+  readonly activeTab = signal<RecipeTab>('recipes');
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly error = signal('');
+  readonly success = signal('');
+  readonly editingRecipeId = signal('');
+  readonly units = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
+  readonly tabs: { id: RecipeTab; label: string }[] = [
+    { id: 'recipes', label: 'Recipes' },
+    { id: 'planner', label: 'Planner' },
+    { id: 'intelligence', label: 'Intelligence' },
+    { id: 'usage', label: 'Usage' },
+    { id: 'alerts', label: 'Alerts' }
+  ];
+
+  readonly recipeForm = this.fb.group({
+    branchId: [''],
+    serviceId: ['', Validators.required],
+    recipeName: [''],
+    approvalStatus: ['approved'],
+    marginFloorPct: [35],
+    notes: ['']
+  });
+
+  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
+
+  ngOnInit(): void {
+    this.recipeItems.set([this.blankLine()]);
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    const branchId = this.api.selectedBranchId();
+    Promise.all([
+      firstValueFrom(this.api.list<ApiRecord[]>('branches', { limit: 1000 })),
+      firstValueFrom(this.api.list<ApiRecord[]>('services', { limit: 10000 })),
+      firstValueFrom(this.api.list<ApiRecord[]>('products', { limit: 10000 })),
+      firstValueFrom(this.api.list<ApiRecord[]>('inventory-intelligence/service-recipes', { limit: 500 })),
+      firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/service-recipes/dashboard', { branchId })),
+      firstValueFrom(this.api.list<ApiRecord[]>('inventory-intelligence/service-recipes/templates')),
+      firstValueFrom(this.api.list<ApiRecord[]>('inventory-intelligence/service-recipes/usage', { branchId, limit: 100 })),
+      firstValueFrom(this.api.list<ApiRecord[]>('inventory-intelligence/service-recipes/alerts', { branchId, status: 'open', limit: 100 }))
+    ]).then(([branches, services, products, recipes, dashboard, templates, usage, alerts]) => {
+      this.branches.set(branches || []);
+      this.services.set(services || []);
+      this.products.set(products || []);
+      this.recipes.set(recipes || []);
+      this.dashboard.set(dashboard || null);
+      this.templates.set(templates || []);
+      this.usageLogs.set(usage || []);
+      this.alerts.set(alerts || []);
+      if (!this.recipeForm.value.branchId) this.recipeForm.patchValue({ branchId: branchId || '' });
+      this.loading.set(false);
+    }).catch((error) => {
+      this.error.set(this.api.errorText(error, 'Unable to load service recipes'));
+      this.loading.set(false);
+    });
+  }
+
+  saveRecipe(): void {
+    if (this.recipeForm.invalid || !this.validLines()) {
+      this.recipeForm.markAllAsTouched();
+      this.error.set('Service and at least one product line are required.');
+      return;
+    }
+    const raw = this.recipeForm.getRawValue();
+    const service = this.selectedService();
+    this.saving.set(true);
+    this.error.set('');
+    this.api.post<ApiRecord>('inventory-intelligence/service-recipes', {
+      branchId: raw.branchId,
+      serviceId: raw.serviceId,
+      recipeName: raw.recipeName || service?.name || 'Service recipe',
+      serviceCategory: service?.category || '',
+      servicePrice: Number(service?.price || 0),
+      approvalStatus: raw.approvalStatus,
+      marginFloorPct: Number(raw.marginFloorPct || 0),
+      notes: raw.notes,
+      usageModifiers: DEFAULT_MODIFIERS,
+      enforceConsumableFilter: this.hasTaggedRecipeProducts(),
+      versionNote: this.editingRecipeId() ? 'Enterprise BOM revised' : 'Enterprise BOM created',
+      items: this.recipeItems().filter((item) => item.productId).map((item, index) => {
+        const product = this.productById(item.productId);
+        return {
+          productId: item.productId,
+          quantityPerService: Number(item.quantityPerService || 0),
+          unit: item.unit,
+          unitCost: Number(product?.unitCost || 0),
+          wastagePct: Number(item.wastagePct || 0),
+          minQuantityPerService: Number(item.minQuantityPerService || 0),
+          maxQuantityPerService: Number(item.maxQuantityPerService || 0),
+          allowedSubstitutes: this.csv(item.allowedSubstitutesText),
+          sortOrder: index,
+          notes: item.notes
+        };
+      })
+    }).subscribe({
+      next: () => {
+        this.success.set('Enterprise service BOM saved. Future completions will use FIFO, usage logs and margin tracking.');
+        this.saving.set(false);
+        this.resetEditor(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(this.api.errorText(error, 'Unable to save recipe'));
+        this.saving.set(false);
+      }
+    });
+  }
+
+  approveRecipe(recipe: ApiRecord): void {
+    this.saving.set(true);
+    this.api.post(`inventory-intelligence/service-recipes/${recipe.id}/approve`, { approved: true, note: 'Approved from recipe control center' }).subscribe({
+      next: () => {
+        this.success.set(`${recipe.serviceName || recipe.recipeName} approved.`);
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(this.api.errorText(error, 'Unable to approve recipe'));
+        this.saving.set(false);
+      }
+    });
+  }
+
+  editRecipe(recipe: ApiRecord): void {
+    this.editingRecipeId.set(String(recipe.id || ''));
+    this.recipeForm.patchValue({
+      branchId: recipe.branchId || '',
+      serviceId: recipe.serviceId || '',
+      recipeName: recipe.recipeName || '',
+      approvalStatus: recipe.approvalStatus || 'approved',
+      marginFloorPct: Number(recipe.marginFloorPct || 35),
+      notes: recipe.notes || ''
+    });
+    this.recipeItems.set((recipe.items || []).map((item: ApiRecord) => ({
+      uid: this.uid(),
+      productId: item.productId || '',
+      quantityPerService: Number(item.quantityPerService || 1),
+      unit: item.unit || 'pcs',
+      wastagePct: Number(item.wastagePct || 0),
+      minQuantityPerService: Number(item.minQuantityPerService || 0),
+      maxQuantityPerService: Number(item.maxQuantityPerService || 0),
+      allowedSubstitutesText: (item.allowedSubstitutes || []).join(', '),
+      notes: item.notes || ''
+    })) || [this.blankLine()]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  resetEditor(clearMessage = true): void {
+    this.editingRecipeId.set('');
+    if (clearMessage) this.success.set('');
+    this.recipeForm.reset({ branchId: this.api.selectedBranchId() || '', serviceId: '', recipeName: '', approvalStatus: 'approved', marginFloorPct: 35, notes: '' });
+    this.recipeItems.set([this.blankLine()]);
+  }
+
+  addRecipeItem(): void {
+    this.recipeItems.update((items) => [...items, this.blankLine()]);
+  }
+
+  removeRecipeItem(uid: string): void {
+    this.recipeItems.update((items) => items.length > 1 ? items.filter((item) => item.uid !== uid) : items);
+  }
+
+  setLineProduct(item: RecipeItemDraft, productId: string): void {
+    item.productId = productId;
+    const product = this.productById(productId);
+    if (product) {
+      item.unit = item.unit || 'pcs';
+    }
+    this.recipeItems.update((items) => [...items]);
+  }
+
+  validLines(): boolean {
+    return this.recipeItems().some((item) => item.productId && Number(item.quantityPerService || 0) > 0);
+  }
+
+  recipeProducts(): ApiRecord[] {
+    const tagged = this.products().filter((product) => ['consumable', 'both'].includes(this.productType(product)));
+    return tagged.length ? tagged : this.products();
+  }
+
+  hasTaggedRecipeProducts(): boolean {
+    return this.products().some((product) => ['consumable', 'both'].includes(this.productType(product)));
+  }
+
+  expectedCostPreview(): number {
+    return Math.round(this.recipeItems().reduce((sum, item) => {
+      const product = this.productById(item.productId);
+      return sum + Number(item.quantityPerService || 0) * (1 + Number(item.wastagePct || 0) / 100) * Number(product?.unitCost || 0);
+    }, 0));
+  }
+
+  marginPreview(): number {
+    return Math.round(Number(this.selectedService()?.price || 0) - this.expectedCostPreview());
+  }
+
+  marginPctPreview(): number {
+    const price = Number(this.selectedService()?.price || 0);
+    return price ? Math.round((this.marginPreview() / price) * 100) : 0;
+  }
+
+  metric(key: string): number {
+    return Number((this.dashboard()?.['metrics'] || {})[key] || 0);
+  }
+
+  coveragePct(): number {
+    const configured = this.metric('configuredRecipes');
+    const missing = this.metric('missingRecipes');
+    const total = configured + missing;
+    return total ? Math.round((configured / total) * 100) : 100;
+  }
+
+  highAlertCount(): number {
+    return this.alerts().filter((alert) => String(alert.severity || '').toLowerCase() === 'high').length;
+  }
+
+  riskLevel(): 'Ready' | 'Watch' | 'High' {
+    if (this.highAlertCount() || this.metric('missingRecipes') > 20 || this.coveragePct() < 50) return 'High';
+    if (this.metric('missingRecipes') || this.metric('lowStockForecast') || this.weakMarginRows().length) return 'Watch';
+    return 'Ready';
+  }
+
+  decisionSummary(): string {
+    if (this.metric('missingRecipes')) {
+      return `${this.metric('missingRecipes')} active services still need a service BOM before exact professional stock deduction can be trusted.`;
+    }
+    if (this.metric('lowStockForecast')) {
+      return `${this.metric('lowStockForecast')} products may run low from upcoming recipe demand in the 15-day horizon.`;
+    }
+    if (this.weakMarginRows().length) {
+      return `${this.weakMarginRows().length} service recipes are below their margin floor and need price or product-cost review.`;
+    }
+    return 'Recipes are mapped, margin is inside target, and no open stock pressure is visible for the selected branch.';
+  }
+
+  topActionTitle(): string {
+    const suggestion = this.dashboardList('aiSuggestions')[0];
+    if (suggestion?.title) return String(suggestion.title);
+    if (this.topMissingRecipe()?.serviceName) return 'Create missing service BOM';
+    if (this.topLowStockForecast()?.productName) return 'Review recipe stock pressure';
+    if (this.weakMarginRows()[0]?.serviceName) return 'Review weak-margin recipe';
+    return 'Recipe governance is stable';
+  }
+
+  topActionMessage(): string {
+    const suggestion = this.dashboardList('aiSuggestions')[0];
+    if (suggestion?.message) return String(suggestion.message);
+    const missing = this.topMissingRecipe();
+    if (missing) return `${missing.serviceName} is active but has no approved BOM.`;
+    const lowStock = this.topLowStockForecast();
+    if (lowStock) return `${lowStock.productName} needs ${lowStock.requiredQty} ${lowStock.unit} for upcoming booked services.`;
+    const weak = this.weakMarginRows()[0];
+    if (weak) return `${weak.serviceName} margin is ${weak.expectedMarginPct}% against a ${weak.marginFloorPct || 0}% floor.`;
+    return 'No urgent missing-BOM, stock-pressure or margin-floor action is exposed by the current data.';
+  }
+
+  dashboardList(key: string): ApiRecord[] {
+    return ((this.dashboard()?.[key] || []) as ApiRecord[]);
+  }
+
+  weakMarginRows(): ApiRecord[] {
+    return this.dashboardList('marginRows').filter((row) => Boolean(row.weakMargin) || Number(row.expectedMarginPct || 0) < Number(row.marginFloorPct || 0));
+  }
+
+  upcomingDemandRows(): ApiRecord[] {
+    return this.dashboardList('upcomingDemand');
+  }
+
+  topMissingRecipe(): ApiRecord | undefined {
+    return this.dashboardList('missingRecipes')[0];
+  }
+
+  topLowStockForecast(): ApiRecord | undefined {
+    return this.dashboardList('lowStockForecast')[0];
+  }
+
+  branchRecipeStatus(): string {
+    const branchId = this.api.selectedBranchId();
+    return branchId ? `Branch scope · ${this.branchName(branchId)}` : 'All-branch recipe scope';
+  }
+
+  selectedTemplate(): ApiRecord | undefined {
+    return this.templates().find((template) => template.templateKey === this.selectedTemplateKey());
+  }
+
+  templateHint(template: ApiRecord): string {
+    const items = this.asTextList(template.items || template.itemsJson || template.items_json);
+    const confidence = template.aiSuggestion?.confidence || this.parseJson(template.aiSuggestionJson || template.ai_suggestion_json)?.confidence;
+    const guide = items.length ? `Suggested stock: ${items.join(', ')}` : 'Use this template as the service-category starting point.';
+    return confidence ? `${guide} · confidence ${Math.round(Number(confidence) * 100)}%` : guide;
+  }
+
+  activeLineCount(): number {
+    return this.recipeItems().filter((item) => item.productId && Number(item.quantityPerService || 0) > 0).length;
+  }
+
+  totalWastePct(): number {
+    const active = this.recipeItems().filter((item) => item.productId);
+    if (!active.length) return 0;
+    return Math.round(active.reduce((sum, item) => sum + Number(item.wastagePct || 0), 0) / active.length);
+  }
+
+  safePercent(value: number): number {
+    return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
+  }
+
+  selectedServicePrice(): number {
+    return Number(this.selectedService()?.price || 0);
+  }
+
+  branchName(id: string): string {
+    return this.branches().find((branch) => branch.id === id)?.name || (id ? id : 'All branches');
+  }
+
+  productType(product: ApiRecord): string {
+    return String(product.usageType || product.productType || 'retail').toLowerCase();
+  }
+
+  productById(id: string): ApiRecord | undefined {
+    return this.products().find((product) => product.id === id);
+  }
+
+  selectedService(): ApiRecord | undefined {
+    return this.services().find((service) => service.id === this.recipeForm.value.serviceId);
+  }
+
+  numberValue(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  trackRecipeItem(_: number, item: RecipeItemDraft): string {
+    return item.uid;
+  }
+
+  private blankLine(): RecipeItemDraft {
+    return {
+      uid: this.uid(),
+      productId: '',
+      quantityPerService: 1,
+      unit: 'pcs',
+      wastagePct: 0,
+      minQuantityPerService: 0,
+      maxQuantityPerService: 0,
+      allowedSubstitutesText: '',
+      notes: ''
+    };
+  }
+
+  private asTextList(value: unknown): string[] {
+    const parsed = Array.isArray(value) ? value : this.parseJson(value);
+    return Array.isArray(parsed) ? parsed.map((item) => String(item)).filter(Boolean) : [];
+  }
+
+  private parseJson(value: unknown): any {
+    if (!value || typeof value !== 'string') return value || null;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  private csv(value: string): string[] {
+    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  private uid(): string {
+    return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+}

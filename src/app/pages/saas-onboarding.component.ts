@@ -4,11 +4,12 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-saas-onboarding',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -24,26 +25,26 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       <ng-container *ngIf="context() as context">
         <div class="metrics-grid">
-          <article class="metric-card teal">
+          <aura-kpi-card tone="teal" target="/kpi-details/saas-onboarding/current-tenant">
             <span>Current tenant</span>
             <strong>{{ context.tenant?.name }}</strong>
             <small>{{ context.tenant?.subscriptionStatus }} · {{ context.tenant?.slug }}</small>
-          </article>
-          <article class="metric-card amber">
+          </aura-kpi-card>
+          <aura-kpi-card tone="amber" target="/kpi-details/saas-onboarding/trial-ends">
             <span>Trial ends</span>
             <strong>{{ context.tenant?.trialEndsAt | date: 'mediumDate' }}</strong>
             <small>{{ context.plan?.name }} plan</small>
-          </article>
-          <article class="metric-card blue">
+          </aura-kpi-card>
+          <aura-kpi-card tone="blue" target="/kpi-details/saas-onboarding/primary-domain">
             <span>Primary domain</span>
             <strong>{{ context.tenant?.primaryDomain || 'Not mapped' }}</strong>
             <small>{{ context.domains?.length || 0 }} domain records</small>
-          </article>
-          <article class="metric-card green">
+          </aura-kpi-card>
+          <aura-kpi-card tone="green" target="/kpi-details/saas-onboarding/role-scope">
             <span>Role scope</span>
             <strong>{{ context.access?.role }}</strong>
             <small>{{ context.access?.branchId || 'All permitted branches' }}</small>
-          </article>
+          </aura-kpi-card>
         </div>
 
         <section class="panel">

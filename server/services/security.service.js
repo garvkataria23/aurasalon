@@ -1,16 +1,13 @@
 import { copyFileSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createCipheriv, createHash, randomBytes, scryptSync } from "node:crypto";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { db } from "../db.js";
+import { join } from "node:path";
+import { dataDir, db, dbPath } from "../db.js";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { builtinRoles, can, staticGrantsForRole } from "../middleware/rbac.js";
 import { badRequest, notFound } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, "..", "..", "data");
 const backupDir = join(dataDir, "backups");
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
@@ -213,6 +210,29 @@ export class SecurityService {
     }, scope(access));
   }
 
+  auditTrail(query = {}, access) {
+    const action = query.action || "";
+    const targetType = query.targetType || query.entityType || "";
+    const targetId = query.targetId || query.entityId || "";
+    const limit = Math.min(Number(query.limit || 100), 500);
+    const rows = db.prepare(
+      `SELECT * FROM security_audit_logs
+       WHERE tenantId = ?
+         AND (? = '' OR action = ?)
+         AND (? = '' OR targetType = ?)
+         AND (? = '' OR targetId = ?)
+       ORDER BY createdAt DESC
+       LIMIT ?`
+    ).all(access.tenantId, action, action, targetType, targetType, targetId, targetId, limit);
+    return rows.map((row) => {
+      try {
+        return { ...row, details: row.details ? JSON.parse(row.details) : {} };
+      } catch {
+        return { ...row, details: {} };
+      }
+    });
+  }
+
   recordActivity(req, statusCode, durationMs) {
     try {
       const access = req.access || {};
@@ -311,7 +331,7 @@ export class SecurityService {
 
   createBackup(payload = {}, access, req = null) {
     mkdirSync(backupDir, { recursive: true });
-    const source = join(dataDir, "salon-crm.sqlite");
+    const source = dbPath;
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const tenantSlug = String(access.tenantId || "tenant").replace(/[^a-z0-9_-]/gi, "-");
     const filePath = join(backupDir, `${tenantSlug}-${stamp}.sqlite`);

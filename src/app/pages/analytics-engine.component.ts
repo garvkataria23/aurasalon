@@ -3,11 +3,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-analytics-engine',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -47,46 +48,46 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       <ng-container *ngIf="metrics() as metrics">
         <div class="metrics-grid">
-          <article class="metric-card teal">
+          <aura-kpi-card tone="teal" target="/kpi-details/analytics/14-day-forecast">
             <span>14-day forecast</span>
             <strong>{{ metrics.revenueForecast.projected14DayRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>{{ metrics.revenueForecast.trendPercent | number: '1.0-1' }}% recent trend</small>
-          </article>
-          <article class="metric-card amber">
+          </aura-kpi-card>
+          <aura-kpi-card tone="amber" target="/kpi-details/analytics/peak-hour">
             <span>Peak hour</span>
             <strong>{{ metrics.peakHours.topHours?.[0]?.label || 'No data' }}</strong>
             <small>{{ metrics.peakHours.topHours?.[0]?.bookings || 0 }} bookings</small>
-          </article>
-          <article class="metric-card green">
+          </aura-kpi-card>
+          <aura-kpi-card tone="green" target="/kpi-details/analytics/repeat-rate">
             <span>Repeat rate</span>
             <strong>{{ metrics.repeatCustomers.repeatRate | number: '1.0-1' }}%</strong>
             <small>{{ metrics.repeatCustomers.repeatClients }} repeat clients</small>
-          </article>
-          <article class="metric-card red">
+          </aura-kpi-card>
+          <aura-kpi-card tone="red" target="/kpi-details/analytics/high-churn-risk">
             <span>High churn risk</span>
             <strong>{{ metrics.churn.highRisk }}</strong>
             <small>Avg risk {{ metrics.churn.averageRiskScore | number: '1.0-1' }}</small>
-          </article>
-          <article class="metric-card blue">
+          </aura-kpi-card>
+          <aura-kpi-card tone="blue" target="/kpi-details/analytics/average-ltv">
             <span>Average LTV</span>
             <strong>{{ metrics.lifetimeValue.avgLtv | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>{{ metrics.lifetimeValue.totalLtv | currency: 'INR':'symbol':'1.0-0' }} total</small>
-          </article>
-          <article class="metric-card violet">
+          </aura-kpi-card>
+          <aura-kpi-card tone="violet" target="/kpi-details/analytics/membership-revenue">
             <span>Membership revenue</span>
             <strong>{{ metrics.membershipPerformance.revenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>{{ metrics.membershipPerformance.activeCount }} active</small>
-          </article>
-          <article class="metric-card slate">
+          </aura-kpi-card>
+          <aura-kpi-card tone="slate" target="/kpi-details/analytics/funnel-paid">
             <span>Funnel paid</span>
             <strong>{{ funnelStage('Paid')?.conversionFromLead || 0 }}%</strong>
             <small>From lead to paid invoice</small>
-          </article>
-          <article class="metric-card rose">
+          </aura-kpi-card>
+          <aura-kpi-card tone="rose" target="/kpi-details/analytics/branches">
             <span>Branches</span>
             <strong>{{ metrics.branchComparison.length }}</strong>
             <small>{{ metrics.branchComparison[0]?.name || 'No branch data' }}</small>
-          </article>
+          </aura-kpi-card>
         </div>
 
         <section class="panel">

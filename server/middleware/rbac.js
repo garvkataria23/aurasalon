@@ -88,6 +88,21 @@ const permissions = {
     "write:booking-portal",
     "write:notifications"
   ],
+  cashier: [
+    "read:*",
+    "write:clients",
+    "write:sales",
+    "write:invoices",
+    "write:payments",
+    "write:whatsapp",
+    "read:whatsapp",
+    "read:finance",
+    "write:finance",
+    "read:customer-360",
+    "write:customer-360",
+    "read:booking-portal",
+    "write:notifications"
+  ],
   accountant: [
     "read:*",
     "read:finance",

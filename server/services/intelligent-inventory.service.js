@@ -112,7 +112,12 @@ export class IntelligentInventoryService {
       email: payload.email || "",
       gstin: payload.gstin || "",
       address: payload.address || "",
-      status: payload.status || "active"
+      status: payload.status || "active",
+      statusReason: payload.statusReason || "",
+      statusHistory: payload.statusHistory || "[]",
+      statusChangedAt: payload.statusChangedAt || "",
+      preferredPaymentTerms: payload.preferredPaymentTerms || "",
+      leadTimeDays: Number(payload.leadTimeDays || 0)
     }, scope(access));
     tenantService.recordUsage({ tenantId: access.tenantId, metric: "inventory:supplier", referenceType: "supplier", referenceId: supplier.id });
     return supplier;
