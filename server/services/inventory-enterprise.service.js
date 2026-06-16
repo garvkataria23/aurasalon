@@ -21,6 +21,55 @@ const DEFAULT_RECIPE_TEMPLATES = [
   { key: "waxing", name: "Waxing recipe", category: "Waxing", items: ["wax", "strips", "pre/post wax"] }
 ];
 
+let productConsumeDraftSchemaReady = false;
+let productUnitSchemaReady = false;
+
+export function ensureProductUnitSchema() {
+  if (productUnitSchemaReady) return;
+  const columns = db.prepare("PRAGMA table_info(products)").all().map((column) => column.name);
+  if (!columns.includes("unit")) {
+    db.prepare("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'pcs'").run();
+  }
+  productUnitSchemaReady = true;
+}
+
+function ensureProductConsumeDraftSchema() {
+  if (productConsumeDraftSchemaReady) return;
+  ensureProductUnitSchema();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS product_consume_drafts (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL DEFAULT '',
+      invoice_id TEXT NOT NULL DEFAULT '',
+      invoice_number TEXT NOT NULL DEFAULT '',
+      sale_id TEXT NOT NULL DEFAULT '',
+      service_id TEXT NOT NULL DEFAULT '',
+      service_name TEXT NOT NULL DEFAULT '',
+      recipe_id TEXT NOT NULL DEFAULT '',
+      client_id TEXT NOT NULL DEFAULT '',
+      client_name TEXT NOT NULL DEFAULT '',
+      staff_id TEXT NOT NULL DEFAULT '',
+      staff_name TEXT NOT NULL DEFAULT '',
+      service_quantity REAL NOT NULL DEFAULT 1,
+      line_items_json TEXT NOT NULL DEFAULT '[]',
+      expected_cost REAL NOT NULL DEFAULT 0,
+      actual_cost REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'draft',
+      confirmed_usage_log_id TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL DEFAULT '',
+      updated_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(tenant_id, invoice_id, service_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_consume_drafts_scope ON product_consume_drafts(tenant_id, branch_id, status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_product_consume_drafts_invoice ON product_consume_drafts(tenant_id, invoice_id);
+  `);
+  productConsumeDraftSchemaReady = true;
+}
+
 function scope(access, branchId = "") {
   const scoped = tenantService.accessScope(access || {}, "");
   if (branchId) scoped.branchId = branchId;
@@ -102,6 +151,7 @@ function safeRecipeUnit(value = "") {
 
 function safeProductType(product = {}) {
   const usage = String(product.usageType || product.usage_type || "").trim().toLowerCase();
+  if (usage === "internal" || usage === "professional") return "consumable";
   return usage || "retail";
 }
 
@@ -1275,6 +1325,192 @@ export class InventoryEnterpriseService {
       deductions.push({ batchId: "", quantity: remaining, transaction });
     }
     return { productId, branchId, requestedQuantity: quantity, deductions };
+  }
+
+  createProductConsumeDraftsForInvoice({ invoice = {}, sale = {}, client = {}, items = [] } = {}, access) {
+    ensureProductConsumeDraftSchema();
+    const branchId = sale.branchId || sale.branch_id || invoice.branchId || invoice.branch_id || access.requestedBranchId || "";
+    if (branchId) assertBranch(access, branchId);
+    const serviceItems = safeArray(items.length ? items : invoice.lineItems || invoice.line_items || sale.items)
+      .filter((item) => String(item.type || item.itemType || "").toLowerCase() === "service");
+    const drafts = [];
+    for (const item of serviceItems) {
+      const serviceId = item.id || item.serviceId || item.service_id || "";
+      const recipe = serviceId ? activeRecipeForService(serviceId, branchId, access) : null;
+      const existing = db.prepare("SELECT * FROM product_consume_drafts WHERE tenant_id=? AND invoice_id=? AND service_id=?")
+        .get(access.tenantId, invoice.id || "", serviceId);
+      if (existing) {
+        drafts.push(this.productConsumeDraftRow(existing));
+        continue;
+      }
+      if (!recipe) {
+        this.upsertRecipeAlert({
+          branchId,
+          serviceId,
+          alertType: "missing_recipe",
+          severity: "high",
+          title: "Product consume recipe missing",
+          message: "POS invoice has a service, but no approved auto-consume recipe was found.",
+          evidence: { invoiceId: invoice.id || "", saleId: sale.id || "", serviceName: item.name || item.serviceName || "" }
+        }, access);
+      }
+      const recipeItems = recipe
+        ? db.prepare("SELECT * FROM service_recipe_items WHERE tenant_id=? AND recipe_id=? ORDER BY sort_order ASC, created_at ASC").all(access.tenantId, recipe.id)
+        : [];
+      const serviceQuantity = Math.max(1, number(item.quantity || item.qty || 1, 1));
+      const lineItems = recipeItems.map((line) => {
+        const expectedQty = money(number(line.quantity_per_service, 0) * serviceQuantity * (1 + number(line.wastage_pct, 0) / 100));
+        const unitCost = number(line.unit_cost, 0);
+        return {
+          productId: line.product_id,
+          productName: line.product_name,
+          unit: line.unit || "pcs",
+          expectedQty,
+          actualQty: expectedQty,
+          wastagePct: number(line.wastage_pct, 0),
+          unitCost,
+          expectedCost: money(expectedQty * unitCost),
+          actualCost: money(expectedQty * unitCost)
+        };
+      });
+      const expectedCost = money(lineItems.reduce((sum, line) => sum + number(line.expectedCost, 0), 0));
+      const draft = insertSnake("product_consume_drafts", {
+        id: makeId("pcd"),
+        tenant_id: access.tenantId,
+        branch_id: branchId,
+        invoice_id: invoice.id || "",
+        invoice_number: invoice.invoiceNumber || invoice.invoice_no || invoice.id || "",
+        sale_id: sale.id || invoice.saleId || "",
+        service_id: serviceId,
+        service_name: item.name || item.serviceName || recipe?.service_name || serviceId || "Service",
+        recipe_id: recipe?.id || "",
+        client_id: client.id || invoice.clientId || invoice.client_id || "",
+        client_name: client.name || invoice.clientName || "",
+        staff_id: item.staffId || item.staff_id || sale.staffId || sale.staff_id || "",
+        staff_name: item.staffName || item.staff_name || "",
+        service_quantity: serviceQuantity,
+        line_items_json: toJson(lineItems),
+        expected_cost: expectedCost,
+        actual_cost: expectedCost,
+        status: recipeItems.length ? "draft" : "recipe_missing",
+        notes: recipeItems.length
+          ? "Auto draft from POS invoice. Review and confirm to deduct stock."
+          : "Recipe missing for this invoice service. Create/approve recipe, then regenerate product consume draft.",
+        created_by: access.userId || "",
+        updated_by: access.userId || ""
+      });
+      drafts.push(this.productConsumeDraftRow(draft));
+    }
+    return { invoiceId: invoice.id || "", created: drafts.length, drafts };
+  }
+
+  generateProductConsumeDraftsForInvoice(invoiceId, access) {
+    ensureProductConsumeDraftSchema();
+    const invoice = repositories.invoices.getById(invoiceId, scope(access));
+    if (!invoice) throw notFound("Invoice not found");
+    const sale = invoice.saleId ? repositories.sales.getById(invoice.saleId, scope(access)) || {} : {};
+    const client = invoice.clientId ? repositories.clients.getById(invoice.clientId, scope(access)) || {} : {};
+    return this.createProductConsumeDraftsForInvoice({
+      invoice,
+      sale,
+      client,
+      items: invoice.lineItems || sale.items || []
+    }, access);
+  }
+
+  listProductConsumeDrafts(query = {}, access) {
+    ensureProductConsumeDraftSchema();
+    const rows = listSnake("product_consume_drafts", access, query, { orderBy: "created_at DESC", limit: 250 });
+    return rows.map((row) => this.productConsumeDraftRow(row));
+  }
+
+  getProductConsumeDraft(id, access) {
+    ensureProductConsumeDraftSchema();
+    return this.productConsumeDraftRow(getSnake("product_consume_drafts", id, access));
+  }
+
+  updateProductConsumeDraft(id, payload = {}, access) {
+    ensureProductConsumeDraftSchema();
+    requireManager(access);
+    const existing = getSnake("product_consume_drafts", id, access);
+    if (existing.status === "confirmed") throw conflict("Confirmed consume draft cannot be edited");
+    const lineItems = safeArray(payload.lineItems || payload.line_items || existing.line_items_json).map((line) => {
+      const actualQty = money(number(line.actualQty ?? line.actual_qty ?? line.quantity, 0));
+      const unitCost = number(line.unitCost ?? line.unit_cost, 0);
+      return {
+        productId: line.productId || line.product_id,
+        productName: line.productName || line.product_name || "",
+        unit: line.unit || "pcs",
+        expectedQty: money(number(line.expectedQty ?? line.expected_qty, 0)),
+        actualQty,
+        wastagePct: number(line.wastagePct ?? line.wastage_pct, 0),
+        unitCost,
+        expectedCost: money(number(line.expectedCost ?? line.expected_cost, 0)),
+        actualCost: money(actualQty * unitCost)
+      };
+    }).filter((line) => line.productId);
+    const updated = updateSnake("product_consume_drafts", id, access, {
+      line_items_json: toJson(lineItems),
+      actual_cost: money(lineItems.reduce((sum, line) => sum + number(line.actualCost, 0), 0)),
+      status: lineItems.length ? "draft" : existing.status,
+      notes: payload.notes ?? existing.notes,
+      updated_by: access.userId || ""
+    });
+    return this.productConsumeDraftRow(updated);
+  }
+
+  confirmProductConsumeDraft(id, payload = {}, access) {
+    ensureProductConsumeDraftSchema();
+    requireManager(access);
+    const draft = getSnake("product_consume_drafts", id, access);
+    if (draft.status === "confirmed") return this.productConsumeDraftRow(draft);
+    const lines = safeArray(payload.lineItems || payload.line_items || draft.line_items_json);
+    if (!lines.length) throw badRequest("At least one product line is required before confirm");
+    const result = draft.recipe_id
+      ? this.consumeServiceRecipe({
+          serviceId: draft.service_id,
+          branchId: draft.branch_id,
+          quantity: draft.service_quantity || 1,
+          referenceType: "invoice_product_consume",
+          referenceId: draft.invoice_id,
+          staffId: draft.staff_id,
+          clientId: draft.client_id,
+          actualItems: lines.map((line) => ({ productId: line.productId || line.product_id, quantity: line.actualQty ?? line.actual_qty ?? line.quantity }))
+        }, access)
+      : {
+          status: "deducted",
+          deductions: lines.map((line) => this.consumeProductFifo({
+            productId: line.productId || line.product_id,
+            branchId: draft.branch_id,
+            quantity: line.actualQty ?? line.actual_qty ?? line.quantity,
+            type: "service-use",
+            reason: `Manual product consume for ${draft.service_name || "service"}`,
+            referenceType: "invoice_product_consume",
+            referenceId: draft.invoice_id,
+            unitCost: line.unitCost ?? line.unit_cost
+          }, access))
+        };
+    const updated = updateSnake("product_consume_drafts", id, access, {
+      line_items_json: toJson(lines),
+      actual_cost: money(lines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
+      status: "confirmed",
+      confirmed_usage_log_id: result.log?.id || "",
+      notes: payload.notes ?? draft.notes,
+      updated_by: access.userId || ""
+    });
+    auditDecision("inventory.product_consume.confirmed", "product_consume_drafts", id, access, { branchId: draft.branch_id, details: { invoiceId: draft.invoice_id, serviceId: draft.service_id } });
+    emitEvent("inventory:product_consume_confirmed", access, draft.branch_id, id, { invoiceId: draft.invoice_id, serviceId: draft.service_id });
+    return { draft: this.productConsumeDraftRow(updated), result };
+  }
+
+  productConsumeDraftRow(row = {}) {
+    const data = row.lineItemsJson ? row : camel(row);
+    return {
+      ...data,
+      lineItems: safeArray(data.lineItemsJson || data.line_items_json),
+      expectedCost: money(data.expectedCost ?? data.expected_cost),
+      actualCost: money(data.actualCost ?? data.actual_cost)
+    };
   }
 
   consumeServiceRecipe(payload = {}, access) {

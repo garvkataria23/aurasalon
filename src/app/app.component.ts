@@ -5,6 +5,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { ApiRecord, ApiService } from './core/api.service';
 import { AuthSessionService } from './core/auth-session.service';
+import { I18nService, LocalePreference } from './core/i18n.service';
 import { AppStateService, UserRole } from './core/state/app-state.service';
 
 type NavItem = {
@@ -39,9 +40,13 @@ type NavGroup = {
             <label class="field"><span>Email / Staff Login ID</span><input formControlName="email" autocomplete="username" /></label>
             <label class="field"><span>Password</span><input formControlName="password" type="password" /></label>
             <label class="field"><span>Branch ID</span><input formControlName="branchId" placeholder="Optional" /></label>
+            <label class="field full" *ngIf="requiresTotp()">
+              <span>Authenticator or recovery code</span>
+              <input formControlName="totpToken" autocomplete="one-time-code" inputmode="numeric" placeholder="6-digit code or recovery code" />
+            </label>
             <div class="state error" *ngIf="loginError()">{{ loginError() }}</div>
             <button class="primary-button" type="submit" [disabled]="loginForm.invalid || loginBusy()">
-              {{ loginBusy() ? 'Signing in...' : 'Sign in securely' }}
+              {{ loginBusy() ? 'Signing in...' : (requiresTotp() ? 'Verify & sign in' : 'Sign in securely') }}
             </button>
           </form>
           <small>Default seeded owner: owner@aurasalon.example. Set DEMO_ADMIN_PASSWORD in production before first run.</small>
@@ -84,20 +89,10 @@ type NavGroup = {
         </div>
 
         <label class="sidebar-search" *ngIf="!sidebarCompact()">
-          <span>Find module</span>
-          <input [ngModel]="navQuery()" (ngModelChange)="navQuery.set($event)" placeholder="Search POS, staff, reports" />
+          <span>{{ i18n.t('shell.findModule', 'Find module') }}</span>
+          <input [ngModel]="navQuery()" (ngModelChange)="navQuery.set($event)" [placeholder]="i18n.t('shell.searchPlaceholder', 'Search POS, staff, reports')" />
           <button class="sidebar-search-clear" type="button" *ngIf="navQuery()" (click)="navQuery.set('')">Clear</button>
         </label>
-
-        <section class="nav-favorites" *ngIf="!sidebarCompact() && !navQuery()">
-          <span class="nav-section-label">Pinned</span>
-          <div class="nav-favorite-grid">
-            <a class="nav-favorite" *ngFor="let item of favoriteNavItems" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }">
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
-              <span>{{ item.label }}</span>
-            </a>
-          </div>
-        </section>
 
         <nav class="nav-list nav-accordion" aria-label="Primary navigation">
           <section class="nav-section" *ngFor="let group of visibleNavGroups()" [class.active-section]="isGroupActive(group)" [class.expanded]="isGroupExpanded(group)">
@@ -105,41 +100,67 @@ type NavGroup = {
               <span class="nav-icon" aria-hidden="true">{{ group.icon }}</span>
               <span class="nav-section-copy">
                 <strong>{{ group.label }}</strong>
-                <small>{{ group.items.length }} modules</small>
+                <small>{{ navLeafCount(group.items) }} {{ i18n.t('shell.modules', 'modules') }}</small>
               </span>
-              <span class="nav-count">{{ group.items.length }}</span>
+              <span class="nav-count">{{ navLeafCount(group.items) }}</span>
             </button>
             <div class="nav-section-items" *ngIf="!sidebarCompact() && (navQuery() || isGroupExpanded(group))">
-              <a
-                *ngFor="let item of group.items"
-                class="nav-subitem"
-                [routerLink]="item.path"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
-                (click)="rememberNavGroup(group.id)"
-              >
-                <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                <span>{{ item.label }}</span>
-              </a>
+              <ng-container *ngFor="let item of group.items">
+                <div class="nav-subgroup" *ngIf="item.children?.length; else singleNavItem">
+                  <a
+                    class="nav-subgroup-title"
+                    [routerLink]="item.path"
+                    routerLinkActive="active"
+                    (click)="rememberNavGroup(group.id)"
+                  >
+                    <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                    <span>{{ item.label }}</span>
+                    <small>{{ item.children?.length }}</small>
+                  </a>
+                  <a
+                    *ngFor="let child of item.children"
+                    class="nav-subitem nested"
+                    [routerLink]="child.path"
+                    routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: child.path === '/dashboard' }"
+                    (click)="rememberNavGroup(group.id)"
+                  >
+                    <span class="nav-icon" aria-hidden="true">{{ child.icon }}</span>
+                    <span>{{ child.label }}</span>
+                  </a>
+                </div>
+                <ng-template #singleNavItem>
+                  <a
+                    class="nav-subitem"
+                    [routerLink]="item.path"
+                    routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+                    (click)="rememberNavGroup(group.id)"
+                  >
+                    <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                    <span>{{ item.label }}</span>
+                  </a>
+                </ng-template>
+              </ng-container>
             </div>
           </section>
           <div class="nav-empty" *ngIf="!visibleNavGroups().length && !sidebarCompact()">
-            <strong>No module found</strong>
-            <button class="ghost-button mini" type="button" (click)="navQuery.set('')">Reset search</button>
+            <strong>{{ i18n.t('shell.noModule', 'No module found') }}</strong>
+            <button class="ghost-button mini" type="button" (click)="navQuery.set('')">{{ i18n.t('shell.resetSearch', 'Reset search') }}</button>
           </div>
         </nav>
 
         <section class="sidebar-callout">
-          <span class="eyebrow">SaaS tenant</span>
+          <span class="eyebrow">{{ i18n.t('shell.sidebarTenant', 'SaaS tenant') }}</span>
           <strong>{{ state.tenantScopeLabel() }}</strong>
-          <p>Tenant, branch and role headers scope every API call.</p>
+          <p>{{ i18n.t('shell.scopeCopy', 'Tenant, branch and role headers scope every API call.') }}</p>
         </section>
       </aside>
 
       <main class="workspace" id="main-content">
         <header class="topbar">
           <div class="topbar-brand-title">
-            <span class="eyebrow">Enterprise command workspace</span>
+            <span class="eyebrow">{{ i18n.t('shell.workspace', 'Enterprise command workspace') }}</span>
             <h1>Aurashine OS</h1>
             <div class="topbar-signal-row" aria-label="Current workspace context">
               <span>{{ activePageLabel() }}</span>
@@ -158,20 +179,32 @@ type NavGroup = {
               <span aria-hidden="true">&larr;</span>
               <span>Back</span>
             </button>
+            <label class="select-label country-scope">
+              <span>{{ i18n.t('shell.country', 'Country') }}</span>
+              <select [ngModel]="i18n.countryCode()" (ngModelChange)="selectCountry($event)">
+                <option *ngFor="let country of i18n.countries" [value]="country.code">{{ country.label }}</option>
+              </select>
+            </label>
+            <label class="select-label language-scope">
+              <span>{{ i18n.t('shell.language', 'Language') }}</span>
+              <select [ngModel]="i18n.languageCode()" (ngModelChange)="selectLanguage($event)">
+                <option *ngFor="let language of i18n.languages" [value]="language.code">{{ language.label }}</option>
+              </select>
+            </label>
             <label class="select-label tenant-scope">
-              <span>Tenant</span>
+              <span>{{ i18n.t('shell.tenant', 'Tenant') }}</span>
               <select [ngModel]="state.selectedTenantId()" (ngModelChange)="selectTenant($event)">
                 <option *ngFor="let tenant of tenants()" [value]="tenant.id">{{ tenant.name }}</option>
               </select>
             </label>
             <label class="select-label branch-scope">
-              <span>Branch</span>
+              <span>{{ i18n.t('shell.branch', 'Branch') }}</span>
               <select [ngModel]="state.selectedBranchId()" (ngModelChange)="selectBranch($event)">
                 <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option>
               </select>
             </label>
             <label class="select-label role-scope">
-              <span>Role</span>
+              <span>{{ i18n.t('shell.role', 'Role') }}</span>
               <select [ngModel]="state.userRole()" (ngModelChange)="selectRole($event)">
                 <option value="owner">Owner</option>
                 <option value="superAdmin">Super admin</option>
@@ -186,13 +219,13 @@ type NavGroup = {
                 <option value="customMarketingLead">Custom marketing lead</option>
               </select>
             </label>
-            <a class="dark-button" routerLink="/pos">Fast POS</a>
-            <button class="ghost-button" type="button" (click)="logout()">Logout</button>
+            <a class="dark-button" routerLink="/pos">{{ i18n.t('shell.fastPos', 'Fast POS') }}</a>
+            <button class="ghost-button" type="button" (click)="logout()">{{ i18n.t('shell.logout', 'Logout') }}</button>
           </div>
         </header>
         <div class="state error" *ngIf="globalError()">
           {{ globalError() }}
-          <button class="ghost-button mini" type="button" (click)="globalError.set('')">Dismiss</button>
+          <button class="ghost-button mini" type="button" (click)="globalError.set('')">{{ i18n.t('shell.dismiss', 'Dismiss') }}</button>
         </div>
 
         <router-outlet></router-outlet>
@@ -210,11 +243,13 @@ export class AppComponent {
   readonly globalError = signal('');
   readonly loginBusy = signal(false);
   readonly loginError = signal('');
+  readonly requiresTotp = signal(false);
   readonly loginForm = this.fb.group({
     tenantId: ['tenant_aura', Validators.required],
     email: ['owner@aurasalon.example', Validators.required],
     password: ['', Validators.required],
-    branchId: ['']
+    branchId: [''],
+    totpToken: ['']
   });
 
   readonly navQuery = signal('');
@@ -222,10 +257,12 @@ export class AppComponent {
   readonly previousRoute = signal('');
   readonly sidebarCompact = signal(localStorage.getItem('aura.sidebarCompact') === '1');
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
+  private loadedLocalizationTenantId = '';
 
   readonly favoriteNavItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'D', keywords: 'home kpi overview' },
     { path: '/apps', label: 'All Apps', icon: 'AP', keywords: 'launchpad modules full suite apps' },
+    { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo ai growth bot' },
     { path: '/appointments', label: 'Calendar', icon: 'C', keywords: 'booking appointment schedule enterprise scheduler staff calendar' },
     { path: '/appointment-activity', label: 'Appt Activity', icon: 'AA', keywords: 'appointment audit cancellation reschedule no show reliability' },
     { path: '/salon-3d', label: '3D Salon', icon: '3D', keywords: 'public salon website three dimensional booking' },
@@ -236,7 +273,7 @@ export class AppComponent {
     { path: '/memberships', label: 'Memberships', icon: 'MB', keywords: 'membership loyalty packages credits renewal' },
     { path: '/suppliers', label: 'Suppliers', icon: 'SP', keywords: 'vendor purchase gst' },
     { path: '/reports', label: 'Reports', icon: 'R', keywords: 'analytics sales report' },
-    { path: '/staff', label: 'Staff', icon: 'T', keywords: 'employee team payroll' },
+    { path: '/staff-os/employee-masters', label: 'Staff', icon: 'T', keywords: 'employee team payroll' },
     { path: '/staff/my-work', label: 'My Work', icon: 'MW', keywords: 'staff own report live appointments' }
   ];
 
@@ -267,6 +304,7 @@ export class AppComponent {
       items: [
         { path: '/appointments', label: 'Calendar', icon: 'C', keywords: 'appointments booking schedule enterprise scheduler zenoti dingg fresha boulevard staff multi service booking' },
         { path: '/appointment-activity', label: 'Activity Center', icon: 'AC', keywords: 'appointment audit cancellation reschedule no show reliability' },
+        { path: '/appointment-deposits', label: 'Deposit Report', icon: 'DP', keywords: 'appointment advance payment deposit report no show cancellation' },
         { path: '/smart-booking', label: 'Smart Booking', icon: 'SB', keywords: 'ai booking slot' },
         { path: '/salon-3d', label: '3D Salon Website', icon: '3D', keywords: 'public website three dimensional salon landing booking' },
         { path: '/book', label: 'Booking Site', icon: 'OB', keywords: 'online booking portal' },
@@ -300,10 +338,14 @@ export class AppComponent {
         { path: '/inventory', label: 'Inventory', icon: 'I', keywords: 'stock products inventory' },
         { path: '/inventory/purchase-bill-drafts', label: 'AI Bill Drafts', icon: 'AI', keywords: 'ai purchase bill scanner draft invoice receiving' },
         { path: '/inventory/purchase-orders', label: 'Purchase Orders', icon: 'PO', keywords: 'purchase order po vendor' },
+        { path: '/inventory/reorder', label: 'AI Reorder', icon: 'AR', keywords: 'low stock reorder purchase prediction approval' },
         { path: '/suppliers', label: 'Suppliers', icon: 'SP', keywords: 'supplier vendor gst purchase' },
         { path: '/services', label: 'Services', icon: 'S', keywords: 'service menu catalog' },
         { path: '/inventory/recipes', label: 'Service Recipes', icon: 'BOM', keywords: 'bom recipe service consumption' },
+        { path: '/inventory/fifo', label: 'FIFO Batches', icon: 'FF', keywords: 'fifo batch expiry next stock consume' },
+        { path: '/inventory/product-consume', label: 'Product Consume', icon: 'PC', keywords: 'invoice service recipe product consume stock deduction cogs' },
         { path: '/inventory/stock-audit', label: 'Stock Audit', icon: 'SA', keywords: 'audit count stock' },
+        { path: '/inventory/financial', label: 'Inventory Finance', icon: 'IF', keywords: 'cogs cash margin dead stock financial' },
         { path: '/inventory/reports', label: 'Inventory Reports', icon: 'IR', keywords: 'cogs margin expiry report' },
         { path: '/inventory/scanner', label: 'Inventory Scanner', icon: 'QR', keywords: 'barcode scanner qr' }
       ]
@@ -312,38 +354,109 @@ export class AppComponent {
       id: 'staff',
       label: 'Staff',
       icon: 'ST',
-      primaryPath: '/staff',
+      primaryPath: '/staff-os/employee-masters',
       items: [
-        { path: '/staff', label: 'Staff', icon: 'T', keywords: 'employee staff team' },
-        { path: '/staff/my-work', label: 'My Work', icon: 'MW', keywords: 'staff login live appointments own work report' },
-        { path: '/staff/connected-modules', label: 'Connected Modules', icon: 'CM', keywords: 'staff connected modules reports appointment pos payroll' },
-        { path: '/staff-os', label: 'Staff OS', icon: 'SO', keywords: 'hr operating system attendance payroll' },
-        { path: '/staff-enterprise', label: 'Staff Enterprise', icon: 'SE', keywords: 'enterprise staff profile documents leave transfer reviews' },
-        { path: '/staff-os/employee-masters', label: 'Employee Masters', icon: 'EM', keywords: 'flexi employee masters category attendance leave shift payroll' },
-        { path: '/staff-os/attendance-master', label: 'Attendance Master', icon: 'AM', keywords: 'attendance master absent present holiday day count paid unpaid' },
-        { path: '/staff-os/leave-master', label: 'Leave Master', icon: 'LM', keywords: 'leave master casual paid sick quota monthly yearly' },
-        { path: '/staff-os/shift-master', label: 'Shift Master', icon: 'SM', keywords: 'shift master start time end time weekly off holiday leave' },
-        { path: '/staff-os/attendance-category', label: 'Attendance Category', icon: 'AC', keywords: 'attendance category late mark overtime shift slabs' },
-        { path: '/staff-os/attendance-dashboard', label: 'Attendance Dash', icon: 'AD', keywords: 'attendance dashboard biometric present absent late' },
-        { path: '/staff-os/roster-calendar', label: 'Roster Calendar', icon: 'RC', keywords: 'roster schedule shift calendar availability' },
-        { path: '/staff-os/leave-management', label: 'Leave Mgmt', icon: 'LV', keywords: 'leave request approval balance calendar' },
-        { path: '/staff-os/target-incentives/service', label: 'Target Incentives', icon: 'TI', keywords: 'service product membership admin target incentive slabs flexi' },
-        { path: '/staff-os/service-assignment', label: 'Service Assign', icon: 'SA', keywords: 'employee wise service assign operator admin flexi' },
-        { path: '/staff-os/fines-penalties', label: 'Fines Penalty', icon: 'FP', keywords: 'fine penalty master payroll flexi' },
-        { path: '/staff-os/allowance-deduction', label: 'Allowance Deduction', icon: 'AD', keywords: 'allowance deduction payroll master flexi' },
-        { path: '/staff-os/payroll-salary-structure', label: 'Salary Structure', icon: 'PF', keywords: 'payroll salary structure pf pt esic tds statutory flexi' },
-        { path: '/staff-os/payroll-dashboard', label: 'Payroll Dash', icon: 'PD', keywords: 'payroll export salary payout statutory' },
-        { path: '/staff-os/bulk-employee-update', label: 'Bulk Employee Update', icon: 'BU', keywords: 'bulk master update employee pan aadhar statutory flexi' },
-        { path: '/commissions', label: 'Commissions', icon: 'CM', keywords: 'commission incentives payout' },
-        { path: '/staff-os/commission-dashboard', label: 'Commission Dash', icon: 'CD', keywords: 'commission rules payout incentive' },
-        { path: '/staff-os/performance-dashboard', label: 'Performance', icon: 'PR', keywords: 'performance productivity staff ranking' },
-        { path: '/staff-os/leaderboard', label: 'Leaderboard', icon: 'LB', keywords: 'leaderboard staff ranking gamification' },
-        { path: '/reports/staff-sales', label: 'Staff Sales', icon: 'SSR', keywords: 'staff sales performance' },
-        { path: '/reports/invoices', label: 'Invoice Reports', icon: 'IR', keywords: 'invoice reports service product membership gst due wallet discount audit' },
-        { path: '/reports/commission-preview', label: 'Commission Preview', icon: 'CP', keywords: 'commission preview payroll' },
-        { path: '/staff-os/training-center', label: 'Training Center', icon: 'TC', keywords: 'training staff lessons certification' },
-        { path: '/training-academy', label: 'Academy', icon: 'TA', keywords: 'training lessons academy' },
-        { path: '/pos/tips', label: 'Tips Register', icon: 'TP', keywords: 'tips payout staff pos' }
+        {
+          path: '/staff-enterprise',
+          label: 'Command Center',
+          icon: 'CC',
+          keywords: 'staff enterprise command center staff os connected modules my work',
+          children: [
+            { path: '/staff-enterprise', label: 'Staff Enterprise', icon: 'SE', keywords: 'enterprise staff profile documents leave transfer reviews' },
+            { path: '/staff-os', label: 'Staff OS', icon: 'SO', keywords: 'hr operating system attendance payroll' },
+            { path: '/staff', label: 'Staff', icon: 'T', keywords: 'employee staff team' },
+            { path: '/staff/my-work', label: 'My Work', icon: 'MW', keywords: 'staff login live appointments own work report' },
+            { path: '/staff/connected-modules', label: 'Connected Modules', icon: 'CM', keywords: 'staff connected modules reports appointment pos payroll' }
+          ]
+        },
+        {
+          path: '/staff-os/employee-masters',
+          label: 'Masters',
+          icon: 'MS',
+          keywords: 'employee masters category shift leave service assignment bulk update',
+          children: [
+            { path: '/staff-os/staff-list', label: 'Staff List', icon: 'SL', keywords: 'employee list staff directory active inactive' },
+            { path: '/staff-os/staff-categories', label: 'Staff Categories', icon: 'SC', keywords: 'staff category designation role operator admin' },
+            { path: '/staff-os/staff-profile', label: 'Staff Profile', icon: 'SP', keywords: 'staff profile documents skills login' },
+            { path: '/staff-os/employee-masters', label: 'Employee Masters', icon: 'EM', keywords: 'flexi employee masters category attendance leave shift payroll' },
+            { path: '/staff-os/attendance-master', label: 'Attendance Master', icon: 'AM', keywords: 'attendance master absent present holiday day count paid unpaid' },
+            { path: '/staff-os/leave-master', label: 'Leave Master', icon: 'LM', keywords: 'leave master casual paid sick quota monthly yearly' },
+            { path: '/staff-os/shift-master', label: 'Shift Master', icon: 'SM', keywords: 'shift master start time end time weekly off holiday leave' },
+            { path: '/staff-os/attendance-category', label: 'Attendance Category', icon: 'AC', keywords: 'attendance category late mark overtime shift slabs' },
+            { path: '/staff-os/service-assignment', label: 'Service Assign', icon: 'SA', keywords: 'employee wise service assign operator admin flexi' },
+            { path: '/staff-os/bulk-employee-update', label: 'Bulk Employee Update', icon: 'BU', keywords: 'bulk master update employee pan aadhar statutory flexi' }
+          ]
+        },
+        {
+          path: '/staff-os/attendance-dashboard',
+          label: 'Attendance',
+          icon: 'AT',
+          keywords: 'attendance roster leave biometric shift present absent late',
+          children: [
+            { path: '/staff-os/attendance-dashboard', label: 'Attendance Dash', icon: 'AD', keywords: 'attendance dashboard biometric present absent late' },
+            { path: '/staff-os/roster-calendar', label: 'Roster Calendar', icon: 'RC', keywords: 'roster schedule shift calendar availability' },
+            { path: '/staff-os/leave-management', label: 'Leave Mgmt', icon: 'LV', keywords: 'leave request approval balance calendar' },
+            { path: '/staff-os/heatmaps/roster', label: 'Roster Heatmap', icon: 'RH', keywords: 'roster heatmap coverage demand' },
+            { path: '/staff-os/heatmaps/attendance', label: 'Attendance Heatmap', icon: 'AH', keywords: 'attendance heatmap late absent present' },
+            { path: '/staff-os/heatmaps/leave-calendar', label: 'Leave Heatmap', icon: 'LH', keywords: 'leave calendar heatmap coverage' }
+          ]
+        },
+        {
+          path: '/staff-os/payroll-dashboard',
+          label: 'Payroll',
+          icon: 'PY',
+          keywords: 'payroll salary fines allowance deduction statutory tips',
+          children: [
+            { path: '/staff-os/payroll-dashboard', label: 'Payroll Dash', icon: 'PD', keywords: 'payroll export salary payout statutory' },
+            { path: '/staff-os/fines-penalties', label: 'Fines Penalty', icon: 'FP', keywords: 'fine penalty master payroll flexi' },
+            { path: '/staff-os/allowance-deduction', label: 'Allowance Deduction', icon: 'AD', keywords: 'allowance deduction payroll master flexi' },
+            { path: '/staff-os/payroll-salary-structure', label: 'Salary Structure', icon: 'PF', keywords: 'payroll salary structure pf pt esic tds statutory flexi' },
+            { path: '/staff-os/heatmaps/payroll-cost', label: 'Payroll Heatmap', icon: 'PH', keywords: 'payroll cost heatmap salary overtime' },
+            { path: '/pos/tips', label: 'Tips Register', icon: 'TP', keywords: 'tips payout staff pos' }
+          ]
+        },
+        {
+          path: '/commissions',
+          label: 'Commission',
+          icon: 'CO',
+          keywords: 'commission incentives target preview payout',
+          children: [
+            { path: '/commissions', label: 'Commissions', icon: 'CM', keywords: 'commission incentives payout' },
+            { path: '/staff-os/commission-dashboard', label: 'Commission Dash', icon: 'CD', keywords: 'commission rules payout incentive' },
+            { path: '/staff-os/target-incentives/service', label: 'Target Incentives', icon: 'TI', keywords: 'service product membership admin target incentive slabs flexi' },
+            { path: '/staff-os/target-incentives/product', label: 'Product Incentive', icon: 'PI', keywords: 'product target incentive commission retail' },
+            { path: '/staff-os/target-incentives/membership', label: 'Membership Incentive', icon: 'MI', keywords: 'membership target incentive sales' },
+            { path: '/staff-os/target-incentives/branch-admin', label: 'Branch Incentive', icon: 'BI', keywords: 'branch admin target incentive' },
+            { path: '/staff-os/target-incentives/admin', label: 'Admin Incentive', icon: 'AI', keywords: 'admin target incentive master' },
+            { path: '/staff-os/target-incentives/all-transaction', label: 'All Transaction', icon: 'AT', keywords: 'all transaction target incentive' },
+            { path: '/reports/commission-preview', label: 'Commission Preview', icon: 'CP', keywords: 'commission preview payroll' }
+          ]
+        },
+        {
+          path: '/reports/staff-sales',
+          label: 'Reports',
+          icon: 'RP',
+          keywords: 'staff sales invoice reports audit',
+          children: [
+            { path: '/reports/staff-sales', label: 'Staff Sales', icon: 'SSR', keywords: 'staff sales performance' },
+            { path: '/reports/invoices', label: 'Invoice Reports', icon: 'IR', keywords: 'invoice reports service product membership gst due wallet discount audit' }
+          ]
+        },
+        {
+          path: '/staff-os/performance-dashboard',
+          label: 'Training / Performance',
+          icon: 'TP',
+          keywords: 'performance leaderboard training academy score',
+          children: [
+            { path: '/staff-os/performance-dashboard', label: 'Performance', icon: 'PR', keywords: 'performance productivity staff ranking' },
+            { path: '/staff-os/heatmaps/utilization', label: 'Utilization Heatmap', icon: 'UH', keywords: 'utilization heatmap performance productivity' },
+            { path: '/staff-os/leaderboard', label: 'Leaderboard', icon: 'LB', keywords: 'leaderboard staff ranking gamification' },
+            { path: '/staff-os/training-center', label: 'Training Center', icon: 'TC', keywords: 'training staff lessons certification' },
+            { path: '/staff-os/task-board', label: 'Task Board', icon: 'TB', keywords: 'staff task board task assignment followup' },
+            { path: '/staff-os/mobile-preview', label: 'Mobile Preview', icon: 'MP', keywords: 'mobile staff dashboard preview app' },
+            { path: '/training-academy', label: 'Academy', icon: 'TA', keywords: 'training lessons academy' }
+          ]
+        }
       ]
     },
     {
@@ -354,8 +467,19 @@ export class AppComponent {
       items: [
         { path: '/finance', label: 'Finance', icon: 'FN', keywords: 'cash expense finance' },
         { path: '/account-master', label: 'Account Master', icon: 'AM', keywords: 'ledger accounts chart' },
-        { path: '/transactions/outgoing-funds', label: 'Transactions', icon: 'TR', keywords: 'outgoing funds payments' },
+        { path: '/reports/account-ledger', label: 'Account Ledger', icon: 'AL', keywords: 'account ledger debit credit journal drilldown' },
+        { path: '/balance-sheet', label: 'Balance Sheet', icon: 'BS', keywords: 'balance sheet trial balance ledger working capital accounting' },
+        { path: '/transactions/outgoing-funds', label: 'Outgoing Fund', icon: 'OF', keywords: 'outgoing funds payments expense cash bank balance sheet' },
         { path: '/compliance', label: 'Compliance', icon: 'AC', keywords: 'statutory pf esi tax' }
+      ]
+    },
+    {
+      id: 'ai-rank-bot',
+      label: 'AI Rank Bot',
+      icon: 'RB',
+      primaryPath: '/growth-rank-bot',
+      items: [
+        { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo dhanda ai growth bot reviews' }
       ]
     },
     {
@@ -365,7 +489,6 @@ export class AppComponent {
       primaryPath: '/marketing',
       items: [
         { path: '/marketing', label: 'Marketing', icon: 'W', keywords: 'campaign marketing automation' },
-        { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo dhanda ai growth bot reviews' },
         { path: '/engagement', label: 'Engagement Center', icon: 'EC', keywords: 'unified inbox hyperconnect client engagement whatsapp email calls' },
         { path: '/whatsapp', label: 'WhatsApp', icon: 'WA', keywords: 'whatsapp campaign chat' },
         { path: '/message-logs', label: 'Messages', icon: 'ML', keywords: 'message logs communication' },
@@ -388,11 +511,38 @@ export class AppComponent {
         { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
         { path: '/permissions', label: 'Permissions', icon: 'PM', keywords: 'role rbac permission' },
         { path: '/security', label: 'Security', icon: 'SL', keywords: 'security auth sessions' },
+        { path: '/enterprise-security-shield', label: 'Security Shield', icon: 'ES', keywords: 'enterprise security shield detect alert block audit recover' },
+        { path: '/security-alerts', label: 'Security Alerts', icon: 'SA', keywords: 'security alerts intrusion threat critical warning' },
+        { path: '/security-blocklist', label: 'Security Blocklist', icon: 'BL', keywords: 'security blocklist ip block active defense' },
+        { path: '/security-policy-center', label: 'Policy Center', icon: 'PC', keywords: 'security policy center device trust pin export field audit' },
+        { path: '/two-factor', label: 'Two-Factor Auth', icon: '2F', keywords: 'security 2fa totp authenticator recovery code' },
         { path: '/audit-logs', label: 'Audit Logs', icon: 'AL', keywords: 'audit logs activity' },
         { path: '/business-details', label: 'Business Details', icon: 'BD', keywords: 'business profile details' },
         { path: '/data-migration', label: 'Data Migration', icon: 'DM', keywords: 'import migration data' },
         { path: '/deployment', label: 'Deployment', icon: 'DP', keywords: 'deployment release' },
-        { path: '/offline', label: 'Offline', icon: 'OF', keywords: 'offline sync pos' },
+        {
+          path: '/offline',
+          label: 'Offline Command',
+          icon: 'OF',
+          keywords: 'offline sync pos resilience command center',
+          children: [
+            { path: '/offline', label: 'Command Center', icon: 'OC', keywords: 'offline resilience command center overview' },
+            { path: '/offline/readiness', label: 'Readiness Score', icon: 'RS', keywords: 'offline readiness score cache branch device risk' },
+            { path: '/offline/devices', label: 'Device Health', icon: 'DH', keywords: 'offline device sync health terminal tablet' },
+            { path: '/offline/sync-queue', label: 'Sync Queue', icon: 'SQ', keywords: 'offline smart sync queue retry force conflict' },
+            { path: '/offline/conflicts', label: 'Conflict Center', icon: 'CR', keywords: 'offline conflict resolution server device merge' },
+            { path: '/offline/billing', label: 'Offline Billing', icon: 'OB', keywords: 'offline billing protection invoice cash drawer duplicate' },
+            { path: '/offline/appointments', label: 'Offline Appointments', icon: 'OA', keywords: 'offline appointment protection slot staff duplicate' },
+            { path: '/offline/risk-alerts', label: 'Risk Alerts', icon: 'RA', keywords: 'offline risk alerts stale cache failed sync' }
+          ]
+        },
+        { path: '/offline/readiness', label: 'Offline Readiness', icon: 'RS', keywords: 'offline readiness score cache branch device risk' },
+        { path: '/offline/devices', label: 'Device Sync Health', icon: 'DH', keywords: 'offline device sync health terminal tablet' },
+        { path: '/offline/sync-queue', label: 'Smart Sync Queue', icon: 'SQ', keywords: 'offline smart sync queue retry force conflict' },
+        { path: '/offline/conflicts', label: 'Conflict Center', icon: 'CR', keywords: 'offline conflict resolution server device merge' },
+        { path: '/offline/billing', label: 'Offline Billing', icon: 'OB', keywords: 'offline billing protection invoice cash drawer duplicate' },
+        { path: '/offline/appointments', label: 'Offline Appointments', icon: 'OA', keywords: 'offline appointment protection slot staff duplicate' },
+        { path: '/offline/risk-alerts', label: 'Offline Risk Alerts', icon: 'RA', keywords: 'offline risk alerts stale cache failed sync' },
         { path: '/white-label', label: 'White Label', icon: 'WL', keywords: 'brand theme white label' },
         { path: '/quality', label: 'Quality', icon: 'QA', keywords: 'quality checks qa' }
       ]
@@ -432,7 +582,9 @@ export class AppComponent {
     return this.navGroups
       .map((group) => {
         const groupMatches = `${group.label} ${group.id}`.toLowerCase().includes(term);
-        const items = groupMatches ? group.items : group.items.filter((item) => this.navItemText(item, group).includes(term));
+        const items = groupMatches ? group.items : group.items
+          .map((item) => this.filterNavItem(item, group, term))
+          .filter((item): item is NavItem => Boolean(item));
         return { ...group, items };
       })
       .filter((group) => group.items.length);
@@ -452,6 +604,7 @@ export class AppComponent {
     readonly api: ApiService,
     readonly state: AppStateService,
     readonly session: AuthSessionService,
+    readonly i18n: I18nService,
     private readonly router: Router
   ) {
     delete document.documentElement.dataset.theme;
@@ -477,6 +630,7 @@ export class AppComponent {
       if (this.session.isAuthenticated()) {
         this.loadTenants();
         this.loadBranches();
+        this.loadLocalizationPreference(this.state.selectedTenantId());
       }
     });
   }
@@ -488,16 +642,26 @@ export class AppComponent {
     }
     this.loginBusy.set(true);
     this.loginError.set('');
-    this.session.login(this.loginForm.getRawValue() as { tenantId: string; email: string; password: string; branchId?: string }).subscribe({
+    const raw = this.loginForm.getRawValue() as { tenantId: string; email: string; password: string; branchId?: string; totpToken?: string };
+    const payload = { ...raw, totpToken: (raw.totpToken || '').trim() || undefined };
+    this.session.login(payload).subscribe({
       next: (session) => {
         this.state.setTenant(session.tenant.id);
         this.state.setRole(session.user.role as UserRole);
         this.state.setBranch(session.user.branchId || '');
         this.loginBusy.set(false);
+        this.requiresTotp.set(false);
+        this.loginForm.controls.totpToken.setValue('');
         this.loadTenants();
         this.loadBranches();
       },
       error: (error) => {
+        if (AuthSessionService.requiresTotp(error)) {
+          this.requiresTotp.set(true);
+          this.loginError.set(this.loginForm.value.totpToken ? 'Invalid authenticator or recovery code. Try again.' : 'Enter your authenticator or recovery code.');
+          this.loginBusy.set(false);
+          return;
+        }
         this.loginError.set(error?.error?.error?.message || error?.error?.error || error?.message || 'Unable to sign in');
         this.loginBusy.set(false);
       }
@@ -568,6 +732,43 @@ export class AppComponent {
     this.state.setRole(role);
   }
 
+  selectCountry(countryCode: string): void {
+    this.i18n.setCountry(countryCode);
+    this.saveLocalizationPreference();
+  }
+
+  selectLanguage(languageCode: string): void {
+    this.i18n.setLanguage(languageCode);
+    this.saveLocalizationPreference();
+  }
+
+  private loadLocalizationPreference(tenantId: string): void {
+    if (!tenantId || this.loadedLocalizationTenantId === tenantId) return;
+    this.loadedLocalizationTenantId = tenantId;
+    this.api.list<{ preference?: LocalePreference }>('localization/preference', { includeAllBranches: true }).subscribe({
+      next: (result) => {
+        if (result?.preference) this.i18n.setPreference(result.preference);
+      },
+      error: () => {
+        this.loadedLocalizationTenantId = '';
+      }
+    });
+  }
+
+  private saveLocalizationPreference(): void {
+    if (!this.session.isAuthenticated()) return;
+    this.api.put<{ preference?: LocalePreference }>('localization/preference', this.i18n.preference()).subscribe({
+      next: (result) => {
+        if (result?.preference) this.i18n.setPreference(result.preference);
+      },
+      error: (error) => {
+        const message = this.api.errorText(error, 'Unable to save language preference');
+        if (error?.status === 404 || /Route not found/i.test(message)) return;
+        this.globalError.set(message);
+      }
+    });
+  }
+
   openNavGroup(group: NavGroup): void {
     if (this.sidebarCompact()) {
       this.router.navigateByUrl(group.primaryPath);
@@ -599,11 +800,11 @@ export class AppComponent {
 
   isGroupActive(group: NavGroup): boolean {
     const url = this.activeRoute();
-    return group.items.some((item) => this.isRouteActive(url, item.path));
+    return this.navLeaves(group.items).some((item) => this.isRouteActive(url, item.path));
   }
 
   private ensureActiveGroupExpanded(url: string): void {
-    const group = this.navGroups.find((item) => item.items.some((navItem) => this.isRouteActive(url, navItem.path)));
+    const group = this.navGroups.find((item) => this.navLeaves(item.items).some((navItem) => this.isRouteActive(url, navItem.path)));
     if (!group || this.expandedGroupIds().includes(group.id)) return;
     const next = [...this.expandedGroupIds(), group.id];
     this.expandedGroupIds.set(next);
@@ -611,7 +812,23 @@ export class AppComponent {
   }
 
   private navItemText(item: NavItem, group: NavGroup): string {
-    return `${item.label} ${item.path} ${item.icon} ${item.keywords || ''} ${group.label}`.toLowerCase();
+    const childText = (item.children || []).map((child) => `${child.label} ${child.path} ${child.icon} ${child.keywords || ''}`).join(' ');
+    return `${item.label} ${item.path} ${item.icon} ${item.keywords || ''} ${childText} ${group.label}`.toLowerCase();
+  }
+
+  navLeafCount(items: NavItem[]): number {
+    return this.navLeaves(items).length;
+  }
+
+  private navLeaves(items: NavItem[]): NavItem[] {
+    return items.flatMap((item) => item.children?.length ? item.children : [item]);
+  }
+
+  private filterNavItem(item: NavItem, group: NavGroup, term: string): NavItem | null {
+    if (!item.children?.length) return this.navItemText(item, group).includes(term) ? item : null;
+    const children = item.children.filter((child) => this.navItemText(child, group).includes(term));
+    if (children.length) return { ...item, children };
+    return this.navItemText({ ...item, children: [] }, group).includes(term) ? item : null;
   }
 
   private isRouteActive(url: string, path: string): boolean {
@@ -621,7 +838,7 @@ export class AppComponent {
 
   private pageLabelForUrl(url: string): string {
     return this.navGroups
-      .flatMap((group) => group.items)
+      .flatMap((group) => this.navLeaves(group.items))
       .find((item) => this.isRouteActive(url, item.path))?.label || '';
   }
 
@@ -646,9 +863,10 @@ export class AppComponent {
   private readExpandedGroups(): string[] {
     try {
       const parsed = JSON.parse(localStorage.getItem('aura.expandedNavGroups') || '[]');
-      return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : ['frontdesk', 'pos', 'inventory'];
+      const groups = Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : ['frontdesk', 'pos', 'inventory'];
+      return groups.includes('command') ? groups : ['command', ...groups];
     } catch {
-      return ['frontdesk', 'pos', 'inventory'];
+      return ['command', 'frontdesk', 'pos', 'inventory'];
     }
   }
 

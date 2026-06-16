@@ -1,8 +1,10 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
-import { badRequest, forbidden, unauthorized } from "../utils/app-error.js";
+import { AppError, badRequest, forbidden, unauthorized } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
+import { twoFactorService } from "./two-factor.service.js";
+import { intrusionDetectionService } from "./intrusion-detection.service.js";
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
@@ -41,6 +43,15 @@ function addDays(days) {
   return new Date(Date.now() + Number(days) * 86400000).toISOString();
 }
 
+function recoveryCodesFor(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export class AuthService {
   login(payload = {}, request = {}) {
     const tenant = tenantService.resolveTenant({ tenantId: payload.tenantId || request.tenantId || "", host: request.host || "" });
@@ -53,10 +64,14 @@ export class AuthService {
       (loginIdentity && String(item.email || "").toLowerCase() === loginIdentity) ||
       (loginIdentity && String(item.loginId || "").toLowerCase() === loginIdentity)
     );
-    if (!user) throw unauthorized("Invalid login credentials");
+    if (!user) {
+      intrusionDetectionService.recordFailedLogin({ tenantId: tenant.id, email: loginIdentity, ip: request.ip || "", userAgent: request.userAgent || "" });
+      throw unauthorized("Invalid login credentials");
+    }
     if (user.status && user.status !== "active") throw forbidden("User is not active");
     if (user.lockedUntil && user.lockedUntil > now()) throw forbidden("User is temporarily locked after repeated failed logins");
-    this.verifyPassword(user, payload.password);
+    this.verifyPassword(user, payload.password, { tenantId: tenant.id, ip: request.ip || "", userAgent: request.userAgent || "" });
+    this.verifyTwoFactor(user, payload, tenant.id);
     const branchId = payload.branchId || user.branchIds?.[0] || "";
     if (branchId) tenantService.assertBranchAccess({ tenantId: tenant.id, role: user.role, branchIds: user.branchIds || [], branchId }, branchId);
     const device = payload.device ? this.registerDevice({ ...payload.device, userId: user.id, branchId }, { tenantId: tenant.id, userId: user.id, role: user.role, branchId, branchIds: user.branchIds || [] }) : null;
@@ -64,7 +79,7 @@ export class AuthService {
     return this.issueTokenPair({ tenant, user: { ...user, failedLoginCount: 0, lockedUntil: "", lastLoginAt: now() }, branchId, deviceId: device?.id || payload.deviceId || "" });
   }
 
-  verifyPassword(user, password) {
+  verifyPassword(user, password, context = {}) {
     const requiresPassword = env.requirePasswordAuth || Boolean(user.passwordHash);
     if (!requiresPassword) return true;
     const valid = Boolean(password) && Boolean(user.passwordHash) && Boolean(user.passwordSalt) && safeEqual(passwordHashFor(password, user.passwordSalt), user.passwordHash);
@@ -72,7 +87,27 @@ export class AuthService {
     const failedLoginCount = Number(user.failedLoginCount || 0) + 1;
     const lockedUntil = failedLoginCount >= 5 ? addSeconds(15 * 60) : user.lockedUntil || "";
     repositories.tenantUsers.update(user.id, { failedLoginCount, lockedUntil }, { tenantId: user.tenantId });
+    intrusionDetectionService.recordFailedLogin({ tenantId: context.tenantId || user.tenantId, email: user.email || user.loginId || "", ip: context.ip || "", userAgent: context.userAgent || "" });
     throw unauthorized("Invalid login credentials");
+  }
+
+  verifyTwoFactor(user, payload = {}, tenantId) {
+    if (!user.totpEnabled) return true;
+    const code = String(payload.totpToken || payload.twoFactorCode || "").trim();
+    if (!code) throw new AppError("Two-factor authentication code required", 401, { requiresTotp: true });
+
+    const recoveryCodes = recoveryCodesFor(user.totpRecoveryCodes);
+    const normalizedRecovery = code.toUpperCase();
+    const isRecovery = recoveryCodes.includes(normalizedRecovery);
+    const isValidTotp = twoFactorService.verifyToken({ secret: user.totpSecret, token: code });
+    if (!isValidTotp && !isRecovery) throw unauthorized("Invalid two-factor authentication code");
+
+    if (isRecovery) {
+      repositories.tenantUsers.update(user.id, {
+        totpRecoveryCodes: JSON.stringify(recoveryCodes.filter((item) => item !== normalizedRecovery))
+      }, { tenantId });
+    }
+    return true;
   }
 
   refresh(refreshToken) {

@@ -20,6 +20,10 @@ function headers() {
   };
 }
 
+function digits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 async function request(baseUrl, path, { method = "GET", body } = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     method,
@@ -67,6 +71,7 @@ test("migration import stamps metadata and rollback removes imported records", a
       body: {
         sourceSoftware: "salonist",
         resource: "clients",
+        skipApprovalGate: true,
         rows: [{ name: `Rollback Client ${stamp}`, phone, branchId: "branch_hyd", originalRecordId: `old-${stamp}`, createdAt: "2024-01-15" }]
       }
     });
@@ -89,6 +94,87 @@ test("migration import stamps metadata and rollback removes imported records", a
 
     const afterRollback = await request(baseUrl, `/clients/${targetId}`);
     assert.equal(afterRollback.response.status, 404);
+  } finally {
+    await close(server);
+  }
+});
+
+test("migration client import does not skip new clients on name-only match", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
+  try {
+    const stamp = Date.now();
+    const sharedName = `Same Name Import ${stamp}`;
+    const existing = await request(baseUrl, "/clients", {
+      method: "POST",
+      body: {
+        name: sharedName,
+        phone: `+91 97777 ${String(stamp).slice(-5)}`,
+        branchId: "branch_hyd"
+      }
+    });
+    assert.equal(existing.response.status, 201);
+
+    const importedPhone = `+91 98888 ${String(stamp).slice(-5)}`;
+    const importResult = await request(baseUrl, "/migration/import", {
+      method: "POST",
+      body: {
+        sourceSoftware: "excel",
+        resource: "clients",
+        skipApprovalGate: true,
+        rows: [{
+          name: sharedName,
+          phone: importedPhone,
+          branchId: "branch_hyd",
+          originalRecordId: `same-name-${stamp}`
+        }]
+      }
+    });
+
+    assert.equal(importResult.response.status, 201);
+    assert.equal(importResult.body.summary.importedRows, 1);
+    assert.equal(importResult.body.summary.skippedRows, 0);
+    const targetId = importResult.body.details.rows.find((row) => row.action === "created").targetId;
+    assert.ok(targetId);
+
+    const created = await request(baseUrl, `/clients/${targetId}`);
+    assert.equal(created.response.status, 200);
+    assert.equal(created.body.name, sharedName);
+    assert.equal(digits(created.body.phone), digits(importedPhone));
+  } finally {
+    await close(server);
+  }
+});
+
+test("migration approval workflow submits, lists and approves latest request", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
+  try {
+    const stamp = Date.now();
+    const submitted = await request(baseUrl, "/migration/approvals", {
+      method: "POST",
+      body: {
+        resource: "clients",
+        branchId: "branch_hyd",
+        note: `Approval smoke ${stamp}`,
+        summary: { totalRows: 1, validRows: 1, errorRows: 0 }
+      }
+    });
+    assert.equal(submitted.response.status, 201);
+    assert.ok(submitted.body.id);
+    assert.equal(submitted.body.status, "pending");
+
+    const pending = await request(baseUrl, "/migration/approvals?status=pending");
+    assert.equal(pending.response.status, 200);
+    assert.ok(pending.body.some((approval) => approval.id === submitted.body.id));
+
+    const approved = await request(baseUrl, `/migration/approvals/${submitted.body.id}/decide`, {
+      method: "POST",
+      body: { decision: "approved", note: "Owner approved" }
+    });
+    assert.equal(approved.response.status, 200);
+    assert.equal(approved.body.status, "approved");
+    assert.ok(approved.body.reviewedAt);
   } finally {
     await close(server);
   }

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../core/api.service';
@@ -10,8 +10,51 @@ type MigrationSummary = {
   warningRows: number;
   errorRows: number;
   duplicateRows: number;
+  affectedRecords?: number;
   byEntity: Record<string, { total: number; valid: number; warnings: number; errors: number; duplicates: number }>;
   byBranch?: Record<string, { total: number; valid: number; warnings: number; errors: number }>;
+};
+
+type SourceAdapter = {
+  label: string;
+  type: string;
+  formats: string[];
+  status: string;
+};
+
+type MigrationTemplate = {
+  resource: string;
+  table: string;
+  required: string[];
+  columns: Array<{ field: string; required: boolean; aliases: string[]; example: string }>;
+};
+
+type MappingDraftRow = {
+  targetField: string;
+  sourceColumn: string;
+  required: boolean;
+  confidence: number;
+  aliases: string[];
+};
+
+type ReconciliationLine = {
+  metric: string;
+  expected: number | null;
+  actual: number;
+  difference: number | null;
+  match: boolean | null;
+  status: string;
+};
+
+type ApprovalRecord = {
+  id: string;
+  jobId?: string;
+  resource?: string;
+  status: string;
+  note?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  summary?: any;
 };
 
 @Component({
@@ -19,184 +62,604 @@ type MigrationSummary = {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page-header">
-      <span class="eyebrow">Data Migration Center</span>
-      <h1>Old software data import</h1>
-      <p>Zenoti, Salonist, DINGG, Fresha, Tally, Busy, Marg, Excel, CSV ya manual records se master data aur historical transactions safely migrate karo.</p>
-    </section>
-
-    <section class="grid two">
-      <article class="card">
-        <span class="eyebrow">Step 1</span>
-        <h2>New import</h2>
-        <label>Source software</label>
-        <select [(ngModel)]="sourceSoftware">
-          <option *ngFor="let source of sourceOptions" [value]="source.value">{{ source.label }}</option>
-        </select>
-
-        <label>Resource</label>
-        <select [(ngModel)]="resource">
-          <option value="">Auto-detect by sheet name</option>
-          <option *ngFor="let item of resourceOptions" [value]="item.value">{{ item.label }}</option>
-        </select>
-
-        <label>Excel file</label>
-        <input type="file" accept=".xlsx,.xls,.csv" (change)="onFile($event)" />
-
-        <div class="import-actions">
-          <button class="secondary-button" [disabled]="!fileBase64() || loading()" (click)="analyze()">Analyze</button>
-          <button class="secondary-button" [disabled]="!fileBase64() || loading()" (click)="dryRun()">Dry run</button>
-          <button class="primary-button" [disabled]="!fileBase64() || loading() || hasCriticalErrors()" (click)="runImport()">Final import</button>
-        </div>
-
-        <p class="muted" *ngIf="fileName()">Selected: {{ fileName() }}</p>
-        <p class="error-text" *ngIf="error()">{{ error() }}</p>
-        <p class="success-text" *ngIf="message()">{{ message() }}</p>
-      </article>
-
-      <article class="card">
-        <span class="eyebrow">Data safety</span>
-        <h2>No-loss migration rules</h2>
-        <ul class="check-list">
-          <li>Preview before import</li>
-          <li>Duplicate client merge by phone/email/name</li>
-          <li>Original system, original record ID, createdAt and invoice numbers are preserved</li>
-          <li>Dry-run validates required fields, foreign keys, duplicates and unmatched columns</li>
-          <li>Transaction-safe import with row-level error report and audit trail</li>
-          <li>Rollback available for last import, branch import or resource import</li>
-          <li>Imported history appears in dashboards, reports, Customer 360, staff and inventory analytics</li>
-        </ul>
-      </article>
-    </section>
-
-    <section class="grid four" *ngIf="onboarding() as o">
-      <article class="metric-card"><span>Upload status</span><strong>{{ o.uploadStatus }}</strong><small>{{ o.migrationProgress }}% progress</small></article>
-      <article class="metric-card"><span>Imported records</span><strong>{{ o.importedRecordsCount }}</strong><small>Across migration jobs</small></article>
-      <article class="metric-card danger"><span>Errors</span><strong>{{ o.errorsCount }}</strong><small>Needs cleanup before final sign-off</small></article>
-      <article class="metric-card"><span>Rollbacks</span><strong>{{ o.rollbackHistory }}</strong><small>Completed rollback batches</small></article>
-    </section>
-
-    <section class="card" *ngIf="onboarding()?.completionChecklist?.length">
-      <div class="section-title"><div><span class="eyebrow">Onboarding</span><h2>Migration completion checklist</h2></div></div>
-      <ul class="check-list">
-        <li *ngFor="let item of onboarding()?.completionChecklist">{{ item.done ? 'Done' : 'Open' }} - {{ item.label }}</li>
-      </ul>
-    </section>
-
-    <section class="grid four" *ngIf="summary() as s">
-      <article class="metric-card"><span>Total rows</span><strong>{{ s.totalRows }}</strong></article>
-      <article class="metric-card"><span>Valid</span><strong>{{ s.validRows }}</strong></article>
-      <article class="metric-card"><span>Warnings</span><strong>{{ s.warningRows }}</strong></article>
-      <article class="metric-card danger"><span>Errors</span><strong>{{ s.errorRows }}</strong></article>
-    </section>
-
-    <section class="card" *ngIf="summary() as s">
-      <div class="section-title">
+    <section class="migration-shell">
+      <header class="command-header">
         <div>
-          <span class="eyebrow">Preview</span>
-          <h2>Detected data</h2>
+          <span class="eyebrow">Enterprise Data Migration OS</span>
+          <h1>100X import command center</h1>
+          <p>Legacy salon, POS, accounting, inventory and booking data ko safe sandbox, validation, approval, import aur rollback pipeline se live modules me migrate karo.</p>
         </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Entity</th>
-              <th>Total</th>
-              <th>Valid</th>
-              <th>Warnings</th>
-              <th>Errors</th>
-              <th>Duplicates</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of entityRows()">
-              <td>{{ row.entity }}</td>
-              <td>{{ row.total }}</td>
-              <td>{{ row.valid }}</td>
-              <td>{{ row.warnings }}</td>
-              <td>{{ row.errors }}</td>
-              <td>{{ row.duplicates }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <div class="score-card" [class.danger]="readinessScore() < 60" [class.warning]="readinessScore() >= 60 && readinessScore() < 85">
+          <span>Go-live readiness</span>
+          <strong>{{ readinessScore() }}%</strong>
+          <small>{{ goLiveGate() }}</small>
+        </div>
+      </header>
 
-    <section class="card" *ngIf="previewRows().length">
-      <div class="section-title">
-        <div>
-          <span class="eyebrow">Row report</span>
-          <h2>First 500 rows</h2>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Sheet</th>
-              <th>Row</th>
-              <th>Entity</th>
-              <th>Status</th>
-              <th>Message</th>
-              <th>Target/source</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of previewRows()">
-              <td>{{ row.sourceSheet }}</td>
-              <td>{{ row.sourceRowNumber }}</td>
-              <td>{{ row.entity }}</td>
-              <td><span class="badge" [class.danger]="row.status === 'error'" [class.warning]="row.status === 'warning'">{{ row.status }}</span></td>
-              <td>{{ row.message }}</td>
-              <td>{{ row.sourceExternalId || row.targetId }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+      <section class="control-strip">
+        <article>
+          <span>Source intelligence</span>
+          <strong>{{ selectedSourceLabel() }}</strong>
+          <small>{{ selectedAdapterType() }} - {{ selectedAdapterStatus() }}</small>
+        </article>
+        <article>
+          <span>Selected file</span>
+          <strong>{{ fileName() || 'No file selected' }}</strong>
+          <small>{{ fileSizeLabel() }}</small>
+        </article>
+        <article>
+          <span>Rows scanned</span>
+          <strong>{{ summary()?.totalRows || 0 }}</strong>
+          <small>{{ summary()?.validRows || 0 }} valid - {{ summary()?.errorRows || 0 }} critical</small>
+        </article>
+        <article>
+          <span>Rollback cover</span>
+          <strong>{{ onboarding()?.rollbackHistory || 0 }}</strong>
+          <small>Completed rollback batches</small>
+        </article>
+      </section>
 
-    <section class="card">
-      <div class="section-title">
-        <div>
-          <span class="eyebrow">History</span>
-          <h2>Migration jobs</h2>
+      <section class="workspace-grid">
+        <article class="panel import-panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Live Import Runbook</span>
+              <h2>Controlled migration launch</h2>
+            </div>
+            <span class="status-pill">{{ loading() ? 'Running' : 'Ready' }}</span>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>Source software</span>
+              <select [(ngModel)]="sourceSoftware" (ngModelChange)="refreshSourceContext()">
+                <option *ngFor="let source of sourceOptions" [value]="source.value">{{ source.label }}</option>
+              </select>
+            </label>
+            <label>
+              <span>Resource</span>
+              <select [(ngModel)]="resource" (ngModelChange)="onResourceChange()">
+                <option value="">Auto-detect by sheet name</option>
+                <option *ngFor="let item of resourceOptions" [value]="item.value">{{ item.label }}</option>
+              </select>
+            </label>
+            <label class="file-drop">
+              <span>Upload Excel / CSV</span>
+              <input type="file" accept=".xlsx,.xls,.csv" (change)="onFile($event)" />
+              <small>Preserves old IDs, created dates, invoice numbers and branch history.</small>
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button class="secondary-button" [disabled]="!fileBase64() || loading()" (click)="analyze()">Analyze</button>
+            <button class="secondary-button" [disabled]="!fileBase64() || loading()" (click)="dryRun()">Dry run</button>
+            <button class="primary-button" [disabled]="!fileBase64() || loading() || hasCriticalErrors()" (click)="runImport()">Final import</button>
+            <button class="ghost-button" type="button" [disabled]="!templateColumns().length" (click)="downloadTemplate()">Template</button>
+          </div>
+
+          <p class="error-text" *ngIf="fileBase64() && !summary() && !error()">
+            Final import se pehle Analyze run karo, phir approval submit/approve karo.
+          </p>
+          <p class="error-text" *ngIf="error()">{{ error() }}</p>
+          <p class="success-text" *ngIf="message()">{{ message() }}</p>
+
+          <div class="pipeline">
+            <article *ngFor="let step of pipelineSteps()" [class.done]="step.status === 'done'" [class.active]="step.status === 'active'" [class.blocked]="step.status === 'blocked'">
+              <span>{{ step.key }}</span>
+              <strong>{{ step.label }}</strong>
+              <small>{{ step.detail }}</small>
+            </article>
+          </div>
+        </article>
+
+        <aside class="panel risk-panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Risk Radar</span>
+              <h2>Import blockers</h2>
+            </div>
+          </div>
+          <article *ngFor="let risk of riskCards()" [class.danger]="risk.tone === 'danger'" [class.warning]="risk.tone === 'warning'" [class.good]="risk.tone === 'good'">
+            <span>{{ risk.label }}</span>
+            <strong>{{ risk.value }}</strong>
+            <small>{{ risk.detail }}</small>
+          </article>
+        </aside>
+      </section>
+
+      <section class="grid three">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">AI Mapping Studio</span>
+              <h2>Field confidence & saved profiles</h2>
+            </div>
+            <span class="status-pill">{{ mappingCoverage() }}% mapped</span>
+          </div>
+          <div class="mapping-toolbar">
+            <select [(ngModel)]="selectedMappingId" (ngModelChange)="applySavedMapping($event)">
+              <option value="">New AI mapping draft</option>
+              <option *ngFor="let mapping of relevantMappings()" [value]="mapping.id">{{ mapping.name || mapping.resource }}</option>
+            </select>
+            <button class="secondary-button" type="button" [disabled]="!mappingDraft().length || loading()" (click)="saveMappingProfile()">Save profile</button>
+          </div>
+          <div class="mapping-list">
+            <article *ngFor="let row of mappingDraft().slice(0, 10)" [class.required]="row.required">
+              <div>
+                <strong>{{ row.targetField }}</strong>
+                <small>{{ row.aliases.slice(0, 3).join(', ') || 'No alias' }}</small>
+              </div>
+              <input [ngModel]="row.sourceColumn" (ngModelChange)="setMappingSource(row.targetField, $event)" placeholder="Source column" />
+              <span>{{ row.confidence }}%</span>
+            </article>
+            <p class="muted" *ngIf="!templateColumns().length">Select a resource to inspect required fields.</p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Entity Coverage</span>
+              <h2>Detected modules</h2>
+            </div>
+          </div>
+          <div class="entity-stack">
+            <article *ngFor="let row of entityRows()">
+              <strong>{{ label(row.entity) }}</strong>
+              <span>{{ row.valid }}/{{ row.total }} valid</span>
+              <meter min="0" [max]="row.total || 1" [value]="row.valid"></meter>
+              <small>{{ row.errors }} errors - {{ row.duplicates }} duplicates</small>
+            </article>
+            <p class="muted" *ngIf="!entityRows().length">Analyze a file to see entity coverage.</p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Reconciliation</span>
+              <h2>Old vs Aura checks</h2>
+            </div>
+          </div>
+          <div class="recon-list">
+            <article *ngFor="let row of reconciliationRows()">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+              <small>{{ row.detail }}</small>
+            </article>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Reconciliation Lab</span>
+              <h2>Expected totals vs analyzed data</h2>
+            </div>
+            <span class="status-pill" [class.danger]="reconciliationResult()?.mismatchCount">{{ reconciliationResult()?.matched ? 'Matched' : reconciliationResult() ? 'Mismatch' : 'Not run' }}</span>
+          </div>
+          <div class="expected-grid">
+            <label *ngFor="let metric of expectedMetrics">
+              <span>{{ metric.label }}</span>
+              <input type="number" min="0" [ngModel]="expectedTotals()[metric.key] || ''" (ngModelChange)="setExpectedTotal(metric.key, $event)" />
+            </label>
+          </div>
+          <div class="action-row">
+            <button class="secondary-button" type="button" [disabled]="!fileBase64() || loading()" (click)="runReconciliation()">Run reconciliation</button>
+            <button class="ghost-button" type="button" [disabled]="!reconciliationResult()" (click)="clearReconciliation()">Clear</button>
+          </div>
+          <div class="reconcile-table" *ngIf="reconciliationLines().length">
+            <article *ngFor="let line of reconciliationLines()" [class.mismatch]="line.status === 'mismatch'" [class.match]="line.status === 'match'">
+              <span>{{ line.metric }}</span>
+              <strong>{{ line.actual }}</strong>
+              <small>Expected {{ line.expected ?? 'not set' }} · Diff {{ line.difference ?? '-' }}</small>
+            </article>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Approval Control Tower</span>
+              <h2>Owner sign-off workflow</h2>
+            </div>
+            <button class="secondary-button" type="button" [disabled]="loading()" (click)="loadApprovals()">Refresh</button>
+          </div>
+          <label>
+            <span>Approval note</span>
+            <textarea [(ngModel)]="approvalNote" rows="3" placeholder="Summary, risk notes, branch sign-off, reconciliation evidence"></textarea>
+          </label>
+          <div class="action-row">
+            <button class="primary-button" type="button" [disabled]="!summary() || hasCriticalErrors() || loading()" (click)="submitApproval()">Submit for approval</button>
+            <button class="ghost-button" type="button" [disabled]="!latestPendingApproval() || loading()" (click)="decideApproval(latestPendingApproval()?.id || '', 'approved')">Approve latest</button>
+            <button class="danger-button" type="button" [disabled]="!latestPendingApproval() || loading()" (click)="decideApproval(latestPendingApproval()?.id || '', 'rejected')">Reject latest</button>
+          </div>
+          <p class="error-text" *ngIf="fileBase64() && !summary()">
+            Approval se pehle Analyze run karna zaroori hai.
+          </p>
+          <p class="success-text" *ngIf="summary() && !latestPendingApproval() && !importApprovalReady()">
+            Analyze complete hai. Ab "Submit for approval" click karo.
+          </p>
+          <p class="error-text" *ngIf="approvalDebug()">{{ approvalDebug() }}</p>
+          <div class="approval-list">
+            <article *ngFor="let approval of approvals().slice(0, 5)" [class.pending]="approval.status === 'pending'" [class.approved]="approval.status === 'approved'" [class.rejected]="approval.status === 'rejected'">
+              <div>
+                <strong>{{ approval.status | titlecase }} · {{ approval.resource || 'migration' }}</strong>
+                <small>{{ approval.submittedAt | date:'short' }} {{ approval.reviewedAt ? '· reviewed ' + (approval.reviewedAt | date:'short') : '' }}</small>
+              </div>
+              <span>{{ approval.note || 'No note' }}</span>
+            </article>
+            <p class="muted" *ngIf="!approvals().length">No approval requests yet.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Duplicate Merge Studio</span>
+              <h2>Client, invoice & source collisions</h2>
+            </div>
+            <span class="status-pill">{{ duplicateDecisionCount() }}/{{ duplicateRows().length }} decided</span>
+          </div>
+          <div class="duplicate-list">
+            <article *ngFor="let row of duplicateRows().slice(0, 8)">
+              <div>
+                <strong>{{ label(row.entity || 'record') }} row {{ row.sourceRowNumber || '-' }}</strong>
+                <small>{{ row.message || row.sourceExternalId || row.targetId || 'Possible duplicate' }}</small>
+              </div>
+              <div class="decision-actions">
+                <button type="button" [class.active]="duplicateDecision(row) === 'merge'" (click)="setDuplicateDecision(row, 'merge')">Merge</button>
+                <button type="button" [class.active]="duplicateDecision(row) === 'keep'" (click)="setDuplicateDecision(row, 'keep')">Keep</button>
+                <button type="button" [class.active]="duplicateDecision(row) === 'link'" (click)="setDuplicateDecision(row, 'link')">Link</button>
+              </div>
+            </article>
+            <p class="muted" *ngIf="!duplicateRows().length">No duplicate rows in the current preview.</p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Validation Ops Queue</span>
+              <h2>Fix priorities</h2>
+            </div>
+          </div>
+          <div class="ops-queue">
+            <button type="button" *ngFor="let item of validationQueues()" [class.danger]="item.status === 'error'" [class.warning]="item.status === 'warning'" [class.active]="rowFilter() === item.status" (click)="rowFilter.set(item.status)">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+              <small>{{ item.detail }}</small>
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid two">
+        <article class="panel" *ngIf="previewRows().length">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Validation Cockpit</span>
+              <h2>First 500 row decisions</h2>
+            </div>
+            <div class="segmented">
+              <button [class.active]="rowFilter() === 'all'" (click)="rowFilter.set('all')">All</button>
+              <button [class.active]="rowFilter() === 'error'" (click)="rowFilter.set('error')">Errors</button>
+              <button [class.active]="rowFilter() === 'warning'" (click)="rowFilter.set('warning')">Warnings</button>
+              <button [class.active]="rowFilter() === 'duplicate'" (click)="rowFilter.set('duplicate')">Duplicates</button>
+            </div>
+          </div>
+          <div class="table-wrap dense">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sheet</th>
+                  <th>Row</th>
+                  <th>Entity</th>
+                  <th>Status</th>
+                  <th>Decision</th>
+                  <th>Target/source</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of filteredPreviewRows()">
+                  <td>{{ row.sourceSheet }}</td>
+                  <td>{{ row.sourceRowNumber }}</td>
+                  <td>{{ row.entity }}</td>
+                  <td><span class="badge" [class.danger]="row.status === 'error'" [class.warning]="row.status === 'warning'">{{ row.status }}</span></td>
+                  <td>{{ row.message }}</td>
+                  <td>{{ row.sourceExternalId || row.targetId }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Go-Live Checklist</span>
+              <h2>Sign-off controls</h2>
+            </div>
+          </div>
+          <div class="checklist">
+            <label *ngFor="let item of completionChecklist()">
+              <input type="checkbox" [checked]="item.done" disabled />
+              <span>{{ item.label }}</span>
+            </label>
+          </div>
+          <div class="rollback-zone">
+            <strong>Emergency rollback</strong>
+            <span>Last import, job-wise rollback and batch-level audit are available from the same migration ledger.</span>
+            <label>
+              <span>Rollback reason</span>
+              <textarea [ngModel]="rollbackReason()" (ngModelChange)="rollbackReason.set($event)" rows="2" placeholder="Why rollback is required?"></textarea>
+            </label>
+            <button class="danger-button" [disabled]="loading() || !jobs().length" (click)="rollbackLast()">Rollback last import</button>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="grid two">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Enterprise Controls</span>
+              <h2>Quality, sandbox & approval gate</h2>
+            </div>
+            <span class="status-pill" [class.danger]="dataQualityScore() < 60">{{ dataQualityScore() }}% quality</span>
+          </div>
+          <div class="control-strip compact">
+            <article><span>Mode</span><strong>{{ sandboxMode() ? 'Sandbox' : 'Live' }}</strong><small>Sandbox recommended first</small></article>
+            <article><span>Approval gate</span><strong>{{ importApprovalReady() ? 'Approved' : 'Blocked' }}</strong><small>Final import requires owner sign-off</small></article>
+            <article><span>Progress</span><strong>{{ migrationProgress() }}%</strong><small>{{ progressLabel() }}</small></article>
+            <article><span>PII preview</span><strong>{{ maskPreviewPii() ? 'Masked' : 'Visible' }}</strong><small>Phone/email protection</small></article>
+          </div>
+          <div class="action-row">
+            <button class="secondary-button" type="button" (click)="sandboxMode.set(!sandboxMode())">{{ sandboxMode() ? 'Switch to live mode' : 'Switch to sandbox mode' }}</button>
+            <button class="secondary-button" type="button" (click)="maskPreviewPii.set(!maskPreviewPii())">{{ maskPreviewPii() ? 'Show PII preview' : 'Mask PII preview' }}</button>
+            <button class="ghost-button" type="button" [disabled]="!previewRows().length" (click)="exportFailedRows()">Export failed rows</button>
+            <button class="ghost-button" type="button" [disabled]="!previewRows().length" (click)="exportPreviewSummary()">Export preview summary</button>
+          </div>
+          <div class="checklist">
+            <label *ngFor="let item of enterpriseChecklist()">
+              <input type="checkbox" [checked]="item.done" disabled />
+              <span>{{ item.label }}</span>
+            </label>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Migration Assistant</span>
+              <h2>Ask why rows failed</h2>
+            </div>
+          </div>
+          <label>
+            <span>Ask migration assistant</span>
+            <textarea [ngModel]="assistantQuestion()" (ngModelChange)="assistantQuestion.set($event)" rows="3" placeholder="Example: kyu 50 rows fail hui?"></textarea>
+          </label>
+          <div class="action-row">
+            <button class="primary-button" type="button" [disabled]="!previewRows().length" (click)="askMigrationAssistant()">Ask assistant</button>
+            <button class="ghost-button" type="button" [disabled]="!assistantAnswer()" (click)="assistantAnswer.set('')">Clear</button>
+          </div>
+          <div class="result-box" *ngIf="assistantAnswer()">
+            <strong>Assistant answer</strong>
+            <span>{{ assistantAnswer() }}</span>
+          </div>
+          <div class="ops-queue">
+            <button type="button" *ngFor="let item of anomalyCards()" [class.danger]="item.tone === 'danger'" [class.warning]="item.tone === 'warning'">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+              <small>{{ item.detail }}</small>
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">Migration Ledger</span>
+            <h2>Jobs, audits and rollback history</h2>
+          </div>
+          <button class="secondary-button" (click)="loadJobs()" [disabled]="loading()">Refresh</button>
         </div>
-        <button class="danger-button" (click)="rollbackLast()">Rollback last import</button>
-        <button class="secondary-button" (click)="loadJobs()">Refresh</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Created</th>
-              <th>Source</th>
-              <th>File</th>
-              <th>Status</th>
-              <th>Total</th>
-              <th>Imported</th>
-              <th>Errors</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let job of jobs()">
-              <td>{{ job.createdAt | date: 'short' }}</td>
-              <td>{{ job.sourceSoftware }}</td>
-              <td>{{ job.fileName }}</td>
-              <td><span class="badge">{{ job.status }}</span></td>
-              <td>{{ job.totalRows }}</td>
-              <td>{{ job.importedRows }}</td>
-              <td>{{ job.errorRows }}</td>
-              <td><button class="danger-button" [disabled]="job.status === 'rolled_back'" (click)="rollback(job.id)">Rollback</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Created</th>
+                <th>Source</th>
+                <th>File</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Imported</th>
+                <th>Errors</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let job of jobs()" [class.selected]="selectedJob()?.id === job.id">
+                <td>{{ job.createdAt | date: 'short' }}</td>
+                <td>{{ job.sourceSoftware }}</td>
+                <td>{{ job.fileName }}</td>
+                <td><span class="badge">{{ job.status }}</span></td>
+                <td>{{ job.totalRows }}</td>
+                <td>{{ job.importedRows }}</td>
+                <td>{{ job.errorRows }}</td>
+                <td>
+                  <button class="secondary-button" type="button" [disabled]="loading()" (click)="loadJobDetail(job.id)">Open</button>
+                  <button class="danger-button" [disabled]="job.status === 'rolled_back' || loading()" (click)="rollback(job.id)">Rollback</button>
+                </td>
+              </tr>
+              <tr *ngIf="!jobs().length"><td colspan="8">No migration jobs yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="job-detail" *ngIf="selectedJob() as job">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Job Drilldown</span>
+              <h2>{{ job.fileName || job.id }}</h2>
+            </div>
+            <button class="ghost-button" type="button" (click)="selectedJob.set(null)">Close</button>
+          </div>
+          <div class="control-strip compact">
+            <article><span>Total</span><strong>{{ job.totalRows }}</strong><small>Rows</small></article>
+            <article><span>Imported</span><strong>{{ job.importedRows }}</strong><small>Live records</small></article>
+            <article><span>Errors</span><strong>{{ job.errorRows }}</strong><small>Blocked rows</small></article>
+            <article><span>Status</span><strong>{{ job.status }}</strong><small>{{ job.sourceSoftware }}</small></article>
+          </div>
+          <div class="table-wrap dense" *ngIf="job.rows?.length">
+            <table>
+              <thead><tr><th>Sheet</th><th>Row</th><th>Entity</th><th>Status</th><th>Message</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of job.rows.slice(0, 200)">
+                  <td>{{ row.sourceSheet }}</td>
+                  <td>{{ row.sourceRowNumber }}</td>
+                  <td>{{ row.entity }}</td>
+                  <td><span class="badge" [class.danger]="row.status === 'error'" [class.warning]="row.status === 'warning'">{{ row.status }}</span></td>
+                  <td>{{ row.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </section>
-  `
+  `,
+  styles: [`
+    :host { display: block; }
+    .migration-shell { display: grid; gap: 18px; color: #172033; }
+    .command-header { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; align-items: stretch; padding: 22px; border: 1px solid #d7e6e2; border-radius: 8px; background: linear-gradient(120deg, #f8fffd, #ffffff 62%, #edf7ff); box-shadow: 0 18px 40px rgba(15,23,42,.08); }
+    .command-header h1 { margin: 6px 0; font-size: 34px; line-height: 1.05; letter-spacing: 0; }
+    .command-header p { margin: 0; max-width: 900px; color: #64748b; font-size: 15px; line-height: 1.55; }
+    .eyebrow { color: #2563eb; font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+    .score-card, .control-strip article, .panel, .pipeline article, .risk-panel article, .mapping-list article, .entity-stack article, .recon-list article { border: 1px solid #d7e6e2; border-radius: 8px; background: #ffffff; }
+    .score-card { display: grid; align-content: center; gap: 6px; padding: 18px; }
+    .score-card strong { font-size: 42px; line-height: 1; }
+    .score-card span, .control-strip span, .panel-head span, .risk-panel span, .recon-list span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .score-card small, .control-strip small, .risk-panel small, .recon-list small { color: #64748b; }
+    .score-card.warning { border-color: #f59e0b; background: #fffbeb; }
+    .score-card.danger { border-color: #ef4444; background: #fef2f2; }
+    .control-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .control-strip article { padding: 14px; display: grid; gap: 4px; min-width: 0; }
+    .control-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .workspace-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(260px, .65fr); gap: 14px; align-items: start; }
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .panel { padding: 18px; min-width: 0; }
+    .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
+    .panel-head h2 { margin: 3px 0 0; font-size: 20px; letter-spacing: 0; }
+    .status-pill, .badge { border-radius: 999px; background: #e8f7f4; color: #0f766e; padding: 6px 10px; font-size: 12px; font-weight: 900; white-space: nowrap; }
+    .status-pill.danger { background: #fef2f2; color: #b91c1c; }
+    .badge.warning { background: #fffbeb; color: #b45309; }
+    .badge.danger { background: #fef2f2; color: #b91c1c; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    label { display: grid; gap: 6px; color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    input, select, textarea { width: 100%; min-height: 42px; border: 1px solid #cfe0dc; border-radius: 8px; background: #f8fffd; padding: 10px 11px; color: #172033; font-weight: 800; box-sizing: border-box; }
+    input:focus, select:focus, textarea:focus { border-color: #0f8f7f; outline: 3px solid rgba(15,143,127,.14); background: #ffffff; }
+    textarea { resize: vertical; font-family: inherit; text-transform: none; }
+    .file-drop { grid-column: 1 / -1; border: 1px dashed #93c5fd; border-radius: 8px; padding: 12px; background: #f8fbff; }
+    .file-drop small, .muted { color: #64748b; text-transform: none; font-weight: 700; }
+    .action-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    button { min-height: 40px; border: 1px solid #cfe0dc; border-radius: 8px; padding: 0 14px; font-weight: 900; cursor: pointer; background: #ffffff; color: #172033; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .primary-button { background: #0f8f7f; color: #ffffff; border-color: #0f8f7f; }
+    .secondary-button { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .ghost-button { background: #ffffff; }
+    .danger-button { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .success-text, .error-text { margin: 8px 0 0; font-weight: 900; }
+    .success-text { color: #047857; }
+    .error-text { color: #b91c1c; }
+    .pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+    .pipeline article { padding: 10px; display: grid; gap: 3px; border-left: 4px solid #cbd5e1; }
+    .pipeline article.done { border-left-color: #10b981; background: #f0fdf4; }
+    .pipeline article.active { border-left-color: #2563eb; background: #eff6ff; }
+    .pipeline article.blocked { border-left-color: #ef4444; background: #fef2f2; }
+    .pipeline strong { font-size: 13px; }
+    .pipeline small { color: #64748b; }
+    .risk-panel { display: grid; gap: 10px; }
+    .risk-panel .panel-head { margin-bottom: 0; }
+    .risk-panel article { padding: 12px; display: grid; gap: 4px; border-left: 4px solid #94a3b8; }
+    .risk-panel article.good { border-left-color: #10b981; }
+    .risk-panel article.warning { border-left-color: #f59e0b; background: #fffbeb; }
+    .risk-panel article.danger { border-left-color: #ef4444; background: #fef2f2; }
+    .risk-panel strong { font-size: 24px; }
+    .mapping-list, .entity-stack, .recon-list, .checklist { display: grid; gap: 8px; }
+    .mapping-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 10px; }
+    .mapping-list article { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto; align-items: center; gap: 12px; padding: 10px; }
+    .mapping-list article.required { border-color: #bfdbfe; background: #eff6ff; }
+    .mapping-list strong, .entity-stack strong { display: block; }
+    .mapping-list small, .entity-stack small { color: #64748b; }
+    .mapping-list article > span { color: #2563eb; font-size: 12px; font-weight: 900; }
+    .mapping-list input { min-height: 36px; }
+    .duplicate-list, .ops-queue { display: grid; gap: 8px; }
+    .duplicate-list article { border: 1px solid #d7e6e2; border-radius: 8px; padding: 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+    .duplicate-list small { color: #64748b; }
+    .decision-actions { display: inline-flex; border: 1px solid #cfe0dc; border-radius: 8px; overflow: hidden; }
+    .decision-actions button { border: 0; border-radius: 0; min-height: 34px; }
+    .decision-actions button.active { background: #0f8f7f; color: #ffffff; }
+    .ops-queue { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ops-queue button { min-height: 92px; display: grid; gap: 4px; align-content: center; text-align: left; border-left: 4px solid #94a3b8; }
+    .ops-queue button.warning { border-left-color: #f59e0b; background: #fffbeb; }
+    .ops-queue button.danger { border-left-color: #ef4444; background: #fef2f2; }
+    .ops-queue button.active { outline: 3px solid rgba(15,143,127,.16); }
+    .ops-queue strong { font-size: 26px; }
+    .ops-queue span, .ops-queue small { color: #64748b; }
+    .entity-stack article { padding: 10px; display: grid; gap: 6px; }
+    meter { width: 100%; height: 8px; }
+    .recon-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .recon-list article { padding: 12px; display: grid; gap: 4px; }
+    .recon-list strong { font-size: 22px; }
+    .expected-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .reconcile-table, .approval-list { display: grid; gap: 8px; }
+    .reconcile-table article, .approval-list article, .job-detail { border: 1px solid #d7e6e2; border-radius: 8px; padding: 10px; background: #ffffff; }
+    .reconcile-table article { display: grid; gap: 4px; border-left: 4px solid #94a3b8; }
+    .reconcile-table article.match { border-left-color: #10b981; background: #f0fdf4; }
+    .reconcile-table article.mismatch { border-left-color: #ef4444; background: #fef2f2; }
+    .reconcile-table span, .approval-list small, .approval-list span { color: #64748b; }
+    .approval-list article { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, .6fr); gap: 10px; border-left: 4px solid #94a3b8; }
+    .approval-list article.pending { border-left-color: #f59e0b; background: #fffbeb; }
+    .approval-list article.approved { border-left-color: #10b981; background: #f0fdf4; }
+    .approval-list article.rejected { border-left-color: #ef4444; background: #fef2f2; }
+    .job-detail { margin-top: 14px; display: grid; gap: 12px; }
+    .control-strip.compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    tr.selected td { background: #eff6ff; }
+    .segmented { display: inline-flex; border: 1px solid #cfe0dc; border-radius: 8px; overflow: hidden; }
+    .segmented button { border: 0; border-radius: 0; min-height: 34px; background: #ffffff; }
+    .segmented button.active { background: #0f8f7f; color: #ffffff; }
+    .table-wrap { overflow: auto; border: 1px solid #d7e6e2; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid #edf2f7; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase; }
+    td { font-size: 13px; }
+    .dense { max-height: 420px; }
+    .checklist label { display: flex; align-items: center; gap: 10px; text-transform: none; color: #172033; font-size: 14px; }
+    .checklist input { width: auto; min-height: auto; }
+    .rollback-zone { margin-top: 16px; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; display: grid; gap: 8px; background: #fff7f7; }
+    .rollback-zone span, .result-box span { color: #64748b; }
+    .result-box { border: 1px solid #d7e6e2; border-radius: 8px; padding: 12px; display: grid; gap: 6px; background: #f8fffd; }
+    @media (max-width: 1100px) {
+      .command-header, .workspace-grid, .grid.two, .grid.three, .control-strip { grid-template-columns: 1fr 1fr; }
+      .pipeline { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .command-header, .workspace-grid, .grid.two, .grid.three, .control-strip, .control-strip.compact, .form-grid, .pipeline, .recon-list, .expected-grid, .approval-list article { grid-template-columns: 1fr; }
+      .command-header h1 { font-size: 28px; }
+      .panel-head { align-items: flex-start; flex-direction: column; }
+      .mapping-toolbar, .mapping-list article, .duplicate-list article, .ops-queue { grid-template-columns: 1fr; }
+    }
+  `]
 })
-export class DataMigrationComponent {
+export class DataMigrationComponent implements OnInit {
   readonly sourceOptions = [
     { value: 'zenoti', label: 'Zenoti' },
     { value: 'salonist', label: 'Salonist' },
@@ -223,10 +686,22 @@ export class DataMigrationComponent {
     { value: 'invoices', label: 'Invoices' },
     { value: 'payments', label: 'Payments' }
   ];
+  readonly expectedMetrics = [
+    { key: 'clients', label: 'Clients' },
+    { key: 'appointments', label: 'Appointments' },
+    { key: 'invoices', label: 'Invoices' },
+    { key: 'payments', label: 'Payments' },
+    { key: 'revenue', label: 'Revenue total' }
+  ];
+
   sourceSoftware = 'dingg';
   resource = '';
+  selectedMappingId = '';
+  approvalNote = '';
+  rowFilter = signal<'all' | 'error' | 'warning' | 'duplicate'>('all');
   fileBase64 = signal('');
   fileName = signal('');
+  fileSize = signal(0);
   loading = signal(false);
   error = signal('');
   message = signal('');
@@ -234,6 +709,22 @@ export class DataMigrationComponent {
   previewRows = signal<any[]>([]);
   jobs = signal<any[]>([]);
   onboarding = signal<any | null>(null);
+  adapters = signal<Record<string, SourceAdapter>>({});
+  templates = signal<Record<string, MigrationTemplate>>({});
+  mappings = signal<any[]>([]);
+  mappingDraft = signal<MappingDraftRow[]>([]);
+  duplicateDecisions = signal<Record<string, 'merge' | 'keep' | 'link'>>({});
+  expectedTotals = signal<Record<string, number>>({});
+  reconciliationResult = signal<any | null>(null);
+  approvals = signal<ApprovalRecord[]>([]);
+  selectedJob = signal<any | null>(null);
+  migrationProgress = signal(0);
+  sandboxMode = signal(true);
+  maskPreviewPii = signal(true);
+  rollbackReason = signal('');
+  assistantQuestion = signal('');
+  assistantAnswer = signal('');
+  approvalDebug = signal('');
 
   entityRows = computed(() => {
     const summary = this.summary();
@@ -243,66 +734,224 @@ export class DataMigrationComponent {
 
   hasCriticalErrors = computed(() => Boolean(this.summary()?.errorRows));
 
-  constructor(private readonly api: ApiService) {
+  templateColumns = () => {
+    const key = this.resource || 'clients';
+    return this.templates()[key]?.columns || [];
+  };
+
+  relevantMappings = () => {
+    const resource = this.resource || 'clients';
+    return this.mappings().filter((mapping) => (!mapping.resource || mapping.resource === resource) && (!mapping.sourceSoftware || mapping.sourceSoftware === this.sourceSoftware));
+  };
+
+  selectedAdapter = () => this.adapters()[this.sourceSoftware];
+
+  readinessScore = computed(() => {
+    const summary = this.summary();
+    const onboarding = this.onboarding();
+    let score = 15;
+    if (this.fileBase64()) score += 15;
+    if (summary?.totalRows) score += 20;
+    if (summary?.totalRows) score += Math.round((Number(summary.validRows || 0) / Math.max(1, Number(summary.totalRows || 1))) * 25);
+    if (onboarding?.completionChecklist?.some((item: any) => item.key === 'dryRun' && item.done)) score += 10;
+    if (summary && !summary.errorRows) score += 10;
+    if (this.jobs().some((job) => Number(job.importedRows || 0) > 0)) score += 5;
+    return Math.max(0, Math.min(100, score - Math.min(30, Number(summary?.errorRows || 0) * 3)));
+  });
+
+  pipelineSteps = computed(() => {
+    const summary = this.summary();
+    const hasFile = Boolean(this.fileBase64());
+    const hasErrors = Number(summary?.errorRows || 0) > 0;
+    const imported = this.jobs().some((job) => Number(job.importedRows || 0) > 0 && job.status !== 'rolled_back');
+    return [
+      { key: '01', label: 'Upload', detail: hasFile ? this.fileName() : 'Waiting for file', status: hasFile ? 'done' : 'active' },
+      { key: '02', label: 'Map', detail: `${this.mappingCoverage()}% field confidence`, status: hasFile ? 'active' : 'blocked' },
+      { key: '03', label: 'Validate', detail: summary ? `${summary.errorRows} critical errors` : 'Analyze pending', status: summary ? (hasErrors ? 'blocked' : 'done') : 'blocked' },
+      { key: '04', label: 'Dry run', detail: 'No database write', status: summary && !hasErrors ? 'active' : 'blocked' },
+      { key: '05', label: 'Import', detail: imported ? 'Live modules updated' : 'Awaiting sign-off', status: imported ? 'done' : (summary && !hasErrors ? 'active' : 'blocked') }
+    ];
+  });
+
+  riskCards = computed(() => {
+    const summary = this.summary();
+    const errors = Number(summary?.errorRows || 0);
+    const warnings = Number(summary?.warningRows || 0);
+    const duplicates = Number(summary?.duplicateRows || 0);
+    return [
+      { label: 'Critical errors', value: errors, detail: errors ? 'Fix before final import' : 'No hard blocker detected', tone: errors ? 'danger' : 'good' },
+      { label: 'Warnings', value: warnings, detail: warnings ? 'Review row-level decisions' : 'Clean validation layer', tone: warnings ? 'warning' : 'good' },
+      { label: 'Duplicates', value: duplicates, detail: duplicates ? 'Merge studio review needed' : 'No duplicate pressure', tone: duplicates ? 'warning' : 'good' },
+      { label: 'Adapter readiness', value: this.selectedAdapter()?.status || 'ready', detail: this.selectedAdapter()?.formats?.join(', ') || 'xlsx, csv', tone: 'good' }
+    ];
+  });
+
+  filteredPreviewRows = computed(() => {
+    const filter = this.rowFilter();
+    const rows = this.previewRows();
+    if (filter === 'all') return rows;
+    if (filter === 'duplicate') return rows.filter((row) =>
+      row.status === 'duplicate'
+        || String(row.message || '').toLowerCase().includes('duplicate')
+        || String(row.message || '').toLowerCase().includes('already')
+    );
+    return rows.filter((row) => row.status === filter);
+  });
+
+  duplicateRows = computed(() => this.previewRows().filter((row) =>
+    row.status === 'duplicate'
+      || String(row.message || '').toLowerCase().includes('duplicate')
+      || String(row.message || '').toLowerCase().includes('already')
+  ));
+
+  reconciliationRows = computed(() => {
+    const summary = this.summary();
+    const total = Number(summary?.totalRows || 0);
+    const valid = Number(summary?.validRows || 0);
+    const imported = this.jobs().reduce((sum, job) => sum + Number(job.importedRows || 0), 0);
+    const affected = Number(summary?.affectedRecords || 0);
+    return [
+      { label: 'Source rows', value: total, detail: 'Rows read from uploaded workbook' },
+      { label: 'Aura-ready rows', value: valid, detail: total ? `${Math.round(valid / Math.max(1, total) * 100)}% can move forward` : 'Awaiting analyze' },
+      { label: 'Affected records', value: affected, detail: 'Expected create/update impact' },
+      { label: 'Historical imported', value: imported, detail: 'Imported rows across all jobs' }
+    ];
+  });
+
+  constructor(private readonly api: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadIntelligence();
     this.loadJobs();
+    this.loadApprovals();
   }
 
-  onFile(event: Event) {
+  selectedSourceLabel(): string {
+    return this.selectedAdapter()?.label || this.sourceOptions.find((item) => item.value === this.sourceSoftware)?.label || this.sourceSoftware;
+  }
+
+  selectedAdapterType(): string {
+    return this.selectedAdapter()?.type || 'adapter pending';
+  }
+
+  selectedAdapterStatus(): string {
+    return this.selectedAdapter()?.status || 'local rule set';
+  }
+
+  fileSizeLabel(): string {
+    const size = this.fileSize();
+    if (!size) return 'Upload .xlsx, .xls or .csv';
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  goLiveGate(): string {
+    if (!this.fileBase64()) return 'Upload source file';
+    if (this.hasCriticalErrors()) return 'Blocked by validation errors';
+    if (!this.summary()) return 'Run analyze';
+    if (this.readinessScore() >= 85) return 'Ready for owner sign-off';
+    return 'Dry run recommended';
+  }
+
+  mappingCoverage(): number {
+    const rows = this.mappingDraft();
+    if (!rows.length) return 0;
+    return Math.round((rows.filter((row) => row.sourceColumn.trim()).length / rows.length) * 100);
+  }
+
+  completionChecklist(): any[] {
+    return this.onboarding()?.completionChecklist || [
+      { label: 'Upload source file', done: Boolean(this.fileBase64()) },
+      { label: 'Run analyze', done: Boolean(this.summary()) },
+      { label: 'Resolve critical errors', done: !this.hasCriticalErrors() },
+      { label: 'Run dry-run validation', done: false },
+      { label: 'Owner final sign-off', done: false }
+    ];
+  }
+
+  refreshSourceContext(): void {
+    this.message.set(`${this.selectedSourceLabel()} adapter selected.`);
+    this.rebuildMappingDraft();
+  }
+
+  onResourceChange(): void {
+    this.selectedMappingId = '';
+    this.rebuildMappingDraft();
+  }
+
+  onFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      this.error.set('File 20MB se chhoti honi chahiye. Large migration ko split karke upload karo.');
+      input.value = '';
+      return;
+    }
     this.fileName.set(file.name);
+    this.fileSize.set(file.size);
     this.error.set('');
     this.message.set('');
+    this.summary.set(null);
+    this.previewRows.set([]);
+    this.duplicateDecisions.set({});
+    this.reconciliationResult.set(null);
+    this.selectedJob.set(null);
     const reader = new FileReader();
     reader.onload = () => this.fileBase64.set(String(reader.result || '').split(',').pop() || '');
     reader.onerror = () => this.error.set('File read failed.');
     reader.readAsDataURL(file);
   }
 
-  async analyze() {
-    await this.callMigration('migration/analyze', 'Analyze complete.');
+  async analyze(): Promise<void> {
+    await this.callMigration('migration/analyze', 'Analyze complete. Validation cockpit updated.');
   }
 
-  async dryRun() {
+  async dryRun(): Promise<void> {
     await this.callMigration('migration/dry-run', 'Dry run complete. Data abhi save nahi hua.');
-  }
-
-  async runImport() {
-    if (!confirm('Final import database me data save karega. Continue?')) return;
-    await this.callMigration('migration/import', 'Final import complete. Data live modules me save ho gaya.');
     await this.loadJobs();
   }
 
-  async rollback(jobId: string) {
-    if (!confirm('Rollback last imported records delete karega. Continue?')) return;
+  async runImport(): Promise<void> {
+    if (!this.importApprovalReady()) {
+      this.error.set('Final import blocked: pehle Analyze run karo, phir Submit for approval, phir Approve latest.');
+      return;
+    }
+    if (!this.validateRequiredMapping()) return;
+    if (!confirm(`${this.sandboxMode() ? 'Sandbox' : 'Live'} final import database me data save karega. Continue?`)) return;
+    await this.callMigration('migration/import', this.sandboxMode() ? 'Sandbox import complete. Review results before live migration.' : 'Final import complete. Data live modules me save ho gaya.');
+    await this.loadJobs();
+  }
+
+  async rollback(jobId: string): Promise<void> {
+    if (!confirm('Rollback selected import records delete karega. Continue?')) return;
     try {
       this.loading.set(true);
-      const result = await firstValueFrom(this.api.post<any>(`migration/jobs/${jobId}/rollback`, {}));
+      const result = await firstValueFrom(this.api.post<any>(`migration/jobs/${jobId}/rollback`, { reason: this.rollbackReason() || 'manual rollback' }));
       this.message.set(result.message || 'Rollback complete.');
       await this.loadJobs();
     } catch (err: any) {
-      this.error.set(err?.error?.message || err?.message || 'Rollback failed.');
+      this.error.set(this.api.errorText(err, 'Rollback failed.'));
     } finally {
       this.loading.set(false);
     }
   }
 
-  async rollbackLast() {
+  async rollbackLast(): Promise<void> {
     if (!confirm('Rollback last imported batch?')) return;
     try {
       this.loading.set(true);
-      const result = await firstValueFrom(this.api.post<any>('migration/rollback/last', {}));
+      const result = await firstValueFrom(this.api.post<any>('migration/rollback/last', { reason: this.rollbackReason() || 'manual rollback last import' }));
       this.message.set(result.message || 'Rollback last import complete.');
       await this.loadJobs();
     } catch (err: any) {
-      this.error.set(err?.error?.message || err?.message || 'Rollback failed.');
+      this.error.set(this.api.errorText(err, 'Rollback failed.'));
     } finally {
       this.loading.set(false);
     }
   }
 
-  async loadJobs() {
+  async loadJobs(): Promise<void> {
     try {
       const jobs = await firstValueFrom(this.api.list<any[]>('migration/jobs'));
       this.jobs.set(jobs || []);
@@ -313,7 +962,38 @@ export class DataMigrationComponent {
     }
   }
 
-  private async callMigration(path: string, successMessage: string) {
+  async loadIntelligence(): Promise<void> {
+    try {
+      const [adapters, templates, mappings] = await Promise.all([
+        firstValueFrom(this.api.list<Record<string, SourceAdapter>>('migration/adapters')),
+        firstValueFrom(this.api.list<Record<string, MigrationTemplate>>('migration/templates')),
+        firstValueFrom(this.api.list<any[]>('migration/mappings'))
+      ]);
+      this.adapters.set(adapters || {});
+      this.templates.set(templates || {});
+      this.mappings.set(mappings || []);
+      this.rebuildMappingDraft();
+    } catch {
+      this.adapters.set({});
+      this.templates.set({});
+      this.mappings.set([]);
+      this.rebuildMappingDraft();
+    }
+  }
+
+  reconciliationLines(): ReconciliationLine[] {
+    return this.reconciliationResult()?.lines || [];
+  }
+
+  setExpectedTotal(key: string, value: unknown): void {
+    const amount = Number(value || 0);
+    this.expectedTotals.update((current) => ({
+      ...current,
+      [key]: Number.isFinite(amount) ? amount : 0
+    }));
+  }
+
+  async runReconciliation(): Promise<void> {
     if (!this.fileBase64()) {
       this.error.set('Pehle Excel file select karo.');
       return;
@@ -321,23 +1001,394 @@ export class DataMigrationComponent {
     try {
       this.loading.set(true);
       this.error.set('');
+      const result = await firstValueFrom(this.api.post<any>('migration/reconcile', {
+        sourceSoftware: this.sourceSoftware,
+        resource: this.resource,
+        migrationMode: true,
+        fileName: this.fileName(),
+        fileBase64: this.fileBase64(),
+        expected: this.expectedTotals()
+      }));
+      this.reconciliationResult.set(result || null);
+      this.message.set(result?.matched ? 'Reconciliation matched.' : 'Reconciliation completed with differences.');
+    } catch (err: any) {
+      this.error.set(this.api.errorText(err, 'Reconciliation failed.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  clearReconciliation(): void {
+    this.reconciliationResult.set(null);
+    this.expectedTotals.set({});
+  }
+
+  async loadApprovals(): Promise<void> {
+    try {
+      this.approvalDebug.set('');
+      const rows = await firstValueFrom(this.api.list<ApprovalRecord[]>('migration/approvals'));
+      const safeRows = Array.isArray(rows) ? rows : [];
+      this.approvals.set(safeRows);
+      if (!safeRows.length) {
+        this.approvalDebug.set('No approval records found from backend yet.');
+      }
+    } catch (err: any) {
+      this.approvals.set([]);
+      this.approvalDebug.set(this.api.errorText(err, 'Approval refresh failed. Check /migration/approvals route.'));
+    }
+  }
+
+  latestPendingApproval(): ApprovalRecord | null {
+    return this.approvals().find((approval) => approval.status === 'pending') || null;
+  }
+
+  async submitApproval(): Promise<void> {
+    if (!this.summary()) {
+      if (!this.fileBase64()) {
+        this.error.set('Approval ke liye pehle file select karo.');
+        return;
+      }
+      await this.analyze();
+      if (!this.summary()) {
+        this.error.set('Approval ke liye analyze summary nahi bani. Network response check karo.');
+        return;
+      }
+    }
+
+    try {
+      this.loading.set(true);
+      this.error.set('');
+      this.approvalDebug.set('');
+      const approval = await firstValueFrom(this.api.post<ApprovalRecord>('migration/approvals', {
+        jobId: this.jobs()[0]?.id || '',
+        resource: this.resource || 'auto',
+        note: this.approvalNote || this.goLiveGate(),
+        summary: {
+          readinessScore: this.readinessScore(),
+          dataQualityScore: this.dataQualityScore ? this.dataQualityScore() : undefined,
+          summary: this.summary(),
+          reconciliation: this.reconciliationResult(),
+          duplicateDecisions: this.duplicateDecisions()
+        }
+      }));
+
+      if (!approval?.id) {
+        this.approvalDebug.set('Backend approval response did not include an id. Check migrationService.submitApproval response.');
+      }
+
+      this.approvals.update((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== approval?.id);
+        return approval?.id ? [approval, ...withoutDuplicate] : current;
+      });
+
+      this.message.set(`Approval request submitted: ${approval?.status || 'pending'}.`);
+      await this.loadApprovals();
+    } catch (err: any) {
+      const text = this.api.errorText(err, 'Unable to submit approval.');
+      this.error.set(text);
+      this.approvalDebug.set(text);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async decideApproval(id: string, decision: 'approved' | 'rejected'): Promise<void> {
+    if (!id) {
+      this.approvalDebug.set('No pending approval selected. Pehle Submit for approval click karo.');
+      return;
+    }
+    try {
+      this.loading.set(true);
+      this.error.set('');
+      this.approvalDebug.set('');
+      const approval = await firstValueFrom(this.api.post<ApprovalRecord>(`migration/approvals/${id}/decide`, {
+        decision,
+        note: this.approvalNote || decision
+      }));
+
+      this.approvals.update((current) => current.map((item) => item.id === id ? approval : item));
+      this.message.set(`Approval ${approval?.status || decision}.`);
+      await this.loadApprovals();
+    } catch (err: any) {
+      const text = this.api.errorText(err, 'Unable to update approval.');
+      this.error.set(text);
+      this.approvalDebug.set(text);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async loadJobDetail(jobId: string): Promise<void> {
+    try {
+      this.loading.set(true);
+      this.error.set('');
+      const job = await firstValueFrom(this.api.get<any>('migration/jobs', jobId));
+      this.selectedJob.set(job || null);
+    } catch (err: any) {
+      this.error.set(this.api.errorText(err, 'Unable to load migration job.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  applySavedMapping(mappingId: string): void {
+    const mapping = this.mappings().find((item) => item.id === mappingId);
+    if (!mapping) {
+      this.rebuildMappingDraft();
+      return;
+    }
+    this.resource = mapping.resource || this.resource || 'clients';
+    const saved = mapping.mapping || {};
+    this.mappingDraft.set(this.templateColumns().map((column) => ({
+      targetField: column.field,
+      sourceColumn: this.sourceForTarget(saved, column.field) || column.aliases[0] || column.field,
+      required: column.required,
+      confidence: this.mappingConfidence(column.required, true),
+      aliases: column.aliases || []
+    })));
+    this.message.set(`${mapping.name || 'Mapping profile'} loaded.`);
+  }
+
+  async saveMappingProfile(): Promise<void> {
+    const resource = this.resource || 'clients';
+    const mapping = Object.fromEntries(this.mappingDraft().filter((row) => row.sourceColumn).map((row) => [row.sourceColumn, row.targetField]));
+    try {
+      this.loading.set(true);
+      await firstValueFrom(this.api.post<any>('migration/mappings', {
+        sourceSoftware: this.sourceSoftware,
+        resource,
+        name: `${this.selectedSourceLabel()} ${this.label(resource)} mapping`,
+        mapping,
+        unmatchedColumns: [],
+        requiredFields: this.templates()[resource]?.required || []
+      }));
+      this.message.set('Mapping profile saved for future imports.');
+      await this.loadIntelligence();
+    } catch (err: any) {
+      this.error.set(this.api.errorText(err, 'Unable to save mapping profile.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  setMappingSource(targetField: string, sourceColumn: string): void {
+    this.mappingDraft.update((rows) => rows.map((row) => row.targetField === targetField
+      ? { ...row, sourceColumn, confidence: this.mappingConfidence(row.required, Boolean(sourceColumn)) }
+      : row
+    ));
+  }
+
+  validationQueues(): Array<{ status: 'all' | 'error' | 'warning' | 'duplicate'; label: string; count: number; detail: string }> {
+    const rows = this.previewRows();
+    const errors = rows.filter((row) => row.status === 'error').length;
+    const warnings = rows.filter((row) => row.status === 'warning').length;
+    return [
+      { status: 'error', label: 'Critical fixes', count: errors, detail: errors ? 'Must resolve before import' : 'No blockers' },
+      { status: 'warning', label: 'Review queue', count: warnings, detail: warnings ? 'Can import with owner sign-off' : 'No warnings' },
+      { status: 'duplicate', label: 'Duplicate conflicts', count: this.duplicateRows().length, detail: 'Merge / keep / link required' },
+      { status: 'all', label: 'All decisions', count: rows.length, detail: 'Full row-level report' }
+    ];
+  }
+
+  duplicateDecision(row: any): 'merge' | 'keep' | 'link' | '' {
+    return this.duplicateDecisions()[this.rowKey(row)] || '';
+  }
+
+  setDuplicateDecision(row: any, decision: 'merge' | 'keep' | 'link'): void {
+    const key = this.rowKey(row);
+    this.duplicateDecisions.update((current) => ({ ...current, [key]: decision }));
+  }
+
+  duplicateDecisionCount(): number {
+    const decisions = this.duplicateDecisions();
+    return this.duplicateRows().filter((row) => decisions[this.rowKey(row)]).length;
+  }
+
+  downloadTemplate(): void {
+    const columns = this.templateColumns().map((column) => column.field);
+    if (!columns.length) return;
+    const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = `${columns.map(escape).join(',')}\n${this.templateColumns().map((column) => escape(column.example || '')).join(',')}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${this.resource || 'clients'}-migration-template.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  label(value: string): string {
+    return String(value || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private async callMigration(path: string, successMessage: string): Promise<void> {
+    if (!this.fileBase64()) {
+      this.error.set('Pehle Excel file select karo.');
+      return;
+    }
+    try {
+      this.loading.set(true);
+      this.migrationProgress.set(path.includes('analyze') ? 20 : path.includes('dry-run') ? 55 : 82);
+      this.error.set('');
       this.message.set('');
       const response = await firstValueFrom(
         this.api.post<any>(path, {
           sourceSoftware: this.sourceSoftware,
           resource: this.resource,
           migrationMode: true,
+          sandboxMode: this.sandboxMode(),
+          mapping: Object.fromEntries(this.mappingDraft().filter((row) => row.sourceColumn).map((row) => [row.sourceColumn, row.targetField])),
+          duplicateDecisions: this.duplicateDecisions(),
           fileName: this.fileName(),
           fileBase64: this.fileBase64()
         })
       );
       this.summary.set(response.summary || null);
       this.previewRows.set(response.rows || response.details?.rows || []);
+      this.duplicateDecisions.set({});
+      this.migrationProgress.set(path.includes('import') ? 100 : path.includes('dry-run') ? 75 : 45);
       this.message.set(successMessage);
+      if (path.includes('analyze') || path.includes('dry-run') || path.includes('import')) {
+        await this.loadApprovals();
+      }
     } catch (err: any) {
-      this.error.set(err?.error?.message || err?.message || 'Migration failed.');
+      this.error.set(this.api.errorText(err, 'Migration failed.'));
     } finally {
       this.loading.set(false);
     }
+  }
+
+  dataQualityScore(): number {
+    const summary = this.summary();
+    if (!summary?.totalRows) return this.fileBase64() ? 35 : 0;
+    const validRate = Number(summary.validRows || 0) / Math.max(1, Number(summary.totalRows || 1));
+    const warningPenalty = Math.min(20, Number(summary.warningRows || 0) * 2);
+    const errorPenalty = Math.min(35, Number(summary.errorRows || 0) * 5);
+    const duplicatePenalty = Math.min(15, Number(summary.duplicateRows || 0) * 2);
+    return Math.max(0, Math.min(100, Math.round(validRate * 100) - warningPenalty - errorPenalty - duplicatePenalty));
+  }
+
+  importApprovalReady(): boolean {
+    return this.approvals().some((approval) => approval.status === 'approved');
+  }
+
+  progressLabel(): string {
+    const progress = this.migrationProgress();
+    if (!progress) return 'Not started';
+    if (progress < 40) return 'Analyzing';
+    if (progress < 80) return 'Dry-run / validation';
+    if (progress < 100) return 'Importing';
+    return 'Complete';
+  }
+
+  enterpriseChecklist(): any[] {
+    return [
+      { label: 'File size under 20MB', done: Boolean(this.fileBase64()) && this.fileSize() <= 20 * 1024 * 1024 },
+      { label: 'Required mapping fields completed', done: this.requiredMappingComplete() },
+      { label: 'No critical errors', done: !this.hasCriticalErrors() && Boolean(this.summary()) },
+      { label: 'Duplicate decisions reviewed', done: !this.duplicateRows().length || this.duplicateDecisionCount() === this.duplicateRows().length },
+      { label: 'Owner approval received', done: this.importApprovalReady() },
+      { label: 'Sandbox mode reviewed before live import', done: this.sandboxMode() || this.importApprovalReady() }
+    ];
+  }
+
+  requiredMappingComplete(): boolean {
+    return this.mappingDraft().filter((row) => row.required).every((row) => row.sourceColumn.trim());
+  }
+
+  validateRequiredMapping(): boolean {
+    if (this.requiredMappingComplete()) return true;
+    this.error.set('Required mapping fields missing hain. AI Mapping Studio me required source columns complete karo.');
+    return false;
+  }
+
+  anomalyCards(): Array<{ label: string; count: number; detail: string; tone: string }> {
+    const rows = this.previewRows();
+    const invalidDates = rows.filter((row) => /date|future|invalid/i.test(String(row.message || ''))).length;
+    const badPhone = rows.filter((row) => /phone|mobile/i.test(String(row.message || ''))).length;
+    const badMoney = rows.filter((row) => /negative|amount|payment|invoice|discount/i.test(String(row.message || ''))).length;
+    return [
+      { label: 'Invalid dates', count: invalidDates, detail: 'Future/invalid appointment or invoice dates', tone: invalidDates ? 'warning' : 'good' },
+      { label: 'Phone/email issues', count: badPhone, detail: 'PII and contact validation issues', tone: badPhone ? 'warning' : 'good' },
+      { label: 'Money anomalies', count: badMoney, detail: 'Negative invoice/payment/discount issues', tone: badMoney ? 'danger' : 'good' }
+    ];
+  }
+
+  askMigrationAssistant(): void {
+    const rows = this.previewRows();
+    const errors = rows.filter((row) => row.status === 'error');
+    const warnings = rows.filter((row) => row.status === 'warning');
+    const duplicates = this.duplicateRows();
+    const topMessages = [...errors, ...warnings, ...duplicates]
+      .slice(0, 8)
+      .map((row) => row.message || `${row.entity || 'record'} row ${row.sourceRowNumber || ''}`)
+      .filter(Boolean);
+    this.assistantAnswer.set([
+      `${errors.length} critical errors, ${warnings.length} warnings aur ${duplicates.length} duplicate/conflict rows detect hui.`,
+      topMessages.length ? `Top reasons: ${Array.from(new Set(topMessages)).slice(0, 5).join(' | ')}` : 'No row-level issue found.',
+      this.hasCriticalErrors() ? 'Final import blocked rahega jab tak critical errors fix nahi hote.' : 'Critical errors nahi hain; approval gate complete karke import kar sakte ho.'
+    ].join(' '));
+  }
+
+  exportFailedRows(): void {
+    const rows = this.previewRows().filter((row) => row.status === 'error' || row.status === 'warning' || this.duplicateRows().includes(row));
+    this.downloadCsv('migration-failed-rows.csv', rows);
+  }
+
+  exportPreviewSummary(): void {
+    const summary = this.summary();
+    const rows = [
+      { metric: 'totalRows', value: summary?.totalRows || 0 },
+      { metric: 'validRows', value: summary?.validRows || 0 },
+      { metric: 'warningRows', value: summary?.warningRows || 0 },
+      { metric: 'errorRows', value: summary?.errorRows || 0 },
+      { metric: 'duplicateRows', value: summary?.duplicateRows || 0 },
+      { metric: 'dataQualityScore', value: this.dataQualityScore() },
+      { metric: 'readinessScore', value: this.readinessScore() }
+    ];
+    this.downloadCsv('migration-preview-summary.csv', rows);
+  }
+
+  private downloadCsv(fileName: string, rows: Record<string, unknown>[]): void {
+    if (!rows.length) return;
+    const headers: string[] = Array.from(rows.reduce((set, row) => {
+      Object.keys(row || {}).forEach((key) => set.add(key));
+      return set;
+    }, new Set<string>()));
+    const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = [headers.join(','), ...rows.map((row) => headers.map((key) => escape(row?.[key])).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private rebuildMappingDraft(): void {
+    const columns = this.templateColumns();
+    this.mappingDraft.set(columns.map((column) => ({
+      targetField: column.field,
+      sourceColumn: column.aliases[0] || column.field,
+      required: column.required,
+      confidence: this.mappingConfidence(column.required, Boolean(column.aliases.length)),
+      aliases: column.aliases || []
+    })));
+  }
+
+  private sourceForTarget(mapping: Record<string, string>, targetField: string): string {
+    const entry = Object.entries(mapping).find(([, target]) => target === targetField);
+    return entry?.[0] || '';
+  }
+
+  private mappingConfidence(required: boolean, hasSource: boolean): number {
+    if (!hasSource) return required ? 35 : 20;
+    return required ? 96 : 82;
+  }
+
+  private rowKey(row: any): string {
+    return `${row.sourceSheet || 'sheet'}:${row.sourceRowNumber || row.targetId || row.sourceExternalId || 'row'}`;
   }
 }

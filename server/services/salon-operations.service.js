@@ -7,24 +7,35 @@ import { membershipEnterpriseService } from "./membership-enterprise.service.js"
 import { securityService } from "./security.service.js";
 import { staffOsService } from "./staff-os.service.js";
 import { tenantService } from "./tenant.service.js";
+import { istToday } from "../utils/finance-time.js";
 
 const now = () => new Date().toISOString();
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const dayKey = (value = "") => String(value || "").slice(0, 10);
 
 function billingStamp(payload = {}) {
-  const selectedDate = String(payload.billingDate || payload.invoiceDate || "").trim();
-  if (selectedDate) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) throw badRequest("billingDate must be YYYY-MM-DD");
-    if (selectedDate > now().slice(0, 10)) throw badRequest("billingDate cannot be in the future");
-    return `${selectedDate}T12:00:00.000Z`;
-  }
   const explicitStamp = String(payload.billingTimestamp || payload.createdAt || "").trim();
   if (explicitStamp && !Number.isNaN(Date.parse(explicitStamp))) {
     return new Date(explicitStamp).toISOString();
   }
+  const selectedDate = String(payload.billingDate || payload.invoiceDate || "").trim();
+  if (selectedDate) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) throw badRequest("billingDate must be YYYY-MM-DD");
+    if (selectedDate > istToday()) throw badRequest("billingDate cannot be in the future");
+    return selectedDate === istToday() ? now() : dateWithCurrentIstTime(selectedDate);
+  }
   return now();
+}
+
+function dateWithCurrentIstTime(dateKey) {
+  const istNow = new Date(Date.now() + IST_OFFSET_MS);
+  const hours = String(istNow.getUTCHours()).padStart(2, "0");
+  const minutes = String(istNow.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(istNow.getUTCSeconds()).padStart(2, "0");
+  const millis = String(istNow.getUTCMilliseconds()).padStart(3, "0");
+  return new Date(`${dateKey}T${hours}:${minutes}:${seconds}.${millis}+05:30`).toISOString();
 }
 
 function latestStamp(current = "", candidate = "") {
@@ -488,48 +499,132 @@ function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+function invoiceMoney(value = 0) {
+  return `INR ${money(value).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function invoiceDateTime(value = "") {
+  const date = new Date(String(value || ""));
+  if (Number.isNaN(date.getTime())) return String(value || "");
+  return date.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
 function renderInvoiceHtml({ invoice, sale, client, branch, payments }) {
   const tips = Array.isArray(sale?.membershipRedeem?.tips) ? sale.membershipRedeem.tips : [];
   const membershipDiscount = money(sale?.membershipRedeem?.autoDiscountAmount || 0);
   const membershipDiscountPercent = Number(sale?.membershipRedeem?.autoDiscountPercent || 0);
+  const taxable = money(Number(invoice.subtotal || 0) - Number(invoice.discount || 0) - Number(invoice.couponDiscount || 0) - membershipDiscount);
   const rows = (invoice.lineItems || []).map((item) => `
     <tr>
       <td>${escapeHtml(item.name)}</td>
       <td>${Number(item.quantity || 1)}</td>
-      <td>INR ${money(item.price || 0).toFixed(2)}</td>
+      <td class="num">${invoiceMoney(item.price || 0)}</td>
       <td>${Number(item.gstRate || 0)}%</td>
-      <td>INR ${money(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}</td>
+      <td class="num">${invoiceMoney(Number(item.price || 0) * Number(item.quantity || 1))}</td>
     </tr>`).join("");
   const tipRows = tips.map((tip) => `
     <tr>
       <td>${escapeHtml(tip.staffName || tip.staffId || "Staff")}</td>
       <td>${escapeHtml(tip.paymentMode || "cash")}</td>
-      <td>INR ${money(tip.amount || 0).toFixed(2)}</td>
+      <td class="num">${invoiceMoney(tip.amount || 0)}</td>
+    </tr>`).join("");
+  const paymentRows = payments.map((payment) => `
+    <tr>
+      <td>${escapeHtml(payment.mode || "cash")}</td>
+      <td>${escapeHtml(payment.reference || payment.remarks || "Counter collection")}</td>
+      <td>${escapeHtml(invoiceDateTime(payment.createdAt || payment.created_at))}</td>
+      <td class="num">${invoiceMoney(payment.amount)}</td>
     </tr>`).join("");
   const tipAmount = totalTips(tips);
   return `<!doctype html>
 <html>
-<head><meta charset="utf-8"><title>${escapeHtml(invoice.invoiceNumber)}</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(invoice.invoiceNumber)}</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef2f4; color: #111827; font-family: Arial, sans-serif; font-size: 12px; }
+    .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm; background: #fff; }
+    .top { display: flex; justify-content: space-between; gap: 18px; border-bottom: 2px solid #0f766e; padding-bottom: 12px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 24px; letter-spacing: 0; }
+    h2 { font-size: 18px; color: #0f766e; text-align: right; }
+    h3 { font-size: 13px; margin: 16px 0 8px; text-transform: uppercase; color: #475569; }
+    .muted { color: #64748b; }
+    .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+    .box { border: 1px solid #dbe4e8; border-radius: 6px; padding: 8px; min-height: 52px; }
+    .box span { display: block; color: #64748b; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; }
+    .box strong { font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    th { background: #f3f7f7; color: #475569; font-size: 10px; text-transform: uppercase; }
+    th, td { border: 1px solid #dbe4e8; padding: 8px; vertical-align: top; }
+    .num { text-align: right; white-space: nowrap; }
+    .summary { margin-left: auto; margin-top: 14px; width: 86mm; border: 1px solid #dbe4e8; border-radius: 6px; overflow: hidden; }
+    .summary div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 1px solid #e5edf0; }
+    .summary div:last-child { border-bottom: 0; }
+    .summary .grand { background: #0f766e; color: #fff; font-size: 15px; font-weight: 700; }
+    .footer { margin-top: 18px; border-top: 1px solid #dbe4e8; padding-top: 10px; display: flex; justify-content: space-between; color: #64748b; }
+    .printbar { position: sticky; top: 0; padding: 10px; background: #0f172a; text-align: center; }
+    .printbar button { border: 0; border-radius: 6px; padding: 10px 16px; font-weight: 700; cursor: pointer; }
+    @media print {
+      body { background: #fff; }
+      .sheet { width: auto; min-height: auto; margin: 0; padding: 0; }
+      .printbar { display: none; }
+    }
+  </style>
+</head>
 <body>
-  <h1>${escapeHtml(branch?.name || "Aura Salon")}</h1>
-  <p>${escapeHtml(branch?.address || "")}</p>
-  <h2>Tax Invoice ${escapeHtml(invoice.invoiceNumber)}</h2>
-  <p>Client: ${escapeHtml(client?.name || "")} (${escapeHtml(client?.phone || "")})</p>
-  <p>Date: ${escapeHtml(invoice.createdAt || "")}</p>
-  <table border="1" cellspacing="0" cellpadding="6">
+  <div class="printbar"><button onclick="window.print()">Print / Save as PDF A4</button></div>
+  <main class="sheet">
+  <section class="top">
+    <div>
+      <h1>${escapeHtml(branch?.name || "Aura Salon")}</h1>
+      <p class="muted">${escapeHtml(branch?.address || "")}</p>
+    </div>
+    <div>
+      <h2>Tax Invoice</h2>
+      <p><strong>${escapeHtml(invoice.invoiceNumber)}</strong></p>
+    </div>
+  </section>
+  <section class="meta">
+    <div class="box"><span>Client</span><strong>${escapeHtml(client?.name || "")}</strong><p class="muted">${escapeHtml(client?.phone || "")}</p></div>
+    <div class="box"><span>Branch</span><strong>${escapeHtml(branch?.name || sale?.branchId || "")}</strong></div>
+    <div class="box"><span>Date</span><strong>${escapeHtml(invoiceDateTime(invoice.createdAt))}</strong></div>
+    <div class="box"><span>Status</span><strong>${escapeHtml(invoice.status || "")}</strong></div>
+  </section>
+  <h3>Items</h3>
+  <table>
     <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>GST</th><th>Total</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <p>Subtotal: INR ${money(invoice.subtotal).toFixed(2)}</p>
-  <p>Discount: INR ${money(invoice.discount).toFixed(2)}</p>
-  ${membershipDiscount ? `<p>Membership discount: ${membershipDiscountPercent}% / INR ${membershipDiscount.toFixed(2)}</p>` : ""}
-  <p>Coupon: ${escapeHtml(invoice.couponCode || sale?.couponCode || "None")} / INR ${money(invoice.couponDiscount || 0).toFixed(2)}</p>
-  <p>GST: INR ${money(invoice.gstAmount).toFixed(2)}</p>
-  <p>Tips: INR ${tipAmount.toFixed(2)}</p>
-  ${tips.length ? `<h3>Staff tips</h3><table border="1" cellspacing="0" cellpadding="6"><thead><tr><th>Staff</th><th>Mode</th><th>Amount</th></tr></thead><tbody>${tipRows}</tbody></table>` : ""}
-  <h3>Total: INR ${money(invoice.total).toFixed(2)}</h3>
-  <p>Paid: INR ${money(invoice.paid).toFixed(2)} | Balance: INR ${money(invoice.balance).toFixed(2)} | Status: ${escapeHtml(invoice.status)}</p>
-  <p>Payments: ${escapeHtml(payments.map((payment) => `${payment.mode}: INR ${money(payment.amount).toFixed(2)}`).join(", ") || "None")}</p>
+  ${tips.length ? `<h3>Staff tips</h3><table><thead><tr><th>Staff</th><th>Mode</th><th class="num">Amount</th></tr></thead><tbody>${tipRows}</tbody></table>` : ""}
+  ${payments.length ? `<h3>Payments</h3><table><thead><tr><th>Mode</th><th>Reference</th><th>Date</th><th class="num">Amount</th></tr></thead><tbody>${paymentRows}</tbody></table>` : ""}
+  <section class="summary">
+    <div><span>Subtotal</span><strong>${invoiceMoney(invoice.subtotal)}</strong></div>
+    <div><span>Discount</span><strong>${invoiceMoney(invoice.discount)}</strong></div>
+    ${membershipDiscount ? `<div><span>Membership discount ${membershipDiscountPercent}%</span><strong>${invoiceMoney(membershipDiscount)}</strong></div>` : ""}
+    <div><span>Coupon ${escapeHtml(invoice.couponCode || sale?.couponCode || "None")}</span><strong>${invoiceMoney(invoice.couponDiscount || 0)}</strong></div>
+    <div><span>Taxable</span><strong>${invoiceMoney(taxable)}</strong></div>
+    <div><span>GST</span><strong>${invoiceMoney(invoice.gstAmount)}</strong></div>
+    <div><span>Tips</span><strong>${invoiceMoney(tipAmount)}</strong></div>
+    <div class="grand"><span>Total</span><strong>${invoiceMoney(invoice.total)}</strong></div>
+    <div><span>Paid</span><strong>${invoiceMoney(invoice.paid)}</strong></div>
+    <div><span>Balance</span><strong>${invoiceMoney(invoice.balance)}</strong></div>
+  </section>
+  <section class="footer">
+    <span>Generated by Aura Salon OS</span>
+    <span>Thank you</span>
+  </section>
+  </main>
 </body>
 </html>`;
 }
@@ -714,23 +809,6 @@ export class SalonOperationsService {
       }
     }
 
-    if (!appointmentId) {
-      for (const item of items.filter((entry) => entry.type === "service")) {
-        const deduction = inventoryEnterpriseService.consumeServiceRecipe({
-          serviceId: item.id,
-          branchId,
-          quantity: item.quantity || 1,
-          referenceType: "sale",
-          referenceId: sale.id,
-          staffId: sale.staffId || "",
-          clientId
-        }, access);
-        if (deduction.status !== "deducted") {
-          deductServiceUsage([item.id], branchId, "sale", sale.id, access.tenantId);
-        }
-      }
-    }
-
     if (membershipRedeem?.membershipId && membershipRedeem?.creditsUsed) {
       this.redeemMembership({ ...membershipRedeem, saleId: sale.id, serviceId: membershipRedeem.serviceId || "" }, access);
     }
@@ -758,6 +836,12 @@ export class SalonOperationsService {
     if (coupon?.coupon?.source === "gift_card" && couponDiscount > 0) {
       this.redeemGiftCardCoupon(coupon.coupon, { amount: couponDiscount, sale, invoice: paidInvoice, branchId }, access);
     }
+    const productConsumeDrafts = inventoryEnterpriseService.createProductConsumeDraftsForInvoice({
+      invoice: paidInvoice,
+      sale,
+      client,
+      items
+    }, access);
     membershipEnterpriseService.createInvoiceSnapshot({ sale, invoice: paidInvoice, membershipBenefit, membershipRedeem: sale.membershipRedeem }, access);
     membershipEnterpriseService.recordSoldEntitlements({ entitlements, sale, invoice: paidInvoice, items }, access);
     updateClientAfterSale(clientId, sale, paidInvoice, access);
@@ -772,7 +856,7 @@ export class SalonOperationsService {
     } catch (error) {
       invoiceNotifications = { invoiceId: paidInvoice.id, queued: 0, rows: [], skipped: true, error: error.message };
     }
-    return { sale, invoice: paidInvoice, coupon, invoiceDocument, invoiceNotifications };
+    return { sale, invoice: paidInvoice, coupon, invoiceDocument, invoiceNotifications, productConsumeDrafts };
   }
 
   addInvoicePayment(invoiceId, { mode, amount, reference = "" }, access) {

@@ -44,7 +44,9 @@ export function authenticateJwt({ required = true } = {}) {
         branchId: requestedBranchId || payload.branchId || "",
         branchIds: payload.branchIds || [],
         requestedBranchId,
-        deviceId: payload.deviceId || ""
+        deviceId: payload.deviceId || "",
+        jti: payload.jti || "",
+        iat: payload.iat || 0
       };
       next();
     } catch (error) {

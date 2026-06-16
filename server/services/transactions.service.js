@@ -11,6 +11,8 @@ import {
   requireManager,
   requireTenant
 } from "./enterprise-command-utils.js";
+import { balanceSheetHardeningService } from "./balance-sheet-hardening.service.js";
+import { ensureHardeningSchema } from "./balance-sheet-hardening-schema.service.js";
 
 const OUTGOING_COLUMNS = {
   branchId: "branch_id",
@@ -61,11 +63,11 @@ export const transactionsService = {
       WHERE ${filters.join(" AND ")}
       ORDER BY entry_date DESC, created_at DESC
       LIMIT @limit
-    `).all({ ...params, status: clean(query.status) }).map(mapOutgoingFund);
+    `).all({ ...params, status: clean(query.status) }).map((row) => mapOutgoingFund(row, access));
   },
 
   outgoingFund(id, access) {
-    return mapOutgoingFund(this.findOutgoingFund(id, access));
+    return mapOutgoingFund(this.findOutgoingFund(id, access), access);
   },
 
   createOutgoingFund(payload = {}, access) {
@@ -89,9 +91,10 @@ export const transactionsService = {
         (${Object.keys(row).map((key) => `@${key}`).join(", ")})
     `).run(row);
     const created = this.outgoingFund(row.id, access);
+    const balanceSheetLink = queueOutgoingFundToBalanceSheet(created, access);
     auditDecision("outgoing_fund.created", "outgoing_fund_entries", created.id, access, { branchId: created.branchId, details: created });
-    emitEvent("transaction:outgoing_fund_created", access, created.branchId, created.id, { amount: created.amount, paymentMode: created.paymentMode });
-    return created;
+    emitEvent("transaction:outgoing_fund_created", access, created.branchId, created.id, { amount: created.amount, paymentMode: created.paymentMode, balanceSheetStatus: balanceSheetLink.status });
+    return { ...created, balanceSheetLink };
   },
 
   updateOutgoingFund(id, payload = {}, access) {
@@ -110,9 +113,10 @@ export const transactionsService = {
       WHERE id = @id AND tenant_id = @tenant_id
     `).run({ ...row, id, tenant_id: access.tenantId });
     const updated = this.outgoingFund(id, access);
-    auditDecision("outgoing_fund.updated", "outgoing_fund_entries", id, access, { branchId: updated.branchId, details: { before: mapOutgoingFund(existing), after: payload } });
-    emitEvent("transaction:outgoing_fund_updated", access, updated.branchId, id, { amount: updated.amount, status: updated.status });
-    return updated;
+    const balanceSheetLink = queueOutgoingFundToBalanceSheet(updated, access);
+    auditDecision("outgoing_fund.updated", "outgoing_fund_entries", id, access, { branchId: updated.branchId, details: { before: mapOutgoingFund(existing, access), after: payload } });
+    emitEvent("transaction:outgoing_fund_updated", access, updated.branchId, id, { amount: updated.amount, status: updated.status, balanceSheetStatus: balanceSheetLink.status });
+    return { ...updated, balanceSheetLink };
   },
 
   deleteOutgoingFund(id, access) {
@@ -180,7 +184,7 @@ function normalizeOutgoingFund(payload = {}, access, existing = {}) {
   return next;
 }
 
-function mapOutgoingFund(row = {}) {
+function mapOutgoingFund(row = {}, access = {}) {
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -207,8 +211,74 @@ function mapOutgoingFund(row = {}) {
     postedToLedger: Boolean(row.posted_to_ledger),
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
-    version: number(row.version, 1)
+    version: number(row.version, 1),
+    balanceSheetLink: outgoingFundBalanceSheetLink(row, access)
   };
+}
+
+function outgoingFundBalanceSheetLink(row = {}, access = {}) {
+  if (!row.id || !access.tenantId) return { status: "not-linked" };
+  ensureHardeningSchema();
+  const eventKey = `outgoing-fund:${access.tenantId}:${row.id}`;
+  const event = db.prepare(
+    "SELECT eventKey, status, journalEntryId, lastError FROM glOutbox WHERE tenantId = ? AND eventKey = ?"
+  ).get(access.tenantId, eventKey);
+  if (!event) return { status: "not-linked", eventKey };
+  return {
+    status: event.status || "pending",
+    eventKey: event.eventKey,
+    journalEntryId: event.journalEntryId || "",
+    lastError: event.lastError || ""
+  };
+}
+
+function queueOutgoingFundToBalanceSheet(entry = {}, access = {}) {
+  const amountPaise = Math.round(number(entry.amount) * 100);
+  if (!entry.id || amountPaise <= 0 || entry.status === "cancelled" || entry.status === "deleted") {
+    return { status: "skipped", reason: "not-postable" };
+  }
+  const category = categoryFromOutgoingType(entry.transactionType, entry.paidToAccountName);
+  const mode = modeFromPayment(entry.paymentMode, entry.paidFromAccountName);
+  const result = balanceSheetHardeningService.enqueue({
+    branchId: entry.branchId || "",
+    eventType: "expense.recorded",
+    eventKey: `outgoing-fund:${access.tenantId}:${entry.id}`,
+    businessDate: entry.entryDate,
+    data: {
+      amountPaise,
+      category,
+      mode,
+      settled: entry.status !== "draft",
+      memo: `Outgoing fund ${entry.entryNo || entry.id}: ${entry.paidToAccountName || entry.transactionType || "expense"}`,
+      source: "outgoing_fund_entries",
+      sourceId: entry.id,
+      entryNo: entry.entryNo,
+      paymentMode: entry.paymentMode,
+      paidFromAccountName: entry.paidFromAccountName,
+      paidToAccountName: entry.paidToAccountName,
+      remarks: entry.remarks
+    }
+  }, access);
+  return {
+    status: result.event?.status || (result.enqueued ? "pending" : "queued"),
+    eventKey: result.event?.eventKey || "",
+    journalEntryId: result.event?.journalEntryId || "",
+    duplicate: result.duplicate
+  };
+}
+
+function categoryFromOutgoingType(type = "", accountName = "") {
+  const text = `${type} ${accountName}`.toLowerCase();
+  if (text.includes("salary") || text.includes("payroll")) return "salary";
+  if (text.includes("rent")) return "rent";
+  if (text.includes("stock") || text.includes("purchase") || text.includes("product") || text.includes("cogs")) return "cogs";
+  if (text.includes("depreciation")) return "depreciation";
+  return "marketing";
+}
+
+function modeFromPayment(paymentMode = "", accountName = "") {
+  const text = `${paymentMode} ${accountName}`.toLowerCase();
+  return text.includes("cash") ? "cash" : "bank";
 }
 
 function makeEntryNo() {

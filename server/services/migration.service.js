@@ -211,6 +211,142 @@ export const migrationService = {
     });
   },
 
+  suggestMapping(payload, access) {
+    const resource = canonicalResource(payload.resource || "");
+    if (!resource) throw badRequest("Valid resource is required to suggest a field mapping.");
+    const columns = Array.isArray(payload.columns) ? payload.columns.filter(Boolean) : [];
+    if (!columns.length) throw badRequest("At least one source column is required.");
+    return suggestColumnMappings(columns, resource);
+  },
+
+  reconcile(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: true });
+    const expected = payload.expected || {};
+    const actualCounts = {};
+    for (const [resource, bucket] of Object.entries(preview.summary.byResource || {})) {
+      actualCounts[resource] = bucket.total;
+    }
+    const moneyResources = new Set(["invoices", "sales", "payments"]);
+    let actualRevenue = 0;
+    for (const row of preview.allRows || []) {
+      if (!moneyResources.has(row.resource)) continue;
+      const f = row.fields || {};
+      const value = Number(f.total ?? f.amount ?? f.paid ?? 0);
+      if (Number.isFinite(value)) actualRevenue += value;
+    }
+    const resourceLabels = {
+      clients: "Clients", staff: "Staff", services: "Services", products: "Inventory",
+      appointments: "Appointments", invoices: "Invoices", sales: "Sales", payments: "Payments",
+      memberships: "Memberships", suppliers: "Suppliers", expenses: "Expenses"
+    };
+    const lines = [];
+    const pushLine = (label, exp, act) => {
+      const expN = Number(exp);
+      const hasExpected = exp !== undefined && exp !== null && exp !== "" && Number.isFinite(expN);
+      const difference = hasExpected ? act - expN : null;
+      lines.push({
+        metric: label,
+        expected: hasExpected ? expN : null,
+        actual: act,
+        difference,
+        match: hasExpected ? difference === 0 : null,
+        status: !hasExpected ? "info" : difference === 0 ? "match" : "mismatch"
+      });
+    };
+    const countResources = new Set([
+      ...Object.keys(actualCounts),
+      ...Object.keys(expected).filter((k) => k !== "revenue" && k !== "revenuePaise")
+    ]);
+    for (const resource of countResources) {
+      pushLine(resourceLabels[resource] || resource, expected[resource], actualCounts[resource] || 0);
+    }
+    pushLine("Revenue (sum of source totals)", expected.revenuePaise ?? expected.revenue, actualRevenue);
+    const mismatchCount = lines.filter((l) => l.status === "mismatch").length;
+    return {
+      fileName: preview.fileName,
+      sourceSoftware: preview.sourceSoftware,
+      matched: mismatchCount === 0,
+      mismatchCount,
+      totals: {
+        totalRows: preview.summary.totalRows,
+        validRows: preview.summary.validRows,
+        errorRows: preview.summary.errorRows,
+        duplicateRows: preview.summary.duplicateRows
+      },
+      lines
+    };
+  },
+
+  submitApproval(payload, access) {
+    ensureMigrationApprovalSchema();
+    const id = makeId("mapr");
+    const ts = now();
+    const record = {
+      id,
+      tenantId: access.tenantId,
+      branchId: payload.branchId || access.branchId || "",
+      jobId: payload.jobId || "",
+      resource: payload.resource || "",
+      status: "pending",
+      note: cleanText(payload.note),
+      summaryJson: JSON.stringify(payload.summary || {}),
+      submittedBy: access.userId || "system",
+      submittedAt: ts,
+      reviewedBy: "",
+      reviewedAt: "",
+      createdAt: ts,
+      updatedAt: ts
+    };
+    db.prepare(
+      `INSERT INTO migration_approvals
+        (id, tenantId, branchId, jobId, resource, status, note, summaryJson, submittedBy, submittedAt, reviewedBy, reviewedAt, createdAt, updatedAt)
+       VALUES
+        (@id, @tenantId, @branchId, @jobId, @resource, @status, @note, @summaryJson, @submittedBy, @submittedAt, @reviewedBy, @reviewedAt, @createdAt, @updatedAt)`
+    ).run(record);
+    auditMigration("migration.approval.submitted", { jobId: record.jobId, approvalId: id }, access);
+    return deserializeApproval(record);
+  },
+
+  approvals(query, access) {
+    ensureMigrationApprovalSchema();
+    const status = cleanText(query?.status);
+    const rows = status
+      ? db.prepare("SELECT * FROM migration_approvals WHERE tenantId = ? AND status = ? ORDER BY createdAt DESC LIMIT 100").all(access.tenantId, status)
+      : db.prepare("SELECT * FROM migration_approvals WHERE tenantId = ? ORDER BY createdAt DESC LIMIT 100").all(access.tenantId);
+    return rows.map(deserializeApproval);
+  },
+
+  decideApproval(id, payload, access) {
+    ensureMigrationApprovalSchema();
+    const role = String(access.role || "").toLowerCase();
+    if (!["owner", "manager", "accountant"].includes(role)) {
+      throw forbidden("Only an owner or manager can approve or reject a migration.");
+    }
+    const decision = String(payload.decision || "").toLowerCase();
+    if (!["approved", "rejected"].includes(decision)) {
+      throw badRequest("decision must be 'approved' or 'rejected'.");
+    }
+    const existing = db.prepare("SELECT * FROM migration_approvals WHERE id = ? AND tenantId = ?").get(id, access.tenantId);
+    if (!existing) throw badRequest("Migration approval request not found.");
+    if (existing.status !== "pending") throw badRequest(`This request is already ${existing.status}.`);
+    const ts = now();
+    db.prepare(
+      `UPDATE migration_approvals
+         SET status = @status, note = @note, reviewedBy = @reviewedBy, reviewedAt = @reviewedAt, updatedAt = @updatedAt
+       WHERE id = @id AND tenantId = @tenantId`
+    ).run({
+      id,
+      tenantId: access.tenantId,
+      status: decision,
+      note: cleanText(payload.note) || existing.note,
+      reviewedBy: access.userId || "system",
+      reviewedAt: ts,
+      updatedAt: ts
+    });
+    auditMigration(`migration.approval.${decision}`, { jobId: existing.jobId, approvalId: id }, access);
+    return deserializeApproval({ ...existing, status: decision, reviewedBy: access.userId || "system", reviewedAt: ts, updatedAt: ts });
+  },
+
   jobs(access) {
     return db
       .prepare("SELECT * FROM migration_jobs WHERE tenantId = ? ORDER BY createdAt DESC LIMIT 50")
@@ -260,6 +396,10 @@ export const migrationService = {
   },
 
   import(payload, access) {
+    const precheck = this.canImport(payload, access);
+    if (!precheck.allowed && payload.skipApprovalGate !== true) {
+      throw badRequest(`Final import blocked: ${precheck.blocked.join(", ")}`);
+    }
     const preview = previewPayload(payload, access, { persist: false, dryRun: false });
     const sourceSoftware = sourceKey(payload.sourceSoftware);
     const batchId = makeId("batch");
@@ -309,11 +449,111 @@ export const migrationService = {
   },
 
   rollback(jobId, access, filters = {}) {
+    auditMigration("migration.rollback.requested", this.buildRollbackAudit({ ...filters, jobId }, access), access);
     return rollbackImports(access, { ...filters, jobId });
   },
 
   rollbackByFilter(access, filters = {}) {
+    auditMigration("migration.rollback.requested", this.buildRollbackAudit(filters, access), access);
     return rollbackImports(access, filters);
+  },
+
+
+  dataQualityScore(summary = {}) {
+    const total = Math.max(1, Number(summary.totalRows || 0));
+    const validRate = Number(summary.validRows || 0) / total;
+    const warningPenalty = Math.min(20, Number(summary.warningRows || 0) * 2);
+    const errorPenalty = Math.min(35, Number(summary.errorRows || 0) * 5);
+    const duplicatePenalty = Math.min(15, Number(summary.duplicateRows || 0) * 2);
+    return Math.max(0, Math.min(100, Math.round(validRate * 100) - warningPenalty - errorPenalty - duplicatePenalty));
+  },
+
+  failedRows(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: true });
+    const rows = (preview.allRows || preview.rows || []).filter(isFailedMigrationRow);
+    return {
+      fileName: preview.fileName,
+      sourceSoftware: preview.sourceSoftware,
+      summary: preview.summary,
+      dataQualityScore: this.dataQualityScore(preview.summary),
+      rows: rows.slice(0, 500)
+    };
+  },
+
+  migrationAssistant(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: true });
+    const rows = preview.allRows || preview.rows || [];
+    const failed = rows.filter(isFailedMigrationRow);
+    const errors = rows.filter((row) => row.status === "error").length;
+    const warnings = rows.filter((row) => row.status === "warning").length;
+    const duplicates = rows.filter((row) => row.duplicate || /duplicate|already/i.test(String(row.message || ""))).length;
+    const anomalies = migrationAnomalySummary(rows);
+    const reasons = Array.from(new Set(failed.map((row) => cleanText(row.message || `${row.entity || "record"} row ${row.sourceRowNumber || ""}`)).filter(Boolean))).slice(0, 8);
+    return {
+      question: cleanText(payload.question || ""),
+      answer: `${errors} critical errors, ${warnings} warnings aur ${duplicates} duplicate/conflict rows detect hui. ${reasons.length ? `Top reasons: ${reasons.join(" | ")}.` : "No row-level reason available."} ${errors ? "Final import blocked rahega jab tak critical errors fix nahi hote." : "Critical errors nahi hain; approval gate complete karke import kar sakte ho."}`,
+      summary: preview.summary,
+      dataQualityScore: this.dataQualityScore(preview.summary),
+      anomalies,
+      nextActions: errors
+        ? ["Fix critical rows", "Re-run analyze", "Run dry-run", "Submit owner approval"]
+        : ["Review warnings", "Resolve duplicate decisions", "Run dry-run", "Approve and import"]
+    };
+  },
+
+  enterprisePreview(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: true });
+    const rows = preview.allRows || preview.rows || [];
+    const qualityScore = this.dataQualityScore(preview.summary);
+    return {
+      ...preview,
+      dataQualityScore: qualityScore,
+      approvalGate: migrationApprovalGate(access, preview.summary),
+      anomalySummary: migrationAnomalySummary(rows),
+      branchWisePreview: preview.summary.byBranch || {},
+      requiredMappingComplete: requiredMappingComplete(payload.mapping || {}, payload.resource || ""),
+      sandboxMode: payload.sandboxMode !== false,
+      failedRows: rows.filter(isFailedMigrationRow).slice(0, 100),
+      conflictResolver: rows.filter((row) => row.duplicate || /duplicate|already/i.test(String(row.message || ""))).slice(0, 100).map((row) => ({
+        rowKey: `${row.sourceSheet}:${row.sourceRowNumber}`,
+        entity: row.entity,
+        message: row.message,
+        decisions: ["merge", "keep", "replace", "skip", "link"]
+      })),
+      packageBuilder: buildMigrationPackage(preview),
+      resumeToken: buildResumeToken(preview)
+    };
+  },
+
+  canImport(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: true });
+    const gate = migrationApprovalGate(access, preview.summary);
+    const mappingReady = requiredMappingComplete(payload.mapping || {}, payload.resource || "");
+    const blocked = [];
+    if (Number(preview.summary.errorRows || 0) > 0) blocked.push("critical_errors_present");
+    if (!gate.approved) blocked.push("owner_approval_required");
+    if (!mappingReady) blocked.push("required_mapping_incomplete");
+    return {
+      allowed: blocked.length === 0,
+      blocked,
+      approvalGate: gate,
+      mappingReady,
+      dataQualityScore: this.dataQualityScore(preview.summary),
+      summary: preview.summary
+    };
+  },
+
+  buildRollbackAudit(payload = {}, access = {}) {
+    return {
+      id: makeId("rba"),
+      tenantId: access.tenantId,
+      jobId: cleanText(payload.jobId || ""),
+      batchId: cleanText(payload.batchId || ""),
+      reason: cleanText(payload.reason || "manual rollback"),
+      actorUserId: access.userId || "system",
+      createdAt: now(),
+      required: true
+    };
   },
 
   rollbackLast(access, filters = {}) {
@@ -321,9 +561,87 @@ export const migrationService = {
       .prepare("SELECT * FROM migration_import_batches WHERE tenantId = ? AND status <> 'rolled_back' AND rolledBackAt = '' ORDER BY createdAt DESC LIMIT 1")
       .get(access.tenantId);
     if (!batch) return { ok: false, message: "No active import batch found for rollback.", deleted: {} };
+    auditMigration("migration.rollback.requested", this.buildRollbackAudit({ ...filters, batchId: batch.id }, access), access);
     return rollbackImports(access, { ...filters, batchId: batch.id });
   }
 };
+
+
+function isFailedMigrationRow(row) {
+  const message = String(row?.message || "").toLowerCase();
+  return row?.status === "error"
+    || row?.status === "warning"
+    || row?.status === "duplicate"
+    || Boolean(row?.duplicate)
+    || message.includes("duplicate")
+    || message.includes("already");
+}
+
+function migrationAnomalySummary(rows = []) {
+  const invalidDates = rows.filter((row) => /date|future|invalid/i.test(String(row.message || ""))).length;
+  const contactIssues = rows.filter((row) => /phone|mobile|email/i.test(String(row.message || ""))).length;
+  const moneyIssues = rows.filter((row) => /negative|amount|payment|invoice|discount|balance/i.test(String(row.message || ""))).length;
+  const referenceIssues = rows.filter((row) => /reference|could not be resolved|unknown/i.test(String(row.message || ""))).length;
+  return {
+    invalidDates,
+    contactIssues,
+    moneyIssues,
+    referenceIssues,
+    riskLevel: moneyIssues || invalidDates || referenceIssues ? "high" : contactIssues ? "medium" : "normal"
+  };
+}
+
+function migrationApprovalGate(access = {}, summary = {}) {
+  ensureMigrationApprovalSchema();
+  const approved = Boolean(db
+    .prepare("SELECT id FROM migration_approvals WHERE tenantId = ? AND status = 'approved' ORDER BY createdAt DESC LIMIT 1")
+    .get(access.tenantId));
+  const hasErrors = Number(summary.errorRows || 0) > 0;
+  return {
+    approved,
+    allowed: approved && !hasErrors,
+    reason: hasErrors ? "critical_errors_present" : approved ? "approved" : "owner_approval_required"
+  };
+}
+
+function requiredMappingComplete(mapping = {}, resource = "") {
+  const canonical = canonicalResource(resource || "clients") || "clients";
+  const required = RESOURCE_TEMPLATES[canonical]?.required || [];
+  if (!required.length) return true;
+  const mappedTargets = new Set(Object.values(mapping || {}).filter(Boolean));
+  return required.every((field) => mappedTargets.has(field));
+}
+
+function buildMigrationPackage(preview = {}) {
+  const byResource = preview.summary?.byResource || {};
+  const order = RESOURCE_ORDER.filter((resource) => byResource[resource]);
+  return {
+    packageId: makeId("mpkg"),
+    fileName: preview.fileName,
+    order,
+    steps: order.map((resource, index) => ({
+      step: index + 1,
+      resource,
+      totalRows: byResource[resource]?.total || 0,
+      errors: byResource[resource]?.errors || 0,
+      warnings: byResource[resource]?.warnings || 0,
+      action: index === 0 ? "import foundation records first" : "import after dependencies are ready"
+    })),
+    dependencyRule: "clients, staff, services, products/vendors first; appointments, sales, invoices, payments after references are ready"
+  };
+}
+
+function buildResumeToken(preview = {}) {
+  return {
+    token: `resume_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
+    fileName: preview.fileName,
+    totalRows: preview.summary?.totalRows || 0,
+    validRows: preview.summary?.validRows || 0,
+    createdAt: now(),
+    note: "Use with future resume endpoint to continue after last successful row."
+  };
+}
+
 
 function previewPayload(payload, access, { persist, dryRun }) {
   const parsed = parsePayload(payload);
@@ -639,7 +957,7 @@ function duplicateFor(row, context, seen) {
   const fileKey = `${row.resource}:${cleanText(row.sourceExternalId || payload.invoiceNumber || payload.phone || payload.sku || payload.name).toLowerCase()}`;
   if (seen.has(fileKey)) return "duplicate row in uploaded file";
   seen.add(fileKey);
-  if (row.resource === "clients" && findClient(payload, context)) return "client already exists";
+  if (row.resource === "clients" && findClient({ ...payload, sourceExternalId: row.sourceExternalId }, context, { strongOnly: true })) return "client already exists";
   if (row.resource === "staff" && context.staff.some((item) => (payload.phone && normalizePhone(item.phone) === payload.phone) || (payload.email && same(item.email, payload.email)))) return "staff already exists";
   if (row.resource === "services" && context.services.some((item) => same(item.name, payload.name))) return "service already exists";
   if (row.resource === "products" && context.products.some((item) => same(item.sku, payload.sku) && item.branchId === payload.branchId)) return "product SKU already exists in branch";
@@ -706,10 +1024,11 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
   const payload = row.payload;
   const meta = migrationMode ? migrationMeta(row, batchId, sourceSoftware) : {};
   if (row.resource === "clients") {
-    const existing = findClient(payload, context);
+    const existing = findClient({ ...payload, sourceExternalId: row.sourceExternalId }, context, { strongOnly: true });
     if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Client already exists" };
     const created = insertRow("clients", { ...payload, ...meta });
     context.clients.push(created);
+    indexClientRecord(context, created);
     return { action: "created", targetId: created.id, status: row.status, message: "Client imported" };
   }
   if (row.resource === "staff") {
@@ -965,7 +1284,10 @@ function createContext(access, pendingRows = []) {
   for (const row of pendingRows || []) {
     if (row.resource === "invoices" && row.payload.invoiceNumber) invoices.push({ id: "", invoiceNumber: row.payload.invoiceNumber, pending: true });
   }
-  return { access, branches, clients, staff, services, products, vendors, invoices, sales };
+  const context = { access, branches, clients, staff, services, products, vendors, invoices, sales };
+  context.clientIndex = { phone: new Map(), email: new Map(), name: new Map() };
+  for (const client of clients) indexClientRecord(context, client);
+  return context;
 }
 
 function resolveBranchId(fields, access) {
@@ -999,18 +1321,40 @@ function ensureClient(payload, context, access, meta) {
     ...meta
   });
   context.clients.push(created);
+  indexClientRecord(context, created);
   return created;
 }
 
-function findClient(payload, context) {
+function indexClientRecord(context, client) {
+  if (!context.clientIndex) return;
+  const phone = normalizePhone(client.phone);
+  const email = cleanText(client.email).toLowerCase();
+  const name = cleanText(client.name).toLowerCase();
+  if (phone && !context.clientIndex.phone.has(phone)) context.clientIndex.phone.set(phone, client);
+  if (email && !context.clientIndex.email.has(email)) context.clientIndex.email.set(email, client);
+  if (name && !context.clientIndex.name.has(name)) context.clientIndex.name.set(name, client);
+}
+
+function findClient(payload, context, options = {}) {
   const phone = normalizePhone(payload.phone || payload.clientPhone);
   const email = cleanText(payload.email).toLowerCase();
   const name = cleanText(payload.name || payload.clientName).toLowerCase();
-  return context.clients.find((client) =>
+  const originalRecordId = cleanText(payload.originalRecordId || payload.sourceExternalId);
+  const branchId = cleanText(payload.branchId);
+  const candidates = context.clients.filter((client) => sameClientBranch(client, branchId));
+  const strongMatch = candidates.find((client) =>
+    (originalRecordId && same(client.originalRecordId, originalRecordId)) ||
     (phone && normalizePhone(client.phone) === phone) ||
-    (email && cleanText(client.email).toLowerCase() === email) ||
+    (email && cleanText(client.email).toLowerCase() === email)
+  );
+  if (strongMatch || options.strongOnly) return strongMatch;
+  return candidates.find((client) =>
     (name && cleanText(client.name).toLowerCase() === name)
   );
+}
+
+function sameClientBranch(client, branchId) {
+  return !branchId || !client.branchId || client.branchId === branchId;
 }
 
 function resolveStaff(payload, context) {
@@ -1168,6 +1512,130 @@ function autoMapColumns(columns, resource) {
   return { mapping, unmatched };
 }
 
+// --- AI-style field mapping with confidence scoring ---
+function scoreFieldMatch(column, field) {
+  const col = cleanKey(column);
+  const fieldKey = cleanKey(field);
+  if (!col) return 0;
+  if (col === fieldKey) return 100; // exact field name
+  const aliases = (FIELD_ALIASES[field] || []).map(cleanKey);
+  if (aliases.includes(col)) return 95; // exact alias match
+  let best = 0;
+  for (const alias of [fieldKey, ...aliases]) {
+    if (!alias) continue;
+    if (col.includes(alias) || alias.includes(col)) {
+      const ratio = Math.min(col.length, alias.length) / Math.max(col.length, alias.length);
+      best = Math.max(best, Math.round(60 + ratio * 25)); // 60–85 partial overlap
+    }
+  }
+  return best;
+}
+
+function suggestColumnMappings(columns, resource) {
+  const template = RESOURCE_TEMPLATES[resource];
+  const REVIEW_THRESHOLD = 80;
+  const suggestions = columns.map((column) => {
+    let suggestedField = null;
+    let confidence = 0;
+    for (const field of template.fields) {
+      const score = scoreFieldMatch(column, field);
+      if (score > confidence) {
+        confidence = score;
+        suggestedField = field;
+      }
+    }
+    const status =
+      confidence >= 95 ? "auto" :
+      confidence >= REVIEW_THRESHOLD ? "likely" :
+      confidence > 0 ? "review" : "unmapped";
+    return {
+      column,
+      suggestedField: confidence > 0 ? suggestedField : null,
+      confidence,
+      needsReview: confidence < REVIEW_THRESHOLD,
+      status
+    };
+  });
+  const confidentFields = new Set(
+    suggestions.filter((s) => s.confidence >= REVIEW_THRESHOLD).map((s) => s.suggestedField)
+  );
+  const missingRequired = (template.required || []).filter((f) => !confidentFields.has(f));
+  const readiness = suggestions.length
+    ? Math.round(suggestions.reduce((sum, s) => sum + s.confidence, 0) / suggestions.length)
+    : 0;
+  return { resource, readiness, missingRequired, suggestions };
+}
+
+// --- Migration approval workflow (self-contained, lazy table) ---
+let migrationApprovalSchemaReady = false;
+function ensureMigrationApprovalSchema() {
+  if (migrationApprovalSchemaReady) return;
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS migration_approvals (
+      id TEXT PRIMARY KEY,
+      tenantId TEXT NOT NULL,
+      branchId TEXT NOT NULL DEFAULT '',
+      jobId TEXT NOT NULL DEFAULT '',
+      resource TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      note TEXT NOT NULL DEFAULT '',
+      summaryJson TEXT NOT NULL DEFAULT '{}',
+      submittedBy TEXT NOT NULL DEFAULT '',
+      submittedAt TEXT NOT NULL DEFAULT '',
+      reviewedBy TEXT NOT NULL DEFAULT '',
+      reviewedAt TEXT NOT NULL DEFAULT '',
+      createdAt TEXT NOT NULL DEFAULT '',
+      updatedAt TEXT NOT NULL DEFAULT ''
+    );
+  `);
+  ensureMigrationApprovalColumns();
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_migration_approvals_scope
+      ON migration_approvals (tenantId, status, createdAt);
+  `);
+  migrationApprovalSchemaReady = true;
+}
+
+function ensureMigrationApprovalColumns() {
+  const columns = new Set(db.prepare("PRAGMA table_info(migration_approvals)").all().map((column) => column.name));
+  const requiredColumns = [
+    ["branchId", "TEXT NOT NULL DEFAULT ''"],
+    ["jobId", "TEXT NOT NULL DEFAULT ''"],
+    ["resource", "TEXT NOT NULL DEFAULT ''"],
+    ["status", "TEXT NOT NULL DEFAULT 'pending'"],
+    ["note", "TEXT NOT NULL DEFAULT ''"],
+    ["summaryJson", "TEXT NOT NULL DEFAULT '{}'"],
+    ["submittedBy", "TEXT NOT NULL DEFAULT ''"],
+    ["submittedAt", "TEXT NOT NULL DEFAULT ''"],
+    ["reviewedBy", "TEXT NOT NULL DEFAULT ''"],
+    ["reviewedAt", "TEXT NOT NULL DEFAULT ''"],
+    ["createdAt", "TEXT NOT NULL DEFAULT ''"],
+    ["updatedAt", "TEXT NOT NULL DEFAULT ''"]
+  ];
+  for (const [name, definition] of requiredColumns) {
+    if (!columns.has(name)) {
+      db.prepare(`ALTER TABLE migration_approvals ADD COLUMN ${name} ${definition}`).run();
+    }
+  }
+}
+
+function deserializeApproval(row) {
+  let summary = {};
+  try {
+    summary = JSON.parse(row.summaryJson || "{}");
+  } catch {
+    summary = {};
+  }
+  const { summaryJson, ...rest } = row;
+  return { ...rest, summary };
+}
+
+function forbidden(message) {
+  const error = new Error(message);
+  error.status = 403;
+  return error;
+}
+
 function mergeMapping(autoMapping, provided, columns, resource) {
   const mapping = { ...autoMapping };
   const fields = new Set(RESOURCE_TEMPLATES[resource].fields);
@@ -1214,7 +1682,10 @@ function importSettings(payload) {
     preserveInvoiceNumbers: true,
     preserveHistoricalPayments: true,
     partialFailureHandling: "row-level",
-    originalSystem: payload.sourceSoftware || "excel"
+    originalSystem: payload.sourceSoftware || "excel",
+    sandboxMode: payload.sandboxMode !== false,
+    duplicateDecisions: payload.duplicateDecisions || {},
+    approvalGate: payload.skipApprovalGate === true ? "skipped_by_admin" : "required"
   };
 }
 

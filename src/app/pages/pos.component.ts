@@ -47,6 +47,23 @@ type TipLine = {
   note: string;
 };
 
+type HighlightSegment = {
+  text: string;
+  match: boolean;
+};
+
+type ClientSearchIndex = {
+  haystack: string;
+  phone: string;
+  name: string;
+  email: string;
+  codes: string;
+  membershipIds: string[];
+  membershipBadge: string;
+  membershipMeta: string;
+  duplicate: boolean;
+};
+
 @Component({
   selector: 'app-pos',
   standalone: true,
@@ -70,14 +87,21 @@ type TipLine = {
           <span>Name</span>
           <strong>{{ client.name || 'Client' }}</strong>
           <small>{{ client.phone || client.email || client.id }}</small>
-          <a
-            class="ghost-button mini client-crm-edit-button"
-            *ngIf="client.id"
-            [routerLink]="['/clients']"
-            [queryParams]="{ edit: client.id }"
-          >
-            Edit
-          </a>
+          <div class="client-crm-actions" *ngIf="client.id">
+            <a
+              class="ghost-button mini client-crm-edit-button"
+              [routerLink]="['/clients']"
+              [queryParams]="{ edit: client.id }"
+            >
+              Edit
+            </a>
+            <a
+              class="ghost-button mini client-crm-history-button"
+              [routerLink]="['/clients', client.id]"
+            >
+              Client History
+            </a>
+          </div>
         </article>
         <article class="client-crm-tile">
           <span>E-wallet Amt</span>
@@ -132,22 +156,75 @@ type TipLine = {
                 (ngModelChange)="setClientSearch($event)"
                 (focus)="clientSearchActive = true"
                 (blur)="closeClientSearchSoon()"
+                (keydown)="handleClientSearchKeydown($event)"
                 [ngModelOptions]="{ standalone: true }"
-                placeholder="Search By Name/Contact/Address/File No/Card Number (Atleast 3 Characters are required)"
+                placeholder="Search name, mobile, email, code, membership"
               />
               <div class="smart-search-results pos-search-results client-search-results" *ngIf="showClientResults()">
-                <button
-                  type="button"
-                  *ngFor="let client of filteredClients()"
+                <div class="client-search-caption">
+                  <span>{{ debouncedClientQuery() ? 'Matching contacts' : 'Recent contacts' }}</span>
+                  <small>{{ clientSearchResults().length }} shown</small>
+                </div>
+                <article
+                  class="client-result-card"
+                  [class.active]="clientResultActive(client)"
+                  role="button"
+                  tabindex="0"
+                  *ngFor="let client of clientSearchResults()"
                   (mousedown)="$event.preventDefault()"
                   (click)="selectClient(client)"
+                  (keydown.enter)="selectClient(client)"
                 >
-                  <strong>{{ client.name || 'Client' }}</strong>
-                  <span>{{ client.phone || client.email || client.id }}</span>
-                  <span>{{ clientMembershipSearchSnapshot(client) }}</span>
-                </button>
+                  <span class="client-avatar">{{ clientInitial(client) }}</span>
+                  <span class="client-result-main">
+                    <strong>
+                      <ng-container *ngFor="let segment of highlightSegments(client.name || 'Client')">
+                        <mark *ngIf="segment.match; else clientNamePlain">{{ segment.text }}</mark>
+                        <ng-template #clientNamePlain>{{ segment.text }}</ng-template>
+                      </ng-container>
+                    </strong>
+                    <span>
+                      <ng-container *ngFor="let segment of highlightSegments(clientPrimaryPhone(client))">
+                        <mark *ngIf="segment.match; else clientPhonePlain">{{ segment.text }}</mark>
+                        <ng-template #clientPhonePlain>{{ segment.text }}</ng-template>
+                      </ng-container>
+                    </span>
+                    <small>{{ clientResultMeta(client) }}</small>
+                    <span class="client-badges">
+                      <span class="client-badge good" *ngIf="clientMembershipBadge(client)">{{ clientMembershipBadge(client) }}</span>
+                      <span class="client-badge wallet" *ngIf="Number(client.walletBalance || 0) > 0">Wallet {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                      <span class="client-badge due" *ngIf="Number(client.unpaidBalance || 0) > 0">Due {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                      <span class="client-badge warning" *ngIf="possibleDuplicateClient(client)">Duplicate?</span>
+                    </span>
+                  </span>
+                  <a
+                    class="client-call-button whatsapp"
+                    *ngIf="clientWhatsAppHref(client)"
+                    [href]="clientWhatsAppHref(client)"
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="WhatsApp client"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="$event.stopPropagation()"
+                  >
+                    WA
+                  </a>
+                  <a
+                    class="client-call-button"
+                    *ngIf="clientCallHref(client)"
+                    [href]="clientCallHref(client)"
+                    aria-label="Call client"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="$event.stopPropagation()"
+                  >
+                    Call
+                  </a>
+                </article>
+                <div class="client-empty-state" *ngIf="clientSearchActive && debouncedClientQuery() && !clientSearchResults().length">
+                  No contacts found
+                </div>
               </div>
-              <small *ngIf="clientSearchText && clientSearchText.length < 3">Type 3 characters to search clients.</small>
+              <small *ngIf="clientSearchPending()">Searching...</small>
             </label>
             <button class="ghost-button fit pos-add-client-button" type="button" *ngIf="canCreateClientFromSearch()" (click)="openClientFormFromSearch()">Add client</button>
             <div class="client-search-actions">
@@ -175,7 +252,7 @@ type TipLine = {
                   (focus)="staffSearchActive = true"
                   (blur)="closeStaffSearchSoon()"
                   [ngModelOptions]="{ standalone: true }"
-                  placeholder="Search staff by name, phone, role"
+                  placeholder="Search staff name, phone, role, ID 1/2"
                 />
                 <button
                   class="staff-clear-button"
@@ -641,6 +718,7 @@ type TipLine = {
           </section>
         </aside>
       </div>
+
     </section>
   `,
   styles: [`
@@ -648,6 +726,25 @@ type TipLine = {
     :host .pos-layout > .panel,
     :host .pos-form {
       overflow: visible;
+    }
+
+    :host .client-crm-tile.identity {
+      align-content: start;
+      gap: 7px;
+    }
+
+    :host .client-crm-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    :host .client-crm-history-button {
+      border-color: rgba(15, 143, 127, 0.26);
+      background: #e8f7f4;
+      color: #0f3f3a;
     }
 
     :host .pos-client-search-row {
@@ -684,6 +781,19 @@ type TipLine = {
 
     :host .client-search-results {
       width: min(100%, 780px);
+      gap: 8px;
+    }
+
+    :host .client-search-caption {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 8px 8px;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     :host .staff-search-results {
@@ -715,9 +825,193 @@ type TipLine = {
       cursor: pointer;
     }
 
-    :host .pos-search-results button {
+    :host .pos-search-results button,
+    :host .client-result-card {
       min-height: 48px;
       border-radius: 12px;
+    }
+
+    :host .client-result-card {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    :host .client-result-card:hover,
+    :host .client-result-card:focus-visible,
+    :host .client-result-card.active {
+      background: rgba(15, 118, 110, 0.09);
+      outline: 0;
+    }
+
+    :host .client-avatar {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      color: #f8fafc;
+      background: linear-gradient(135deg, #0f766e, #2563eb);
+      font-weight: 900;
+    }
+
+    :host .client-result-main {
+      display: grid;
+      min-width: 0;
+      gap: 2px;
+    }
+
+    :host .client-result-main strong,
+    :host .client-result-main span,
+    :host .client-result-main small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    :host .client-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    :host .client-badge {
+      width: fit-content;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: #334155;
+      background: #f1f5f9;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    :host .client-badge.good {
+      color: #047857;
+      background: #d1fae5;
+    }
+
+    :host .client-badge.wallet {
+      color: #1d4ed8;
+      background: #dbeafe;
+    }
+
+    :host .client-badge.due,
+    :host .client-badge.warning {
+      color: #b45309;
+      background: #fef3c7;
+    }
+
+    :host .client-result-main mark {
+      padding: 0 1px;
+      border-radius: 3px;
+      color: #0f172a;
+      background: #fde68a;
+    }
+
+    :host .client-call-button {
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: #0f766e;
+      background: rgba(15, 118, 110, 0.1);
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    :host .client-call-button.whatsapp {
+      color: #15803d;
+      background: #dcfce7;
+    }
+
+    :host .client-empty-state {
+      padding: 18px 12px;
+      color: #64748b;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    :host .pos-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1500;
+      background: rgba(15, 23, 42, 0.34);
+      backdrop-filter: blur(6px);
+    }
+
+    :host .pos-drawer {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1501;
+      width: min(520px, calc(100vw - 32px));
+      display: grid;
+      grid-template-rows: auto auto auto auto 1fr;
+      gap: 16px;
+      padding: 18px;
+      overflow-y: auto;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 30px 90px rgba(15, 23, 42, 0.26);
+    }
+
+    :host .drawer-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    :host .drawer-title h3 {
+      margin: 4px 0;
+      color: #0f172a;
+      font-size: 28px;
+      line-height: 1.05;
+    }
+
+    :host .drawer-title small {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    :host .inline-hint.success {
+      color: #047857;
+    }
+
+    :host .inline-hint.danger {
+      color: #b91c1c;
+    }
+
+    @media (max-width: 720px) {
+      :host .client-search-results {
+        position: fixed;
+        inset: auto 12px 12px 12px;
+        width: auto;
+        max-height: 58vh;
+        border-radius: 22px;
+      }
+
+      :host .client-result-card {
+        grid-template-columns: 40px minmax(0, 1fr) auto auto;
+      }
+
+      :host .pos-drawer {
+        inset: auto 10px 10px 10px;
+        width: auto;
+        max-height: 84vh;
+        border-radius: 22px;
+      }
+
     }
 
     :host .pos-search-results button:hover,
@@ -756,6 +1050,10 @@ export class PosComponent implements OnInit, OnDestroy {
   readonly dataHint = signal('');
   readonly showClientForm = signal(false);
   readonly clientSaving = signal(false);
+  readonly debouncedClientQuery = signal('');
+  readonly clientSearchPending = signal(false);
+  readonly clientSearchResults = signal<ApiRecord[]>([]);
+  readonly activeClientResultIndex = signal(0);
   discount = 0;
   discountMode: 'amount' | 'percent' = 'amount';
   couponCode = '';
@@ -800,6 +1098,7 @@ export class PosComponent implements OnInit, OnDestroy {
     tag: ['new'],
     notes: ['']
   });
+
   private fallbackTried = false;
   private fallbackNotice = false;
   private activeDraftRestored = false;
@@ -807,6 +1106,8 @@ export class PosComponent implements OnInit, OnDestroy {
   private readonly loadFailures = new Set<string>();
   private readonly branchSelectionSub = new Subscription();
   private branchSyncReady = false;
+  private clientSearchTimer = 0;
+  private readonly clientSearchIndex = new Map<string, ClientSearchIndex>();
 
   constructor(
     private readonly api: ApiService,
@@ -839,6 +1140,7 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.clearTimeout(this.clientSearchTimer);
     this.branchSelectionSub.unsubscribe();
     this.persistActiveBillingDraft();
   }
@@ -1018,6 +1320,8 @@ export class PosComponent implements OnInit, OnDestroy {
         this.branches.set(branches || []);
         this.appointments.set(appointments || []);
         this.memberships.set(memberships || []);
+        this.rebuildClientSearchIndex();
+        this.refreshClientSearchResults();
         const packageRows = packages?.length ? packages : packagesAllBranches || [];
         this.packages.set(packageRows);
         const livePlans = (membershipPlans || []).map((plan) => this.normalizeMembershipPlan(plan as PosMembershipPlan));
@@ -1042,10 +1346,15 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   loadPosSettings(): void {
-    const modes = this.posSettings.loadPaymentModes().filter((mode) => mode.active);
-    this.paymentModes.set(modes);
+    this.applyPaymentModes(this.posSettings.loadPaymentModes());
     this.tipPresets.set(this.posSettings.loadTipPresets());
     this.membershipPlans.set(this.posSettings.loadMembershipPlans());
+    this.posSettings.loadPaymentModesRemote().subscribe((modes) => this.applyPaymentModes(modes));
+  }
+
+  private applyPaymentModes(paymentModes: PosPaymentMode[]): void {
+    const modes = paymentModes.filter((mode) => mode.active);
+    this.paymentModes.set(modes);
     const nextPayments: Record<string, number> = {};
     for (const mode of modes) {
       nextPayments[mode.id] = Number(this.payments[mode.id] || 0);
@@ -1214,11 +1523,135 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   filteredClients(): ApiRecord[] {
-    const query = this.normalizeSearch(this.clientSearchText);
-    if (query.length < 3) return [];
-    return this.clients()
-      .filter((client) => this.normalizeSearch(`${client.name || ''} ${client.phone || ''} ${client.email || ''} ${client.address || ''} ${client.cardNumber || ''} ${client.fileNo || ''}`).includes(query))
-      .slice(0, 25);
+    return this.clientSearchResults();
+  }
+
+  clientResultActive(client: ApiRecord): boolean {
+    return this.clientSearchResults()[this.activeClientResultIndex()]?.id === client.id;
+  }
+
+  private recentClients(clients: ApiRecord[]): ApiRecord[] {
+    return [...clients]
+      .sort((a, b) => this.dateMs(b.lastVisitAt || b.lastInvoiceAt || b.updatedAt || b.createdAt) - this.dateMs(a.lastVisitAt || a.lastInvoiceAt || a.updatedAt || a.createdAt))
+      .slice(0, 20);
+  }
+
+  private refreshClientSearchResults(): void {
+    const query = this.normalizeSearch(this.debouncedClientQuery());
+    const clients = this.clients();
+    const results = !query
+      ? this.recentClients(clients)
+      : clients
+        .filter((client) => (this.clientSearchIndex.get(String(client.id || ''))?.haystack || '').includes(query))
+        .sort((a, b) => this.clientSearchScore(b, query) - this.clientSearchScore(a, query))
+        .slice(0, 25);
+    this.clientSearchResults.set(results);
+    this.activeClientResultIndex.set(Math.min(this.activeClientResultIndex(), Math.max(0, results.length - 1)));
+  }
+
+  private rebuildClientSearchIndex(): void {
+    const phoneCounts = new Map<string, number>();
+    const emailCounts = new Map<string, number>();
+    for (const client of this.clients()) {
+      const phone = this.clientPhoneDigits(client);
+      const email = this.normalizeSearch(client.email || '');
+      if (phone) phoneCounts.set(phone, (phoneCounts.get(phone) || 0) + 1);
+      if (email) emailCounts.set(email, (emailCounts.get(email) || 0) + 1);
+    }
+    this.clientSearchIndex.clear();
+    for (const client of this.clients()) {
+      const id = String(client.id || '');
+      const membershipIds = this.clientMembershipIds(client);
+      const phone = this.clientPhoneDigits(client);
+      const email = this.normalizeSearch(client.email || '');
+      const codes = this.normalizeSearch([
+        client.customerCode,
+        client.clientCode,
+        client.code,
+        client.cardNumber,
+        client.fileNo,
+        ...membershipIds
+      ].filter(Boolean).join(' '));
+      const membershipBadge = this.buildClientMembershipBadge(id);
+      this.clientSearchIndex.set(id, {
+        haystack: this.clientSearchHaystack(client, membershipIds),
+        phone,
+        name: this.normalizeSearch(client.name || ''),
+        email,
+        codes,
+        membershipIds,
+        membershipBadge,
+        membershipMeta: this.buildClientMembershipSearchSnapshot(client, id),
+        duplicate: Boolean((phone && (phoneCounts.get(phone) || 0) > 1) || (email && (emailCounts.get(email) || 0) > 1))
+      });
+    }
+  }
+
+  private clientSearchHaystack(client: ApiRecord, membershipIds = this.clientMembershipIds(client)): string {
+    return this.normalizeSearch([
+      client.name,
+      client.phone,
+      client.mobile,
+      client.whatsapp,
+      client.contact,
+      client.phoneNumber,
+      client.mobileNumber,
+      client.email,
+      client.customerCode,
+      client.clientCode,
+      client.code,
+      client.cardNumber,
+      client.fileNo,
+      client.membershipId,
+      client.membershipCode,
+      ...membershipIds
+    ].filter(Boolean).join(' '));
+  }
+
+  private clientSearchScore(client: ApiRecord, query: string): number {
+    const index = this.clientSearchIndex.get(String(client.id || ''));
+    const phone = index?.phone || this.phoneDigits(this.clientPrimaryPhone(client));
+    const queryDigits = this.phoneDigits(query);
+    const name = index?.name || this.normalizeSearch(client.name || '');
+    const email = index?.email || this.normalizeSearch(client.email || '');
+    const codes = index?.codes || '';
+    let score = 0;
+    if (queryDigits && phone === queryDigits) score += 140;
+    if (queryDigits && phone.startsWith(queryDigits)) score += 110;
+    if (name === query) score += 100;
+    if (name.startsWith(query)) score += 80;
+    if (codes.includes(query)) score += 60;
+    if (email.includes(query)) score += 40;
+    if (Number(client.unpaidBalance || 0) > 0) score += 4;
+    if (Number(client.walletBalance || 0) > 0) score += 3;
+    if (index?.membershipBadge) score += 2;
+    return score;
+  }
+
+  private clientMembershipIds(client: ApiRecord): string[] {
+    const clientId = String(client.id || '');
+    const direct = [client.membershipId, client.membershipCode].filter(Boolean).map(String);
+    const linked = this.memberships()
+      .filter((membership) => String(membership.clientId || membership.client_id || '') === clientId)
+      .flatMap((membership) => [membership.id, membership.membershipId, membership.membershipCode, membership.memberCode, membership.planId])
+      .filter(Boolean)
+      .map(String);
+    return Array.from(new Set([...direct, ...linked]));
+  }
+
+  private buildClientMembershipBadge(clientId: string): string {
+    const active = this.activeMembershipForClientId(clientId);
+    if (!active) return '';
+    const days = this.membershipDaysLeft(active);
+    if (days < 0) return 'Membership expired';
+    return days <= 30 ? `Membership ${days}d left` : 'Membership active';
+  }
+
+  private buildClientMembershipSearchSnapshot(client: ApiRecord, clientId: string): string {
+    const active = this.activeMembershipForClientId(clientId);
+    const walletBalance = Number(client.walletBalance || 0);
+    if (!active) return `Wallet ₹${walletBalance} · No active membership`;
+    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits`;
   }
 
   filteredStaff(): ApiRecord[] {
@@ -1226,9 +1659,10 @@ export class PosComponent implements OnInit, OnDestroy {
     const staff = this.staff();
     if (!query) return staff.slice(0, 25);
     return staff
-      .filter((person) =>
-        this.normalizeSearch(`${person.name || ''} ${person.fullName || ''} ${person.phone || ''} ${person.mobile || ''} ${person.role || ''} ${person.designation || ''} ${person.employeeCode || ''}`).includes(query)
-      )
+      .map((person, index) => ({ person, score: this.staffSearchScore(person, query, index) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.person)
       .slice(0, 25);
   }
 
@@ -1251,7 +1685,7 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   showClientResults(): boolean {
-    return this.clientSearchActive && this.normalizeSearch(this.clientSearchText).length >= 3 && this.filteredClients().length > 0;
+    return this.clientSearchActive;
   }
 
   showStaffResults(): boolean {
@@ -1267,12 +1701,63 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   canCreateClientFromSearch(): boolean {
-    const query = this.normalizeSearch(this.clientSearchText);
-    return query.length >= 3 && !this.form.value.clientId && this.filteredClients().length === 0;
+    const query = this.normalizeSearch(this.debouncedClientQuery());
+    return query.length >= 3 && !this.form.value.clientId && this.clientSearchResults().length === 0;
   }
 
   clientOption(client: ApiRecord): string {
     return String(client.name || client.phone || client.email || client.id || 'Client');
+  }
+
+  clientInitial(client: ApiRecord): string {
+    return String(client.name || client.phone || client.email || 'C').trim().slice(0, 1).toUpperCase() || 'C';
+  }
+
+  clientPrimaryPhone(client: ApiRecord): string {
+    return String(client.phone || client.mobile || client.whatsapp || client.contact || client.phoneNumber || client.mobileNumber || '');
+  }
+
+  clientCallHref(client: ApiRecord): string {
+    const phone = this.phoneDigits(this.clientPrimaryPhone(client));
+    return phone ? `tel:${phone}` : '';
+  }
+
+  clientWhatsAppHref(client: ApiRecord): string {
+    const phone = this.phoneDigits(this.clientPrimaryPhone(client));
+    return phone ? `https://wa.me/91${phone.slice(-10)}` : '';
+  }
+
+  clientResultMeta(client: ApiRecord): string {
+    const index = this.clientSearchIndex.get(String(client.id || ''));
+    const email = client.email ? String(client.email) : '';
+    const code = client.customerCode || client.clientCode || client.code || client.cardNumber || client.fileNo || '';
+    const membership = (index?.membershipIds || []).join(', ');
+    return [email, code ? `Code ${code}` : '', membership ? `Membership ${membership}` : index?.membershipMeta || this.clientMembershipSearchSnapshot(client)]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  clientMembershipBadge(client: ApiRecord): string {
+    return this.clientSearchIndex.get(String(client.id || ''))?.membershipBadge || '';
+  }
+
+  possibleDuplicateClient(client: ApiRecord): boolean {
+    return Boolean(this.clientSearchIndex.get(String(client.id || ''))?.duplicate);
+  }
+
+  highlightSegments(value: unknown): HighlightSegment[] {
+    const text = String(value || '');
+    const query = String(this.debouncedClientQuery() || '').trim().split(/\s+/).filter(Boolean)[0] || '';
+    if (!text || !query) return [{ text, match: false }];
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const index = lowerText.indexOf(lowerQuery);
+    if (index < 0) return [{ text, match: false }];
+    return [
+      { text: text.slice(0, index), match: false },
+      { text: text.slice(index, index + query.length), match: true },
+      { text: text.slice(index + query.length), match: false }
+    ].filter((segment) => segment.text);
   }
 
   staffOption(person: ApiRecord): string {
@@ -1283,7 +1768,77 @@ export class PosComponent implements OnInit, OnDestroy {
     const role = person.role || person.designation || person.specialization || person.department || 'Staff';
     const phone = person.phone || person.mobile || person.contact || person.phoneNumber || '';
     const branch = person.branchName || person.branch || '';
-    return [role, phone, branch].filter(Boolean).join(' · ');
+    const smartId = this.staffSmartIdLabel(person);
+    return [smartId, role, phone, branch].filter(Boolean).join(' · ');
+  }
+
+  private staffSmartIdLabel(person: ApiRecord): string {
+    const code = person.employeeCode || person.staffCode || person.code || person.id || '';
+    return code ? `ID ${code}` : '';
+  }
+
+  private staffSearchScore(person: ApiRecord, query: string, index: number): number {
+    const fields = this.staffSearchFields(person, index);
+    const compactQuery = query.replace(/\s+/g, '');
+    const digitQuery = this.phoneDigits(query);
+    if (fields.some((field) => field === query || field.replace(/\s+/g, '') === compactQuery)) return 120;
+    if (digitQuery && fields.some((field) => this.phoneDigits(field).includes(digitQuery))) return 110;
+    if (fields.some((field) => field.startsWith(query) || field.replace(/\s+/g, '').startsWith(compactQuery))) return 95;
+    if (fields.some((field) => field.includes(query) || field.replace(/\s+/g, '').includes(compactQuery))) return 80;
+    if (fields.some((field) => this.smartSearchDistance(field, query) <= this.smartSearchTolerance(query))) return 54;
+    return 0;
+  }
+
+  private staffSearchFields(person: ApiRecord, index: number): string[] {
+    const name = String(person.name || person.fullName || '').trim();
+    const words = name.split(/\s+/).filter(Boolean);
+    const initials = words.map((word) => word[0]).join('');
+    const numericAlias = String(index + 1);
+    return [
+      name,
+      initials,
+      person.fullName,
+      person.phone,
+      person.mobile,
+      person.contact,
+      person.phoneNumber,
+      person.role,
+      person.designation,
+      person.specialization,
+      person.department,
+      person.employeeCode,
+      person.staffCode,
+      person.code,
+      person.id,
+      numericAlias,
+      `id ${numericAlias}`,
+      `staff ${numericAlias}`,
+      `employee ${numericAlias}`
+    ].map((field) => this.normalizeSearch(field)).filter(Boolean);
+  }
+
+  private smartSearchTolerance(query: string): number {
+    if (query.length < 4) return 0;
+    if (query.length < 7) return 1;
+    return 2;
+  }
+
+  private smartSearchDistance(value: string, query: string): number {
+    const target = value.split(/\s+/).find((part) => Math.abs(part.length - query.length) <= 2) || value;
+    if (Math.abs(target.length - query.length) > 2) return 9;
+    const previous = Array.from({ length: query.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= target.length; i += 1) {
+      let diagonal = previous[0];
+      previous[0] = i;
+      for (let j = 1; j <= query.length; j += 1) {
+        const temp = previous[j];
+        previous[j] = target[i - 1] === query[j - 1]
+          ? diagonal
+          : Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + 1);
+        diagonal = temp;
+      }
+    }
+    return previous[query.length];
   }
 
   clientMembershipSearchSnapshot(client: ApiRecord): string {
@@ -1447,8 +2002,31 @@ export class PosComponent implements OnInit, OnDestroy {
 
   setClientSearch(value: string): void {
     this.clientSearchText = value || '';
+    this.clientSearchActive = true;
+    this.activeClientResultIndex.set(0);
+    window.clearTimeout(this.clientSearchTimer);
     const selected = this.clients().find((client) => this.clientOption(client) === this.clientSearchText);
     this.form.patchValue({ clientId: selected?.id || '' }, { emitEvent: false });
+    const trimmed = this.clientSearchText.trim();
+    if (!trimmed) {
+      this.clientSearchPending.set(false);
+      this.debouncedClientQuery.set('');
+      this.refreshClientSearchResults();
+      return;
+    }
+    if (this.phoneDigits(this.clientSearchText)) {
+      this.clientSearchPending.set(false);
+      this.debouncedClientQuery.set(trimmed);
+      this.refreshClientSearchResults();
+      return;
+    }
+    this.clientSearchPending.set(true);
+    this.clientSearchTimer = window.setTimeout(() => {
+      this.debouncedClientQuery.set(this.clientSearchText.trim());
+      this.clientSearchPending.set(false);
+      this.activeClientResultIndex.set(0);
+      this.refreshClientSearchResults();
+    }, 300);
   }
 
   setStaffSearch(value: string): void {
@@ -1470,6 +2048,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
   selectClient(client: ApiRecord): void {
     this.clientSearchText = this.clientOption(client);
+    this.clientSearchPending.set(false);
+    this.debouncedClientQuery.set(this.clientSearchText);
+    this.refreshClientSearchResults();
     this.form.patchValue({ clientId: client.id }, { emitEvent: false });
     this.clientSearchActive = false;
     this.walletCreditRequested.set(false);
@@ -1477,6 +2058,32 @@ export class PosComponent implements OnInit, OnDestroy {
     this.unpaidReceiveMode = this.activePaymentModes()[0]?.id || 'cash';
     this.unpaidReceiveMessage.set('');
     this.loadMembershipIntelligence(client.id);
+  }
+
+  handleClientSearchKeydown(event: KeyboardEvent): void {
+    if (!this.clientSearchActive) return;
+    const results = this.clientSearchResults();
+    if (!results.length && ['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) {
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.activeClientResultIndex.set(Math.min(results.length - 1, this.activeClientResultIndex() + 1));
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.activeClientResultIndex.set(Math.max(0, this.activeClientResultIndex() - 1));
+      return;
+    }
+    if (event.key === 'Enter' && results[this.activeClientResultIndex()]) {
+      event.preventDefault();
+      this.selectClient(results[this.activeClientResultIndex()]);
+      return;
+    }
+    if (event.key === 'Escape') {
+      this.clientSearchActive = false;
+    }
   }
 
   selectStaff(person: ApiRecord): void {
@@ -2614,6 +3221,13 @@ export class PosComponent implements OnInit, OnDestroy {
     const date = new Date(String(value));
     if (Number.isNaN(date.getTime())) return String(value);
     return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  private timeLabel(value: unknown): string {
+    if (!value) return '';
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
   }
 
   private dateMs(value: unknown): number {

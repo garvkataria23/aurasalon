@@ -13,6 +13,10 @@ build/
 data/
 backups/
 .codex-smoke/
+.codex-video-frames/
+.codex-zip-review/
+.vscode/
+marketplace-v2-backup-*.zip
 *.log
 logs/
 tmp/

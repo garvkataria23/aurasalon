@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -38,12 +39,18 @@ type OutgoingFundEntry = ApiRecord & {
   lineItems?: OutgoingLineItem[];
   remarks?: string;
   status: 'draft' | 'posted' | 'cancelled' | 'deleted';
+  balanceSheetLink?: {
+    status: string;
+    eventKey?: string;
+    journalEntryId?: string;
+    lastError?: string;
+  };
 };
 
 @Component({
   selector: 'app-outgoing-funds-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
   template: `
     <section class="outgoing-page">
       <header class="module-hero">
@@ -53,6 +60,8 @@ type OutgoingFundEntry = ApiRecord & {
           <p>Enter cash, bank, expense, salary, advance, loan and purchase payment vouchers with editable line items.</p>
         </div>
         <div class="hero-actions">
+          <a class="ghost-button" routerLink="/balance-sheet">Open Balance Sheet</a>
+          <button class="ghost-button" type="button" (click)="processGlOutbox()" [disabled]="saving()">Process GL</button>
           <button class="ghost-button" type="button" (click)="load()">Refresh</button>
           <button class="primary-button" type="button" (click)="startNew()">Add</button>
         </div>
@@ -65,7 +74,7 @@ type OutgoingFundEntry = ApiRecord & {
         <article><span>Total outgoing</span><strong>{{ money(totalOutgoing()) }}</strong><small>Visible transaction entries</small></article>
         <article><span>Draft entries</span><strong>{{ draftCount() }}</strong><small>Not posted yet</small></article>
         <article><span>Posted entries</span><strong>{{ postedCount() }}</strong><small>Ready for ledger review</small></article>
-        <article><span>Current voucher</span><strong>{{ money(lineTotal()) }}</strong><small>{{ lineItems().length }} line item(s)</small></article>
+        <article><span>Balance Sheet link</span><strong>{{ linkedCount() }}/{{ postableCount() }}</strong><small>Queued or posted to GL outbox</small></article>
       </section>
 
       <div class="outgoing-layout" *ngIf="!loading() && !error()">
@@ -95,7 +104,7 @@ type OutgoingFundEntry = ApiRecord & {
               </span>
               <span>
                 <strong>{{ money(entry.amount) }}</strong>
-                <small>{{ entry.paidFromAccountName || entry.paymentMode || '-' }}</small>
+                <small>{{ balanceSheetLabel(entry) }}</small>
               </span>
             </button>
             <div class="empty-state" *ngIf="!filteredEntries().length">
@@ -108,12 +117,12 @@ type OutgoingFundEntry = ApiRecord & {
         <section class="voucher-window">
           <div class="window-titlebar">
             <h3>Outgoing Funds Entry</h3>
-            <strong>{{ editingId() ? 'Edit' : 'Add' }}</strong>
+            <strong>{{ currentBalanceSheetLabel() }}</strong>
           </div>
 
           <form [formGroup]="entryForm" (ngSubmit)="saveEntry()" class="voucher-form">
             <div class="voucher-head">
-              <label><span>Date :</span><input type="date" formControlName="entryDate" /></label>
+              <label><span>Date :</span><span class="picker-field"><input #entryDateInput type="date" formControlName="entryDate" /><button type="button" (click)="openPicker(entryDateInput)">▣</button></span></label>
               <label><span>OG No :</span><input formControlName="entryNo" placeholder="Auto" /></label>
               <label><span>Exp. Branch :</span><input formControlName="expenseBranchName" /></label>
               <label class="wide"><span>Cash / Bank :</span>
@@ -122,7 +131,7 @@ type OutgoingFundEntry = ApiRecord & {
                   <option *ngFor="let account of cashBankAccounts()" [value]="account.id">{{ account.accountName }}</option>
                 </select>
               </label>
-              <label><span>Cheque Date :</span><input type="date" formControlName="chequeDate" /></label>
+              <label><span>Cheque Date :</span><span class="picker-field"><input #chequeDateInput type="date" formControlName="chequeDate" /><button type="button" (click)="openPicker(chequeDateInput)">▣</button></span></label>
               <label><span>Cheque No :</span><input formControlName="chequeNo" /></label>
             </div>
 
@@ -146,8 +155,8 @@ type OutgoingFundEntry = ApiRecord & {
                   <option value="">Select account</option>
                   <option *ngFor="let account of accounts()" [value]="account.id">{{ account.accountName }}{{ account.groupName ? ' - ' + account.groupName : '' }}</option>
                 </select>
-                <input type="number" min="0" step="0.01" [ngModel]="item.amount" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateLine(i, { amount: numberValue($event) })" />
-                <input [ngModel]="item.salaryMonthYear" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateLine(i, { salaryMonthYear: $event })" placeholder="MM/YYYY" />
+                <input type="text" inputmode="decimal" [value]="amountInput(item.amount)" (input)="updateLineAmount(i, $any($event.target).value)" />
+                <input type="month" [ngModel]="item.salaryMonthYear" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateLine(i, { salaryMonthYear: $event })" />
                 <input [ngModel]="item.remarks" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateLine(i, { remarks: $event })" />
                 <button class="icon-button danger" type="button" (click)="removeLine(i)" [disabled]="lineItems().length === 1">×</button>
               </div>
@@ -173,6 +182,7 @@ type OutgoingFundEntry = ApiRecord & {
             <div class="bottom-toolbar">
               <button class="tool-button" type="button" (click)="printVoucher()">Print</button>
               <button class="tool-button primary-tool" type="submit" [disabled]="entryForm.invalid || !lineTotal() || saving()">{{ saving() ? 'Saving' : 'Save' }}</button>
+              <a class="tool-button" routerLink="/balance-sheet">Balance Sheet</a>
               <button class="tool-button" type="button" (click)="focusFind()">Find</button>
               <button class="tool-button danger-tool" type="button" (click)="deleteSelected()" [disabled]="!editingId() || saving()">Delete</button>
               <button class="tool-button" type="button" (click)="cancelEdit()">Cancel</button>
@@ -213,6 +223,15 @@ type OutgoingFundEntry = ApiRecord & {
       background: #fff;
       color: #0f172a;
     }
+    .picker-field { display: grid; grid-template-columns: 1fr 36px; gap: 4px; }
+    .picker-field button {
+      border: 1px solid #9fb2b8;
+      border-radius: 3px;
+      background: #fff;
+      color: #0f172a;
+      font-weight: 900;
+      cursor: pointer;
+    }
     .entry-list { display: grid; max-height: 690px; overflow: auto; border: 1px solid #d8e2e8; border-radius: 6px; }
     .saved-entry { display: grid; grid-template-columns: 1fr 112px; gap: 10px; width: 100%; border: 0; border-bottom: 1px solid #edf2f5; background: #fff; color: #0f172a; text-align: left; padding: 10px; cursor: pointer; }
     .saved-entry:hover, .saved-entry.selected { background: #eefaf6; }
@@ -244,6 +263,7 @@ type OutgoingFundEntry = ApiRecord & {
       padding: 8px 11px;
       font-weight: 900;
       cursor: pointer;
+      text-decoration: none;
     }
     .category-strip button.active { background: #0f8f79; border-color: #0f8f79; color: #fff; }
     .category-strip .utility { margin-left: 6px; }
@@ -317,6 +337,8 @@ export class OutgoingFundsEntryComponent implements OnInit {
   readonly totalOutgoing = computed(() => this.entries().filter((entry) => entry.status !== 'deleted').reduce((sum, entry) => sum + moneyValue(entry.amount), 0));
   readonly draftCount = computed(() => this.entries().filter((entry) => entry.status === 'draft').length);
   readonly postedCount = computed(() => this.entries().filter((entry) => entry.status === 'posted').length);
+  readonly postableCount = computed(() => this.entries().filter((entry) => !['cancelled', 'deleted'].includes(entry.status)).length);
+  readonly linkedCount = computed(() => this.entries().filter((entry) => ['pending', 'posted', 'failed'].includes(entry.balanceSheetLink?.status || '')).length);
 
   readonly entryForm = this.fb.group({
     entryNo: [''],
@@ -331,7 +353,7 @@ export class OutgoingFundsEntryComponent implements OnInit {
     status: ['draft', Validators.required]
   });
 
-  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
+  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder, private readonly router: Router) {}
 
   ngOnInit(): void {
     this.load();
@@ -465,13 +487,33 @@ export class OutgoingFundsEntryComponent implements OnInit {
     request.subscribe({
       next: (entry) => {
         this.saving.set(false);
-        this.success.set(this.editingId() ? 'Outgoing voucher updated.' : 'Outgoing voucher saved.');
+        this.success.set(this.editingId() ? 'Outgoing voucher updated and linked to Balance Sheet.' : 'Outgoing voucher saved and linked to Balance Sheet.');
         this.editingId.set(entry.id);
         this.selected.set(entry);
         this.load();
+        this.router.navigate(['/balance-sheet']);
       },
       error: (error) => {
         this.error.set(error?.error?.error || error?.message || 'Unable to save outgoing voucher');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  processGlOutbox(): void {
+    this.saving.set(true);
+    this.error.set('');
+    this.success.set('');
+    this.api.post<ApiRecord>('balance-sheet/outbox/process', { limit: 50 }).subscribe({
+      next: (result) => {
+        const posted = Number(result?.['posted'] || 0);
+        const failed = Number(result?.['failed'] || 0);
+        this.success.set(`Balance Sheet GL processed. Posted ${posted}, failed ${failed}.`);
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || error?.message || 'Unable to process Balance Sheet GL outbox');
         this.saving.set(false);
       }
     });
@@ -509,8 +551,36 @@ export class OutgoingFundsEntryComponent implements OnInit {
     return moneyValue(value);
   }
 
+  amountInput(value: unknown): string {
+    const amount = moneyValue(value);
+    return amount ? String(amount) : '';
+  }
+
+  updateLineAmount(index: number, value: string): void {
+    this.updateLine(index, { amount: moneyValue(value.replace(/,/g, '')) });
+  }
+
+  openPicker(input: HTMLInputElement): void {
+    const picker = (input as HTMLInputElement & { showPicker?: () => void }).showPicker;
+    if (typeof picker === 'function') picker.call(input);
+    else input.focus();
+  }
+
   money(value: unknown): string {
     return moneyValue(value).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+
+  balanceSheetLabel(entry: OutgoingFundEntry): string {
+    const status = entry.balanceSheetLink?.status || 'not-linked';
+    if (status === 'posted') return 'Balance Sheet posted';
+    if (status === 'pending') return 'Balance Sheet queued';
+    if (status === 'failed') return 'Balance Sheet failed';
+    return entry.paidFromAccountName || entry.paymentMode || 'Not linked';
+  }
+
+  currentBalanceSheetLabel(): string {
+    const entry = this.selected();
+    return entry ? this.balanceSheetLabel(entry) : 'Add';
   }
 
   private renumber(items: OutgoingLineItem[]): OutgoingLineItem[] {
@@ -565,4 +635,3 @@ function moneyValue(value: unknown): number {
 function stringValue(value: unknown): string {
   return value === undefined || value === null ? '' : String(value);
 }
-

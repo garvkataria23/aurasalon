@@ -191,7 +191,7 @@ export class ResourceService {
       if (blackout) throw conflict("Selected date is blocked for booking", { blackout });
     }
 
-    if (schedulingTouched && candidate.branchId && candidate.startAt && candidate.endAt && (candidate.staffId || candidate.chair)) {
+    if (schedulingTouched && !options.skipSchedulingConflictCheck && candidate.branchId && candidate.startAt && candidate.endAt && (candidate.staffId || candidate.chair)) {
       const conflicts = smartBookingService
         .findConflicts({
           branchId: candidate.branchId,

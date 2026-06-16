@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
@@ -8,14 +9,14 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 @Component({
   selector: 'app-offline-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, RouterLink, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
         <div>
-          <span class="eyebrow">Level 14 · Offline-first architecture</span>
-          <h2>Local caching, sync when online, offline billing and offline appointment management</h2>
-          <p>Offline operations are queued, processed through the same persisted booking/POS logic and marked synced or conflict.</p>
+          <span class="eyebrow">Offline Resilience Command Center</span>
+          <h2>Run billing, appointments and recovery workflows even when internet is unstable</h2>
+          <p>Each offline workflow now opens as a focused page, so billing, appointments, sync, conflicts, device health and risk alerts stay cleanly separated.</p>
         </div>
         <button class="ghost-button" type="button" (click)="load()">Refresh</button>
       </div>
@@ -31,68 +32,33 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         <aura-kpi-card tone="violet" target="/kpi-details/offline/offline-bills"><span>Offline bills</span><strong>{{ metrics.offlineBills }}</strong><small>Queued sales</small></aura-kpi-card>
       </div>
 
-      <div class="three-grid">
-        <section class="form-panel">
-          <h3>Create cache snapshot</h3>
-          <form [formGroup]="cacheForm" (ngSubmit)="createSnapshot()">
-            <label class="field"><span>Device ID</span><input formControlName="deviceId" /></label>
-            <label class="field"><span>Branch</span><select formControlName="branchId"><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
-            <div class="form-actions"><button class="primary-button" type="submit">Cache branch data</button></div>
-          </form>
-        </section>
-
-        <section class="form-panel">
-          <h3>Offline appointment</h3>
-          <form [formGroup]="appointmentForm" (ngSubmit)="offlineAppointment()">
-            <label class="field"><span>Client</span><select formControlName="clientId"><option *ngFor="let client of clients()" [value]="client.id">{{ client.name }}</option></select></label>
-            <label class="field"><span>Service</span><select formControlName="serviceId"><option *ngFor="let service of services()" [value]="service.id">{{ service.name }}</option></select></label>
-            <label class="field"><span>Branch</span><select formControlName="branchId"><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
-            <label class="field"><span>Start</span><input type="datetime-local" formControlName="startAt" /></label>
-            <div class="form-actions"><button class="primary-button" type="submit">Queue and sync</button></div>
-          </form>
-        </section>
-
-        <section class="form-panel">
-          <h3>Offline billing</h3>
-          <form [formGroup]="billingForm" (ngSubmit)="offlineBilling()">
-            <label class="field"><span>Client</span><select formControlName="clientId"><option *ngFor="let client of clients()" [value]="client.id">{{ client.name }}</option></select></label>
-            <label class="field"><span>Service</span><select formControlName="serviceId"><option *ngFor="let service of services()" [value]="service.id">{{ service.name }}</option></select></label>
-            <label class="field"><span>Branch</span><select formControlName="branchId"><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
-            <label class="field"><span>Payment mode</span><select formControlName="mode"><option value="upi">UPI</option><option value="cash">Cash</option><option value="card">Card</option></select></label>
-            <div class="form-actions"><button class="primary-button" type="submit">Sync bill</button></div>
-          </form>
-        </section>
-      </div>
-
       <section class="panel">
         <div class="section-title">
-          <h2>Sync queue</h2>
-          <button class="ghost-button" type="button" (click)="sync()">Sync queued</button>
+          <h2>Offline modules</h2>
+          <span class="badge">Separated pages</span>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Entity</th><th>Operation</th><th>Device</th><th>Status</th><th>Server</th><th>Created</th></tr></thead>
-            <tbody>
-              <tr *ngFor="let item of summary()?.syncItems || []">
-                <td>{{ item.entity }}</td>
-                <td>{{ item.operation }}</td>
-                <td>{{ item.deviceId }}</td>
-                <td><span class="badge">{{ item.status }}</span></td>
-                <td>{{ item.serverId || '-' }}</td>
-                <td>{{ item.createdAt | date: 'short' }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="quick-grid">
+          <a class="action-card" *ngFor="let module of modules" [routerLink]="module.path">
+            <strong>{{ module.title }}</strong>
+            <span>{{ module.detail }}</span>
+            <small>{{ module.signal }}</small>
+          </a>
         </div>
       </section>
 
       <div class="dashboard-grid">
         <section class="panel">
-          <div class="section-title"><h2>Cache snapshots</h2></div>
-          <div class="rank-list">
-            <article *ngFor="let snapshot of summary()?.snapshots || []">
-              <div><strong>{{ snapshot.resource }}</strong><span>{{ snapshot.deviceId }} · v{{ snapshot.version }}</span></div>
-              <small>{{ snapshot.createdAt | date: 'short' }}</small>
+          <div class="section-title"><h2>Readiness snapshot</h2></div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ readinessScore() }}</strong>
+              <span>{{ readinessLabel() }}</span>
+              <small>Based on queued items, conflicts and cache availability</small>
+            </article>
+            <article class="action-card">
+              <strong>{{ summary()?.snapshots?.[0]?.createdAt ? (summary()?.snapshots?.[0]?.createdAt | date: 'short') : 'No cache yet' }}</strong>
+              <span>Latest cache snapshot</span>
+              <small>Open Readiness Score for full cache strategy</small>
             </article>
           </div>
         </section>
@@ -120,6 +86,15 @@ export class OfflineSupportComponent implements OnInit {
   readonly cacheForm = this.fb.group({ deviceId: ['front-desk-terminal', Validators.required], branchId: ['', Validators.required] });
   readonly appointmentForm = this.fb.group({ clientId: ['', Validators.required], serviceId: ['', Validators.required], branchId: ['', Validators.required], startAt: [this.defaultLocalTime(), Validators.required] });
   readonly billingForm = this.fb.group({ clientId: ['', Validators.required], serviceId: ['', Validators.required], branchId: ['', Validators.required], mode: ['upi'] });
+  readonly modules = [
+    { path: '/offline/readiness', title: 'Offline Readiness Score', detail: 'Branch/device score, cache freshness, pending queue and conflict risk.', signal: 'Readiness / cache strategy' },
+    { path: '/offline/devices', title: 'Device Sync Health', detail: 'Online/offline posture from device IDs, last queue activity and failed sync signals.', signal: 'Terminal and tablet health' },
+    { path: '/offline/sync-queue', title: 'Smart Sync Queue', detail: 'Priority sync board with billing, appointments and inventory ordering.', signal: 'Retry / force sync' },
+    { path: '/offline/conflicts', title: 'Conflict Resolution Center', detail: 'Server vs device conflict review and manager decision workflow.', signal: 'Keep server / device / merge' },
+    { path: '/offline/billing', title: 'Offline Billing Protection', detail: 'Focused billing page with duplicate, payment and final sync safeguards.', signal: 'Invoice continuity' },
+    { path: '/offline/appointments', title: 'Offline Appointment Protection', detail: 'Focused appointment queue with slot, staff and duplicate booking checks.', signal: 'Booking continuity' },
+    { path: '/offline/risk-alerts', title: 'Offline Risk Alerts', detail: 'Old cache, high queue, failed sync and high-value offline billing warnings.', signal: 'Operational risk' }
+  ];
 
   constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
 
@@ -165,6 +140,23 @@ export class OfflineSupportComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  readinessScore(): string {
+    const metrics = this.summary()?.metrics || {};
+    const queued = Number(metrics.queued || 0);
+    const conflicts = Number(metrics.conflicts || 0);
+    const snapshots = Number(metrics.cacheSnapshots || 0);
+    if (!snapshots || conflicts > 0 || queued > 50) return 'Risk';
+    if (queued > 10) return 'Partial';
+    return 'Ready';
+  }
+
+  readinessLabel(): string {
+    const score = this.readinessScore();
+    if (score === 'Ready') return 'Branch is ready for controlled offline operation.';
+    if (score === 'Partial') return 'Offline operation is possible, but sync queue needs review.';
+    return 'Offline operation needs attention before relying on it.';
   }
 
   createSnapshot(): void {

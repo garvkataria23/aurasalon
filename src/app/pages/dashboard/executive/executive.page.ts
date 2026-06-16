@@ -12,9 +12,11 @@ type KpiVm = {
   key: string;
   label: string;
   value: string;
+  subtitle: string;
   delta: number;
   trend: string;
   route: string;
+  tone: string;
 };
 
 @Component({
@@ -44,17 +46,29 @@ export class ExecutiveDashboardPage implements OnInit {
   readonly kpis = computed<KpiVm[]>(() => {
     const data = this.data();
     if (!data) return [];
+    const revenue = this.metricValue('revenue');
+    const appointments = this.metricValue('appointments');
+    const expense = this.estimatedExpense(data);
+    const netProfit = revenue - expense;
+    const newCustomers = this.metricValue('newCustomers');
+    const retention = this.metricValue('retention');
     return [
-      this.kpi('revenue', 'Revenue', this.currency(data.kpis['revenue']?.['value'])),
-      this.kpi('appointments', 'Appointments', String(data.kpis['appointments']?.['value'] || 0)),
-      this.kpi('newCustomers', 'New customers', String(data.kpis['newCustomers']?.['value'] || 0)),
-      this.kpi('avgTicket', 'Avg ticket', this.currency(data.kpis['avgTicket']?.['value'])),
-      this.kpi('chairUtilization', 'Chair util', `${data.kpis['chairUtilization']?.['value'] || 0}%`),
-      this.kpi('cancellationRate', 'Cancel rate', `${data.kpis['cancellationRate']?.['value'] || 0}%`),
-      this.kpi('noshowRate', 'No-show', `${data.kpis['noshowRate']?.['value'] || 0}%`),
-      this.kpi('retention', 'Retention', `${data.kpis['retention']?.['value'] || 0}%`)
+      this.kpi('todaySales', 'Today Sales', this.currency(revenue), 'POS + invoices', '/kpi-details/dashboard/revenue', 'money', 'revenue'),
+      this.kpi('todayAppointments', 'Today Appointments', String(appointments), 'Booked service flow', '/appointments', 'ops', 'appointments'),
+      this.customKpi('revenueExpense', 'Revenue vs Expense', `${this.currency(revenue)} / ${this.currency(expense)}`, 'Income against cost', '/finance', 'finance'),
+      this.customKpi('netProfit', 'Net Profit', this.currency(netProfit), 'After tracked operating cost', '/finance', netProfit >= 0 ? 'profit' : 'risk'),
+      this.customKpi('topStaff', 'Top Staff', this.topStaffLabel(data), 'Highest staff contribution', '/staff', 'people'),
+      this.customKpi('topServices', 'Top Services', this.topServiceLabel(data), 'Best selling service', '/reports', 'service'),
+      this.customKpi('pendingPayments', 'Pending Payments', this.currency(this.pendingPayments(data)), 'Collection follow-up', '/pos/invoices', 'risk'),
+      this.customKpi('lowStock', 'Inventory Low Stock', String(this.lowStockCount(data)), 'Items needing reorder', '/inventory', 'stock'),
+      this.kpi('repeatNew', 'Customer Repeat / New', `${retention}% / ${newCustomers}`, 'Retention vs acquisition', '/clients', 'customer', 'retention'),
+      this.customKpi('branchPerformance', 'Branch-wise Performance', this.branchPerformanceLabel(), 'Compare revenue and risk', '/reports', 'branch')
     ];
   });
+
+  readonly priorityCards = computed<KpiVm[]>(() =>
+    this.kpis().filter((kpi) => ['revenueExpense', 'netProfit', 'pendingPayments', 'lowStock', 'repeatNew', 'branchPerformance'].includes(kpi.key))
+  );
 
   readonly activityItems = computed<ActivityItem[]>(() =>
     (this.data()?.activity || []).map((item) => ({
@@ -136,15 +150,63 @@ export class ExecutiveDashboardPage implements OnInit {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as ApiRecord : {};
   }
 
-  private kpi(key: string, label: string, value: string): KpiVm {
-    const item = this.data()?.kpis[key] || {};
+  private kpi(key: string, label: string, value: string, subtitle: string, route: string, tone: string, sourceKey = key): KpiVm {
+    const item = this.data()?.kpis[sourceKey] || {};
     return {
       key,
       label,
+      subtitle,
       value,
       delta: Number(item['deltaPct'] || 0),
       trend: String(item['trend'] || 'flat'),
-      route: `/kpi-details/dashboard/${key}`
+      route,
+      tone
     };
+  }
+
+  private customKpi(key: string, label: string, value: string, subtitle: string, route: string, tone: string): KpiVm {
+    return { key, label, value, subtitle, delta: 0, trend: 'flat', route, tone };
+  }
+
+  private metricValue(key: string): number {
+    return Number(this.data()?.kpis[key]?.['value'] || 0);
+  }
+
+  private estimatedExpense(data: ExecutiveDashboard): number {
+    const gst = this.record(data.salonCritical['gstReports']);
+    const chemical = this.record(data.salonCritical['productChemicalCost']);
+    const refunds = this.record(data.salonCritical['refundsDisputes']);
+    return Math.max(
+      0,
+      Number(chemical['totalCost'] || chemical['value'] || 0) +
+        Number(gst['gstAmount'] || 0) +
+        Number(refunds['refundAmount'] || 0)
+    );
+  }
+
+  private pendingPayments(data: ExecutiveDashboard): number {
+    const settlement = this.record(data.salonCritical['razorpaySettlement']);
+    return Number(data.kpis['pendingPayments']?.['value'] || settlement['pendingSettlement'] || 0);
+  }
+
+  private lowStockCount(data: ExecutiveDashboard): number {
+    return this.rows(data.salonCritical['lowStockAlerts']).length || this.rows(data.advanced['lowStockAlerts']).length;
+  }
+
+  private topStaffLabel(data: ExecutiveDashboard): string {
+    const staff = data.topPerformers.staff?.[0];
+    return staff ? String(staff['staff'] || staff['name'] || 'Staff') : 'No data';
+  }
+
+  private topServiceLabel(data: ExecutiveDashboard): string {
+    const service = data.topPerformers.services?.[0];
+    return service ? String(service['service'] || service['name'] || 'Service') : 'No data';
+  }
+
+  private branchPerformanceLabel(): string {
+    const selected = this.branches().find((branch) => branch['id'] === this.branchId());
+    if (selected) return String(selected['name'] || selected['id']);
+    const count = this.branches().length;
+    return count ? `${count} branches` : 'All branches';
   }
 }

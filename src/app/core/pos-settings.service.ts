@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Observable, catchError, map, of, tap } from 'rxjs';
+import { ApiRecord, ApiService } from './api.service';
 import { AppStateService } from './state/app-state.service';
 
 export type PosPaymentMode = {
@@ -120,21 +122,33 @@ const DEFAULT_MEMBERSHIP_PLANS: PosMembershipPlan[] = [
 
 @Injectable({ providedIn: 'root' })
 export class PosSettingsService {
-  constructor(private readonly state: AppStateService) {}
+  constructor(private readonly state: AppStateService, private readonly api: ApiService) {}
 
   loadPaymentModes(): PosPaymentMode[] {
     const stored = this.read<PosPaymentMode[]>('paymentModes', []);
-    const merged = [...DEFAULT_PAYMENT_MODES];
-    for (const mode of stored) {
-      const existing = merged.find((item) => item.id === mode.id);
-      if (existing) Object.assign(existing, mode);
-      else merged.push(mode);
-    }
-    return merged.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+    return this.mergePaymentModes(stored);
   }
 
   savePaymentModes(modes: PosPaymentMode[]): void {
     this.write('paymentModes', modes);
+  }
+
+  loadPaymentModesRemote(): Observable<PosPaymentMode[]> {
+    return this.api.list<ApiRecord>('pos/settings/payment-modes').pipe(
+      map((response) => this.mergePaymentModes(response?.['paymentModes'] as PosPaymentMode[] | undefined)),
+      tap((modes) => this.savePaymentModes(modes)),
+      catchError(() => of(this.loadPaymentModes()))
+    );
+  }
+
+  savePaymentModesRemote(modes: PosPaymentMode[]): Observable<PosPaymentMode[]> {
+    const paymentModes = this.mergePaymentModes(modes);
+    this.savePaymentModes(paymentModes);
+    return this.api.put<ApiRecord>('pos/settings/payment-modes', { paymentModes }).pipe(
+      map((response) => this.mergePaymentModes(response?.['paymentModes'] as PosPaymentMode[] | undefined)),
+      tap((savedModes) => this.savePaymentModes(savedModes)),
+      catchError(() => of(paymentModes))
+    );
   }
 
   loadTipPresets(): PosTipPreset[] {
@@ -221,6 +235,16 @@ export class PosSettingsService {
     const tenantId = this.state.selectedTenantId() || 'tenant_aura';
     const branchId = this.state.selectedBranchId() || 'all';
     return `aura.pos.${kind}.${tenantId}.${branchId}`;
+  }
+
+  private mergePaymentModes(stored: PosPaymentMode[] | undefined): PosPaymentMode[] {
+    const merged = [...DEFAULT_PAYMENT_MODES];
+    for (const mode of stored || []) {
+      const existing = merged.find((item) => item.id === mode.id);
+      if (existing) Object.assign(existing, mode);
+      else merged.push(mode);
+    }
+    return merged.sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
   }
 
   private read<T>(kind: string, fallback: T): T {

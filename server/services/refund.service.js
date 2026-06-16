@@ -1,6 +1,7 @@
 import { db } from "../db.js";
 import { badRequest, conflict, notFound } from "../utils/app-error.js";
 import { billingService } from "./billing.service.js";
+import { balanceSheetService } from "./balance-sheet.service.js";
 import { realtimeService } from "./realtime.service.js";
 
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
@@ -59,7 +60,13 @@ export class RefundService {
         payload: { refundId, amount, taxReversal, reason: payload.reason, status }
       });
       realtimeService.broadcast("invoice:refunded", { invoiceId, amount, status }, { tenantId: access.tenantId, branchId: invoice.branch_id });
-      return { refundId, refundNo, amount, taxReversal, status };
+      const refund = { refundId, refundNo, amount, taxReversal, status, processedAt: new Date().toISOString() };
+      try {
+        balanceSheetService.enqueueInvoiceRefundEvent({ invoice, refund, mode: payload.mode || payload.paymentMode || "bank", access });
+      } catch {
+        billingService.writeEvent({ tenantId: access.tenantId, invoiceId, eventType: "finance.gl_enqueue_failed", actorUserId: access.userId || "", payload: { refundId, amount } });
+      }
+      return refund;
     });
     return txn();
   }

@@ -45,6 +45,56 @@ migrationRouter.post(
   })
 );
 
+migrationRouter.post(
+  "/migration/suggest-mapping",
+  requirePermission("write"),
+  asyncHandler((req, res) => {
+    res.json(migrationService.suggestMapping(req.body, req.access));
+  })
+);
+
+migrationRouter.post(
+  "/migration/reconcile",
+  requirePermission("write"),
+  asyncHandler((req, res) => {
+    res.json(migrationService.reconcile(req.body, req.access));
+  })
+);
+
+migrationRouter.get(
+  "/migration/approvals",
+  requirePermission("read"),
+  asyncHandler((req, res) => {
+    res.json(migrationService.approvals(req.query, req.access));
+  })
+);
+
+migrationRouter.post(
+  "/migration/approvals",
+  requirePermission("write"),
+  asyncHandler((req, res) => {
+    res.status(201).json(migrationService.submitApproval(req.body, req.access));
+  })
+);
+
+// Frontend uses /decide. Keep this canonical endpoint.
+migrationRouter.post(
+  "/migration/approvals/:id/decide",
+  requirePermission("write"),
+  asyncHandler((req, res) => {
+    res.json(migrationService.decideApproval(req.params.id, req.body, req.access));
+  })
+);
+
+// Backward-compatible alias in case older frontend calls /decision.
+migrationRouter.post(
+  "/migration/approvals/:id/decision",
+  requirePermission("write"),
+  asyncHandler((req, res) => {
+    res.json(migrationService.decideApproval(req.params.id, req.body, req.access));
+  })
+);
+
 migrationRouter.get(
   "/migration/onboarding",
   requirePermission("read"),

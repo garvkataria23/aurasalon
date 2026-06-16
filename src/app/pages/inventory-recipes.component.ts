@@ -1122,7 +1122,8 @@ export class InventoryRecipesComponent implements OnInit {
   }
 
   productType(product: ApiRecord): string {
-    return String(product.usageType || product.productType || 'retail').toLowerCase();
+    const type = String(product.usageType || product.productType || 'retail').toLowerCase();
+    return type === 'internal' || type === 'professional' ? 'consumable' : type;
   }
 
   productById(id: string): ApiRecord | undefined {

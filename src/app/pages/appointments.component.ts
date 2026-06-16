@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -62,6 +63,16 @@ type SchedulerActionMenu = {
 };
 type BlockTimeDrawerMode = '' | 'add' | 'remove';
 type SmsRecipientTarget = 'client' | 'staff' | 'owner';
+type WaitlistEntry = ApiRecord & {
+  clientId: string;
+  serviceId?: string;
+  staffId?: string;
+  preferredDate?: string;
+  windowStart?: string;
+  windowEnd?: string;
+  priority?: number;
+  status?: string;
+};
 
 const SCHEDULER_START_MINUTES = 8 * 60;
 const SCHEDULER_END_MINUTES = 22 * 60;
@@ -81,7 +92,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
 @Component({
   selector: 'app-appointments',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DatePipe, StateComponent],
   template: `
     <section class="appointment-shell">
       <section class="date-strip-panel" *ngIf="viewMode() !== 'day'">
@@ -141,6 +152,16 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
             </select>
           </label>
         </div>
+        <div class="calendar-toolbar-actions">
+          <a
+            class="ghost-button link-button"
+            *ngIf="lastBookedClientId()"
+            [routerLink]="['/clients', lastBookedClientId()]"
+          >
+            Client History
+          </a>
+          <button class="primary-button" type="button" (click)="openWaitlistDrawer()">+ Waitlist Entry</button>
+        </div>
       </div>
 
       <div class="appointment-command-grid" *ngIf="!loading()">
@@ -189,6 +210,11 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="appointment-kpis" *ngIf="!loading()">
+        <button type="button" class="waitlist-kpi-action" (click)="openWaitlistDrawer()">
+          <span>Waitlist</span>
+          <strong>+</strong>
+          <small>Add client entry</small>
+        </button>
         <button type="button" *ngFor="let metric of metrics()" (click)="statusFilter.set(metric.status)">
           <span>{{ metric.label }}</span>
           <strong>{{ metric.value }}</strong>
@@ -485,9 +511,16 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
             <span class="eyebrow">Waitlist</span>
             <h3>Recovery and no-slot opportunities</h3>
           </div>
-          <small>Derived from waiting / rescheduled / no-show demand</small>
+          <button class="ghost-button mini" type="button" (click)="openWaitlistDrawer()">Add waitlist</button>
         </div>
         <div class="waitlist-list">
+          <button type="button" *ngFor="let entry of waitlistEntries(); trackBy: trackWaitlistEntry">
+            <div>
+              <strong>{{ waitlistClientName(entry) }}</strong>
+              <small>{{ waitlistServiceName(entry) }} · {{ waitlistStaffName(entry) }}</small>
+            </div>
+            <span>{{ waitlistWindowLabel(entry) }}</span>
+          </button>
           <button type="button" *ngFor="let appointment of waitlistAppointments()" (click)="openAppointment(appointment)">
             <div>
               <strong>{{ clientName(appointment.clientId) }}</strong>
@@ -495,11 +528,84 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
             </div>
             <span>{{ nextBestAction(appointment) }}</span>
           </button>
-          <div class="empty-state" *ngIf="!waitlistAppointments().length">No waitlist pressure right now.</div>
+          <div class="empty-state" *ngIf="!waitlistEntries().length && !waitlistAppointments().length">No waitlist pressure right now.</div>
         </div>
       </section>
 
-      <div class="drawer-backdrop" *ngIf="selectedAppointment() || bookingDrawerOpen() || blockTimeDrawerMode()" (click)="closeAnyDrawer()"></div>
+      <div class="drawer-backdrop" *ngIf="selectedAppointment() || bookingDrawerOpen() || blockTimeDrawerMode() || waitlistDrawerOpen()" (click)="closeAnyDrawer()"></div>
+
+      <aside class="appointment-drawer waitlist-drawer" *ngIf="waitlistDrawerOpen()">
+        <header>
+          <div>
+            <span class="eyebrow">Calendar waitlist</span>
+            <h3>Add client to waitlist</h3>
+            <p>Slot nahi mil raha ho to client ko preferred date/time ke saath hold karo.</p>
+          </div>
+          <button type="button" class="ghost-button mini" (click)="closeWaitlistDrawer()">Close</button>
+        </header>
+        <div class="drawer-body">
+          <form class="drawer-booking-form" [formGroup]="waitlistForm">
+            <label class="field">
+              <span>Client</span>
+              <select formControlName="clientId">
+                <option value="">Select client</option>
+                <option *ngFor="let client of clients()" [value]="client.id">{{ client.name || client.phone || client.id }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Service</span>
+              <select formControlName="serviceId">
+                <option value="">Any service</option>
+                <option *ngFor="let service of services()" [value]="service.id">{{ service.name }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Staff</span>
+              <select formControlName="staffId">
+                <option value="">Any staff</option>
+                <option *ngFor="let person of staff()" [value]="person.id">{{ person.name }}</option>
+              </select>
+            </label>
+            <div class="drawer-time-grid">
+              <label class="field">
+                <span>Preferred date</span>
+                <input type="date" formControlName="preferredDate" />
+              </label>
+              <label class="field">
+                <span>Priority</span>
+                <input type="number" formControlName="priority" min="0" />
+              </label>
+            </div>
+            <div class="drawer-time-grid">
+              <label class="field">
+                <span>From</span>
+                <input type="time" formControlName="windowStartTime" />
+              </label>
+              <label class="field">
+                <span>To</span>
+                <input type="time" formControlName="windowEndTime" />
+              </label>
+            </div>
+            <div class="drawer-actions">
+              <button class="primary-button" type="button" (click)="saveWaitlist()" [disabled]="waitlistSaving()">
+                {{ waitlistSaving() ? 'Saving...' : 'Save waitlist' }}
+              </button>
+              <button class="ghost-button" type="button" (click)="viewMode.set('waitlist')">Open waitlist view</button>
+            </div>
+          </form>
+          <p class="inline-hint success" *ngIf="waitlistMessage()">{{ waitlistMessage() }}</p>
+          <p class="inline-hint danger" *ngIf="waitlistError()">{{ waitlistError() }}</p>
+          <div class="waitlist-list compact-list">
+            <button type="button" *ngFor="let entry of waitlistEntries(); trackBy: trackWaitlistEntry">
+              <div>
+                <strong>{{ waitlistClientName(entry) }}</strong>
+                <small>{{ waitlistServiceName(entry) }} · {{ waitlistStaffName(entry) }}</small>
+              </div>
+              <span>{{ waitlistWindowLabel(entry) }}</span>
+            </button>
+          </div>
+        </div>
+      </aside>
 
       <aside class="appointment-drawer booking-drawer" *ngIf="bookingDrawerOpen()">
         <header>
@@ -820,7 +926,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
               <button class="ghost-button" type="button" (click)="queueAppointmentSms(selected, 'client')" [disabled]="smsQueueTarget() === 'client'">SMS client</button>
               <button class="ghost-button" type="button" (click)="queueAppointmentSms(selected, 'staff')" [disabled]="smsQueueTarget() === 'staff'">SMS staff</button>
               <button class="primary-button" type="button" (click)="queueAppointmentSms(selected, 'owner')" [disabled]="smsQueueTarget() === 'owner'">SMS owner</button>
-              <a class="ghost-button link-button" routerLink="/clients" [queryParams]="{ q: clientName(selected.clientId) }">Client page</a>
+              <a class="ghost-button link-button" *ngIf="selected.clientId" [routerLink]="['/clients', selected.clientId]">Client History</a>
               <a class="ghost-button link-button" routerLink="/staff" [queryParams]="{ q: staffName(selected.staffId) }">Staff page</a>
               <a class="ghost-button link-button" routerLink="/business-details">SMS settings</a>
             </div>
@@ -906,6 +1012,13 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .calendar-action-buttons {
       justify-content: flex-end;
       flex-wrap: wrap;
+    }
+
+    .calendar-toolbar-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: end;
+      gap: 8px;
     }
 
     .calendar-filter-row label,
@@ -1193,6 +1306,16 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .appointment-kpis strong {
       font-size: 1.45rem;
       line-height: 1;
+    }
+
+    .appointment-kpis .waitlist-kpi-action {
+      border-color: rgba(15, 118, 110, 0.34);
+      background: linear-gradient(135deg, #ecfdf5, #ffffff);
+    }
+
+    .appointment-kpis .waitlist-kpi-action span,
+    .appointment-kpis .waitlist-kpi-action strong {
+      color: var(--teal-2);
     }
 
     .appointment-kpis small {
@@ -2007,6 +2130,14 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
       border-color: var(--line);
     }
 
+    .waitlist-drawer {
+      width: min(560px, 100vw);
+    }
+
+    .compact-list button {
+      min-height: 62px;
+    }
+
     .drawer-backdrop {
       position: fixed;
       inset: 0;
@@ -2372,6 +2503,10 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
         justify-content: flex-start;
       }
 
+      .calendar-toolbar-actions {
+        justify-content: flex-start;
+      }
+
       .scheduler-toolbar {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -2456,6 +2591,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   readonly staffSchedules = signal<ApiRecord[]>([]);
   readonly services = signal<ApiRecord[]>([]);
   readonly branches = signal<ApiRecord[]>([]);
+  readonly waitlistEntries = signal<WaitlistEntry[]>([]);
   readonly blackouts = signal<ApiRecord[]>([]);
   readonly businessProfile = signal<ApiRecord | null>(null);
   readonly appointmentAudit = signal<ApiRecord[]>([]);
@@ -2466,6 +2602,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   readonly comboChecking = signal(false);
   readonly error = signal('');
   readonly drawerNotice = signal('');
+  readonly lastBookedClientId = signal('');
   readonly viewMode = signal<CalendarView>('day');
   readonly staffFilter = signal('');
   readonly statusFilter = signal('');
@@ -2486,6 +2623,10 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   readonly blockTimeEnd = signal('09:15');
   readonly blockTimeReason = signal('');
   readonly blockTimeSaving = signal(false);
+  readonly waitlistDrawerOpen = signal(false);
+  readonly waitlistSaving = signal(false);
+  readonly waitlistMessage = signal('');
+  readonly waitlistError = signal('');
   readonly smsQueueTarget = signal<SmsRecipientTarget | ''>('');
   readonly touchupEligibility = signal<ApiRecord | null>(null);
   readonly rescheduleAt = signal('');
@@ -2512,6 +2653,16 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     durationMinutes: [30, [Validators.required, Validators.min(15)]],
     chair: ['Chair 1'],
     walkIn: [false]
+  });
+
+  readonly waitlistForm = this.fb.group({
+    clientId: ['', Validators.required],
+    serviceId: [''],
+    staffId: [''],
+    preferredDate: [this.selectedDate()],
+    windowStartTime: [''],
+    windowEndTime: [''],
+    priority: [0]
   });
 
   readonly appointmentsByDate = computed(() => {
@@ -2648,9 +2799,10 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       firstValueFrom(this.api.list<ApiRecord[]>('staff-os/schedules', { branchId, from: scheduleRange.from, to: scheduleRange.to, limit: 500 })).catch(() => [] as ApiRecord[]),
       firstValueFrom(this.api.list<ApiRecord[]>('services')),
       firstValueFrom(this.api.list<ApiRecord[]>('branches')),
+      firstValueFrom(this.api.list<WaitlistEntry[]>('waitlist', { branchId, limit: 100, status: 'waiting' })).catch(() => [] as WaitlistEntry[]),
       firstValueFrom(this.api.list<ApiRecord>('invoice-notifications/profile', { branchId })).catch(() => null as ApiRecord | null)
     ])
-      .then(([appointments, clients, staff, staffOsStaff, staffSchedules, services, branches, businessProfile]) => {
+      .then(([appointments, clients, staff, staffOsStaff, staffSchedules, services, branches, waitlist, businessProfile]) => {
         this.appointments.set(appointments || []);
         this.clients.set(clients || []);
         this.staffOsStaff.set(staffOsStaff || []);
@@ -2658,6 +2810,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         this.staffSchedules.set(staffSchedules || []);
         this.services.set(services || []);
         this.branches.set(branches || []);
+        this.waitlistEntries.set(waitlist || []);
         this.businessProfile.set(businessProfile || null);
         const preferredBranch = this.currentBranchId();
         if (!this.form.value.branchId && preferredBranch) {
@@ -2699,6 +2852,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     }
     this.saving.set(true);
     const value = this.form.value;
+    const bookedClientId = String(value.clientId || '');
     const serviceIds = this.currentServiceIds();
     const startAt = new Date(String(value.startAt)).toISOString();
     this.api.create('appointments', {
@@ -2715,6 +2869,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       status: value.walkIn ? 'arrived' : 'booked'
     }).subscribe({
       next: () => {
+        this.lastBookedClientId.set(bookedClientId);
         this.saving.set(false);
         this.resetForm();
         this.bookingDrawerOpen.set(false);
@@ -2747,6 +2902,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.error.set('');
     const value = this.form.value;
+    const bookedClientId = String(value.clientId || '');
     const sourceId = lines.length > 1 ? `multi_${Date.now().toString(36)}` : '';
     const created: ApiRecord[] = [];
     try {
@@ -2773,6 +2929,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         }));
         created.push(appointment);
       }
+      this.lastBookedClientId.set(bookedClientId);
       this.saving.set(false);
       this.resetForm();
       this.bookingDrawerOpen.set(false);
@@ -2980,6 +3137,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     this.closeBookingDrawer();
     this.closeAppointment();
     this.closeBlockTimeDrawer();
+    this.closeWaitlistDrawer();
   }
 
   closeBookingDrawer(): void {
@@ -2992,12 +3150,71 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     this.blockTimeSaving.set(false);
   }
 
+  openWaitlistDrawer(): void {
+    this.waitlistMessage.set('');
+    this.waitlistError.set('');
+    this.waitlistForm.patchValue({
+      clientId: '',
+      serviceId: String(this.form.value.serviceId || ''),
+      staffId: this.staffFilter() || String(this.form.value.staffId || ''),
+      preferredDate: this.selectedDate(),
+      windowStartTime: '',
+      windowEndTime: '',
+      priority: 0
+    }, { emitEvent: false });
+    this.viewMode.set('waitlist');
+    this.waitlistDrawerOpen.set(true);
+  }
+
+  closeWaitlistDrawer(): void {
+    this.waitlistDrawerOpen.set(false);
+  }
+
+  saveWaitlist(): void {
+    const value = this.waitlistForm.value;
+    const clientId = String(value.clientId || '').trim();
+    if (!clientId) {
+      this.waitlistError.set('Client select karo, phir waitlist me add hoga.');
+      return;
+    }
+    const preferredDate = String(value.preferredDate || this.selectedDate()).slice(0, 10);
+    const payload: ApiRecord = {
+      clientId,
+      serviceId: String(value.serviceId || ''),
+      staffId: String(value.staffId || ''),
+      preferredDate,
+      priority: Number(value.priority || 0),
+      status: 'waiting'
+    };
+    const windowStart = this.waitlistDateTime(preferredDate, String(value.windowStartTime || ''));
+    const windowEnd = this.waitlistDateTime(preferredDate, String(value.windowEndTime || ''));
+    if (windowStart) payload.windowStart = windowStart;
+    if (windowEnd) payload.windowEnd = windowEnd;
+    this.waitlistSaving.set(true);
+    this.waitlistError.set('');
+    this.api.create<WaitlistEntry>('waitlist', payload).subscribe({
+      next: (entry) => {
+        this.waitlistSaving.set(false);
+        this.waitlistEntries.set([entry, ...this.waitlistEntries()]);
+        this.waitlistMessage.set(`${this.waitlistClientName(entry)} waitlist me add ho gaya.`);
+      },
+      error: (error) => {
+        this.waitlistSaving.set(false);
+        this.waitlistError.set(this.api.errorText(error, 'Waitlist save nahi hua.'));
+      }
+    });
+  }
+
   trackBookingLine(_: number, line: BookingServiceLine): string {
     return line.id;
   }
 
   trackAppointment(_: number, appointment: ApiRecord): string {
     return String(appointment.id || `${appointment.staffId}_${appointment.startAt}`);
+  }
+
+  trackWaitlistEntry(_: number, entry: WaitlistEntry): string {
+    return String(entry.id || `${entry.clientId}_${entry.preferredDate}_${entry.serviceId || 'any'}`);
   }
 
   trackSchedule(_: number, schedule: ApiRecord): string {
@@ -3413,6 +3630,28 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       .slice(0, 20);
   }
 
+  waitlistClientName(entry: WaitlistEntry): string {
+    const client = this.clients().find((item) => String(item.id || '') === String(entry.clientId || ''));
+    return String(client?.name || client?.phone || entry.clientId || 'Client');
+  }
+
+  waitlistServiceName(entry: WaitlistEntry): string {
+    if (!entry.serviceId) return 'Any service';
+    return String(this.services().find((service) => String(service.id || '') === String(entry.serviceId))?.name || entry.serviceId);
+  }
+
+  waitlistStaffName(entry: WaitlistEntry): string {
+    if (!entry.staffId) return 'Any staff';
+    return String(this.staff().find((person) => String(person.id || '') === String(entry.staffId))?.name || entry.staffId);
+  }
+
+  waitlistWindowLabel(entry: WaitlistEntry): string {
+    const date = entry.preferredDate ? this.dateLabel(entry.preferredDate) : 'Any date';
+    const start = this.timeLabel(entry.windowStart);
+    const end = this.timeLabel(entry.windowEnd);
+    return [date, start && end ? `${start} - ${end}` : start || end].filter(Boolean).join(' · ');
+  }
+
   resources(): string[] {
     const names = new Set(['Chair 1', 'Chair 2', 'Chair 3', 'Room A']);
     for (const appointment of this.visibleAppointments()) names.add(this.resourceName(appointment));
@@ -3475,7 +3714,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   viewCount(view: CalendarView): number {
     if (view === 'queue') return this.queueAppointments().length;
-    if (view === 'waitlist') return this.waitlistAppointments().length;
+    if (view === 'waitlist') return this.waitlistEntries().length + this.waitlistAppointments().length;
     if (view === 'resource') return this.resources().length;
     if (view === 'month') return this.appointments().length;
     return this.visibleAppointments().length;
@@ -4749,7 +4988,23 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     return this.timeLabel(date);
   }
 
-  private timeLabel(date: Date): string {
+  private dateLabel(value: unknown): string {
+    if (!value) return '';
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  private waitlistDateTime(date: string, time: string): string {
+    if (!date || !time) return '';
+    const value = new Date(`${date}T${time}`);
+    return Number.isNaN(value.getTime()) ? '' : value.toISOString();
+  }
+
+  private timeLabel(value: Date | string | undefined): string {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
   }
 }

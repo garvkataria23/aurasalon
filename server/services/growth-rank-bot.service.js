@@ -40,6 +40,14 @@ function parseJson(value, fallback = {}) {
   }
 }
 
+function safeAll(sql, params = {}) {
+  try {
+    return db.prepare(sql).all(params);
+  } catch {
+    return [];
+  }
+}
+
 function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
 }
@@ -78,7 +86,7 @@ function normalizePayload(payload = {}) {
 }
 
 function platformScore(input, platform) {
-  const urlScore = hasUrl(input[`${platform}Url`]) ? 32 : 0;
+  const urlScore = isExpectedPlatformUrl(input[`${platform}Url`], platform) ? 32 : 0;
   const businessScore = input.businessName ? 18 : 0;
   const locationScore = input.city || input.targetArea ? 18 : 0;
   const serviceScore = input.topServices.length ? 14 : 0;
@@ -87,11 +95,21 @@ function platformScore(input, platform) {
   return clampScore(base + urlScore + businessScore + locationScore + serviceScore + goalScore);
 }
 
+function isExpectedPlatformUrl(url, platform) {
+  const value = clean(url || "", 260).toLowerCase();
+  if (!hasUrl(value)) return false;
+  if (platform === "googleProfile") return /google\.|goo\.gl|maps\.app\.goo\.gl|g\.page|share\.google/.test(value);
+  if (platform === "instagram") return value.includes("instagram.com");
+  if (platform === "facebook") return value.includes("facebook.com") || value.includes("fb.com");
+  return true;
+}
+
 function platformPlan(input, key, label, focus, actions) {
   const score = platformScore(input, key);
   const url = input[`${key}Url`];
   const gaps = [];
   if (!hasUrl(url)) gaps.push(`${label} profile URL/connect status missing`);
+  if (hasUrl(url) && !isExpectedPlatformUrl(url, key)) gaps.push(`${label} URL wrong platform lag raha hai`);
   if (!input.city && !input.targetArea) gaps.push("city or service area missing");
   if (!input.topServices.length) gaps.push("top services not defined for local keywords");
   if (score < 80) gaps.push("needs proof content, fresh photos and weekly publishing rhythm");
@@ -1076,6 +1094,52 @@ export class GrowthRankBotService {
     );
     this.persistAgencyWorkspace(audit, access);
     return this.getAudit(audit.id, access);
+  }
+
+  updateAudit(id, payload = {}, access = {}) {
+    if (!access.tenantId) throw badRequest("Tenant context is required");
+    tenantService.ensureSubscriptionActive(access.tenantId);
+    const existing = this.getAudit(id, access);
+    const merged = {
+      ...(existing.input || {}),
+      businessName: existing.businessName,
+      industry: existing.industry,
+      city: existing.city,
+      targetArea: existing.targetArea,
+      instagramUrl: existing.instagramUrl,
+      facebookUrl: existing.facebookUrl,
+      googleProfileUrl: existing.googleProfileUrl,
+      goal: existing.goal,
+      ...payload,
+      branchId: payload.branchId || existing.branchId || access.requestedBranchId || ""
+    };
+    const { input, branchId, plan } = this.preview(merged, access);
+    const status = clean(payload.status || existing.status || "generated", 40);
+    const stamp = now();
+    db.prepare(`
+      UPDATE growth_rank_bot_audits
+      SET branch_id = ?, business_name = ?, industry = ?, city = ?, target_area = ?,
+          instagram_url = ?, facebook_url = ?, google_profile_url = ?, goal = ?,
+          status = ?, score = ?, payload_json = ?, updated_at = ?
+      WHERE id = ? AND tenant_id = ?
+    `).run(
+      branchId,
+      input.businessName,
+      input.industry,
+      input.city,
+      input.targetArea,
+      input.instagramUrl,
+      input.facebookUrl,
+      input.googleProfileUrl,
+      input.goal,
+      status,
+      plan.rankReadinessScore,
+      JSON.stringify({ input, plan }),
+      stamp,
+      clean(id, 80),
+      access.tenantId
+    );
+    return this.getAudit(id, access);
   }
 
   listAudits(query = {}, access = {}) {
@@ -2735,6 +2799,523 @@ export class GrowthRankBotService {
       updatedAt: row.updated_at
     };
   }
+  enterpriseOs(auditId, access = {}) {
+    const audit = this.getAudit(auditId, access);
+    const workspace = audit.workspace || this.workspaceForAudit(audit.id, access);
+    const board = this.dashboard({ branchId: audit.branchId || access.requestedBranchId || "" }, access);
+    const realData = this.enterpriseRealDataSnapshot(audit, access);
+
+    return {
+      auditId: audit.id,
+      businessName: audit.businessName,
+      generatedAt: now(),
+      dataSync: realData.summary,
+      campaignApprovalPolicy: this.enterpriseCampaignApprovalPolicy(audit, workspace, realData),
+      businessHealthScore: this.enterpriseBusinessHealthScore(audit, workspace, board, realData),
+      dailyAiBriefing: this.enterpriseDailyBriefing(audit, workspace, board, realData),
+      revenueForecast: this.enterpriseRevenueForecast(audit, workspace, realData),
+      cashFlowForecast: this.enterpriseCashFlowForecast(audit, workspace, realData),
+      aiWorkforce: this.enterpriseAiWorkforce(audit, workspace),
+      customer360: this.enterpriseCustomer360(audit, workspace, realData),
+      churnPrediction: this.enterpriseChurnPrediction(audit, workspace),
+      upsellEngine: this.enterpriseUpsellEngine(audit, workspace),
+      vipCustomers: this.enterpriseVipCustomers(audit, workspace, realData),
+      birthdayAnniversaryAutomation: this.enterpriseBirthdayAutomation(audit, workspace),
+      multiBranchDashboard: this.enterpriseMultiBranchDashboard(audit, board),
+      franchiseReadiness: this.enterpriseFranchiseReadiness(audit, board),
+      reviewManagement: this.enterpriseReviewManagement(audit, workspace),
+      localSeoRankHeatmap: this.enterpriseLocalSeoHeatmap(audit, workspace),
+      enterpriseSecurity: this.enterpriseSecurityPreview(audit),
+      workflowBuilder: this.enterpriseWorkflowBuilder(audit),
+      aiCommandCenter: this.enterpriseAiCommandCenter(audit, workspace, board),
+      priorityModules: [
+        "Customer 360",
+        "Churn Prediction",
+        "AI Workforce",
+        "Daily AI Briefing",
+        "Executive AI Chat",
+        "Multi-Branch Dashboard",
+        "Workflow Builder",
+        "Review Management",
+        "Revenue Forecast",
+        "Business Health Score"
+      ]
+    };
+  }
+
+  enterpriseRealDataSnapshot(audit, access = {}) {
+    const tenantId = access.tenantId;
+    const branchId = clean(audit.branchId || access.requestedBranchId || "", 80);
+    if (!tenantId) {
+      return { summary: { mode: "workspace_only", reason: "tenant context missing" }, clients: [], invoices: [], appointments: [], memberships: [], reviews: [], products: [], staff: [] };
+    }
+    const scoped = branchId ? " AND branchId=@branchId" : "";
+    const params = { tenantId, branchId };
+    const clients = safeAll(`SELECT id, name, phone, email, totalSpend, visitCount, lastVisitAt, membershipId, branchId, createdAt, updatedAt FROM clients WHERE tenantId=@tenantId${scoped} ORDER BY totalSpend DESC, updatedAt DESC LIMIT 100`, params);
+    const appointments = safeAll(`SELECT id, clientId, staffId, branchId, serviceIds, startAt, status, source, createdAt FROM appointments WHERE tenantId=@tenantId${scoped} ORDER BY datetime(startAt) DESC LIMIT 200`, params);
+    const invoices = safeAll("SELECT id, clientId, total, paid, balance, status, createdAt FROM invoices WHERE tenantId=@tenantId ORDER BY datetime(createdAt) DESC LIMIT 200", params);
+    const memberships = safeAll(`SELECT id, clientId, planName, price, creditsRemaining, validityDate, status, branchId, createdAt FROM memberships WHERE tenantId=@tenantId${scoped} ORDER BY datetime(createdAt) DESC LIMIT 100`, params);
+    const reviews = safeAll(`SELECT id, branchId, platform, reviewer, rating, sentiment, status, createdAt FROM reputation_reviews WHERE tenantId=@tenantId${scoped} ORDER BY datetime(createdAt) DESC LIMIT 100`, params);
+    const products = safeAll(`SELECT id, name, category, stock, lowStockThreshold, branchId, status FROM products WHERE tenantId=@tenantId${scoped} ORDER BY stock ASC LIMIT 100`, params);
+    const staff = safeAll(`SELECT id, name, role, branchId, status, performance FROM staff WHERE tenantId=@tenantId${scoped} ORDER BY name ASC LIMIT 100`, params);
+    const invoiceRevenue = invoices.reduce((sum, item) => sum + Number(item.total || 0), 0);
+    const completedBookings = appointments.filter((item) => ["completed", "billed", "paid"].includes(String(item.status || "").toLowerCase())).length;
+    return {
+      summary: {
+        mode: clients.length || invoices.length || appointments.length ? "live_tables" : "workspace_fallback",
+        tenantId,
+        branchId,
+        clients: clients.length,
+        invoices: invoices.length,
+        appointments: appointments.length,
+        memberships: memberships.length,
+        reviews: reviews.length,
+        products: products.length,
+        staff: staff.length,
+        invoiceRevenue,
+        completedBookings
+      },
+      clients,
+      invoices,
+      appointments,
+      memberships,
+      reviews,
+      products,
+      staff
+    };
+  }
+
+  enterpriseCampaignApprovalPolicy(audit, workspace = {}, realData = {}) {
+    const pendingContent = (workspace.approvals || []).filter((item) => !["approved", "rejected"].includes(item.status)).length;
+    const pendingPublishing = (workspace.publishingPlanner || []).filter((item) => item.approvalStatus !== "approved").length;
+    const liveRevenue = Number(realData.summary?.invoiceRevenue || 0);
+    const maxAutoBudget = Math.max(1000, Math.round(liveRevenue * 0.03));
+    return {
+      approvalRequired: true,
+      policy: "AI can recommend, draft and prioritize campaigns, but owner approval is required before publishing, budget changes or customer messaging.",
+      maxAutoBudget,
+      pendingApprovals: pendingContent + pendingPublishing,
+      blockers: [
+        pendingContent + pendingPublishing ? `${pendingContent + pendingPublishing} content or publishing approvals pending` : "No pending content approval blocker",
+        realData.summary?.mode === "live_tables" ? "Live POS/booking context connected for budget guardrails" : "Live POS/booking context unavailable; keep campaign scale manual",
+        "Conversion tracking must include WhatsApp, booking and invoice events before scale-up"
+      ],
+      steps: [
+        { title: "Budget move", detail: liveRevenue ? `Budget change capped at INR ${maxAutoBudget} until owner approves higher spend.` : "Hold scale until invoice revenue sync is available.", status: "approval_required" },
+        { title: "Keyword expansion", detail: "Add exact local intent keywords and negative keywords before increasing spend.", status: pendingPublishing ? "client_review" : "draft_ready" },
+        { title: "Creative refresh", detail: "Generate proof and offer creatives, then route through content approval queue.", status: pendingContent ? "approval_required" : "draft_ready" },
+        { title: "Bid strategy", detail: "Use conversion-focused bidding only when booking and invoice events are present.", status: realData.summary?.appointments ? "guardrail_active" : "tracking_required" }
+      ]
+    };
+  }
+
+  enterpriseBusinessHealthScore(audit, workspace = {}, board = {}, realData = {}) {
+    const campaignProfit = workspace.campaignProfit || [];
+    const spend = campaignProfit.reduce((sum, item) => sum + Number(item.spend || 0), 0);
+    const profit = campaignProfit.reduce((sum, item) => sum + Number(item.profit || 0), 0);
+    const revenue = Number(realData.summary?.invoiceRevenue || 0) || campaignProfit.reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+    const openTasks = (workspace.tasks || []).filter((item) => item.status !== "done").length;
+    const totalTasks = Math.max(1, (workspace.tasks || []).length);
+    const staffProductivity = clampScore(((totalTasks - openTasks) / totalTasks) * 100);
+    const livePositiveReviews = (realData.reviews || []).filter((item) => item.sentiment === "positive" || Number(item.rating || 0) >= 4).length;
+    const customerRetention = clampScore(72 + Math.min(18, ((workspace.reviewEngine || []).filter((item) => item.sentiment === "positive").length + livePositiveReviews) * 3));
+    const marketingRoi = spend > 0 ? clampScore(50 + roiPercent(profit, spend) / 4) : clampScore(audit.score || 60);
+    const revenueScore = clampScore(revenue / 1000);
+    const profitScore = clampScore(profit / 700);
+    const score = clampScore((revenueScore * 0.2) + (profitScore * 0.2) + (staffProductivity * 0.2) + (customerRetention * 0.2) + (marketingRoi * 0.2));
+
+    return {
+      score,
+      label: score >= 80 ? "Excellent" : score >= 65 ? "Healthy" : score >= 50 ? "Needs attention" : "Critical",
+      revenue: { value: revenue, score: revenueScore },
+      profit: { value: profit, score: profitScore },
+      staffProductivity: { value: staffProductivity, openTasks, totalTasks },
+      customerRetention: { value: customerRetention, basis: "review sentiment + workspace fallback until booking retention sync is connected" },
+      marketingRoi: { value: marketingRoi, spend, profit, roiPercent: roiPercent(profit, spend) },
+      nextAction: score >= 80 ? "Scale winning campaigns and protect service quality." : "Close high-priority tasks, improve lead response and reduce budget waste."
+    };
+  }
+
+  enterpriseDailyBriefing(audit, workspace = {}, board = {}, realData = {}) {
+    const openTasks = (workspace.tasks || []).filter((item) => item.status !== "done");
+    const highRiskReviews = (workspace.reviewEngine || []).filter((item) => item.riskLevel === "high");
+    const openAlerts = (workspace.competitorAlerts || []).filter((item) => item.status !== "resolved");
+    const bestCampaign = [...(workspace.campaignProfit || [])].sort((a, b) => Number(b.profit || 0) - Number(a.profit || 0))[0];
+
+    return {
+      title: `${audit.businessName} daily AI briefing`,
+      todayHappened: [
+        `${workspace.rankKeywords?.length || 0} keywords tracked`,
+        `${workspace.publishingPlanner?.length || 0} publishing planner rows active`,
+        `${workspace.campaignProfit?.length || 0} campaign ROI rows available`,
+        `${realData.summary?.invoices || 0} POS invoices and ${realData.summary?.appointments || 0} bookings synced`,
+        bestCampaign ? `Best campaign: ${bestCampaign.campaignName} profit INR ${bestCampaign.profit}` : "Campaign profit data awaiting sync"
+      ],
+      whatWentWrong: [
+        openTasks.length ? `${openTasks.length} execution tasks are still open` : "No open task backlog detected",
+        highRiskReviews.length ? `${highRiskReviews.length} high-risk review alerts need manager review` : "No high-risk review alert",
+        openAlerts.length ? `${openAlerts.length} competitor alerts are still open` : "No unresolved competitor alert"
+      ],
+      actionsToTake: [
+        "Close top 3 high-priority tasks today",
+        "Reply to reviews and resolve negative alerts before campaign scale-up",
+        "Publish one proof content piece and one Google Business Profile post",
+        "Move budget toward the highest-profit campaign only after approval"
+      ],
+      riskLevel: highRiskReviews.length || openAlerts.length ? "medium" : "normal"
+    };
+  }
+
+  enterpriseRevenueForecast(audit, workspace = {}, realData = {}) {
+    const rows = workspace.campaignProfit || [];
+    const revenue = Number(realData.summary?.invoiceRevenue || 0) || rows.reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+    const bookings = Number(realData.summary?.completedBookings || 0) || rows.reduce((sum, item) => sum + Number(item.bookings || 0), 0);
+    const avgBookingValue = bookings > 0 ? Math.round(revenue / bookings) : 2500;
+    const dailyRunRate = Math.max(avgBookingValue * Math.max(1, Math.round(bookings / 14)), Math.round((revenue || 35000) / 30));
+
+    return {
+      avgBookingValue,
+      currentMonthlyRevenueBasis: revenue || dailyRunRate * 30,
+      forecast7Days: dailyRunRate * 7,
+      forecast30Days: dailyRunRate * 30,
+      forecast90Days: dailyRunRate * 90,
+      confidence: realData.summary?.mode === "live_tables" ? "high" : rows.length >= 3 ? "medium" : "low",
+      basis: realData.summary?.mode === "live_tables" ? "live POS invoices and appointment rows" : rows.length ? "campaign profit and booking rows" : "fallback estimate",
+      levers: ["increase qualified leads", "reduce WhatsApp response delay", "improve repeat booking", "scale profitable campaign sources"]
+    };
+  }
+
+  enterpriseCashFlowForecast(audit, workspace = {}, realData = {}) {
+    const revenueForecast = this.enterpriseRevenueForecast(audit, workspace, realData);
+    const monthlyRevenue = revenueForecast.forecast30Days;
+    const salary = Math.round(monthlyRevenue * 0.28);
+    const rent = Math.round(monthlyRevenue * 0.12);
+    const inventory = Math.round(monthlyRevenue * 0.16);
+    const marketingSpend = (workspace.campaignProfit || []).reduce((sum, item) => sum + Number(item.spend || 0), 0) || Math.round(monthlyRevenue * 0.08);
+    const fixedCosts = salary + rent + inventory + marketingSpend;
+    const netCash = monthlyRevenue - fixedCosts;
+
+    return {
+      forecast30DaysRevenue: monthlyRevenue,
+      salary,
+      rent,
+      inventory,
+      marketingSpend,
+      totalExpectedOutflow: fixedCosts,
+      estimatedNetCash: netCash,
+      cashRisk: netCash < monthlyRevenue * 0.18 ? "watch" : "healthy",
+      note: realData.summary?.mode === "live_tables" ? "Uses synced invoice revenue with modeled outflows." : "Fallback model. Connect payroll, rent, inventory and ad spend ledgers for exact cash forecast."
+    };
+  }
+
+  enterpriseAiWorkforce(audit, workspace = {}) {
+    return [
+      {
+        agent: "AI Marketing Manager",
+        role: "Campaign and content growth",
+        suggestions: [
+          "Scale highest-profit campaign after approval",
+          "Create 7-day reels + Google posts from best service category",
+          "Pause low-ROI creative and test new offer angle"
+        ],
+        approvalRequired: true
+      },
+      {
+        agent: "AI Sales Manager",
+        role: "Lead follow-up and proposals",
+        suggestions: [
+          "Follow up with warm leads not converted to booking",
+          "Send proposal reminders before renewal date",
+          "Create WhatsApp booking recovery script"
+        ],
+        approvalRequired: true
+      },
+      {
+        agent: "AI Operations Manager",
+        role: "Staff and service execution",
+        suggestions: [
+          "Flag delayed task owners",
+          "Prioritize review recovery tasks",
+          "Create service quality checklist for high complaint themes"
+        ],
+        approvalRequired: true
+      },
+      {
+        agent: "AI Finance Manager",
+        role: "Profit leak detection",
+        suggestions: [
+          "Compare campaign spend vs invoice revenue",
+          "Flag campaigns with spend but no bookings",
+          "Review discount-heavy offers before publishing"
+        ],
+        approvalRequired: true
+      },
+      {
+        agent: "AI HR Manager",
+        role: "Attendance and performance",
+        suggestions: [
+          "Track late arrivals and task completion trend",
+          "Highlight top performers by bookings/reviews",
+          "Recommend training for repeated service issue themes"
+        ],
+        approvalRequired: true
+      }
+    ];
+  }
+
+  enterpriseCustomer360(audit, workspace = {}, realData = {}) {
+    const attribution = workspace.attributionEvents || [];
+    const reviews = workspace.reviewEngine || [];
+    const campaign = workspace.campaignProfit || [];
+    const topClient = [...(realData.clients || [])].sort((a, b) => Number(b.totalSpend || 0) - Number(a.totalSpend || 0))[0];
+    const clientInvoices = topClient ? (realData.invoices || []).filter((item) => item.clientId === topClient.id) : [];
+    const clientAppointments = topClient ? (realData.appointments || []).filter((item) => item.clientId === topClient.id) : [];
+    const clientMembership = topClient ? (realData.memberships || []).find((item) => item.id === topClient.membershipId || item.clientId === topClient.id) : null;
+    const bestSource = attribution[0]?.source || campaign[0]?.source || "manual";
+    return {
+      profileMode: topClient ? "live_customer_profile" : "workspace_aggregate",
+      customer: topClient ? {
+        id: topClient.id,
+        name: topClient.name,
+        phone: topClient.phone,
+        email: topClient.email,
+        branchId: topClient.branchId,
+        lastVisitAt: topClient.lastVisitAt
+      } : null,
+      summary: {
+        visits: Number(topClient?.visitCount || 0) || clientAppointments.length || Math.max(1, campaign.reduce((sum, item) => sum + Number(item.bookings || 0), 0)),
+        services: audit.input?.topServices || ["haircut", "hair spa", "facial"],
+        spend: Number(topClient?.totalSpend || 0) || clientInvoices.reduce((sum, item) => sum + Number(item.total || 0), 0) || campaign.reduce((sum, item) => sum + Number(item.revenue || 0), 0),
+        membership: clientMembership?.planName || workspace.client?.packageName || audit.input?.packageName || "Growth Pro",
+        reviews: reviews.length + Number(realData.summary?.reviews || 0),
+        bestSource
+      },
+      timeline: [
+        { stage: "discovered", source: bestSource, note: "Lead source captured from attribution/campaign rows" },
+        { stage: "engaged", source: "WhatsApp/DM", note: "Follow-up required within SLA" },
+        { stage: "booked", source: "AuraShine booking", note: clientAppointments[0]?.id ? `Latest booking ${clientAppointments[0].id}` : "Booking ID awaiting sync" },
+        { stage: "invoiced", source: "POS", note: clientInvoices[0]?.id ? `Latest invoice ${clientInvoices[0].id}` : "Invoice ID awaiting sync" },
+        { stage: "retained", source: "review/membership", note: "Trigger review and next-visit automation" }
+      ]
+    };
+  }
+
+  enterpriseChurnPrediction(audit, workspace = {}) {
+    const reviewRisk = (workspace.reviewEngine || []).filter((item) => item.riskLevel === "high").length;
+    const openTasks = (workspace.tasks || []).filter((item) => item.status !== "done").length;
+    const score = clampScore(30 + reviewRisk * 18 + Math.min(30, openTasks * 3));
+    return {
+      riskScore: score,
+      riskLabel: score >= 70 ? "high" : score >= 45 ? "medium" : "low",
+      atRiskSegments: [
+        { segment: "Customers with unresolved negative feedback", risk: reviewRisk ? "high" : "low", action: "manager callback and service recovery" },
+        { segment: "Leads without fast response", risk: openTasks > 5 ? "medium" : "low", action: "WhatsApp follow-up within 15 minutes" },
+        { segment: "Customers without repeat visit", risk: "medium", action: "send next-service reminder and membership offer" }
+      ],
+      note: "Uses workspace risk proxy until customer visit history is connected."
+    };
+  }
+
+  enterpriseUpsellEngine(audit, workspace = {}) {
+    const services = audit.input?.topServices?.length ? audit.input.topServices : ["Hair Spa", "Facial", "Bridal Makeup", "Haircut"];
+    return services.slice(0, 5).map((service, index) => ({
+      baseService: service,
+      recommendedUpsell: index % 2 === 0 ? "Facial / treatment package" : "Hair spa / care package",
+      reason: "Pairs well with customer intent and can increase average booking value",
+      channel: index % 2 === 0 ? "WhatsApp" : "front-desk",
+      approvalRequired: true
+    }));
+  }
+
+  enterpriseVipCustomers(audit, workspace = {}, realData = {}) {
+    const revenue = Number(realData.summary?.invoiceRevenue || 0) || (workspace.campaignProfit || []).reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+    const vipRows = [...(realData.clients || [])]
+      .sort((a, b) => (Number(b.totalSpend || 0) + Number(b.visitCount || 0) * 250) - (Number(a.totalSpend || 0) + Number(a.visitCount || 0) * 250))
+      .slice(0, 5)
+      .map((client) => ({
+        id: client.id,
+        name: client.name,
+        spend: Number(client.totalSpend || 0),
+        visits: Number(client.visitCount || 0),
+        membershipId: client.membershipId || "",
+        action: client.membershipId ? "renewal and referral offer" : "membership upgrade offer"
+      }));
+    return {
+      vipDetectionRule: "top spend + repeat visits + positive reviews + membership status",
+      estimatedVipValue: Math.round((revenue || 50000) * 0.25),
+      customers: vipRows,
+      segments: [
+        { segment: "High spend members", action: "priority slot and renewal call" },
+        { segment: "Bridal/package customers", action: "anniversary follow-up and referral offer" },
+        { segment: "Positive reviewers", action: "loyalty thank-you and referral request" }
+      ]
+    };
+  }
+
+  enterpriseBirthdayAutomation(audit, workspace = {}) {
+    return {
+      workflows: [
+        { trigger: "customer.birthday.minus_7_days", action: "create WhatsApp birthday offer draft", approvalRequired: true },
+        { trigger: "customer.anniversary.minus_14_days", action: "create premium package reminder", approvalRequired: true },
+        { trigger: "membership.renewal.minus_7_days", action: "create renewal reminder and manager task", approvalRequired: true }
+      ],
+      defaultMessage: `Hi {{name}}, ${audit.businessName} ki taraf se special occasion offer ready hai. Preferred date/time bhejein, hum slot confirm kar denge.`,
+      consentRequired: true
+    };
+  }
+
+  enterpriseMultiBranchDashboard(audit, board = {}) {
+    const branches = board.integrations?.length
+      ? board.integrations.slice(0, 5).map((item, index) => ({ branchName: item.branchId || `Branch ${index + 1}`, score: clampScore(70 + index * 3), revenue: 0, openTasks: 0 }))
+      : [
+          { branchName: audit.targetArea || audit.city || "Main Branch", score: clampScore(audit.score || 70), revenue: 0, openTasks: board.metrics?.openTasks || 0 },
+          { branchName: "Branch 2", score: 68, revenue: 0, openTasks: 3 },
+          { branchName: "Branch 3", score: 62, revenue: 0, openTasks: 5 }
+        ];
+    return {
+      branches,
+      ranking: [...branches].sort((a, b) => b.score - a.score),
+      comparisonFields: ["business health score", "revenue", "tasks", "reviews", "marketing ROI"],
+      regionalManagerView: {
+        focus: "lowest score branch first",
+        nextAction: "Review task backlog, review risk and campaign ROI branch-wise"
+      }
+    };
+  }
+
+  enterpriseFranchiseReadiness(audit, board = {}) {
+    return {
+      royaltyTracking: {
+        mode: "ready_for_franchise_billing",
+        fields: ["branch revenue", "royalty percent", "royalty due", "payment status"],
+        sampleRoyaltyPercent: 8
+      },
+      branchComparison: this.enterpriseMultiBranchDashboard(audit, board).ranking,
+      controls: ["brand standards", "marketing approval", "offer approval", "review SLA", "audit log"]
+    };
+  }
+
+  enterpriseReviewManagement(audit, workspace = {}) {
+    const reviews = workspace.reviewEngine || [];
+    return {
+      googleReviews: reviews.filter((item) => item.reviewType !== "facebook_review"),
+      facebookReviews: reviews.filter((item) => item.reviewType === "facebook_review"),
+      negativeReviewAlerts: reviews.filter((item) => item.riskLevel === "high"),
+      reviewReplyAi: {
+        policy: "Human approval required before reply",
+        examples: reviews.slice(0, 5).map((item) => ({
+          reviewType: item.reviewType,
+          customerName: item.customerName,
+          suggestedReply: item.aiReply || "Thank you for your honest feedback. Our manager will review and respond."
+        }))
+      },
+      responseSlaHours: 24,
+      improvementTags: ["service delay", "pricing clarity", "staff behavior", "result expectation", "hygiene"]
+    };
+  }
+
+  enterpriseLocalSeoHeatmap(audit, workspace = {}) {
+    const keywords = workspace.rankKeywords || [];
+    const areas = [audit.targetArea, audit.city, "near me", "premium area"].filter(Boolean);
+    return {
+      heatmap: areas.map((area, areaIndex) => ({
+        area,
+        score: clampScore((audit.score || 60) - areaIndex * 6),
+        keywords: keywords.slice(0, 5).map((keyword, index) => ({
+          keyword: keyword.keyword,
+          rank: Number(keyword.currentRank || index + areaIndex + 5),
+          gap: Number(keyword.currentRank || 0) > 10 ? "needs content and reviews" : "good"
+        }))
+      })),
+      competitorRankGapAnalysis: (workspace.competitorAlerts || []).slice(0, 5).map((alert) => ({
+        competitor: alert.competitorName,
+        signal: alert.signalType,
+        gap: alert.recommendedAction
+      }))
+    };
+  }
+
+  enterpriseSecurityPreview(audit) {
+    return {
+      roleBasedAccessControl: [
+        { role: "Owner", permissions: ["all dashboards", "billing", "approvals", "exports", "settings"] },
+        { role: "Manager", permissions: ["operations", "reports", "reviews", "tasks"] },
+        { role: "Staff", permissions: ["assigned tasks", "lead follow-up", "limited customer view"] },
+        { role: "Agency", permissions: ["campaigns", "content", "reports", "recommendations"] },
+        { role: "Client", permissions: ["portal", "approvals", "reports only"] }
+      ],
+      auditTrail: [
+        { action: "budget recommendation created", actor: "AI Finance Manager", status: "approval_required", at: now() },
+        { action: "content approval workflow ready", actor: "AI Marketing Manager", status: "draft", at: now() }
+      ],
+      sensitiveActionApproval: ["budget increase", "publish ad", "send WhatsApp broadcast", "reply to negative review", "export customer data"],
+      dataExportCenter: ["PDF report", "CSV metrics", "customer export with permission", "audit log export"],
+      activityMonitoring: ["login activity", "approval changes", "budget edits", "data exports", "provider syncs"]
+    };
+  }
+
+  enterpriseWorkflowBuilder(audit) {
+    return {
+      noCodeWorkflowBuilder: [
+        {
+          name: "New lead to invoice",
+          steps: ["New lead", "WhatsApp message draft", "Reminder after 1 day", "Book appointment", "Generate invoice"],
+          status: "draft_first"
+        },
+        {
+          name: "Review recovery",
+          steps: ["Negative review detected", "Manager task", "AI reply draft", "Service recovery call", "Follow-up note"],
+          status: "approval_required"
+        },
+        {
+          name: "Birthday automation",
+          steps: ["Birthday upcoming", "Offer draft", "Owner approval", "WhatsApp send", "Booking follow-up"],
+          status: "consent_required"
+        }
+      ],
+      eventTriggers: ["lead.created", "appointment.completed", "invoice.paid", "review.negative", "membership.renewal_due"],
+      scheduledAutomations: ["daily briefing", "weekly report", "monthly revenue forecast", "rank sync reminder"],
+      approvalWorkflows: ["content approval", "budget approval", "sensitive review reply", "data export approval"]
+    };
+  }
+
+  enterpriseAiCommandCenter(audit, workspace = {}, board = {}) {
+    return {
+      askAnythingExamples: [
+        {
+          question: "Last month profit kyu gira?",
+          answer: "Profit drop usually comes from high ad spend, low booking conversion, discount-heavy offers or delayed lead follow-up. Check campaign profit rows and WhatsApp SLA first."
+        },
+        {
+          question: "Kaunsa campaign sabse profitable tha?",
+          answer: [...(workspace.campaignProfit || [])].sort((a, b) => Number(b.profit || 0) - Number(a.profit || 0))[0]?.campaignName || "Campaign data awaiting sync."
+        },
+        {
+          question: "Kaunsa staff best perform kar raha hai?",
+          answer: "Staff performance needs attendance, task completion, booking and review sync. Current proxy: close high-priority assigned tasks and review customer feedback tags."
+        }
+      ],
+      naturalLanguageReports: [
+        "Generate owner summary for this week",
+        "Explain why revenue changed",
+        "Show branch-wise performance",
+        "List urgent actions for today"
+      ],
+      executiveAiChat: {
+        mode: "workspace_grounded",
+        safety: "No auto-send, no auto-publish, no budget change without approval"
+      },
+      businessCopilot: {
+        nextBestActions: this.enterpriseDailyBriefing(audit, workspace, board).actionsToTake,
+        decisionAssistant: [
+          "Scale only campaigns with positive profit and clean attribution",
+          "Fix lead response SLA before increasing ad spend",
+          "Prioritize churn-risk and VIP customers for retention"
+        ]
+      }
+    };
+  }
+
 }
 
 export const growthRankBotService = new GrowthRankBotService();

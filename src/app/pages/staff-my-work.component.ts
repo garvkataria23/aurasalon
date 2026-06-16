@@ -170,6 +170,25 @@ type StaffSelfDashboard = {
       .filters, .metrics, .grid { grid-template-columns: 1fr; }
       .identity { justify-self: start; }
     }
+    @media (max-width: 640px) {
+      .staff-workspace { gap: 14px; }
+      .hero, .filters, .panel, .metrics article { border-radius: 8px; box-shadow: 0 10px 24px rgba(15, 23, 42, .07); }
+      .hero { padding: 16px; }
+      .hero h1 { font-size: 24px; line-height: 1.15; }
+      .hero-actions, .hero-actions .ghost, .hero-actions .primary, .primary, .ghost { width: 100%; }
+      .hero-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .hero-actions .primary { grid-column: 1 / -1; }
+      .filters { padding: 12px; gap: 10px; }
+      .metrics { gap: 10px; }
+      .metrics article { min-height: 88px; padding: 13px; }
+      .metrics strong { font-size: 25px; }
+      .panel { padding: 14px; }
+      .table { overflow: visible; gap: 10px; }
+      .row.head { display: none; }
+      .row { min-width: 0; grid-template-columns: 1fr; gap: 5px; border: 1px solid #dbe8e4; border-radius: 8px; padding: 12px; }
+      .row span { overflow-wrap: anywhere; }
+      .booking { padding: 13px; }
+    }
   `]
 })
 export class StaffMyWorkComponent implements OnInit {

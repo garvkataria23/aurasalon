@@ -1,5 +1,6 @@
 import { resources } from "../db.js";
 import { BaseRepository } from "./base.repository.js";
+import { WaitlistRepository } from "./waitlist.repository.js";
 
 const tableRepositories = new Map();
 
@@ -128,5 +129,6 @@ export const repositories = {
   whatsappMessages: repositoryForTable("whatsapp_messages"),
   whatsappRules: repositoryForTable("whatsapp_automation_rules"),
   walletTransactions: repositoryForTable("wallet_transactions"),
+  waitlistEntries: new WaitlistRepository(),
   whatsappHandoffs: repositoryForTable("whatsapp_handoffs")
 };

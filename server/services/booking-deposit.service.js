@@ -104,7 +104,10 @@ export const bookingDepositService = {
          WHERE id = ? AND tenantId = ?`
       ).run(transactionId, link.id, tenantId);
       if (appointment) {
-        repositories.appointments.update(appointment.id, { depositStatus: "paid" }, { tenantId });
+        repositories.appointments.update(appointment.id, {
+          depositStatus: "paid",
+          status: appointment.status === "payment_pending" ? "booked" : appointment.status
+        }, { tenantId });
       }
       insertAudit({
         tenantId,

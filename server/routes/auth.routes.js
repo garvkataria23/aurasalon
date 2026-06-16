@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { authenticateJwt } from "../middleware/auth.js";
 import { authService } from "../services/auth.service.js";
+import { intrusionDetectionService } from "../services/intrusion-detection.service.js";
 import { securityService } from "../services/security.service.js";
 import { validateBody } from "../validators/request-validator.js";
 
@@ -13,7 +14,17 @@ authRouter.post(
   asyncHandler((req, res) => {
     const result = authService.login(req.body, {
       tenantId: req.body.tenantId,
-      host: req.get("x-forwarded-host") || req.get("host") || ""
+      host: req.get("x-forwarded-host") || req.get("host") || "",
+      ip: req.ip || "",
+      userAgent: req.get("user-agent") || ""
+    });
+    intrusionDetectionService.checkAdminLogin({
+      tenantId: result.tenant.id,
+      userId: result.user.id,
+      role: result.user.role,
+      ip: req.ip || "",
+      userAgent: req.get("user-agent") || "",
+      deviceId: req.body.deviceId || req.body.device?.id || ""
     });
     securityService.audit({
       action: "auth.login",

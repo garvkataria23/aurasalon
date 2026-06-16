@@ -160,6 +160,14 @@ interface DetailSelection {
   payload: unknown;
 }
 
+interface StaffCommandLink {
+  label: string;
+  path: string;
+  metric: string | number;
+  description: string;
+  tone: string;
+}
+
 interface ProfitInsight {
   staffId: string;
   staffName: string;
@@ -268,6 +276,23 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
             <strong>{{ kpis().trainingDue || 0 }}</strong>
             <small>{{ trainingFiltered().length }} suggestions</small>
           </article>
+        </section>
+
+        <section class="section-band">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Live Staff Module Links</span>
+              <h2>Open connected pages with same branch/staff context</h2>
+            </div>
+            <small class="snapshot-label">{{ command()?.generatedAt || filters.periodEnd }} live snapshot</small>
+          </div>
+          <div class="module-link-grid">
+            <a *ngFor="let link of staffCommandLinks()" [routerLink]="link.path" [queryParams]="queryParams()" class="module-link-card" [ngClass]="link.tone">
+              <span>{{ link.label }}</span>
+              <strong>{{ link.metric }}</strong>
+              <small>{{ link.description }}</small>
+            </a>
+          </div>
         </section>
 
         <section class="section-band command-grid">
@@ -462,7 +487,43 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
           <span class="badge" *ngIf="detail.status" [ngClass]="statusClass(detail.status)">{{ detail.status }}</span>
           <span class="badge" *ngIf="detail.riskLevel" [ngClass]="riskClass(detail.riskLevel)">{{ detail.riskLevel }}</span>
         </div>
-        <pre>{{ detail.payload | json }}</pre>
+        <div class="detail-summary-grid">
+          <article>
+            <span>Staff</span>
+            <strong>{{ detailValue(detail.payload, 'staffName', detailValue(detail.payload, 'staffId', 'All staff')) }}</strong>
+          </article>
+          <article>
+            <span>Branch</span>
+            <strong>{{ detailValue(detail.payload, 'branchId', filters.branchId || 'All branches') }}</strong>
+          </article>
+          <article>
+            <span>Source</span>
+            <strong>{{ detailValue(detail.payload, 'source', detail.eyebrow) }}</strong>
+          </article>
+          <article>
+            <span>Time</span>
+            <strong>{{ detailValue(detail.payload, 'detectedAt', detailValue(detail.payload, 'createdAt', detailValue(detail.payload, 'eventAt', '-'))) }}</strong>
+          </article>
+        </div>
+        <section class="drawer-action-card">
+          <span>Reason</span>
+          <strong>{{ detailValue(detail.payload, 'reason', detail.subtitle) }}</strong>
+          <small *ngFor="let reason of detailReasons(detail.payload)">{{ reason }}</small>
+        </section>
+        <section class="drawer-action-card">
+          <span>Suggested action</span>
+          <strong>{{ detailValue(detail.payload, 'suggestedAction', 'Review this staff signal and take manager action.') }}</strong>
+        </section>
+        <div class="evidence-grid" *ngIf="detailEvidence(detail.payload).length">
+          <article *ngFor="let item of detailEvidence(detail.payload)">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
+        <details class="technical-details">
+          <summary>Technical payload</summary>
+          <pre>{{ detail.payload | json }}</pre>
+        </details>
       </aside>
     </section>
   `,
@@ -686,11 +747,63 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
       margin-top: 3px;
     }
 
+    .snapshot-label {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .module-link-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    .module-link-card {
+      display: grid;
+      gap: 6px;
+      border: 1px solid #d9e2ea;
+      border-radius: 8px;
+      padding: 14px;
+      text-decoration: none;
+      color: #0f172a;
+      background: #f8fafc;
+      border-left: 5px solid #64748b;
+    }
+
+    .module-link-card span {
+      color: #52617a;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .module-link-card strong {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .module-link-card small {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .module-link-card.green { border-left-color: #16a34a; }
+    .module-link-card.blue { border-left-color: #2563eb; }
+    .module-link-card.amber { border-left-color: #b7791f; }
+    .module-link-card.red { border-left-color: #dc2626; }
+    .module-link-card.violet { border-left-color: #7c3aed; }
+    .module-link-card.teal { border-left-color: #0f766e; }
+
     .command-list,
     .signal-list,
     .audit-timeline {
       display: grid;
       gap: 10px;
+      max-height: 430px;
+      overflow: auto;
+      padding-right: 4px;
     }
 
     .command-list {
@@ -727,6 +840,9 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
+      max-height: 430px;
+      overflow: auto;
+      padding-right: 4px;
     }
 
     .profit-row {
@@ -795,9 +911,10 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
     }
 
     .table-wrap {
-      overflow-x: auto;
+      overflow: auto;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
+      max-height: 430px;
     }
 
     table {
@@ -894,7 +1011,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
 
     .detail-drawer {
       position: fixed;
-      top: 16px;
+      top: 170px;
       right: 16px;
       bottom: 16px;
       width: min(520px, calc(100vw - 32px));
@@ -945,6 +1062,58 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
       flex-wrap: wrap;
     }
 
+    .detail-summary-grid,
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .detail-summary-grid article,
+    .evidence-grid article,
+    .drawer-action-card {
+      border: 1px solid #d9e2ea;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 12px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .detail-summary-grid span,
+    .evidence-grid span,
+    .drawer-action-card span {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .detail-summary-grid strong,
+    .evidence-grid strong,
+    .drawer-action-card strong,
+    .drawer-action-card small {
+      overflow-wrap: anywhere;
+    }
+
+    .drawer-action-card small {
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .technical-details {
+      border: 1px solid #d9e2ea;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .technical-details summary {
+      cursor: pointer;
+      font-weight: 900;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
     pre {
       margin: 0;
       padding: 12px;
@@ -956,7 +1125,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
       word-break: break-word;
       font-size: 12px;
       line-height: 1.5;
-      flex: 1;
+      max-height: 340px;
     }
 
     @media (max-width: 1180px) {
@@ -968,6 +1137,11 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
 
       .filter-band {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .detail-drawer {
+        top: 150px;
+        width: min(500px, calc(100vw - 32px));
       }
     }
 
@@ -1014,6 +1188,13 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
 
       .command-row small {
         grid-column: auto;
+      }
+
+      .detail-drawer {
+        left: 12px;
+        right: 12px;
+        top: 140px;
+        width: auto;
       }
     }
   `]
@@ -1188,8 +1369,34 @@ export class StaffEnterpriseComponent implements OnInit {
     return this.commandQueueRows();
   }
 
+  staffCommandLinks(): StaffCommandLink[] {
+    const sourceCounts = this.command()?.sourceCounts || {};
+    const kpis = this.kpis();
+    return [
+      { label: 'Employee Masters', path: '/staff-os/employee-masters', metric: kpis.staffCount || this.staffOptions().length || 0, description: 'profile, category, salary and statutory master', tone: 'teal' },
+      { label: 'Attendance Dash', path: '/staff-os/attendance-dashboard', metric: kpis.presentDays || 0, description: 'present days, late marks and attendance signals', tone: 'green' },
+      { label: 'Roster Calendar', path: '/staff-os/roster-calendar', metric: kpis.scheduledShifts || 0, description: 'scheduled shifts and floor availability', tone: 'blue' },
+      { label: 'Payroll Dash', path: '/staff-os/payroll-dashboard', metric: this.moneyShort(kpis.totalRevenue || 0), description: 'salary, payout and compliance intelligence', tone: 'violet' },
+      { label: 'Commission Dash', path: '/staff-os/commission-dashboard', metric: this.moneyShort(kpis.totalCommission || 0), description: 'invoice linked commission and incentive payout', tone: 'amber' },
+      { label: 'Staff Sales', path: '/reports/staff-sales', metric: sourceCounts['invoices'] || sourceCounts['appointments'] || 0, description: 'POS and appointment revenue attribution', tone: 'teal' },
+      { label: 'Invoice Reports', path: '/reports/invoices', metric: sourceCounts['invoices'] || 0, description: 'invoice, due, GST, discount and wallet drilldown', tone: 'blue' },
+      { label: 'Commission Preview', path: '/reports/commission-preview', metric: this.payrollFiltered().length, description: 'pre-payroll commission verification', tone: 'amber' },
+      { label: 'Leave Mgmt', path: '/staff-os/leave-management', metric: this.approvalsFiltered().length, description: 'leave approval and availability queue', tone: 'green' },
+      { label: 'Training Center', path: '/staff-os/training-center', metric: kpis.trainingDue || this.trainingFiltered().length, description: 'AI coaching and skill upgrade suggestions', tone: 'violet' },
+      { label: 'Risk Signals', path: '/staff-enterprise', metric: kpis.highRiskSignals || this.riskSignalsFiltered().length, description: 'burnout, leakage and compliance alerts', tone: 'red' },
+      { label: 'Tips Register', path: '/pos/tips', metric: sourceCounts['tips'] || 0, description: 'staff tip collection and payout register', tone: 'teal' }
+    ];
+  }
+
   staffOptions(): StaffOption[] {
     return this.staffOptionRows();
+  }
+
+  moneyShort(value: number): string {
+    const amount = Number(value || 0);
+    if (Math.abs(amount) >= 100000) return `₹${Math.round(amount / 100000)}L`;
+    if (Math.abs(amount) >= 1000) return `₹${Math.round(amount / 1000)}K`;
+    return `₹${Math.round(amount)}`;
   }
 
   twinsFiltered(): DigitalTwin[] {
@@ -1252,6 +1459,31 @@ export class StaffEnterpriseComponent implements OnInit {
     });
   }
 
+  detailValue(payload: unknown, key: string, fallback = '-'): string {
+    const record = isRecord(payload) ? payload : {};
+    const value = record[key];
+    if (value === undefined || value === null || value === '') return fallback;
+    if (Array.isArray(value)) return value.map((item) => this.text(item, '')).filter(Boolean).join(', ') || fallback;
+    if (isRecord(value)) return JSON.stringify(value);
+    return String(value);
+  }
+
+  detailReasons(payload: unknown): string[] {
+    const record = isRecord(payload) ? payload : {};
+    const reasons = record['reasons'];
+    if (Array.isArray(reasons)) return reasons.map((reason) => this.text(reason, '')).filter(Boolean).slice(0, 4);
+    return [];
+  }
+
+  detailEvidence(payload: unknown): Array<{ label: string; value: string }> {
+    const record = isRecord(payload) ? payload : {};
+    const evidence = isRecord(record['evidence']) ? record['evidence'] : {};
+    return Object.entries(evidence).slice(0, 6).map(([label, value]) => ({
+      label,
+      value: this.text(value, '-')
+    }));
+  }
+
   riskClass(level?: unknown): string {
     const normalized = String(level || 'info').toLowerCase();
     if (['critical', 'high'].includes(normalized)) return normalized;
@@ -1278,11 +1510,12 @@ export class StaffEnterpriseComponent implements OnInit {
     return normalized || fallback;
   }
 
-  private queryParams(): ApiRecord {
+  queryParams(): ApiRecord {
     return {
       periodStart: this.filters.periodStart,
       periodEnd: this.filters.periodEnd,
-      branchId: this.filters.branchId
+      branchId: this.filters.branchId,
+      staffId: this.filters.staffId
     };
   }
 

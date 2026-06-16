@@ -129,6 +129,7 @@ export class PosTipsComponent implements OnInit {
 
   ngOnInit(): void {
     this.paymentModes.set(this.settings.loadPaymentModes());
+    this.settings.loadPaymentModesRemote().subscribe((modes) => this.paymentModes.set(modes));
     this.load();
   }
 

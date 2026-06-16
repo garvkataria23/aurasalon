@@ -140,7 +140,7 @@ export class ApiService {
   }
 
   private headersForMutation(resource: string, headers = this.headers()): HttpHeaders {
-    const keyRequired = new Set(['appointments', 'slot-holds', 'bills', 'payments', 'refunds', 'booking-portal/confirm', 'booking-portal/v2/confirm', 'booking-payments/payment-link/create', 'online-booking/confirm', 'engagement/booking/create']);
+    const keyRequired = new Set(['appointments', 'slot-holds', 'bills', 'payments', 'refunds', 'booking-portal/confirm', 'booking-portal/v2/confirm', 'booking-payments/payment-link/create', 'appointment-deposits/multi-service-bookings', 'online-booking/confirm', 'engagement/booking/create']);
     if (!keyRequired.has(resource.replace(/^\/+/, ''))) return headers;
     const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     return headers.set('Idempotency-Key', `${resource}-${id}`);

@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -50,11 +50,16 @@ type WalletClientRow = {
 };
 
 type InvoiceApprovalAction = 'delete' | 'edit';
+type ProductConsumeDraftRow = {
+  id: string;
+  invoiceId: string;
+  status: string;
+};
 
 @Component({
   selector: 'app-pos-invoices',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, StateComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -151,7 +156,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
                     <td>{{ client.branchName }}</td>
                     <td class="right invoice-paid-amount">{{ client.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td class="right invoice-due-amount">{{ client.unpaidBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td>{{ client.lastWalletActivity ? (client.lastWalletActivity | date: 'short') : '-' }}</td>
+                    <td>{{ dateTimeLabel(client.lastWalletActivity) }}</td>
                     <td><span class="badge">{{ client.source }}</span></td>
                     <td class="right">
                       <button class="ghost-button mini" type="button" (click)="openWalletClient(client)">Open client</button>
@@ -189,7 +194,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
                         <strong>{{ row.invoiceNumber }}</strong>
                       </button>
                     </td>
-                    <td>{{ row.createdAt | date: 'short' }}</td>
+                    <td>{{ dateTimeLabel(row.createdAt) }}</td>
                     <td>
                       <button class="table-link invoice-client-button" type="button" (click)="openClientCrm(row, $event)">
                         {{ row.clientName }}
@@ -218,6 +223,23 @@ type InvoiceApprovalAction = 'delete' | 'edit';
                     <td><span class="badge">{{ row.status }}</span></td>
               <td class="right invoice-action-cell" style="min-width: 210px;">
                 <div class="invoice-actions invoice-actions--saved" style="display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 8px; min-width: 180px;">
+                  <a
+                    class="ghost-button mini"
+                    *ngIf="productConsumeStatus(row)"
+                    routerLink="/inventory/product-consume"
+                    [title]="'Product consume: ' + productConsumeStatus(row)"
+                    (click)="$event.stopPropagation()"
+                  >
+                    {{ productConsumeStatus(row) }}
+                  </a>
+                  <button
+                    class="ghost-button mini"
+                    type="button"
+                    *ngIf="!productConsumeStatus(row) && serviceItems(row).length"
+                    (click)="createProductConsumeDraft(row, $event)"
+                  >
+                    Create consume
+                  </button>
                   <button
                     class="ghost-button mini danger invoice-delete-button"
                     style="min-width: 72px; color: var(--red); border-color: rgba(180, 35, 24, 0.34); background: #fff;"
@@ -265,6 +287,13 @@ type InvoiceApprovalAction = 'delete' | 'edit';
               <div>
                 <span class="eyebrow">Invoice detail</span>
                 <h2>{{ invoice.invoiceNumber }}</h2>
+                <a
+                  class="consume-status-link"
+                  *ngIf="productConsumeStatus(invoice)"
+                  routerLink="/inventory/product-consume"
+                >
+                  Product consume {{ productConsumeStatus(invoice) }}
+                </a>
               </div>
               <div class="hero-actions">
               <button
@@ -292,7 +321,10 @@ type InvoiceApprovalAction = 'delete' | 'edit';
                 >
                   {{ whatsappActionLoading() === invoice.id ? 'Sending PDF' : 'WhatsApp PDF' }}
                 </button>
-                <button class="ghost-button mini" type="button" (click)="downloadInvoice(invoice)">Download</button>
+                <button class="ghost-button mini" type="button" (click)="downloadInvoice(invoice)">A4 PDF</button>
+                <button class="ghost-button mini" type="button" *ngIf="!productConsumeStatus(invoice) && serviceItems(invoice).length" (click)="createProductConsumeDraft(invoice)">
+                  Create consume
+                </button>
                 <button class="ghost-button mini" type="button" (click)="closeDetail()">Close</button>
               </div>
             </div>
@@ -301,7 +333,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
               <div><span>Client</span><strong>{{ invoice.clientName }}</strong></div>
               <div><span>Branch</span><strong>{{ invoice.branchName }}</strong></div>
               <div><span>Staff</span><strong>{{ invoice.staffName }}</strong></div>
-              <div><span>Date</span><strong>{{ invoice.createdAt | date: 'short' }}</strong></div>
+              <div><span>Date</span><strong>{{ dateTimeLabel(invoice.createdAt) }}</strong></div>
             </div>
 
             <h3>Services</h3>
@@ -435,7 +467,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
                 <div>
                   <strong>{{ modeLabel(payment.mode) }}</strong>
                   <span>{{ payment.reference || 'Counter collection' }}</span>
-                  <span class="muted">{{ (payment.createdAt || payment.created_at) | date: 'short' }}</span>
+                  <span class="muted">{{ dateTimeLabel(payment.createdAt || payment.created_at) }}</span>
                 </div>
                 <strong>{{ payment.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
               </article>
@@ -462,8 +494,8 @@ type InvoiceApprovalAction = 'delete' | 'edit';
                         <strong>{{ line.invoiceNumber }}</strong>
                         <small>{{ line.reference }}</small>
                       </td>
-                      <td>{{ line.dueDate | date: 'short' }}</td>
-                      <td>{{ line.receivedDate | date: 'short' }}</td>
+                      <td>{{ dateTimeLabel(line.dueDate) }}</td>
+                      <td>{{ dateTimeLabel(line.receivedDate) }}</td>
                       <td>{{ modeLabel(line.mode) }}</td>
                       <td class="right invoice-paid-amount">{{ line.amount | currency: 'INR':'symbol':'1.0-0' }}</td>
                       <td class="right invoice-due-amount">{{ line.pendingAfter | currency: 'INR':'symbol':'1.0-0' }}</td>
@@ -496,7 +528,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
               <article *ngFor="let link of collection.links || []">
                 <div>
                   <strong>{{ link.provider || 'razorpay' }} · {{ link.status }}</strong>
-                  <span>{{ link.providerLinkId }} · expires {{ link.expiresAt | date: 'short' }}</span>
+                  <span>{{ link.providerLinkId }} · expires {{ dateTimeLabel(link.expiresAt) }}</span>
                   <span class="muted">{{ link.paymentLink }}</span>
                 </div>
                 <strong>{{ link.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
@@ -504,7 +536,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
               <article *ngFor="let event of collection.events || []">
                 <div>
                   <strong>{{ event.event_type || event.eventType }}</strong>
-                  <span>{{ event.message || event.status }} · {{ event.created_at || event.createdAt | date: 'short' }}</span>
+                  <span>{{ event.message || event.status }} · {{ dateTimeLabel(event.created_at || event.createdAt) }}</span>
                 </div>
                 <strong>{{ event.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
               </article>
@@ -580,7 +612,7 @@ type InvoiceApprovalAction = 'delete' | 'edit';
           <div class="info-grid compact-info">
             <div><span>Invoice status</span><strong>{{ request.invoice.status }}</strong></div>
             <div><span>Branch</span><strong>{{ request.invoice.branchName }}</strong></div>
-            <div><span>Invoice date</span><strong>{{ request.invoice.createdAt | date: 'mediumDate' }}</strong></div>
+            <div><span>Invoice date</span><strong>{{ dateLabel(request.invoice.createdAt) }}</strong></div>
             <div><span>Original total</span><strong>{{ request.invoice.total | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
           </div>
 
@@ -693,6 +725,7 @@ export class PosInvoicesComponent implements OnInit {
   readonly paymentActionLoading = signal('');
   readonly paymentError = signal('');
   readonly whatsappActionLoading = signal('');
+  readonly productConsumeDrafts = signal<ProductConsumeDraftRow[]>([]);
   readonly highValueApprovalLimit = 5000;
   query = '';
   statusFilter = '';
@@ -714,6 +747,7 @@ export class PosInvoicesComponent implements OnInit {
 
   ngOnInit(): void {
     this.paymentModes.set(this.settings.loadPaymentModes());
+    this.settings.loadPaymentModesRemote().subscribe((modes) => this.paymentModes.set(modes));
     this.route.queryParamMap.subscribe((params) => {
       const filter = params.get('filter');
       this.viewFilter = filter === 'received-due' || filter === 'due' || filter === 'wallet' ? filter : 'all';
@@ -731,9 +765,11 @@ export class PosInvoicesComponent implements OnInit {
       clients: this.api.list<ApiRecord[]>('clients', { limit: 1000 }),
       staff: this.api.list<ApiRecord[]>('staff', { limit: 1000 }),
       branches: this.api.list<ApiRecord[]>('branches', { limit: 1000 }),
-      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000 })
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000 }),
+      productConsumeDrafts: this.api.list<ProductConsumeDraftRow[]>('inventory-intelligence/product-consume-drafts', { limit: 1000 })
     }).subscribe({
-      next: ({ invoices, sales, payments, clients, staff, branches, walletTransactions }) => {
+      next: ({ invoices, sales, payments, clients, staff, branches, walletTransactions, productConsumeDrafts }) => {
+        this.productConsumeDrafts.set(productConsumeDrafts || []);
         const clientsWithWallet = this.withWalletBalances(clients || [], walletTransactions || []);
         this.walletClients.set(this.buildWalletClients(clientsWithWallet, invoices || [], branches || [], walletTransactions || []));
         this.rows.set(this.buildRows(invoices || [], sales || [], payments || [], clientsWithWallet, staff || [], branches || []));
@@ -774,6 +810,30 @@ export class PosInvoicesComponent implements OnInit {
       return !query ||
         searchableText.toLowerCase().includes(query) ||
         (!!queryDigits && this.onlyDigits(searchableText).includes(queryDigits));
+    });
+  }
+
+  productConsumeStatus(row: InvoiceRegisterRow): string {
+    const drafts = this.productConsumeDrafts().filter((draft) => draft.invoiceId === row.id);
+    if (!drafts.length) return '';
+    return drafts.every((draft) => draft.status === 'confirmed') ? 'consumed' : 'consume pending';
+  }
+
+  createProductConsumeDraft(row: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    this.notice.set('');
+    this.api.post<{ drafts?: ProductConsumeDraftRow[] }>(`inventory-intelligence/product-consume-drafts/from-invoice/${row.id}`, {}).subscribe({
+      next: (response) => {
+        const nextDrafts = [...this.productConsumeDrafts()];
+        for (const draft of response.drafts || []) {
+          const index = nextDrafts.findIndex((item) => item.id === draft.id);
+          if (index >= 0) nextDrafts[index] = draft;
+          else nextDrafts.unshift(draft);
+        }
+        this.productConsumeDrafts.set(nextDrafts);
+        this.notice.set(`Product consume draft ready for ${row.invoiceNumber}.`);
+      },
+      error: (error) => this.paymentError.set(this.api.errorText(error, 'Unable to create product consume draft'))
     });
   }
 
@@ -1275,7 +1335,7 @@ export class PosInvoicesComponent implements OnInit {
       pending = this.money(Math.max(0, pending - amount));
       return {
         invoiceNumber: row.invoiceNumber,
-        dueDate: row.dueDate || row.createdAt,
+        dueDate: row.createdAt || row.dueDate,
         receivedDate: String(payment.createdAt || payment.created_at || ''),
         mode: String(payment.mode || 'cash'),
         amount,
@@ -1336,13 +1396,15 @@ export class PosInvoicesComponent implements OnInit {
     if (!invoice.id) return;
     this.api.post<ApiRecord>(`invoices/${invoice.id}/document`, {}).subscribe({
       next: (documentRecord) => {
-        const blob = new Blob([String(documentRecord.content || '')], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${invoice.invoiceNumber}.html`;
-        link.click();
-        URL.revokeObjectURL(url);
+        const win = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1100');
+        if (!win) {
+          this.error.set('Popup blocked. Browser me popup allow karke A4 PDF dobara open karo.');
+          return;
+        }
+        win.document.open();
+        win.document.write(String(documentRecord.content || ''));
+        win.document.close();
+        win.focus();
       },
       error: (error) => this.error.set(error?.error?.error || 'Unable to download invoice')
     });
@@ -1714,6 +1776,29 @@ export class PosInvoicesComponent implements OnInit {
     return String(value || '').replace(/\D/g, '');
   }
 
+  dateTimeLabel(value: unknown): string {
+    const raw = String(value || '').trim();
+    if (!raw) return '-';
+    const date = this.parseDateTime(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+    return date.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'numeric',
+      year: '2-digit',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  dateLabel(value: unknown): string {
+    const raw = String(value || '').trim();
+    if (!raw) return '-';
+    const date = this.parseDateTime(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
   private todayKey(): string {
     return this.dateKey(new Date());
   }
@@ -1735,6 +1820,16 @@ export class PosInvoicesComponent implements OnInit {
     const raw = String(value || '').trim();
     const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return new Date(raw);
+  }
+
+  private parseDateTime(value: string): Date {
+    const raw = String(value || '').trim();
+    if (!raw) return new Date('');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const [year, month, day] = raw.split('-').map(Number);
+      return new Date(year, Number(month || 1) - 1, day || 1);
+    }
     return new Date(raw);
   }
 

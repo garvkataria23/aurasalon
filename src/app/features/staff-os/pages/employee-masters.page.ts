@@ -29,7 +29,20 @@ const masterTiles: MasterTile[] = [
   { label: 'Fines / Penalty Master', section: 'Payroll', path: '/staff-os/fines-penalties', status: 'live', accent: 'payroll' },
   { label: 'Allowance / Deduction Master', section: 'Payroll', path: '/staff-os/allowance-deduction', status: 'live', accent: 'payroll' },
   { label: 'Advanced Payroll Setup', section: 'Payroll', path: '/staff-os/payroll-salary-structure', status: 'live', accent: 'payroll' },
-  { label: 'Bulk Master Update [Employee]', section: 'Bulk Operations', path: '/staff-os/bulk-employee-update', status: 'live', accent: 'people' }
+  { label: 'Bulk Master Update [Employee]', section: 'Bulk Operations', path: '/staff-os/bulk-employee-update', status: 'live', accent: 'people' },
+  { label: 'Staff Command Center', section: 'Staff Command', path: '/staff-enterprise', status: 'live', accent: 'people' },
+  { label: 'Smart Staff Management', section: 'Staff Command', path: '/staff', status: 'live', accent: 'people' },
+  { label: 'My Work', section: 'Staff Command', path: '/staff/my-work', status: 'live', accent: 'people' },
+  { label: 'Connected Modules', section: 'Staff Command', path: '/staff/connected-modules', status: 'live', accent: 'services' },
+  { label: 'Attendance Dashboard', section: 'Attendance Live', path: '/staff-os/attendance-dashboard', status: 'live', accent: 'time' },
+  { label: 'Roster Calendar', section: 'Attendance Live', path: '/staff-os/roster-calendar', status: 'live', accent: 'time' },
+  { label: 'Leave Management', section: 'Attendance Live', path: '/staff-os/leave-management', status: 'live', accent: 'time' },
+  { label: 'Payroll Dashboard', section: 'Payroll', path: '/staff-os/payroll-dashboard', status: 'live', accent: 'payroll' },
+  { label: 'Commissions', section: 'Commission', path: '/commissions', status: 'live', accent: 'money' },
+  { label: 'Commission Dashboard', section: 'Commission', path: '/staff-os/commission-dashboard', status: 'live', accent: 'money' },
+  { label: 'Performance Dashboard', section: 'Performance', path: '/staff-os/performance-dashboard', status: 'live', accent: 'services' },
+  { label: 'Staff Sales Report', section: 'Reports', path: '/reports/staff-sales', status: 'live', accent: 'services' },
+  { label: 'Invoice Reports', section: 'Reports', path: '/reports/invoices', status: 'live', accent: 'services' }
 ];
 
 @Component({

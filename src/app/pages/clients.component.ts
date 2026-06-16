@@ -79,33 +79,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
             <div class="section-title compact">
               <div>
                 <span class="eyebrow">Connected Client 360</span>
-                <h3>31+ metric cards · {{ client360Report()?.client?.name }}</h3>
+                <h3>{{ client360Report()?.client?.name || 'Selected client' }} insight board</h3>
               </div>
               <div class="metric-board-actions">
-                <span class="badge">{{ metricConnectionCount() }} links</span>
+                <span class="badge">{{ clientMetricCards().length }} metrics</span>
                 <button class="ghost-button mini" type="button" *ngIf="client360Report()?.client?.id" (click)="openClient(client360Report()?.client?.id || '')">Open profile</button>
               </div>
             </div>
 
             <div class="metric-command-layout">
-              <div class="metric-command-main">
-                <div class="metric-category-tabs">
-                  <button type="button" [class.active]="selectedMetricCategory() === 'All'" (click)="selectedMetricCategory.set('All')">All · {{ clientMetricCards().length }}</button>
-                  <button type="button" *ngFor="let group of metricGroups()" [class.active]="selectedMetricCategory() === group.category" (click)="selectedMetricCategory.set(group.category)">
-                    {{ group.category }} · {{ group.count }}
-                  </button>
-                </div>
-
-                <div class="client-360-card-grid">
-                  <button class="metric-card smart-client-card" type="button" *ngFor="let card of filteredMetricCards(); let index = index" [ngClass]="card.tone || 'teal'" [class.active]="selectedMetricCardId() === card.id" (click)="selectMetricCard(card.id)">
-                    <span class="metric-card-header"><b>#{{ index + 1 }}</b><i>{{ card.category }}</i></span>
-                    <strong>{{ card.value }}</strong>
-                    <small>{{ card.label }}</small>
-                    <em>{{ card.detail }}</em>
-                  </button>
-                </div>
-              </div>
-
               <aside class="connected-card-inspector" *ngIf="selectedMetricCard() as card">
                 <div class="inspector-focus">
                   <span class="eyebrow">Selected signal</span>
@@ -124,6 +106,24 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   </div>
                 </div>
               </aside>
+
+              <div class="metric-command-main">
+                <div class="metric-category-tabs">
+                  <button type="button" [class.active]="selectedMetricCategory() === 'All'" (click)="selectedMetricCategory.set('All')">All · {{ clientMetricCards().length }}</button>
+                  <button type="button" *ngFor="let group of metricGroups()" [class.active]="selectedMetricCategory() === group.category" (click)="selectedMetricCategory.set(group.category)">
+                    {{ group.category }} · {{ group.count }}
+                  </button>
+                </div>
+
+                <div class="client-360-card-grid">
+                  <button class="metric-card smart-client-card" type="button" *ngFor="let card of visibleMetricCards(); let index = index" [ngClass]="card.tone || 'teal'" [class.active]="selectedMetricCardId() === card.id" (click)="selectMetricCard(card.id)">
+                    <span class="metric-card-header"><b>#{{ index + 1 }}</b><i>{{ card.category }}</i></span>
+                    <strong>{{ card.value }}</strong>
+                    <small>{{ card.label }}</small>
+                    <em>{{ card.detail }}</em>
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -487,9 +487,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
       padding: 18px;
       border-color: color-mix(in srgb, var(--teal) 34%, var(--line));
       background:
-        radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--teal) 26%, transparent), transparent 30%),
-        radial-gradient(circle at 92% 18%, color-mix(in srgb, var(--amber) 22%, transparent), transparent 28%),
-        linear-gradient(135deg, color-mix(in srgb, var(--surface) 97%, var(--teal)), color-mix(in srgb, var(--surface-2) 90%, white));
+        linear-gradient(135deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, var(--teal))),
+        var(--surface);
     }
 
     .section-title.compact {
@@ -515,7 +514,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .metric-command-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      gap: 14px;
+      gap: 12px;
       align-items: start;
       min-width: 0;
       max-width: 100%;
@@ -558,22 +557,19 @@ import { StateComponent } from '../shared/ui/state/state.component';
       display: grid;
       width: 100%;
       max-width: none;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      grid-auto-rows: minmax(118px, auto);
-      gap: 10px;
-      max-height: min(560px, 58vh);
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      padding: 2px 6px 2px 2px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 8px;
+      padding: 2px;
       min-width: 0;
     }
 
     .smart-client-card {
       width: 100%;
       min-width: 0;
-      min-height: 118px;
+      min-height: 104px;
       border: 1px solid color-mix(in srgb, var(--line) 82%, white);
       border-left-width: 4px;
+      border-radius: 12px;
       text-align: left;
       cursor: pointer;
       background:
@@ -630,7 +626,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .connected-card-inspector {
-      order: -1;
       display: grid;
       width: 100%;
       max-width: none;
@@ -638,14 +633,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
       gap: 12px;
       align-items: stretch;
       min-width: 0;
-      padding: 16px;
+      padding: 14px;
       border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--line));
-      border-radius: 18px;
+      border-radius: 14px;
       background:
-        linear-gradient(180deg, color-mix(in srgb, var(--ink) 92%, var(--teal)), color-mix(in srgb, var(--ink) 84%, black)),
-        var(--ink);
-      color: white;
-      box-shadow: 0 22px 50px color-mix(in srgb, var(--ink) 18%, transparent);
+        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
+        var(--surface);
+      color: var(--ink);
+      box-shadow: 0 14px 32px color-mix(in srgb, var(--ink) 6%, transparent);
     }
 
     .connected-card-inspector h3,
@@ -654,20 +649,20 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .connected-card-inspector p {
-      color: color-mix(in srgb, white 74%, transparent);
+      color: var(--muted);
       font-weight: 650;
     }
 
     .connected-card-inspector .eyebrow,
     .connected-card-inspector small {
-      color: color-mix(in srgb, white 68%, transparent);
+      color: var(--muted);
     }
 
     .inspector-focus {
       display: grid;
       gap: 8px;
       padding-bottom: 12px;
-      border-bottom: 1px solid color-mix(in srgb, white 16%, transparent);
+      border-bottom: 1px solid var(--line);
     }
 
     .inspector-focus strong {
@@ -685,17 +680,17 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
     .connected-card-links button {
       min-width: 0;
-      border: 1px solid color-mix(in srgb, white 16%, transparent);
+      border: 1px solid var(--line);
       border-radius: 12px;
       padding: 10px;
-      background: color-mix(in srgb, white 8%, transparent);
-      color: white;
+      background: color-mix(in srgb, var(--surface) 96%, white);
+      color: var(--ink);
       text-align: left;
       cursor: pointer;
     }
 
     .connected-card-links button:hover {
-      background: color-mix(in srgb, white 14%, transparent);
+      background: color-mix(in srgb, var(--teal) 10%, var(--surface));
     }
 
     .connected-card-links strong,
@@ -707,7 +702,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .connected-card-links span {
-      color: color-mix(in srgb, white 70%, transparent);
+      color: var(--muted);
       font-size: 12px;
       font-weight: 800;
     }
@@ -876,7 +871,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       .client-360-card-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        max-height: min(620px, 66vh);
       }
 
       .connected-card-links {
@@ -927,7 +921,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
       }
 
       .metric-category-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
         border-radius: 18px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .metric-category-tabs button {
+        flex: 0 0 auto;
       }
 
       .mini-report-row {
@@ -951,6 +952,26 @@ export class ClientsComponent implements OnInit {
   readonly selectedMetricCategory = signal('All');
   readonly reportLoading = signal(true);
   readonly reportError = signal('');
+  private readonly usefulMetricCardIds = new Set([
+    'last-visit',
+    'favorite-service',
+    'average-spend',
+    'preferred-staff',
+    'outstanding-balance',
+    'loyalty-points',
+    'lifetime-value',
+    'highest-single-bill',
+    'membership-package-balance',
+    'no-show-count',
+    'cancellation-rate',
+    'top-3-services',
+    'product-purchase-history',
+    'communication-preference',
+    'last-contacted',
+    'churn-risk-score',
+    'inactive-days-trend',
+    'rebooking-rate'
+  ]);
   private pendingEditClientId = '';
   query = '';
 
@@ -1263,18 +1284,26 @@ export class ClientsComponent implements OnInit {
 
   clientMetricCards(): ApiRecord[] {
     const value = this.client360Report()?.metricCards;
-    return Array.isArray(value) ? value : [];
+    return Array.isArray(value) ? value.filter((card) => this.usefulMetricCardIds.has(String(card.id))) : [];
   }
 
   metricGroups(): ApiRecord[] {
-    const value = this.client360Report()?.metricGroups;
-    return Array.isArray(value) ? value : [];
+    const counts = new Map<string, number>();
+    for (const card of this.clientMetricCards()) {
+      const category = String(card.category || 'Other');
+      counts.set(category, (counts.get(category) || 0) + 1);
+    }
+    return [...counts.entries()].map(([category, count]) => ({ category, count }));
   }
 
   filteredMetricCards(): ApiRecord[] {
     const category = this.selectedMetricCategory();
     const cards = this.clientMetricCards();
     return category === 'All' ? cards : cards.filter((card) => card.category === category);
+  }
+
+  visibleMetricCards(): ApiRecord[] {
+    return this.filteredMetricCards().slice(0, 12);
   }
 
   selectedMetricCard(): ApiRecord | null {
@@ -1295,10 +1324,9 @@ export class ClientsComponent implements OnInit {
   }
 
   metricConnectionCount(): number {
-    const connections = this.client360Report()?.metricConnections;
-    if (Array.isArray(connections)) return connections.length;
     return this.clientMetricCards().reduce((sum, card) => {
-      return sum + (Array.isArray(card.relatedCardIds) ? card.relatedCardIds.length : 0);
+      const relatedIds = Array.isArray(card.relatedCardIds) ? card.relatedCardIds.map(String) : [];
+      return sum + relatedIds.filter((id) => this.usefulMetricCardIds.has(id)).length;
     }, 0);
   }
 

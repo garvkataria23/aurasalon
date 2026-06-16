@@ -45,9 +45,13 @@ const SUITE_GROUPS: SuiteGroup[] = [
       { path: '/dashboard', label: 'Live Dashboard', description: 'Revenue, bookings, dues, stock alerts and staff performance in one branch-aware view.', icon: 'DB', tone: 'teal', status: 'Live', tags: ['dashboard', 'kpi', 'owner'] },
       { path: '/dashboard/executive', label: 'Executive Dashboard', description: 'Board-level metrics for revenue, performance, branches and operating health.', icon: 'EX', tone: 'blue', status: 'Ready', tags: ['executive', 'analytics'] },
       { path: '/command-center', label: 'AI Command Center', description: 'Autonomous salon intelligence, daily briefings, approvals and owner controls.', icon: 'AI', tone: 'violet', status: 'AI', tags: ['ai', 'command', 'automation'] },
+      { path: '/command-center/engagement', label: 'Engagement', description: 'Hyperconnect command view for client conversations, follow-ups and engagement activity.', icon: 'EC', tone: 'green', status: 'Ready', tags: ['engagement', 'whatsapp'] },
       { path: '/analytics', label: 'Advanced Analytics', description: 'Deep revenue, retention, staff productivity and branch comparison analytics.', icon: 'AN', tone: 'blue', status: 'Ready', tags: ['analytics', 'reports'] },
       { path: '/reports', label: 'Reports Center', description: 'Operational reports for sales, staff, inventory, commission and account ledgers.', icon: 'RP', tone: 'neutral', status: 'Ready', tags: ['reports', 'export'] },
-      { path: '/kpi-monitoring', label: 'KPI Monitoring', description: 'Target tracking for utilization, repeat rate, conversion and revenue alerts.', icon: 'KM', tone: 'amber', status: 'Ready', tags: ['kpi', 'alerts'] }
+      { path: '/reports/invoices', label: 'Invoice Reports', description: 'Invoice, GST, discount, product, membership, wallet and due audit reporting.', icon: 'IR', tone: 'neutral', status: 'Ready', tags: ['invoice', 'audit'] },
+      { path: '/kpi-monitoring', label: 'KPI Monitoring', description: 'Target tracking for utilization, repeat rate, conversion and revenue alerts.', icon: 'KM', tone: 'amber', status: 'Ready', tags: ['kpi', 'alerts'] },
+      { path: '/data-warehouse', label: 'Warehouse', description: 'Historical snapshots, facts and dimensions for reporting-ready business data.', icon: 'DW', tone: 'blue', status: 'Ready', tags: ['data', 'warehouse'] },
+      { path: '/predictive-forecasting', label: 'Forecast AI', description: 'Revenue, inventory and demand forecasting models with branch-ready predictions.', icon: 'PF', tone: 'violet', status: 'AI', tags: ['forecast', 'ai'] }
     ]
   },
   {

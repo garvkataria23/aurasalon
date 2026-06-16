@@ -4,6 +4,7 @@ import { appointmentActivityService, APPOINTMENT_ACTIVITY_ACTIONS } from "./appo
 import { resourceService } from "./resource.service.js";
 import { salonOperationsService } from "./salon-operations.service.js";
 import { tenantService } from "./tenant.service.js";
+import { waitlistService } from "./waitlist.service.js";
 import { warrantyService } from "./warranty.service.js";
 
 function scope(access, branchId = "") {
@@ -108,13 +109,22 @@ export const appointmentLifecycleService = {
     if (["completed", "paid"].includes(current.status)) {
       throw conflict("Completed or paid appointments cannot be cancelled");
     }
-    return updateStatus(id, "cancelled", access, {
+    const result = updateStatus(id, "cancelled", access, {
       notes: [current.notes, payload.reason ? `Cancellation reason: ${payload.reason}` : ""].filter(Boolean).join(" | ")
     }, {
       action: APPOINTMENT_ACTIVITY_ACTIONS.CANCELLED,
       reason: payload.reason || "",
       source: "cancellation"
     });
+    const serviceIds = Array.isArray(current.serviceIds) ? current.serviceIds : [];
+    result.waitlistOffer = waitlistService.autoFillForFreedSlot({
+      branchId: current.branchId || "",
+      serviceId: current.serviceId || serviceIds[0] || "",
+      staffId: current.staffId || "",
+      startAt: current.startAt || "",
+      endAt: current.endAt || (current.startAt ? addMinutes(current.startAt, 45) : "")
+    }, access);
+    return result;
   },
 
   reschedule(id, payload = {}, access, req = null) {

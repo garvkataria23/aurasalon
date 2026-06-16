@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, computed, effect, signal } from '@angular/core';
-import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiRecord } from '../../../core/api.service';
@@ -10,6 +10,9 @@ import { StaffOsBranch, StaffOsStaff, StaffOsStaffCategory } from '../domain/sta
 
 type StaffDetailTab = 'core' | 'contact' | 'emergency' | 'native' | 'incentive' | 'attendance' | 'remarks';
 type StaffIntegrationLink = { label: string; to: string };
+type StaffShellLink = { label: string; to: string; group: string; icon: string };
+type StaffControlCard = { label: string; value: string | number; hint: string; to: string; tone: string };
+type StaffControlTab = { label: string; to: string; count: string | number };
 type IncentiveRuleType = 'service_category' | 'service' | 'product' | 'membership' | 'package';
 type IncentiveCalcMode = 'percent' | 'fixed';
 type IncentiveOption = { id: string; name: string; meta?: string };
@@ -36,7 +39,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
 @Component({
   selector: 'app-staff-os-section',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   template: `
     <section class="staff-os">
       <header class="topbar">
@@ -51,6 +54,43 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
           <button type="button" class="refresh" (click)="store.load()">Refresh</button>
         </div>
       </header>
+
+      <nav class="staff-shell-nav" aria-label="Staff OS command links">
+        <a *ngFor="let link of staffShellLinks" [routerLink]="link.to" [class.active]="isShellLinkActive(link)">
+          <span>{{ link.icon }}</span>
+          <strong>{{ link.label }}</strong>
+          <small>{{ link.group }}</small>
+        </a>
+      </nav>
+
+      <section class="staff-control-room" aria-label="Staff owner control room">
+        <div class="control-heading">
+          <div>
+            <p class="eyebrow">Owner control room</p>
+            <h2>Attendance, payroll, commission and risk in one place</h2>
+          </div>
+          <div class="control-filters">
+            <label>
+              <span>Work date</span>
+              <input type="date" [ngModel]="attendanceDate()" (ngModelChange)="attendanceDate.set($event); refreshAttendanceCenter()" />
+            </label>
+            <a class="refresh" routerLink="/staff-enterprise" [queryParams]="staffContextParams()">Open command center</a>
+          </div>
+        </div>
+        <div class="control-cards">
+          <a *ngFor="let card of staffControlCards()" [routerLink]="card.to" [queryParams]="staffContextParams()" class="control-card" [ngClass]="card.tone">
+            <span>{{ card.label }}</span>
+            <strong>{{ card.value }}</strong>
+            <small>{{ card.hint }}</small>
+          </a>
+        </div>
+        <nav class="control-tabs" aria-label="Staff grouped sections">
+          <a *ngFor="let tab of staffControlTabs()" [routerLink]="tab.to" [queryParams]="staffContextParams()" [class.active]="isControlTabActive(tab)">
+            <span>{{ tab.label }}</span>
+            <strong>{{ tab.count }}</strong>
+          </a>
+        </nav>
+      </section>
 
       <div class="metrics" aria-label="Staff OS metrics">
         <article *ngFor="let metric of store.metrics()" class="metric" [class]="metric.tone">
@@ -99,7 +139,11 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
               </button>
             </span>
           </div>
-          <div *ngIf="!store.staff().length && !store.loading()" class="empty">No staff records found.</div>
+          <div *ngIf="!store.staff().length && !store.loading()" class="empty action-empty">
+            <strong>No staff records found.</strong>
+            <span>Add staff first to unlock attendance, payroll and commission reports.</span>
+            <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
+          </div>
         </div>
         <div class="state error" *ngIf="staffActionError()">{{ staffActionError() }}</div>
       </section>
@@ -173,8 +217,8 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
               </label>
 
               <label class="field">
-                <span>Employee code</span>
-                <input formControlName="employeeCode" placeholder="00103895" />
+                <span>Staff ID code</span>
+                <input formControlName="employeeCode" placeholder="1" />
               </label>
 
               <label class="field">
@@ -910,7 +954,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
               <span>{{ device['connectionMode'] }}</span>
               <span class="badge">{{ device['lastHealthStatus'] || device['status'] }}</span>
             </div>
-            <div *ngIf="!store.biometricDevices().length && !store.loading()" class="empty">No biometric devices registered.</div>
+            <div *ngIf="!store.biometricDevices().length && !store.loading()" class="empty action-empty"><strong>No biometric devices registered.</strong><span>Add a device or use camera punch for mobile-first attendance.</span></div>
           </div>
         </article>
       </section>
@@ -947,7 +991,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
               <span class="badge">{{ gateway['healthStatus'] }}</span>
               <span>{{ timeOnly(gateway['lastSeenAt']) || 'not seen' }}</span>
             </div>
-            <div *ngIf="!gatewayRows().length && !store.loading()" class="empty">No gateway registered for selected branch.</div>
+            <div *ngIf="!gatewayRows().length && !store.loading()" class="empty action-empty"><strong>No gateway registered for selected branch.</strong><span>Register a gateway to sync real biometric attendance.</span></div>
           </div>
         </article>
 
@@ -989,7 +1033,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
                 <button type="button" class="refresh mini" *ngIf="mapping['status'] !== 'approved'" (click)="approveBiometricMapping(mapping)">Approve</button>
               </span>
             </div>
-            <div *ngIf="!store.biometricMappings().length && !store.loading()" class="empty">No staff biometric mappings yet.</div>
+            <div *ngIf="!store.biometricMappings().length && !store.loading()" class="empty action-empty"><strong>No staff biometric mappings yet.</strong><span>Map staff with device user IDs to connect attendance and salary.</span></div>
           </div>
         </article>
       </section>
@@ -1040,7 +1084,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
               <span>{{ consent['deleteRequested'] ? 'requested' : 'no' }}</span>
               <span><button type="button" class="refresh mini" (click)="requestConsentDeletion(consent)">Delete request</button></span>
             </div>
-            <div *ngIf="!store.biometricConsents().length && !store.loading()" class="empty">No biometric consent captured yet.</div>
+            <div *ngIf="!store.biometricConsents().length && !store.loading()" class="empty action-empty"><strong>No biometric consent captured yet.</strong><span>Capture consent before biometric attendance goes live.</span></div>
           </div>
         </article>
 
@@ -1075,7 +1119,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
               <span>₹{{ row['netPreview'] || 0 }}</span>
               <span class="badge">{{ row['incentiveHold'] ? 'hold' : 'draft' }}</span>
             </div>
-            <div *ngIf="!store.attendanceRisks().length && !store.attendancePayrollPreview().length && !store.loading()" class="empty">Run fraud scan or payroll preview to see live outputs.</div>
+            <div *ngIf="!store.attendanceRisks().length && !store.attendancePayrollPreview().length && !store.loading()" class="empty action-empty"><strong>No payroll risk output yet.</strong><span>Run fraud scan or payroll preview to see live outputs.</span></div>
           </div>
         </article>
       </section>
@@ -1093,7 +1137,11 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
             <span>{{ timeOnly(row['clockInAt'] || row['clock_in_at']) }} - {{ timeOnly(row['clockOutAt'] || row['clock_out_at']) || 'open' }}</span>
             <span class="badge">{{ row['status'] }}</span>
           </div>
-          <div *ngIf="!attendanceRows().length && !store.loading()" class="empty">No attendance events for selected date.</div>
+          <div *ngIf="!attendanceRows().length && !store.loading()" class="empty action-empty">
+            <strong>No attendance events for selected date.</strong>
+            <span>Use camera punch or biometric queue to create live attendance.</span>
+            <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Attendance master</a>
+          </div>
         </div>
       </section>
 
@@ -1113,7 +1161,11 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
             <span>{{ shift.startTime }} - {{ shift.endTime }}</span>
             <span class="badge">{{ shift.status }}</span>
           </div>
-          <div *ngIf="!store.schedules().length && !store.loading()" class="empty">No roster data for the selected branch.</div>
+          <div *ngIf="!store.schedules().length && !store.loading()" class="empty action-empty">
+            <strong>No roster data for the selected branch.</strong>
+            <span>Create shift master or roster entries to see staff availability.</span>
+            <a class="refresh" routerLink="/staff-os/shift-master" [queryParams]="staffContextParams()">Create shift setup</a>
+          </div>
         </div>
       </section>
 
@@ -1140,7 +1192,11 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
             <span>{{ row.revenueGenerated | currency:'INR':'symbol-narrow':'1.0-0' }}</span>
             <span>{{ row.utilizationPct | number:'1.0-0' }}%</span>
           </div>
-          <div *ngIf="!store.performance().rows.length && !store.loading()" class="empty">No performance rows yet.</div>
+          <div *ngIf="!store.performance().rows.length && !store.loading()" class="empty action-empty">
+            <strong>No performance rows yet.</strong>
+            <span>Connect invoices and staff assignment to generate seller ranking.</span>
+            <a class="refresh" routerLink="/reports/staff-sales" [queryParams]="staffContextParams()">Open staff sales</a>
+          </div>
         </div>
       </section>
 
@@ -1154,13 +1210,13 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
             <strong>{{ task.title }}</strong>
             <span>{{ task.priority }} · {{ task.status }}</span>
           </article>
-          <div *ngIf="!store.tasks().length && !store.loading()" class="empty">No staff tasks assigned.</div>
+          <div *ngIf="!store.tasks().length && !store.loading()" class="empty action-empty"><strong>No staff tasks assigned.</strong><span>Create training or service tasks to guide daily work.</span></div>
         </div>
       </section>
     </section>
   `,
   styles: [`
-    .staff-os { display: grid; gap: 18px; padding: 24px; color: #10201a; }
+    .staff-os { box-sizing: border-box; display: grid; gap: 16px; min-width: 0; width: 100%; padding: 0; color: #10201a; }
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .eyebrow { margin: 0 0 4px; color: #547066; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
@@ -1173,6 +1229,33 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
     .icon-button { width: 38px; padding: 0; font-size: 22px; }
     .row-action { border: 1px solid #cbd8d2; background: #fff; border-radius: 6px; padding: 7px 10px; cursor: pointer; min-height: 32px; font-weight: 800; color: #0f766e; }
     .row-action:disabled { opacity: .65; cursor: wait; }
+    .staff-shell-nav { align-items: center; background: rgba(255,255,255,.72); border: 1px solid #d9e5de; border-radius: 8px; display: flex; gap: 8px; max-width: 100%; overflow-x: auto; padding: 8px; }
+    .staff-shell-nav a { align-items: center; background: #fff; border: 1px solid #d9e5de; border-radius: 7px; color: #10201a; display: grid; flex: 1 0 150px; gap: 2px 8px; grid-template-columns: auto 1fr; min-height: 52px; padding: 8px 10px; text-decoration: none; }
+    .staff-shell-nav a.active { border-color: #0f766e; background: #effaf7; box-shadow: inset 0 0 0 1px #0f766e; }
+    .staff-shell-nav span { align-items: center; background: #e8f5f2; border-radius: 8px; color: #0f766e; display: grid; font-size: 12px; font-weight: 900; height: 34px; justify-content: center; width: 34px; }
+    .staff-shell-nav strong { font-size: 13px; line-height: 1.15; }
+    .staff-shell-nav small { color: #60766d; font-size: 11px; grid-column: 2; }
+    .staff-control-room { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 14px; padding: 16px; }
+    .control-heading { align-items: end; display: grid; gap: 12px; grid-template-columns: 1fr auto; }
+    .control-heading h2 { font-size: 20px; }
+    .control-filters { align-items: end; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .control-filters label { color: #60766d; display: grid; font-size: 11px; font-weight: 900; gap: 5px; text-transform: uppercase; }
+    .control-filters input { min-height: 38px; width: 160px; }
+    .control-cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .control-card { border: 1px solid #d9e5de; border-left: 5px solid #0f766e; border-radius: 8px; color: #10201a; display: grid; gap: 6px; min-height: 94px; padding: 13px; text-decoration: none; }
+    .control-card span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .control-card strong { font-size: 25px; line-height: 1; }
+    .control-card small { color: #60766d; font-weight: 700; }
+    .control-card.green { border-left-color: #16a34a; }
+    .control-card.amber { border-left-color: #b7791f; }
+    .control-card.red { border-left-color: #dc2626; }
+    .control-card.blue { border-left-color: #2563eb; }
+    .control-card.violet { border-left-color: #7c3aed; }
+    .control-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+    .control-tabs a { align-items: center; border: 1px solid #d9e5de; border-radius: 999px; color: #34483f; display: flex; flex: 0 0 auto; gap: 8px; min-height: 38px; padding: 8px 12px; text-decoration: none; }
+    .control-tabs a.active { background: #0f766e; border-color: #0f766e; color: #fff; }
+    .control-tabs strong { background: #eef7f5; border-radius: 999px; color: #0f766e; min-width: 24px; padding: 3px 7px; text-align: center; }
+    .control-tabs a.active strong { background: #fff; }
     .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .metric, .panel, .state { border: 1px solid #d9e5de; background: #fff; border-radius: 8px; }
     .metric { display: grid; gap: 8px; padding: 14px; min-height: 76px; }
@@ -1184,7 +1267,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
     .panel { display: grid; gap: 14px; padding: 16px; }
     .panel-heading, .row, .split { display: grid; align-items: center; gap: 12px; }
     .panel-heading { grid-template-columns: 1fr auto; color: #40544c; }
-    .table { display: grid; border-top: 1px solid #edf2ef; }
+    .table { display: grid; border-top: 1px solid #edf2ef; max-height: 560px; overflow: auto; }
     .row { grid-template-columns: 1.3fr .8fr 1fr 1fr .65fr 1.1fr .7fr; min-height: 44px; border-bottom: 1px solid #edf2ef; }
     .row strong { display: block; font-size: 14px; }
     .row small { color: #60766d; display: block; font-size: 12px; margin-top: 3px; }
@@ -1195,6 +1278,9 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
     .mini-badge { width: fit-content; border-radius: 999px; background: #f7faf8; border: 1px solid #d9e5de; color: #40544c; padding: 3px 8px; font-size: 11px; font-weight: 800; }
     .row-links a { border-bottom: 1px solid #99c8bd; color: #0f766e; font-size: 12px; font-weight: 800; text-decoration: none; }
     .state, .empty { padding: 14px; color: #61746c; }
+    .action-empty { align-items: start; display: grid; gap: 7px; text-align: left; }
+    .action-empty strong { color: #10201a; }
+    .action-empty .primary, .action-empty .refresh { width: fit-content; }
     .error { color: #a52828; border-color: #e7b1b1; }
     .split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .split article, .task-grid article { display: grid; gap: 6px; border: 1px solid #edf2ef; border-radius: 8px; padding: 14px; }
@@ -1276,11 +1362,33 @@ type AttendancePunchType = 'clock_in' | 'clock_out';
     .drawer-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px; border-top: 1px solid #edf2ef; }
     @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr 1fr; } .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 640px) {
-      .staff-os { padding: 16px; }
-      .topbar, .panel-heading { grid-template-columns: 1fr; align-items: start; }
+      .staff-os { gap: 12px; padding: 0; }
+      .topbar { align-items: start; flex-direction: column; }
+      .panel-heading { grid-template-columns: 1fr; align-items: start; }
+      .topbar-actions, .attendance-controls, .drawer-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+      .topbar-actions .refresh, .topbar-actions .primary, .attendance-controls .refresh, .attendance-controls .primary, .attendance-controls input, .drawer-actions .refresh, .drawer-actions .primary { width: 100%; }
+      .staff-shell-nav { margin: 0; padding: 8px; scroll-snap-type: x proximity; }
+      .staff-shell-nav a { flex: 0 0 178px; scroll-snap-align: start; }
+      .staff-control-room { padding: 13px; }
+      .control-heading { grid-template-columns: 1fr; }
+      .control-filters { display: grid; grid-template-columns: 1fr; justify-content: stretch; }
+      .control-filters input, .control-filters .refresh { width: 100%; }
+      .control-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .control-card { min-height: 86px; padding: 11px; }
+      .control-card strong { font-size: 22px; }
       .metrics, .task-grid, .split, .attendance-stats, .attendance-workspace, .attendance-wide, .camera-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form { grid-template-columns: 1fr; }
-      .row, .compact .row { grid-template-columns: 1fr; padding: 10px 0; }
+      .metrics { gap: 9px; }
+      .metric, .panel, .state { border-radius: 8px; }
+      .panel { padding: 13px; }
+      .attendance-stats article { min-height: 70px; }
+      .attendance-stats strong { font-size: 22px; }
+      .camera-stage, .camera-stage video { min-height: 210px; }
+      .table { gap: 10px; max-height: none; overflow: visible; border-top: 0; }
+      .row, .compact .row, .device-table .row, .mapping-table .row, .risk-table .row, .evidence-table .row { grid-template-columns: 1fr; gap: 5px; min-height: 0; border: 1px solid #d9e5de; border-radius: 8px; padding: 11px; }
       .row.header { display: none; }
+      .heatmap { grid-template-columns: repeat(7, minmax(22px, 1fr)); }
+      .action-empty .primary, .action-empty .refresh { width: 100%; }
+      input, select, textarea { min-height: 44px; }
       .live-context { grid-template-columns: 1fr; }
       .context-links { justify-content: flex-start; }
       .drawer { width: 100%; }
@@ -1297,6 +1405,15 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   @Input({ required: true }) section = 'staff-list';
 
   readonly heatmapCells = Array.from({ length: 42 });
+  readonly staffShellLinks: StaffShellLink[] = [
+    { label: 'Command Center', to: '/staff-enterprise', group: 'Staff command', icon: 'CC' },
+    { label: 'Masters', to: '/staff-os/employee-masters', group: 'Employee setup', icon: 'MS' },
+    { label: 'Attendance', to: '/staff-os/attendance-dashboard', group: 'Live roster', icon: 'AT' },
+    { label: 'Payroll', to: '/staff-os/payroll-dashboard', group: 'Salary rules', icon: 'PY' },
+    { label: 'Commission', to: '/commissions', group: 'Incentives', icon: 'CO' },
+    { label: 'Reports', to: '/reports/staff-sales', group: 'Staff data', icon: 'RP' },
+    { label: 'Training / Performance', to: '/staff-os/performance-dashboard', group: 'Scorecard', icon: 'TP' }
+  ];
   private cameraStream: MediaStream | null = null;
   readonly addStaffOpen = signal(false);
   readonly addStaffSaving = signal(false);
@@ -1549,6 +1666,50 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopCamera();
+  }
+
+  isShellLinkActive(link: StaffShellLink): boolean {
+    const target = link.to.split('/').pop() || '';
+    return target === this.section;
+  }
+
+  isControlTabActive(tab: StaffControlTab): boolean {
+    const target = tab.to.split('/').pop() || '';
+    return target === this.section;
+  }
+
+  staffContextParams(): ApiRecord {
+    return {
+      branchId: this.appState.selectedBranchId(),
+      staffId: this.route.snapshot.queryParamMap.get('staffId') || '',
+      date: this.attendanceDate()
+    };
+  }
+
+  staffControlCards(): StaffControlCard[] {
+    const summary = this.attendanceSummary();
+    const performance = this.store.performance();
+    const payrollRows = this.store.attendancePayrollPreview();
+    const commissionRows = performance.rows || [];
+    const topSeller = performance.rows?.[0]?.staffId || 'Live';
+    return [
+      { label: 'Aaj present', value: summary['attendanceEvents'] || this.attendanceRows().length || 0, hint: 'attendance rows', to: '/staff-os/attendance-dashboard', tone: 'green' },
+      { label: 'Salary due', value: payrollRows.length, hint: 'payroll preview rows', to: '/staff-os/payroll-dashboard', tone: 'amber' },
+      { label: 'Commission due', value: commissionRows.length, hint: 'rules / preview', to: '/staff-os/commission-dashboard', tone: 'violet' },
+      { label: 'Late staff', value: summary['suspiciousEvents'] || 0, hint: 'needs review', to: '/staff-os/attendance-dashboard', tone: 'red' },
+      { label: 'Top seller', value: topSeller, hint: 'from staff performance', to: '/reports/staff-sales', tone: 'blue' },
+      { label: 'Risk staff', value: this.store.attendanceRisks().length, hint: 'AI / fraud signals', to: '/staff-enterprise', tone: 'red' }
+    ];
+  }
+
+  staffControlTabs(): StaffControlTab[] {
+    return [
+      { label: 'Overview', to: '/staff-enterprise', count: this.store.staff().length },
+      { label: 'Master', to: '/staff-os/employee-masters', count: this.store.staff().length },
+      { label: 'Live Data', to: '/staff-os/attendance-dashboard', count: this.attendanceRows().length },
+      { label: 'Reports', to: '/reports/staff-sales', count: this.store.performance().rows?.length || 0 },
+      { label: 'Actions', to: '/staff-os/task-board', count: this.store.tasks().length }
+    ];
   }
 
   opacity(index: number): number {
@@ -1884,7 +2045,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   openAddStaff(): void {
     const branchId = this.staffForm.get('branchId')?.value || this.defaultBranchId(this.branchOptions());
     this.addStaffError.set('');
-    this.staffForm.patchValue({ branchId });
+    this.staffForm.patchValue({ branchId, employeeCode: this.nextStaffEmployeeCode(branchId) });
     this.detailTab.set('core');
     this.addStaffOpen.set(true);
   }
@@ -1947,7 +2108,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.addStaffError.set('');
     this.store.createStaff({
       branchId: value.branchId,
-      employeeCode: value.employeeCode,
+      employeeCode: String(value.employeeCode || this.nextStaffEmployeeCode(String(value.branchId || ''))),
       firstName: value.firstName,
       lastName: value.lastName,
       mobile: value.mobile || value.contactMobile,
@@ -2378,7 +2539,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       firstName: '',
       lastName: '',
       shortName: '',
-      employeeCode: '',
+      employeeCode: branchId ? this.nextStaffEmployeeCode(branchId) : '',
       mobile: '',
       email: '',
       enableStaffLogin: false,
@@ -2471,5 +2632,14 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       remarks: '',
       imeiNo: ''
     };
+  }
+
+  private nextStaffEmployeeCode(branchId = ''): string {
+    const branchKey = String(branchId || '');
+    const usedCodes = this.store.staff()
+      .filter((staff) => !branchKey || String(staff.branchId || '') === branchKey)
+      .map((staff) => Number(String(staff.employeeCode || '').trim()))
+      .filter((code) => Number.isInteger(code) && code > 0);
+    return String((usedCodes.length ? Math.max(...usedCodes) : 0) + 1);
   }
 }

@@ -7,6 +7,7 @@ import { appointmentSmsService } from "./appointment-sms.service.js";
 import { ensureEnterpriseSchedulerSchema } from "./enterprise-scheduler-schema.service.js";
 import { resourceService } from "./resource.service.js";
 import { securityService } from "./security.service.js";
+import { smartBookingService } from "./smart-booking.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const ACTIVE_STAFF_STATUSES = new Set(["", "active", "available", "on-roll", "onroll", "probation"]);
@@ -289,25 +290,67 @@ export class EnterpriseSchedulerService {
     if (!lines.length) throw badRequest("At least one service line is required");
     tenantService.assertBranchAccess(access, branchId);
     const bookingGroupId = id("grp");
+    const preparedLines = lines.map((line, index) => {
+      const serviceId = String(line.serviceId || "").trim();
+      const staffId = String(line.staffId || "").trim();
+      const startAt = line.startAt || (line.date && line.startTime ? isoAt(dateOnly(line.date), line.startTime) : "");
+      if (!serviceId || !staffId || !startAt) throw badRequest(`Line ${index + 1} requires serviceId, staffId and start time`);
+      const durationMinutes = Math.max(15, safeNumber(line.durationMinutes, serviceDuration(serviceId, access)));
+      return {
+        ...line,
+        lineNumber: index + 1,
+        serviceId,
+        staffId,
+        startAt: new Date(startAt).toISOString(),
+        endAt: line.endAt ? new Date(line.endAt).toISOString() : addMinutes(startAt, durationMinutes),
+        durationMinutes,
+        chair: line.chair || payload.chair || "",
+        room: line.room || payload.room || ""
+      };
+    });
+    for (const line of preparedLines) {
+      const conflicts = smartBookingService.findConflicts({
+        branchId,
+        staffId: line.staffId,
+        chair: line.chair,
+        startAt: line.startAt,
+        endAt: line.endAt,
+        access
+      });
+      if (conflicts.length) throw conflict("Appointment conflict detected", { conflicts });
+    }
+    for (let left = 0; left < preparedLines.length; left += 1) {
+      for (let right = left + 1; right < preparedLines.length; right += 1) {
+        const first = preparedLines[left];
+        const second = preparedLines[right];
+        const sameStaff = first.staffId && first.staffId === second.staffId;
+        const sameChair = first.chair && first.chair === second.chair;
+        if ((sameStaff || sameChair) && overlaps(first.startAt, first.endAt, second.startAt, second.endAt)) {
+          throw conflict("Appointment conflict detected", {
+            conflicts: [{
+              reason: sameStaff ? "staff-overlap" : "chair-overlap",
+              lines: [first.lineNumber, second.lineNumber],
+              staffId: sameStaff ? first.staffId : "",
+              chair: sameChair ? first.chair : ""
+            }]
+          });
+        }
+      }
+    }
     const created = [];
     const notifyTargets = Array.isArray(payload.notifyTargets) ? payload.notifyTargets : [];
     const transaction = db.transaction(() => {
-      for (const [index, line] of lines.entries()) {
-        const serviceId = String(line.serviceId || "").trim();
-        const staffId = String(line.staffId || "").trim();
-        const startAt = line.startAt || (line.date && line.startTime ? isoAt(dateOnly(line.date), line.startTime) : "");
-        if (!serviceId || !staffId || !startAt) throw badRequest(`Line ${index + 1} requires serviceId, staffId and start time`);
-        const durationMinutes = Math.max(15, safeNumber(line.durationMinutes, serviceDuration(serviceId, access)));
+      for (const [index, line] of preparedLines.entries()) {
         const appointment = resourceService.create("appointments", {
           clientId,
           branchId,
-          staffId,
-          serviceIds: [serviceId],
-          startAt: new Date(startAt).toISOString(),
-          endAt: line.endAt || addMinutes(startAt, durationMinutes),
+          staffId: line.staffId,
+          serviceIds: [line.serviceId],
+          startAt: line.startAt,
+          endAt: line.endAt,
           status: payload.status || "booked",
-          chair: line.chair || payload.chair || "",
-          room: line.room || payload.room || "",
+          chair: line.chair,
+          room: line.room,
           source: "enterprise-scheduler",
           sourceChannel: "front_desk",
           bookingGroupId,
@@ -315,6 +358,7 @@ export class EnterpriseSchedulerService {
           notes: [payload.notes || "", line.notes || ""].filter(Boolean).join(" | ")
         }, access, {
           req,
+          skipSchedulingConflictCheck: true,
           activityAction: lines.length > 1 ? APPOINTMENT_ACTIVITY_ACTIONS.GROUP_BOOKED || APPOINTMENT_ACTIVITY_ACTIONS.BOOKED : APPOINTMENT_ACTIVITY_ACTIONS.BOOKED
         });
         created.push(appointment);

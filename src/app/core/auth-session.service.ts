@@ -8,9 +8,13 @@ export type LoginPayload = {
   email: string;
   password: string;
   branchId?: string;
+  totpToken?: string;
 };
 
 type AuthEnvelope<T> = { success?: boolean; data?: T; error?: { message?: string } };
+export type TwoFactorStatus = { enabled: boolean; verifiedAt?: string; pendingSetup?: boolean };
+export type TwoFactorSetup = { secret: string; provisioningUri: string };
+export type TwoFactorEnableResult = { enabled: boolean; recoveryCodes: string[] };
 export type AuthSession = {
   tokenType: string;
   accessToken: string;
@@ -39,6 +43,32 @@ export class AuthSessionService {
       map((response) => this.unwrap(response)),
       tap((session) => this.setSession(session))
     );
+  }
+
+  static requiresTotp(error: unknown): boolean {
+    const err = error as {
+      error?: {
+        error?: { details?: { requiresTotp?: boolean }; message?: unknown };
+        details?: { requiresTotp?: boolean };
+      };
+    };
+    return Boolean(err?.error?.error?.details?.requiresTotp || err?.error?.details?.requiresTotp);
+  }
+
+  twoFactorStatus(): Observable<TwoFactorStatus> {
+    return this.authGet<TwoFactorStatus>('auth/2fa/status');
+  }
+
+  twoFactorSetup(): Observable<TwoFactorSetup> {
+    return this.authPost<TwoFactorSetup>('auth/2fa/setup', {});
+  }
+
+  twoFactorEnable(token: string): Observable<TwoFactorEnableResult> {
+    return this.authPost<TwoFactorEnableResult>('auth/2fa/enable', { token });
+  }
+
+  twoFactorDisable(token: string): Observable<TwoFactorStatus> {
+    return this.authPost<TwoFactorStatus>('auth/2fa/disable', { token });
   }
 
   refreshSession(): Observable<AuthSession> {
@@ -96,6 +126,22 @@ export class AuthSessionService {
       return envelope.data as T;
     }
     return response as T;
+  }
+
+  private authHeaders(): { headers: { authorization: string } } {
+    return { headers: { authorization: `Bearer ${this.accessToken()}` } };
+  }
+
+  private authGet<T>(path: string): Observable<T> {
+    return this.http.get<AuthEnvelope<T> | T>(`${environment.secureApiBaseUrl}/${path}`, this.authHeaders()).pipe(
+      map((response) => this.unwrap(response))
+    );
+  }
+
+  private authPost<T>(path: string, payload: Record<string, unknown>): Observable<T> {
+    return this.http.post<AuthEnvelope<T> | T>(`${environment.secureApiBaseUrl}/${path}`, payload, this.authHeaders()).pipe(
+      map((response) => this.unwrap(response))
+    );
   }
 
   private readStoredSession(): AuthSession | null {

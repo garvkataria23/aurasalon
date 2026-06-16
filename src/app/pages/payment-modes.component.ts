@@ -101,6 +101,7 @@ export class PaymentModesComponent implements OnInit {
 
   ngOnInit(): void {
     this.modes.set(this.settings.loadPaymentModes());
+    this.settings.loadPaymentModesRemote().subscribe((modes) => this.modes.set(modes));
   }
 
   saveDraft(): void {
@@ -175,11 +176,13 @@ export class PaymentModesComponent implements OnInit {
     this.cancelEdit();
     this.settings.savePaymentModes([]);
     this.modes.set(this.settings.loadPaymentModes());
+    this.settings.savePaymentModesRemote([]).subscribe((modes) => this.modes.set(modes));
   }
 
   save(): void {
     this.modes.set([...this.modes()].sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)));
     this.settings.savePaymentModes(this.modes());
+    this.settings.savePaymentModesRemote(this.modes()).subscribe((modes) => this.modes.set(modes));
   }
 
   isCoreMode(id: string): boolean {

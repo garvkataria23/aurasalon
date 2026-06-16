@@ -1,8 +1,9 @@
 <section class="executive-page">
   <header class="executive-header">
     <div>
-      <span class="eyebrow">Executive command center</span>
-      <h1>Enterprise dashboard</h1>
+      <span class="eyebrow">Owner command center</span>
+      <h1>Executive Business Dashboard</h1>
+      <p>Sales, profit, operations and customer signals in one premium view.</p>
     </div>
     <div class="header-actions">
       <select [ngModel]="range()" (ngModelChange)="setRange($event)">
@@ -27,9 +28,10 @@
 
   <ng-container *ngIf="data() as dashboard">
     <div class="kpi-strip">
-      <a *ngFor="let kpi of kpis()" class="kpi-tile" [routerLink]="kpi.route">
+      <a *ngFor="let kpi of kpis()" class="kpi-tile" [ngClass]="'tone-' + kpi.tone" [routerLink]="kpi.route">
         <span>{{ kpi.label }}</span>
         <strong>{{ kpi.value }}</strong>
+        <em>{{ kpi.subtitle }}</em>
         <small [class.up]="kpi.trend === 'up'" [class.down]="kpi.trend === 'down'">
           {{ kpi.trend === 'up' ? '▲' : kpi.trend === 'down' ? '▼' : '→' }}
           {{ kpi.delta }}%
@@ -37,13 +39,26 @@
       </a>
     </div>
 
+    <section class="owner-priority-board">
+      <div class="priority-intro">
+        <span class="eyebrow">Priority board</span>
+        <h2>What the owner checks first</h2>
+        <p>Cash, profit, customers, stock and branch pulse are kept above the fold.</p>
+      </div>
+      <a *ngFor="let card of priorityCards()" class="priority-card" [ngClass]="'tone-' + card.tone" [routerLink]="card.route">
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+        <small>{{ card.subtitle }}</small>
+      </a>
+    </section>
+
     <div class="executive-grid">
       <main class="main-column">
         <section class="panel compact-panel">
           <div class="section-title">
             <div>
-              <span class="eyebrow">Revenue trend</span>
-              <h2>{{ dashboard.range.from }} → {{ dashboard.range.to }}</h2>
+              <span class="eyebrow">Sales command</span>
+              <h2>Revenue trend · {{ dashboard.range.from }} → {{ dashboard.range.to }}</h2>
             </div>
             <a class="ghost-button" routerLink="/reports">Reports</a>
           </div>
@@ -59,9 +74,10 @@
           <article class="panel compact-panel">
             <div class="section-title">
               <div>
-                <span class="eyebrow">Service profitability</span>
-                <h2>Stars, workhorses and hidden gems</h2>
+                <span class="eyebrow">Top services</span>
+                <h2>Profitability and demand</h2>
               </div>
+              <a class="ghost-button" routerLink="/reports">View report</a>
             </div>
             <div class="dense-list">
               <div *ngFor="let row of rows(dashboard.advanced['serviceProfitabilityMatrix']).slice(0, 6)">
@@ -223,15 +239,26 @@
           <div class="section-title">
             <div>
               <span class="eyebrow">Top performers</span>
-              <h2>Staff and services</h2>
+              <h2>Staff and service leaders</h2>
             </div>
           </div>
-          <div class="dense-list">
+          <div class="subsection-label">Top Staff</div>
+          <div class="dense-list performer-list">
             <div *ngFor="let row of dashboard.topPerformers.staff">
               <strong>{{ row['staff'] }}</strong>
               <span>{{ row['servicesCompleted'] || 0 }} services</span>
               <b>{{ currency(row['value']) }}</b>
             </div>
+            <p *ngIf="!dashboard.topPerformers.staff.length" class="empty-note">No staff performance data yet.</p>
+          </div>
+          <div class="subsection-label">Top Services</div>
+          <div class="dense-list performer-list">
+            <div *ngFor="let row of dashboard.topPerformers.services">
+              <strong>{{ row['service'] || row['name'] }}</strong>
+              <span>{{ row['servicesCompleted'] || row['count'] || 0 }} bookings</span>
+              <b>{{ currency(row['value'] || row['revenue']) }}</b>
+            </div>
+            <p *ngIf="!dashboard.topPerformers.services.length" class="empty-note">No service performance data yet.</p>
           </div>
         </section>
       </aside>

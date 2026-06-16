@@ -7,7 +7,7 @@ import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
-type SchedulerDrawer = '' | 'booking' | 'blocked-time' | 'appointment' | 'ai-slots';
+type SchedulerDrawer = '' | 'booking' | 'blocked-time' | 'appointment' | 'ai-slots' | 'waitlist' | 'operations';
 type BlockMode = 'add' | 'remove';
 type SchedulerActionMenu = {
   staffId: string;
@@ -111,9 +111,10 @@ const DAY_START_MINUTES = 8 * 60;
 const DAY_END_MINUTES = 22 * 60;
 const ROW_HEIGHT = 44;
 const STAFF_LIMIT = 15;
-const STATUS_OPTIONS = ['booked', 'confirmed', 'arrived', 'waiting', 'in-service', 'completed', 'billed', 'paid', 'cancelled', 'no-show'];
+const STATUS_OPTIONS = ['payment_pending', 'booked', 'confirmed', 'arrived', 'waiting', 'in-service', 'completed', 'billed', 'paid', 'cancelled', 'no-show'];
 const STATUS_TONES: Record<string, string> = {
   booked: 'blue',
+  payment_pending: 'amber',
   confirmed: 'indigo',
   arrived: 'teal',
   waiting: 'amber',
@@ -135,7 +136,7 @@ const STATUS_TONES: Record<string, string> = {
       <ng-container *ngIf="!loading() && !error()">
         <section class="month-strip-band">
           <button type="button" (click)="shiftMonth(-1)" aria-label="Previous month">&lt;&lt;</button>
-          <strong>From {{ monthRange().from | date: 'dd/MM/yyyy' }} To {{ monthRange().to | date: 'dd/MM/yyyy' }}</strong>
+          <strong class="month-range-label">{{ selectedDate() | date: 'MMM yyyy' }}</strong>
           <button type="button" (click)="shiftMonth(1)" aria-label="Next month">&gt;&gt;</button>
           <div class="month-strip" aria-label="Month date strip">
             <button
@@ -157,7 +158,11 @@ const STATUS_TONES: Record<string, string> = {
           <article><span>Arrived</span><strong>{{ summaryValue('arrived') }}</strong><small>front desk</small></article>
           <article><span>In service</span><strong>{{ summaryValue('inService') }}</strong><small>chair busy</small></article>
           <article><span>Completed</span><strong>{{ summaryValue('completed') }}</strong><small>ready to bill</small></article>
-          <article><span>Waitlist</span><strong>{{ summaryValue('waitlist') }}</strong><small>open demand</small></article>
+          <button class="waitlist-summary-action" type="button" (click)="openWaitlistEntry()">
+            <span>Waitlist</span>
+            <strong>{{ summaryValue('waitlist') }}</strong>
+            <small>+ Add client entry</small>
+          </button>
           <article><span>Revenue</span><strong>{{ money(summaryValue('revenue')) }}</strong><small>planned value</small></article>
         </section>
 
@@ -247,9 +252,9 @@ const STATUS_TONES: Record<string, string> = {
           </div>
         </section>
 
-        <section class="operations-grid">
+        <section class="operations-grid compact">
           <article
-            class="ops-panel ai-slot-launch"
+            class="ops-panel ops-launch ai-slot-launch"
             role="button"
             tabindex="0"
             aria-label="Open AI slot pilot"
@@ -258,30 +263,31 @@ const STATUS_TONES: Record<string, string> = {
             (keydown.space)="openAiSlotPilot(); $event.preventDefault()"
           >
             <div class="panel-head"><span class="eyebrow">AI slot pilot</span><strong>Best safe slots</strong><small>Open</small></div>
-            <button type="button" *ngFor="let slot of smartSlots(); trackBy: trackSmartSlot" (click)="openQuickBooking(slot.staff, slot.slot); $event.stopPropagation()">
-              <b>{{ slot.slot.label }}</b>
-              <span>{{ slot.staff.name }}</span>
-              <small>{{ slot.reason }}</small>
-            </button>
-            <div class="empty-state" *ngIf="!smartSlots().length">No open safe slot in the visible window.</div>
+            <p>{{ smartSlots().length }} safe slot suggestions ready</p>
           </article>
-          <article class="ops-panel">
-            <div class="panel-head"><span class="eyebrow">Waitlist</span><strong>Demand queue</strong></div>
-            <div class="waitlist-row" *ngFor="let row of waitlist(); trackBy: trackApiRecord">
-              <strong>{{ clientName(row.clientId) }}</strong>
-              <span>{{ serviceNames(row.serviceIds) }}</span>
-              <small>{{ row.priority || 'normal' }} · {{ row.preferredDate || selectedDate() }}</small>
-            </div>
-            <div class="empty-state" *ngIf="!waitlist().length">No waiting clients for this date.</div>
+          <article
+            class="ops-panel ops-launch"
+            role="button"
+            tabindex="0"
+            aria-label="Open waitlist demand queue"
+            (click)="openOperationsPulse()"
+            (keydown.enter)="openOperationsPulse()"
+            (keydown.space)="openOperationsPulse(); $event.preventDefault()"
+          >
+            <div class="panel-head"><span class="eyebrow">Waitlist</span><strong>Demand queue</strong><small>{{ waitlist().length }}</small></div>
+            <p>Open floating view for waiting clients and quick action.</p>
           </article>
-          <article class="ops-panel pulse">
+          <article
+            class="ops-panel ops-launch pulse"
+            role="button"
+            tabindex="0"
+            aria-label="Open operations risk radar"
+            (click)="openOperationsPulse()"
+            (keydown.enter)="openOperationsPulse()"
+            (keydown.space)="openOperationsPulse(); $event.preventDefault()"
+          >
             <div class="panel-head"><span class="eyebrow">Operations pulse</span><strong>Risk radar</strong></div>
-            <div class="pulse-grid">
-              <div><span>Capacity</span><strong>{{ summaryValue('capacityPct') }}%</strong><small>{{ summaryValue('bookedMinutes') }} of {{ summaryValue('plannedMinutes') }} min</small></div>
-              <div><span>Conflicts</span><strong>{{ summaryValue('conflicts') }}</strong><small>staff/chair overlaps</small></div>
-              <div><span>Blocked</span><strong>{{ summaryValue('blockedTimes') }}</strong><small>staff unavailable slots</small></div>
-              <div><span>No-show</span><strong>{{ summaryValue('noShow') }}</strong><small>recovery queue</small></div>
-            </div>
+            <p>{{ summaryValue('capacityPct') }}% capacity - {{ summaryValue('conflicts') }} conflicts - {{ summaryValue('blockedTimes') }} blocked</p>
           </article>
         </section>
       </ng-container>
@@ -306,6 +312,41 @@ const STATUS_TONES: Record<string, string> = {
         </div>
       </aside>
 
+      <aside class="scheduler-drawer operations-drawer" *ngIf="drawer() === 'operations'">
+        <header>
+          <div>
+            <span class="eyebrow">Calendar operations</span>
+            <h3>Demand queue and risk radar</h3>
+          </div>
+          <button type="button" (click)="closeDrawer()">×</button>
+        </header>
+        <div class="drawer-stack">
+          <section class="drawer-panel">
+            <div class="panel-head">
+              <span class="eyebrow">Waitlist</span>
+              <strong>{{ waitlist().length }} waiting clients</strong>
+              <button class="mini-action" type="button" (click)="openWaitlistEntry()">Add</button>
+            </div>
+            <div class="waitlist-row" *ngFor="let row of waitlist(); trackBy: trackApiRecord">
+              <strong>{{ clientName(row.clientId) }}</strong>
+              <span>{{ serviceNames(row.serviceIds) }}</span>
+              <small>{{ row.priority || 'normal' }} · {{ row.preferredDate || selectedDate() }}</small>
+            </div>
+            <div class="empty-state" *ngIf="!waitlist().length">No waiting clients for this date.</div>
+          </section>
+
+          <section class="drawer-panel">
+            <div class="panel-head"><span class="eyebrow">Operations pulse</span><strong>Risk radar</strong></div>
+            <div class="pulse-grid expanded">
+              <div><span>Capacity</span><strong>{{ summaryValue('capacityPct') }}%</strong><small>{{ summaryValue('bookedMinutes') }} of {{ summaryValue('plannedMinutes') }} min</small></div>
+              <div><span>Conflicts</span><strong>{{ summaryValue('conflicts') }}</strong><small>staff/chair overlaps</small></div>
+              <div><span>Blocked</span><strong>{{ summaryValue('blockedTimes') }}</strong><small>staff unavailable slots</small></div>
+              <div><span>No-show</span><strong>{{ summaryValue('noShow') }}</strong><small>recovery queue</small></div>
+            </div>
+          </section>
+        </div>
+      </aside>
+
       <aside class="scheduler-drawer" *ngIf="drawer() === 'booking'">
         <header>
           <div>
@@ -317,22 +358,31 @@ const STATUS_TONES: Record<string, string> = {
         <form [formGroup]="bookingForm" (ngSubmit)="createBooking()" class="drawer-stack">
           <label class="search-select">
             <span>Client</span>
-            <div class="picker-combo">
+            <div class="smart-picker">
               <input
                 class="picker-search"
                 type="search"
-                [value]="bookingClientSearch()"
-                (input)="bookingClientSearch.set($any($event.target).value)"
-                placeholder="Search client by name or phone"
+                [value]="bookingClientSearch() || selectedBookingClientLabel()"
+                (input)="setBookingClientSearch($any($event.target).value)"
+                (focus)="bookingClientSearchActive.set(true)"
+                (blur)="closeBookingClientSearchSoon()"
+                placeholder="Search name, contact, ID 1/2"
                 autocomplete="off"
               />
-              <select formControlName="clientId">
-                <option value="">Select client</option>
-                <option *ngFor="let client of filteredClients(); trackBy: trackApiRecord" [value]="client.id">{{ client.name }} · {{ client.phone || client.mobile || '' }}</option>
-              </select>
+              <div class="smart-search-results" *ngIf="showBookingClientResults()">
+                <button
+                  type="button"
+                  *ngFor="let client of filteredClients(); trackBy: trackApiRecord"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectBookingClient(client)"
+                >
+                  <strong>{{ client.name || 'Client' }}</strong>
+                  <span>{{ client.phone || client.mobile || client.email || client.id }}</span>
+                </button>
+              </div>
             </div>
-            <small class="picker-meta" *ngIf="filteredClients().length">{{ filteredClients().length }} matching client(s)</small>
-            <small class="picker-empty" *ngIf="!filteredClients().length">No client match found.</small>
+            <small class="picker-meta" *ngIf="bookingClientSearch() && bookingClientSearch().length < 2">Type 2 characters to search clients.</small>
+            <small class="picker-empty" *ngIf="bookingClientSearchActive() && bookingClientSearch().length >= 2 && !filteredClients().length">No client match found.</small>
           </label>
           <label><span>Status</span><select formControlName="status"><option *ngFor="let status of statusOptions" [value]="status">{{ label(status) }}</option></select></label>
           <label><span>Notes</span><textarea formControlName="notes" rows="2"></textarea></label>
@@ -342,46 +392,64 @@ const STATUS_TONES: Record<string, string> = {
             <button class="ghost-button mini" type="button" (click)="addServiceLine()">Add service</button>
           </div>
           <div class="service-line" *ngFor="let line of bookingLines(); trackBy: trackLine">
-            <label class="search-select">
+            <label class="search-select service-field-wide">
               <span>Service</span>
-              <div class="picker-combo">
+              <div class="smart-picker">
                 <input
                   class="picker-search"
                   type="search"
-                  [value]="lineSearch(serviceSearchByLine(), line.id)"
+                  [value]="lineServiceSearchValue(line)"
                   (input)="setLineSearch('service', line.id, $any($event.target).value)"
+                  (focus)="setLineSearchActive('service', line.id, true)"
+                  (blur)="closeLineSearchSoon('service', line.id)"
                   placeholder="Search service"
                   autocomplete="off"
                 />
-                <select [value]="line.serviceId" (change)="updateLine(line.id, 'serviceId', $any($event.target).value)">
-                  <option value="">Select service</option>
-                  <option *ngFor="let service of filteredServices(line); trackBy: trackApiRecord" [value]="service.id">{{ service.name }} · {{ service.durationMinutes || 30 }}m</option>
-                </select>
+                <div class="smart-search-results" *ngIf="showLineServiceResults(line)">
+                  <button
+                    type="button"
+                    *ngFor="let service of filteredServices(line); trackBy: trackApiRecord"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="selectLineService(line, service)"
+                  >
+                    <strong>{{ service.name || 'Service' }}</strong>
+                    <span>{{ service.category || 'Service' }} · {{ service.durationMinutes || 30 }}m</span>
+                  </button>
+                </div>
               </div>
-              <small class="picker-empty" *ngIf="!filteredServices(line).length">No service match.</small>
+              <small class="picker-empty" *ngIf="showLineServiceEmpty(line)">No service match.</small>
             </label>
-            <label class="search-select">
+            <label class="search-select staff-field-wide">
               <span>Staff</span>
-              <div class="picker-combo">
+              <div class="smart-picker">
                 <input
                   class="picker-search"
                   type="search"
-                  [value]="lineSearch(staffSearchByLine(), line.id)"
+                  [value]="lineStaffSearchValue(line)"
                   (input)="setLineSearch('staff', line.id, $any($event.target).value)"
+                  (focus)="setLineSearchActive('staff', line.id, true)"
+                  (blur)="closeLineSearchSoon('staff', line.id)"
                   placeholder="Search staff"
                   autocomplete="off"
                 />
-                <select [value]="line.staffId" (change)="updateLine(line.id, 'staffId', $any($event.target).value)">
-                  <option value="">Select staff</option>
-                  <option *ngFor="let person of filteredStaff(line); trackBy: trackStaff" [value]="person.id">{{ person.name }}</option>
-                </select>
+                <div class="smart-search-results" *ngIf="showLineStaffResults(line)">
+                  <button
+                    type="button"
+                    *ngFor="let person of filteredStaff(line); trackBy: trackStaff"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="selectLineStaff(line, person)"
+                  >
+                    <strong>{{ person.name || 'Staff' }}</strong>
+                    <span>{{ person.role || person.status || person.id }}</span>
+                  </button>
+                </div>
               </div>
-              <small class="picker-empty" *ngIf="!filteredStaff(line).length">No staff match.</small>
+              <small class="picker-empty" *ngIf="showLineStaffEmpty(line)">No staff match.</small>
             </label>
-            <label><span>Start</span><input type="datetime-local" [value]="line.startAt" (change)="updateLine(line.id, 'startAt', $any($event.target).value)" /></label>
-            <label><span>Duration</span><input type="number" min="15" step="15" [value]="line.durationMinutes" (change)="updateLine(line.id, 'durationMinutes', $any($event.target).value)" /></label>
-            <label><span>Chair / room</span><input [value]="line.chair" (input)="updateLine(line.id, 'chair', $any($event.target).value)" placeholder="Chair 1" /></label>
-            <button class="ghost-button mini danger" type="button" (click)="removeServiceLine(line.id)" [disabled]="bookingLines().length === 1">Remove</button>
+            <label class="start-field-wide"><span>Start</span><input type="datetime-local" [value]="line.startAt" (change)="updateLine(line.id, 'startAt', $any($event.target).value)" /></label>
+            <label class="duration-field-compact"><span>Duration</span><input type="number" min="15" step="15" [value]="line.durationMinutes" (change)="updateLine(line.id, 'durationMinutes', $any($event.target).value)" /></label>
+            <label class="chair-field-compact"><span>Chair / room</span><input [value]="line.chair" (input)="updateLine(line.id, 'chair', $any($event.target).value)" placeholder="Chair 1" /></label>
+            <button class="ghost-button mini danger service-remove-button" type="button" (click)="removeServiceLine(line.id)" [disabled]="bookingLines().length === 1">Remove</button>
           </div>
 
           <fieldset class="notify-box">
@@ -394,6 +462,58 @@ const STATUS_TONES: Record<string, string> = {
           <div class="drawer-actions">
             <button class="ghost-button" type="button" (click)="closeDrawer()">Cancel</button>
             <button class="primary-button" type="submit" [disabled]="saving() || bookingForm.invalid">{{ saving() ? 'Saving...' : 'Create booking' }}</button>
+          </div>
+        </form>
+      </aside>
+
+      <aside class="scheduler-drawer" *ngIf="drawer() === 'waitlist'">
+        <header>
+          <div>
+            <span class="eyebrow">Calendar waitlist</span>
+            <h3>Add waitlist entry</h3>
+          </div>
+          <button type="button" (click)="closeDrawer()">×</button>
+        </header>
+        <form [formGroup]="waitlistForm" (ngSubmit)="saveWaitlistEntry()" class="drawer-stack">
+          <label>
+            <span>Client</span>
+            <select formControlName="clientId">
+              <option value="">Select client</option>
+              <option *ngFor="let client of clients(); trackBy: trackApiRecord" [value]="client.id">
+                {{ client.name || client.phone || client.mobile || client.id }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>Service</span>
+            <select formControlName="serviceId">
+              <option value="">Any service</option>
+              <option *ngFor="let service of services(); trackBy: trackApiRecord" [value]="service.id">
+                {{ service.name || service.id }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>Preferred staff</span>
+            <select formControlName="staffId">
+              <option value="">Any staff</option>
+              <option *ngFor="let person of visibleStaff(); trackBy: trackStaff" [value]="person.id">{{ person.name }}</option>
+            </select>
+          </label>
+          <div class="inline-form-grid">
+            <label><span>Date</span><input type="date" formControlName="preferredDate" /></label>
+            <label><span>From</span><input type="time" formControlName="windowStartTime" /></label>
+            <label><span>To</span><input type="time" formControlName="windowEndTime" /></label>
+            <label><span>Priority</span><input type="number" min="0" max="10" formControlName="priority" /></label>
+          </div>
+          <label><span>Notes</span><textarea rows="3" formControlName="notes" placeholder="Client preference, urgency, alternate time"></textarea></label>
+          <p class="inline-hint danger" *ngIf="waitlistError()">{{ waitlistError() }}</p>
+          <p class="inline-hint success" *ngIf="waitlistMessage()">{{ waitlistMessage() }}</p>
+          <div class="drawer-actions">
+            <button class="ghost-button" type="button" (click)="closeDrawer()">Cancel</button>
+            <button class="primary-button" type="submit" [disabled]="waitlistSaving() || waitlistForm.invalid">
+              {{ waitlistSaving() ? 'Saving...' : 'Save waitlist entry' }}
+            </button>
           </div>
         </form>
       </aside>
@@ -537,7 +657,10 @@ const STATUS_TONES: Record<string, string> = {
         </ng-template>
       </aside>
 
-      <div class="toast" *ngIf="notice()">{{ notice() }}</div>
+      <div class="toast" *ngIf="notice()">
+        <span>{{ notice() }}</span>
+        <button class="toast-link" type="button" *ngIf="showClientHistoryToastAction()" (click)="openClientHistoryById(lastBookedClientId())">Client History</button>
+      </div>
     </section>
   `,
   styles: [`
@@ -567,19 +690,23 @@ const STATUS_TONES: Record<string, string> = {
     .primary-button { background: #0f8f7f; color: white; border-color: #0f8f7f; }
     .ghost-button.mini { padding: 8px 11px; font-size: 12px; }
     .danger { color: #b91c1c; }
-    .month-strip-band { display: grid; grid-template-columns: auto auto auto 1fr; gap: 10px; align-items: center; padding: 16px; border-radius: 14px; }
-    .month-strip-band > button { height: 44px; width: 44px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-weight: 900; }
-    .month-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
-    .month-strip button { min-width: 56px; border: 1px solid #d9e5e2; background: #f8fafc; border-radius: 10px; padding: 8px 6px; color: #334155; }
+    .month-strip-band { display: grid; grid-template-columns: auto minmax(76px, auto) auto 1fr; gap: 8px; align-items: center; min-height: 54px; padding: 8px 14px; border-radius: 14px; }
+    .month-range-label { min-width: 76px; color: #172033; font-size: 14px; white-space: nowrap; }
+    .month-strip-band > button { height: 40px; width: 40px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-weight: 900; }
+    .month-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .month-strip button { min-width: 54px; min-height: 48px; border: 1px solid #d9e5e2; background: #f8fafc; border-radius: 10px; padding: 6px; color: #334155; }
     .month-strip button.active { border-color: #0f8f7f; box-shadow: inset 0 -3px 0 #0f8f7f; background: #ecfdf5; }
     .month-strip button.today { color: #0f8f7f; }
     .month-strip span, .month-strip small { display: block; font-size: 11px; }
     label { display: grid; gap: 6px; color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     input, select, textarea { width: 100%; min-height: 42px; border: 1px solid #d5e2df; border-radius: 10px; padding: 9px 11px; font: inherit; background: white; color: #172033; }
-    .summary-strip { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 12px; padding: 12px; border-radius: 16px; }
-    .summary-strip article, .pulse-grid div { border: 1px solid #d8e7e3; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #ffffff, #f5fbfa); }
-    .summary-strip span, .pulse-grid span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; display: block; }
-    .summary-strip strong { display: block; font-size: 24px; margin-top: 5px; }
+    .summary-strip { display: grid; grid-template-columns: repeat(6, minmax(120px, 220px)); justify-content: start; gap: 12px; min-height: 54px; padding: 8px 12px; border-radius: 16px; }
+    .summary-strip article, .summary-strip button, .pulse-grid div { border: 1px solid #d8e7e3; border-radius: 12px; padding: 8px 12px; background: linear-gradient(135deg, #ffffff, #f5fbfa); }
+    .summary-strip button { cursor: pointer; text-align: left; font: inherit; color: #172033; }
+    .summary-strip .waitlist-summary-action { border-color: #5eead4; background: linear-gradient(135deg, #ecfdf5, #ffffff); box-shadow: inset 0 0 0 1px rgba(15, 143, 127, 0.12); }
+    .summary-strip .waitlist-summary-action small { color: #0f766e; font-weight: 900; }
+    .summary-strip span, .pulse-grid span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; display: block; }
+    .summary-strip strong { display: block; font-size: 20px; margin-top: 2px; line-height: 1.05; }
     .summary-strip small, .pulse-grid small { color: #64748b; }
     .scheduler-grid-shell { padding: 16px; border-radius: 16px; overflow: hidden; }
     .scheduler-grid {
@@ -634,10 +761,12 @@ const STATUS_TONES: Record<string, string> = {
     .staff-action-menu span { border-radius: 999px; background: #e2e8f0; padding: 2px 7px; font-size: 11px; }
     .slot-hover { position: absolute; left: 96px; z-index: 10; background: #fff7ed; border: 1px solid #fb923c; padding: 4px 8px; border-radius: 6px; font-size: 12px; box-shadow: 0 10px 24px rgba(15,23,42,.12); pointer-events: none; }
     .operations-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
+    .operations-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .ops-panel { border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; }
-    .ai-slot-launch { cursor: pointer; }
-    .ai-slot-launch:focus-visible { outline: 3px solid rgba(15,143,127,.25); outline-offset: 3px; }
-    .ai-slot-launch:hover { border-color: #0f8f7f; box-shadow: 0 18px 42px rgba(15,143,127,.13); }
+    .ops-launch { min-height: 92px; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .ops-launch p { margin: 0; color: #52627a; font-size: 13px; line-height: 1.4; }
+    .ops-launch:focus-visible { outline: 3px solid rgba(15,143,127,.25); outline-offset: 3px; }
+    .ops-launch:hover { border-color: #0f8f7f; box-shadow: 0 18px 42px rgba(15,143,127,.13); transform: translateY(-1px); }
     .panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
     .panel-head small { border: 1px solid #99f6e4; border-radius: 999px; color: #0f766e; background: #ecfdf5; padding: 4px 9px; font-weight: 900; }
     .ops-panel button, .waitlist-row { border: 1px solid #dbe7e4; border-radius: 10px; background: #fff; padding: 12px; text-align: left; display: grid; gap: 4px; }
@@ -648,6 +777,13 @@ const STATUS_TONES: Record<string, string> = {
     .scheduler-drawer header { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 18px; }
     .scheduler-drawer header button { border: 0; background: transparent; font-size: 34px; cursor: pointer; }
     .ai-slot-drawer { width: min(560px, 96vw); }
+    .operations-drawer { width: min(640px, 96vw); }
+    .drawer-panel { border: 1px solid #dbe7e4; border-radius: 14px; background: #fff; padding: 16px; display: grid; gap: 12px; }
+    .drawer-panel .panel-head { margin-bottom: 2px; }
+    .mini-action { border: 1px solid #99f6e4; border-radius: 999px; background: #ecfdf5; color: #0f766e; padding: 6px 12px; font-size: 13px; font-weight: 900; cursor: pointer; }
+    .mini-action:hover { border-color: #0f8f7f; background: #ccfbf1; }
+    .pulse-grid.expanded div { min-height: 84px; align-content: start; }
+    .pulse-grid strong { font-size: 20px; }
     .ai-slot-detail-grid { display: grid; gap: 12px; }
     .ai-slot-detail-grid button { border: 1px solid #dbe7e4; border-radius: 12px; background: #fff; padding: 14px; text-align: left; display: grid; gap: 5px; cursor: pointer; }
     .ai-slot-detail-grid button:hover { border-color: #0f8f7f; background: #f0fdfa; }
@@ -698,14 +834,28 @@ const STATUS_TONES: Record<string, string> = {
     .activity-log-panel strong, .activity-log-panel span { display: block; }
     .activity-log-panel span { margin-top: 4px; color: #64748b; font-size: 12px; }
     .drawer-stack { display: grid; gap: 14px; }
-    .service-line { display: grid; grid-template-columns: 1.2fr 1fr 1.1fr .7fr .8fr auto; gap: 10px; align-items: end; border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
+    .service-line { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; align-items: end; border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
+    .service-field-wide, .staff-field-wide { grid-column: span 6; }
+    .start-field-wide { grid-column: span 5; }
+    .duration-field-compact { grid-column: span 2; }
+    .chair-field-compact { grid-column: span 3; }
+    .service-remove-button { grid-column: span 2; min-height: 42px; }
     .service-line-head, .remove-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .search-select { display: grid; gap: 6px; align-content: start; }
-    .picker-combo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(148px, .72fr); gap: 8px; align-items: center; }
+    .smart-picker { position: relative; min-width: 0; }
+    .smart-search-results { position: absolute; z-index: 95; top: calc(100% + 6px); left: 0; right: 0; display: grid; max-height: 260px; overflow: auto; border: 1px solid #cfe0dc; border-radius: 12px; background: #ffffff; box-shadow: 0 18px 36px rgba(15,23,42,.18); padding: 6px; }
+    .smart-search-results button { width: 100%; border: 0; border-radius: 10px; background: transparent; padding: 9px 10px; text-align: left; display: grid; gap: 2px; color: #172033; cursor: pointer; }
+    .smart-search-results button:hover { background: #e8f7f4; }
+    .smart-search-results strong { font-size: 13px; }
+    .smart-search-results span { font-size: 12px; color: #64748b; text-transform: none; }
     .picker-search { min-height: 38px; border-radius: 10px; border: 1px solid #cfe0dc; background: #f8fffd; padding: 9px 10px; font-weight: 800; color: #172033; }
     .picker-search:focus { border-color: #0f8f7f; outline: 3px solid rgba(15,143,127,.14); background: #fff; }
     .picker-meta, .picker-empty { font-size: 11px; font-weight: 800; text-transform: none; color: #64748b; }
     .picker-empty { color: #b45309; }
+    .inline-form-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; }
+    .inline-hint { margin: 0; border-radius: 10px; padding: 10px 12px; font-weight: 900; }
+    .inline-hint.danger { background: #fee2e2; color: #991b1b; }
+    .inline-hint.success { background: #dcfce7; color: #166534; }
     .two-col, .status-grid, .notify-box, .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .notify-box { border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
     .notify-box label { display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 14px; color: #172033; }
@@ -713,14 +863,15 @@ const STATUS_TONES: Record<string, string> = {
     .detail-card { border: 1px solid #dbe7e4; border-radius: 12px; padding: 14px; display: grid; gap: 4px; background: #f8fafc; }
     .status-grid button { min-height: 40px; border: 1px solid #dbe7e4; border-radius: 10px; background: white; font-weight: 800; }
     .wrap { flex-wrap: wrap; }
-    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 70; background: #0f8f7f; color: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 18px 36px rgba(15,23,42,.22); font-weight: 900; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 70; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #0f8f7f; color: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 18px 36px rgba(15,23,42,.22); font-weight: 900; }
+    .toast-link { border: 1px solid rgba(255,255,255,.6); background: rgba(255,255,255,.16); color: white; border-radius: 999px; padding: 7px 10px; font-weight: 900; cursor: pointer; }
     @media (max-width: 1100px) {
       .summary-strip, .operations-grid, .service-line, .bill-layout { grid-template-columns: 1fr 1fr; }
-      .picker-combo { grid-template-columns: 1fr; }
+      .service-field-wide, .staff-field-wide, .start-field-wide, .duration-field-compact, .chair-field-compact, .service-remove-button { grid-column: auto; }
     }
     @media (max-width: 720px) {
       .month-strip-band { grid-template-columns: 1fr; }
-      .summary-strip, .operations-grid, .service-line, .two-col, .pulse-grid, .bill-layout { grid-template-columns: 1fr; }
+      .summary-strip, .operations-grid, .service-line, .inline-form-grid, .two-col, .pulse-grid, .bill-layout { grid-template-columns: 1fr; }
     }
   `]
 })
@@ -738,6 +889,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
+  readonly lastBookedClientId = signal('');
+  readonly showClientHistoryToastAction = computed(() => !!this.lastBookedClientId() && this.notice().toLowerCase().includes('appointment'));
+  readonly waitlistError = signal('');
+  readonly waitlistMessage = signal('');
+  readonly waitlistSaving = signal(false);
   readonly selectedDate = signal(new Date().toISOString().slice(0, 10));
   readonly staffOffset = signal(0);
   readonly slotMinutes = signal(15);
@@ -753,8 +909,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly hoverSlot = signal<{ staffName: string; label: string; top: number } | null>(null);
   readonly bookingLines = signal<BookingLineDraft[]>([]);
   readonly bookingClientSearch = signal('');
+  readonly bookingClientSearchActive = signal(false);
   readonly serviceSearchByLine = signal<Record<string, string>>({});
   readonly staffSearchByLine = signal<Record<string, string>>({});
+  readonly serviceSearchActiveByLine = signal<Record<string, boolean>>({});
+  readonly staffSearchActiveByLine = signal<Record<string, boolean>>({});
   readonly editingAppointmentId = signal('');
   readonly appointmentDetailTab = signal<'booking' | 'activity'>('booking');
 
@@ -773,6 +932,17 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     startTime: ['10:00', Validators.required],
     endTime: ['10:30', Validators.required],
     reason: ['Blocked time']
+  });
+
+  readonly waitlistForm = this.fb.group({
+    clientId: ['', Validators.required],
+    serviceId: [''],
+    staffId: [''],
+    preferredDate: [this.selectedDate(), Validators.required],
+    windowStartTime: ['10:00'],
+    windowEndTime: ['18:00'],
+    priority: [1],
+    notes: ['']
   });
 
   readonly monthRange = computed(() => {
@@ -814,14 +984,22 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly services = computed(() => this.context()?.services || []);
   readonly waitlist = computed(() => this.context()?.waitlist || []);
   readonly allStaffChoices = computed(() => this.visibleStaff());
-  readonly filteredClients = computed(() => this.filterApiRecords(this.clients(), this.bookingClientSearch(), (client) => [
-    client.name,
-    client.phone,
-    client.mobile,
-    client.email,
-    client.clientCode,
-    client.id
-  ]));
+  readonly filteredClients = computed(() => {
+    const query = this.normalizeSearch(this.bookingClientSearch());
+    if (query.length < 2) return [];
+    return this.smartFilterApiRecords(this.clients(), query, (client, index) => [
+      client.name,
+      this.initials(client.name),
+      client.phone,
+      client.mobile,
+      client.email,
+      client.clientCode,
+      client.code,
+      client.id,
+      String(index + 1),
+      `id ${index + 1}`
+    ]).slice(0, 25);
+  });
   readonly clientById = computed(() => new Map(this.clients().map((client) => [client.id, client])));
   readonly serviceById = computed(() => new Map(this.services().map((service) => [service.id, service])));
   readonly staffById = computed(() => new Map(this.visibleStaff().map((person) => [person.id, person])));
@@ -940,14 +1118,25 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     if (staff && slot) this.openQuickBooking(staff, slot);
   }
 
+  openAiSlotPilot(): void {
+    this.drawer.set("ai-slots");
+  }
+
+  openOperationsPulse(): void {
+    this.drawer.set('operations');
+  }
+
   openQuickBooking(staff: StaffLane, slot: TimeSlot): void {
     this.selectedStaff.set(staff);
     this.selectedAppointment.set(null);
     this.editingAppointmentId.set('');
     this.bookingForm.reset({ clientId: '', status: 'booked', notes: '', notifyClient: true, notifyStaff: true, notifyOwner: false });
     this.bookingClientSearch.set('');
+    this.bookingClientSearchActive.set(false);
     this.serviceSearchByLine.set({});
     this.staffSearchByLine.set({});
+    this.serviceSearchActiveByLine.set({});
+    this.staffSearchActiveByLine.set({});
     this.bookingLines.set([this.blankLine(staff.id, slot.input)]);
     this.drawer.set('booking');
   }
@@ -959,8 +1148,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.selectedAppointment.set(appointment);
     this.editingAppointmentId.set(String(appointment.id || ''));
     this.bookingClientSearch.set(this.clientName(appointment.clientId));
+    this.bookingClientSearchActive.set(false);
     this.serviceSearchByLine.set({});
     this.staffSearchByLine.set({});
+    this.serviceSearchActiveByLine.set({});
+    this.staffSearchActiveByLine.set({});
     this.bookingForm.reset({
       clientId: appointment.clientId || '',
       status: appointment.status || 'booked',
@@ -982,6 +1174,33 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       }
     ]);
     this.drawer.set('booking');
+  }
+
+  setBookingClientSearch(value: string): void {
+    const next = value || '';
+    this.bookingClientSearch.set(next);
+    this.bookingClientSearchActive.set(true);
+    const selected = this.clients().find((client) => this.bookingClientOption(client) === next);
+    this.bookingForm.patchValue({ clientId: selected?.id || '' }, { emitEvent: false });
+  }
+
+  selectBookingClient(client: ApiRecord): void {
+    this.bookingClientSearch.set(this.bookingClientOption(client));
+    this.bookingForm.patchValue({ clientId: client.id || '' }, { emitEvent: false });
+    this.bookingClientSearchActive.set(false);
+  }
+
+  selectedBookingClientLabel(): string {
+    const clientId = String(this.bookingForm.value.clientId || '');
+    return clientId ? this.bookingClientOption(this.clientById().get(clientId) || { id: clientId }) : '';
+  }
+
+  showBookingClientResults(): boolean {
+    return this.bookingClientSearchActive() && this.bookingClientSearch().trim().length >= 2 && this.filteredClients().length > 0;
+  }
+
+  closeBookingClientSearchSoon(): void {
+    window.setTimeout(() => this.bookingClientSearchActive.set(false), 120);
   }
 
   addServiceLine(): void {
@@ -1030,13 +1249,67 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     );
   }
 
+  lineServiceSearchValue(line: BookingLineDraft): string {
+    const typed = this.lineSearch(this.serviceSearchByLine(), line.id);
+    if (typed || !line.serviceId) return typed;
+    return this.bookingServiceOption(this.serviceById().get(line.serviceId) || { id: line.serviceId });
+  }
+
+  lineStaffSearchValue(line: BookingLineDraft): string {
+    const typed = this.lineSearch(this.staffSearchByLine(), line.id);
+    if (typed || !line.staffId) return typed;
+    return this.bookingStaffOption(this.staffById().get(line.staffId) || { id: line.staffId, name: line.staffId });
+  }
+
+  selectLineService(line: BookingLineDraft, service: ApiRecord): void {
+    this.updateLine(line.id, 'serviceId', String(service.id || ''));
+    this.setLineSearch('service', line.id, this.bookingServiceOption(service));
+    this.setLineSearchActive('service', line.id, false);
+  }
+
+  selectLineStaff(line: BookingLineDraft, person: StaffLane): void {
+    this.updateLine(line.id, 'staffId', String(person.id || ''));
+    this.setLineSearch('staff', line.id, this.bookingStaffOption(person));
+    this.setLineSearchActive('staff', line.id, false);
+  }
+
+  showLineServiceResults(line: BookingLineDraft): boolean {
+    return this.lineSearchActive(this.serviceSearchActiveByLine(), line.id) && this.lineSearch(this.serviceSearchByLine(), line.id).trim().length > 0 && this.filteredServices(line).length > 0;
+  }
+
+  showLineStaffResults(line: BookingLineDraft): boolean {
+    return this.lineSearchActive(this.staffSearchActiveByLine(), line.id) && this.lineSearch(this.staffSearchByLine(), line.id).trim().length > 0 && this.filteredStaff(line).length > 0;
+  }
+
+  showLineServiceEmpty(line: BookingLineDraft): boolean {
+    return this.lineSearchActive(this.serviceSearchActiveByLine(), line.id) && this.lineSearch(this.serviceSearchByLine(), line.id).trim().length > 0 && !this.filteredServices(line).length;
+  }
+
+  showLineStaffEmpty(line: BookingLineDraft): boolean {
+    return this.lineSearchActive(this.staffSearchActiveByLine(), line.id) && this.lineSearch(this.staffSearchByLine(), line.id).trim().length > 0 && !this.filteredStaff(line).length;
+  }
+
   lineSearch(source: Record<string, string>, lineId: string): string {
     return source[lineId] || '';
+  }
+
+  lineSearchActive(source: Record<string, boolean>, lineId: string): boolean {
+    return Boolean(source[lineId]);
   }
 
   setLineSearch(kind: 'service' | 'staff', lineId: string, value: string): void {
     const target = kind === 'service' ? this.serviceSearchByLine : this.staffSearchByLine;
     target.update((current) => ({ ...current, [lineId]: value }));
+    this.setLineSearchActive(kind, lineId, true);
+  }
+
+  setLineSearchActive(kind: 'service' | 'staff', lineId: string, value: boolean): void {
+    const target = kind === 'service' ? this.serviceSearchActiveByLine : this.staffSearchActiveByLine;
+    target.update((current) => ({ ...current, [lineId]: value }));
+  }
+
+  closeLineSearchSoon(kind: 'service' | 'staff', lineId: string): void {
+    window.setTimeout(() => this.setLineSearchActive(kind, lineId, false), 120);
   }
 
   private dropLineSearch(lineId: string): void {
@@ -1046,6 +1319,16 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       return next;
     });
     this.staffSearchByLine.update((current) => {
+      const next = { ...current };
+      delete next[lineId];
+      return next;
+    });
+    this.serviceSearchActiveByLine.update((current) => {
+      const next = { ...current };
+      delete next[lineId];
+      return next;
+    });
+    this.staffSearchActiveByLine.update((current) => {
       const next = { ...current };
       delete next[lineId];
       return next;
@@ -1061,8 +1344,71 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private filterStaff(records: StaffLane[], query: string): StaffLane[] {
     const needle = this.normalizeSearch(query);
     if (!needle) return records;
-    return records.filter((person) => [person.name, person.shortName, person.role, person.status, person.phone, person.id]
-      .some((field) => this.normalizeSearch(field).includes(needle)));
+    return records
+      .map((person, index) => ({ person, score: this.smartSearchScore([
+        person.name,
+        this.initials(person.name),
+        person.shortName,
+        person.role,
+        person.status,
+        person.phone,
+        person.id,
+        String(index + 1),
+        `id ${index + 1}`,
+        `staff ${index + 1}`
+      ], needle) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.person);
+  }
+
+  private smartFilterApiRecords(records: ApiRecord[], query: string, fields: (record: ApiRecord, index: number) => unknown[]): ApiRecord[] {
+    return records
+      .map((record, index) => ({ record, score: this.smartSearchScore(fields(record, index), query) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.record);
+  }
+
+  private smartSearchScore(fields: unknown[], query: string): number {
+    const normalizedFields = fields.map((field) => this.normalizeSearch(field)).filter(Boolean);
+    const compactQuery = query.replace(/\s+/g, '');
+    const digitQuery = this.phoneDigits(query);
+    if (normalizedFields.some((field) => field === query || field.replace(/\s+/g, '') === compactQuery)) return 120;
+    if (digitQuery && normalizedFields.some((field) => this.phoneDigits(field).includes(digitQuery))) return 110;
+    if (normalizedFields.some((field) => field.startsWith(query) || field.replace(/\s+/g, '').startsWith(compactQuery))) return 95;
+    if (normalizedFields.some((field) => field.includes(query) || field.replace(/\s+/g, '').includes(compactQuery))) return 80;
+    if (normalizedFields.some((field) => this.smartSearchDistance(field, query) <= this.smartSearchTolerance(query))) return 54;
+    return 0;
+  }
+
+  private phoneDigits(value: unknown): string {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  }
+
+  private smartSearchTolerance(query: string): number {
+    if (query.length < 4) return 0;
+    if (query.length < 7) return 1;
+    return 2;
+  }
+
+  private smartSearchDistance(value: string, query: string): number {
+    const target = value.split(/\s+/).find((part) => Math.abs(part.length - query.length) <= 2) || value;
+    if (Math.abs(target.length - query.length) > 2) return 9;
+    const previous = Array.from({ length: query.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= target.length; i += 1) {
+      let diagonal = previous[0];
+      previous[0] = i;
+      for (let j = 1; j <= query.length; j += 1) {
+        const temp = previous[j];
+        previous[j] = target[i - 1] === query[j - 1]
+          ? diagonal
+          : Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + 1);
+        diagonal = temp;
+      }
+    }
+    return previous[query.length];
   }
 
   private includeSelected<T extends { id?: string }>(filtered: T[], all: T[], selectedId: string): T[] {
@@ -1089,6 +1435,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     ].filter(Boolean);
     this.saving.set(true);
     try {
+      const bookedClientId = String(this.bookingForm.value.clientId || '');
       const payload = {
         branchId: this.context()?.branchId || this.state.selectedBranchId(),
         clientId: this.bookingForm.value.clientId,
@@ -1119,10 +1466,14 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
           chair: line.chair,
           room: line.room
         }));
+        this.lastBookedClientId.set(bookedClientId);
         this.notice.set('Appointment updated');
       } else {
-        const result = await firstValueFrom(this.api.post<ApiRecord>('enterprise-scheduler/multi-service-bookings', payload));
-        this.notice.set(`${result.appointments?.length || lines.length} appointment service line(s) created`);
+        const result = await firstValueFrom(this.api.post<ApiRecord>('appointment-deposits/multi-service-bookings', payload));
+        this.lastBookedClientId.set(bookedClientId);
+        this.notice.set(result.deposit?.required
+          ? `20% advance link sent: ${result.deposit.depositAmount} INR. Appointment will confirm after payment.`
+          : `${result.appointments?.length || lines.length} appointment service line(s) created`);
       }
       this.closeDrawer();
       await this.load();
@@ -1276,6 +1627,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     });
   }
 
+  openClientHistoryById(clientId: string): void {
+    if (!clientId) return;
+    this.router.navigate(['/clients', clientId]);
+  }
+
   async handleAppointmentAction(appointment: ApiRecord, action: string): Promise<void> {
     if (!action) return;
     if (action === 'edit' || action === 'reschedule') {
@@ -1348,6 +1704,44 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.editingAppointmentId.set('');
     this.appointmentDetailTab.set('booking');
     this.closeSchedulerActionMenu();
+  }
+
+  openWaitlistEntry(): void {
+    this.waitlistError.set('');
+    this.waitlistMessage.set('');
+    this.waitlistForm.patchValue({ preferredDate: this.selectedDate() });
+    this.drawer.set('waitlist');
+  }
+
+  async saveWaitlistEntry(): Promise<void> {
+    if (this.waitlistForm.invalid) return;
+    const value = this.waitlistForm.value;
+    const preferredDate = String(value.preferredDate || this.selectedDate());
+    const windowStart = this.waitlistWindowIso(preferredDate, String(value.windowStartTime || ''));
+    const windowEnd = this.waitlistWindowIso(preferredDate, String(value.windowEndTime || ''));
+    this.waitlistSaving.set(true);
+    this.waitlistError.set('');
+    try {
+      await firstValueFrom(this.api.post<ApiRecord>('waitlist', {
+        branchId: this.context()?.branchId || this.state.selectedBranchId(),
+        clientId: value.clientId,
+        serviceId: value.serviceId || '',
+        staffId: value.staffId || '',
+        preferredDate,
+        windowStart,
+        windowEnd,
+        priority: Number(value.priority || 0),
+        notes: value.notes || '',
+        status: 'waiting'
+      }));
+      this.waitlistMessage.set('Waitlist entry saved.');
+      await this.load();
+      this.closeDrawer();
+    } catch (error) {
+      this.waitlistError.set(this.api.errorText(error, 'Waitlist entry save nahi hua'));
+    } finally {
+      this.waitlistSaving.set(false);
+    }
   }
 
   summaryValue(key: string): number {
@@ -1565,6 +1959,19 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return this.staffById().get(idValue)?.name || idValue || 'Staff';
   }
 
+  bookingClientOption(client: ApiRecord): string {
+    return String(client.name || client.phone || client.mobile || client.email || client.id || 'Client');
+  }
+
+  bookingServiceOption(service: ApiRecord): string {
+    const duration = service.durationMinutes ? ` · ${service.durationMinutes}m` : '';
+    return String(`${service.name || service.id || 'Service'}${duration}`);
+  }
+
+  bookingStaffOption(person: StaffLane): string {
+    return String(person.name || person.phone || person.id || 'Staff');
+  }
+
   label(value: string): string {
     return String(value || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
   }
@@ -1577,7 +1984,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   }
 
-  initials(value: string): string {
+  initials(value: unknown): string {
     return String(value || '').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'ST';
   }
 
@@ -1640,6 +2047,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private isoAtMinute(minute: number): string {
     return this.isoFromLocal(this.localDateTime(minute));
+  }
+
+  private waitlistWindowIso(date: string, time: string): string {
+    if (!date || !time) return '';
+    return this.isoFromLocal(`${date}T${time}`);
   }
 
   private minuteOf(value: string): number {

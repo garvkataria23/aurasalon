@@ -83,12 +83,12 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
           </a>
           <a class="inventory-module-card blue" routerLink="/inventory/product-360">
             <span>Product 360</span>
-            <strong>{{ selectedProduct()?.name || 'Product intelligence' }}</strong>
+            <strong>{{ selectedProduct().name || 'Product intelligence' }}</strong>
             <small>Stock, margin, batches and usage</small>
           </a>
           <a class="inventory-module-card amber" routerLink="/inventory/supplier-360">
             <span>Supplier 360</span>
-            <strong>{{ selectedSupplier()?.name || 'Supplier intelligence' }}</strong>
+            <strong>{{ selectedSupplier().name || 'Supplier intelligence' }}</strong>
             <small>GSTIN, purchase, risk and WhatsApp PO</small>
           </a>
           <a class="inventory-module-card green" routerLink="/inventory/recipes">
@@ -234,10 +234,24 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
             <label class="field"><span>SKU</span><input formControlName="sku" /></label>
             <label class="field"><span>Category</span><input formControlName="category" /></label>
             <label class="field">
+              <span>Unit</span>
+              <select formControlName="unit">
+                <option value="ml">ml</option>
+                <option value="gm">gm</option>
+                <option value="g">g</option>
+                <option value="pcs">pcs</option>
+                <option value="tube">tube</option>
+                <option value="pack">pack</option>
+                <option value="box">box</option>
+                <option value="nos">nos</option>
+              </select>
+            </label>
+            <label class="field">
               <span>Usage type</span>
               <select formControlName="usageType">
                 <option value="retail">Retail</option>
-                <option value="internal">Professional/internal</option>
+                <option value="consumable">Consumable / professional</option>
+                <option value="both">Retail + professional</option>
               </select>
             </label>
             <label class="field"><span>Supplier</span><input formControlName="supplier" /></label>
@@ -950,6 +964,7 @@ export class InventoryComponent implements OnInit {
     name: ['', Validators.required],
     sku: ['', Validators.required],
     category: [''],
+    unit: ['pcs'],
     usageType: ['retail'],
     supplier: [''],
     branchId: ['', Validators.required],

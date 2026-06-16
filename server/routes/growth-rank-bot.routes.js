@@ -128,6 +128,15 @@ growthRankBotRouter.get(
 );
 
 growthRankBotRouter.patch(
+  "/growth-rank-bot/audits/:id",
+  requirePermission("write", () => "marketing"),
+  validateBody({ required: ["businessName"] }),
+  asyncHandler((req, res) => {
+    res.json(growthRankBotService.updateAudit(req.params.id, req.body, req.access));
+  })
+);
+
+growthRankBotRouter.patch(
   "/growth-rank-bot/tasks/:id/status",
   requirePermission("write", () => "marketing"),
   asyncHandler((req, res) => {

@@ -1,6 +1,7 @@
 import { db } from "../db.js";
 import { badRequest, conflict } from "../utils/app-error.js";
 import { billingService } from "./billing.service.js";
+import { balanceSheetService } from "./balance-sheet.service.js";
 import { realtimeService } from "./realtime.service.js";
 
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
@@ -12,6 +13,11 @@ export class PaymentService {
     if (amount <= 0) throw badRequest("Payment amount must be greater than zero");
     if (amount > Number(invoice.due_amount || invoice.grand_total || 0) + 0.01) throw conflict("Payment amount exceeds invoice due amount");
     const updated = billingService.recordPayment(invoiceId, { ...payload, mode, amount }, access);
+    try {
+      balanceSheetService.enqueueInvoicePaymentEvent({ invoice: updated, amount, mode, access });
+    } catch {
+      billingService.writeEvent({ tenantId: access.tenantId, invoiceId, eventType: "finance.gl_enqueue_failed", actorUserId: access.userId || "", payload: { mode, amount } });
+    }
     realtimeService.broadcast("payment:received", { invoiceId, mode, amount }, { tenantId: access.tenantId, branchId: invoice.branch_id });
     if (updated.payment_status === "paid") {
       realtimeService.broadcast("invoice:paid", { invoiceId, invoiceNo: updated.invoice_no }, { tenantId: access.tenantId, branchId: invoice.branch_id });
@@ -79,7 +85,13 @@ export class PaymentService {
       payload: { paymentId, providerPayload, paymentStatus }
     });
     if (paymentStatus === "paid") billingService.lockInvoiceInTransaction(invoice.id, access, "provider_payment_paid");
-    return billingService.getInvoice(invoice.id, access);
+    const updated = billingService.getInvoice(invoice.id, access);
+    try {
+      balanceSheetService.enqueueInvoicePaymentEvent({ invoice: updated, amount, mode: payment.payment_mode || "bank", access });
+    } catch {
+      billingService.writeEvent({ tenantId: access.tenantId, invoiceId: invoice.id, eventType: "finance.gl_enqueue_failed", actorUserId: access.userId || "provider-webhook", payload: { amount, paymentId } });
+    }
+    return updated;
   }
 
   status(invoiceId, access = {}) {

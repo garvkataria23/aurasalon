@@ -16,6 +16,7 @@ const GRANTS: Record<string, string[]> = {
     'write:sales',
     'write:invoices',
     'write:payments',
+    'write:appointment_deposits',
     'write:staff'
   ],
   receptionist: [
@@ -24,7 +25,8 @@ const GRANTS: Record<string, string[]> = {
     'write:appointments',
     'write:sales',
     'write:invoices',
-    'write:payments'
+    'write:payments',
+    'write:appointment_deposits'
   ],
   frontDesk: [
     'read:*',
@@ -32,10 +34,11 @@ const GRANTS: Record<string, string[]> = {
     'write:appointments',
     'write:sales',
     'write:invoices',
-    'write:payments'
+    'write:payments',
+    'write:appointment_deposits'
   ],
-  cashier: ['read:*', 'write:clients', 'write:sales', 'write:invoices', 'write:payments', 'read:finance', 'write:finance'],
-  accountant: ['read:*', 'write:finance', 'write:invoices', 'write:payments'],
+  cashier: ['read:*', 'write:clients', 'write:sales', 'write:invoices', 'write:payments', 'read:appointment_deposits', 'read:finance', 'write:finance'],
+  accountant: ['read:*', 'write:finance', 'write:invoices', 'write:payments', 'read:appointment_deposits'],
   inventoryManager: ['read:*', 'write:products', 'write:inventory', 'write:suppliers'],
   staff: ['read:appointments', 'read:clients', 'read:services', 'write:appointments'],
   analyst: ['read:*', 'write:analytics']

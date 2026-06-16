@@ -341,6 +341,46 @@ inventoryIntelligenceRouter.post(
 );
 
 inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/product-consume-drafts",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.listProductConsumeDrafts(req.query, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/product-consume-drafts/:id",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.getProductConsumeDraft(req.params.id, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.patch(
+  "/inventory-intelligence/product-consume-drafts/:id",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.updateProductConsumeDraft(req.params.id, req.body, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/product-consume-drafts/:id/confirm",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.confirmProductConsumeDraft(req.params.id, req.body, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/product-consume-drafts/from-invoice/:invoiceId",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.generateProductConsumeDraftsForInvoice(req.params.invoiceId, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
   "/inventory-intelligence/stock-counts",
   requirePermission("read", () => "inventory"),
   asyncHandler((req, res) => {

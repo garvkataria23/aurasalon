@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { permissionGuard } from './core/permission.guard';
-import { GrowthRankBotComponent } from './pages/growth-rank-bot.component';
 import { ModulePageComponent } from './pages/module-page.component';
 
 export const routes: Routes = [
@@ -17,6 +16,11 @@ export const routes: Routes = [
   { path: 'engagement', loadComponent: () => import('./pages/engagement-command-center.component').then(m => m.EngagementCommandCenterComponent), title: 'Engagement Command Center' },
   { path: 'smart-booking', loadComponent: () => import('./pages/smart-booking.component').then(m => m.SmartBookingComponent), title: 'Smart Booking System' },
   { path: 'security', loadComponent: () => import('./pages/security-layer.component').then(m => m.SecurityLayerComponent), title: 'Enterprise Security' },
+  { path: 'enterprise-security-shield', loadComponent: () => import('./pages/enterprise-security-shield.component').then(m => m.EnterpriseSecurityShieldComponent), title: 'Enterprise Security Shield' },
+  { path: 'two-factor', loadComponent: () => import('./pages/two-factor-setup.component').then(m => m.TwoFactorSetupComponent), title: 'Two-Factor Authentication' },
+  { path: 'security-alerts', loadComponent: () => import('./pages/security-alerts.component').then(m => m.SecurityAlertsComponent), title: 'Security Alerts' },
+  { path: 'security-blocklist', loadComponent: () => import('./pages/security-blocklist.component').then(m => m.SecurityBlocklistComponent), title: 'Security Blocklist' },
+  { path: 'security-policy-center', loadComponent: () => import('./pages/security-policy-center.component').then(m => m.SecurityPolicyCenterComponent), title: 'Security Policy Center' },
   { path: 'permissions', loadComponent: () => import('./pages/permission-matrix.component').then(m => m.PermissionMatrixComponent), title: 'Permission Matrix' },
   { path: 'compliance', loadChildren: () => import('./features/compliance/compliance.routes').then(m => m.COMPLIANCE_ROUTES), title: 'Statutory Compliance' },
   { path: 'audit-compliance', loadComponent: () => import('./pages/compliance-audit.component').then(m => m.ComplianceAuditComponent), title: 'Audit and Compliance' },
@@ -24,11 +28,19 @@ export const routes: Routes = [
   { path: 'deployment', loadComponent: () => import('./pages/deployment-ready.component').then(m => m.DeploymentReadyComponent), title: 'Deployment Ready' },
   { path: 'data-migration', loadComponent: () => import('./pages/data-migration.component').then(m => m.DataMigrationComponent), title: 'Data Migration Center' },
   { path: 'offline', loadComponent: () => import('./pages/offline-support.component').then(m => m.OfflineSupportComponent), title: 'Offline Support' },
+  { path: 'offline/readiness', loadComponent: () => import('./pages/offline-readiness.component').then(m => m.OfflineReadinessComponent), title: 'Offline Readiness Score' },
+  { path: 'offline/devices', loadComponent: () => import('./pages/offline-device-health.component').then(m => m.OfflineDeviceHealthComponent), title: 'Device Sync Health' },
+  { path: 'offline/sync-queue', loadComponent: () => import('./pages/offline-sync-queue.component').then(m => m.OfflineSyncQueueComponent), title: 'Smart Sync Queue' },
+  { path: 'offline/conflicts', loadComponent: () => import('./pages/offline-conflict-center.component').then(m => m.OfflineConflictCenterComponent), title: 'Conflict Resolution Center' },
+  { path: 'offline/billing', loadComponent: () => import('./pages/offline-billing-protection.component').then(m => m.OfflineBillingProtectionComponent), title: 'Offline Billing Protection' },
+  { path: 'offline/appointments', loadComponent: () => import('./pages/offline-appointment-protection.component').then(m => m.OfflineAppointmentProtectionComponent), title: 'Offline Appointment Protection' },
+  { path: 'offline/risk-alerts', loadComponent: () => import('./pages/offline-risk-alerts.component').then(m => m.OfflineRiskAlertsComponent), title: 'Offline Risk Alerts' },
   { path: 'white-label', loadComponent: () => import('./pages/white-label.component').then(m => m.WhiteLabelComponent), title: 'White Label SaaS' },
   { path: 'future-features', loadComponent: () => import('./pages/future-features.component').then(m => m.FutureFeaturesComponent), title: 'Future Salon Intelligence' },
   { path: 'workflows', loadComponent: () => import('./pages/workflow-engine.component').then(m => m.WorkflowEngineComponent), title: 'Workflow Engine' },
   { path: 'finance', loadComponent: () => import('./pages/finance-engine.component').then(m => m.FinanceEngineComponent), title: 'Finance Engine' },
   { path: 'account-master', loadComponent: () => import('./pages/account-master.component').then(m => m.AccountMasterComponent), title: 'Account Master' },
+  { path: 'balance-sheet', loadComponent: () => import('./pages/balance-sheet.component').then(m => m.BalanceSheetComponent), title: 'Balance Sheet' },
   { path: 'transactions/outgoing-funds', loadComponent: () => import('./pages/outgoing-funds-entry.component').then(m => m.OutgoingFundsEntryComponent), title: 'Outgoing Funds Entry' },
   { path: 'billing', loadChildren: () => import('./features/billing/billing.routes').then((m) => m.BILLING_ROUTES), title: 'Enterprise Billing' },
   { path: 'customer-360', loadComponent: () => import('./pages/customer-360.component').then(m => m.Customer360Component), title: 'Customer 360' },
@@ -37,6 +49,7 @@ export const routes: Routes = [
   { path: 'book', loadComponent: () => import('./pages/booking-portal.component').then(m => m.BookingPortalComponent), title: 'Online Booking' },
   { path: 'book/wizard', loadComponent: () => import('./pages/booking-wizard.component').then(m => m.BookingWizardComponent), title: 'Booking Wizard' },
   { path: 'appointment-activity', loadComponent: () => import('./pages/appointment-activity.component').then(m => m.AppointmentActivityComponent), title: 'Appointment Activity' },
+  { path: 'appointment-deposits', loadComponent: () => import('./pages/appointment-deposit-report.component').then(m => m.AppointmentDepositReportComponent), title: 'Appointment Deposit Report', canActivate: [permissionGuard], data: { permission: 'read:appointment_deposits' } },
   { path: 'appointments', loadComponent: () => import('./pages/appointments-enterprise.component').then(m => m.AppointmentsEnterpriseComponent), title: 'Appointment Calendar' },
   { path: 'appointments-enterprise', pathMatch: 'full', redirectTo: 'appointments' },
   { path: 'scheduler', pathMatch: 'full', redirectTo: 'appointments' },
@@ -83,8 +96,12 @@ export const routes: Routes = [
   { path: 'inventory/purchase-bill-drafts', loadComponent: () => import('./pages/purchase-bill-drafts.component').then(m => m.PurchaseBillDraftsComponent), title: 'AI Purchase Bill Drafts' },
   { path: 'inventory/purchase-orders/:id', loadComponent: () => import('./pages/purchase-order-detail.component').then(m => m.PurchaseOrderDetailComponent), title: 'Purchase Order Detail' },
   { path: 'inventory/purchase-orders', loadComponent: () => import('./pages/purchase-orders.component').then(m => m.PurchaseOrdersComponent), title: 'Purchase Orders' },
+  { path: 'inventory/reorder', loadComponent: () => import('./pages/inventory-reorder.component').then(m => m.InventoryReorderComponent), title: 'AI Reorder Autopilot' },
   { path: 'inventory/recipes', loadComponent: () => import('./pages/inventory-recipes.component').then(m => m.InventoryRecipesComponent), title: 'Service Recipes' },
+  { path: 'inventory/fifo', loadComponent: () => import('./pages/inventory-fifo.component').then(m => m.InventoryFifoComponent), title: 'Inventory FIFO' },
+  { path: 'inventory/product-consume', loadComponent: () => import('./pages/product-consume.component').then(m => m.ProductConsumeComponent), title: 'Product Consume' },
   { path: 'inventory/stock-audit', loadComponent: () => import('./pages/inventory-stock-audit.component').then(m => m.InventoryStockAuditComponent), title: 'Stock Audit' },
+  { path: 'inventory/financial', loadComponent: () => import('./pages/inventory-financial.component').then(m => m.InventoryFinancialComponent), title: 'Inventory Financial Brain' },
   { path: 'inventory/reports', loadComponent: () => import('./pages/inventory-reports.component').then(m => m.InventoryReportsComponent), title: 'Inventory Reports' },
   { path: 'inventory/scanner', loadComponent: () => import('./pages/inventory-scanner.component').then(m => m.InventoryScannerComponent), title: 'Inventory Scanner' },
   { path: 'inventory', loadComponent: () => import('./pages/inventory.component').then(m => m.InventoryComponent), title: 'Products & Inventory' },
@@ -281,7 +298,6 @@ export const routes: Routes = [
   {
     path: 'growth-advisor', component: ModulePageComponent, title: 'AI Growth Advisor', data: { entity: 'growthAdvisorTasks', title: 'AI Growth Advisor Tasks', subtitle: 'Revenue growth suggestions, service opportunities, staff improvements and marketing actions.', createLabel: 'Add growth task', columns: [{ key: 'title', label: 'Task' }, { key: 'priority', label: 'Priority', type: 'badge' }, { key: 'dueDate', label: 'Due' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'title', label: 'Title', required: true }, { key: 'priority', label: 'Priority', required: true, defaultValue: 'medium' }, { key: 'branchId', label: 'Branch ID' }, { key: 'dueDate', label: 'Due date' }, { key: 'signals', label: 'Signals JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }] }
   },
-  { path: 'growth-rank-bot', component: GrowthRankBotComponent, title: 'Growth Rank Bot' },
   {
     path: 'franchise', component: ModulePageComponent, title: 'Franchise System', data: { entity: 'franchises', title: 'Franchise Management', subtitle: 'Franchise onboarding, royalty tracking, compliance and shared templates.', createLabel: 'Add franchise', columns: [{ key: 'name', label: 'Franchise' }, { key: 'ownerName', label: 'Owner' }, { key: 'royaltyPercent', label: 'Royalty %' }, { key: 'complianceScore', label: 'Compliance' }], fields: [{ key: 'name', label: 'Franchise name', required: true }, { key: 'ownerName', label: 'Owner name', required: true }, { key: 'ownerEmail', label: 'Owner email' }, { key: 'royaltyPercent', label: 'Royalty %', type: 'number' }, { key: 'territory', label: 'Territory JSON', type: 'json', defaultValue: {} }, { key: 'complianceChecklist', label: 'Compliance checklist JSON', type: 'json', defaultValue: [] }] }
   },
