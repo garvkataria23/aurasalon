@@ -7,6 +7,7 @@ import { ApiRecord, ApiService } from './core/api.service';
 import { AuthSessionService } from './core/auth-session.service';
 import { I18nService, LocalePreference } from './core/i18n.service';
 import { AppStateService, UserRole } from './core/state/app-state.service';
+import { AutoNameCaseDirective } from './shared/directives/auto-name-case.directive';
 
 type NavItem = {
   path: string;
@@ -28,6 +29,7 @@ type NavGroup = {
   selector: 'app-root',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, RouterLinkActive, RouterOutlet],
+  hostDirectives: [AutoNameCaseDirective],
   template: `
     <ng-container *ngIf="!session.isAuthenticated() && !isPortal(); else authenticatedApp">
       <main class="auth-shell">
