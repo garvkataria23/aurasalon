@@ -114,6 +114,71 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </section>
         </div>
 
+        <section class="panel">
+          <div class="section-title"><div><span class="eyebrow">Product consume report</span><h2>Service-wise usage and cost</h2></div></div>
+          <div class="mini-metrics">
+            <div><span>Purchase rate</span><strong>{{ (item.unitCost || 0) | currency: 'INR':'symbol':'1.2-2' }}</strong></div>
+            <div><span>Used in services</span><strong>{{ consumeReportTotals().serviceCount || 0 }}</strong></div>
+            <div><span>Total used</span><strong>{{ consumeReportTotals().totalQuantityText || '0' }}</strong></div>
+            <div><span>Consume value</span><strong>{{ (consumeReportTotals().totalCost || 0) | currency: 'INR':'symbol':'1.2-2' }}</strong></div>
+          </div>
+          <div class="table-wrap" *ngIf="serviceConsumeRows().length; else noConsumeReport">
+            <table>
+              <thead><tr><th>Service</th><th>Times</th><th>Qty used</th><th>Value</th><th>Last used</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of serviceConsumeRows()">
+                  <td>{{ row.serviceName || 'Service' }}</td>
+                  <td>{{ row.times || 0 }}</td>
+                  <td>{{ row.quantityText || '0' }}</td>
+                  <td>{{ (row.cost || 0) | currency: 'INR':'symbol':'1.2-2' }}</td>
+                  <td>{{ row.lastUsedAt | date: 'short' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="timeline mini consume-entry-list">
+              <article *ngFor="let entry of consumeEntries().slice(0, 6)">
+                <strong>{{ entry.serviceName || 'Service' }} · {{ entry.quantity || 0 }} {{ entry.unit || item.unit || 'pcs' }}</strong>
+                <span>{{ entry.invoiceNumber || entry.draftId }} · {{ entry.clientName || 'Walk-in client' }} · {{ (entry.cost || 0) | currency: 'INR':'symbol':'1.2-2' }}</span>
+                <small>{{ entry.staffName || 'Unassigned' }} · {{ entry.usedAt | date: 'short' }}</small>
+              </article>
+            </div>
+          </div>
+          <ng-template #noConsumeReport>
+            <div class="empty-state"><strong>No confirmed consume found</strong><span>Confirmed Product Consume drafts for this product will appear here.</span></div>
+          </ng-template>
+        </section>
+
+        <section class="panel">
+          <div class="section-title"><div><span class="eyebrow">Tube-level / bulk history</span><h2>Backbar container trail</h2></div></div>
+          <div class="mini-metrics">
+            <div><span>Sealed stock</span><strong>{{ backbarSummary()['sealedStock'] || 0 }}</strong></div>
+            <div><span>Open containers</span><strong>{{ backbarSummary()['openContainers'] || 0 }}</strong></div>
+            <div><span>Total used</span><strong>{{ backbarSummary()['totalUsedText'] || '0' }}</strong></div>
+            <div><span>Usage value</span><strong>{{ (backbarSummary()['usageCost'] || 0) | currency: 'INR':'symbol':'1.2-2' }}</strong></div>
+          </div>
+          <div class="backbar-container-list" *ngIf="backbarContainers().length; else noBackbarHistory">
+            <article *ngFor="let container of backbarContainers()">
+              <div class="container-head">
+                <div>
+                  <strong>{{ container['containerCode'] || container['id'] }}</strong>
+                  <span>{{ container['status'] || 'open' }} · {{ container['usedQuantity'] || 0 }} {{ container['measureUnit'] }} used · {{ container['balanceQuantity'] || 0 }} {{ container['measureUnit'] }} left</span>
+                </div>
+                <small>{{ container['openedAt'] | date: 'short' }}</small>
+              </div>
+              <div class="timeline mini" *ngIf="backbarEntries(container).length">
+                <article *ngFor="let entry of backbarEntries(container).slice(0, 8)">
+                  <strong>{{ entry['clientName'] || entry['usageType'] || 'Usage' }} · {{ entry['usedQuantity'] || 0 }} {{ entry['unit'] || container['measureUnit'] }}</strong>
+                  <span>{{ entry['serviceName'] || entry['reason'] || entry['draftId'] || 'Backbar use' }} · balance {{ entry['balanceAfter'] || 0 }} {{ entry['unit'] || container['measureUnit'] }}</span>
+                  <small>{{ entry['staffName'] || 'Unassigned' }} · {{ entry['usedAt'] | date: 'short' }}</small>
+                </article>
+              </div>
+            </article>
+          </div>
+          <ng-template #noBackbarHistory>
+            <div class="empty-state"><strong>No backbar container history</strong><span>Tube, bottle, jar and bulk-product consumption will appear here after Product Consume entries.</span></div>
+          </ng-template>
+        </section>
+
         <div class="product-grid">
           <section class="panel">
             <div class="section-title"><div><span class="eyebrow">Service Recipe / BOM</span><h2>Services using this product</h2></div></div>
@@ -233,6 +298,38 @@ import { StateComponent } from '../shared/ui/state/state.component';
       gap: 8px;
     }
 
+    .backbar-container-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .backbar-container-list > article {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .container-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .container-head span,
+    .container-head small {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .consume-entry-list {
+      margin-top: 12px;
+    }
+
     .timeline article {
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -291,6 +388,8 @@ export class Product360Component implements OnInit {
   readonly sales = signal<ApiRecord[]>([]);
   readonly services = signal<ApiRecord[]>([]);
   readonly intelligence = signal<ApiRecord | null>(null);
+  readonly productConsumeReport = signal<ApiRecord | null>(null);
+  readonly backbarProductReport = signal<ApiRecord | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -343,8 +442,10 @@ export class Product360Component implements OnInit {
       firstValueFrom(this.api.list<ApiRecord[]>('inventory', { limit: 1000 })),
       firstValueFrom(this.api.list<ApiRecord[]>('sales', { limit: 1000 })),
       firstValueFrom(this.api.list<ApiRecord[]>('services', { limit: 1000 })),
-      firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/summary', { branchId: this.api.selectedBranchId() }))
-    ]).then(([product, products, branches, suppliers, batches, transactions, sales, services, intelligence]) => {
+      firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/summary', { branchId: this.api.selectedBranchId() })),
+      firstValueFrom(this.api.list<ApiRecord>(`inventory-intelligence/product-consume-report/${productId}`, { limit: 1000 })),
+      firstValueFrom(this.api.list<ApiRecord>(`inventory-intelligence/backbar-products/${productId}/report`, { branchId: this.api.selectedBranchId(), limit: 200 }))
+    ]).then(([product, products, branches, suppliers, batches, transactions, sales, services, intelligence, consumeReport, backbarReport]) => {
       this.product.set(product);
       this.products.set(products || []);
       this.branches.set(branches || []);
@@ -354,6 +455,8 @@ export class Product360Component implements OnInit {
       this.sales.set(sales || []);
       this.services.set(services || []);
       this.intelligence.set(intelligence || null);
+      this.productConsumeReport.set(consumeReport || null);
+      this.backbarProductReport.set(backbarReport || null);
       this.loading.set(false);
     }).catch((error) => {
       this.error.set(error?.error?.error || error?.message || 'Unable to load Product 360');
@@ -429,6 +532,30 @@ export class Product360Component implements OnInit {
     const product = this.product();
     if (!product) return [];
     return this.sales().filter((sale) => this.asArray(sale.items).some((item) => item.productId === product.id || item.id === product.id || item.name === product.name));
+  }
+
+  consumeReportTotals(): ApiRecord {
+    return (this.productConsumeReport()?.['totals'] || {}) as ApiRecord;
+  }
+
+  serviceConsumeRows(): ApiRecord[] {
+    return (this.productConsumeReport()?.['serviceSummary'] || []) as ApiRecord[];
+  }
+
+  consumeEntries(): ApiRecord[] {
+    return (this.productConsumeReport()?.['entries'] || []) as ApiRecord[];
+  }
+
+  backbarSummary(): ApiRecord {
+    return (this.backbarProductReport()?.['summary'] || {}) as ApiRecord;
+  }
+
+  backbarContainers(): ApiRecord[] {
+    return (this.backbarProductReport()?.['containers'] || []) as ApiRecord[];
+  }
+
+  backbarEntries(container: ApiRecord): ApiRecord[] {
+    return (container?.['entries'] || []) as ApiRecord[];
   }
 
   initials(value = ''): string {

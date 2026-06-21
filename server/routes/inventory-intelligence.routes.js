@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
+import { backbarProductConsumptionService } from "../services/backbar-product-consumption.service.js";
 import { inventoryEnterpriseService } from "../services/inventory-enterprise.service.js";
 import { intelligentInventoryService } from "../services/intelligent-inventory.service.js";
 import { purchaseBillDraftService } from "../services/purchase-bill-draft.service.js";
@@ -341,6 +342,43 @@ inventoryIntelligenceRouter.post(
 );
 
 inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/backbar-owner-report",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.ownerReport(req.query, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/backbar-products/:productId/report",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.productReport(req.params.productId, req.query, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/backbar-containers/:id/adjust",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.adjustContainer(
+      req.params.id,
+      req.body,
+      req.access,
+      (stockPayload) => inventoryEnterpriseService.consumeProductFifo(stockPayload, req.access)
+    ));
+  })
+);
+
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/backbar-products/:productId/override-open",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.overrideOpenContainer(req.params.productId, req.body, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
   "/inventory-intelligence/product-consume-drafts",
   requirePermission("read", () => "inventory"),
   asyncHandler((req, res) => {
@@ -377,6 +415,14 @@ inventoryIntelligenceRouter.post(
   requirePermission("write", () => "inventory"),
   asyncHandler((req, res) => {
     res.json(inventoryEnterpriseService.generateProductConsumeDraftsForInvoice(req.params.invoiceId, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/product-consume-report/:productId",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.productConsumeReport(req.params.productId, req.query, req.access));
   })
 );
 

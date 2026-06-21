@@ -239,13 +239,38 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
                 <option value="ml">ml</option>
                 <option value="gm">gm</option>
                 <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="l">l</option>
                 <option value="pcs">pcs</option>
                 <option value="tube">tube</option>
+                <option value="bottle">bottle</option>
+                <option value="jar">jar</option>
+                <option value="can">can</option>
+                <option value="tin">tin</option>
                 <option value="pack">pack</option>
                 <option value="box">box</option>
                 <option value="nos">nos</option>
               </select>
             </label>
+            <label class="field">
+              <span>Pack size</span>
+              <input type="number" min="0" step="0.01" formControlName="packSize" placeholder="1000" />
+            </label>
+            <label class="field">
+              <span>Consume unit</span>
+              <select formControlName="packUnit">
+                <option value="ml">ml</option>
+                <option value="gm">gm</option>
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+                <option value="l">l</option>
+                <option value="pcs">pcs</option>
+              </select>
+            </label>
+            <div class="bulk-preview">
+              <span>Bulk config</span>
+              <strong>{{ productBulkPreview() }}</strong>
+            </div>
             <label class="field">
               <span>Usage type</span>
               <select formControlName="usageType">
@@ -809,6 +834,29 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
       grid-column: span 2;
     }
 
+    .bulk-preview {
+      min-height: 58px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .bulk-preview span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .bulk-preview strong {
+      color: var(--ink);
+      font-size: 0.88rem;
+      line-height: 1.25;
+    }
+
     .compact-form textarea {
       min-height: 42px;
       resize: vertical;
@@ -965,6 +1013,8 @@ export class InventoryComponent implements OnInit {
     sku: ['', Validators.required],
     category: [''],
     unit: ['pcs'],
+    packSize: [0],
+    packUnit: ['pcs'],
     usageType: ['retail'],
     supplier: [''],
     branchId: ['', Validators.required],
@@ -1067,6 +1117,16 @@ export class InventoryComponent implements OnInit {
         this.saving.set(false);
       }
     });
+  }
+
+  productBulkPreview(): string {
+    const unit = String(this.productForm.value.unit || 'pcs').trim() || 'pcs';
+    const packUnit = String(this.productForm.value.packUnit || unit).trim() || unit;
+    const packSize = Number(this.productForm.value.packSize || 0);
+    if (packSize > 0 && unit.toLowerCase() !== packUnit.toLowerCase()) {
+      return `1 ${unit} = ${packSize} ${packUnit}`;
+    }
+    return 'Set like 1 bottle = 1000 ml or 1 tube = 60 gm';
   }
 
   adjustStock(): void {

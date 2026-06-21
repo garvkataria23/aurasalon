@@ -14,6 +14,10 @@ interface ConsumeLine {
   minQty?: number;
   maxQty?: number;
   substitutes?: string;
+  stockUnit?: string;
+  packSize?: number;
+  packUnit?: string;
+  stockUnitCost?: number;
   unitCost: number;
   expectedCost: number;
   actualCost: number;
@@ -37,10 +41,12 @@ interface ProductRow extends ApiRecord {
   name: string;
   unit?: string;
   unitCost?: number;
+  packSize?: number;
+  packUnit?: string;
   stock?: number;
 }
 
-const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
+const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle', 'jar', 'can', 'tin', 'pack', 'box', 'nos'];
 
 @Component({
   selector: 'app-product-consume',
@@ -52,7 +58,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
         <div>
           <span class="eyebrow">Inventory - service usage</span>
           <h1>Product Consume</h1>
-          <p>POS invoice se auto draft aayega. Qty check karo, phir confirm par stock minus hoga.</p>
+          <p>Auto drafts come from POS invoices. Check quantity, then confirm to reduce stock.</p>
         </div>
         <div class="hero-actions">
           <a class="ghost" routerLink="/inventory/recipes">Service Recipes</a>
@@ -66,6 +72,23 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
         <article><span>Expected cost</span><strong>{{ money(totalExpected()) }}</strong><small>recipe based</small></article>
         <article><span>Actual cost</span><strong>{{ money(totalActual()) }}</strong><small>edited consume value</small></article>
       </div>
+
+      <section class="owner-report" *ngIf="backbarReport() as report">
+        <div class="ledger-head">
+          <div>
+            <span class="eyebrow">Owner report</span>
+            <h3>Backbar bulk control</h3>
+          </div>
+          <small>Open containers, adjustments, alerts and usage cost.</small>
+        </div>
+        <div class="owner-metrics">
+          <article><span>Open</span><strong>{{ report['summary']?.openContainers || 0 }}</strong><small>in-use containers</small></article>
+          <article><span>Paused</span><strong>{{ report['summary']?.pausedContainers || 0 }}</strong><small>manager override</small></article>
+          <article><span>Adjustments</span><strong>{{ report['summary']?.adjustmentEntries || 0 }}</strong><small>waste/spill/expired</small></article>
+          <article><span>Alerts</span><strong>{{ report['summary']?.openAlerts || 0 }}</strong><small>needs review</small></article>
+          <article><span>Usage cost</span><strong>{{ money(report['summary']?.usageCost || 0) }}</strong><small>client + adjustment</small></article>
+        </div>
+      </section>
 
       <div *ngIf="error()" class="alert">{{ error() }}</div>
       <div *ngIf="message()" class="success">{{ message() }}</div>
@@ -118,7 +141,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
               <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Substitutes</span><span>Cost</span>
             </div>
             <div class="row" *ngFor="let line of draft.lineItems; let i = index">
-              <span><strong>{{ line.productName || line.productId }}</strong><small>{{ line.unitCost | number:'1.2-2' }} / {{ line.unit }}</small></span>
+              <span><strong>{{ line.productName || line.productId }}</strong><small>{{ line.unitCost | number:'1.2-2' }} / {{ line.unit }}<ng-container *ngIf="linePackLabel(line)"> · {{ linePackLabel(line) }}</ng-container></small></span>
               <span class="qty-unit">
                 <input type="number" min="0" step="0.01" [ngModel]="line.actualQty" (ngModelChange)="updateQty(i, $event)" [disabled]="draft.status === 'confirmed'">
                 <select [ngModel]="line.unit" (ngModelChange)="updateLine(i, { unit: $event })" [disabled]="draft.status === 'confirmed'">
@@ -135,6 +158,66 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
             </div>
           </div>
 
+          <section class="backbar-ledger" *ngIf="ledgerProducts().length">
+            <div class="ledger-head">
+              <div>
+                <span class="eyebrow">Backbar control</span>
+                <h3>Open container ledger</h3>
+              </div>
+              <small>Tube, bottle, jar aur can pehle zero honge, phir next container open hoga.</small>
+            </div>
+            <article class="ledger-product" *ngFor="let product of ledgerProducts()">
+              <div class="ledger-summary">
+                <div>
+                  <strong>{{ product['productName'] }}</strong>
+                  <small>{{ qty(product['capacityQty'], product['measureUnit']) }} per {{ product['stockUnit'] }}</small>
+                </div>
+                <div><span>Sealed</span><strong>{{ product['sealedStock'] || 0 }} {{ product['stockUnit'] }}</strong></div>
+                <div><span>Open</span><strong>{{ product['openCount'] || 0 }}</strong></div>
+                <div><span>Finished</span><strong>{{ product['finishedCount'] || 0 }}</strong></div>
+              </div>
+              <div class="active-container" *ngIf="product['activeContainer'] as container">
+                <div>
+                  <span>{{ product['stockUnit'] }} #{{ container['containerNo'] }}</span>
+                  <strong>{{ qty(container['balanceQty'], product['measureUnit']) }} left</strong>
+                </div>
+                <div class="progress"><i [style.width.%]="containerProgress(container)"></i></div>
+                <small>{{ qty(container['usedQty'], product['measureUnit']) }} used from {{ qty(container['capacityQty'], product['measureUnit']) }}</small>
+              </div>
+              <div class="ledger-actions" *ngIf="product['activeContainer'] as container">
+                <select [(ngModel)]="adjustForm.usageType">
+                  <option value="spillage">Spillage</option>
+                  <option value="expired">Expired</option>
+                  <option value="damaged">Damaged</option>
+                  <option value="manual_adjustment">Manual adjustment</option>
+                </select>
+                <input type="number" min="0" step="0.01" [(ngModel)]="adjustForm.quantity" [placeholder]="'Qty in ' + product['measureUnit']">
+                <input [(ngModel)]="adjustForm.reason" placeholder="Reason">
+                <button type="button" class="ghost" (click)="recordAdjustment(container)">Record adjustment</button>
+              </div>
+              <div class="ledger-actions override">
+                <input [(ngModel)]="overrideReason" placeholder="Manager override reason">
+                <button type="button" class="ghost" (click)="overrideOpen(product)">Override open next</button>
+              </div>
+              <div class="ledger-alerts" *ngIf="ledgerAlerts(product).length">
+                <span class="mini-alert" *ngFor="let alert of ledgerAlerts(product).slice(0, 3)" [class.high]="alert['severity'] === 'high'">
+                  {{ alert['title'] || alert['message'] }}
+                </span>
+              </div>
+              <div class="ledger-history" *ngIf="ledgerEntries(product).length; else noLedgerHistory">
+                <div class="history-row" *ngFor="let entry of ledgerEntries(product).slice(0, 6)">
+                  <strong>{{ entry['clientName'] || 'Walk-in client' }}</strong>
+                  <span>{{ entry['serviceName'] || draft.serviceName }}</span>
+                  <span>{{ qty(entry['usedQty'], entry['unit']) }}</span>
+                  <span>{{ qty(entry['balanceAfter'], entry['unit']) }} left</span>
+                </div>
+              </div>
+              <ng-template #noLedgerHistory>
+                <p class="ledger-empty">Confirm consume ke baad client-wise container history yahan dikhegi.</p>
+              </ng-template>
+            </article>
+          </section>
+
           <div class="manual-product-add" *ngIf="draft.status !== 'confirmed'">
             <label class="product-picker">
               <span>Product</span>
@@ -142,11 +225,11 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
               <div class="product-results" *ngIf="productPickerOpen && filteredProducts().length">
                 <button type="button" *ngFor="let product of filteredProducts()" (click)="selectProduct(product)">
                   <strong>{{ product.name }}</strong>
-                  <small>Qty {{ product.stock || 0 }} {{ product.unit || product['stockUnit'] || 'pcs' }}</small>
+                  <small>Qty {{ product.stock || 0 }} {{ productStockUnit(product) }}<ng-container *ngIf="productPackLabel(product)"> · {{ productPackLabel(product) }}</ng-container></small>
                 </button>
               </div>
               <small class="selected-stock" *ngIf="selectedProduct() as product">
-                Available qty: {{ product.stock || 0 }} {{ product.unit || product['stockUnit'] || 'pcs' }}
+                Available qty: {{ product.stock || 0 }} {{ productStockUnit(product) }}<ng-container *ngIf="productPackLabel(product)"> · {{ productPackLabel(product) }}</ng-container>
               </small>
             </label>
             <label>
@@ -227,6 +310,28 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
     .row:last-child { border-bottom: 0; }
     .qty-unit, .range-fields { display: grid; grid-template-columns: 1fr 86px; gap: 8px; }
     .range-fields { grid-template-columns: 1fr 1fr; }
+    .backbar-ledger { border: 1px solid #dcebea; border-radius: 16px; padding: 14px; display: grid; gap: 12px; background: #f8fbfa; }
+    .owner-report { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
+    .owner-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .owner-metrics article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 4px; background: #f8fbfa; }
+    .owner-metrics span, .owner-metrics small { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .ledger-head, .ledger-summary, .active-container { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .ledger-head h3 { margin: 2px 0 0; }
+    .ledger-head small, .ledger-product small, .ledger-summary span, .history-row span { color: #64748b; }
+    .ledger-product { background: white; border: 1px solid #dcebea; border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+    .ledger-summary { display: grid; grid-template-columns: 1.6fr repeat(3, minmax(90px, .5fr)); }
+    .ledger-summary div { display: grid; gap: 4px; }
+    .active-container { align-items: start; border: 1px dashed #9bd8cf; border-radius: 12px; padding: 10px; background: #ecfdf5; }
+    .progress { height: 9px; min-width: 160px; border-radius: 999px; overflow: hidden; background: #d7e6e4; }
+    .progress i { display: block; height: 100%; border-radius: inherit; background: #0f766e; }
+    .ledger-alerts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ledger-actions { display: grid; grid-template-columns: .8fr .7fr 1fr auto; gap: 8px; align-items: center; }
+    .ledger-actions.override { grid-template-columns: 1fr auto; }
+    .mini-alert { border-radius: 999px; background: #e0f2fe; color: #075985; padding: 6px 10px; font-size: 12px; font-weight: 900; }
+    .mini-alert.high { background: #fee2e2; color: #991b1b; }
+    .ledger-history { display: grid; gap: 6px; }
+    .history-row { display: grid; grid-template-columns: 1.2fr 1.4fr .8fr .8fr; gap: 10px; padding: 8px 0; border-top: 1px solid #edf4f3; }
+    .ledger-empty { margin: 0; color: #64748b; }
     .notes { display: grid; gap: 8px; }
     .manual-product-add { display: grid; grid-template-columns: minmax(260px, 2fr) .7fr .7fr .7fr .7fr .7fr 1.2fr auto; gap: 10px; align-items: end; }
     .manual-product-add label { display: grid; gap: 6px; }
@@ -242,7 +347,9 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'pcs', 'tube', 'pack', 'box', 'nos'];
     .empty, .empty-editor { color: #64748b; padding: 18px; }
     @media (max-width: 900px) {
       .module-hero, .workspace { display: grid; }
-      .metric-grid, .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric-grid, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override { grid-template-columns: 1fr 1fr; }
+      .active-container { display: grid; }
       .manual-product-add { grid-template-columns: 1fr; }
       .draft-list { border-right: 0; border-bottom: 1px solid #dcebea; max-height: 360px; }
     }
@@ -263,8 +370,12 @@ export class ProductConsumeComponent {
   readonly message = signal('');
   readonly statusFilter = signal('');
   readonly products = signal<ProductRow[]>([]);
+  readonly backbarLedger = signal<ApiRecord | null>(null);
+  readonly backbarReport = signal<ApiRecord | null>(null);
   readonly units = RECIPE_UNITS;
   productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
+  adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
+  overrideReason = '';
   productQuery = '';
   productPickerOpen = false;
   readonly selected = computed(() => this.drafts().find((draft) => draft.id === this.selectedId()) || null);
@@ -275,6 +386,7 @@ export class ProductConsumeComponent {
 
   constructor() {
     this.loadProducts();
+    this.loadBackbarReport();
     this.load();
   }
 
@@ -295,10 +407,12 @@ export class ProductConsumeComponent {
         const normalized = (rows || []).map((row) => ({ ...row, lineItems: row.lineItems || [] }));
         this.drafts.set(normalized);
         if (!normalized.some((row) => row.id === this.selectedId())) this.selectedId.set(normalized[0]?.id || '');
+        if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
+        this.loadBackbarReport();
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.error?.error || err?.message || 'Product consume drafts load nahi huye.');
+        this.error.set(err?.error?.error || err?.message || 'Unable to load product consume drafts.');
         this.loading.set(false);
       }
     });
@@ -311,6 +425,7 @@ export class ProductConsumeComponent {
 
   select(draft: ConsumeDraft): void {
     this.selectedId.set(draft.id);
+    this.loadBackbarLedger(draft.id);
   }
 
   updateQty(index: number, value: string | number): void {
@@ -329,7 +444,7 @@ export class ProductConsumeComponent {
 
   fillProductDefaults(): void {
     const product = this.products().find((row) => row.id === this.productForm.productId);
-    this.productForm.unit = String(product?.unit || product?.['stockUnit'] || this.productForm.unit || 'pcs');
+    this.productForm.unit = product ? this.defaultConsumeUnit(product) : String(this.productForm.unit || 'pcs');
     if (!this.productForm.qty) this.productForm.qty = 1;
   }
 
@@ -357,6 +472,7 @@ export class ProductConsumeComponent {
     this.patchSelected((draft) => {
       const lineItems = [...draft.lineItems];
       const line = { ...lineItems[index], ...patch };
+      if (patch.unit !== undefined) line.unitCost = this.consumeUnitCostForLine(line, String(line.unit || 'pcs'));
       line.actualQty = Number(line.actualQty || 0);
       line.wastagePct = Number(line.wastagePct || 0);
       line.minQty = Number(line.minQty || 0);
@@ -371,20 +487,26 @@ export class ProductConsumeComponent {
     const product = this.products().find((row) => row.id === this.productForm.productId);
     const qty = Number(this.productForm.qty || 0);
     if (!product || qty <= 0) {
-      this.error.set('Product select karo aur qty 0 se zyada rakho.');
+      this.error.set('Select a product and keep quantity above 0.');
       return;
     }
-    const unitCost = Number(product.unitCost || product['costPrice'] || product['purchasePrice'] || 0);
+    const unit = String(this.productForm.unit || this.defaultConsumeUnit(product));
+    const stockUnitCost = Number(product.unitCost || product['costPrice'] || product['purchasePrice'] || 0);
+    const unitCost = this.consumeUnitCost(product, unit);
     const line: ConsumeLine = {
       productId: product.id,
       productName: product.name,
-      unit: String(this.productForm.unit || product.unit || product['stockUnit'] || product['unitName'] || 'pcs'),
+      unit,
       expectedQty: qty,
       actualQty: qty,
       wastagePct: Number(this.productForm.wastagePct || 0),
       minQty: Number(this.productForm.minQty || 0),
       maxQty: Number(this.productForm.maxQty || 0),
       substitutes: this.productForm.substitutes || '',
+      stockUnit: this.productStockUnit(product),
+      packSize: this.productPackSize(product),
+      packUnit: this.productPackUnit(product),
+      stockUnitCost,
       unitCost,
       expectedCost: Math.round(qty * unitCost * 100) / 100,
       actualCost: Math.round(qty * unitCost * 100) / 100
@@ -401,7 +523,7 @@ export class ProductConsumeComponent {
       };
     });
     this.productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
-    this.message.set('Product line added. Save draft ya Confirm consume karo.');
+    this.message.set('Product line added. Save draft or confirm consume.');
   }
 
   saveDraft(): void {
@@ -416,14 +538,161 @@ export class ProductConsumeComponent {
   confirmDraft(): void {
     const draft = this.selected();
     if (!draft) return;
-    this.persist('Product consume confirmed. Stock ledger updated.', this.api.post<{ draft: ConsumeDraft }>(`inventory-intelligence/product-consume-drafts/${draft.id}/confirm`, {
+    this.persist('Product consume confirmed. Backbar ledger updated.', this.api.post<{ draft: ConsumeDraft; backbarLedger?: ApiRecord }>(`inventory-intelligence/product-consume-drafts/${draft.id}/confirm`, {
       lineItems: draft.lineItems,
       notes: draft.notes || ''
     }), true);
   }
 
+  loadBackbarLedger(draftId: string): void {
+    this.api.list<ApiRecord>(`inventory-intelligence/product-consume-drafts/${draftId}/backbar-ledger`).subscribe({
+      next: (ledger) => this.backbarLedger.set(ledger || null),
+      error: () => this.backbarLedger.set(null)
+    });
+  }
+
+  loadBackbarReport(): void {
+    this.api.list<ApiRecord>('inventory-intelligence/backbar-owner-report', { branchId: this.api.selectedBranchId(), limit: 100 }).subscribe({
+      next: (report) => this.backbarReport.set(report || null),
+      error: () => this.backbarReport.set(null)
+    });
+  }
+
+  recordAdjustment(container: ApiRecord): void {
+    const quantity = Number(this.adjustForm.quantity || 0);
+    if (!container?.['id'] || quantity <= 0) {
+      this.error.set('Adjustment quantity 0 se zyada rakho.');
+      return;
+    }
+    this.saving.set(true);
+    this.api.post(`inventory-intelligence/backbar-containers/${container['id']}/adjust`, {
+      quantity,
+      usageType: this.adjustForm.usageType,
+      reason: this.adjustForm.reason || this.adjustForm.usageType,
+      unit: container['measureUnit']
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
+        if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
+        this.loadBackbarReport();
+        this.message.set('Backbar adjustment recorded.');
+      },
+      error: (err) => {
+        this.error.set(err?.error?.error || err?.message || 'Adjustment was not saved.');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  overrideOpen(product: ApiRecord): void {
+    const reason = this.overrideReason.trim();
+    if (!product?.['productId'] || !reason) {
+      this.error.set('Override reason required hai.');
+      return;
+    }
+    this.saving.set(true);
+    this.api.post(`inventory-intelligence/backbar-products/${product['productId']}/override-open`, {
+      branchId: product['branchId'] || this.api.selectedBranchId(),
+      reason,
+      stockUnit: product['stockUnit'],
+      packUnit: product['measureUnit'],
+      packSize: product['capacityQty']
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.overrideReason = '';
+        if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
+        this.loadBackbarReport();
+        this.message.set('Manager override container opened.');
+      },
+      error: (err) => {
+        this.error.set(err?.error?.error || err?.message || 'Override was not saved.');
+        this.saving.set(false);
+      }
+    });
+  }
+
   lineActualCost(line: ConsumeLine): number {
     return Math.round(Number(line.actualQty || 0) * Number(line.unitCost || 0) * 100) / 100;
+  }
+
+  ledgerProducts(): ApiRecord[] {
+    return (this.backbarLedger()?.['products'] || []) as ApiRecord[];
+  }
+
+  ledgerAlerts(product: ApiRecord): ApiRecord[] {
+    return (product?.['alerts'] || []) as ApiRecord[];
+  }
+
+  ledgerEntries(product: ApiRecord): ApiRecord[] {
+    return (product?.['entries'] || []) as ApiRecord[];
+  }
+
+  containerProgress(container: ApiRecord): number {
+    const capacity = Number(container?.['capacityQty'] || 0);
+    if (!capacity) return 0;
+    return Math.max(0, Math.min(100, (Number(container?.['usedQty'] || 0) / capacity) * 100));
+  }
+
+  qty(value: number | string | undefined, unit: string | undefined): string {
+    return `${Math.round(Number(value || 0) * 100) / 100} ${unit || ''}`.trim();
+  }
+
+  productStockUnit(product: ProductRow | ApiRecord): string {
+    return String(product?.unit || product?.['stockUnit'] || product?.['stock_unit'] || 'pcs').toLowerCase();
+  }
+
+  productPackSize(product: ProductRow | ApiRecord): number {
+    return Number(product?.packSize || product?.['pack_size'] || 0);
+  }
+
+  productPackUnit(product: ProductRow | ApiRecord): string {
+    return String(product?.packUnit || product?.['pack_unit'] || this.productStockUnit(product)).toLowerCase();
+  }
+
+  productPackLabel(product: ProductRow | ApiRecord): string {
+    const packSize = this.productPackSize(product);
+    if (packSize <= 0 || this.sameUnit(this.productPackUnit(product), this.productStockUnit(product))) return '';
+    return `1 ${this.productStockUnit(product)} = ${packSize} ${this.productPackUnit(product)}`;
+  }
+
+  linePackLabel(line: ConsumeLine): string {
+    const packSize = Number(line.packSize || 0);
+    if (packSize <= 0 || !line.stockUnit || !line.packUnit || this.sameUnit(line.stockUnit, line.packUnit)) return '';
+    return `1 ${line.stockUnit} = ${packSize} ${line.packUnit}`;
+  }
+
+  defaultConsumeUnit(product: ProductRow | ApiRecord): string {
+    const packSize = this.productPackSize(product);
+    return packSize > 0 && !this.sameUnit(this.productPackUnit(product), this.productStockUnit(product)) ? this.productPackUnit(product) : this.productStockUnit(product);
+  }
+
+  consumeUnitCost(product: ProductRow | ApiRecord, unit: string): number {
+    const stockUnitCost = Number(product?.unitCost || product?.['costPrice'] || product?.['purchasePrice'] || 0);
+    const packSize = this.productPackSize(product);
+    if (packSize > 0 && this.sameUnit(unit, this.productPackUnit(product)) && !this.sameUnit(unit, this.productStockUnit(product))) {
+      return Math.round((stockUnitCost / packSize) * 100) / 100;
+    }
+    return stockUnitCost;
+  }
+
+  consumeUnitCostForLine(line: ConsumeLine, unit: string): number {
+    const stockUnitCost = Number(line.stockUnitCost || line.unitCost || 0);
+    const packSize = Number(line.packSize || 0);
+    if (packSize > 0 && this.sameUnit(unit, line.packUnit || '') && !this.sameUnit(unit, line.stockUnit || '')) {
+      return Math.round((stockUnitCost / packSize) * 100) / 100;
+    }
+    return stockUnitCost;
+  }
+
+  private sameUnit(left: string, right: string): boolean {
+    return this.comparableUnit(left) === this.comparableUnit(right);
+  }
+
+  private comparableUnit(unit: string): string {
+    const normalized = String(unit || '').toLowerCase();
+    return normalized === 'gm' ? 'g' : normalized;
   }
 
   money(value: number | string | undefined): string {
@@ -435,14 +704,20 @@ export class ProductConsumeComponent {
     this.error.set('');
     this.message.set('');
     request.subscribe({
-      next: (response: ConsumeDraft | { draft: ConsumeDraft }) => {
+      next: (response: ConsumeDraft | { draft: ConsumeDraft; backbarLedger?: ApiRecord }) => {
         const updated = unwrap ? (response as { draft: ConsumeDraft }).draft : response as ConsumeDraft;
         this.replaceDraft({ ...updated, lineItems: updated.lineItems || [] });
+        if (unwrap && (response as { backbarLedger?: ApiRecord }).backbarLedger) {
+          this.backbarLedger.set((response as { backbarLedger?: ApiRecord }).backbarLedger || null);
+        } else {
+          this.loadBackbarLedger(updated.id);
+        }
+        this.loadBackbarReport();
         this.message.set(successMessage);
         this.saving.set(false);
       },
       error: (err: any) => {
-        this.error.set(err?.error?.error || err?.message || 'Product consume save nahi hua.');
+        this.error.set(err?.error?.error || err?.message || 'Product consume was not saved.');
         this.saving.set(false);
       }
     });

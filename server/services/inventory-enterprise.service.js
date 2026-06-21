@@ -2,11 +2,14 @@ import { applyInventoryDelta, db } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { badRequest, conflict, notFound } from "../utils/app-error.js";
 import { assertBranch, auditDecision, camel, emitEvent, makeId, now, number, parseJson, requireManager, toJson } from "./enterprise-command-utils.js";
+import { balanceSheetConnector } from "./balance-sheet-connector.service.js";
+import { backbarProductConsumptionService } from "./backbar-product-consumption.service.js";
 import { intelligentInventoryService } from "./intelligent-inventory.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
-const RECIPE_UNITS = new Set(["ml", "gm", "g", "pcs", "tube", "pack", "box", "nos"]);
+const RECIPE_UNITS = new Set(["ml", "gm", "g", "kg", "l", "ltr", "liter", "pcs", "tube", "bottle", "jar", "can", "tin", "pack", "box", "nos"]);
+const MEASURE_EQUIVALENTS = new Map([["gm", "g"], ["ltr", "l"], ["liter", "l"], ["nos", "pcs"]]);
 const CONSUMABLE_TYPES = new Set(["consumable", "both"]);
 const OVERUSE_TOLERANCE_PCT = 15;
 const DEFAULT_USAGE_MODIFIERS = [
@@ -29,6 +32,12 @@ export function ensureProductUnitSchema() {
   const columns = db.prepare("PRAGMA table_info(products)").all().map((column) => column.name);
   if (!columns.includes("unit")) {
     db.prepare("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'pcs'").run();
+  }
+  if (!columns.includes("packSize")) {
+    db.prepare("ALTER TABLE products ADD COLUMN packSize REAL DEFAULT 1").run();
+  }
+  if (!columns.includes("packUnit")) {
+    db.prepare("ALTER TABLE products ADD COLUMN packUnit TEXT DEFAULT 'pcs'").run();
   }
   productUnitSchemaReady = true;
 }
@@ -147,6 +156,42 @@ function safeArray(value) {
 function safeRecipeUnit(value = "") {
   const normalized = String(value || "").trim().toLowerCase();
   return RECIPE_UNITS.has(normalized) ? normalized : "pcs";
+}
+
+function comparableUnit(value = "") {
+  const unit = safeRecipeUnit(value);
+  return MEASURE_EQUIVALENTS.get(unit) || unit;
+}
+
+function packSizeFor(product = {}) {
+  return Math.max(0, number(product.packSize ?? product.pack_size, 0));
+}
+
+function packUnitFor(product = {}) {
+  const fallback = product.unit || product.stockUnit || product.stock_unit || "pcs";
+  return safeRecipeUnit(product.packUnit || product.pack_unit || fallback);
+}
+
+function stockUnitFor(product = {}) {
+  return safeRecipeUnit(product.unit || product.stockUnit || product.stock_unit || "pcs");
+}
+
+function stockQuantityForConsume(product = {}, quantity = 0, unit = "") {
+  const requestedUnit = comparableUnit(unit || stockUnitFor(product));
+  const stockUnit = comparableUnit(stockUnitFor(product));
+  if (requestedUnit === stockUnit) return money(quantity);
+  const packSize = packSizeFor(product);
+  if (packSize <= 0) return money(quantity);
+  return requestedUnit === comparableUnit(packUnitFor(product))
+    ? money(quantity / packSize)
+    : money(quantity);
+}
+
+function quantityText(quantityByUnit = {}) {
+  const parts = Object.entries(quantityByUnit)
+    .filter(([, value]) => number(value, 0) > 0)
+    .map(([unit, value]) => `${money(value)} ${unit}`);
+  return parts.length ? parts.join(" + ") : "0";
 }
 
 function safeProductType(product = {}) {
@@ -758,6 +803,11 @@ export class InventoryEnterpriseService {
             expiryDate,
             quantity: acceptedQty,
             unitCost,
+            taxAmount: receiveCalc.gstAmount,
+            payableAmount: receiveCalc.lineTotal,
+            sourceType: "purchase_order_receipt",
+            sourceId: `${po.id}:${target.id}:${payload.grnNumber || payload.grn_number || po.grn_number || ""}`,
+            settled: false,
             reason: `Purchase order ${po.po_number} receive`
           }, access);
         }
@@ -1267,10 +1317,12 @@ export class InventoryEnterpriseService {
   consumeProductFifo(payload = {}, access) {
     const productId = payload.productId || payload.product_id;
     const branchId = activeBranchId(payload, access);
-    const quantity = Math.abs(number(payload.quantity, 0));
-    if (!productId || !branchId || !quantity) throw badRequest("productId, branchId and quantity are required");
+    const requestedQuantity = Math.abs(number(payload.quantity, 0));
+    if (!productId || !branchId || !requestedQuantity) throw badRequest("productId, branchId and quantity are required");
     assertBranch(access, branchId);
     const product = requireProduct(productId, access, branchId);
+    const requestedUnit = safeRecipeUnit(payload.unit || payload.consumeUnit || payload.consume_unit || product.unit);
+    const quantity = stockQuantityForConsume(product, requestedQuantity, requestedUnit);
     if (number(product.stock) < quantity) throw conflict(`${product.name} stock is not enough for FIFO deduction`);
     const batches = db.prepare(`
       SELECT * FROM inventory_batches
@@ -1324,7 +1376,18 @@ export class InventoryEnterpriseService {
       });
       deductions.push({ batchId: "", quantity: remaining, transaction });
     }
-    return { productId, branchId, requestedQuantity: quantity, deductions };
+    const balanceSheet = balanceSheetConnector.connectInventoryIssue({
+      product,
+      productId,
+      branchId,
+      quantity,
+      unitCost: payload.unitCost ?? payload.unit_cost ?? product.unitCost,
+      seedQtyOnHand: product.stock,
+      sourceType: payload.type || "sale-deduction",
+      sourceId: `${payload.referenceType || payload.reference_type || "inventory"}:${payload.referenceId || payload.reference_id || productId}`,
+      businessDate: payload.businessDate || payload.business_date || now()
+    }, access);
+    return { productId, branchId, requestedQuantity, requestedUnit, stockQuantity: quantity, stockUnit: stockUnitFor(product), deductions, balanceSheet };
   }
 
   createProductConsumeDraftsForInvoice({ invoice = {}, sale = {}, client = {}, items = [] } = {}, access) {
@@ -1429,6 +1492,81 @@ export class InventoryEnterpriseService {
     return this.productConsumeDraftRow(getSnake("product_consume_drafts", id, access));
   }
 
+  productConsumeReport(productId, query = {}, access) {
+    ensureProductConsumeDraftSchema();
+    const product = requireProduct(productId, access);
+    const rows = listSnake(
+      "product_consume_drafts",
+      access,
+      { ...query, status: query.status || "confirmed", limit: query.limit || 1000 },
+      { orderBy: "created_at DESC", limit: 1000 }
+    );
+    const entries = [];
+    for (const row of rows) {
+      for (const line of safeArray(row.lineItemsJson || row.line_items_json)) {
+        if (String(line.productId || line.product_id || "") !== String(productId)) continue;
+        const quantity = money(number(line.actualQty ?? line.actual_qty ?? line.quantity, 0));
+        const unit = safeRecipeUnit(line.unit || product.unit || "pcs");
+        const unitCost = number(line.unitCost ?? line.unit_cost ?? product.unitCost, 0);
+        const cost = money(number(line.actualCost ?? line.actual_cost, quantity * unitCost));
+        entries.push({
+          draftId: row.id,
+          invoiceId: row.invoiceId || row.invoice_id || "",
+          invoiceNumber: row.invoiceNumber || row.invoice_number || "",
+          serviceId: row.serviceId || row.service_id || "",
+          serviceName: row.serviceName || row.service_name || "Service",
+          clientName: row.clientName || row.client_name || "",
+          staffName: row.staffName || row.staff_name || "",
+          quantity,
+          unit,
+          unitCost,
+          cost,
+          purchaseUnitCost: number(product.unitCost, 0),
+          usedAt: row.updatedAt || row.updated_at || row.createdAt || row.created_at || ""
+        });
+      }
+    }
+    const serviceSummaryMap = new Map();
+    const totalQuantityByUnit = {};
+    let totalCost = 0;
+    for (const entry of entries) {
+      const key = `${entry.serviceId}:${entry.serviceName}`;
+      const current = serviceSummaryMap.get(key) || {
+        serviceId: entry.serviceId,
+        serviceName: entry.serviceName,
+        times: 0,
+        quantityByUnit: {},
+        quantityText: "",
+        cost: 0,
+        lastUsedAt: ""
+      };
+      current.times += 1;
+      current.quantityByUnit[entry.unit] = money(number(current.quantityByUnit[entry.unit], 0) + entry.quantity);
+      current.cost = money(current.cost + entry.cost);
+      current.lastUsedAt = !current.lastUsedAt || String(entry.usedAt).localeCompare(String(current.lastUsedAt)) > 0 ? entry.usedAt : current.lastUsedAt;
+      serviceSummaryMap.set(key, current);
+      totalQuantityByUnit[entry.unit] = money(number(totalQuantityByUnit[entry.unit], 0) + entry.quantity);
+      totalCost = money(totalCost + entry.cost);
+    }
+    const serviceSummary = Array.from(serviceSummaryMap.values())
+      .map((row) => ({ ...row, quantityText: quantityText(row.quantityByUnit) }))
+      .sort((a, b) => Number(b.cost || 0) - Number(a.cost || 0));
+    return {
+      productId,
+      productName: product.name || productId,
+      purchaseUnitCost: number(product.unitCost, 0),
+      totals: {
+        times: entries.length,
+        serviceCount: serviceSummary.length,
+        totalCost,
+        totalQuantityByUnit,
+        totalQuantityText: quantityText(totalQuantityByUnit)
+      },
+      serviceSummary,
+      entries
+    };
+  }
+
   updateProductConsumeDraft(id, payload = {}, access) {
     ensureProductConsumeDraftSchema();
     requireManager(access);
@@ -1444,6 +1582,13 @@ export class InventoryEnterpriseService {
         expectedQty: money(number(line.expectedQty ?? line.expected_qty, 0)),
         actualQty,
         wastagePct: number(line.wastagePct ?? line.wastage_pct, 0),
+        minQty: number(line.minQty ?? line.min_qty, 0),
+        maxQty: number(line.maxQty ?? line.max_qty, 0),
+        substitutes: line.substitutes || "",
+        stockUnit: line.stockUnit || line.stock_unit || "",
+        packSize: packSizeFor(line),
+        packUnit: line.packUnit || line.pack_unit || "",
+        stockUnitCost: number(line.stockUnitCost ?? line.stock_unit_cost, 0),
         unitCost,
         expectedCost: money(number(line.expectedCost ?? line.expected_cost, 0)),
         actualCost: money(actualQty * unitCost)
@@ -1466,41 +1611,64 @@ export class InventoryEnterpriseService {
     if (draft.status === "confirmed") return this.productConsumeDraftRow(draft);
     const lines = safeArray(payload.lineItems || payload.line_items || draft.line_items_json);
     if (!lines.length) throw badRequest("At least one product line is required before confirm");
-    const result = draft.recipe_id
-      ? this.consumeServiceRecipe({
-          serviceId: draft.service_id,
-          branchId: draft.branch_id,
-          quantity: draft.service_quantity || 1,
-          referenceType: "invoice_product_consume",
-          referenceId: draft.invoice_id,
-          staffId: draft.staff_id,
-          clientId: draft.client_id,
-          actualItems: lines.map((line) => ({ productId: line.productId || line.product_id, quantity: line.actualQty ?? line.actual_qty ?? line.quantity }))
-        }, access)
-      : {
-          status: "deducted",
-          deductions: lines.map((line) => this.consumeProductFifo({
-            productId: line.productId || line.product_id,
+    const confirmation = db.transaction(() => {
+      const backbar = backbarProductConsumptionService.applyDraftConsumption({
+        draft,
+        lines,
+        access,
+        consumeStockUnit: (stockPayload) => this.consumeProductFifo(stockPayload, access)
+      });
+      const hasBackbarUsage = backbar.allocations.length || backbar.stockDeductions.length;
+      const result = !hasBackbarUsage && draft.recipe_id
+        ? this.consumeServiceRecipe({
+            serviceId: draft.service_id,
             branchId: draft.branch_id,
-            quantity: line.actualQty ?? line.actual_qty ?? line.quantity,
-            type: "service-use",
-            reason: `Manual product consume for ${draft.service_name || "service"}`,
+            quantity: draft.service_quantity || 1,
             referenceType: "invoice_product_consume",
             referenceId: draft.invoice_id,
-            unitCost: line.unitCost ?? line.unit_cost
-          }, access))
-        };
-    const updated = updateSnake("product_consume_drafts", id, access, {
-      line_items_json: toJson(lines),
-      actual_cost: money(lines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
-      status: "confirmed",
-      confirmed_usage_log_id: result.log?.id || "",
-      notes: payload.notes ?? draft.notes,
-      updated_by: access.userId || ""
-    });
+            staffId: draft.staff_id,
+            clientId: draft.client_id,
+            actualItems: lines.map((line) => ({ productId: line.productId || line.product_id, quantity: line.actualQty ?? line.actual_qty ?? line.quantity, unit: line.unit }))
+          }, access)
+        : {
+            status: "deducted",
+            deductions: backbar.passthroughLines.map((line) => this.consumeProductFifo({
+              productId: line.productId || line.product_id,
+              branchId: draft.branch_id,
+              quantity: line.actualQty ?? line.actual_qty ?? line.quantity,
+              unit: line.unit,
+              type: "service-use",
+              reason: `Manual product consume for ${draft.service_name || "service"}`,
+              referenceType: "invoice_product_consume",
+              referenceId: draft.invoice_id,
+              unitCost: number(line.stockUnitCost ?? line.stock_unit_cost, 0) || undefined
+            }, access)),
+            backbar: {
+              allocations: backbar.allocations,
+              alerts: backbar.alerts,
+              stockDeductions: backbar.stockDeductions
+            }
+          };
+      const updated = updateSnake("product_consume_drafts", id, access, {
+        line_items_json: toJson(lines),
+        actual_cost: money(lines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
+        status: "confirmed",
+        confirmed_usage_log_id: result.log?.id || "",
+        notes: payload.notes ?? draft.notes,
+        updated_by: access.userId || ""
+      });
+      return {
+        updated,
+        result
+      };
+    })();
     auditDecision("inventory.product_consume.confirmed", "product_consume_drafts", id, access, { branchId: draft.branch_id, details: { invoiceId: draft.invoice_id, serviceId: draft.service_id } });
     emitEvent("inventory:product_consume_confirmed", access, draft.branch_id, id, { invoiceId: draft.invoice_id, serviceId: draft.service_id });
-    return { draft: this.productConsumeDraftRow(updated), result };
+    return {
+      draft: this.productConsumeDraftRow(confirmation.updated),
+      result: confirmation.result,
+      backbarLedger: backbarProductConsumptionService.draftLedger(id, access)
+    };
   }
 
   productConsumeDraftRow(row = {}) {
@@ -1546,6 +1714,7 @@ export class InventoryEnterpriseService {
           productId: item.product_id,
           branchId,
           quantity: actual,
+          unit: actualOverride?.unit || item.unit,
           unitCost: item.unit_cost,
           type: "service-deduction",
           reason: `Service recipe ${recipe.service_name || serviceId}`,
