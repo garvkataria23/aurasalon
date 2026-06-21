@@ -427,6 +427,14 @@ inventoryIntelligenceRouter.get(
 );
 
 inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/staff-product-usage-audit",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.staffProductUsageAudit(req.query, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
   "/inventory-intelligence/stock-counts",
   requirePermission("read", () => "inventory"),
   asyncHandler((req, res) => {

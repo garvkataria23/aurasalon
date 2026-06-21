@@ -1088,7 +1088,7 @@ export class InventoryEnterpriseService {
   }
 
   listServiceRecipeUsage(query = {}, access) {
-    const branchId = query.branchId || query.branch_id || access.requestedBranchId || "";
+    const branchId = query.branchId || query.branch_id || access.requestedBranchId || access.branchId || "";
     const params = { tenant_id: access.tenantId, limit: number(query.limit, 100) };
     const where = ["tenant_id = @tenant_id"];
     if (branchId) {
@@ -1564,6 +1564,241 @@ export class InventoryEnterpriseService {
       },
       serviceSummary,
       entries
+    };
+  }
+
+  staffProductUsageAudit(query = {}, access) {
+    ensureProductConsumeDraftSchema();
+    const branchId = query.branchId || query.branch_id || access.requestedBranchId || "";
+    if (branchId) assertBranch(access, branchId);
+    const staffId = String(query.staffId || query.staff_id || "").trim();
+    const startDate = String(query.startDate || query.start_date || "").slice(0, 10);
+    const endDate = String(query.endDate || query.end_date || "").slice(0, 10);
+    const limit = Math.min(500, Math.max(1, number(query.limit, 100)));
+    const scanLimit = Math.min(2000, Math.max(250, limit));
+    const draftParams = { tenant_id: access.tenantId, limit: scanLimit };
+    const draftWhere = ["tenant_id = @tenant_id", "status = 'confirmed'"];
+    if (branchId) {
+      draftWhere.push("branch_id = @branch_id");
+      draftParams.branch_id = branchId;
+    }
+    if (staffId) {
+      draftWhere.push("staff_id = @staff_id");
+      draftParams.staff_id = staffId;
+    }
+    if (startDate) {
+      draftWhere.push("substr(COALESCE(updated_at, created_at), 1, 10) >= @start_date");
+      draftParams.start_date = startDate;
+    }
+    if (endDate) {
+      draftWhere.push("substr(COALESCE(updated_at, created_at), 1, 10) <= @end_date");
+      draftParams.end_date = endDate;
+    }
+    const drafts = db.prepare(`
+      SELECT * FROM product_consume_drafts
+      WHERE ${draftWhere.join(" AND ")}
+      ORDER BY updated_at DESC, created_at DESC
+      LIMIT @limit
+    `).all(draftParams);
+    const staffMap = new Map();
+    const recentEntries = [];
+    const exceptions = [];
+    let totalProductLines = 0;
+    let totalUsageCost = 0;
+    let adjustmentCount = 0;
+
+    const staffKey = (id = "", name = "") => String(id || name || "unassigned");
+    const staffRow = (id = "", name = "") => {
+      const key = staffKey(id, name);
+      if (!staffMap.has(key)) {
+        staffMap.set(key, {
+          staffId: id || "",
+          staffName: name || "Unassigned",
+          productIds: new Set(),
+          serviceIds: new Set(),
+          quantityByUnit: {},
+          cost: 0,
+          productLines: 0,
+          adjustmentCount: 0,
+          exceptionCount: 0,
+          lastUsedAt: ""
+        });
+      }
+      return staffMap.get(key);
+    };
+    const addUsageToStaff = ({ staffId: rowStaffId = "", staffName = "", productId = "", serviceId = "", unit = "pcs", quantity = 0, cost = 0, usedAt = "", isAdjustment = false, isException = false }) => {
+      const row = staffRow(rowStaffId, staffName);
+      if (productId) row.productIds.add(productId);
+      if (serviceId) row.serviceIds.add(serviceId);
+      row.quantityByUnit[unit] = money(number(row.quantityByUnit[unit], 0) + quantity);
+      row.cost = money(row.cost + cost);
+      row.lastUsedAt = !row.lastUsedAt || String(usedAt).localeCompare(String(row.lastUsedAt)) > 0 ? usedAt : row.lastUsedAt;
+      if (isAdjustment) row.adjustmentCount += 1;
+      if (isException) row.exceptionCount += 1;
+      if (!isAdjustment) row.productLines += 1;
+    };
+
+    for (const draft of drafts) {
+      const usedAt = draft.updated_at || draft.created_at || "";
+      const lineItems = safeArray(draft.line_items_json);
+      for (const line of lineItems) {
+        const productId = line.productId || line.product_id || "";
+        if (!productId) continue;
+        const unit = safeRecipeUnit(line.unit || "pcs");
+        const quantity = money(number(line.actualQty ?? line.actual_qty ?? line.quantity, 0));
+        const unitCost = number(line.unitCost ?? line.unit_cost, 0);
+        const cost = money(number(line.actualCost ?? line.actual_cost, quantity * unitCost));
+        const entry = {
+          source: "product_consume",
+          draftId: draft.id,
+          invoiceId: draft.invoice_id || "",
+          invoiceNumber: draft.invoice_number || "",
+          serviceId: draft.service_id || "",
+          serviceName: draft.service_name || "Service",
+          clientId: draft.client_id || "",
+          clientName: draft.client_name || "Walk-in client",
+          staffId: draft.staff_id || "",
+          staffName: draft.staff_name || "Unassigned",
+          productId,
+          productName: line.productName || line.product_name || productId,
+          quantity,
+          unit,
+          cost,
+          usedAt
+        };
+        recentEntries.push(entry);
+        addUsageToStaff(entry);
+        totalProductLines += 1;
+        totalUsageCost = money(totalUsageCost + cost);
+      }
+    }
+
+    const backbarParams = { tenant_id: access.tenantId, limit: scanLimit };
+    const backbarWhere = ["tenant_id = @tenant_id", "usageType <> 'client'"];
+    if (branchId) {
+      backbarWhere.push("branch_id = @branch_id");
+      backbarParams.branch_id = branchId;
+    }
+    if (staffId) {
+      backbarWhere.push("staffId = @staff_id");
+      backbarParams.staff_id = staffId;
+    }
+    if (startDate) {
+      backbarWhere.push("substr(createdAt, 1, 10) >= @start_date");
+      backbarParams.start_date = startDate;
+    }
+    if (endDate) {
+      backbarWhere.push("substr(createdAt, 1, 10) <= @end_date");
+      backbarParams.end_date = endDate;
+    }
+    const adjustments = db.prepare(`
+      SELECT * FROM backbar_product_usage_entries
+      WHERE ${backbarWhere.join(" AND ")}
+      ORDER BY createdAt DESC
+      LIMIT @limit
+    `).all(backbarParams);
+    for (const entry of adjustments) {
+      const usedAt = entry.createdAt || "";
+      const unit = safeRecipeUnit(entry.unit || "pcs");
+      const quantity = money(number(entry.usedQty, 0));
+      const cost = money(number(entry.productCost, 0));
+      const auditEntry = {
+        source: "backbar_exception",
+        exceptionType: entry.usageType || "manual_adjustment",
+        draftId: entry.draftId || "",
+        invoiceId: entry.invoiceId || "",
+        invoiceNumber: entry.invoiceNumber || "",
+        serviceId: entry.serviceId || "",
+        serviceName: entry.serviceName || "Backbar adjustment",
+        clientId: entry.clientId || "",
+        clientName: entry.clientName || "Adjustment",
+        staffId: entry.staffId || "",
+        staffName: entry.staffName || "Unassigned",
+        productId: entry.productId || "",
+        productName: entry.productName || entry.productId || "",
+        quantity,
+        unit,
+        cost,
+        reason: entry.reason || entry.usageType || "",
+        usedAt
+      };
+      recentEntries.push(auditEntry);
+      exceptions.push(auditEntry);
+      addUsageToStaff({ ...auditEntry, isAdjustment: true, isException: true });
+      adjustmentCount += 1;
+      totalUsageCost = money(totalUsageCost + cost);
+    }
+
+    if (!staffId) {
+      const overrideParams = { tenant_id: access.tenantId, limit };
+      const overrideWhere = ["tenant_id = @tenant_id", "alertType IN ('manager_override_pause', 'manager_override_open')"];
+      if (branchId) {
+        overrideWhere.push("branch_id = @branch_id");
+        overrideParams.branch_id = branchId;
+      }
+      if (startDate) {
+        overrideWhere.push("substr(createdAt, 1, 10) >= @start_date");
+        overrideParams.start_date = startDate;
+      }
+      if (endDate) {
+        overrideWhere.push("substr(createdAt, 1, 10) <= @end_date");
+        overrideParams.end_date = endDate;
+      }
+      const overrides = db.prepare(`
+        SELECT * FROM backbar_product_alerts
+        WHERE ${overrideWhere.join(" AND ")}
+        ORDER BY createdAt DESC
+        LIMIT @limit
+      `).all(overrideParams);
+      for (const alert of overrides) {
+        exceptions.push({
+          source: "backbar_override",
+          exceptionType: alert.alertType || "manager_override",
+          productId: alert.productId || "",
+          productName: alert.title || alert.productId || "Manager override",
+          serviceName: "Manager override",
+          clientName: "Owner control",
+          staffId: "",
+          staffName: "Manager override",
+          quantity: 0,
+          unit: "",
+          cost: 0,
+          reason: alert.message || "",
+          usedAt: alert.createdAt || ""
+        });
+      }
+    }
+
+    const staff = [...staffMap.values()]
+      .map((row) => ({
+        staffId: row.staffId,
+        staffName: row.staffName,
+        productCount: row.productIds.size,
+        serviceCount: row.serviceIds.size,
+        productLines: row.productLines,
+        adjustmentCount: row.adjustmentCount,
+        exceptionCount: row.exceptionCount,
+        quantityByUnit: row.quantityByUnit,
+        totalUsedText: quantityText(row.quantityByUnit),
+        cost: money(row.cost),
+        lastUsedAt: row.lastUsedAt
+      }))
+      .sort((a, b) => Number(b.cost || 0) - Number(a.cost || 0) || String(b.lastUsedAt || "").localeCompare(String(a.lastUsedAt || "")));
+    recentEntries.sort((a, b) => String(b.usedAt || "").localeCompare(String(a.usedAt || "")));
+    exceptions.sort((a, b) => String(b.usedAt || "").localeCompare(String(a.usedAt || "")));
+    return {
+      branchId,
+      filters: { staffId, startDate, endDate, limit },
+      summary: {
+        staffCount: staff.length,
+        totalProductLines,
+        totalUsageCost,
+        adjustmentCount,
+        exceptionCount: exceptions.length
+      },
+      staff,
+      recentEntries: recentEntries.slice(0, limit),
+      exceptions: exceptions.slice(0, limit)
     };
   }
 

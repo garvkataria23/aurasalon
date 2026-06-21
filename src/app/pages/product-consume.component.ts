@@ -90,6 +90,67 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
         </div>
       </section>
 
+      <section class="staff-audit" *ngIf="staffUsageAudit() as audit">
+        <div class="ledger-head">
+          <div>
+            <span class="eyebrow">Staff usage audit</span>
+            <h3>Product consume accountability</h3>
+          </div>
+          <small>Confirmed invoice consume lines plus backbar exceptions.</small>
+        </div>
+        <div class="audit-filters">
+          <label><span>Branch</span><input [(ngModel)]="auditFilters.branchId" placeholder="Branch ID"></label>
+          <label>
+            <span>Staff</span>
+            <select [(ngModel)]="auditFilters.staffId">
+              <option value="">All staff</option>
+              <option *ngFor="let row of staffAuditRows()" [value]="row['staffId']">{{ row['staffName'] || 'Unassigned' }}</option>
+            </select>
+          </label>
+          <label><span>Start</span><input type="date" [(ngModel)]="auditFilters.startDate"></label>
+          <label><span>End</span><input type="date" [(ngModel)]="auditFilters.endDate"></label>
+          <button type="button" class="ghost" (click)="loadStaffUsageAudit()">Refresh audit</button>
+        </div>
+        <div class="owner-metrics">
+          <article><span>Staff</span><strong>{{ audit['summary']?.staffCount || 0 }}</strong><small>with usage</small></article>
+          <article><span>Consume lines</span><strong>{{ audit['summary']?.totalProductLines || 0 }}</strong><small>confirmed invoices</small></article>
+          <article><span>Usage value</span><strong>{{ money(audit['summary']?.totalUsageCost || 0) }}</strong><small>product cost</small></article>
+          <article><span>Adjustments</span><strong>{{ audit['summary']?.adjustmentCount || 0 }}</strong><small>waste/spill/manual</small></article>
+          <article><span>Exceptions</span><strong>{{ audit['summary']?.exceptionCount || 0 }}</strong><small>owner review</small></article>
+        </div>
+        <div class="audit-layout">
+          <div class="audit-table" *ngIf="staffAuditRows().length; else noStaffAudit">
+            <div class="audit-row head"><span>Staff</span><span>Services</span><span>Products</span><span>Total used</span><span>Cost</span><span>Exceptions</span><span>Last used</span></div>
+            <div class="audit-row" *ngFor="let row of staffAuditRows()">
+              <strong>{{ row['staffName'] || 'Unassigned' }}</strong>
+              <span>{{ row['serviceCount'] || 0 }}</span>
+              <span>{{ row['productCount'] || 0 }}</span>
+              <span>{{ row['totalUsedText'] || '0' }}</span>
+              <span>{{ money(row['cost'] || 0) }}</span>
+              <span>{{ row['exceptionCount'] || 0 }}</span>
+              <span>{{ row['lastUsedAt'] | date:'short' }}</span>
+            </div>
+          </div>
+          <ng-template #noStaffAudit>
+            <p class="ledger-empty">Confirmed consume ke baad staff-wise product usage yahan dikhega.</p>
+          </ng-template>
+          <div class="audit-feed">
+            <h4>Recent usage</h4>
+            <article *ngFor="let entry of auditRecentEntries().slice(0, 6)">
+              <strong>{{ entry['staffName'] || 'Unassigned' }} · {{ entry['productName'] || entry['productId'] }}</strong>
+              <span>{{ entry['invoiceNumber'] || entry['source'] }} · {{ entry['clientName'] || 'Walk-in client' }} · {{ qty(entry['quantity'], entry['unit']) }} · {{ money(entry['cost'] || 0) }}</span>
+              <small>{{ entry['serviceName'] || 'Service' }} · {{ entry['usedAt'] | date:'short' }}</small>
+            </article>
+            <h4 *ngIf="auditExceptions().length">Exceptions</h4>
+            <article class="exception" *ngFor="let entry of auditExceptions().slice(0, 4)">
+              <strong>{{ entry['exceptionType'] || entry['source'] }}</strong>
+              <span>{{ entry['staffName'] || 'Manager override' }} · {{ entry['productName'] || entry['productId'] }} · {{ entry['reason'] || 'Review required' }}</span>
+              <small>{{ entry['usedAt'] | date:'short' }}</small>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <div *ngIf="error()" class="alert">{{ error() }}</div>
       <div *ngIf="message()" class="success">{{ message() }}</div>
 
@@ -312,9 +373,23 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .range-fields { grid-template-columns: 1fr 1fr; }
     .backbar-ledger { border: 1px solid #dcebea; border-radius: 16px; padding: 14px; display: grid; gap: 12px; background: #f8fbfa; }
     .owner-report { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
+    .staff-audit { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
     .owner-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
     .owner-metrics article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 4px; background: #f8fbfa; }
     .owner-metrics span, .owner-metrics small { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .audit-filters { display: grid; grid-template-columns: 1fr 1fr .75fr .75fr auto; gap: 10px; align-items: end; }
+    .audit-filters label { display: grid; gap: 6px; }
+    .audit-filters span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .audit-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, .8fr); gap: 12px; align-items: start; }
+    .audit-table { border: 1px solid #dcebea; border-radius: 14px; overflow: auto; }
+    .audit-row { min-width: 860px; display: grid; grid-template-columns: 1.4fr .65fr .65fr 1.1fr .8fr .75fr 1fr; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #edf4f3; }
+    .audit-row:last-child { border-bottom: 0; }
+    .audit-row.head { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; background: #f8fbfa; }
+    .audit-feed { display: grid; gap: 8px; }
+    .audit-feed h4 { margin: 6px 0 0; }
+    .audit-feed article { border: 1px solid #dcebea; border-radius: 12px; padding: 10px; display: grid; gap: 3px; background: #f8fbfa; }
+    .audit-feed article.exception { background: #fff7ed; border-color: #fed7aa; }
+    .audit-feed span, .audit-feed small { color: #64748b; }
     .ledger-head, .ledger-summary, .active-container { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
     .ledger-head h3 { margin: 2px 0 0; }
     .ledger-head small, .ledger-product small, .ledger-summary span, .history-row span { color: #64748b; }
@@ -348,6 +423,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     @media (max-width: 900px) {
       .module-hero, .workspace { display: grid; }
       .metric-grid, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .audit-filters, .audit-layout { grid-template-columns: 1fr; }
       .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override { grid-template-columns: 1fr 1fr; }
       .active-container { display: grid; }
       .manual-product-add { grid-template-columns: 1fr; }
@@ -372,9 +448,11 @@ export class ProductConsumeComponent {
   readonly products = signal<ProductRow[]>([]);
   readonly backbarLedger = signal<ApiRecord | null>(null);
   readonly backbarReport = signal<ApiRecord | null>(null);
+  readonly staffUsageAudit = signal<ApiRecord | null>(null);
   readonly units = RECIPE_UNITS;
   productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
   adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
+  auditFilters = { branchId: '', staffId: '', startDate: '', endDate: '' };
   overrideReason = '';
   productQuery = '';
   productPickerOpen = false;
@@ -385,8 +463,10 @@ export class ProductConsumeComponent {
   readonly totalActual = computed(() => this.drafts().reduce((sum, draft) => sum + Number(draft.actualCost || draft.expectedCost || 0), 0));
 
   constructor() {
+    this.auditFilters.branchId = this.api.selectedBranchId();
     this.loadProducts();
     this.loadBackbarReport();
+    this.loadStaffUsageAudit();
     this.load();
   }
 
@@ -409,6 +489,7 @@ export class ProductConsumeComponent {
         if (!normalized.some((row) => row.id === this.selectedId())) this.selectedId.set(normalized[0]?.id || '');
         if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
         this.loadBackbarReport();
+        this.loadStaffUsageAudit();
         this.loading.set(false);
       },
       error: (err) => {
@@ -558,6 +639,19 @@ export class ProductConsumeComponent {
     });
   }
 
+  loadStaffUsageAudit(): void {
+    const branchId = this.auditFilters.branchId || this.api.selectedBranchId();
+    this.auditFilters.branchId = branchId;
+    const params: ApiRecord = { branchId, limit: 100 };
+    if (this.auditFilters.staffId) params['staffId'] = this.auditFilters.staffId;
+    if (this.auditFilters.startDate) params['startDate'] = this.auditFilters.startDate;
+    if (this.auditFilters.endDate) params['endDate'] = this.auditFilters.endDate;
+    this.api.list<ApiRecord>('inventory-intelligence/staff-product-usage-audit', params).subscribe({
+      next: (audit) => this.staffUsageAudit.set(audit || null),
+      error: () => this.staffUsageAudit.set(null)
+    });
+  }
+
   recordAdjustment(container: ApiRecord): void {
     const quantity = Number(this.adjustForm.quantity || 0);
     if (!container?.['id'] || quantity <= 0) {
@@ -576,6 +670,7 @@ export class ProductConsumeComponent {
         this.adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
         if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
         this.loadBackbarReport();
+        this.loadStaffUsageAudit();
         this.message.set('Backbar adjustment recorded.');
       },
       error: (err) => {
@@ -604,6 +699,7 @@ export class ProductConsumeComponent {
         this.overrideReason = '';
         if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
         this.loadBackbarReport();
+        this.loadStaffUsageAudit();
         this.message.set('Manager override container opened.');
       },
       error: (err) => {
@@ -627,6 +723,18 @@ export class ProductConsumeComponent {
 
   ledgerEntries(product: ApiRecord): ApiRecord[] {
     return (product?.['entries'] || []) as ApiRecord[];
+  }
+
+  staffAuditRows(): ApiRecord[] {
+    return (this.staffUsageAudit()?.['staff'] || []) as ApiRecord[];
+  }
+
+  auditRecentEntries(): ApiRecord[] {
+    return (this.staffUsageAudit()?.['recentEntries'] || []) as ApiRecord[];
+  }
+
+  auditExceptions(): ApiRecord[] {
+    return (this.staffUsageAudit()?.['exceptions'] || []) as ApiRecord[];
   }
 
   containerProgress(container: ApiRecord): number {
@@ -713,6 +821,7 @@ export class ProductConsumeComponent {
           this.loadBackbarLedger(updated.id);
         }
         this.loadBackbarReport();
+        this.loadStaffUsageAudit();
         this.message.set(successMessage);
         this.saving.set(false);
       },
