@@ -450,7 +450,8 @@ export class BackbarProductConsumptionService {
       SELECT COUNT(*) AS count FROM backbar_product_containers
       WHERE tenant_id = ? AND branch_id = ? AND productId = ? AND status = 'open'
     `).get(access.tenantId, branchId, product.id).count;
-    const sealedStock = number(product.stock, 0) - number(openCount, 0);
+    const currentProduct = loadProduct(product.id, access, branchId);
+    const sealedStock = number(currentProduct.stock, 0) - number(openCount, 0);
     if (sealedStock <= 0) throw conflict(`${product.name} has no sealed ${stockUnit} available to open`);
 
     const nextNo = number(db.prepare(`
@@ -2262,7 +2263,8 @@ export class BackbarProductConsumptionService {
       stockUnit: request.stockUnit,
       packUnit: request.measureUnit,
       packSize: request.capacityQty,
-      requestId: id
+      requestId: id,
+      approvalDecision: true
     }, access);
     db.prepare(`
       UPDATE backbar_override_requests
@@ -2282,6 +2284,18 @@ export class BackbarProductConsumptionService {
     assertBranch(access, branchId);
     const reason = String(payload.reason || "").trim();
     if (!reason) throw conflict("Manager override reason is required");
+    const requestId = payload.requestId || payload.request_id || "";
+    if (!payload.approvalDecision) {
+      throw conflict("Manager approval request is required before opening the next container");
+    }
+    const approvalRequest = requestId
+      ? db.prepare(`
+        SELECT * FROM backbar_override_requests
+        WHERE id = ? AND tenant_id = ? AND branch_id = ? AND productId = ?
+        LIMIT 1
+      `).get(requestId, access.tenantId, branchId, productId)
+      : null;
+    if (!approvalRequest) throw conflict("Approved override request was not found");
     const product = loadProduct(productId, access, branchId);
     const units = productUnits(product, payload);
     const active = db.prepare(`
