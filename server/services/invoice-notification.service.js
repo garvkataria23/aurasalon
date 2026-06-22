@@ -158,6 +158,21 @@ function paymentAmount(payment = {}) {
   return Number(invoiceValue(payment, "amount", "paidAmount") || 0);
 }
 
+function bookingAdvanceAdjustedAmount(payments = []) {
+  return payments
+    .filter((payment) => paymentMode(payment) === "booking_advance")
+    .reduce((sum, payment) => sum + paymentAmount(payment), 0);
+}
+
+function counterPaymentCollectedAmount(invoice = {}, payments = []) {
+  const paid = Number(invoiceValue(invoice, "paid", "paid_amount") || 0);
+  return Math.max(0, paid - bookingAdvanceAdjustedAmount(payments));
+}
+
+function remainingCounterPaymentAmount(invoice = {}) {
+  return Math.max(0, Number(invoiceValue(invoice, "balance", "due_amount") || 0));
+}
+
 function invoicePdfFileName(invoice = {}) {
   const raw = String(invoiceValue(invoice, "invoice_no", "invoiceNumber", "id") || "invoice").replace(/[^\w.-]+/g, "-");
   return `${raw}.pdf`;
@@ -356,6 +371,7 @@ export class InvoiceNotificationService {
       `Total: INR ${money(ctx.total)}`,
       `Paid: INR ${money(ctx.paid)}`,
       ctx.due > 0 ? `Unpaid/Due: INR ${money(ctx.due)}` : "Payment status: Paid",
+      ctx.settlementLine,
       walletPaid > 0 ? `Wallet used/paid: INR ${money(walletPaid)}` : "",
       profile.appointmentNumber || profile.mobileNumber ? `Salon contact: ${profile.appointmentNumber || profile.mobileNumber}` : "",
       "Thank you for visiting."
@@ -489,12 +505,17 @@ export class InvoiceNotificationService {
     const clientPhone = phonesFrom(client?.phone || client?.mobile || invoiceValue(invoice, "clientPhone", "customer_phone"))[0] || "";
     const businessName = profile.businessName || "AuraShine Salon";
     const subject = `${businessName} invoice ${invoiceNo}`;
+    const advanceAdjusted = bookingAdvanceAdjustedAmount(payments || []);
+    const counterPaid = counterPaymentCollectedAmount(invoice, payments || []);
+    const counterDue = remainingCounterPaymentAmount(invoice);
+    const settlementLine = `Advance adjusted: INR ${money(advanceAdjusted)} | Counter paid: INR ${money(counterPaid)} | Counter due: INR ${money(counterDue)}`;
     const clientBody = [
       `Hi ${clientName},`,
       `Your ${businessName} invoice ${invoiceNo} is ready.`,
       `Total: INR ${money(total)}`,
       `Paid: INR ${money(paid)}`,
       `Due: INR ${money(due)}`,
+      settlementLine,
       profile.appointmentNumber || profile.mobileNumber ? `Salon contact: ${profile.appointmentNumber || profile.mobileNumber}` : "",
       "Thank you for visiting."
     ].filter(Boolean).join("\n");
@@ -502,11 +523,12 @@ export class InvoiceNotificationService {
       `Invoice closed: ${invoiceNo}`,
       `Client: ${clientName}${clientPhone ? ` (${clientPhone})` : ""}`,
       `Total: INR ${money(total)} | Paid: INR ${money(paid)} | Due: INR ${money(due)}`,
+      settlementLine,
       `Branch: ${branchId || "All branches"}`,
       `Closed by: ${access.userId || access.role || "system"}`,
       invoiceDocument?.id ? `Invoice document: ${invoiceDocument.id}` : ""
     ].filter(Boolean).join("\n");
-    return { invoice, sale, client, payments, invoiceDocument, profile, access, branchId, clientId, invoiceNo, total, paid, due, clientName, subject, clientBody, ownerBody };
+    return { invoice, sale, client, payments, invoiceDocument, profile, access, branchId, clientId, invoiceNo, total, paid, due, clientName, subject, clientBody, ownerBody, settlementLine, advanceAdjusted, counterPaid, counterDue };
   }
 
   clientMessages(ctx) {

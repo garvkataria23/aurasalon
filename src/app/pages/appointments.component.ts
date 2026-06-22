@@ -539,7 +539,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
           <div>
             <span class="eyebrow">Calendar waitlist</span>
             <h3>Add client to waitlist</h3>
-            <p>Slot nahi mil raha ho to client ko preferred date/time ke saath hold karo.</p>
+            <p>If no slot is available, hold the client with preferred date and time.</p>
           </div>
           <button type="button" class="ghost-button mini" (click)="closeWaitlistDrawer()">Close</button>
         </header>
@@ -759,7 +759,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
           <div>
             <span class="eyebrow">Staff calendar control</span>
             <h3>New Blocked Time</h3>
-            <p>Staff slot ko unavailable mark karo. Booking guard is time par appointment block karega.</p>
+            <p>Mark the staff slot unavailable. Booking guard will block appointments during this time.</p>
           </div>
           <button type="button" class="ghost-button mini" (click)="closeBlockTimeDrawer()">Close</button>
         </header>
@@ -836,7 +836,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
             </tbody>
           </table>
           <ng-template #noBlockedTimes>
-            <div class="empty-state compact">Is staff aur date par blocked time nahi mila.</div>
+            <div class="empty-state compact">No blocked time found for this staff and date.</div>
           </ng-template>
         </div>
       </aside>
@@ -2885,7 +2885,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   private async saveBookingPlan(): Promise<void> {
     if (this.hasIncompleteBookingLines()) {
-      this.error.set('Har service line me service, staff, start time aur duration complete karo.');
+      this.error.set('Complete service, staff, start time and duration in every service line.');
       return;
     }
     const lines = this.normalizedBookingLines();
@@ -3174,7 +3174,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     const value = this.waitlistForm.value;
     const clientId = String(value.clientId || '').trim();
     if (!clientId) {
-      this.waitlistError.set('Client select karo, phir waitlist me add hoga.');
+      this.waitlistError.set('Select a client to add to waitlist.');
       return;
     }
     const preferredDate = String(value.preferredDate || this.selectedDate()).slice(0, 10);
@@ -3196,11 +3196,11 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       next: (entry) => {
         this.waitlistSaving.set(false);
         this.waitlistEntries.set([entry, ...this.waitlistEntries()]);
-        this.waitlistMessage.set(`${this.waitlistClientName(entry)} waitlist me add ho gaya.`);
+        this.waitlistMessage.set(`${this.waitlistClientName(entry)} added to waitlist.`);
       },
       error: (error) => {
         this.waitlistSaving.set(false);
-        this.waitlistError.set(this.api.errorText(error, 'Waitlist save nahi hua.'));
+        this.waitlistError.set(this.api.errorText(error, 'Waitlist was not saved.'));
       }
     });
   }
@@ -3888,7 +3888,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     const person = this.staff().find((row) => this.staffIdentityIds(row).has(this.blockTimeStaffId()));
     const staffId = this.scheduleStaffId(person || { id: this.blockTimeStaffId() });
     if (!staffId) {
-      this.error.set('Staff schedule ID missing. Staff ko Employee Masters se connect karo.');
+      this.error.set('Staff schedule ID is missing. Connect staff from Employee Masters.');
       return;
     }
     this.blockTimeSaving.set(true);
@@ -4337,7 +4337,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       return {
         level: 'warning',
         title: 'Booking inputs pending',
-        details: ['Client, branch aur har service row me service, staff, start time aur duration complete karo.'],
+        details: ['Complete client, branch, service, staff, start time and duration in every service row.'],
         hardBlock: !!clientId && !!branchId && incompleteLine
       };
     }

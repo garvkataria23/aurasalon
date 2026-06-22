@@ -131,6 +131,8 @@ test("Admin security pages call the protected backend surfaces", () => {
   assert.match(permissionPage, /security\/permission-matrix/, "Permissions page should load security permission matrix");
   for (const endpoint of [
     "security/policy",
+    "security/compliance-readiness",
+    "security/compliance-evidence/export",
     "security/access/devices",
     "security/approvals",
     "security/access-rules",
@@ -145,6 +147,11 @@ test("Admin security pages call the protected backend surfaces", () => {
   ]) {
     assert.ok(policyCenterPage.includes(endpoint), `${endpoint} should be wired in Policy Center`);
   }
+  assert.match(policyCenterPage, /SOC2 \/ ISO Readiness/, "Policy Center should show SOC2/ISO readiness");
+  assert.match(policyCenterPage, /Immutable evidence hash/, "Policy Center should show immutable audit evidence");
+  assert.match(policyCenterPage, /Compliance score/, "Policy Center should show compliance score");
+  assert.match(policyCenterPage, /riskHeatmapRows/, "Policy Center should render risk heatmap rows");
+  assert.match(policyCenterPage, /Export evidence/, "Policy Center should expose evidence export action");
   assert.match(securityShieldPage, /Level 28/, "Security Shield should show the full 28-layer surface");
 });
 
@@ -154,6 +161,14 @@ test("Security services remain tenant and branch scoped", () => {
   assert.match(securityAdvancedService, /WHERE tenantId = \? AND \(branchId = '' OR branchId = \?\)/, "Advanced security reads should be tenant and branch scoped");
   assert.match(securityAdvancedService, /tenantId: access\.tenantId/, "Advanced security writes should store tenant scope");
   assert.match(securityAdvancedService, /branchId: access\.branchId \|\| ""/, "Advanced security writes should store branch scope");
+  assert.match(securityAdvancedRoutes, /\/security\/compliance-readiness/, "Compliance readiness endpoint should be routed");
+  assert.match(securityAdvancedRoutes, /\/security\/compliance-evidence\/export/, "Compliance evidence export endpoint should be routed");
+  assert.match(securityAdvancedService, /complianceReadiness\(access = \{\}\)/, "Advanced security should compute compliance readiness");
+  assert.match(securityAdvancedService, /securityRiskHeatmap/, "Advanced security should compute risk heatmap");
+  assert.match(securityAdvancedService, /complianceEvidenceExport/, "Advanced security should prepare evidence export");
+  assert.match(securityAdvancedService, /exportProtectionReady/, "Compliance readiness should include export protection readiness");
+  assert.match(securityAdvancedService, /immutableAuditHash/, "Compliance readiness should expose immutable audit evidence hash");
+  assert.match(securityAdvancedService, /AURA_DB_ENCRYPTION_KEY|DB_ENCRYPTION_KEY|SQLITE_ENCRYPTION_KEY/, "Encryption-at-rest readiness should be tied to key configuration");
   assert.match(securityBlocklistService, /WHERE tenantId = \?/, "Blocklist reads should filter by tenant");
   assert.match(securityBlocklistService, /\(branchId = '' OR branchId = \?\)/, "Blocklist reads should include branch scope");
 });

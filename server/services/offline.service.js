@@ -1,5 +1,5 @@
 import { repositories } from "../repositories/repository-registry.js";
-import { badRequest } from "../utils/app-error.js";
+import { badRequest, notFound } from "../utils/app-error.js";
 import { salonOperationsService } from "./salon-operations.service.js";
 import { smartBookingService } from "./smart-booking.service.js";
 import { tenantService } from "./tenant.service.js";
@@ -39,6 +39,110 @@ export class OfflineService {
         "Offline appointments sync through the same conflict-prevention engine.",
         "Offline billing syncs through POS checkout so stock, invoice and client history stay consistent."
       ]
+    };
+  }
+
+  retryDashboard(query = {}, access) {
+    const summary = this.summary(query, access);
+    const retryCandidates = summary.syncItems
+      .filter((item) => ["queued", "conflict", "failed"].includes(item.status))
+      .map((item) => this.retryCandidate(item));
+    const grouped = retryCandidates.reduce((acc, item) => {
+      acc[item.priority] = (acc[item.priority] || 0) + 1;
+      return acc;
+    }, {});
+    return {
+      metrics: {
+        queued: summary.metrics.queued,
+        conflicts: summary.metrics.conflicts,
+        retryCandidates: retryCandidates.length,
+        priorityBilling: grouped.P1 || 0,
+        priorityAppointments: grouped.P2 || 0,
+        priorityInventory: grouped.P3 || 0,
+        oldestQueuedAt: retryCandidates.map((item) => item.createdAt).filter(Boolean).sort()[0] || ""
+      },
+      retryCandidates,
+      conflictHandling: {
+        open: summary.metrics.conflicts,
+        policy: "Server result stays source of truth until manager retries, keeps server, keeps device, or merges.",
+        supportedActions: ["retry", "keep_server", "keep_device", "merge"]
+      },
+      offlineFirstPwa: this.pwaReadiness(summary)
+    };
+  }
+
+  deviceSyncStatus(query = {}, access) {
+    const summary = this.summary(query, access);
+    const devices = new Map();
+    for (const snapshot of summary.snapshots) {
+      const id = snapshot.deviceId || "unknown-device";
+      const row = devices.get(id) || this.deviceStatusBase(id);
+      row.cacheSnapshots += 1;
+      row.lastCacheAt = this.latest(row.lastCacheAt, snapshot.createdAt);
+      row.lastSeen = this.latest(row.lastSeen, snapshot.createdAt);
+      row.resources.add(snapshot.resource || "branch-cache");
+      devices.set(id, row);
+    }
+    for (const item of summary.syncItems) {
+      const id = item.deviceId || "unknown-device";
+      const row = devices.get(id) || this.deviceStatusBase(id);
+      row.queued += item.status === "queued" ? 1 : 0;
+      row.synced += item.status === "synced" ? 1 : 0;
+      row.conflicts += ["conflict", "failed"].includes(item.status) ? 1 : 0;
+      row.lastSyncAttemptAt = this.latest(row.lastSyncAttemptAt, item.attemptedAt || item.syncedAt || item.updatedAt || item.createdAt);
+      row.lastSeen = this.latest(row.lastSeen, item.updatedAt || item.createdAt);
+      devices.set(id, row);
+    }
+    const rows = [...devices.values()].map((device) => ({
+      ...device,
+      resources: [...device.resources],
+      status: device.conflicts ? "blocked" : device.queued ? "pending" : device.cacheSnapshots ? "ready" : "unknown",
+      syncState: device.conflicts ? "Conflict review required" : device.queued ? "Retry pending" : "Synced",
+      nextAction: device.conflicts ? "Open Conflict Center" : device.queued ? "Run Retry Dashboard" : "Keep cache fresh"
+    }));
+    return {
+      metrics: {
+        devices: rows.length,
+        ready: rows.filter((row) => row.status === "ready").length,
+        pending: rows.filter((row) => row.status === "pending").length,
+        blocked: rows.filter((row) => row.status === "blocked").length
+      },
+      devices: rows,
+      offlineFirstPwa: this.pwaReadiness(summary),
+      mobileStaffView: {
+        route: "/staff-os/mobile-preview",
+        snapshotEndpoint: "/api/v1/staff-os/mobile/snapshot",
+        syncEndpoint: "/api/v1/staff-os/mobile/sync",
+        conflictEndpoint: "/api/v1/staff-os/mobile/conflicts"
+      }
+    };
+  }
+
+  retrySyncItem(id, payload = {}, access) {
+    if (!id) throw badRequest("sync item id is required");
+    const queryScope = scope(access, payload.branchId || access.branchId || "");
+    const item = repositories.offlineSyncItems.getById(id, queryScope);
+    if (!item) throw notFound("Offline sync item not found");
+    if (item.branchId) tenantService.assertBranchAccess(access, item.branchId);
+    if (item.status === "synced" && !payload.force) {
+      return { skipped: true, reason: "Item is already synced", item };
+    }
+    const reset = repositories.offlineSyncItems.update(item.id, {
+      status: "queued",
+      conflicts: [],
+      result: {
+        retryRequestedAt: now(),
+        retryRequestedBy: access.userId || "",
+        previousStatus: item.status
+      }
+    }, scope(access));
+    return {
+      skipped: false,
+      retry: {
+        previousStatus: item.status,
+        requestedAt: now()
+      },
+      item: this.processItem({ ...reset, payload: reset.payload || item.payload }, access)
     };
   }
 
@@ -148,6 +252,66 @@ export class OfflineService {
         attemptedAt: now()
       }, scope(access));
     }
+  }
+
+  retryCandidate(item) {
+    const priority = this.priority(item);
+    return {
+      id: item.id,
+      branchId: item.branchId,
+      deviceId: item.deviceId,
+      entity: item.entity,
+      operation: item.operation,
+      status: item.status,
+      priority,
+      createdAt: item.createdAt,
+      attemptedAt: item.attemptedAt,
+      reason: item.conflicts?.[0]?.message || item.errorMessage || item.conflictReason || "",
+      nextAction: item.status === "queued" ? "Sync now" : "Review conflict then retry"
+    };
+  }
+
+  priority(item) {
+    if (item.entity === "sales" || String(item.operation || "").includes("billing")) return "P1";
+    if (item.entity === "appointments") return "P2";
+    if (item.entity === "inventory") return "P3";
+    return "P4";
+  }
+
+  deviceStatusBase(deviceId) {
+    return {
+      deviceId,
+      cacheSnapshots: 0,
+      queued: 0,
+      synced: 0,
+      conflicts: 0,
+      resources: new Set(),
+      lastSeen: "",
+      lastCacheAt: "",
+      lastSyncAttemptAt: ""
+    };
+  }
+
+  latest(left = "", right = "") {
+    if (!left) return right || "";
+    if (!right) return left || "";
+    return left > right ? left : right;
+  }
+
+  pwaReadiness(summary) {
+    const hasCache = Number(summary.metrics.cacheSnapshots || 0) > 0;
+    const hasConflicts = Number(summary.metrics.conflicts || 0) > 0;
+    const queueLoad = Number(summary.metrics.queued || 0);
+    return {
+      ready: hasCache && !hasConflicts && queueLoad <= 50,
+      installPrompt: "Use browser install/add-to-home-screen after first cache snapshot.",
+      manifest: "/manifest.webmanifest",
+      serviceWorker: "/offline-sw.js",
+      startUrl: "/offline",
+      cachedResources: summary.snapshots.map((snapshot) => snapshot.resource).filter(Boolean),
+      queuePolicy: "Billing first, appointments second, inventory/background after that.",
+      conflictPolicy: "Conflicts are held until manager retry or merge decision."
+    };
   }
 
   buildCache(branchId, access) {

@@ -13,9 +13,9 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     <section class="page-stack">
       <div class="module-hero">
         <div>
-          <span class="eyebrow">AI marketing automation</span>
+          <span class="eyebrow">Marketing automation</span>
           <h2>Campaign generation, segmentation, retargeting, WhatsApp sequences and email templates</h2>
-          <p>AI marketing outputs are persisted as campaigns, generations, workflows, sequences and reusable templates.</p>
+          <p>Marketing outputs are saved as campaigns, generations, workflows, sequences and reusable templates.</p>
         </div>
         <button class="ghost-button" type="button" (click)="festivalCampaign()">Festival campaign</button>
       </div>
@@ -36,7 +36,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <div class="section-title">
             <div>
               <span class="eyebrow">Offer recommendations</span>
-              <h2>AI offer ideas</h2>
+              <h2>Offer ideas</h2>
             </div>
           </div>
           <div class="quick-grid">
@@ -134,7 +134,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </section>
 
         <section class="panel" *ngIf="latestResult() as result">
-          <div class="section-title"><h2>Latest AI marketing output</h2></div>
+          <div class="section-title"><h2>Latest marketing output</h2></div>
           <div class="quick-grid">
             <article class="action-card" *ngIf="result.campaign">
               <strong>{{ result.campaign.name }}</strong>
@@ -250,7 +250,7 @@ export class AiMarketingAutomationComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        this.error.set(error?.error?.error || 'Unable to load AI marketing automation');
+        this.error.set(error?.error?.error || 'Unable to load marketing automation');
         this.loading.set(false);
       }
     });

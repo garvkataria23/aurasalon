@@ -2,7 +2,7 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, forkJoin } from 'rxjs';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { PosHeldInvoiceDraft, PosPaymentMode, PosSettingsService } from '../core/pos-settings.service';
 import { AppStateService } from '../core/state/app-state.service';
@@ -30,11 +30,13 @@ type InvoiceRegisterRow = {
   paid: number;
   balance: number;
   paymentStatus: string;
+  documentStatus: string;
   onlinePaidAmount: number;
   paymentLinkId: string;
   items: ApiRecord[];
   payments: ApiRecord[];
   tips: ApiRecord[];
+  membershipRedeem?: ApiRecord;
 };
 
 type WalletClientRow = {
@@ -89,6 +91,49 @@ type ProductConsumeDraftRow = {
           <a class="metric-card" routerLink="/pos/invoices" [queryParams]="{ filter: 'due' }" [class.active-filter-card]="isDueView()"><span>Due</span><strong>{{ dueTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Pending balance</small></a>
           <a class="metric-card" routerLink="/pos/invoices" [queryParams]="{ filter: 'wallet' }" [class.active-filter-card]="isWalletView()"><span>Wallet</span><strong>{{ walletTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ walletClientCount() }} clients with balance</small></a>
         </div>
+
+        <section class="billing-control-strip">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Billing / POS control</span>
+              <h2>Payment truth, GST, margin and fraud checks</h2>
+              <p>Invoice lifecycle ke saath settlement, deposit adjustment, GST report, margin view, fraud flags aur inventory/profit linkage ek jagah.</p>
+            </div>
+            <a class="ghost-button mini" routerLink="/pos/invoice-activity">Audit trail</a>
+          </div>
+          <div class="billing-control-grid">
+            <a class="billing-control-card" routerLink="/pos/invoice-activity">
+              <span>Payment truth</span>
+              <strong>{{ paymentTruthScore() }}%</strong>
+              <small>{{ paymentTruthLabel() }}</small>
+            </a>
+            <a class="billing-control-card" routerLink="/pos/invoices" [queryParams]="{ filter: 'due' }" [class.warn]="dueTotal() > 0">
+              <span>Settlement</span>
+              <strong>{{ settlementCollectedTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Advance {{ bookingAdvanceAdjustedTotal() | currency: 'INR':'symbol':'1.0-0' }} · Due {{ dueTotal() | currency: 'INR':'symbol':'1.0-0' }}</small>
+            </a>
+            <a class="billing-control-card" routerLink="/reports/invoices">
+              <span>GST reports</span>
+              <strong>{{ gstCollectedTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>GSTR/HSN report center linked</small>
+            </a>
+            <a class="billing-control-card" routerLink="/inventory/financial">
+              <span>Margin view</span>
+              <strong>{{ marginGrossTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>{{ marginPercentLabel() }} gross margin from billing analytics</small>
+            </a>
+            <a class="billing-control-card" routerLink="/command-center/payment-intelligence" [class.warn]="fraudFlagCount() > 0">
+              <span>Fraud flags</span>
+              <strong>{{ fraudFlagCount() }}</strong>
+              <small>{{ amountAtRisk() | currency: 'INR':'symbol':'1.0-0' }} amount at risk</small>
+            </a>
+            <a class="billing-control-card" routerLink="/inventory/product-consume" [class.warn]="consumePendingCount() > 0">
+              <span>Inventory/profit</span>
+              <strong>{{ consumePendingCount() }}</strong>
+              <small>Product consume drafts pending for profit truth</small>
+            </a>
+          </div>
+        </section>
 
         <div class="split-layout invoice-register-layout">
           <section class="panel">
@@ -193,6 +238,9 @@ type ProductConsumeDraftRow = {
                       <button class="table-link" type="button" (click)="openDetail(row)">
                         <strong>{{ row.invoiceNumber }}</strong>
                       </button>
+                      <small class="row-subcopy">{{ settlementSnippet(row) }}</small>
+                      <small class="received-due-row" *ngIf="receivedDueSummary(row) as dueSummary">{{ dueSummary }}</small>
+                      <small class="queue-preview-chip" *ngIf="whatsappQueuePreview(row) as preview">WA queued: {{ preview }}</small>
                     </td>
                     <td>{{ dateTimeLabel(row.createdAt) }}</td>
                     <td>
@@ -221,8 +269,25 @@ type ProductConsumeDraftRow = {
                     <td class="right invoice-paid-amount">{{ row.paid | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td class="right invoice-due-amount">{{ row.balance | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td><span class="badge">{{ row.status }}</span></td>
-              <td class="right invoice-action-cell" style="min-width: 210px;">
-                <div class="invoice-actions invoice-actions--saved" style="display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 8px; min-width: 180px;">
+              <td class="right invoice-action-cell">
+                <div class="invoice-actions invoice-actions--saved">
+                  <button
+                    class="ghost-button mini invoice-edit-button"
+                    type="button"
+                    [disabled]="approvalRequesting() === row.id"
+                    (click)="editInvoice(row, $event)"
+                  >
+                    {{ editActionLabel(row) }}
+                  </button>
+                  <button
+                    class="ghost-button mini"
+                    type="button"
+                    *ngIf="requiresAdjustmentNote(row)"
+                    [disabled]="adjustmentSaving() === row.id"
+                    (click)="openAdjustmentNote(row, $event)"
+                  >
+                    Adjustment note
+                  </button>
                   <a
                     class="ghost-button mini"
                     *ngIf="productConsumeStatus(row)"
@@ -254,20 +319,12 @@ type ProductConsumeDraftRow = {
                     class="ghost-button mini whatsapp-pdf-button"
                     type="button"
                     [disabled]="whatsappActionLoading() === row.id"
-                    [title]="row.balance > 0 ? 'Send unpaid invoice PDF on WhatsApp' : 'Send paid invoice PDF on WhatsApp'"
+                    [title]="whatsappSummaryTooltip(row)"
                     (click)="sendInvoicePdfWhatsapp(row, $event)"
                   >
                     {{ whatsappActionLoading() === row.id ? 'Sending' : 'WhatsApp PDF' }}
                   </button>
                   <button class="ghost-button mini" type="button" *ngIf="row.balance > 0" (click)="receiveDue(row, $event)">Receive due</button>
-                  <button
-                    class="ghost-button mini"
-                    type="button"
-                    [disabled]="approvalRequesting() === row.id"
-                    (click)="editInvoice(row, $event)"
-                  >
-                    {{ editActionLabel(row) }}
-                  </button>
                 </div>
               </td>
                   </tr>
@@ -313,10 +370,20 @@ type ProductConsumeDraftRow = {
               >
                 {{ editActionLabel(invoice) }}
               </button>
+              <button
+                class="ghost-button mini"
+                type="button"
+                *ngIf="requiresAdjustmentNote(invoice)"
+                [disabled]="adjustmentSaving() === invoice.id"
+                (click)="openAdjustmentNote(invoice)"
+              >
+                Adjustment note
+              </button>
                 <button
                   class="ghost-button mini whatsapp-pdf-button"
                   type="button"
                   [disabled]="whatsappActionLoading() === invoice.id"
+                  [title]="whatsappSummaryTooltip(invoice)"
                   (click)="sendInvoicePdfWhatsapp(invoice)"
                 >
                   {{ whatsappActionLoading() === invoice.id ? 'Sending PDF' : 'WhatsApp PDF' }}
@@ -353,19 +420,20 @@ type ProductConsumeDraftRow = {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let item of serviceItems(invoice)">
+                  <tr *ngFor="let row of serviceItemRows(invoice)">
                     <td>
-                      <strong>{{ itemName(item) }}</strong>
-                      <small>{{ itemTypeLabel(item) }}</small>
+                      <strong>{{ itemName(row.item) }}</strong>
+                      <small>{{ itemTypeLabel(row.item) }}</small>
+                      <small *ngIf="serviceLineBenefitSummary(invoice, row.item, row.lineIndex) as benefitLine">{{ benefitLine }}</small>
                     </td>
-                    <td>{{ itemStaffName(item, invoice) }}</td>
-                    <td class="right">{{ itemQuantity(item) }}</td>
-                    <td class="right">{{ lineRate(item) | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td class="right">{{ lineDiscount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td class="right">{{ lineTaxable(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td class="right">{{ lineGstRate(item) }}%</td>
-                    <td class="right">{{ lineGstAmount(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td class="right line-final">{{ lineFinal(invoice, item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ itemStaffName(row.item, invoice) }}</td>
+                    <td class="right">{{ itemQuantity(row.item) }}</td>
+                    <td class="right">{{ lineRate(row.item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineDiscount(invoice, row.item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineTaxable(invoice, row.item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right">{{ lineGstRate(row.item) }}%</td>
+                    <td class="right">{{ lineGstAmount(invoice, row.item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td class="right line-final">{{ lineFinal(invoice, row.item) | currency: 'INR':'symbol':'1.0-0' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -373,6 +441,15 @@ type ProductConsumeDraftRow = {
             <ng-template #noServiceLines>
               <p class="inline-hint" *ngIf="!serviceItems(invoice).length">No services on this invoice.</p>
             </ng-template>
+            <div class="detail-list" *ngIf="invoiceBenefitSummaryLines(invoice).length">
+              <article *ngFor="let line of invoiceBenefitSummaryLines(invoice)">
+                <div>
+                  <strong>{{ line.serviceName }}</strong>
+                  <span>{{ line.benefitName }}</span>
+                </div>
+                <strong>{{ line.credits }} credits</strong>
+              </article>
+            </div>
 
             <h3>Products</h3>
             <div class="invoice-line-table-wrap" *ngIf="productItems(invoice).length; else noProductLines">
@@ -508,7 +585,8 @@ type ProductConsumeDraftRow = {
             <h3>Online payment collection</h3>
             <app-state [loading]="paymentActionLoading().startsWith(invoice.id)" [error]="paymentError()"></app-state>
             <div class="info-grid compact-info">
-              <div><span>Payment status</span><strong>{{ invoice.paymentStatus || invoice.status }}</strong></div>
+              <div><span>Payment status</span><strong>{{ invoice.status || invoice.paymentStatus }}</strong></div>
+              <div><span>Invoice state</span><strong>{{ invoice.documentStatus || '-' }}</strong></div>
               <div><span>Online paid</span><strong>{{ invoice.onlinePaidAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
               <div><span>Payment link</span><strong>{{ invoice.paymentLinkId || latestPaymentLinkId() || 'Not created' }}</strong></div>
               <div><span>Due before send</span><strong>{{ invoice.balance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
@@ -525,6 +603,13 @@ type ProductConsumeDraftRow = {
               </button>
             </div>
             <div class="detail-list" *ngIf="paymentTimeline() as collection">
+              <article *ngIf="advanceAmount(collection.invoice || {}) > 0 || advancePendingAmount(collection.invoice || {}) > 0">
+                <div>
+                  <strong>Booking advance · {{ collection.invoice?.bookingAdvanceStatus || 'not_required' }}</strong>
+                  <span>Advance is tracked separately from invoice settlement.</span>
+                </div>
+                <strong>{{ advanceAmount(collection.invoice || {}) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
               <article *ngFor="let link of collection.links || []">
                 <div>
                   <strong>{{ link.provider || 'razorpay' }} · {{ link.status }}</strong>
@@ -543,7 +628,33 @@ type ProductConsumeDraftRow = {
               <p class="inline-hint" *ngIf="!(collection.links || []).length && !(collection.events || []).length">No online payment timeline yet.</p>
             </div>
 
+            <div class="settlement-breakdown">
+              <article class="settlement-card">
+                <span>Booking advance adjusted</span>
+                <strong>{{ bookingAdvanceAdjustedAmount(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <small>This amount was adjusted from booking. Do not collect it again at the counter.</small>
+              </article>
+              <article class="settlement-card">
+                <span>Counter payment collected</span>
+                <strong>{{ counterPaymentCollectedAmount(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <small>Amount received so far through counter or normal invoice settlement.</small>
+              </article>
+              <article class="settlement-card" [class.is-due]="remainingCounterPaymentAmount(invoice) > 0">
+                <span>Remaining counter payment</span>
+                <strong>{{ remainingCounterPaymentAmount(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <small *ngIf="remainingCounterPaymentAmount(invoice) > 0">Abhi itna aur collect karna baaki hai.</small>
+                <small *ngIf="remainingCounterPaymentAmount(invoice) <= 0">Invoice settlement complete hai.</small>
+              </article>
+            </div>
+
             <div class="summary-lines">
+              <div><span>Booking advance paid</span><strong>{{ advanceAmount(paymentTimeline()?.invoice || {}) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Booking advance pending</span><strong>{{ advancePendingAmount(paymentTimeline()?.invoice || {}) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Booking advance adjusted</span><strong>{{ bookingAdvanceAdjustedAmount(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Counter payment collected</span><strong>{{ counterPaymentCollectedAmount(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Remaining counter payment</span><strong>{{ remainingCounterPaymentAmount(invoice) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              <div *ngIf="invoiceBenefitCreditsUsedCount(invoice) > 0"><span>Package/member credits used</span><strong>{{ invoiceBenefitCreditsUsed(invoice) }}</strong></div>
+              <div *ngIf="invoiceBenefitCreditsUsedCount(invoice) > 0"><span>Benefit balance left</span><strong>{{ invoiceBenefitRemaining(invoice) }}</strong></div>
               <div><span>Subtotal</span><strong>{{ invoice.subtotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
               <div><span>Discount</span><strong>{{ invoice.discount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
               <div><span>Discount rate</span><strong>{{ invoiceDiscountRate(invoice) }}%</strong></div>
@@ -705,6 +816,167 @@ type ProductConsumeDraftRow = {
       color: #0f766e;
       font-weight: 800;
     }
+
+    .settlement-breakdown {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .settlement-card {
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 10px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
+      display: grid;
+      gap: 6px;
+    }
+
+    .settlement-card span {
+      color: #0f766e;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .settlement-card strong {
+      color: #0f172a;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .settlement-card small {
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .settlement-card.is-due {
+      border-color: rgba(220, 38, 38, 0.24);
+      background: linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(255, 255, 255, 0.98));
+    }
+
+    .settlement-card.is-due span {
+      color: #b91c1c;
+    }
+
+    .row-subcopy,
+    .queue-preview-chip {
+      display: block;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .row-subcopy {
+      color: #475569;
+      white-space: normal;
+    }
+
+    .received-due-row {
+      display: block;
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 6px;
+      padding: 5px 8px;
+      border: 1px solid rgba(14, 116, 144, 0.24);
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0e7490;
+      font-weight: 800;
+      line-height: 1.35;
+      white-space: normal;
+    }
+
+    .queue-preview-chip {
+      color: #0f766e;
+      font-weight: 700;
+      white-space: normal;
+    }
+
+    .invoice-action-cell {
+      min-width: 300px;
+      white-space: normal;
+    }
+
+    .invoice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      min-width: 280px;
+    }
+
+    .invoice-edit-button {
+      border-color: rgba(15, 118, 110, 0.35);
+      background: #f0fdfa;
+      color: #0f766e;
+      font-weight: 800;
+    }
+
+    .billing-control-strip {
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    }
+
+    .billing-control-strip p {
+      margin: 4px 0 0;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    .billing-control-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .billing-control-card {
+      border: 1px solid rgba(15, 118, 110, 0.16);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fffd;
+      display: grid;
+      gap: 6px;
+      color: #0f172a;
+      text-decoration: none;
+      min-width: 0;
+    }
+
+    .billing-control-card.warn {
+      border-color: rgba(220, 104, 3, 0.28);
+      background: #fffaf0;
+    }
+
+    .billing-control-card span {
+      color: #0f766e;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .billing-control-card strong {
+      font-size: 22px;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .billing-control-card small {
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 960px) {
+      .settlement-breakdown,
+      .billing-control-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `]
 })
 export class PosInvoicesComponent implements OnInit {
@@ -725,7 +997,12 @@ export class PosInvoicesComponent implements OnInit {
   readonly paymentActionLoading = signal('');
   readonly paymentError = signal('');
   readonly whatsappActionLoading = signal('');
+  readonly invoiceNotificationQueue = signal<ApiRecord[]>([]);
   readonly productConsumeDrafts = signal<ProductConsumeDraftRow[]>([]);
+  readonly billingSummary = signal<ApiRecord | null>(null);
+  readonly billingMargin = signal<ApiRecord | null>(null);
+  readonly billingFraudAlerts = signal<ApiRecord[]>([]);
+  readonly paymentRiskSummary = signal<ApiRecord | null>(null);
   readonly highValueApprovalLimit = 5000;
   query = '';
   statusFilter = '';
@@ -766,10 +1043,20 @@ export class PosInvoicesComponent implements OnInit {
       staff: this.api.list<ApiRecord[]>('staff', { limit: 1000 }),
       branches: this.api.list<ApiRecord[]>('branches', { limit: 1000 }),
       walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000 }),
-      productConsumeDrafts: this.api.list<ProductConsumeDraftRow[]>('inventory-intelligence/product-consume-drafts', { limit: 1000 })
+      productConsumeDrafts: this.api.list<ProductConsumeDraftRow[]>('inventory-intelligence/product-consume-drafts', { limit: 1000 }),
+      invoiceNotificationQueue: this.api.list<ApiRecord[]>('invoice-notifications/queue', { limit: 1000 }).pipe(catchError(() => of([]))),
+      billingSummary: this.api.list<ApiRecord>('billing-analytics/summary').pipe(catchError(() => of(null))),
+      billingMargin: this.api.list<ApiRecord>('billing-analytics/margin').pipe(catchError(() => of(null))),
+      billingFraudAlerts: this.api.list<ApiRecord[]>('billing-analytics/fraud-alerts').pipe(catchError(() => of([]))),
+      paymentRiskSummary: this.api.list<ApiRecord>('payment-intelligence/summary').pipe(catchError(() => of(null)))
     }).subscribe({
-      next: ({ invoices, sales, payments, clients, staff, branches, walletTransactions, productConsumeDrafts }) => {
+      next: ({ invoices, sales, payments, clients, staff, branches, walletTransactions, productConsumeDrafts, invoiceNotificationQueue, billingSummary, billingMargin, billingFraudAlerts, paymentRiskSummary }) => {
         this.productConsumeDrafts.set(productConsumeDrafts || []);
+        this.invoiceNotificationQueue.set(invoiceNotificationQueue || []);
+        this.billingSummary.set(billingSummary || null);
+        this.billingMargin.set(billingMargin || null);
+        this.billingFraudAlerts.set(billingFraudAlerts || []);
+        this.paymentRiskSummary.set(paymentRiskSummary || null);
         const clientsWithWallet = this.withWalletBalances(clients || [], walletTransactions || []);
         this.walletClients.set(this.buildWalletClients(clientsWithWallet, invoices || [], branches || [], walletTransactions || []));
         this.rows.set(this.buildRows(invoices || [], sales || [], payments || [], clientsWithWallet, staff || [], branches || []));
@@ -953,18 +1240,17 @@ export class PosInvoicesComponent implements OnInit {
   }
 
   requiresEditApproval(row: InvoiceRegisterRow): boolean {
-    const status = String(row.status || '').toLowerCase();
-    return row.total >= this.highValueApprovalLimit || ['paid', 'billed', 'deleted'].includes(status);
+    const state = this.invoiceStateText(row);
+    return row.total >= this.highValueApprovalLimit || ['deleted', 'voided', 'cancelled'].some((item) => state.includes(item));
   }
 
   requiresAdjustmentNote(row: InvoiceRegisterRow): boolean {
-    const status = String(row.status || '').toLowerCase();
+    const status = this.invoiceStateText(row);
     return row.balance <= 0
-      || ['paid', 'billed', 'closed', 'finalized', 'settled', 'posted', 'voided', 'cancelled'].some((item) => status.includes(item));
+      || ['paid', 'closed', 'finalized', 'settled', 'posted', 'voided', 'cancelled'].some((item) => status.includes(item));
   }
 
   editActionLabel(row: InvoiceRegisterRow): string {
-    if (this.requiresAdjustmentNote(row)) return 'Adjustment note';
     return this.requiresEditApproval(row) ? 'Request edit' : 'Edit invoice';
   }
 
@@ -974,16 +1260,17 @@ export class PosInvoicesComponent implements OnInit {
 
   editInvoice(row: InvoiceRegisterRow, event?: Event): void {
     event?.stopPropagation();
-    if (this.requiresAdjustmentNote(row)) {
-      this.openAdjustmentDialog(row);
-      return;
-    }
     if (this.requiresEditApproval(row)) {
       this.openApprovalDialog('edit', row);
       return;
     }
 
     this.openCorrectionDraft(row);
+  }
+
+  openAdjustmentNote(row: InvoiceRegisterRow, event?: Event): void {
+    event?.stopPropagation();
+    this.openAdjustmentDialog(row);
   }
 
   deleteInvoice(row: InvoiceRegisterRow, event?: Event): void {
@@ -1172,6 +1459,57 @@ export class PosInvoicesComponent implements OnInit {
     return this.filteredWalletClients().length;
   }
 
+  paymentTruthScore(): number {
+    const rows = this.filteredRows();
+    if (!rows.length) return 100;
+    const validRows = rows.filter((row) => Math.abs(this.money(row.total - row.paid - row.balance)) <= 1);
+    return Math.round((validRows.length / rows.length) * 100);
+  }
+
+  paymentTruthLabel(): string {
+    const failed = this.filteredRows().length - Math.round((this.paymentTruthScore() / 100) * this.filteredRows().length);
+    return failed > 0 ? `${failed} invoice needs payment/due reconciliation` : 'Paid, due and settlement totals reconcile';
+  }
+
+  bookingAdvanceAdjustedTotal(): number {
+    return this.money(this.filteredRows().reduce((sum, row) => sum + this.bookingAdvanceAdjustedAmount(row), 0));
+  }
+
+  settlementCollectedTotal(): number {
+    return this.money(this.filteredRows().reduce((sum, row) => sum + this.counterPaymentCollectedAmount(row) + this.bookingAdvanceAdjustedAmount(row), 0));
+  }
+
+  gstCollectedTotal(): number {
+    const apiValue = this.billingSummary()?.['taxCollected'];
+    if (apiValue !== undefined && apiValue !== null && apiValue !== '') return this.money(apiValue as string | number);
+    return this.money(this.filteredRows().reduce((sum, row) => sum + row.gst, 0));
+  }
+
+  marginGrossTotal(): number {
+    const margin = this.billingMargin() || {};
+    return this.money((margin['grossMargin'] ?? margin['gross_margin'] ?? 0) as string | number);
+  }
+
+  marginPercentLabel(): string {
+    const margin = this.billingMargin() || {};
+    const revenue = this.money((margin['revenue'] ?? 0) as string | number);
+    if (revenue <= 0) return '0%';
+    return `${this.money((this.marginGrossTotal() / revenue) * 100)}%`;
+  }
+
+  fraudFlagCount(): number {
+    return this.billingFraudAlerts().length + Number(this.paymentRiskSummary()?.['openRisks'] || 0);
+  }
+
+  amountAtRisk(): number {
+    const alertAmount = this.billingFraudAlerts().reduce((sum, row) => sum + Number(row['amount'] || row['difference'] || 0), 0);
+    return this.money(alertAmount + Number(this.paymentRiskSummary()?.['amountAtRisk'] || 0));
+  }
+
+  consumePendingCount(): number {
+    return this.productConsumeDrafts().filter((draft) => draft.status !== 'confirmed').length;
+  }
+
   lineTotal(item: ApiRecord): number {
     return this.lineGross(item);
   }
@@ -1253,6 +1591,12 @@ export class PosInvoicesComponent implements OnInit {
     return this.invoiceItemsByType(invoice, 'service');
   }
 
+  serviceItemRows(invoice: InvoiceRegisterRow): Array<{ item: ApiRecord; lineIndex: number }> {
+    return (invoice.items || [])
+      .map((item, lineIndex) => ({ item, lineIndex }))
+      .filter(({ item }) => this.normalizedItemType(item) === 'service');
+  }
+
   productItems(invoice: InvoiceRegisterRow): ApiRecord[] {
     return this.invoiceItemsByType(invoice, 'product');
   }
@@ -1262,6 +1606,39 @@ export class PosInvoicesComponent implements OnInit {
       const type = this.normalizedItemType(item);
       return type !== 'service' && type !== 'product';
     });
+  }
+
+  invoiceBenefitCreditsUsed(invoice: InvoiceRegisterRow): string {
+    const credits = this.invoiceBenefitCreditsUsedCount(invoice);
+    return credits > 0 ? `${credits} credits` : '';
+  }
+
+  invoiceBenefitCreditsUsedCount(invoice: InvoiceRegisterRow): number {
+    return Number(invoice.membershipRedeem?.creditsUsed || 0);
+  }
+
+  invoiceBenefitRemaining(invoice: InvoiceRegisterRow): string {
+    return `${Number(invoice.membershipRedeem?.remainingAfterRedeem || 0)} credits`;
+  }
+
+  invoiceBenefitSummaryLines(invoice: InvoiceRegisterRow): Array<{ serviceName: string; credits: number; benefitName: string }> {
+    const mappings = Array.isArray(invoice.membershipRedeem?.serviceLineMappings) ? invoice.membershipRedeem?.serviceLineMappings as ApiRecord[] : [];
+    const benefitName = String(invoice.membershipRedeem?.benefitName || invoice.membershipRedeem?.membershipId || 'Benefit');
+    return mappings
+      .filter((mapping) => Number(mapping.credits || 0) > 0)
+      .map((mapping) => ({
+        serviceName: String(mapping.serviceName || mapping.serviceId || 'Service'),
+        credits: Number(mapping.credits || 0),
+        benefitName
+      }));
+  }
+
+  serviceLineBenefitSummary(invoice: InvoiceRegisterRow, item: ApiRecord, index: number): string {
+    const mappings = Array.isArray(invoice.membershipRedeem?.serviceLineMappings) ? invoice.membershipRedeem?.serviceLineMappings as ApiRecord[] : [];
+    const match = mappings.find((mapping) => Number(mapping.lineIndex ?? -1) === index || String(mapping.serviceId || '') === String(item.id || ''));
+    if (!match) return '';
+    const benefitName = String(invoice.membershipRedeem?.benefitName || invoice.membershipRedeem?.membershipId || 'Benefit');
+    return `${benefitName} · ${Number(match.credits || 0)} credits redeemed`;
   }
 
   itemLineMeta(item: ApiRecord): string {
@@ -1300,9 +1677,12 @@ export class PosInvoicesComponent implements OnInit {
   }
 
   paymentModeSearchText(row: InvoiceRegisterRow): string {
-    return this.paymentModeSummary(row)
-      .map((paymentMode) => `${paymentMode.mode} ${paymentMode.label} ${paymentMode.amount}`)
-      .join(' ');
+    return [
+      this.paymentModeSummary(row)
+        .map((paymentMode) => `${paymentMode.mode} ${paymentMode.label} ${paymentMode.amount}`)
+        .join(' '),
+      this.receivedDueSummary(row)
+    ].filter(Boolean).join(' ');
   }
 
   paymentModeClass(modeId: string): string {
@@ -1345,7 +1725,22 @@ export class PosInvoicesComponent implements OnInit {
     });
   }
 
+  receivedDueSummary(row: InvoiceRegisterRow): string {
+    const lines = this.receivedDueLines(row);
+    if (!lines.length) return '';
+    const byMode = new Map<string, number>();
+    for (const line of lines) {
+      byMode.set(line.mode, this.money((byMode.get(line.mode) || 0) + line.amount));
+    }
+    const total = lines.reduce((sum, line) => sum + line.amount, 0);
+    const modes = Array.from(byMode.entries())
+      .map(([mode, amount]) => `${this.modeLabel(mode)} ${this.money(amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}`)
+      .join(', ');
+    return `Unpaid received: ${this.money(total).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}${modes ? ` via ${modes}` : ''}`;
+  }
+
   modeLabel(modeId: string): string {
+    if (modeId === 'booking_advance') return 'Booking advance';
     return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
   }
 
@@ -1353,6 +1748,49 @@ export class PosInvoicesComponent implements OnInit {
     return this.money((row.payments || [])
       .filter((payment) => String(payment.mode || '').toLowerCase().includes('wallet'))
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
+  }
+
+  bookingAdvanceAdjustedAmount(row: InvoiceRegisterRow): number {
+    return this.money((row.payments || [])
+      .filter((payment) => String(payment.mode || '').toLowerCase() === 'booking_advance')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
+  }
+
+  counterPaymentCollectedAmount(row: InvoiceRegisterRow): number {
+    return this.money(Math.max(0, Number(row.paid || 0) - this.bookingAdvanceAdjustedAmount(row)));
+  }
+
+  remainingCounterPaymentAmount(row: InvoiceRegisterRow): number {
+    return this.money(Math.max(0, Number(row.balance || 0)));
+  }
+
+  settlementSnippet(row: InvoiceRegisterRow): string {
+    const advance = this.bookingAdvanceAdjustedAmount(row).toLocaleString('en-IN');
+    const counter = this.counterPaymentCollectedAmount(row).toLocaleString('en-IN');
+    const due = this.remainingCounterPaymentAmount(row).toLocaleString('en-IN');
+    return `Adv ₹${advance} · Counter ₹${counter} · Due ₹${due}`;
+  }
+
+  whatsappSummaryTooltip(row: InvoiceRegisterRow): string {
+    const paymentState = row.balance > 0 ? 'Send unpaid invoice PDF on WhatsApp.' : 'Send paid invoice PDF on WhatsApp.';
+    return `${paymentState} Client ko settlement summary line bhi saath jayegi: ${this.settlementSnippet(row)}`;
+  }
+
+  whatsappQueuePreview(row: InvoiceRegisterRow): string {
+    const queueRow = this.invoiceNotificationQueue()
+      .filter((item) => String(item.invoiceId || item.invoice_id || '') === row.id && String(item.channel || '').toLowerCase() === 'whatsapp')
+      .sort((a, b) => this.dateMs(b.updatedAt || b.updated_at || b.createdAt || b.created_at) - this.dateMs(a.updatedAt || a.updated_at || a.createdAt || a.created_at))[0];
+    if (!queueRow) return '';
+    const messageBody = String(queueRow.messageBody || queueRow.message_body || '');
+    return messageBody.split('\n').find((line) => line.startsWith('Advance adjusted:')) || this.settlementSnippet(row);
+  }
+
+  advanceAmount(record: ApiRecord): number {
+    return this.money(Number(record?.bookingAdvancePaid || 0));
+  }
+
+  advancePendingAmount(record: ApiRecord): number {
+    return this.money(Number(record?.bookingAdvancePending || 0));
   }
 
   invoiceKindLabel(row: InvoiceRegisterRow): string {
@@ -1385,7 +1823,15 @@ export class PosInvoicesComponent implements OnInit {
       next: (response) => {
         const due = Number(response.due || invoice.balance || 0);
         const dueText = due > 0 ? ` Due ₹${due.toLocaleString('en-IN')}.` : '';
-        this.notice.set(`WhatsApp PDF queued for ${invoice.invoiceNumber}.${dueText}`);
+        if (response?.row) {
+          const queueRow = response.row as ApiRecord;
+          this.invoiceNotificationQueue.update((rows) => {
+            const nextRows = rows.filter((item) => item.id !== queueRow.id);
+            nextRows.unshift(queueRow);
+            return nextRows;
+          });
+        }
+        this.notice.set(`WhatsApp PDF queued for ${invoice.invoiceNumber}.${dueText} ${this.settlementSnippet(invoice)}`);
         this.loadPaymentTimeline(invoice);
       },
       error: (error) => this.paymentError.set(this.api.errorText(error, 'Unable to queue WhatsApp PDF'))
@@ -1398,7 +1844,7 @@ export class PosInvoicesComponent implements OnInit {
       next: (documentRecord) => {
         const win = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1100');
         if (!win) {
-          this.error.set('Popup blocked. Browser me popup allow karke A4 PDF dobara open karo.');
+          this.error.set('Popup blocked. Allow popups in the browser and open the A4 PDF again.');
           return;
         }
         win.document.open();
@@ -1600,8 +2046,12 @@ export class PosInvoicesComponent implements OnInit {
           };
         });
       const tips = this.tipLines(sale);
+      const membershipRedeem = this.readJson(sale.membershipRedeem, {});
       const paid = this.money(invoice.paid ?? invoice.paid_amount ?? invoicePayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
       const total = this.money(invoice.total ?? invoice.grand_total ?? sale.total ?? 0);
+      const balance = this.money(invoice.balance ?? invoice.due_amount ?? Math.max(0, total - paid));
+      const paymentStatus = this.paymentStatusForInvoice(invoice, total, paid, balance);
+      const documentStatus = String(invoice.status || '').trim().toLowerCase() || 'saved';
       return {
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber || invoice.invoice_no || invoice.id,
@@ -1613,7 +2063,7 @@ export class PosInvoicesComponent implements OnInit {
         staffId,
         staffName: person.name || 'Unassigned',
         appointmentId,
-        status: invoice.status || invoice.payment_status || (paid >= total ? 'paid' : paid > 0 ? 'partially paid' : 'unpaid'),
+        status: paymentStatus,
         createdAt: invoice.createdAt || invoice.created_at || sale.createdAt || '',
         dueDate: invoice.dueDate || invoice.due_date || invoice.createdAt || invoice.created_at || sale.createdAt || '',
         subtotal: this.money(invoice.subtotal ?? sale.subtotal ?? 0),
@@ -1622,13 +2072,15 @@ export class PosInvoicesComponent implements OnInit {
         tipTotal: this.money(tips.reduce((sum, tip) => sum + Number(tip.amount || 0), 0)),
         total,
         paid,
-        balance: this.money(invoice.balance ?? invoice.due_amount ?? Math.max(0, total - paid)),
-        paymentStatus: String(invoice.payment_status || invoice.status || ''),
+        balance,
+        paymentStatus,
+        documentStatus,
         onlinePaidAmount: this.money(invoice.online_paid_amount ?? 0),
         paymentLinkId: String(invoice.payment_link_id || ''),
         items,
         payments: invoicePayments,
-        tips
+        tips,
+        membershipRedeem
       };
     }).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }
@@ -1665,6 +2117,18 @@ export class PosInvoicesComponent implements OnInit {
     if (rawType.includes('service')) return 'service';
     if (rawType.includes('product') || rawType.includes('retail')) return 'product';
     return 'custom';
+  }
+
+  private paymentStatusForInvoice(invoice: ApiRecord, total: number, paid: number, balance: number): string {
+    const explicit = String(invoice.payment_status || '').trim().toLowerCase();
+    if (explicit === 'paid' && balance <= 0.01) return 'paid';
+    if (['partial', 'partially_paid'].includes(explicit)) return balance <= 0.01 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+    if (explicit === 'unpaid') return paid > 0 ? 'partial' : 'unpaid';
+    return balance <= 0.01 ? 'paid' : paid > 0 && paid < total ? 'partial' : paid > 0 ? 'paid' : 'unpaid';
+  }
+
+  private invoiceStateText(row: InvoiceRegisterRow): string {
+    return `${row.status} ${row.paymentStatus} ${row.documentStatus}`.toLowerCase();
   }
 
   private invoiceGrossTotal(invoice: InvoiceRegisterRow): number {

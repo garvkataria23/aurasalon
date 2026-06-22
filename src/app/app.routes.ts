@@ -44,7 +44,7 @@ export const routes: Routes = [
   { path: 'transactions/outgoing-funds', loadComponent: () => import('./pages/outgoing-funds-entry.component').then(m => m.OutgoingFundsEntryComponent), title: 'Outgoing Funds Entry' },
   { path: 'transactions/outgoing-funds-report', loadComponent: () => import('./pages/outgoing-funds-report.component').then(m => m.OutgoingFundsReportComponent), title: 'Outgoing Funds Saved Entries' },
   { path: 'billing', loadChildren: () => import('./features/billing/billing.routes').then((m) => m.BILLING_ROUTES), title: 'Enterprise Billing' },
-  { path: 'customer-360', loadComponent: () => import('./pages/customer-360.component').then(m => m.Customer360Component), title: 'Customer 360' },
+  { path: 'customer-360', loadComponent: () => import('./pages/customer-360.component').then(m => m.Customer360Component), title: 'Customer Intelligence' },
   { path: 'salon', pathMatch: 'full', redirectTo: 'salon-3d' },
   { path: 'salon-3d', loadComponent: () => import('./pages/salon-3d-website.component').then(m => m.Salon3dWebsiteComponent), title: 'AuraShine 3D Salon Website' },
   { path: 'book', loadComponent: () => import('./pages/booking-portal.component').then(m => m.BookingPortalComponent), title: 'Online Booking' },
@@ -56,9 +56,14 @@ export const routes: Routes = [
   { path: 'scheduler', pathMatch: 'full', redirectTo: 'appointments' },
   { path: 'client-masters', loadChildren: () => import('./features/client-masters/client-masters.routes').then(m => m.CLIENT_MASTERS_ROUTES), title: 'Client Masters' },
   { path: 'clients', loadComponent: () => import('./pages/clients.component').then(m => m.ClientsComponent), title: 'Client CRM' },
+  { path: 'clients/reports/:reportKey', loadComponent: () => import('./pages/client-report-detail.component').then(m => m.ClientReportDetailComponent), title: 'Client Report' },
   { path: 'clients/:id', loadComponent: () => import('./pages/client-detail.component').then(m => m.ClientDetailComponent), title: 'Client Profile' },
   { path: 'pos/tips', loadComponent: () => import('./pages/pos-tips.component').then(m => m.PosTipsComponent), title: 'POS Tips' },
   { path: 'pos/payment-modes', loadComponent: () => import('./pages/payment-modes.component').then(m => m.PaymentModesComponent), title: 'Payment Modes' },
+  { path: 'cash-drawer-approval/:token', loadComponent: () => import('./pages/cash-drawer-eod.component').then(m => m.CashDrawerEodComponent), title: 'Cash Drawer Approval' },
+  { path: 'pos/cash-drawer-eod', loadComponent: () => import('./pages/cash-drawer-eod.component').then(m => m.CashDrawerEodComponent), title: 'Cash Drawer Tally' },
+  { path: 'cash-drawer-eod', pathMatch: 'full', redirectTo: 'pos/cash-drawer-eod' },
+  { path: 'pos/cash-drawer', pathMatch: 'full', redirectTo: 'pos/cash-drawer-eod' },
   { path: 'pos/invoice-activity', loadComponent: () => import('./pages/pos-invoice-activity.component').then(m => m.PosInvoiceActivityComponent), title: 'Invoice Activity' },
   { path: 'pos/invoices', loadComponent: () => import('./pages/pos-invoices.component').then(m => m.PosInvoicesComponent), title: 'POS Invoices' },
   { path: 'pos/holds', loadComponent: () => import('./pages/pos-holds.component').then(m => m.PosHoldsComponent), title: 'Held Invoices' },
@@ -93,7 +98,11 @@ export const routes: Routes = [
       ]
     }
   },
+  { path: 'inventory/products/:id/edit', loadComponent: () => import('./pages/inventory-product-edit.component').then(m => m.InventoryProductEditComponent), title: 'Edit Product' },
   { path: 'inventory/products/:id', loadComponent: () => import('./pages/product-360.component').then(m => m.Product360Component), title: 'Product 360' },
+  { path: 'inventory/vendors', loadComponent: () => import('./pages/inventory-workspace-detail.component').then(m => m.InventoryWorkspaceDetailComponent), data: { workspace: 'vendors' }, title: 'Inventory Vendors' },
+  { path: 'inventory/current-stock', loadComponent: () => import('./pages/inventory-workspace-detail.component').then(m => m.InventoryWorkspaceDetailComponent), data: { workspace: 'stock' }, title: 'Current Stock' },
+  { path: 'inventory/procurement', loadComponent: () => import('./pages/inventory-workspace-detail.component').then(m => m.InventoryWorkspaceDetailComponent), data: { workspace: 'procurement' }, title: 'Manage Procurement' },
   { path: 'inventory/purchase-bill-drafts', loadComponent: () => import('./pages/purchase-bill-drafts.component').then(m => m.PurchaseBillDraftsComponent), title: 'AI Purchase Bill Drafts' },
   { path: 'inventory/purchase-orders/:id', loadComponent: () => import('./pages/purchase-order-detail.component').then(m => m.PurchaseOrderDetailComponent), title: 'Purchase Order Detail' },
   { path: 'inventory/purchase-orders', loadComponent: () => import('./pages/purchase-orders.component').then(m => m.PurchaseOrdersComponent), title: 'Purchase Orders' },
@@ -141,8 +150,8 @@ export const routes: Routes = [
   },
   { path: 'staff/my-work', loadComponent: () => import('./pages/staff-my-work.component').then(m => m.StaffMyWorkComponent), title: 'My Staff Work', canActivate: [permissionGuard], data: { permission: 'read:appointments' } },
   { path: 'staff/connected-modules', loadComponent: () => import('./pages/staff-connected-modules.component').then(m => m.StaffConnectedModulesComponent), title: 'Staff Connected Modules', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
-  { path: 'staff', loadComponent: () => import('./pages/staff-management.component').then(m => m.StaffManagementComponent), title: 'Smart Staff Management', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
-  { path: 'staff-enterprise', loadComponent: () => import('./pages/staff-enterprise.component').then(m => m.StaffEnterpriseComponent), title: 'Staff Enterprise OS', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
+  { path: 'staff', pathMatch: 'full', redirectTo: 'staff-os/employee-masters' },
+  { path: 'staff-enterprise', pathMatch: 'full', redirectTo: 'staff-os/employee-masters' },
   { path: 'staff-os', loadChildren: () => import('./features/staff-os/staff-os.routes').then(m => m.STAFF_OS_ROUTES), title: 'Staff Operating System', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
   {
     path: 'commissions',
@@ -288,19 +297,100 @@ export const routes: Routes = [
     }
   },
   {
-    path: 'voice-receptionist', component: ModulePageComponent, title: 'AI Voice Receptionist', data: { entity: 'voiceCallLogs', title: 'AI Voice Receptionist', subtitle: 'Incoming calls, transcripts, multilingual intents, callbacks and voice booking actions.', createLabel: 'Log voice call', columns: [{ key: 'phone', label: 'Phone' }, { key: 'intent', label: 'Intent' }, { key: 'language', label: 'Language' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'branchId', label: 'Branch ID', required: true }, { key: 'phone', label: 'Phone', required: true }, { key: 'intent', label: 'Intent', required: true }, { key: 'language', label: 'Language', defaultValue: 'en-IN' }, { key: 'transcript', label: 'Transcript JSON', type: 'json', defaultValue: [] }, { key: 'entities', label: 'Entities JSON', type: 'json', defaultValue: {} }, { key: 'actions', label: 'Actions JSON', type: 'json', defaultValue: [] }] }
+    path: 'voice-receptionist', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'AI Voice Receptionist', data: { workflowType: 'voice-receptionist', title: 'AI Voice Receptionist', subtitle: 'Live call intake, intent routing, slot suggestions, handoff and voice session evidence.', prompt: 'Classify this client call, suggest the next booking action, and prepare human handoff if needed.', primaryEndpoint: 'voice-receptionist/calls', commandCenterRoute: '/command-center/voice-ai-receptionist', recordLabel: 'Voice calls' }
   },
   {
     path: 'queue-system', component: ModulePageComponent, title: 'Smart Queue System', data: { entity: 'queueDisplays', title: 'Smart Queue TV Displays', subtitle: 'Token displays, queue TV layouts, VIP filters and live queue presentation.', createLabel: 'Add queue display', columns: [{ key: 'name', label: 'Display' }, { key: 'displayCode', label: 'Code' }, { key: 'branchId', label: 'Branch' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'branchId', label: 'Branch ID', required: true }, { key: 'name', label: 'Display name', required: true }, { key: 'displayCode', label: 'Display code' }, { key: 'layout', label: 'Layout JSON', type: 'json', defaultValue: { mode: 'tv' } }, { key: 'filters', label: 'Filters JSON', type: 'json', defaultValue: {} }, { key: 'theme', label: 'Theme JSON', type: 'json', defaultValue: {} }] }
   },
   {
-    path: 'dynamic-pricing', component: ModulePageComponent, title: 'Dynamic Pricing', data: { entity: 'dynamicPricingRules', title: 'Dynamic Pricing Engine', subtitle: 'Peak-hour, demand, festival, VIP, membership and auto-discount pricing rules.', createLabel: 'Add pricing rule', columns: [{ key: 'name', label: 'Rule' }, { key: 'scope', label: 'Scope' }, { key: 'status', label: 'Status', type: 'badge' }, { key: 'startsAt', label: 'Starts' }], fields: [{ key: 'name', label: 'Rule name', required: true }, { key: 'scope', label: 'Scope', required: true, defaultValue: 'services' }, { key: 'branchId', label: 'Branch ID' }, { key: 'conditions', label: 'Conditions JSON', type: 'json', defaultValue: {} }, { key: 'adjustments', label: 'Adjustments JSON', type: 'json', defaultValue: {} }, { key: 'approval', label: 'Approval JSON', type: 'json', defaultValue: {} }] }
+    path: 'dynamic-pricing', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Dynamic Pricing', data: { workflowType: 'dynamic-pricing', title: 'Dynamic Pricing Engine', subtitle: 'Demand, sales, service price and appointment signals converted into review-before-action pricing recommendations.', prompt: 'Find safe dynamic pricing rules from live sales, services and appointment demand.', primaryEndpoint: 'dynamicPricingRules', commandCenterRoute: '/future-features', recordLabel: 'Pricing rules' }
+  },
+  {
+    path: 'discount-rules', loadComponent: () => import('./pages/discount-rules/happy-hours-workspace.component').then(m => m.HappyHoursWorkspaceComponent), title: 'Happy Hours'
+  },
+  {
+    path: 'discount-rules/rules', loadComponent: () => import('./pages/discount-rules/rule-list.component').then(m => m.RuleListComponent), title: 'Discount Rules'
+  },
+  {
+    path: 'discount-rules/control-tower', loadComponent: () => import('./pages/discount-rules/happy-hours-control-tower.component').then(m => m.HappyHoursControlTowerComponent), title: 'Happy Hours Control Tower'
+  },
+  {
+    path: 'discount-rules/promotion-calendar', loadComponent: () => import('./pages/discount-rules/promotion-calendar.component').then(m => m.PromotionCalendarComponent), title: 'Promotion Calendar'
+  },
+  {
+    path: 'discount-rules/coupon-engine', loadComponent: () => import('./pages/discount-rules/coupon-engine.component').then(m => m.CouponEngineComponent), title: 'Coupon Engine'
+  },
+  {
+    path: 'discount-rules/client-segments', loadComponent: () => import('./pages/discount-rules/client-segments.component').then(m => m.HappyHoursClientSegmentsComponent), title: 'Client Segment Targeting'
+  },
+  {
+    path: 'discount-rules/staff-incentives', loadComponent: () => import('./pages/discount-rules/staff-incentives.component').then(m => m.HappyHoursStaffIncentivesComponent), title: 'Staff Incentive Link'
+  },
+  {
+    path: 'discount-rules/offer-lifecycle', loadComponent: () => import('./pages/discount-rules/offer-lifecycle.component').then(m => m.OfferLifecycleComponent), title: 'Offer Lifecycle OS'
+  },
+  {
+    path: 'discount-rules/offer-roi-score', loadComponent: () => import('./pages/discount-rules/offer-roi-score.component').then(m => m.OfferRoiScoreComponent), title: 'Offer ROI Score'
+  },
+  {
+    path: 'discount-rules/fraud-guard', loadComponent: () => import('./pages/discount-rules/fraud-guard.component').then(m => m.HappyHoursFraudGuardComponent), title: 'Abuse / Fraud Guard'
+  },
+  {
+    path: 'discount-rules/conflicts', loadComponent: () => import('./pages/discount-rules/rule-conflict-detector.component').then(m => m.RuleConflictDetectorComponent), title: 'Rule Conflict Detector'
+  },
+  {
+    path: 'discount-rules/auto-sunset', loadComponent: () => import('./pages/discount-rules/offer-auto-sunset.component').then(m => m.OfferAutoSunsetComponent), title: 'Offer Auto-Sunset'
+  },
+  {
+    path: 'discount-rules/branch-leaderboard', loadComponent: () => import('./pages/discount-rules/branch-offer-leaderboard.component').then(m => m.BranchOfferLeaderboardComponent), title: 'Branch Offer Leaderboard'
+  },
+  {
+    path: 'discount-rules/client-return-tracker', loadComponent: () => import('./pages/discount-rules/client-return-tracker.component').then(m => m.ClientReturnTrackerComponent), title: 'Client Return Tracker'
+  },
+  {
+    path: 'discount-rules/offer-health-score', loadComponent: () => import('./pages/discount-rules/offer-health-score.component').then(m => m.OfferHealthScoreComponent), title: 'Offer Health Score'
+  },
+  {
+    path: 'discount-rules/campaign-audience-builder', loadComponent: () => import('./pages/discount-rules/campaign-audience-builder.component').then(m => m.CampaignAudienceBuilderComponent), title: 'Campaign Audience Builder'
+  },
+  {
+    path: 'discount-rules/new', loadComponent: () => import('./pages/discount-rules/rule-builder.component').then(m => m.RuleBuilderComponent), title: 'New Discount Rule'
+  },
+  {
+    path: 'discount-rules/approvals', loadComponent: () => import('./pages/discount-rules/approvals.component').then(m => m.DiscountRuleApprovalsComponent), title: 'Discount Rule Approvals'
+  },
+  {
+    path: 'discount-rules/audit-log', loadComponent: () => import('./pages/discount-rules/audit-log.component').then(m => m.DiscountAuditLogComponent), title: 'Discount Audit Log'
+  },
+  {
+    path: 'pricing/incrementality', loadComponent: () => import('./pages/pricing/incrementality.component').then(m => m.PricingIncrementalityComponent), title: 'Causal Incrementality'
+  },
+  {
+    path: 'pricing/market-intelligence', loadComponent: () => import('./pages/pricing/market-intelligence.component').then(m => m.MarketIntelligenceComponent), title: 'Competitive Price Intelligence'
+  },
+  {
+    path: 'pricing/level6-readiness', loadComponent: () => import('./pages/pricing/level6-readiness.component').then(m => m.Level6ReadinessComponent), title: 'Level 6 Readiness Center'
+  },
+  {
+    path: 'discount-rules/cross-branch-analytics', loadComponent: () => import('./pages/discount-rules/cross-branch-analytics.component').then(m => m.CrossBranchAnalyticsComponent), title: 'Cross-Branch Discount Analytics'
+  },
+  {
+    path: 'discount-rules/simulations', loadComponent: () => import('./pages/discount-rules/simulation-sandbox.component').then(m => m.DiscountSimulationSandboxComponent), title: 'Discount Simulation Sandbox'
+  },
+  {
+    path: 'discount-rules/anomalies', loadComponent: () => import('./pages/discount-rules/anomaly-inbox.component').then(m => m.DiscountAnomalyInboxComponent), title: 'Discount Anomaly Inbox'
+  },
+  {
+    path: 'discount-rules/white-label-rules', loadComponent: () => import('./pages/discount-rules/white-label-rules.component').then(m => m.WhiteLabelRulesComponent), title: 'White-Label Discount Rules'
+  },
+  {
+    path: 'discount-rules/:id', loadComponent: () => import('./pages/discount-rules/rule-builder.component').then(m => m.RuleBuilderComponent), title: 'Edit Discount Rule'
   },
   {
     path: 'growth-advisor', component: ModulePageComponent, title: 'AI Growth Advisor', data: { entity: 'growthAdvisorTasks', title: 'AI Growth Advisor Tasks', subtitle: 'Revenue growth suggestions, service opportunities, staff improvements and marketing actions.', createLabel: 'Add growth task', columns: [{ key: 'title', label: 'Task' }, { key: 'priority', label: 'Priority', type: 'badge' }, { key: 'dueDate', label: 'Due' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'title', label: 'Title', required: true }, { key: 'priority', label: 'Priority', required: true, defaultValue: 'medium' }, { key: 'branchId', label: 'Branch ID' }, { key: 'dueDate', label: 'Due date' }, { key: 'signals', label: 'Signals JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }] }
   },
   {
-    path: 'franchise', component: ModulePageComponent, title: 'Franchise System', data: { entity: 'franchises', title: 'Franchise Management', subtitle: 'Franchise onboarding, royalty tracking, compliance and shared templates.', createLabel: 'Add franchise', columns: [{ key: 'name', label: 'Franchise' }, { key: 'ownerName', label: 'Owner' }, { key: 'royaltyPercent', label: 'Royalty %' }, { key: 'complianceScore', label: 'Compliance' }], fields: [{ key: 'name', label: 'Franchise name', required: true }, { key: 'ownerName', label: 'Owner name', required: true }, { key: 'ownerEmail', label: 'Owner email' }, { key: 'royaltyPercent', label: 'Royalty %', type: 'number' }, { key: 'territory', label: 'Territory JSON', type: 'json', defaultValue: {} }, { key: 'complianceChecklist', label: 'Compliance checklist JSON', type: 'json', defaultValue: [] }] }
+    path: 'franchise', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Franchise System', data: { workflowType: 'franchise-os', title: 'Franchise OS', subtitle: 'Branch performance, royalty readiness, compliance checks and franchise action plan from connected salon data.', prompt: 'Create a franchise operator summary with royalty, compliance and branch action signals.', primaryEndpoint: 'franchise-os/units', commandCenterRoute: '/command-center/franchise-os', recordLabel: 'Franchise units' }
   },
   {
     path: 'training-academy', component: ModulePageComponent, title: 'Training Academy', data: { entity: 'trainingLessons', title: 'Training Academy', subtitle: 'Lessons, quizzes, certifications and staff learning paths.', createLabel: 'Add lesson', columns: [{ key: 'title', label: 'Lesson' }, { key: 'category', label: 'Category' }, { key: 'level', label: 'Level' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'title', label: 'Lesson title', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'level', label: 'Level', defaultValue: 'beginner' }, { key: 'durationMinutes', label: 'Duration', type: 'number' }, { key: 'content', label: 'Content JSON', type: 'json', defaultValue: {} }, { key: 'quiz', label: 'Quiz JSON', type: 'json', defaultValue: {} }] }
@@ -320,7 +410,7 @@ export const routes: Routes = [
     path: 'notification-center', component: ModulePageComponent, title: 'Notification Center', data: { entity: 'notifications', title: 'Enterprise Notification Center', subtitle: 'In-app, push, SMS, WhatsApp, email and smart reminders.', createLabel: 'Add notification', columns: [{ key: 'channel', label: 'Channel' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'channel', label: 'Channel', required: true }, { key: 'message', label: 'Message', required: true }, { key: 'clientId', label: 'Client ID' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', defaultValue: 'queued' }] }
   },
   {
-    path: 'smart-forms', component: ModulePageComponent, title: 'Smart Forms', data: { entity: 'smartForms', title: 'Smart Forms Builder', subtitle: 'Consent, consultation, medical forms and digital signatures.', createLabel: 'Add form', columns: [{ key: 'name', label: 'Form' }, { key: 'formType', label: 'Type' }, { key: 'version', label: 'Version' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Form name', required: true }, { key: 'formType', label: 'Form type', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'version', label: 'Version', type: 'number', defaultValue: 1 }, { key: 'schema', label: 'Schema JSON', type: 'json', defaultValue: {} }, { key: 'rules', label: 'Rules JSON', type: 'json', defaultValue: {} }, { key: 'signatureConfig', label: 'Signature JSON', type: 'json', defaultValue: {} }] }
+    path: 'smart-forms', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Smart Forms', data: { workflowType: 'smart-forms', title: 'Smart Forms Builder', subtitle: 'Consent, consultation, risk capture and signature workflow generated from client, service and booking context.', prompt: 'Design smart intake and consent forms for the current service mix and appointment flow.', primaryEndpoint: 'smartForms', secondaryEndpoint: 'formResponses', commandCenterRoute: '/future-features', recordLabel: 'Smart forms' }
   },
   {
     path: 'recommendation-engine', component: ModulePageComponent, title: 'AI Recommendation Engine', data: { entity: 'recommendationEvents', title: 'AI Recommendation Engine', subtitle: 'Next service, product and booking prediction events with feedback.', createLabel: 'Add recommendation', columns: [{ key: 'clientId', label: 'Client' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'clientId', label: 'Client ID', required: true }, { key: 'type', label: 'Type', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'input', label: 'Input JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }, { key: 'feedback', label: 'Feedback JSON', type: 'json', defaultValue: {} }] }
@@ -350,7 +440,7 @@ export const routes: Routes = [
     path: 'plugins', component: ModulePageComponent, title: 'Plugin Ecosystem', data: { entity: 'pluginManifests', title: 'Plugin Ecosystem', subtitle: 'Plugin manifests, permissions, extension points and settings.', createLabel: 'Add plugin', columns: [{ key: 'name', label: 'Plugin' }, { key: 'version', label: 'Version' }, { key: 'vendor', label: 'Vendor' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Plugin name', required: true }, { key: 'version', label: 'Version', required: true }, { key: 'vendor', label: 'Vendor' }, { key: 'permissions', label: 'Permissions JSON', type: 'json', defaultValue: [] }, { key: 'extensionPoints', label: 'Extension points JSON', type: 'json', defaultValue: [] }, { key: 'settings', label: 'Settings JSON', type: 'json', defaultValue: {} }] }
   },
   {
-    path: 'app-marketplace', component: ModulePageComponent, title: 'App Marketplace', data: { entity: 'appMarketplaceApps', title: 'App Marketplace', subtitle: 'Installable apps, connector listings, pricing and install state.', createLabel: 'Add marketplace app', columns: [{ key: 'name', label: 'App' }, { key: 'category', label: 'Category' }, { key: 'provider', label: 'Provider' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'App name', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'provider', label: 'Provider' }, { key: 'features', label: 'Features JSON', type: 'json', defaultValue: [] }, { key: 'pricing', label: 'Pricing JSON', type: 'json', defaultValue: {} }, { key: 'installState', label: 'Install state JSON', type: 'json', defaultValue: {} }] }
+    path: 'app-marketplace', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'App Marketplace', data: { workflowType: 'marketplace', title: 'App Marketplace', subtitle: 'Connector catalog, install readiness, provider gaps and integration actions from live platform data.', prompt: 'Recommend marketplace connectors and plugins that should be installed for this tenant.', primaryEndpoint: 'marketplace/connectors', secondaryEndpoint: 'marketplace/plugins', commandCenterRoute: '/command-center/marketplace-platform', recordLabel: 'Marketplace connectors' }
   },
   {
     path: 'localization', component: ModulePageComponent, title: 'Multi-Country', data: { entity: 'localizationProfiles', title: 'Multi-Country Localization', subtitle: 'Multi-brand and multi-country tax, currency and translation profiles.', createLabel: 'Add localization profile', columns: [{ key: 'name', label: 'Profile' }, { key: 'primaryCountry', label: 'Primary country' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Profile name', required: true }, { key: 'primaryCountry', label: 'Primary country', required: true }, { key: 'countries', label: 'Countries JSON', type: 'json', defaultValue: [] }, { key: 'currencies', label: 'Currencies JSON', type: 'json', defaultValue: [] }, { key: 'taxRules', label: 'Tax rules JSON', type: 'json', defaultValue: {} }, { key: 'translations', label: 'Translations JSON', type: 'json', defaultValue: {} }] }

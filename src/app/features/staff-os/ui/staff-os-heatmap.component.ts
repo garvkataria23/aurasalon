@@ -170,12 +170,21 @@ export class StaffOsHeatmapComponent implements OnChanges {
     return rows.map((row, index) => {
       const record = row as Record<string, unknown>;
       const explicit = Number(record[this.metricKey]);
-      const fallback = Number(record['value'] ?? record['coverageScore'] ?? record['utilizationPct'] ?? record['netAmount'] ?? record['days'] ?? 0);
+      const derivedDays = this.daysBetween(record['startDate'] || record['start_date'], record['endDate'] || record['end_date']);
+      const fallback = Number(record['value'] ?? record['coverageScore'] ?? record['utilizationPct'] ?? record['netAmount'] ?? record['days'] ?? derivedDays ?? 0);
       return {
-        label: String(record['businessDate'] || record['staffId'] || record['branchId'] || `Cell ${index + 1}`),
+        label: String(record['businessDate'] || record['startDate'] || record['start_date'] || record['staffId'] || record['branchId'] || `Cell ${index + 1}`),
         value: Number.isFinite(explicit) ? explicit : Number.isFinite(fallback) ? fallback : 0,
         raw: row
       };
     });
+  }
+
+  private daysBetween(start: unknown, end: unknown): number | undefined {
+    if (!start) return undefined;
+    const startDate = new Date(String(start));
+    const endDate = new Date(String(end || start));
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return undefined;
+    return Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1);
   }
 }

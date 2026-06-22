@@ -111,6 +111,12 @@ export function ensureAdvancedSchema() {
   ensureColumn("fixedAssets", "method", "TEXT NOT NULL DEFAULT 'SLM'");
   ensureColumn("fixedAssets", "wdvRatePct", "REAL NOT NULL DEFAULT 0");
   ensureColumn("fixedAssets", "disposedDate", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn("fixedAssets", "assetName", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn("fixedAssets", "purchaseDate", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn("fixedAssets", "purchaseCostPaise", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("fixedAssets", "salvageValuePaise", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("fixedAssets", "depreciationMethod", "TEXT NOT NULL DEFAULT 'slm'");
+  ensureColumn("fixedAssets", "wdvRatePercent", "REAL NOT NULL DEFAULT 0");
   ensured = true;
 }
 

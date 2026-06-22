@@ -718,6 +718,11 @@ export class PurchaseBillDraftService {
           expiryDate: item.expiryDate || "",
           quantity,
           unitCost: item.unitCost || product.unitCost || 0,
+          taxAmount: item.gstAmount || 0,
+          payableAmount: item.lineTotal || (quantity * (item.unitCost || product.unitCost || 0)) + Number(item.gstAmount || 0),
+          sourceType: "purchase_bill_draft",
+          sourceId: `${draft.id}:${row.id}`,
+          settled: false,
           reason: `AI Purchase Bill Draft ${draft.bill_no || id}`
         }, access);
         this.upsertAlias({ ...item, productId, supplierId, branchId: draft.branch_id }, access);

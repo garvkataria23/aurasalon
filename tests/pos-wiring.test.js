@@ -13,6 +13,8 @@ const membershipRoutes = readFileSync("server/routes/membership-enterprise.route
 const resourceRoutes = readFileSync("server/routes/resource.routes.js", "utf8");
 const posSettings = readFileSync("src/app/core/pos-settings.service.ts", "utf8");
 const posPage = readFileSync("src/app/pages/pos.component.ts", "utf8");
+const posInvoicesPage = readFileSync("src/app/pages/pos-invoices.component.ts", "utf8");
+const salonOperationsService = readFileSync("server/services/salon-operations.service.js", "utf8");
 
 const posSidebarPaths = [
   "/pos",
@@ -93,4 +95,33 @@ test("POS frontend syncs payment modes through backend with local fallback", () 
   assert.match(posPage, /loadPaymentModes\(\)/, "POS billing should load configured payment modes");
   assert.match(posPage, /loadPaymentModesRemote\(\)\.subscribe/, "POS billing should hydrate backend payment modes");
   assert.match(posPage, /routerLink="\/pos\/payment-modes"/, "POS should link operators to payment mode setup");
+});
+
+test("POS checkout makes package and membership redemption explicit for staff", () => {
+  assert.match(posPage, /Benefit credits to redeem/, "checkout should label redemption as benefits, not only memberships");
+  assert.match(posPage, /Membership \/ package/, "checkout should let staff choose between membership and package benefits");
+  assert.match(posPage, /redeemableBenefits\(\)/, "POS should build redeemable benefit options from live eligibility");
+  assert.match(posPage, /selectRedeemableBenefit\(/, "POS should normalize benefit selection before invoice save");
+  assert.match(posPage, /Use all/, "checkout should offer a one-click full credit redemption action");
+  assert.match(posPage, /No active benefits/, "checkout should explain when no redeemable membership or package credits are available");
+  assert.match(posPage, /Service-line package mapping/, "checkout should show service-wise package mapping UI");
+  assert.match(posPage, /selectedBenefitServiceMappings\(\)/, "checkout should keep explicit service-line mappings for redeemed credits");
+  assert.match(posPage, /serviceLineMappings/, "checkout payload should persist service-line redemption mappings");
+  assert.match(posPage, /Redeemed benefit summary/, "generated invoice preview should repeat the redeemed benefit breakdown");
+  assert.match(posInvoicesPage, /serviceLineBenefitSummary\(/, "saved invoice detail should show redeemed benefit line summaries");
+  assert.match(posInvoicesPage, /invoiceBenefitSummaryLines\(/, "saved invoice detail should keep benefit mapping breakdown visible");
+  assert.match(salonOperationsService, /serviceLineMappings/, "backend checkout should preserve benefit service-line mappings");
+  assert.match(posPage, /this\.form\.patchValue\(\{ clientId: '', staffId: '', appointmentId: '', invoiceDate: this\.todayDateInput\(\) \}, \{ emitEvent: false \}\)/, "checkout should clear selected client, staff and appointment after save");
+  assert.match(posPage, /appointmentAlreadyBilled\(/, "POS should detect appointments that are already billed");
+  assert.match(posPage, /billableAppointments\(\)[\s\S]*!this\.appointmentAlreadyBilled/, "billed appointments should be removed from the POS appointment picker");
+  assert.match(posPage, /blockBilledRouteAppointment\(/, "route-loaded billed appointments should be blocked before POS handoff opens billing");
+  assert.match(posPage, /router\.navigate\(\['\/appointments'\]/, "billed appointment POS handoff should return to appointment calendar");
+  assert.match(posPage, /POS dobara open nahi hoga/, "route-loaded billed appointments should show a lock message");
+  assert.match(posPage, /enterprise-scheduler\/appointments\/\$\{appointmentId\}\/billing-status/, "checkout should re-check appointment billing status before saving");
+  assert.match(posPage, /POS lock hai/, "checkout should stop when the appointment is already billed");
+  assert.match(posPage, /clearPosRouteSelection\(/, "POS should clear appointment query params after save or billed-lock detection");
+  assert.match(salonOperationsService, /Appointment is already billed/, "backend checkout should reject duplicate billing for the same appointment");
+  assert.match(salonOperationsService, /appointmentCheckoutLocks/, "backend checkout should lock same-appointment billing while one save is in progress");
+  assert.match(salonOperationsService, /Appointment billing is already in progress/, "backend checkout should reject same-appointment double-click races");
+  assert.match(salonOperationsService, /appointmentId,\s*clientId,\s*invoiceNumber/, "invoice records should persist the appointment id for duplicate-billing locks");
 });

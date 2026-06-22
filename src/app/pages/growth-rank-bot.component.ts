@@ -47,6 +47,73 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <article class="metric-card"><span>Alerts</span><strong>{{ board.metrics?.competitorAlerts || 0 }}</strong><small>competitor watch</small></article>
       </div>
 
+      <section class="panel command-panel" *ngIf="commandCenter() as command">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">Growth command center</span>
+            <h3>Campaign ROI, recommendation queue, approvals and social leads</h3>
+          </div>
+          <span class="badge">{{ command.metrics?.approvalRequired || 0 }} approvals</span>
+        </div>
+        <div class="summary-grid">
+          <article><span>Recommendations</span><strong>{{ command.metrics?.openRecommendations || 0 }}</strong><small>priority queue</small></article>
+          <article><span>Social leads</span><strong>{{ command.metrics?.socialLeads || 0 }}</strong><small>source tracking</small></article>
+          <article><span>Campaign profit</span><strong>₹{{ command.metrics?.campaignProfit || 0 }}</strong><small>{{ command.metrics?.campaignRoiPercent || 0 }}% ROI</small></article>
+          <article><span>Weak keywords</span><strong>{{ command.seoRankBot?.weakKeywords?.length || 0 }}</strong><small>{{ command.seoRankBot?.nextAction }}</small></article>
+        </div>
+        <div class="dashboard-grid">
+          <section class="ads-card">
+            <header><h4>Growth recommendation queue</h4><span>high impact first</span></header>
+            <div class="recommendation-list">
+              <article *ngFor="let item of command.recommendationQueue">
+                <strong>{{ item.priority }} · {{ item.title }}</strong>
+                <span>{{ item.why }}</span>
+                <small>{{ item.action }} · {{ item.status }}</small>
+              </article>
+              <article *ngIf="!command.recommendationQueue?.length"><strong>No growth recommendation pending</strong><span>Campaign planner and rank bot are clear.</span></article>
+            </div>
+          </section>
+          <section class="ads-card">
+            <header><h4>Approval workflow</h4><span>owner-controlled publishing</span></header>
+            <div class="recommendation-list">
+              <article *ngFor="let item of command.approvalWorkflow">
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.type }} · {{ item.source }} · {{ item.owner }}</span>
+                <small>{{ item.status }}</small>
+                <button class="ghost-button" type="button" *ngIf="item.status !== 'approved'" [disabled]="actionBusy()" (click)="approveGrowthWorkflowItem(item)">Approve</button>
+              </article>
+              <article *ngIf="!command.approvalWorkflow?.length"><strong>No approval rows</strong><span>Create content planner or proposal rows to activate approval workflow.</span></article>
+            </div>
+          </section>
+        </div>
+        <div class="dashboard-grid">
+          <section class="ads-card">
+            <header><h4>Campaign ROI</h4><span>{{ command.campaignRoi?.scaleRule }}</span></header>
+            <div class="table-wrap compact">
+              <table>
+                <thead><tr><th>Campaign</th><th>Source</th><th>Spend</th><th>Revenue</th><th>Profit</th><th>ROI</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let row of command.campaignRoi?.rows || []"><td>{{ row.campaignName }}</td><td>{{ row.source }}</td><td>₹{{ row.spend }}</td><td>₹{{ row.revenue }}</td><td>₹{{ row.profit }}</td><td>{{ row.roiPercent }}%</td></tr>
+                  <tr *ngIf="!(command.campaignRoi?.rows || []).length"><td colspan="6">Campaign ROI rows pending.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="ads-card">
+            <header><h4>Social lead tracking</h4><span>{{ command.socialLeadTracking?.conversionRule }}</span></header>
+            <div class="table-wrap compact">
+              <table>
+                <thead><tr><th>Source</th><th>Leads</th><th>Bookings</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let row of command.socialLeadTracking?.bySource || []"><td>{{ row.source }}</td><td>{{ row.leads }}</td><td>{{ row.bookings }}</td><td>₹{{ row.estimatedValue }}</td></tr>
+                  <tr *ngIf="!(command.socialLeadTracking?.bySource || []).length"><td colspan="4">Social lead attribution pending.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
       <div class="level-switch" role="tablist" aria-label="Growth bot levels">
         <button type="button" *ngFor="let level of levels" [class.active]="activeLevel() === level.level" (click)="selectLevel(level.level)">
           <strong>L{{ level.level }}</strong>
@@ -186,7 +253,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
             <!-- 3. Image Verify -->
             <article class="ai-card">
-              <header><h4>Image check</h4><span>platform pe chalegi ya nahi</span></header>
+              <header><h4>Image check</h4><span>Platform readiness</span></header>
               <label class="field"><span>Target</span>
                 <select [formControl]="verifyTarget">
                   <option value="instagram_post">Instagram Post (1:1)</option>
@@ -387,7 +454,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <small>{{ reply.status }}</small>
                 </article>
               </div>
-              <div class="empty-state" *ngIf="!dhandaAiReplies(audit).length">Review engine data pending. Review rows sync hone ke baad AI reply report live dikhega.</div>
+              <div class="empty-state" *ngIf="!dhandaAiReplies(audit).length">Review engine data is pending. Reply report will appear after review rows sync.</div>
             </article>
 
             <article class="report-card">
@@ -405,7 +472,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <small>review request eligible</small>
                 </article>
               </div>
-              <div class="empty-state" *ngIf="!dhandaCustomers(audit).length">Lead/customer attribution pending. Campaign ROI ya attribution event add karne ke baad customer report live hoga.</div>
+              <div class="empty-state" *ngIf="!dhandaCustomers(audit).length">Lead/customer attribution is pending. Customer report will appear after campaign ROI or attribution events are added.</div>
             </article>
 
             <article class="report-card wide">
@@ -422,7 +489,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                     </tr>
                   </tbody>
                 </table>
-                <div class="empty-state" *ngIf="!dhandaKeywords(audit).length">Rank tracker empty hai. Import ranks ke baad keyword report live hoga.</div>
+                <div class="empty-state" *ngIf="!dhandaKeywords(audit).length">Rank tracker is empty. Keyword report will appear after ranks are imported.</div>
               </div>
             </article>
 
@@ -435,7 +502,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <small>{{ row.status }}</small>
                 </div>
               </div>
-              <div class="empty-state" *ngIf="!dhandaCompetitors(audit).length">Competitor watch empty hai. Competitor alert/signal add hone ke baad report live hoga.</div>
+              <div class="empty-state" *ngIf="!dhandaCompetitors(audit).length">Competitor watch is empty. Report will appear after competitor alerts or signals are added.</div>
             </article>
 
             <article class="report-card">
@@ -447,7 +514,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <small>{{ item.status }}</small>
                 </article>
               </div>
-              <div class="empty-state" *ngIf="!dhandaPostPlanner(audit).length">Publishing planner empty hai. Schedule content button se post/media report live hoga.</div>
+              <div class="empty-state" *ngIf="!dhandaPostPlanner(audit).length">Publishing planner is empty. Post/media report will appear after content is scheduled.</div>
             </article>
 
             <article class="report-card wide">
@@ -475,7 +542,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <strong>{{ item.day }}</strong><small>{{ item.label }}</small><em>{{ item.status }}</em>
                 </span>
               </div>
-              <div class="empty-state" *ngIf="!dhandaCalendarPlan(audit).length">Social calendar pending. Approved planner rows schedule hone ke baad calendar report fill hoga.</div>
+              <div class="empty-state" *ngIf="!dhandaCalendarPlan(audit).length">Social calendar is pending. Calendar report will fill after approved planner rows are scheduled.</div>
             </article>
           </div>
 
@@ -755,7 +822,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <article><span>Marketing ROI</span><strong>{{ businessHealthScore(audit).marketingRoi }}x</strong><small>ads to revenue</small></article>
             </div>
             <div class="ads-grid three-col">
-              <article class="ads-card"><header><h4>Daily AI Briefing</h4><span>aaj kya hua, kya kharab hua, kya action lena hai</span></header><div class="status-list"><article><strong>Aaj kya hua</strong><span>{{ dailyAiBriefing(audit).today }}</span></article><article class="warn"><strong>Kya kharab hua</strong><span>{{ dailyAiBriefing(audit).bad }}</span></article><article><strong>Kya action lena hai</strong><span>{{ dailyAiBriefing(audit).action }}</span></article></div></article>
+              <article class="ads-card"><header><h4>Daily Briefing</h4><span>today, issues and next actions</span></header><div class="status-list"><article><strong>Today</strong><span>{{ dailyAiBriefing(audit).today }}</span></article><article class="warn"><strong>Issues</strong><span>{{ dailyAiBriefing(audit).bad }}</span></article><article><strong>Next action</strong><span>{{ dailyAiBriefing(audit).action }}</span></article></div></article>
               <article class="ads-card"><header><h4>Predictive Revenue</h4><span>next 7 / 30 / 90 days forecast</span></header><div class="funnel-row"><article *ngFor="let row of predictiveRevenue(audit)"><span>{{ row.period }}</span><strong>₹{{ row.revenue }}</strong><small>{{ row.confidence }} confidence</small></article></div></article>
               <article class="ads-card"><header><h4>Cash Flow Forecast</h4><span>salary, rent, inventory and marketing spend</span></header><div class="table-wrap compact"><table><thead><tr><th>Cost</th><th>Amount</th><th>Risk</th></tr></thead><tbody><tr *ngFor="let row of cashFlowForecast(audit)"><td>{{ row.category }}</td><td>₹{{ row.amount }}</td><td>{{ row.risk }}</td></tr></tbody></table></div></article>
             </div>
@@ -985,16 +1052,18 @@ import { StateComponent } from '../shared/ui/state/state.component';
       --line: #d9e7e4;
       --soft: #f8fbfa;
       display: block;
+      min-width: 0;
+      width: 100%;
       font-family: var(--font-body);
       color: var(--ink);
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
-    :host * { font-family: inherit; }
+    :host * { box-sizing: border-box; font-family: inherit; min-width: 0; }
     /* Numbers align in metric cards / tables */
     .metric-card strong, .summary-grid strong, table td, .predict-headline strong, .confidence-bar { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
 
-    .page-stack { display: grid; gap: 1rem; }
+    .page-stack { display: grid; gap: 1rem; max-width: 100%; min-width: 0; overflow-x: hidden; width: 100%; }
     .rank-hero { align-items: center; background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--teal); border-radius: 12px; display: flex; gap: 1rem; justify-content: space-between; padding: 1.5rem; }
     .rank-hero h2 { color: var(--ink); font-family: var(--font-display); font-size: 2.35rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.05; margin: 0.3rem 0 0.5rem; }
     .rank-hero p, .muted { color: var(--muted); margin: 0; line-height: 1.55; max-width: 60ch; }
@@ -1025,8 +1094,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .level-switch button.active { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(15, 143, 127, 0.14); }
     .level-switch strong { color: var(--teal-deep); font-family: var(--font-display); font-weight: 800; }
     .level-switch span { font-size: 0.8rem; }
-    .workspace-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr); }
-    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1.25rem; }
+    .workspace-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); max-width: 100%; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; min-width: 0; padding: 1.25rem; }
     .section-title { align-items: center; display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; }
     .section-title h3 { color: var(--ink); font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; letter-spacing: -0.015em; margin: 0.25rem 0 0; }
     .section-title h4 { color: var(--ink); font-family: var(--font-display); font-size: 1.02rem; font-weight: 700; margin: 0; }
@@ -1276,7 +1345,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .empty-state { background: var(--soft); border: 1px dashed #b6d8cf; border-radius: 10px; color: var(--muted); padding: 1.1rem; }
     @media (max-width: 900px) {
       .rank-hero, .section-title { align-items: stretch; flex-direction: column; }
-      .workspace-grid, .form-grid, .command-grid, .ai-grid, .inline-fields, .report-grid { grid-template-columns: 1fr; }
+      .workspace-grid, .form-grid, .command-grid, .ai-grid, .inline-fields, .report-grid, .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
       .rank-hero h2 { font-size: 1.85rem; }
       .phone-kpis, .report-metrics, .request-stats, .request-report { grid-template-columns: 1fr; }
     }
@@ -1288,6 +1357,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 export class GrowthRankBotComponent implements OnInit {
   readonly audits = signal<ApiRecord[]>([]);
   readonly dashboard = signal<ApiRecord | null>(null);
+  readonly commandCenter = signal<ApiRecord | null>(null);
   readonly selectedAudit = signal<ApiRecord | null>(null);
   readonly portalPreview = signal<ApiRecord | null>(null);
   readonly latestCommandResult = signal<ApiRecord | null>(null);
@@ -1412,6 +1482,7 @@ export class GrowthRankBotComponent implements OnInit {
   refreshAll(): void {
     this.loadAudits();
     this.loadDashboard();
+    this.loadCommandCenter();
   }
 
   selectLevel(level: number): void {
@@ -1451,6 +1522,29 @@ export class GrowthRankBotComponent implements OnInit {
     this.api.list<ApiRecord>('growth-rank-bot/dashboard').subscribe({
       next: (dashboard) => this.dashboard.set(dashboard),
       error: (error) => this.error.set(this.api.errorText(error, 'Unable to load agency growth dashboard'))
+    });
+  }
+
+  loadCommandCenter(): void {
+    this.api.list<ApiRecord>('growth-rank-bot/command-center').subscribe({
+      next: (command) => this.commandCenter.set(command),
+      error: () => this.commandCenter.set(null)
+    });
+  }
+
+  approveGrowthWorkflowItem(item: ApiRecord): void {
+    if (!item?.id || !item?.type) return;
+    this.actionBusy.set(`approval-${item.id}`);
+    this.api.patch<ApiRecord>(`growth-rank-bot/approval-workflow/${item.type}/${item.id}/status`, { status: 'approved' }).subscribe({
+      next: () => {
+        this.actionBusy.set('');
+        this.loadCommandCenter();
+        this.loadDashboard();
+      },
+      error: (error) => {
+        this.error.set(this.api.errorText(error, 'Unable to approve growth workflow item'));
+        this.actionBusy.set('');
+      }
     });
   }
 
@@ -1506,7 +1600,7 @@ export class GrowthRankBotComponent implements OnInit {
   updateAudit(): void {
     const audit = this.selectedAudit();
     if (!audit?.id) {
-      this.showToast('error', 'Update ke liye selected audit required hai.');
+      this.showToast('error', 'Select an audit before updating.');
       return;
     }
     if (this.auditForm.invalid) {
@@ -2467,7 +2561,7 @@ export class GrowthRankBotComponent implements OnInit {
       competitors: `${this.dhandaCompetitors(audit).length} competitor rows active hain. Create alert se counter action save hota hai.`,
       posts: `${this.dhandaPostPlanner(audit).length} planner rows report me aa rahe hain. Schedule content se calendar update hota hai.`,
       performance: `${this.dhandaReportCards(audit).length} performance cards live data se ban rahe hain. Generate report se client report save hoti hai.`,
-      calendar: `${this.dhandaCalendarPlan(audit).length} calendar items visible hain. Approved/scheduled content yahan show hota hai.`
+      calendar: `${this.dhandaCalendarPlan(audit).length} calendar items visible. Approved and scheduled content appears here.`
     };
     return notes[reportKey] || 'Ye report selected salon ke saved workspace data se ban rahi hai.';
   }
@@ -2511,7 +2605,7 @@ export class GrowthRankBotComponent implements OnInit {
   askCopilotAI(audit: ApiRecord): void {
     const question = String(this.aiCopilotQuestion.value || '').trim();
     if (!question) {
-      this.error.set('AI copilot ke liye question likhein.');
+      this.error.set('Enter a question for the assistant.');
       return;
     }
     this.aiBusy.set('copilot');
@@ -2530,7 +2624,7 @@ export class GrowthRankBotComponent implements OnInit {
         this.loadAuditDetail(audit.id, true);
       },
       error: (error) => {
-        this.error.set(this.api.errorText(error, 'AI copilot answer nahi mila'));
+        this.error.set(this.api.errorText(error, 'Unable to get assistant answer'));
         this.aiBusy.set('');
       }
     });
@@ -2552,13 +2646,13 @@ export class GrowthRankBotComponent implements OnInit {
         pctVsAverage: lift,
         confidence: current ? (score >= 75 ? 'medium' : 'low') : 'low',
         basis: `${channel} estimate ${baseline} avg signal aur ${score}/100 optimization score par based hai.`,
-        honestNote: current ? 'Ye forecast live workspace metrics se estimate hai, guarantee nahi.' : 'Google/Meta sync ke baad confidence aur strong hoga.'
+        honestNote: current ? 'This forecast is estimated from live workspace metrics and is not guaranteed.' : 'Confidence improves after Google/Meta sync.'
       });
       this.aiBusy.set('');
     }, 150);
   }
 
-  /** Image verify — "platform pe chalegi ya nahi". Browser-side size/aspect check. */
+  /** Browser-side size/aspect check for platform readiness. */
   onImageSelected(event: Event, audit: ApiRecord): void {
     const input = event.target as HTMLInputElement;
     const file = input.files && input.files[0];
@@ -2585,7 +2679,7 @@ export class GrowthRankBotComponent implements OnInit {
         const willRun = !issues.length;
         this.verifyResult.set({
           willRun,
-          verdict: willRun ? 'Creative platform spec ke andar hai. Approval ke liye ready.' : 'Creative upload se pehle resize/crop karna hoga.',
+          verdict: willRun ? 'Creative is within platform specifications and ready for approval.' : 'Resize or crop the creative before upload.',
           detected: { width: image.width, height: image.height, format: file.type || 'image', sizeKb: Math.round(file.size / 1024) },
           requiredSpec: spec.requiredSpec,
           issues
@@ -2594,14 +2688,14 @@ export class GrowthRankBotComponent implements OnInit {
         input.value = '';
       };
       image.onerror = () => {
-        this.error.set('Image dimensions read nahi hui, PNG/JPG dobara try karein.');
+        this.error.set('Unable to read image dimensions. Try again with a PNG or JPG.');
         this.aiBusy.set('');
         input.value = '';
       };
       image.src = base64;
     };
     reader.onerror = () => {
-      this.error.set('Image read nahi hui, dobara try karein.');
+      this.error.set('Unable to read the image. Try again.');
       this.aiBusy.set('');
       input.value = '';
     };
@@ -2768,7 +2862,10 @@ export class GrowthRankBotComponent implements OnInit {
         this.selectedAudit.set(audit);
         this.audits.set([audit, ...this.audits().filter((item) => item.id !== audit.id)]);
         this.patchCommandForm(audit);
-        if (isActionRefresh) this.loadDashboard();
+        if (isActionRefresh) {
+          this.loadDashboard();
+          this.loadCommandCenter();
+        }
         this.loading.set(false);
         this.actionBusy.set('');
       },

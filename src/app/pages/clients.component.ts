@@ -14,14 +14,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     <section class="page-stack">
       <div class="module-hero client-command-hero">
         <div class="hero-copy">
-          <span class="eyebrow">Client CRM · Enterprise cockpit</span>
-          <h2>Client intelligence command center</h2>
-          <p>One place to monitor value, risk, service affinity, rebooking behavior and relationship signals.</p>
-          <div class="hero-signal-row">
-            <span>{{ client360Report()?.client?.name || 'No client selected' }}</span>
-            <span>{{ clientMetricCards().length || 0 }} live metrics</span>
-            <span>{{ metricConnectionCount() || 0 }} data links</span>
-          </div>
+          <h2>Client intelligence</h2>
         </div>
         <div class="client-hero-actions">
           <button class="ghost-button" type="button" (click)="loadReports()" [disabled]="reportLoading()">Refresh reports</button>
@@ -31,175 +24,73 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       <section class="panel client-reports-panel">
         <div class="section-title client-report-heading">
-          <div>
-            <span class="eyebrow">Decision layer</span>
-            <h2>Client revenue, retention and risk cockpit</h2>
-            <p>Built from persisted invoices, appointments, sales, memberships, wallet, messages and reviews.</p>
+          <div class="client-api-strip" aria-label="Client report APIs">
+            <span>clients/360</span>
+            <span>clients/top-rfm</span>
+            <span>clients/lapsed</span>
+            <span>clients/new-vs-returning</span>
+            <span>clients/occasions</span>
+            <span>clients/by-service</span>
+            <span>clients/metric-cards</span>
           </div>
-          <span class="badge">{{ reportBranchLabel() }}</span>
         </div>
 
         <app-state [loading]="reportLoading()" [error]="reportError()"></app-state>
 
         <ng-container *ngIf="clientReports() as reports">
           <div class="metrics-grid client-report-metrics">
-            <article class="metric-card teal">
+            <button class="metric-card teal kpi-link-card" type="button" (click)="openClient(client360Report()?.client?.id || '')">
               <span>Client 360</span>
               <strong>{{ client360Report()?.client?.name || 'No client' }}</strong>
               <small>{{ (client360Report()?.metrics?.totalSpend || 0) | currency: 'INR':'symbol':'1.0-0' }} lifetime</small>
+            </button>
+            <button class="metric-card blue kpi-link-card" type="button" (click)="openClientReport('top-rfm')">
+              <span>{{ client360Report()?.client ? 'Client RFM' : 'Top Clients RFM' }}</span>
+              <strong>{{ client360Report()?.client?.name || reportList('topRfm')[0]?.name || '-' }}</strong>
+              <small>{{ client360Report()?.client ? metricCardValue('rfm-segment', 'RFM not scored') : ('Score ' + (reportList('topRfm')[0]?.rfmScore || 0) + ' · ' + ((reportList('topRfm')[0]?.monetary || 0) | currency: 'INR':'symbol':'1.0-0')) }}</small>
+            </button>
+            <button class="metric-card red kpi-link-card" type="button" (click)="openClientReport('lapsed')">
+              <span>{{ client360Report()?.client ? 'Client risk' : 'Lapsed / at-risk' }}</span>
+              <strong>{{ client360Report()?.client ? metricCardValue('churn-risk-score', 'Low') : reportList('lapsed').length }}</strong>
+              <small>{{ client360Report()?.client ? metricCardValue('inactive-days-trend', 'Active') : '60-180 day recovery queue' }}</small>
+            </button>
+            <button class="metric-card green kpi-link-card" type="button" (click)="openClientReport('new-vs-returning')">
+              <span>{{ client360Report()?.client ? 'Client visits' : 'New vs returning' }}</span>
+              <strong>{{ client360Report()?.client ? (client360Report()?.metrics?.totalVisits || 0) : ((latestMonthlyReport().newClients || 0) + ' / ' + (latestMonthlyReport().returningClients || 0)) }}</strong>
+              <small>{{ client360Report()?.client ? ((client360Report()?.metrics?.totalSpend || 0) | currency: 'INR':'symbol':'1.0-0') : (latestMonthlyReport().month || 'Current month') }}</small>
+            </button>
+            <button class="metric-card amber kpi-link-card" type="button" (click)="openClientReport('occasions')">
+              <span>{{ client360Report()?.client ? 'Client occasion' : 'Birthdays / anniversaries' }}</span>
+              <strong>{{ client360Report()?.client ? metricCardValue('birthday-anniversary', 'Not set') : reportList('occasions').length }}</strong>
+              <small>{{ client360Report()?.client ? 'Profile dates' : 'Next 30 days' }}</small>
+            </button>
+            <button class="metric-card violet kpi-link-card" type="button" (click)="openClientReport('by-service')">
+              <span>{{ client360Report()?.client ? 'Favorite service' : 'Service-wise clients' }}</span>
+              <strong>{{ client360Report()?.client ? metricCardValue('favorite-service', '-') : (reportList('byService')[0]?.serviceName || '-') }}</strong>
+              <small>{{ client360Report()?.client ? metricCardValue('top-3-services', 'Client service history') : ((reportList('byService')[0]?.clientCount || 0) + ' client(s)') }}</small>
+            </button>
+            <article class="metric-card teal">
+              <span>Visit & service</span>
+              <strong>{{ metricCardValue('last-visit', 'New') }}</strong>
+              <small>{{ metricCardValue('favorite-service', 'No favorite service') }}</small>
             </article>
             <article class="metric-card blue">
-              <span>Top Clients RFM</span>
-              <strong>{{ reportList('topRfm')[0]?.name || '-' }}</strong>
-              <small>Score {{ reportList('topRfm')[0]?.rfmScore || 0 }} · {{ (reportList('topRfm')[0]?.monetary || 0) | currency: 'INR':'symbol':'1.0-0' }}</small>
-            </article>
-            <article class="metric-card red">
-              <span>Lapsed / at-risk</span>
-              <strong>{{ reportList('lapsed').length }}</strong>
-              <small>60-180 day recovery queue</small>
+              <span>Average spend</span>
+              <strong>{{ metricCardValue('average-spend', '₹0') }}</strong>
+              <small>{{ metricCardValue('lifetime-value', 'No spend signal') }} lifetime</small>
             </article>
             <article class="metric-card green">
-              <span>New vs returning</span>
-              <strong>{{ latestMonthlyReport().newClients || 0 }} / {{ latestMonthlyReport().returningClients || 0 }}</strong>
-              <small>{{ latestMonthlyReport().month || 'Current month' }}</small>
+              <span>Preferred staff</span>
+              <strong>{{ metricCardValue('preferred-staff', '-') }}</strong>
+              <small>{{ metricCardValue('rebooking-rate', '0%') }} rebooking rate</small>
             </article>
-            <article class="metric-card amber">
-              <span>Birthdays / anniversaries</span>
-              <strong>{{ reportList('occasions').length }}</strong>
-              <small>Next 30 days</small>
-            </article>
-            <article class="metric-card violet">
-              <span>Service-wise clients</span>
-              <strong>{{ reportList('byService')[0]?.serviceName || '-' }}</strong>
-              <small>{{ reportList('byService')[0]?.clientCount || 0 }} client(s)</small>
+            <article class="metric-card red">
+              <span>Wallet & risk</span>
+              <strong>{{ walletMetricValue() }}</strong>
+              <small>{{ walletMetricActivity() }} · Due {{ metricCardValue('outstanding-balance', '₹0') }} · {{ metricCardValue('loyalty-points', '0') }} loyalty</small>
             </article>
           </div>
 
-          <section class="client-report-card client-360-metric-board" *ngIf="clientMetricCards().length">
-            <div class="section-title compact">
-              <div>
-                <span class="eyebrow">Connected Client 360</span>
-                <h3>{{ client360Report()?.client?.name || 'Selected client' }} insight board</h3>
-              </div>
-              <div class="metric-board-actions">
-                <span class="badge">{{ clientMetricCards().length }} metrics</span>
-                <button class="ghost-button mini" type="button" *ngIf="client360Report()?.client?.id" (click)="openClient(client360Report()?.client?.id || '')">Open profile</button>
-              </div>
-            </div>
-
-            <div class="metric-command-layout">
-              <aside class="connected-card-inspector" *ngIf="selectedMetricCard() as card">
-                <div class="inspector-focus">
-                  <span class="eyebrow">Selected signal</span>
-                  <h3>{{ card.label }}</h3>
-                  <strong>{{ card.value }}</strong>
-                  <p>{{ card.detail }}</p>
-                  <small>Source: {{ card.source }}</small>
-                </div>
-                <div>
-                  <span class="eyebrow">Connected metrics</span>
-                  <div class="connected-card-links">
-                    <button type="button" *ngFor="let linked of connectedMetricCards(card)" (click)="selectMetricCard(linked.id)">
-                      <strong>{{ linked.label }}</strong>
-                      <span>{{ linked.value }}</span>
-                    </button>
-                  </div>
-                </div>
-              </aside>
-
-              <div class="metric-command-main">
-                <div class="metric-category-tabs">
-                  <button type="button" [class.active]="selectedMetricCategory() === 'All'" (click)="selectedMetricCategory.set('All')">All · {{ clientMetricCards().length }}</button>
-                  <button type="button" *ngFor="let group of metricGroups()" [class.active]="selectedMetricCategory() === group.category" (click)="selectedMetricCategory.set(group.category)">
-                    {{ group.category }} · {{ group.count }}
-                  </button>
-                </div>
-
-                <div class="client-360-card-grid">
-                  <button class="metric-card smart-client-card" type="button" *ngFor="let card of visibleMetricCards(); let index = index" [ngClass]="card.tone || 'teal'" [class.active]="selectedMetricCardId() === card.id" (click)="selectMetricCard(card.id)">
-                    <span class="metric-card-header"><b>#{{ index + 1 }}</b><i>{{ card.category }}</i></span>
-                    <strong>{{ card.value }}</strong>
-                    <small>{{ card.label }}</small>
-                    <em>{{ card.detail }}</em>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <div class="dashboard-grid client-report-grid">
-            <section class="client-report-card">
-              <div class="section-title compact">
-                <h3>Client 360 profile</h3>
-                <button class="ghost-button mini" type="button" *ngIf="client360Report()?.client?.id" (click)="openClient(client360Report()?.client?.id || '')">Open</button>
-              </div>
-              <div class="summary-lines" *ngIf="client360Report() as profile">
-                <div><span>Total visits</span><strong>{{ profile.metrics.totalVisits || 0 }}</strong></div>
-                <div><span>Total spend</span><strong>{{ (profile.metrics.totalSpend || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
-                <div><span>Average bill</span><strong>{{ (profile.metrics.averageBill || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
-                <div><span>Favorite service</span><strong>{{ profile.metrics.favoriteService }}</strong></div>
-                <div><span>Last visit</span><strong>{{ profile.metrics.lastVisitAt ? (profile.metrics.lastVisitAt | date: 'mediumDate') : 'New' }}</strong></div>
-              </div>
-            </section>
-
-            <section class="client-report-card">
-              <div class="section-title compact"><h3>Top clients (RFM)</h3></div>
-              <div class="mini-report-table">
-                <div class="mini-report-row header"><span>Client</span><span>RFM</span><span>Spend</span></div>
-                <button class="mini-report-row clickable" type="button" *ngFor="let row of reportList('topRfm').slice(0, 6)" (click)="loadClient360(row.id)">
-                  <span><strong>{{ row.name }}</strong><small>{{ row.segment }}</small></span>
-                  <span>{{ row.rfmScore }}</span>
-                  <span>{{ row.monetary | currency: 'INR':'symbol':'1.0-0' }}</span>
-                </button>
-              </div>
-            </section>
-
-            <section class="client-report-card">
-              <div class="section-title compact"><h3>Lapsed / at-risk clients</h3></div>
-              <div class="activity-list compact-history">
-                <article *ngFor="let row of reportList('lapsed').slice(0, 5)">
-                  <strong>{{ row.name }} · {{ row.daysSinceLastVisit }} days</strong>
-                  <span>{{ row.suggestedAction }} · {{ row.monetary | currency: 'INR':'symbol':'1.0-0' }}</span>
-                </article>
-                <article *ngIf="!reportList('lapsed').length"><strong>No lapsed clients in this window</strong><span>Current 60-180 day recovery queue is empty.</span></article>
-              </div>
-            </section>
-
-            <section class="client-report-card">
-              <div class="section-title compact"><h3>New vs returning clients</h3></div>
-              <div class="mini-report-table">
-                <div class="mini-report-row header"><span>Month</span><span>New</span><span>Returning</span></div>
-                <div class="mini-report-row" *ngFor="let row of reportList('newVsReturning').slice(-6)">
-                  <span>{{ row.month }}</span>
-                  <span>{{ row.newClients }}</span>
-                  <span>{{ row.returningClients }}</span>
-                </div>
-              </div>
-            </section>
-
-            <section class="client-report-card">
-              <div class="section-title compact"><h3>Birthday / anniversary</h3></div>
-              <div class="activity-list compact-history">
-                <article *ngFor="let row of reportList('occasions').slice(0, 5)">
-                  <strong>{{ row.name }} · {{ titleText(row.type) }}</strong>
-                  <span>{{ row.nextDate | date: 'mediumDate' }} · in {{ row.daysUntil }} day(s)</span>
-                </article>
-                <article *ngIf="!reportList('occasions').length"><strong>No upcoming occasion</strong><span>No birthday or anniversary in the next 30 days.</span></article>
-              </div>
-            </section>
-
-            <section class="client-report-card">
-              <div class="section-title compact"><h3>Service-wise clients</h3></div>
-              <div class="mini-report-table">
-                <div class="mini-report-row header"><span>Service</span><span>Clients</span><span>Revenue</span></div>
-                <div class="mini-report-row" *ngFor="let row of reportList('byService').slice(0, 6)">
-                  <span><strong>{{ row.serviceName }}</strong><small>{{ row.visitCount }} visit(s)</small></span>
-                  <span>{{ row.clientCount }}</span>
-                  <span>{{ row.revenue | currency: 'INR':'symbol':'1.0-0' }}</span>
-                </div>
-              </div>
-            </section>
-          </div>
         </ng-container>
       </section>
 
@@ -332,7 +223,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
                 </td>
                 <td>{{ client.totalSpend | currency: 'INR':'symbol':'1.0-0' }}</td>
                 <td>{{ client.visitCount }}</td>
-                <td>{{ client.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td class="wallet-cell">
+                  <strong>{{ client.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                  <small *ngIf="walletActivityLabel(client)">{{ walletActivityLabel(client) }}</small>
+                </td>
                 <td>{{ client.loyaltyPoints }} pts</td>
                 <td>{{ client.lastVisitAt ? (client.lastVisitAt | date: 'mediumDate') : 'New' }}</td>
                 <td class="actions-cell right">
@@ -380,54 +274,34 @@ import { StateComponent } from '../shared/ui/state/state.component';
       display: grid;
       grid-template-columns: minmax(0, 1fr) max-content;
       overflow: hidden;
-      align-items: stretch;
-      gap: 22px;
-      padding: 24px;
+      align-items: center;
+      gap: 16px;
+      min-height: 84px;
+      padding: 18px 22px;
       border: 1px solid color-mix(in srgb, var(--teal) 20%, var(--line));
-      background:
-        radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--teal) 22%, transparent), transparent 32%),
-        radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--amber) 22%, transparent), transparent 30%),
-        linear-gradient(135deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 88%, var(--teal)));
-      box-shadow: 0 24px 70px color-mix(in srgb, var(--ink) 8%, transparent);
+      background: color-mix(in srgb, var(--surface) 96%, white);
+      box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 6%, transparent);
     }
 
     .hero-copy {
       display: grid;
-      gap: 8px;
+      gap: 0;
       max-width: 760px;
     }
 
     .hero-copy h2 {
       margin: 0;
-      font-size: clamp(28px, 4vw, 46px);
-      letter-spacing: -0.055em;
-      line-height: 0.98;
+      font-size: 34px;
+      letter-spacing: 0;
+      line-height: 1.05;
     }
 
-    .hero-copy p,
     .client-report-heading p {
       max-width: 760px;
       margin: 0;
       color: var(--muted);
       font-weight: 650;
       line-height: 1.5;
-    }
-
-    .hero-signal-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .hero-signal-row span {
-      border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--line));
-      border-radius: 999px;
-      padding: 7px 10px;
-      background: color-mix(in srgb, var(--surface) 84%, white);
-      color: var(--ink);
-      font-size: 12px;
-      font-weight: 900;
     }
 
     .client-hero-actions {
@@ -437,7 +311,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
-      align-content: flex-start;
+      align-content: center;
       padding-inline-end: 2px;
     }
 
@@ -452,8 +326,33 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .client-report-heading {
-      align-items: flex-start;
-      gap: 14px;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 18px;
+    }
+
+    .client-api-strip {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .client-api-strip span {
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid color-mix(in srgb, var(--teal) 28%, var(--line));
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: color-mix(in srgb, var(--surface) 92%, var(--teal));
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1;
+      white-space: nowrap;
     }
 
     .client-report-metrics {
@@ -472,293 +371,20 @@ import { StateComponent } from '../shared/ui/state/state.component';
       box-shadow: 0 12px 28px color-mix(in srgb, var(--ink) 5%, transparent);
     }
 
-    .client-report-grid {
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-      gap: 12px;
-    }
-
-    .client-report-card {
-      min-width: 0;
-      display: grid;
-      gap: 12px;
-      padding: 16px;
+    .client-report-metrics .kpi-link-card {
+      width: 100%;
       border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      background: color-mix(in srgb, var(--surface) 96%, white);
-      box-shadow: 0 16px 34px color-mix(in srgb, var(--ink) 5%, transparent);
-    }
-
-    .client-360-metric-board {
-      overflow: hidden;
-      padding: 18px;
-      border-color: color-mix(in srgb, var(--teal) 34%, var(--line));
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, var(--teal))),
-        var(--surface);
-    }
-
-    .section-title.compact {
-      align-items: center;
-      margin-bottom: 0;
-    }
-
-    .section-title.compact h3 {
-      margin: 0;
-      font-size: 15px;
-    }
-
-    .metric-board-actions {
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      flex-wrap: wrap;
-      padding-inline-end: 2px;
-    }
-
-    .metric-command-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
-      align-items: start;
-      min-width: 0;
-      max-width: 100%;
-    }
-
-    .metric-command-main {
-      display: grid;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .metric-category-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 4px;
-      border: 1px solid color-mix(in srgb, var(--line) 70%, white);
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--surface) 72%, transparent);
-    }
-
-    .metric-category-tabs button {
-      border: 1px solid transparent;
-      border-radius: 999px;
-      padding: 8px 12px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
+      color: inherit;
       cursor: pointer;
-    }
-
-    .metric-category-tabs button.active {
-      border-color: color-mix(in srgb, var(--teal) 70%, var(--line));
-      background: color-mix(in srgb, var(--teal) 14%, var(--surface));
-      color: var(--ink);
-    }
-
-    .client-360-card-grid {
-      display: grid;
-      width: 100%;
-      max-width: none;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 8px;
-      padding: 2px;
-      min-width: 0;
-    }
-
-    .smart-client-card {
-      width: 100%;
-      min-width: 0;
-      min-height: 104px;
-      border: 1px solid color-mix(in srgb, var(--line) 82%, white);
-      border-left-width: 4px;
-      border-radius: 12px;
-      text-align: left;
-      cursor: pointer;
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
-        var(--surface);
-      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
-    }
-
-    .smart-client-card.active,
-    .smart-client-card:hover {
-      transform: translateY(-1px);
-      border-color: color-mix(in srgb, var(--teal) 70%, var(--line));
-      background: color-mix(in srgb, var(--surface) 92%, var(--teal));
-      box-shadow: 0 14px 34px color-mix(in srgb, var(--teal) 14%, transparent);
-    }
-
-    .metric-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .smart-client-card b {
-      color: var(--teal);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-    }
-
-    .smart-client-card i {
-      overflow: hidden;
-      max-width: 92px;
-      color: var(--muted);
-      font-size: 10px;
-      font-style: normal;
-      font-weight: 900;
-      letter-spacing: 0.08em;
-      text-overflow: ellipsis;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .smart-client-card small {
-      color: var(--ink);
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .smart-client-card em {
-      color: var(--muted);
-      font-size: 11px;
-      font-style: normal;
-      font-weight: 700;
-    }
-
-    .connected-card-inspector {
-      display: grid;
-      width: 100%;
-      max-width: none;
-      grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-      gap: 12px;
-      align-items: stretch;
-      min-width: 0;
-      padding: 14px;
-      border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--line));
-      border-radius: 14px;
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
-        var(--surface);
-      color: var(--ink);
-      box-shadow: 0 14px 32px color-mix(in srgb, var(--ink) 6%, transparent);
-    }
-
-    .connected-card-inspector h3,
-    .connected-card-inspector p {
-      margin: 0;
-    }
-
-    .connected-card-inspector p {
-      color: var(--muted);
-      font-weight: 650;
-    }
-
-    .connected-card-inspector .eyebrow,
-    .connected-card-inspector small {
-      color: var(--muted);
-    }
-
-    .inspector-focus {
-      display: grid;
-      gap: 8px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .inspector-focus strong {
-      font-size: 30px;
-      letter-spacing: -0.045em;
-      line-height: 1;
-    }
-
-    .connected-card-links {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .connected-card-links button {
-      min-width: 0;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px;
-      background: color-mix(in srgb, var(--surface) 96%, white);
-      color: var(--ink);
-      text-align: left;
-      cursor: pointer;
-    }
-
-    .connected-card-links button:hover {
-      background: color-mix(in srgb, var(--teal) 10%, var(--surface));
-    }
-
-    .connected-card-links strong,
-    .connected-card-links span {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .connected-card-links span {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .mini-report-table {
-      display: grid;
-      gap: 4px;
-    }
-
-    .mini-report-row {
-      width: 100%;
-      min-height: 44px;
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) 70px 100px;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border: 0;
-      border-radius: 7px;
-      color: var(--ink);
-      background: transparent;
+      font: inherit;
       text-align: left;
     }
 
-    .mini-report-row.header {
-      min-height: 30px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .mini-report-row.clickable:hover,
-    .mini-report-row:not(.header):hover {
-      background: var(--surface-2);
-    }
-
-    .mini-report-row strong,
-    .mini-report-row small {
-      display: block;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .mini-report-row small {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 600;
+    .client-report-metrics .kpi-link-card:hover,
+    .client-report-metrics .kpi-link-card:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 34px color-mix(in srgb, var(--ink) 8%, transparent);
+      outline: none;
     }
 
     .client-database-panel {
@@ -846,6 +472,22 @@ import { StateComponent } from '../shared/ui/state/state.component';
       white-space: nowrap;
     }
 
+    .client-database-panel .wallet-cell {
+      min-width: 130px;
+    }
+
+    .client-database-panel .wallet-cell strong,
+    .client-database-panel .wallet-cell small {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .client-database-panel .wallet-cell small {
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .client-database-panel .actions-cell > * {
       margin-left: 6px;
       vertical-align: middle;
@@ -870,20 +512,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
       }
     }
 
-    @media (max-width: 1240px) {
-      .connected-card-inspector {
-        grid-template-columns: 1fr;
-      }
-
-      .client-360-card-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .connected-card-links {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
     @media (max-width: 760px) {
       .page-stack {
         width: 100%;
@@ -891,9 +519,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         padding-inline-end: 0;
       }
 
-      .client-report-metrics,
-      .client-360-card-grid,
-      .connected-card-inspector {
+      .client-report-metrics {
         width: 100%;
         max-width: 100%;
       }
@@ -919,26 +545,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
         padding-right: 12px;
       }
 
-      .client-report-metrics,
-      .client-report-grid,
-      .client-360-card-grid,
-      .connected-card-links {
+      .client-report-metrics {
         grid-template-columns: 1fr;
-      }
-
-      .metric-category-tabs {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        border-radius: 18px;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .metric-category-tabs button {
-        flex: 0 0 auto;
-      }
-
-      .mini-report-row {
-        grid-template-columns: minmax(0, 1fr) 56px 86px;
       }
     }
   `]
@@ -983,6 +591,7 @@ export class ClientsComponent implements OnInit {
     'rebooking-rate'
   ]);
   private pendingEditClientId = '';
+  private requestedReportClientId = '';
   query = '';
 
   readonly form = this.fb.group({
@@ -1006,6 +615,7 @@ export class ClientsComponent implements OnInit {
   ngOnInit(): void {
     const queryClient = this.route.snapshot.queryParamMap.get('q');
     if (queryClient) this.query = queryClient;
+    this.requestedReportClientId = this.route.snapshot.queryParamMap.get('clientId') || '';
     this.pendingEditClientId = this.route.snapshot.queryParamMap.get('edit') || '';
     this.load();
     this.loadReports();
@@ -1058,6 +668,8 @@ export class ClientsComponent implements OnInit {
         this.clientListHasMore.set(rows.length === this.clientListPageSize);
         this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => client.id === id)));
         this.openPendingEditClient();
+        const focusClientId = this.reportFocusClientId();
+        if (focusClientId) this.loadClient360(focusClientId);
         this.loading.set(false);
         this.clientListLoadingMore.set(false);
       },
@@ -1094,7 +706,7 @@ export class ClientsComponent implements OnInit {
       next: (reports) => {
         this.clientReports.set(reports);
         this.reportLoading.set(false);
-        const focusClientId = reports.topRfm?.[0]?.id || reports.lapsed?.[0]?.id || this.clients()[0]?.id || '';
+        const focusClientId = this.reportFocusClientId() || reports.topRfm?.[0]?.id || reports.lapsed?.[0]?.id || this.clients()[0]?.id || '';
         if (focusClientId) {
           this.loadClient360(String(focusClientId));
         } else {
@@ -1242,6 +854,10 @@ export class ClientsComponent implements OnInit {
     this.router.navigate(['/clients', clientId]);
   }
 
+  openClientReport(reportKey: string): void {
+    this.router.navigate(['/clients', 'reports', reportKey]);
+  }
+
   isClientSelected(clientId: string): boolean {
     return this.selectedClientIds().includes(String(clientId || ''));
   }
@@ -1325,6 +941,34 @@ export class ClientsComponent implements OnInit {
     return Array.isArray(value) ? value.filter((card) => this.usefulMetricCardIds.has(String(card.id))) : [];
   }
 
+  metricCardValue(cardId: string, fallback = '-'): string {
+    const card = this.clientMetricCards().find((item) => String(item.id) === cardId);
+    const value = card?.value;
+    return value === undefined || value === null || value === '' ? fallback : String(value);
+  }
+
+  walletMetricValue(): string {
+    const loyaltyCard = this.clientMetricCards().find((item) => String(item.id) === 'loyalty-points');
+    const walletText = String(loyaltyCard?.detail || '').match(/([^·]+?)\s+wallet/i)?.[1]?.trim();
+    if (walletText) return walletText;
+    const client = this.client360Report()?.client || {};
+    return this.currencyText(client.walletBalance ?? client.wallet_balance ?? client.wallet ?? 0);
+  }
+
+  walletMetricActivity(): string {
+    const clientId = String(this.client360Report()?.client?.id || '');
+    const client = this.clients().find((item) => String(item.id || '') === clientId);
+    return this.walletActivityLabel(client || {}) || 'No wallet activity';
+  }
+
+  walletActivityLabel(client: ApiRecord): string {
+    const type = String(client.walletLastType || '').toLowerCase();
+    const amount = this.money(client.walletLastAmount || 0);
+    if (!type || amount <= 0) return '';
+    const action = type.includes('debit') || type.includes('use') ? 'used' : 'added';
+    return `Last wallet ${action} ${this.currencyText(amount)}`;
+  }
+
   metricGroups(): ApiRecord[] {
     const counts = new Map<string, number>();
     for (const card of this.clientMetricCards()) {
@@ -1377,12 +1021,6 @@ export class ClientsComponent implements OnInit {
     return this.api.selectedBranchId() ? 'Branch scope' : 'All branches';
   }
 
-  titleText(value: unknown): string {
-    return String(value || '')
-      .replace(/[_-]+/g, ' ')
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
   private withUnpaidBalances(clients: ApiRecord[], invoices: ApiRecord[]): ApiRecord[] {
     const unpaidByClient = new Map<string, number>();
     for (const invoice of invoices) {
@@ -1410,12 +1048,14 @@ export class ClientsComponent implements OnInit {
     }
     return clients.map((client) => {
       const latest = latestByClient.get(String(client.id));
-      const linkedBalance = latest?.balanceAfter ?? latest?.balance_after;
+      const linkedBalance = latest?.balanceAfter ?? latest?.balance_after ?? latest?.walletBalance ?? latest?.wallet_balance ?? latest?.balance;
       return {
         ...client,
         walletBalance: linkedBalance !== undefined && linkedBalance !== null && linkedBalance !== ''
           ? this.money(linkedBalance)
-          : this.money(client.walletBalance || 0)
+          : this.money(client.walletBalance ?? client.wallet_balance ?? client.ewalletBalance ?? client.eWalletBalance ?? client.wallet ?? 0),
+        walletLastAmount: latest ? this.money(latest.amount ?? latest.value ?? latest.walletAmount ?? 0) : 0,
+        walletLastType: latest ? String(latest.type || latest.transactionType || latest.action || '') : ''
       };
     });
   }
@@ -1430,6 +1070,27 @@ export class ClientsComponent implements OnInit {
 
   private money(value: unknown): number {
     return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  private currencyText(value: unknown): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(this.money(value));
+  }
+
+  private reportFocusClientId(): string {
+    if (this.requestedReportClientId) return this.requestedReportClientId;
+    const visible = this.filteredClients;
+    if (visible.length === 1) return String(visible[0].id || '');
+    const query = this.query.trim().toLowerCase();
+    if (!query) return '';
+    const match = this.clients().find((client) => {
+      const values = [client.id, client.name, client.phone, client.mobile, client.whatsapp, client.email];
+      return values.some((value) => String(value || '').toLowerCase().includes(query));
+    });
+    return String(match?.id || '');
   }
 
   private filteredClientIds(): string[] {

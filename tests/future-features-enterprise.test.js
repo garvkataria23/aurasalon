@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const page = readFileSync("src/app/pages/future-features.component.ts", "utf8");
+const workflowPage = readFileSync("src/app/pages/future-workflow.component.ts", "utf8");
+const appRoutes = readFileSync("src/app/app.routes.ts", "utf8");
 const service = readFileSync("server/services/future-features.service.js", "utf8");
 const routes = readFileSync("server/routes/future-features.routes.js", "utf8");
 
@@ -63,10 +65,74 @@ test("future feature catalog stays connected to every supported workflow", () =>
     "demand-forecasting",
     "inventory-prediction",
     "voice-booking-assistant",
+    "voice-receptionist",
+    "dynamic-pricing",
     "smart-kiosk-mode",
-    "ai-receptionist"
+    "ai-receptionist",
+    "franchise-os",
+    "smart-forms",
+    "marketplace"
   ]) {
     assert.ok(workflowTypes.includes(type), `${type} is represented in the workflow map`);
     assert.ok(page.includes(type), `${type} is selectable in the Angular launcher`);
+  }
+});
+
+test("future feature stubs open a live workflow surface instead of generic CRUD shells", () => {
+  for (const route of ["voice-receptionist", "dynamic-pricing", "franchise", "smart-forms", "app-marketplace"]) {
+    const routeLine = appRoutes.split("\n").find((line) => line.includes(`path: '${route}'`)) || "";
+    assert.ok(routeLine.includes("FutureWorkflowComponent"), `${route} loads the live workflow component`);
+    assert.ok(!routeLine.includes("component: ModulePageComponent"), `${route} is no longer a CRUD shell`);
+  }
+
+  for (const endpoint of [
+    "voice-receptionist/calls",
+    "dynamicPricingRules",
+    "franchise-os/units",
+    "smartForms",
+    "formResponses",
+    "marketplace/plugins",
+    "marketplace/connectors"
+  ]) {
+    assert.ok(appRoutes.includes(endpoint), `${endpoint} is wired as a live source endpoint`);
+  }
+});
+
+test("future workflow page runs live AI workflows and shows connected records", () => {
+  for (const phrase of [
+    "future-features/summary",
+    "future-features/${this.config.workflowType}/run",
+    "primaryEndpoint",
+    "secondaryEndpoint",
+    "Live source trace",
+    "Connected records",
+    "Generated output",
+    "Approval",
+    "Save draft",
+    "saveDraft(draft)"
+  ]) {
+    assert.ok(workflowPage.includes(phrase), `${phrase} is present on the future workflow page`);
+  }
+});
+
+test("future workflows expose advanced approval flow, action plan and draft payloads", () => {
+  for (const property of [
+    "approvalFlow",
+    "actionPlan",
+    "draftPayloads",
+    "review-before-action",
+    "ready_for_review"
+  ]) {
+    assert.ok(service.includes(property), `${property} should be emitted by advanced future workflows`);
+  }
+
+  for (const endpoint of [
+    'endpoint: "dynamicPricingRules"',
+    'endpoint: "voice-receptionist/calls"',
+    'endpoint: "franchise-os/units"',
+    'endpoint: "smartForms"',
+    'endpoint: "marketplace/connectors"'
+  ]) {
+    assert.ok(service.includes(endpoint), `${endpoint} draft save target should exist`);
   }
 });

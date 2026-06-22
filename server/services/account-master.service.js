@@ -282,22 +282,26 @@ export const accountMasterService = {
     const accountRow = requestedAccountId ? this.find(requestedAccountId, access) : null;
     const fromDate = dateOnly(query.from || query.fromDate || fiscalYearStart());
     const toDate = dateOnly(query.to || query.toDate || now().slice(0, 10));
-    const rows = accountRow
+    const ledgerBranchId = accountRow ? accountRow.branch_id || branchId || "" : branchId || "";
+    const storedRows = accountRow
       ? db.prepare(`
           SELECT * FROM account_ledger_entries
           WHERE tenant_id = @tenant_id
             AND branch_id = @branch_id
             AND account_id = @account_id
-            AND doc_date >= @from_date
-            AND doc_date <= @to_date
+            AND date(doc_date) >= date(@from_date)
+            AND date(doc_date) <= date(@to_date)
           ORDER BY doc_date, created_at, id
         `).all({
           tenant_id: access.tenantId,
-          branch_id: accountRow.branch_id || "",
+          branch_id: ledgerBranchId,
           account_id: accountRow.id,
           from_date: fromDate,
           to_date: toDate
         })
+      : [];
+    const rows = accountRow
+      ? [...storedRows, ...outgoingFundLedgerRows(accountRow, { access, branchId: ledgerBranchId, fromDate, toDate, storedRows })].sort(compareLedgerRows)
       : [];
     const openingAmount = accountRow ? money(accountRow.opening_balance) : 0;
     const openingType = accountRow?.opening_balance_type === "Cr" ? "Cr" : "Dr";
@@ -437,6 +441,108 @@ function mapLedgerEntry(row = {}, balance = 0) {
   };
 }
 
+function outgoingFundLedgerRows(accountRow = {}, { access = {}, branchId = "", fromDate = "", toDate = "", storedRows = [] } = {}) {
+  const reportBranchId = branchId || accountRow.branch_id || "";
+  const postedSourceIds = new Set(
+    storedRows
+      .filter((row) => row.source_module === "outgoing_fund_entries" && row.source_id)
+      .map((row) => row.source_id)
+  );
+  const rows = db.prepare(`
+    SELECT * FROM outgoing_fund_entries
+    WHERE tenant_id = @tenant_id
+      AND branch_id = @branch_id
+      AND date(entry_date) >= date(@from_date)
+      AND date(entry_date) <= date(@to_date)
+      AND status NOT IN ('deleted', 'cancelled')
+    ORDER BY entry_date, created_at, id
+  `).all({
+    tenant_id: access.tenantId,
+    branch_id: reportBranchId,
+    from_date: fromDate,
+    to_date: toDate
+  });
+  return rows.flatMap((row) => {
+    if (postedSourceIds.has(row.id)) return [];
+    return outgoingFundRowsForAccount(row, accountRow);
+  });
+}
+
+function outgoingFundRowsForAccount(row = {}, accountRow = {}) {
+  const rows = [];
+  if (matchesAccount(row.paid_from_account_id, row.paid_from_account_name, accountRow)) {
+    rows.push(outgoingFundLedgerRow(row, {
+      idSuffix: "from",
+      sno: "1",
+      particular: row.paid_to_account_name || row.payee_name || row.transaction_type || "Outgoing fund",
+      debit: 0,
+      credit: money(row.amount)
+    }));
+  }
+  const items = parseJson(row.line_items_json, []);
+  const lines = items.length ? items : [{
+    sno: 1,
+    type: row.transaction_type,
+    accountId: row.paid_to_account_id,
+    accountName: row.paid_to_account_name || row.payee_name,
+    amount: row.amount,
+    remarks: row.remarks
+  }];
+  for (const [index, line] of lines.entries()) {
+    if (!matchesAccount(line.accountId ?? line.account_id, line.accountName ?? line.account_name, accountRow)) continue;
+    rows.push(outgoingFundLedgerRow(row, {
+      idSuffix: `line-${line.sno || index + 1}`,
+      sno: String(line.sno || index + 1),
+      entryType: line.type || row.transaction_type || "Outgoing",
+      particular: line.accountName || line.account_name || row.paid_to_account_name || row.payee_name || "Outgoing fund",
+      debit: money(line.amount),
+      credit: 0,
+      remarks: line.remarks || row.remarks || ""
+    }));
+  }
+  return rows;
+}
+
+function outgoingFundLedgerRow(row = {}, patch = {}) {
+  return {
+    id: `outgoing:${row.id}:${patch.idSuffix || "row"}`,
+    tenant_id: row.tenant_id,
+    branch_id: row.branch_id || "",
+    account_id: "",
+    account_name: patch.particular || "",
+    doc_date: dateOnly(row.entry_date),
+    entry_type: patch.entryType || row.transaction_type || "Outgoing",
+    prefix: "OG",
+    doc_no: row.entry_no || row.id || "",
+    sno: patch.sno || "",
+    bill_number: row.reference_no || "",
+    bill_date: row.cheque_date || row.entry_date || "",
+    particular: patch.particular || row.paid_to_account_name || row.payee_name || "Outgoing fund",
+    debit: money(patch.debit),
+    credit: money(patch.credit),
+    paymode: row.payment_mode || "",
+    cheque_no: row.cheque_no || row.reference_no || "",
+    remarks: patch.remarks || row.remarks || "",
+    source_module: "outgoing_fund_entries",
+    source_id: row.id || "",
+    created_at: row.created_at || row.entry_date || ""
+  };
+}
+
+function matchesAccount(accountId, accountName, accountRow = {}) {
+  const targetId = clean(accountRow.id);
+  const targetName = clean(accountRow.account_name).toLowerCase();
+  const incomingId = clean(accountId);
+  const incomingName = clean(accountName).toLowerCase();
+  return (!!targetId && incomingId === targetId) || (!!targetName && incomingName === targetName);
+}
+
+function compareLedgerRows(left = {}, right = {}) {
+  return String(left.doc_date || "").localeCompare(String(right.doc_date || ""))
+    || String(left.created_at || "").localeCompare(String(right.created_at || ""))
+    || String(left.id || "").localeCompare(String(right.id || ""));
+}
+
 function fiscalYearStart() {
   const today = new Date();
   const year = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
@@ -449,6 +555,14 @@ function dateOnly(value) {
   const parsed = new Date(text);
   if (Number.isNaN(parsed.getTime())) return now().slice(0, 10);
   return parsed.toISOString().slice(0, 10);
+}
+
+function parseJson(value, fallback = []) {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function mapGroup(row = {}) {

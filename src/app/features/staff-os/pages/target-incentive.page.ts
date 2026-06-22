@@ -131,7 +131,7 @@ const targetMeta: Record<StaffOsTargetIncentiveType, { title: string; label: str
             <ng-template #slabGrid>
               <button type="button" class="copy-standard" (click)="copyFromStandard()">Copy From Standard Def.</button>
               <div class="grid header"><span>S.No.</span><span>From Amt.</span><span>To Amt.</span><span>Ince. %</span><span>Or Ince. Amt.</span><span></span></div>
-              <div class="grid" *ngFor="let slab of slabs(); let i = index">
+              <div class="grid" *ngFor="let slab of slabs(); let i = index; trackBy: trackSlab">
                 <span>{{ i + 1 }}</span>
                 <input type="number" min="0" [value]="slab.fromAmount" (input)="updateSlab(i, 'fromAmount', $any($event.target).value)" />
                 <input type="number" min="0" [value]="slab.toAmount" (input)="updateSlab(i, 'toAmount', $any($event.target).value)" />
@@ -392,6 +392,10 @@ export class StaffTargetIncentiveComponent implements OnInit {
 
   updateSlab(index: number, key: 'fromAmount' | 'toAmount' | 'incentivePercent' | 'incentiveAmount', value: string): void {
     this.slabs.update((items) => items.map((item, i) => i === index ? { ...item, [key]: Number(value || 0) } : item));
+  }
+
+  trackSlab(index: number, slab: StaffOsTargetIncentiveSlab): number {
+    return Number(slab.sNo || index + 1);
   }
 
   adminAmountPercent(): number {

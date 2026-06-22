@@ -1,7 +1,7 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, effect, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, forkJoin, of, Subscription } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { PosActiveBillingDraft, PosHeldInvoiceDraft, PosMembershipPlan, PosPaymentMode, PosSettingsService, PosTipPreset } from '../core/pos-settings.service';
@@ -36,6 +36,13 @@ type StaffSplitLine = {
   staffId: string;
   staffName: string;
   percent: number;
+};
+
+type BenefitServiceMapping = {
+  lineIndex: number;
+  serviceId: string;
+  serviceName: string;
+  credits: number;
 };
 
 type TipLine = {
@@ -240,7 +247,7 @@ type ClientSearchIndex = {
             <label class="field billing-date-field">
               <span>Invoice date</span>
               <input type="date" formControlName="invoiceDate" [attr.max]="invoiceDateMax" />
-              <small>Back-date invoice ke liye billing date select karo.</small>
+              <small>Select a billing date for back-dated invoices.</small>
             </label>
             <label class="field smart-search-field pos-floating-search staff-search-field">
               <span>Staff</span>
@@ -373,13 +380,13 @@ type ClientSearchIndex = {
                 </div>
               </div>
               <small class="smart-search-hint selected" *ngIf="selectedServiceIds.length">
-                {{ selectedServiceIds.length }} service selected. Add dabane par sab invoice me add honge.
+                {{ selectedServiceIds.length }} service selected. Add will include all of them.
               </small>
               <small class="smart-search-hint" *ngIf="serviceSearchActive && serviceSearchText.trim().length > 0 && filteredServices().length > 1">
-                Multiple service match hain. Jo chahiye unko tick karo.
+                Multiple services matched. Select the required services.
               </small>
               <small class="smart-search-hint is-empty" *ngIf="serviceSearchActive && serviceSearchText.trim().length > 0 && !filteredServices().length">
-                Is naam se service nahi mili.
+                No service found with this name.
               </small>
             </label>
             <button class="ghost-button" type="button" (click)="addSelectedService()" [disabled]="!selectedServiceIds.length">
@@ -418,13 +425,13 @@ type ClientSearchIndex = {
                 </div>
               </div>
               <small class="smart-search-hint selected" *ngIf="selectedProductIds.length">
-                {{ selectedProductIds.length }} product selected. Add dabane par sab invoice me add honge.
+                {{ selectedProductIds.length }} product selected. Add will include all of them.
               </small>
               <small class="smart-search-hint" *ngIf="productSearchActive && productSearchText.trim().length > 0 && filteredProducts().length > 1">
-                Multiple product match hain. Jo chahiye unko tick karo.
+                Multiple products matched. Select the required products.
               </small>
               <small class="smart-search-hint is-empty" *ngIf="productSearchActive && productSearchText.trim().length > 0 && !filteredProducts().length">
-                Is naam se product nahi mila.
+                No product found with this name.
               </small>
             </label>
             <button class="ghost-button" type="button" (click)="addSelectedProduct()" [disabled]="!selectedProductIds.length">
@@ -577,17 +584,72 @@ type ClientSearchIndex = {
           <p class="inline-hint" *ngIf="couponMessage()">{{ couponMessage() }}</p>
           <div class="summary-control-grid summary-control-grid--membership">
             <label class="field">
-              <span>Membership credits to redeem</span>
-              <input type="number" min="0" [(ngModel)]="creditsUsed" />
+              <span>Benefit credits to redeem</span>
+              <input type="number" min="0" [ngModel]="creditsUsed" (ngModelChange)="setRedeemableCredits($event)" />
             </label>
             <label class="field">
-              <span>Membership</span>
-              <select [(ngModel)]="membershipId">
+              <span>Membership / package</span>
+              <select [ngModel]="membershipId" (ngModelChange)="selectRedeemableBenefit($event)">
                 <option value="">No redemption</option>
-                <option *ngFor="let membership of memberships()" [value]="membership.id">{{ membership.planName }} - {{ membership.creditsRemaining }} credits</option>
+                <option *ngFor="let benefit of redeemableBenefits()" [value]="benefit.membershipId || benefit.id">{{ redeemableBenefitOption(benefit) }}</option>
               </select>
             </label>
+            <button class="ghost-button summary-apply-button" type="button" (click)="useAllRedeemableCredits()" [disabled]="!selectedRedeemableBenefit() || !selectedRedeemableBenefitRemainingCredits()">
+              Use all
+            </button>
           </div>
+          <p class="inline-hint" *ngIf="selectedRedeemableBenefit() as benefit">
+            Redeeming {{ redeemableBenefitTypeLabel(benefit) }} {{ benefit.planName || benefit.name || benefit.membershipId }}. {{ selectedRedeemableBenefitRemainingCredits() }} credits available before invoice save.
+          </p>
+          <section class="benefit-mapping-box" *ngIf="selectedRedeemableBenefit() as benefit">
+            <div class="benefit-mapping-box__header">
+              <div>
+                <span class="eyebrow">Service-line package mapping</span>
+                <strong>Choose service lines before save</strong>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="autoAllocateBenefitCredits()" [disabled]="!creditsUsed || !redeemableServiceLines().length">
+                Auto map
+              </button>
+            </div>
+            <div class="benefit-mapping-box__summary">
+              <span>Allocated {{ allocatedBenefitCredits() }} / {{ creditsUsed }} credits</span>
+              <span>Balance after redeem {{ benefitRemainingAfterRedeem() }} credits</span>
+            </div>
+            <p class="inline-hint" *ngIf="!redeemableServiceLines().length">
+              Add at least one service line to redeem benefit credits.
+            </p>
+            <div class="benefit-mapping-lines" *ngIf="redeemableServiceLines().length">
+              <article class="benefit-mapping-line" *ngFor="let line of redeemableServiceLines()">
+                <div>
+                  <strong>{{ line.serviceName }}</strong>
+                  <small>{{ line.staffName || 'Unassigned staff' }} · {{ line.finalAmount | currency: 'INR':'symbol':'1.0-0' }}</small>
+                </div>
+                <label class="field compact-field">
+                  <span>Credits</span>
+                  <input
+                    type="number"
+                    min="0"
+                    [max]="maxServiceLineMappedCredits(line.lineIndex)"
+                    [ngModel]="serviceLineMappedCredits(line.lineIndex)"
+                    (ngModelChange)="setServiceLineMappedCredits(line.lineIndex, $event)"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </label>
+              </article>
+            </div>
+            <p class="inline-hint warning-text" *ngIf="creditsUsed > 0 && unallocatedBenefitCredits() > 0">
+              {{ unallocatedBenefitCredits() }} credits are not mapped to service lines.
+            </p>
+            <div class="benefit-mapping-summary-list" *ngIf="selectedBenefitServiceMappings().length">
+              <div *ngFor="let mapping of selectedBenefitServiceMappings()">
+                <span>{{ benefit.planName || benefit.name || benefit.membershipId }} -> {{ mapping.serviceName }}</span>
+                <strong>{{ mapping.credits }} credits</strong>
+              </div>
+            </div>
+          </section>
+          <p class="inline-hint" *ngIf="selectedClient() && !redeemableBenefits().length">
+            This client has no redeemable membership or package credits.
+          </p>
 
           <section class="tip-box">
             <div class="section-title compact-title tip-box-title">
@@ -628,10 +690,29 @@ type ClientSearchIndex = {
             <div><span>Coupon discount</span><strong>{{ couponDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>GST</span><strong>{{ gst | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Staff tips</span><strong>{{ tipTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div *ngIf="appliedBookingAdvanceAmount() > 0"><span>Booking advance applied</span><strong>{{ appliedBookingAdvanceAmount() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div class="total"><span>Total</span><strong>{{ total | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Paid now</span><strong>{{ paidTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div [class.total]="balanceDue > 0"><span>Balance due</span><strong>{{ balanceDue | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
           </div>
+
+          <section class="unpaid-receive-box" *ngIf="bookingAdvanceInfo() as advance">
+            <div class="unpaid-receive-copy">
+              <span class="eyebrow">Booking advance</span>
+              <strong>{{ bookingAdvancePaidAmount() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small *ngIf="hasBookingAdvanceSuggestion">Advance is available. Apply it to include it in this invoice.</small>
+              <small *ngIf="appliedBookingAdvanceAmount() > 0">Advance is included. Collect remaining {{ bookingAdvanceRemainingSuggestion | currency: 'INR':'symbol':'1.0-0' }}.</small>
+              <small *ngIf="advance['status'] === 'pending'">Advance link is created; payment is still pending.</small>
+            </div>
+            <div class="client-search-actions">
+              <button class="ghost-button" type="button" *ngIf="hasBookingAdvanceSuggestion" (click)="applyBookingAdvanceSuggestion()">
+                Apply booking advance
+              </button>
+              <button class="ghost-button" type="button" *ngIf="appliedBookingAdvanceAmount() > 0" (click)="removeBookingAdvanceSuggestion()">
+                Remove advance
+              </button>
+            </div>
+          </section>
 
           <div class="payment-header">
             <div class="payment-title-copy">
@@ -668,6 +749,22 @@ type ClientSearchIndex = {
               />
             </label>
           </div>
+          <section class="unpaid-receive-box round-off-box" *ngIf="roundOffDueAmount > 0">
+            <div class="unpaid-receive-copy">
+              <span class="eyebrow">Balance choice</span>
+              <strong>{{ roundOffDueAmount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Keep this balance unpaid or adjust it with round off.</small>
+              <small *ngIf="roundOffPreviewLabel()">{{ roundOffPreviewLabel() }}</small>
+            </div>
+            <div class="client-search-actions round-off-actions">
+              <button class="ghost-button" type="button" (click)="keepRoundOffAsUnpaid()">
+                Keep unpaid
+              </button>
+              <button class="primary-button" type="button" (click)="applyBalanceRoundOff()" [disabled]="!canApplyRoundOff()">
+                Round off {{ roundOffDueAmount | currency: 'INR':'symbol':'1.0-0' }}
+              </button>
+            </div>
+          </section>
           <section class="unpaid-receive-box" *ngIf="selectedClientUnpaidBalance > 0">
             <div class="unpaid-receive-copy">
               <span class="eyebrow">Receive old balance</span>
@@ -706,6 +803,32 @@ type ClientSearchIndex = {
           <p class="inline-hint wallet-status" *ngIf="walletCreditRequested() && overPaid > 0">After invoice save, {{ overPaid | currency: 'INR':'symbol':'1.0-0' }} will be credited to this client's wallet.</p>
           <p class="inline-hint" *ngIf="selectedClient() as client">Wallet balance: {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</p>
 
+          <section class="settlement-preview-bar" *ngIf="items().length">
+            <div class="settlement-preview-copy">
+              <span class="eyebrow">Final settlement preview</span>
+              <strong>Review payment split before saving</strong>
+              <small>Advance and counter collection will be saved separately on the invoice.</small>
+            </div>
+            <div class="settlement-preview-metrics">
+              <article>
+                <span>Advance adjusted</span>
+                <strong>{{ settlementPreviewAdvance | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article>
+                <span>Counter payment</span>
+                <strong>{{ settlementPreviewCounterCollected | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article [class.is-due]="settlementPreviewDueAfterSave > 0">
+                <span>Due after save</span>
+                <strong>{{ settlementPreviewDueAfterSave | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article *ngIf="settlementPreviewWalletCredit > 0">
+                <span>Wallet credit</span>
+                <strong>{{ settlementPreviewWalletCredit | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+            </div>
+          </section>
+
           <button class="primary-button full-button" type="button" (click)="checkout()" [disabled]="!canSaveCheckout">
             {{ saving() ? 'Saving sale...' : 'Save sale and invoice' }}
           </button>
@@ -714,6 +837,30 @@ type ClientSearchIndex = {
             <span class="eyebrow">Invoice generated</span>
             <h3>{{ invoice.invoiceNumber }}</h3>
             <p>Status: <strong>{{ invoice.status }}</strong></p>
+            <section class="generated-settlement-card" *ngIf="generatedInvoiceSettlement() as settlement">
+              <span class="eyebrow">Settlement recap</span>
+              <div class="generated-settlement-lines">
+                <div><span>Advance adjusted</span><strong>{{ settlement.advance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                <div><span>Counter paid</span><strong>{{ settlement.counter | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                <div [class.total]="settlement.due > 0"><span>Counter due</span><strong>{{ settlement.due | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                <div *ngIf="settlement.walletCredit > 0"><span>Wallet credit</span><strong>{{ settlement.walletCredit | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              </div>
+              <div class="generated-benefit-card" *ngIf="generatedInvoiceBenefitRedeem() as benefitRedeem">
+                <span class="eyebrow">Redeemed benefit summary</span>
+                <div class="generated-settlement-lines">
+                  <div><span>Benefit</span><strong>{{ generatedBenefitRedeemLabel(benefitRedeem) }}</strong></div>
+                  <div><span>Credits used</span><strong>{{ generatedBenefitRedeemCredits(benefitRedeem) }}</strong></div>
+                  <div><span>Balance left</span><strong>{{ generatedBenefitRedeemBalance(benefitRedeem) }}</strong></div>
+                </div>
+                <div class="benefit-mapping-summary-list" *ngIf="generatedBenefitServiceMappings(benefitRedeem).length">
+                  <div *ngFor="let mapping of generatedBenefitServiceMappings(benefitRedeem)">
+                    <span>{{ mapping.serviceName }}</span>
+                    <strong>{{ mapping.credits }} credits</strong>
+                  </div>
+                </div>
+              </div>
+              <small class="generated-whatsapp-preview">WhatsApp summary: {{ generatedInvoiceWhatsappPreview(settlement) }}</small>
+            </section>
             <button class="ghost-button" type="button" (click)="downloadInvoice()">Download invoice</button>
           </section>
         </aside>
@@ -739,6 +886,186 @@ type ClientSearchIndex = {
       align-items: center;
       flex-wrap: wrap;
       margin-top: 6px;
+    }
+
+    :host .settlement-preview-bar {
+      display: grid;
+      gap: 12px;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 14px 0 16px;
+      background: linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
+    }
+
+    :host .settlement-preview-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    :host .settlement-preview-copy strong {
+      color: #0f172a;
+      font-size: 15px;
+    }
+
+    :host .settlement-preview-copy small {
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    :host .settlement-preview-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    :host .settlement-preview-metrics article {
+      border: 1px solid rgba(15, 118, 110, 0.14);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 4px;
+    }
+
+    :host .settlement-preview-metrics span {
+      color: #0f766e;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    :host .settlement-preview-metrics strong {
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    :host .settlement-preview-metrics article.is-due {
+      border-color: rgba(220, 38, 38, 0.22);
+      background: rgba(254, 242, 242, 0.96);
+    }
+
+    :host .settlement-preview-metrics article.is-due span {
+      color: #b91c1c;
+    }
+
+    :host .benefit-mapping-box {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0;
+      padding: 12px;
+      border: 1px solid rgba(15, 118, 110, 0.14);
+      border-radius: 10px;
+      background: #f8fffd;
+    }
+
+    :host .benefit-mapping-box__header,
+    :host .benefit-mapping-box__summary,
+    :host .benefit-mapping-line,
+    :host .benefit-mapping-summary-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    :host .benefit-mapping-box__header strong {
+      display: block;
+      color: #0f172a;
+    }
+
+    :host .benefit-mapping-box__summary {
+      flex-wrap: wrap;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    :host .benefit-mapping-lines,
+    :host .benefit-mapping-summary-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    :host .benefit-mapping-line,
+    :host .benefit-mapping-summary-list div {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    :host .benefit-mapping-line small,
+    :host .benefit-mapping-summary-list span {
+      color: #64748b;
+    }
+
+    :host .compact-field {
+      min-width: 96px;
+      margin: 0;
+    }
+
+    :host .compact-field input {
+      min-width: 80px;
+    }
+
+    :host .generated-benefit-card {
+      display: grid;
+      gap: 8px;
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
+      padding-top: 10px;
+    }
+
+    :host .generated-settlement-card {
+      display: grid;
+      gap: 8px;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 10px;
+      padding: 12px;
+      margin: 12px 0;
+      background: #f8fffd;
+    }
+
+    :host .generated-settlement-lines {
+      display: grid;
+      gap: 6px;
+    }
+
+    :host .generated-settlement-lines div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    :host .generated-settlement-lines div:last-child {
+      border-bottom: 0;
+    }
+
+    :host .generated-settlement-lines span {
+      color: #475569;
+    }
+
+    :host .generated-settlement-lines strong {
+      color: #0f172a;
+    }
+
+    :host .generated-whatsapp-preview {
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 960px) {
+      :host .settlement-preview-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      :host .benefit-mapping-line,
+      :host .benefit-mapping-summary-list div {
+        align-items: start;
+        flex-direction: column;
+      }
     }
 
     :host .client-crm-history-button {
@@ -1048,6 +1375,11 @@ export class PosComponent implements OnInit, OnDestroy {
   readonly couponChecking = signal(false);
   readonly error = signal('');
   readonly dataHint = signal('');
+  readonly bookingAdvanceInfo = signal<ApiRecord | null>(null);
+  readonly bookingAdvanceLoading = signal(false);
+  readonly bookingAdvanceAppliedAmount = signal(0);
+  readonly generatedInvoiceSettlement = signal<{ advance: number; counter: number; due: number; walletCredit: number } | null>(null);
+  readonly generatedInvoiceBenefitRedeem = signal<ApiRecord | null>(null);
   readonly showClientForm = signal(false);
   readonly clientSaving = signal(false);
   readonly debouncedClientQuery = signal('');
@@ -1059,6 +1391,7 @@ export class PosComponent implements OnInit, OnDestroy {
   couponCode = '';
   creditsUsed = 0;
   membershipId = '';
+  benefitServiceMappings: BenefitServiceMapping[] = [];
   clientSearchText = '';
   staffSearchText = '';
   serviceSearchText = '';
@@ -1114,7 +1447,8 @@ export class PosComponent implements OnInit, OnDestroy {
     private readonly fb: UntypedFormBuilder,
     private readonly posSettings: PosSettingsService,
     private readonly appState: AppStateService,
-    private readonly route: ActivatedRoute
+    private readonly route: ActivatedRoute,
+    private readonly router: Router
   ) {
     effect(() => {
       const branchId = this.appState.selectedBranchId();
@@ -1131,6 +1465,14 @@ export class PosComponent implements OnInit, OnDestroy {
       this.branchSelectionSub.add(
         branchControl.valueChanges.pipe(distinctUntilChanged()).subscribe((branchId) => {
           this.loadStaffForBranch(String(branchId || ''));
+        })
+      );
+    }
+    const appointmentControl = this.form.get('appointmentId');
+    if (appointmentControl) {
+      this.branchSelectionSub.add(
+        appointmentControl.valueChanges.pipe(distinctUntilChanged()).subscribe((appointmentId) => {
+          this.loadBookingAdvanceSuggestion(String(appointmentId || ''));
         })
       );
     }
@@ -1200,11 +1542,19 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   get paidTotal(): number {
-    return this.money(Object.values(this.payments).reduce((sum, amount) => sum + Number(amount || 0), 0));
+    return this.money(
+      Object.values(this.payments).reduce((sum, amount) => sum + Number(amount || 0), 0)
+      + this.appliedBookingAdvanceAmount()
+    );
   }
 
   get balanceDue(): number {
     return this.money(Math.max(0, this.total - this.paidTotal));
+  }
+
+  get roundOffDueAmount(): number {
+    if (!this.items().length || this.paidTotal <= 0 || this.overPaid > 0) return 0;
+    return this.balanceDue > 0 ? this.balanceDue : 0;
   }
 
   get overPaid(): number {
@@ -1250,6 +1600,46 @@ export class PosComponent implements OnInit, OnDestroy {
     return !this.saving() && !!this.items().length && !this.form.invalid && (this.overPaid <= 0 || this.walletCreditRequested());
   }
 
+  get hasBookingAdvanceSuggestion(): boolean {
+    return this.bookingAdvancePaidAmount() > 0 && this.appliedBookingAdvanceAmount() <= 0;
+  }
+
+  get bookingAdvanceRemainingSuggestion(): number {
+    return this.money(Math.max(0, this.total - this.bookingAdvancePaidAmount()));
+  }
+
+  get settlementPreviewAdvance(): number {
+    return this.appliedBookingAdvanceAmount();
+  }
+
+  get settlementPreviewCounterCollected(): number {
+    return this.money(Object.values(this.payments).reduce((sum, amount) => sum + Number(amount || 0), 0));
+  }
+
+  get settlementPreviewDueAfterSave(): number {
+    return this.balanceDue;
+  }
+
+  get settlementPreviewWalletCredit(): number {
+    return this.walletCreditRequested() ? this.overPaid : 0;
+  }
+
+  currentSettlementPreview(): { advance: number; counter: number; due: number; walletCredit: number } {
+    return {
+      advance: this.settlementPreviewAdvance,
+      counter: this.settlementPreviewCounterCollected,
+      due: this.settlementPreviewDueAfterSave,
+      walletCredit: this.settlementPreviewWalletCredit
+    };
+  }
+
+  generatedInvoiceWhatsappPreview(settlement: { advance: number; counter: number; due: number; walletCredit: number }): string {
+    const advance = this.money(Number(settlement?.advance || 0)).toFixed(2);
+    const counter = this.money(Number(settlement?.counter || 0)).toFixed(2);
+    const due = this.money(Number(settlement?.due || 0)).toFixed(2);
+    return `Advance adjusted: INR ${advance} | Counter paid: INR ${counter} | Counter due: INR ${due}`;
+  }
+
   get couponDiscount(): number {
     return Number(this.couponResult()?.discountAmount || 0);
   }
@@ -1261,6 +1651,41 @@ export class PosComponent implements OnInit, OnDestroy {
       return this.money((base * Math.min(value, 100)) / 100);
     }
     return this.money(value);
+  }
+
+  roundOffPreviewLabel(): string {
+    if (!this.canApplyRoundOff()) return '';
+    const targetDiscount = this.roundOffManualDiscountTarget();
+    const addedDiscount = this.money(Math.max(0, targetDiscount - this.manualDiscountAmount));
+    if (this.discountMode === 'percent') {
+      return `Discount auto ${this.discountPercentForManualAmount(targetDiscount)}% ho jayega. Add-on discount approx ${addedDiscount.toLocaleString('en-IN')}.`;
+    }
+    return `Discount auto ${targetDiscount.toLocaleString('en-IN')} ho jayega. Add-on discount approx ${addedDiscount.toLocaleString('en-IN')}.`;
+  }
+
+  canApplyRoundOff(): boolean {
+    return this.roundOffManualDiscountTarget() > this.manualDiscountAmount + 0.009;
+  }
+
+  keepRoundOffAsUnpaid(): void {
+    if (this.roundOffDueAmount <= 0) return;
+    this.dataHint.set(`Balance ₹${this.roundOffDueAmount.toLocaleString('en-IN')} will be saved as unpaid.`);
+  }
+
+  applyBalanceRoundOff(): void {
+    const dueAmount = this.roundOffDueAmount;
+    const targetDiscount = this.roundOffManualDiscountTarget();
+    if (dueAmount <= 0 || targetDiscount <= this.manualDiscountAmount + 0.009) {
+      this.dataHint.set('No discount space is available for round off.');
+      return;
+    }
+    if (this.discountMode === 'percent') {
+      this.discount = this.discountPercentForManualAmount(targetDiscount);
+    } else {
+      this.discount = this.money(targetDiscount);
+    }
+    this.walletCreditRequested.set(false);
+    this.dataHint.set(`Round off ₹${dueAmount.toLocaleString('en-IN')} applied. No unpaid balance remains.`);
   }
 
   get membershipAutoDiscount(): number {
@@ -1306,7 +1731,7 @@ export class PosComponent implements OnInit, OnDestroy {
           this.fallbackTried = true;
           this.fallbackNotice = true;
           this.appState.setTenant('tenant_aura');
-          this.dataHint.set('Current tenant me POS catalog empty hai. Aura demo tenant load kar raha hoon.');
+          this.dataHint.set('Current POS catalog is empty. Loading the default catalog.');
           this.load();
           return;
         }
@@ -1369,7 +1794,21 @@ export class PosComponent implements OnInit, OnDestroy {
     }
     const params = this.route.snapshot.queryParamMap;
     const appointmentId = params.get('appointmentId') || '';
-    if (appointmentId && this.applyRouteAppointmentSelection(appointmentId, clients)) {
+    if (appointmentId) {
+      if (this.appointmentAlreadyBilled(appointmentId)) {
+        this.blockBilledRouteAppointment(appointmentId);
+        return;
+      }
+      this.api.list<ApiRecord>(`enterprise-scheduler/appointments/${appointmentId}/billing-status`).subscribe({
+        next: (status) => {
+          if (status?.['billed'] || status?.['billingLocked']) {
+            this.blockBilledRouteAppointment(appointmentId, String(status?.['invoiceNumber'] || ''));
+            return;
+          }
+          this.applyRouteAppointmentSelection(appointmentId, clients);
+        },
+        error: () => this.applyRouteAppointmentSelection(appointmentId, clients)
+      });
       return;
     }
     if (this.form.value.clientId) {
@@ -1393,9 +1832,24 @@ export class PosComponent implements OnInit, OnDestroy {
     }
   }
 
+  private blockBilledRouteAppointment(appointmentId: string, invoiceNumber = ''): void {
+    this.items.set([]);
+    this.bookingAdvanceInfo.set(null);
+    this.bookingAdvanceLoading.set(false);
+    this.bookingAdvanceAppliedAmount.set(0);
+    this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
+    const invoiceText = invoiceNumber ? ` Invoice ${invoiceNumber} already exists.` : '';
+    this.dataHint.set(`Appointment ${appointmentId} is already billed.${invoiceText} POS will not reopen it.`);
+    void this.router.navigate(['/appointments'], { replaceUrl: true });
+  }
+
   private applyRouteAppointmentSelection(appointmentId: string, clients: ApiRecord[]): boolean {
     const appointment = this.appointments().find((item) => String(item.id || '') === appointmentId);
     if (!appointment) return false;
+    if (this.appointmentAlreadyBilled(appointmentId)) {
+      this.blockBilledRouteAppointment(appointmentId);
+      return true;
+    }
     const clientId = String(appointment.clientId || '');
     const client = clients.find((item) => String(item.id || '') === clientId);
     if (client) {
@@ -1414,12 +1868,23 @@ export class PosComponent implements OnInit, OnDestroy {
     }
     this.form.patchValue({ appointmentId }, { emitEvent: false });
     this.items.set([]);
-    for (const serviceId of this.appointmentServiceIds(appointment)) {
-      this.addService(serviceId);
+    const routeAppointments = this.routeAppointmentRows(appointment);
+    const explicitServiceIds = this.routeIdList(this.route.snapshot.queryParamMap.get('serviceIds') || '');
+    if (routeAppointments.length > 1 || !explicitServiceIds.length) {
+      for (const row of routeAppointments) {
+        for (const serviceId of this.appointmentServiceIds(row)) {
+          this.addService(serviceId, String(row.staffId || staffId));
+        }
+      }
+    } else {
+      for (const serviceId of explicitServiceIds) {
+        this.addService(serviceId, staffId);
+      }
     }
     this.serviceSearchText = '';
     this.selectedServiceIds = [];
-    this.dataHint.set(`Appointment ${appointmentId} POS me load ho gaya. Services bill me add ho gayi hain.`);
+    this.loadBookingAdvanceSuggestion(appointmentId);
+    this.dataHint.set(`Appointment ${appointmentId} loaded in POS with ${this.items().length} service line(s).`);
     return true;
   }
 
@@ -1462,7 +1927,34 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   paymentModeLabel(modeId: string): string {
+    if (modeId === 'booking_advance') return 'Booking advance';
     return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
+  }
+
+  bookingAdvancePaidAmount(): number {
+    const info = this.bookingAdvanceInfo() || {};
+    const status = String(info['status'] || '').toLowerCase();
+    const amount = this.money(Number(info['amount'] || 0));
+    return status === 'paid' ? amount : 0;
+  }
+
+  appliedBookingAdvanceAmount(): number {
+    return this.money(Math.min(this.total, Number(this.bookingAdvanceAppliedAmount() || 0)));
+  }
+
+  applyBookingAdvanceSuggestion(): void {
+    const amount = this.bookingAdvancePaidAmount();
+    if (amount <= 0) return;
+    this.bookingAdvanceAppliedAmount.set(this.money(Math.min(this.total, amount)));
+    this.walletCreditRequested.set(false);
+    const remaining = this.money(Math.max(0, this.total - this.appliedBookingAdvanceAmount()));
+    this.dataHint.set(`Booking advance ₹${this.appliedBookingAdvanceAmount()} applied. Collect remaining ₹${remaining}.`);
+  }
+
+  removeBookingAdvanceSuggestion(): void {
+    if (this.appliedBookingAdvanceAmount() <= 0) return;
+    this.bookingAdvanceAppliedAmount.set(0);
+    this.dataHint.set('Booking advance removed. Invoice payment is back to normal collection.');
   }
 
   handleWalletButton(): void {
@@ -1483,11 +1975,11 @@ export class PosComponent implements OnInit, OnDestroy {
     const staffId = this.tipDraft.staffId || String(this.form.value.staffId || '');
     const staffName = this.staff().find((person) => person.id === staffId)?.name || '';
     if (!staffId || !staffName) {
-      this.tipMessage.set('Tip ke liye staff select karna zaroori hai.');
+      this.tipMessage.set('Select staff before adding a tip.');
       return;
     }
     if (amount <= 0) {
-      this.tipMessage.set('Tip amount 0 se bada hona chahiye.');
+      this.tipMessage.set('Tip amount must be greater than 0.');
       return;
     }
     const mode = this.tipDraft.paymentMode || this.activePaymentModes()[0]?.id || 'cash';
@@ -1512,13 +2004,13 @@ export class PosComponent implements OnInit, OnDestroy {
 
   holdInvoice(): void {
     if (!this.items().length) {
-      this.error.set('Hold invoice ke liye at least ek service, product, membership, package ya gift card add karo.');
+      this.error.set('Add at least one service, product, membership, package or gift card before holding the invoice.');
       return;
     }
     const draft = this.buildHeldInvoiceDraft();
     this.posSettings.upsertHeldInvoice(draft);
     this.posSettings.clearActiveBillingDraft();
-    this.dataHint.set(`Invoice hold ho gaya: ${draft.title}. Held invoices page se resume kar sakte ho.`);
+    this.dataHint.set(`Invoice held: ${draft.title}. You can resume it from Held invoices.`);
     this.resetDraftAfterHold();
   }
 
@@ -1649,9 +2141,12 @@ export class PosComponent implements OnInit, OnDestroy {
 
   private buildClientMembershipSearchSnapshot(client: ApiRecord, clientId: string): string {
     const active = this.activeMembershipForClientId(clientId);
+    const packageCount = this.activePackageCountForClientId(clientId);
     const walletBalance = Number(client.walletBalance || 0);
-    if (!active) return `Wallet ₹${walletBalance} · No active membership`;
-    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits`;
+    if (!active && !packageCount) return `Wallet ₹${walletBalance} · No active benefits`;
+    const packageLabel = packageCount ? ` · ${packageCount} package${packageCount === 1 ? '' : 's'}` : '';
+    if (!active) return `Wallet ₹${walletBalance}${packageLabel}`;
+    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits${packageLabel}`;
   }
 
   filteredStaff(): ApiRecord[] {
@@ -1843,9 +2338,203 @@ export class PosComponent implements OnInit, OnDestroy {
 
   clientMembershipSearchSnapshot(client: ApiRecord): string {
     const active = this.activeMembershipForClientId(String(client.id || ''));
+    const packageCount = this.activePackageCountForClientId(String(client.id || ''));
     const walletBalance = Number(client.walletBalance || 0);
-    if (!active) return `Wallet ₹${walletBalance} · No active membership`;
-    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits`;
+    if (!active && !packageCount) return `Wallet ₹${walletBalance} · No active benefits`;
+    const packageLabel = packageCount ? ` · ${packageCount} package${packageCount === 1 ? '' : 's'}` : '';
+    if (!active) return `Wallet ₹${walletBalance}${packageLabel}`;
+    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits${packageLabel}`;
+  }
+
+  redeemableBenefits(): ApiRecord[] {
+    const wallet = this.membershipEligibility()?.['wallet'] as ApiRecord | undefined;
+    const rows = Array.isArray(wallet?.['memberships']) ? wallet['memberships'] as ApiRecord[] : [];
+    return rows.filter((benefit) => this.redeemableBenefitRemainingCredits(benefit) > 0);
+  }
+
+  redeemableServiceLines(): Array<{ lineIndex: number; serviceId: string; serviceName: string; staffName: string; finalAmount: number }> {
+    return this.items()
+      .map((item, lineIndex) => ({ item, lineIndex }))
+      .filter(({ item }) => item.type === 'service')
+      .map(({ item, lineIndex }) => ({
+        lineIndex,
+        serviceId: String(item.id || ''),
+        serviceName: item.name || `Service ${lineIndex + 1}`,
+        staffName: item.staffName || '',
+        finalAmount: this.lineTotal(item)
+      }));
+  }
+
+  selectedRedeemableBenefit(): ApiRecord | undefined {
+    const benefitId = String(this.membershipId || '');
+    if (!benefitId) return undefined;
+    return this.redeemableBenefits().find((benefit) => String(benefit['membershipId'] || benefit['id'] || '') === benefitId);
+  }
+
+  redeemableBenefitRemainingCredits(benefit?: ApiRecord): number {
+    return Math.max(0, Number(benefit?.['serviceCredits']?.['remaining'] || benefit?.['creditsRemaining'] || 0));
+  }
+
+  redeemableBenefitTypeLabel(benefit?: ApiRecord): string {
+    return this.membershipBenefitType(benefit) === 'package' ? 'package' : 'membership';
+  }
+
+  redeemableBenefitOption(benefit: ApiRecord): string {
+    const remaining = this.redeemableBenefitRemainingCredits(benefit);
+    const expiry = benefit['expiryDate'] ? ` · exp ${String(benefit['expiryDate']).slice(0, 10)}` : '';
+    return `${this.redeemableBenefitTypeLabel(benefit)} · ${benefit['planName'] || benefit['name'] || benefit['membershipId']} · ${remaining} credits${expiry}`;
+  }
+
+  selectRedeemableBenefit(value: string): void {
+    this.membershipId = String(value || '');
+    if (!this.membershipId) {
+      this.creditsUsed = 0;
+      this.benefitServiceMappings = [];
+      return;
+    }
+    const remaining = this.selectedRedeemableBenefitRemainingCredits();
+    if (this.creditsUsed <= 0) {
+      this.creditsUsed = remaining > 0 ? 1 : 0;
+      this.autoAllocateBenefitCredits();
+      return;
+    }
+    this.creditsUsed = Math.min(this.creditsUsed, remaining);
+    this.normalizeBenefitServiceMappings();
+  }
+
+  setRedeemableCredits(value: number | string): void {
+    const requested = Math.max(0, Math.floor(Number(value || 0)));
+    const remaining = this.selectedRedeemableBenefitRemainingCredits();
+    this.creditsUsed = remaining > 0 ? Math.min(requested, remaining) : 0;
+    this.normalizeBenefitServiceMappings();
+  }
+
+  selectedRedeemableBenefitRemainingCredits(): number {
+    return this.redeemableBenefitRemainingCredits(this.selectedRedeemableBenefit());
+  }
+
+  useAllRedeemableCredits(): void {
+    this.creditsUsed = this.selectedRedeemableBenefitRemainingCredits();
+    this.autoAllocateBenefitCredits();
+  }
+
+  selectedBenefitServiceMappings(): BenefitServiceMapping[] {
+    return this.benefitServiceMappings.filter((mapping) => Number(mapping.credits || 0) > 0);
+  }
+
+  serviceLineMappedCredits(lineIndex: number): number {
+    return Number(this.benefitServiceMappings.find((mapping) => mapping.lineIndex === lineIndex)?.credits || 0);
+  }
+
+  maxServiceLineMappedCredits(lineIndex: number): number {
+    const current = this.serviceLineMappedCredits(lineIndex);
+    const others = this.selectedBenefitServiceMappings()
+      .filter((mapping) => mapping.lineIndex !== lineIndex)
+      .reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+    return Math.max(current, this.creditsUsed - others);
+  }
+
+  setServiceLineMappedCredits(lineIndex: number, value: number | string): void {
+    const requested = Math.max(0, Math.floor(Number(value || 0)));
+    const serviceLine = this.redeemableServiceLines().find((line) => line.lineIndex === lineIndex);
+    if (!serviceLine) return;
+    const next = this.selectedBenefitServiceMappings().filter((mapping) => mapping.lineIndex !== lineIndex);
+    const remaining = Math.max(0, this.creditsUsed - next.reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0));
+    const credits = Math.min(requested, remaining);
+    if (credits > 0) {
+      next.push({
+        lineIndex,
+        serviceId: serviceLine.serviceId,
+        serviceName: serviceLine.serviceName,
+        credits
+      });
+    }
+    this.benefitServiceMappings = next.sort((left, right) => left.lineIndex - right.lineIndex);
+  }
+
+  allocatedBenefitCredits(): number {
+    return this.selectedBenefitServiceMappings().reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+  }
+
+  unallocatedBenefitCredits(): number {
+    return Math.max(0, Number(this.creditsUsed || 0) - this.allocatedBenefitCredits());
+  }
+
+  benefitRemainingAfterRedeem(): number {
+    return Math.max(0, this.selectedRedeemableBenefitRemainingCredits() - Number(this.creditsUsed || 0));
+  }
+
+  autoAllocateBenefitCredits(): void {
+    const serviceLines = this.redeemableServiceLines();
+    if (!serviceLines.length || this.creditsUsed <= 0) {
+      this.benefitServiceMappings = [];
+      return;
+    }
+    const next = serviceLines.map((line) => ({
+      lineIndex: line.lineIndex,
+      serviceId: line.serviceId,
+      serviceName: line.serviceName,
+      credits: 0
+    }));
+    let remaining = Number(this.creditsUsed || 0);
+    let cursor = 0;
+    while (remaining > 0) {
+      next[cursor % next.length].credits += 1;
+      remaining -= 1;
+      cursor += 1;
+    }
+    this.benefitServiceMappings = next.filter((mapping) => mapping.credits > 0);
+  }
+
+  generatedBenefitRedeemLabel(benefitRedeem: ApiRecord): string {
+    return String(benefitRedeem['benefitName'] || benefitRedeem['planName'] || benefitRedeem['membershipName'] || benefitRedeem['membershipId'] || 'Benefit');
+  }
+
+  generatedBenefitRedeemCredits(benefitRedeem: ApiRecord): string {
+    return `${Number(benefitRedeem['creditsUsed'] || 0)} credits`;
+  }
+
+  generatedBenefitRedeemBalance(benefitRedeem: ApiRecord): string {
+    return `${Number(benefitRedeem['remainingAfterRedeem'] || 0)} credits`;
+  }
+
+  generatedBenefitServiceMappings(benefitRedeem: ApiRecord): BenefitServiceMapping[] {
+    const rows = Array.isArray(benefitRedeem['serviceLineMappings']) ? benefitRedeem['serviceLineMappings'] as BenefitServiceMapping[] : [];
+    return rows.filter((mapping) => Number(mapping.credits || 0) > 0);
+  }
+
+  private readJsonObject(value: unknown): ApiRecord | null {
+    if (!value) return null;
+    if (typeof value === 'object') return value as ApiRecord;
+    try {
+      return JSON.parse(String(value));
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizeBenefitServiceMappings(): void {
+    const validLines = new Map(this.redeemableServiceLines().map((line) => [line.lineIndex, line]));
+    if (!this.membershipId || this.creditsUsed <= 0 || !validLines.size) {
+      this.benefitServiceMappings = [];
+      return;
+    }
+    let remaining = Number(this.creditsUsed || 0);
+    const next: BenefitServiceMapping[] = [];
+    for (const mapping of this.selectedBenefitServiceMappings().sort((left, right) => left.lineIndex - right.lineIndex)) {
+      const line = validLines.get(mapping.lineIndex);
+      if (!line || remaining <= 0) continue;
+      const credits = Math.min(Math.max(0, Math.floor(Number(mapping.credits || 0))), remaining);
+      if (credits <= 0) continue;
+      next.push({
+        lineIndex: mapping.lineIndex,
+        serviceId: line.serviceId,
+        serviceName: line.serviceName,
+        credits
+      });
+      remaining -= credits;
+    }
+    this.benefitServiceMappings = next;
   }
 
   private invoiceClientId(invoice: ApiRecord): string {
@@ -2053,6 +2742,9 @@ export class PosComponent implements OnInit, OnDestroy {
     this.refreshClientSearchResults();
     this.form.patchValue({ clientId: client.id }, { emitEvent: false });
     this.clientSearchActive = false;
+    this.creditsUsed = 0;
+    this.membershipId = '';
+    this.benefitServiceMappings = [];
     this.walletCreditRequested.set(false);
     this.unpaidReceiveAmount = 0;
     this.unpaidReceiveMode = this.activePaymentModes()[0]?.id || 'cash';
@@ -2115,11 +2807,11 @@ export class PosComponent implements OnInit, OnDestroy {
     const invoices = this.unpaidInvoicesForSelectedClient();
     const totalOpen = this.money(invoices.reduce((sum, invoice) => sum + invoice.__balance, 0));
     if (!this.form.value.clientId || totalOpen <= 0) {
-      this.unpaidReceiveMessage.set('Client ka old unpaid balance available nahi hai.');
+      this.unpaidReceiveMessage.set('No old unpaid balance is available for this client.');
       return;
     }
     if (requestedAmount <= 0) {
-      this.unpaidReceiveMessage.set('Receive amount 0 se bada hona chahiye.');
+      this.unpaidReceiveMessage.set('Receive amount must be greater than 0.');
       return;
     }
 
@@ -2142,7 +2834,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     if (!requests.length) {
-      this.unpaidReceiveMessage.set('Receive karne ke liye pending invoice nahi mila.');
+      this.unpaidReceiveMessage.set('No pending invoice found for receive payment.');
       return;
     }
 
@@ -2355,7 +3047,20 @@ export class PosComponent implements OnInit, OnDestroy {
 
   billableAppointments(): ApiRecord[] {
     const clientId = this.form.value.clientId;
-    return this.appointments().filter((appointment) => appointment.status === 'completed' && (!clientId || appointment.clientId === clientId));
+    return this.appointments().filter((appointment) =>
+      appointment.status === 'completed'
+      && !this.appointmentAlreadyBilled(String(appointment.id || ''))
+      && (!clientId || appointment.clientId === clientId)
+    );
+  }
+
+  private appointmentAlreadyBilled(appointmentId: string): boolean {
+    if (!appointmentId) return false;
+    return this.invoices().some((invoice) => {
+      const status = String(invoice.status || invoice.payment_status || '').trim().toLowerCase();
+      if (status === 'deleted') return false;
+      return String(invoice.appointmentId || invoice.appointment_id || '') === appointmentId;
+    });
   }
 
   private appointmentServiceIds(appointment: ApiRecord): string[] {
@@ -2371,7 +3076,22 @@ export class PosComponent implements OnInit, OnDestroy {
     }
   }
 
-  addService(id: string): void {
+  private routeIdList(value: string): string[] {
+    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  private routeAppointmentRows(appointment: ApiRecord): ApiRecord[] {
+    const params = this.route.snapshot.queryParamMap;
+    const routeAppointmentIds = new Set(this.routeIdList(params.get('appointmentIds') || ''));
+    const bookingGroupId = String(params.get('bookingGroupId') || appointment.bookingGroupId || appointment.booking_group_id || '').trim();
+    const rows = this.appointments()
+      .filter((row) => routeAppointmentIds.has(String(row.id || '')) || (!!bookingGroupId && String(row.bookingGroupId || row.booking_group_id || '') === bookingGroupId))
+      .sort((a, b) => new Date(String(a.startAt || '')).getTime() - new Date(String(b.startAt || '')).getTime());
+    if (!rows.some((row) => String(row.id || '') === String(appointment.id || ''))) rows.unshift(appointment);
+    return rows.length ? rows : [appointment];
+  }
+
+  addService(id: string, staffIdOverride = ''): void {
     const service = this.services().find((item) => item.id === id);
     if (!service) return;
     this.items.update((items) => [
@@ -2383,10 +3103,11 @@ export class PosComponent implements OnInit, OnDestroy {
         quantity: 1,
         price: Number(service.price),
         gstRate: Number(service.gstRate || 18),
-        ...this.defaultItemStaff(),
+        ...this.defaultItemStaff(staffIdOverride),
         ...this.defaultItemDiscount('service')
       }
     ]);
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
@@ -2414,6 +3135,7 @@ export class PosComponent implements OnInit, OnDestroy {
         ...this.defaultItemDiscount('product')
       }
     ]);
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
@@ -2446,6 +3168,7 @@ export class PosComponent implements OnInit, OnDestroy {
         ]
       }
     ]);
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
@@ -2466,6 +3189,7 @@ export class PosComponent implements OnInit, OnDestroy {
         packageCredits: Array.isArray(itemPackage.packageCredits) ? itemPackage.packageCredits : []
       }
     ]);
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
@@ -2487,16 +3211,19 @@ export class PosComponent implements OnInit, OnDestroy {
         expiryDate: this.futureDate(365)
       }
     ]);
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
   removeItem(index: number): void {
     this.items.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
   touchItems(): void {
     this.items.set([...this.items()]);
+    this.normalizeBenefitServiceMappings();
     this.clearCoupon();
   }
 
@@ -2604,8 +3331,8 @@ export class PosComponent implements OnInit, OnDestroy {
     return titles[item.type] || 'Item';
   }
 
-  private defaultItemStaff(): Pick<SaleItem, 'staffId' | 'staffName'> {
-    const staffId = String(this.form.value.staffId || '');
+  private defaultItemStaff(staffIdOverride = ''): Pick<SaleItem, 'staffId' | 'staffName'> {
+    const staffId = String(staffIdOverride || this.form.value.staffId || '');
     const person = this.staff().find((item) => item.id === staffId);
     return {
       staffId,
@@ -2716,11 +3443,13 @@ export class PosComponent implements OnInit, OnDestroy {
       items: this.items(),
       tips: this.tips(),
       payments: { ...this.payments },
+      bookingAdvanceAppliedAmount: this.appliedBookingAdvanceAmount(),
       discount: this.manualDiscountAmount,
       discountMode: this.discountMode,
       couponCode: this.couponCode,
       creditsUsed: Number(this.creditsUsed || 0),
       membershipId: this.membershipId,
+      benefitServiceMappings: this.selectedBenefitServiceMappings(),
       subtotal: this.subtotal,
       total: this.total,
       balanceDue: this.balanceDue,
@@ -2744,6 +3473,7 @@ export class PosComponent implements OnInit, OnDestroy {
       items: this.items(),
       tips: this.tips(),
       payments: { ...this.payments },
+      bookingAdvanceAppliedAmount: this.appliedBookingAdvanceAmount(),
       discount: Number(this.discount || 0),
       discountMode: this.discountMode === 'percent' ? 'percent' : 'amount',
       couponCode: this.couponCode || '',
@@ -2751,6 +3481,7 @@ export class PosComponent implements OnInit, OnDestroy {
       couponMessage: this.couponMessage(),
       creditsUsed: Number(this.creditsUsed || 0),
       membershipId: this.membershipId || '',
+      benefitServiceMappings: this.selectedBenefitServiceMappings(),
       clientSearchText: this.clientSearchText || '',
       serviceSearchText: this.serviceSearchText || '',
       productSearchText: this.productSearchText || '',
@@ -2827,6 +3558,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.couponMessage.set(draft.couponMessage || '');
     this.creditsUsed = Number(draft.creditsUsed || 0);
     this.membershipId = draft.membershipId || '';
+    this.benefitServiceMappings = Array.isArray(draft.benefitServiceMappings) ? draft.benefitServiceMappings as BenefitServiceMapping[] : [];
     this.clientSearchText = draft.clientSearchText || (draft.clientId
       ? this.clientOption(this.clients().find((client) => client.id === draft.clientId) || { id: draft.clientId, name: draft.clientName })
       : '');
@@ -2848,8 +3580,10 @@ export class PosComponent implements OnInit, OnDestroy {
     this.unpaidReceiveAmount = Number(draft.unpaidReceiveAmount || 0);
     this.unpaidReceiveMode = draft.unpaidReceiveMode || this.activePaymentModes()[0]?.id || 'cash';
     this.walletCreditRequested.set(!!draft.walletCreditRequested);
+    this.bookingAdvanceAppliedAmount.set(this.money(Number(draft.bookingAdvanceAppliedAmount || 0)));
+    this.loadBookingAdvanceSuggestion(String(draft.appointmentId || ''), { preserveApplied: true });
     if (draft.clientId) this.loadMembershipIntelligence(draft.clientId);
-    this.dataHint.set('Unsaved POS bill restore ho gaya. Checkout, Hold invoice, ya clear action ke baad hi ye draft hatega.');
+    this.dataHint.set('Unsaved POS bill restored. Checkout, hold or clear the bill to remove this draft.');
   }
 
   private restorePendingHold(): void {
@@ -2858,7 +3592,7 @@ export class PosComponent implements OnInit, OnDestroy {
     const draft = this.posSettings.getHeldInvoice(id);
     this.pendingHoldId = '';
     if (!draft) {
-      this.dataHint.set('Selected held invoice nahi mila. Ho sakta hai delete ya save ho chuka ho.');
+      this.dataHint.set('Selected held invoice was not found. It may have been deleted or saved.');
       return;
     }
     this.currentHoldId = draft.id;
@@ -2876,19 +3610,22 @@ export class PosComponent implements OnInit, OnDestroy {
       ...(draft.payments || {})
     };
     this.walletCreditRequested.set(false);
+    this.bookingAdvanceAppliedAmount.set(this.money(Number(draft.bookingAdvanceAppliedAmount || 0)));
     this.discount = Number(draft.discount || 0);
     this.discountMode = draft.discountMode === 'percent' ? 'percent' : 'amount';
     this.couponCode = draft.couponCode || '';
     this.creditsUsed = Number(draft.creditsUsed || 0);
     this.membershipId = draft.membershipId || '';
+    this.benefitServiceMappings = Array.isArray(draft.benefitServiceMappings) ? draft.benefitServiceMappings as BenefitServiceMapping[] : [];
     this.clientSearchText = draft.clientId
       ? this.clientOption(this.clients().find((client) => client.id === draft.clientId) || { id: draft.clientId, name: draft.clientName })
       : draft.clientName || '';
     this.staffSearchText = draft.staffId
       ? this.staffOption(this.staff().find((person) => person.id === draft.staffId) || { id: draft.staffId, name: draft.staffName })
       : '';
+    this.loadBookingAdvanceSuggestion(String(draft.appointmentId || ''), { preserveApplied: true });
     if (draft.clientId) this.loadMembershipIntelligence(draft.clientId);
-    this.dataHint.set(`Held invoice resume ho gaya: ${draft.title}`);
+    this.dataHint.set(`Held invoice resumed: ${draft.title}`);
   }
 
   private resetDraftAfterHold(): void {
@@ -2897,11 +3634,15 @@ export class PosComponent implements OnInit, OnDestroy {
     this.tips.set([]);
     this.payments = Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0]));
     this.walletCreditRequested.set(false);
+    this.bookingAdvanceInfo.set(null);
+    this.bookingAdvanceLoading.set(false);
+    this.bookingAdvanceAppliedAmount.set(0);
     this.discount = 0;
     this.discountMode = 'amount';
     this.couponCode = '';
     this.creditsUsed = 0;
     this.membershipId = '';
+    this.benefitServiceMappings = [];
     this.clientSearchText = '';
     this.staffSearchText = '';
     this.serviceSearchText = '';
@@ -2956,15 +3697,44 @@ export class PosComponent implements OnInit, OnDestroy {
       return;
     }
     if (this.overPaid > 0 && !this.walletCreditRequested()) {
-      this.error.set('Extra payment ko client wallet me add karne ke liye Wallet button click karo.');
+      this.error.set('Click Wallet to add the extra payment to the client wallet.');
       return;
     }
+    if (this.membershipId && this.creditsUsed > 0 && this.unallocatedBenefitCredits() > 0) {
+      this.error.set('Map selected benefit credits to service lines before saving.');
+      return;
+    }
+    const appointmentId = String(this.form.value.appointmentId || '');
+    if (appointmentId) {
+      this.saving.set(true);
+      this.error.set('');
+      this.api.list<ApiRecord>(`enterprise-scheduler/appointments/${appointmentId}/billing-status`).subscribe({
+        next: (status) => {
+          if (status?.['billed'] || status?.['billingLocked']) {
+            this.error.set('This appointment is already billed. POS is locked.');
+            this.saving.set(false);
+            this.clearPosRouteSelection(() => this.load());
+            return;
+          }
+          this.submitCheckout();
+        },
+        error: () => this.submitCheckout()
+      });
+      return;
+    }
+    this.submitCheckout();
+  }
+
+  private submitCheckout(): void {
     this.saving.set(true);
     this.error.set('');
     const walletCreditAmount = this.walletCreditRequested() ? this.overPaid : 0;
     const splitPayments = this.invoicePaymentEntries();
     const billingDate = this.invoiceDateValue();
     const billingTimestamp = this.selectedInvoiceTimestamp();
+    const settlementPreview = this.currentSettlementPreview();
+    const selectedBenefit = this.selectedRedeemableBenefit();
+    const serviceLineMappings = this.selectedBenefitServiceMappings();
     this.api.post<{ sale: ApiRecord; invoice: ApiRecord; coupon?: ApiRecord | null; invoiceDocument?: ApiRecord }>('sales/checkout', {
       ...this.form.value,
       billingDate,
@@ -2991,7 +3761,16 @@ export class PosComponent implements OnInit, OnDestroy {
       tips: this.tips(),
       tipTotal: this.tipTotal,
       membershipRedeem: {
-        ...(this.membershipId ? { membershipId: this.membershipId, creditsUsed: Number(this.creditsUsed || 0) } : {}),
+        ...(this.membershipId ? {
+          membershipId: this.membershipId,
+          creditsUsed: Number(this.creditsUsed || 0),
+          benefitType: this.redeemableBenefitTypeLabel(selectedBenefit),
+          benefitName: selectedBenefit?.['planName'] || selectedBenefit?.['name'] || this.membershipId,
+          remainingBeforeRedeem: this.selectedRedeemableBenefitRemainingCredits(),
+          remainingAfterRedeem: this.benefitRemainingAfterRedeem(),
+          serviceId: serviceLineMappings[0]?.serviceId || '',
+          serviceLineMappings
+        } : {}),
         autoDiscountAmount: this.membershipAutoDiscount,
         autoDiscountPercent: this.activeMembershipDiscountPercent(),
         autoDiscountMembershipId: this.activeMembershipForClient()?.id || ''
@@ -2999,10 +3778,10 @@ export class PosComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (result) => {
         if (walletCreditAmount > 0) {
-          this.creditOverpayToWallet(result, walletCreditAmount);
+          this.creditOverpayToWallet(result, walletCreditAmount, settlementPreview);
           return;
         }
-        this.finishCheckout(result);
+        this.finishCheckout(result, '', settlementPreview);
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to save sale');
@@ -3014,6 +3793,17 @@ export class PosComponent implements OnInit, OnDestroy {
   private invoicePaymentEntries(): Array<{ mode: string; amount: number; reference: string; label: string }> {
     let remaining = this.total;
     const entries: Array<{ mode: string; amount: number; reference: string; label: string }> = [];
+    const bookingAdvanceAmount = Math.min(this.appliedBookingAdvanceAmount(), remaining);
+    const appointmentId = String(this.form.value.appointmentId || '');
+    if (bookingAdvanceAmount > 0) {
+      entries.push({
+        mode: 'booking_advance',
+        amount: bookingAdvanceAmount,
+        reference: appointmentId ? `Booking advance from appointment ${appointmentId}` : 'Booking advance adjustment',
+        label: this.paymentModeLabel('booking_advance')
+      });
+      remaining = this.money(remaining - bookingAdvanceAmount);
+    }
     for (const [mode, rawAmount] of Object.entries(this.payments)) {
       if (remaining <= 0) break;
       const amount = Math.min(this.money(rawAmount), remaining);
@@ -3031,7 +3821,8 @@ export class PosComponent implements OnInit, OnDestroy {
 
   private creditOverpayToWallet(
     result: { sale: ApiRecord; invoice: ApiRecord; coupon?: ApiRecord | null; invoiceDocument?: ApiRecord },
-    amount: number
+    amount: number,
+    settlementPreview?: { advance: number; counter: number; due: number; walletCredit: number }
   ): void {
     const clientId = String(this.form.value.clientId || '');
     this.api.post<{ transaction: ApiRecord; client: ApiRecord }>(`clients/${clientId}/wallet`, {
@@ -3048,11 +3839,11 @@ export class PosComponent implements OnInit, OnDestroy {
         if (walletResult?.client) {
           this.clients.update((clients) => clients.map((client) => client.id === walletResult.client.id ? walletResult.client : client));
         }
-        this.finishCheckout(result, `Extra ₹${amount} client wallet me add ho gaya.`);
+        this.finishCheckout(result, `Extra ₹${amount} added to client wallet.`, settlementPreview);
       },
       error: (error) => {
         this.invoice.set(result.invoice);
-        this.error.set(`Invoice save ho gaya, lekin wallet credit fail hua: ${error?.error?.error || error?.message || 'wallet error'}`);
+        this.error.set(`Invoice saved, but wallet credit failed: ${error?.error?.error || error?.message || 'wallet error'}`);
         this.saving.set(false);
       }
     });
@@ -3060,9 +3851,13 @@ export class PosComponent implements OnInit, OnDestroy {
 
   private finishCheckout(
     result: { sale: ApiRecord; invoice: ApiRecord; coupon?: ApiRecord | null; invoiceDocument?: ApiRecord },
-    message = ''
+    message = '',
+    settlementPreview?: { advance: number; counter: number; due: number; walletCredit: number }
   ): void {
+    const benefitRedeem = this.readJsonObject(result.sale?.membershipRedeem);
     this.invoice.set(result.invoice);
+    this.generatedInvoiceSettlement.set(settlementPreview || this.currentSettlementPreview());
+    this.generatedInvoiceBenefitRedeem.set(Number(benefitRedeem?.['creditsUsed'] || 0) > 0 ? benefitRedeem : null);
     this.couponResult.set(result.coupon || null);
     if (this.currentHoldId) this.posSettings.deleteHeldInvoice(this.currentHoldId);
     this.posSettings.clearActiveBillingDraft();
@@ -3071,26 +3866,43 @@ export class PosComponent implements OnInit, OnDestroy {
     this.tips.set([]);
     this.payments = Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0]));
     this.walletCreditRequested.set(false);
+    this.bookingAdvanceInfo.set(null);
+    this.bookingAdvanceLoading.set(false);
+    this.bookingAdvanceAppliedAmount.set(0);
     this.discount = 0;
     this.discountMode = 'amount';
     this.couponCode = '';
     this.creditsUsed = 0;
     this.membershipId = '';
+    this.benefitServiceMappings = [];
+    this.clientSearchText = '';
     this.staffSearchText = '';
     this.serviceSearchText = '';
     this.productSearchText = '';
+    this.clientSearchActive = false;
     this.selectedServiceId = '';
     this.selectedServiceIds = [];
     this.selectedProductId = '';
     this.selectedProductIds = [];
     this.staffSearchActive = false;
+    this.clientSearchResults.set([]);
+    this.membershipEligibility.set(null);
+    this.membershipSuggestion.set(null);
     this.tipDraft = { staffId: '', paymentMode: this.activePaymentModes()[0]?.id || 'cash', amount: 0, note: '' };
     this.unpaidReceiveAmount = 0;
     this.unpaidReceiveMessage.set('');
-    this.form.patchValue({ invoiceDate: this.todayDateInput() }, { emitEvent: false });
+    this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
     this.saving.set(false);
-    this.load();
+    this.clearPosRouteSelection(() => this.load());
     if (message) window.setTimeout(() => this.dataHint.set(message), 600);
+  }
+
+  private clearPosRouteSelection(onFinally?: () => void): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      replaceUrl: true
+    }).finally(() => onFinally?.());
   }
 
   printInvoice(): void {
@@ -3134,6 +3946,16 @@ export class PosComponent implements OnInit, OnDestroy {
       .sort((a, b) => this.membershipDiscountPercent(b) - this.membershipDiscountPercent(a))[0];
   }
 
+  activePackageCountForClientId(clientId: string): number {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.memberships().filter((membership) =>
+      membership.clientId === clientId
+      && membership.status !== 'expired'
+      && (!membership.validityDate || membership.validityDate >= today)
+      && this.membershipBenefitType(membership) === 'package'
+    ).length;
+  }
+
   activeMembershipDiscountPercent(): number {
     const walletBenefits = this.membershipEligibility()?.['wallet']?.['planBenefits'] as ApiRecord | undefined;
     if (walletBenefits) return Number(walletBenefits['serviceDiscountPercent'] || 0);
@@ -3144,6 +3966,55 @@ export class PosComponent implements OnInit, OnDestroy {
     const walletBenefits = this.membershipEligibility()?.['wallet']?.['planBenefits'] as ApiRecord | undefined;
     if (walletBenefits) return Number(walletBenefits['productDiscountPercent'] || 0);
     return this.membershipProductDiscountPercent(this.activeMembershipForClient());
+  }
+
+  private roundOffManualDiscountTarget(): number {
+    if (this.roundOffDueAmount <= 0) return this.manualDiscountAmount;
+    const base = this.discountableSubtotal();
+    const maxManualDiscount = this.money(Math.max(0, base - this.couponDiscount));
+    const currentManualDiscount = this.money(Math.min(this.manualDiscountAmount, maxManualDiscount));
+    if (base <= 0 || maxManualDiscount <= currentManualDiscount) return currentManualDiscount;
+
+    const targetTotal = this.paidTotal;
+    if (this.totalWithManualDiscount(maxManualDiscount) > targetTotal + 0.009) return currentManualDiscount;
+
+    let low = currentManualDiscount;
+    let high = maxManualDiscount;
+    for (let index = 0; index < 24; index += 1) {
+      const mid = (low + high) / 2;
+      if (this.totalWithManualDiscount(mid) > targetTotal) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return this.money(high);
+  }
+
+  private discountPercentForManualAmount(amount: number): number {
+    const base = this.discountableSubtotal();
+    if (base <= 0) return 0;
+    return this.money(Math.min(100, (this.money(amount) / base) * 100));
+  }
+
+  private discountableSubtotal(): number {
+    return this.money(Math.max(0, this.subtotal - this.itemDiscountTotal));
+  }
+
+  private totalWithManualDiscount(manualDiscountAmount: number): number {
+    const discountableSubtotal = this.discountableSubtotal();
+    const billDiscount = this.money(Math.min(discountableSubtotal, this.money(manualDiscountAmount) + this.couponDiscount));
+    const afterBillDiscountRatio = discountableSubtotal
+      ? Math.max(0, discountableSubtotal - billDiscount) / discountableSubtotal
+      : 0;
+    const gst = this.money(
+      this.items().reduce((sum, item) => {
+        const taxable = this.lineTaxableSubtotal(item) * afterBillDiscountRatio;
+        return sum + taxable * (Number(item.gstRate) / 100);
+      }, 0)
+    );
+    const totalDiscount = this.money(Math.min(this.subtotal, this.itemDiscountTotal + billDiscount));
+    return this.money(Math.max(0, this.subtotal - totalDiscount) + gst + this.tipTotal);
   }
 
   private money(value: number | string): number {
@@ -3160,6 +4031,15 @@ export class PosComponent implements OnInit, OnDestroy {
     return Number(benefit?.percent || 0);
   }
 
+  membershipBenefitType(membership?: ApiRecord): 'membership' | 'package' {
+    const history = Array.isArray(membership?.redeemHistory) ? membership?.redeemHistory : [];
+    if (history.some((item: ApiRecord) => item?.type === 'package_sale' || item?.packageId)) return 'package';
+    if (String(membership?.planName || '').trim().toLowerCase().startsWith('package:')) return 'package';
+    const credits = Array.isArray(membership?.serviceCredits) ? membership?.serviceCredits : [];
+    if (credits.some((item: ApiRecord) => item?.packageId)) return 'package';
+    return 'membership';
+  }
+
   membershipProductDiscountPercent(membership?: ApiRecord): number {
     const credits = Array.isArray(membership?.serviceCredits) ? membership?.serviceCredits : [];
     const benefit = credits.find((item: ApiRecord) => item?.type === 'product_discount');
@@ -3170,6 +4050,7 @@ export class PosComponent implements OnInit, OnDestroy {
     if (!clientId) {
       this.membershipEligibility.set(null);
       this.membershipSuggestion.set(null);
+      this.benefitServiceMappings = [];
       return;
     }
     forkJoin({
@@ -3178,7 +4059,41 @@ export class PosComponent implements OnInit, OnDestroy {
     }).subscribe(({ eligibility, suggestion }) => {
       this.membershipEligibility.set(eligibility);
       this.membershipSuggestion.set(suggestion);
+      if (this.membershipId) {
+        this.selectRedeemableBenefit(this.membershipId);
+      }
+      this.normalizeBenefitServiceMappings();
       this.applyMembershipDiscountsToEligibleItems();
+    });
+  }
+
+  private loadBookingAdvanceSuggestion(
+    appointmentId: string,
+    options: { preserveApplied?: boolean } = {}
+  ): void {
+    if (!options.preserveApplied) {
+      this.bookingAdvanceAppliedAmount.set(0);
+    }
+    if (!appointmentId) {
+      this.bookingAdvanceInfo.set(null);
+      this.bookingAdvanceLoading.set(false);
+      return;
+    }
+    this.bookingAdvanceLoading.set(true);
+    this.api.list<ApiRecord>(`booking-payments/${appointmentId}/status`).pipe(
+      catchError(() => of(null))
+    ).subscribe((result) => {
+      this.bookingAdvanceLoading.set(false);
+      const info = result && typeof result === 'object' ? result : null;
+      this.bookingAdvanceInfo.set(info);
+      const paidAmount = String(info?.['status'] || '').toLowerCase() === 'paid'
+        ? this.money(Number(info?.['amount'] || 0))
+        : 0;
+      if (options.preserveApplied) {
+        this.bookingAdvanceAppliedAmount.set(this.money(Math.min(this.total, Number(this.bookingAdvanceAppliedAmount() || 0), paidAmount)));
+      } else if (paidAmount <= 0) {
+        this.bookingAdvanceAppliedAmount.set(0);
+      }
     });
   }
 
@@ -3366,11 +4281,11 @@ export class PosComponent implements OnInit, OnDestroy {
       .filter(([, rows]) => !rows.length)
       .map(([name]) => name);
     if (empty.length) {
-      this.dataHint.set(`No records found for: ${empty.join(', ')}. Selected tenant/branch me seed ya import data check karo.`);
+      this.dataHint.set(`No records found for: ${empty.join(', ')}. Check selected tenant or branch data.`);
       return;
     }
     if (this.fallbackNotice) {
-      this.dataHint.set('Previous tenant me POS data empty tha, isliye Aura demo tenant ka catalog load ho gaya.');
+      this.dataHint.set('Previous tenant POS data was empty, so the default catalog was loaded.');
       this.fallbackNotice = false;
       return;
     }

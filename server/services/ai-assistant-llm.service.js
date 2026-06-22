@@ -23,6 +23,8 @@ import * as posPrompt from "./ai/prompts/posIntelligence.js";
 import * as inventoryPrompt from "./ai/prompts/inventoryIntelligence.js";
 import * as whatsappPrompt from "./ai/prompts/whatsappDrafting.js";
 import * as dashboardPrompt from "./ai/prompts/dashboardIntelligence.js";
+import * as knowledgePrompt from "./ai/prompts/knowledgeSearchSummary.js";
+import { knowledgeBaseService } from "./ai/knowledgeBase.service.js";
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
@@ -62,7 +64,8 @@ const workflowMap = new Map([
   ["dashboard-executive-summary", "dashboard.executive_summary"],
   ["dashboard-risk-briefing", "dashboard.risk_briefing"],
   ["dashboard-revenue-actions", "dashboard.revenue_actions"],
-  ["dashboard-owner-daily-brief", "dashboard.owner_daily_brief"]
+  ["dashboard-owner-daily-brief", "dashboard.owner_daily_brief"],
+  ["knowledge-search-summary", "knowledge.search_summary"]
 ]);
 
 function scope(access, branchId = "") {
@@ -186,12 +189,47 @@ function choosePrompt(taskKey) {
       jsonSchema: dashboardPrompt.jsonSchema
     };
   }
+  if (taskKey.startsWith("knowledge.")) {
+    return {
+      version: knowledgePrompt.version,
+      systemPrompt: knowledgePrompt.systemPrompt,
+      buildUserPrompt: knowledgePrompt.buildUserPrompt,
+      jsonSchema: knowledgePrompt.jsonSchema
+    };
+  }
   throw badRequest("Unknown AI assistant workflow");
 }
 
 export class AiAssistantLlmService {
   history(query = {}, access) {
     return repositories.aiInteractions.list(query, scope(access));
+  }
+
+  promptRegistry(access) {
+    return {
+      tenantId: access.tenantId,
+      providerMode: process.env.AI_PROVIDER || "local",
+      fallbackMode: "local-business-rules",
+      safetyPolicy: {
+        piiRedaction: true,
+        tenantScoped: true,
+        rolePolicy: true,
+        approvalFirstActions: true,
+        promptLengthGuard: true
+      },
+      prompts: [...workflowMap.entries()].map(([workflowType, taskKey]) => {
+        const prompt = choosePrompt(taskKey);
+        return {
+          workflowType,
+          taskKey,
+          family: taskFamily(taskKey),
+          promptVersion: prompt.version || "v1",
+          outputMode: prompt.jsonSchema ? "json_schema" : "text",
+          fallbackMode: "local-business-rules",
+          safety: ["tenant_scope", "role_policy", "pii_redaction", "usage_limit", "local_fallback"]
+        };
+      })
+    };
   }
 
   async run(type, payload = {}, access) {
@@ -238,6 +276,21 @@ export class AiAssistantLlmService {
         providerWarning: result.output?.providerWarning || ""
       }
     };
+    if (context.knowledge) {
+      output.knowledge = {
+        query: context.knowledge.query,
+        sources: context.knowledge.sources,
+        confidence: context.knowledge.confidence,
+        unmatchedTerms: context.knowledge.unmatchedTerms
+      };
+      output.sources = output.sources || context.knowledge.sources;
+      output.citations = output.citations || context.knowledge.matches.map((match) => ({
+        title: match.title,
+        category: match.category,
+        excerpt: match.excerpt,
+        confidence: match.confidence
+      }));
+    }
     if (result.output?.providerWarning) output.providerWarning = result.output.providerWarning;
     const interaction = this.persistInteraction({ type, taskKey, payload, context, output, access });
     tenantService.recordUsage({ tenantId: access.tenantId, metric: `ai:${taskKey}`, referenceType: "ai_interaction", referenceId: interaction.id });
@@ -284,6 +337,26 @@ export class AiAssistantLlmService {
     if (family === "dashboard") {
       return buildDashboardAiContext({ branchId: payload.branchId || "", access });
     }
+    if (family === "knowledge") {
+      const branchId = String(payload.branchId || access.branchId || "");
+      const query = String(payload.query || payload.prompt || payload.message || "").trim();
+      const knowledge = knowledgeBaseService.search({
+        query,
+        branchId,
+        limit: payload.limit || 5,
+        minimumScore: payload.minimumScore ?? 3
+      }, access);
+      return {
+        tenantId: access.tenantId,
+        branchId,
+        query,
+        knowledge,
+        sourceCounts: {
+          knowledgeMatches: knowledge.matches.length,
+          knowledgeSources: knowledge.sources.length
+        }
+      };
+    }
     if (family === "whatsapp") {
       const message = String(payload.message || payload.prompt || payload.body || "").trim();
       if (!message && !payload.clientId && !payload.threadId) throw badRequest("WhatsApp message or clientId is required");
@@ -329,6 +402,7 @@ export class AiAssistantLlmService {
     if (taskKey.startsWith("inventory.")) return this.inventoryLocal(taskKey, context);
     if (taskKey.startsWith("whatsapp.")) return this.whatsappLocal(taskKey, payload, context);
     if (taskKey.startsWith("dashboard.")) return this.dashboardLocal(taskKey, context);
+    if (taskKey.startsWith("knowledge.")) return this.knowledgeLocal(context);
     return { title: "AI insight", result: "Local salon intelligence generated.", confidence: confidence() };
   }
 
@@ -551,6 +625,30 @@ export class AiAssistantLlmService {
       reason: "Generated from saved dashboard and report data.",
       actions: ["review-dashboard"],
       confidence: confidence(0.86)
+    };
+  }
+
+  knowledgeLocal(context) {
+    const knowledge = context.knowledge || { matches: [], sources: [], unmatchedTerms: [] };
+    const citations = asArray(knowledge.matches).slice(0, 5).map((match) => ({
+      title: match.title,
+      category: match.category,
+      excerpt: match.excerpt,
+      confidence: match.confidence
+    }));
+    const answer = citations.length
+      ? citations.map((item) => item.excerpt).join(" ")
+      : "No active knowledge-base article matched this question. Add or import a source before using this as a customer-facing answer.";
+    return {
+      title: "Knowledge grounded answer",
+      result: answer,
+      answer,
+      citations,
+      sources: knowledge.sources || [],
+      unmatchedTerms: knowledge.unmatchedTerms || [],
+      recommendedAction: citations.length ? "Review the cited knowledge before sharing." : "Add a knowledge-base article for this question.",
+      actions: citations.length ? ["review-citations", "copy-answer"] : ["add-knowledge-document"],
+      confidence: confidence(knowledge.confidence || 0.35)
     };
   }
 

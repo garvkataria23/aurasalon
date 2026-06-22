@@ -382,7 +382,7 @@ type RosterView = 'day' | 'week' | 'month';
         </section>
 
         <section class="panel" *ngIf="tab() === 'optimizer'">
-          <div class="section-title"><div><span class="eyebrow">AI staff optimizer</span><h2>Best staff, burnout, recovery and workload plan</h2></div></div>
+          <div class="section-title"><div><span class="eyebrow">Staff optimizer</span><h2>Best staff, burnout, recovery and workload plan</h2></div></div>
           <div class="quick-grid">
             <article class="action-card"><strong>Best for booking</strong><span>{{ profile.optimizer.bestForBooking }}</span><small>Based on utilization, rating and conflicts.</small></article>
             <article class="action-card"><strong>Burnout risk</strong><span>{{ profile.optimizer.burnoutRisk }}</span><small>{{ profile.optimizer.workloadBalance }}</small></article>
@@ -599,7 +599,7 @@ export class StaffProfileComponent implements OnInit {
     { key: 'kyc', label: 'KYC + skills' },
     { key: 'reviews', label: 'Reviews' },
     { key: 'approvals', label: 'Approvals' },
-    { key: 'optimizer', label: 'AI optimizer' }
+    { key: 'optimizer', label: 'Optimizer' }
   ];
 
   leaveDraft: ApiRecord = {};

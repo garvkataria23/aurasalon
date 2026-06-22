@@ -5,6 +5,22 @@ import { reputationService } from "../services/reputation/reputation.service.js"
 import { validateBody } from "../validators/request-validator.js";
 
 export const reputationRouter = Router();
+export const reputationPublicRouter = Router();
+
+reputationPublicRouter.get(
+  "/reputation/public/requests/:id",
+  asyncHandler((req, res) => {
+    res.json(reputationService.publicReviewRequest(req.params.id));
+  })
+);
+
+reputationPublicRouter.post(
+  "/reputation/public/requests/:id/feedback",
+  validateBody({ required: ["rating"] }),
+  asyncHandler((req, res) => {
+    res.status(201).json(reputationService.submitPublicFeedback(req.params.id, req.body));
+  })
+);
 
 reputationRouter.get(
   "/reputation/dashboard",
@@ -115,8 +131,8 @@ reputationRouter.post(
 reputationRouter.post(
   "/reputation/platforms/:id/sync",
   requirePermission("write", () => "reputation"),
-  asyncHandler((req, res) => {
-    res.json(reputationService.syncPlatform(req.params.id, req.body, req.access));
+  asyncHandler(async (req, res) => {
+    res.json(await reputationService.syncPlatform(req.params.id, req.body, req.access));
   })
 );
 

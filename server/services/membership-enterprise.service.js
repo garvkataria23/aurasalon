@@ -101,6 +101,16 @@ function compactPlan(plan = {}) {
   };
 }
 
+function entitlementTypeFromMembership(membership = {}) {
+  const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+  if (history.some((item) => item?.type === "package_sale" || item?.packageId)) return "package";
+  if (String(membership.id || "").startsWith("pkgmem_")) return "package";
+  if (String(membership.planName || "").trim().toLowerCase().startsWith("package:")) return "package";
+  const credits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
+  if (credits.some((item) => item?.packageId)) return "package";
+  return "membership";
+}
+
 function rowToPlan(row) {
   if (!row) return null;
   return {
@@ -461,6 +471,8 @@ export class MembershipEnterpriseService {
       : money(client.walletBalance || 0);
     const usedCredits = memberships.reduce((sum, item) => sum + item.serviceCredits.used, 0);
     const remainingCredits = activeMemberships.reduce((sum, item) => sum + item.serviceCredits.remaining, 0);
+    const activePackages = activeMemberships.filter((item) => item.entitlementType === "package");
+    const activePlans = activeMemberships.filter((item) => item.entitlementType !== "package");
     const expiryDate = best?.expiryDate || "";
     const daysLeft = expiryDate ? this.daysLeft(expiryDate) : null;
     const familySharing = {
@@ -476,13 +488,25 @@ export class MembershipEnterpriseService {
       activeMembership: best?.membership || null,
       activeMembershipId: best?.membershipId || "",
       activePlanName: best?.planName || "",
+      activeBenefitLabel: best?.entitlementType === "package" ? "Active package" : "Active membership",
       planBenefits: best?.planBenefits || null,
+      membershipSummary: {
+        activeCount: activePlans.length,
+        names: activePlans.map((item) => item.planName),
+        creditsRemaining: activePlans.reduce((sum, item) => sum + item.serviceCredits.remaining, 0)
+      },
+      packageSummary: {
+        activeCount: activePackages.length,
+        names: activePackages.map((item) => item.planName),
+        creditsRemaining: activePackages.reduce((sum, item) => sum + item.serviceCredits.remaining, 0)
+      },
       serviceCredits: {
         total: activeMemberships.reduce((sum, item) => sum + item.serviceCredits.total, 0),
         used: usedCredits,
         remaining: remainingCredits,
         memberships: activeMemberships.map((item) => ({
           membershipId: item.membershipId,
+          entitlementType: item.entitlementType,
           planName: item.planName,
           total: item.serviceCredits.total,
           used: item.serviceCredits.used,
@@ -1837,6 +1861,13 @@ export class MembershipEnterpriseService {
       .filter((item) => !filters.clientId || item.clientId === filters.clientId)
       .filter((item) => !filters.planId || item.planId === filters.planId);
     const discountLeakage = this.membershipDiscountLeakage(snapshotRows, risks);
+    const actionQueue = this.membershipActionQueue({
+      expiringSoon,
+      autoRenewFailedPayments,
+      creditLiability,
+      planWiseProfitability,
+      risks
+    });
     const exportRows = this.membershipReportExportRows({
       activeMembers,
       expiringSoon,
@@ -1847,7 +1878,8 @@ export class MembershipEnterpriseService {
       creditLiability,
       autoRenewFailedPayments,
       upgradeDowngrade,
-      discountLeakage
+      discountLeakage,
+      actionQueue
     });
     return {
       generatedAt: now(),
@@ -1863,7 +1895,8 @@ export class MembershipEnterpriseService {
         autoRenewFailedPayments: autoRenewFailedPayments.length,
         upgradeDowngrade: upgradeDowngrade.length,
         discountLeakage: money(discountLeakage.reduce((sum, row) => sum + Number(row.discountAmount || row.totalDiscount || 0), 0)),
-        highRiskSignals: risks.filter((risk) => ["high", "critical"].includes(risk.riskLevel)).length
+        highRiskSignals: risks.filter((risk) => ["high", "critical"].includes(risk.riskLevel)).length,
+        actionQueue: actionQueue.length
       },
       reports: {
         activeMembers,
@@ -1875,10 +1908,94 @@ export class MembershipEnterpriseService {
         creditLiability,
         autoRenewFailedPayments,
         upgradeDowngrade,
-        discountLeakage
+        discountLeakage,
+        actionQueue
       },
       exportRows: exportRows.slice(0, 2000)
     };
+  }
+
+  membershipActionQueue({ expiringSoon = [], autoRenewFailedPayments = [], creditLiability = [], planWiseProfitability = [], risks = [] } = {}) {
+    const rows = [];
+    const priorityRank = { critical: 0, high: 1, medium: 2, low: 3 };
+    const push = (row) => rows.push({
+      id: stableId("membership-action", row.queueType, row.membershipId || row.planId || row.clientId || row.primary, row.priority),
+      status: "pending",
+      ...row
+    });
+    for (const row of expiringSoon.slice(0, 50)) {
+      push({
+        queueType: "expiry_alert",
+        priority: Number(row.daysLeft || 0) <= 7 ? "high" : "medium",
+        primary: row.clientName,
+        clientId: row.clientId,
+        membershipId: row.membershipId,
+        planId: row.planId,
+        planName: row.planName,
+        amount: row.price || 0,
+        value: row.daysLeft,
+        suggestedAction: row.autoRenew ? "Confirm payment method before auto-renew date." : "Send renewal link and WhatsApp follow-up.",
+        dueOn: row.expiresOn || ""
+      });
+    }
+    for (const row of autoRenewFailedPayments.slice(0, 50)) {
+      push({
+        queueType: "auto_renew_recovery",
+        priority: row.status === "payment_method_missing" ? "critical" : "high",
+        primary: row.clientName || row.clientId,
+        clientId: row.clientId,
+        membershipId: row.membershipId,
+        planId: row.planId,
+        planName: row.planName,
+        value: row.retryCount || 0,
+        suggestedAction: "Update payment method, retry auto-renew, or pause with manager note.",
+        dueOn: row.expiresOn || row.nextRetryAt || ""
+      });
+    }
+    for (const row of creditLiability.filter((item) => Number(item.liabilityValue || 0) > 0).slice(0, 40)) {
+      push({
+        queueType: "credit_liability",
+        priority: Number(row.liabilityValue || 0) >= 5000 ? "high" : "medium",
+        primary: row.clientName,
+        clientId: row.clientId,
+        membershipId: row.membershipId,
+        planId: row.planId,
+        planName: row.planName,
+        amount: row.liabilityValue,
+        value: row.creditsRemaining,
+        suggestedAction: "Check unused credits before renewal, refund, or package upgrade.",
+        dueOn: row.expiresOn || ""
+      });
+    }
+    for (const row of planWiseProfitability.filter((item) => Number(item.revenue || 0) > 0 && Number(item.marginPercent || 0) < 20).slice(0, 25)) {
+      push({
+        queueType: "package_profitability",
+        priority: Number(row.marginPercent || 0) < 0 ? "high" : "medium",
+        primary: row.planName,
+        planId: row.planId,
+        planName: row.planName,
+        amount: row.grossProfit,
+        value: row.marginPercent,
+        suggestedAction: "Review price, discount leakage, and credit value for this plan.",
+        dueOn: ""
+      });
+    }
+    for (const row of risks.filter((item) => ["critical", "high"].includes(item.riskLevel)).slice(0, 40)) {
+      push({
+        queueType: "risk_review",
+        priority: row.riskLevel,
+        primary: row.reason || row.code,
+        clientId: row.clientId,
+        membershipId: row.membershipId,
+        planId: row.planId || "",
+        value: row.riskScore || 0,
+        suggestedAction: row.suggestedAction || "Review and close the membership risk signal.",
+        dueOn: row.createdAt || ""
+      });
+    }
+    return rows
+      .sort((a, b) => (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9) || String(a.dueOn || "").localeCompare(String(b.dueOn || "")))
+      .slice(0, 100);
   }
 
   membershipReportsCsv(query = {}, access) {
@@ -2142,6 +2259,7 @@ export class MembershipEnterpriseService {
     for (const row of reportSets.autoRenewFailedPayments || []) push("auto_renew_failed_payments", row, row.clientName, row.price);
     for (const row of reportSets.upgradeDowngrade || []) push("upgrade_downgrade", row, row.clientName, row.amount || row.refundAmount);
     for (const row of reportSets.discountLeakage || []) push("discount_leakage", row, row.invoiceId, row.discountAmount);
+    for (const row of reportSets.actionQueue || []) push("membership_action_queue", row, row.primary, row.amount || row.value);
     return rows;
   }
 
@@ -3053,11 +3171,13 @@ export class MembershipEnterpriseService {
     const usedCredits = Math.max(totalCredits - remainingCredits, historyUsed, 0);
     const ownedByViewer = membership.clientId === viewerClientId;
     const sharingRows = familyRows.filter((row) => row.primary_client_id === membership.clientId || row.member_client_id === membership.clientId);
+    const entitlementType = entitlementTypeFromMembership(membership);
     return {
       membershipId: membership.id,
       clientId: membership.clientId,
       ownedByViewer,
       shareSource: ownedByViewer ? "own" : "family",
+      entitlementType,
       membership,
       planId: plan.id || this.membershipPlanId(membership),
       planName: membership.planName || plan.name || "Membership",

@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -43,10 +43,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <table>
             <thead><tr><th>Resource</th><th>Device</th><th>Version</th><th>Created</th></tr></thead>
             <tbody>
-              <tr *ngFor="let snapshot of summary()?.snapshots || []">
+              <tr *ngFor="let snapshot of snapshots()">
                 <td>{{ snapshot.resource }}</td><td>{{ snapshot.deviceId }}</td><td>{{ snapshot.version }}</td><td>{{ snapshot.createdAt | date: 'short' }}</td>
               </tr>
-              <tr *ngIf="!(summary()?.snapshots || []).length"><td colspan="4">No cache snapshots yet.</td></tr>
+              <tr *ngIf="!snapshots().length"><td colspan="4">No cache snapshots yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -58,6 +58,7 @@ export class OfflineReadinessComponent implements OnInit {
   readonly summary = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly snapshots = computed(() => this.summary()?.snapshots || []);
   readonly cacheStrategy = ['Today and tomorrow appointments', 'Active clients', 'Services and price list', 'Products and stock snapshot', 'Staff roster', 'Memberships/packages', 'GST/tax settings'];
 
   constructor(private readonly api: ApiService) {}

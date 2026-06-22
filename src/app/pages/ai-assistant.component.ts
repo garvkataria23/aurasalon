@@ -27,9 +27,9 @@ type AiTool = {
         <div class="hero-orbit one"></div>
         <div class="hero-orbit two"></div>
         <div class="hero-copy">
-          <span class="eyebrow">AI Platform / Enterprise copilot</span>
-          <h2>AI Enterprise Copilot Command Center</h2>
-          <p>One governed workspace for customer 360, calendar, POS, inventory, WhatsApp, marketing, review and executive intelligence. Every run uses saved tenant data and writes persisted AI history.</p>
+          <span class="eyebrow">Assistant</span>
+          <h2>Business Assistant</h2>
+          <p>Use saved salon data to prepare client, booking, POS, inventory, marketing and review actions.</p>
           <div class="hero-signal-row">
             <span>{{ tools.length }} live workflows</span>
             <span>{{ history().length }} saved interactions</span>
@@ -38,8 +38,8 @@ type AiTool = {
           </div>
         </div>
         <div class="hero-actions">
-          <button class="ghost-button" type="button" (click)="load()">Refresh AI context</button>
-          <a class="dark-button" routerLink="/command-center/ai-workforce-dashboard">AI workforce</a>
+          <button class="ghost-button" type="button" (click)="load()">Refresh context</button>
+          <a class="dark-button" routerLink="/command-center/ai-workforce-dashboard">Workforce tools</a>
           <a class="primary-button" routerLink="/knowledge-base">Knowledge base</a>
         </div>
       </div>
@@ -53,7 +53,7 @@ type AiTool = {
           <small>{{ clients().length }} clients - {{ services().length }} services - {{ staff().length }} staff - {{ products().length }} products</small>
         </article>
         <article class="ai-kpi">
-          <span>AI governance</span>
+          <span>Review controls</span>
           <strong>{{ governance()?.enabled === false ? 'Paused' : 'Active' }}</strong>
           <small>{{ governance()?.usage?.callsRemaining ?? 0 }} calls left - {{ (governance()?.usage?.costRemainingUsd || 0) | currency:'USD':'symbol':'1.2-2' }} budget left</small>
         </article>
@@ -74,7 +74,7 @@ type AiTool = {
           <div class="section-title">
             <div>
               <span class="eyebrow">Workflow router</span>
-              <h2>Choose an AI capability</h2>
+              <h2>Choose a workflow</h2>
             </div>
           </div>
 
@@ -124,8 +124,8 @@ type AiTool = {
 
           <form [formGroup]="form" (ngSubmit)="run()" class="enterprise-form">
             <label class="field full">
-              <span>AI instruction</span>
-              <textarea formControlName="prompt" [placeholder]="selectedTool()?.prompt || 'Ask Aura AI what to do next'"></textarea>
+              <span>Instruction</span>
+              <textarea formControlName="prompt" [placeholder]="selectedTool()?.prompt || 'Ask what to do next'"></textarea>
             </label>
 
             <label class="field" *ngIf="requires('client')">
@@ -137,7 +137,7 @@ type AiTool = {
             </label>
 
             <label class="field" *ngIf="requires('service') || requires('cart')">
-              <span>Service / cart seed</span>
+              <span>Service / cart</span>
               <select formControlName="serviceId">
                 <option value="">Select service</option>
                 <option *ngFor="let service of services()" [value]="service.id">{{ service.name }} - {{ service.price | currency:'INR':'symbol':'1.0-0' }}</option>
@@ -147,7 +147,7 @@ type AiTool = {
             <label class="field" *ngIf="requires('product')">
               <span>Inventory product</span>
               <select formControlName="productId">
-                <option value="">AI choose priority stock</option>
+                <option value="">Choose priority stock</option>
                 <option *ngFor="let product of products()" [value]="product.id">{{ product.name }} - {{ product.stock || 0 }}</option>
               </select>
             </label>
@@ -163,7 +163,7 @@ type AiTool = {
             <label class="field" *ngIf="requires('staff')">
               <span>Staff</span>
               <select formControlName="staffId">
-                <option value="">AI assign / all staff</option>
+                <option value="">All staff</option>
                 <option *ngFor="let person of staff()" [value]="person.id">{{ person.name }}</option>
               </select>
             </label>
@@ -201,13 +201,13 @@ type AiTool = {
             <div class="safety-strip full">
               <span>Draft-first mode</span>
               <strong>No auto-send. No auto-discount. No inventory mutation from this assistant screen.</strong>
-              <small>Execution workflows stay governed by existing POS, appointment, WhatsApp and inventory confirmation flows.</small>
+              <small>POS, appointment, WhatsApp and inventory confirmations stay unchanged.</small>
             </div>
 
             <div class="form-actions full">
               <button class="ghost-button" type="button" (click)="selectTool(activeTool())">Reset prompt</button>
               <button class="primary-button" type="submit" [disabled]="running() || form.invalid || !taskEnabled(selectedTool())">
-                {{ running() ? 'Running governed AI...' : 'Run governed AI workflow' }}
+                {{ running() ? 'Running...' : 'Run workflow' }}
               </button>
             </div>
           </form>
@@ -244,6 +244,26 @@ type AiTool = {
               <strong [class.warn]="task.enabled === false">{{ task.enabled === false ? 'off' : 'on' }}</strong>
             </div>
           </div>
+
+          <div class="prompt-registry">
+            <div class="registry-head">
+              <span class="eyebrow">Prompt registry</span>
+              <strong>{{ rows(promptRegistry()?.prompts).length }} prompts</strong>
+            </div>
+            <div class="registry-flags">
+              <span>PII redaction</span>
+              <span>Role policy</span>
+              <span>Usage limits</span>
+              <span>{{ promptRegistry()?.fallbackMode || 'local-business-rules' }}</span>
+            </div>
+            <div class="registry-list">
+              <div *ngFor="let prompt of rows(promptRegistry()?.prompts).slice(0, 8)">
+                <span>{{ prompt.taskKey }}</span>
+                <strong>{{ prompt.promptVersion || 'v1' }}</strong>
+                <small>{{ prompt.outputMode || 'json_schema' }}</small>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -263,6 +283,14 @@ type AiTool = {
               <strong>{{ outputSummary(output) }}</strong>
               <p *ngIf="output.reason">{{ output.reason }}</p>
               <p *ngIf="output.providerWarning" class="warning-text">{{ output.providerWarning }}</p>
+            </div>
+
+            <div class="source-strip" *ngIf="knowledgeSources(output).length">
+              <article *ngFor="let source of knowledgeSources(output)">
+                <span>Source</span>
+                <strong>{{ source.title || source }}</strong>
+                <small>{{ source.excerpt || source.category || 'Knowledge base' }}</small>
+              </article>
             </div>
 
             <div class="result-metrics">
@@ -285,7 +313,7 @@ type AiTool = {
               <article>
                 <span>1</span>
                 <strong>Review tone and policy</strong>
-                <small>Owner or manager checks AI text before customer-facing use.</small>
+                <small>Owner or manager checks text before customer-facing use.</small>
               </article>
               <article>
                 <span>2</span>
@@ -307,7 +335,7 @@ type AiTool = {
 
           <ng-template #emptyOutput>
             <div class="empty-command">
-              <strong>Select a workflow and run governed AI.</strong>
+              <strong>Select a workflow and run it.</strong>
               <span>The result will appear here with human-review guardrails and a persisted audit trail.</span>
             </div>
           </ng-template>
@@ -346,7 +374,7 @@ type AiTool = {
             </div>
             <div *ngIf="!automationSuggestions().length">
               <strong>No pending automation suggestions</strong>
-              <span>Run AI workflows to create new reviewable signals.</span>
+              <span>Run workflows to create new reviewable signals.</span>
             </div>
           </div>
         </section>
@@ -355,7 +383,7 @@ type AiTool = {
       <section class="panel history-panel" *ngIf="!loading()">
         <div class="section-title">
           <div>
-            <span class="eyebrow">Persisted AI history</span>
+            <span class="eyebrow">Activity history</span>
             <h2>Recent assistant interactions</h2>
           </div>
           <button class="ghost-button" type="button" (click)="loadHistory()">Refresh history</button>
@@ -380,7 +408,7 @@ type AiTool = {
                 <td>{{ item.createdAt | date:'short' }}</td>
               </tr>
               <tr *ngIf="!history().length">
-                <td colspan="5">No AI interactions saved yet.</td>
+                <td colspan="5">No activity saved yet.</td>
               </tr>
             </tbody>
           </table>
@@ -762,12 +790,42 @@ type AiTool = {
     .result-metrics article,
     .approval-checklist article,
     .answer-card,
+    .source-strip article,
     .action-card,
     .mini-feed div {
       border: 1px solid var(--ai-line);
       border-radius: 18px;
       background: #fff;
       padding: 14px;
+    }
+
+    .source-strip {
+      display: grid;
+      gap: 10px;
+    }
+
+    .source-strip article {
+      border-color: #cde7dd;
+      background: #f5fbf8;
+      display: grid;
+      gap: 4px;
+    }
+
+    .source-strip span {
+      color: #0f766e;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .source-strip strong {
+      color: var(--ai-ink);
+      font-size: 13px;
+    }
+
+    .source-strip small {
+      color: var(--ai-muted);
+      line-height: 1.4;
     }
 
     .governance-stack strong,
@@ -794,6 +852,53 @@ type AiTool = {
       padding-bottom: 8px;
       font-size: 12px;
       font-weight: 850;
+    }
+
+    .prompt-registry {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+      border-top: 1px solid var(--ai-line);
+      padding-top: 14px;
+    }
+
+    .registry-head,
+    .registry-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .registry-flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .registry-flags span {
+      border-radius: 999px;
+      background: #eef7f4;
+      color: #0f766e;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .registry-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .registry-list div {
+      border-bottom: 1px dashed var(--ai-line);
+      padding-bottom: 8px;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .registry-list small {
+      color: var(--ai-muted);
     }
 
     .ai-result-grid {
@@ -946,6 +1051,7 @@ type AiTool = {
 })
 export class AiAssistantComponent implements OnInit {
   readonly tools: AiTool[] = [
+    { id: 'knowledge-search-summary', taskKey: 'knowledge.search_summary', title: 'Knowledge answer', category: 'Executive', icon: 'KB', tier: 'governed', description: 'Answer from active knowledge-base articles with source citations.', prompt: 'What does our knowledge base say about cancellation notice?', requires: ['branch'] },
     { id: 'analytics-summary', taskKey: 'analytics.summary', title: 'Executive analytics brief', category: 'Executive', icon: 'EX', tier: 'smart', description: 'Summarize revenue, pending payments, low stock and owner actions.', prompt: 'Summarize the current salon performance and list the top 3 owner actions.' },
     { id: 'dashboard-executive-summary', taskKey: 'dashboard.executive_summary', title: 'Dashboard executive summary', category: 'Executive', icon: 'DB', tier: 'smart', description: 'Generate a board-room view from dashboard metrics.', prompt: 'Create an executive daily summary for the selected branch.', requires: ['branch'] },
     { id: 'dashboard-risk-briefing', taskKey: 'dashboard.risk_briefing', title: 'Risk briefing', category: 'Executive', icon: 'RK', tier: 'governed', description: 'Detect operational risks across bookings, payments and inventory.', prompt: 'Find the biggest operational risks and give safe next steps.', requires: ['branch'] },
@@ -999,6 +1105,7 @@ export class AiAssistantComponent implements OnInit {
   readonly history = signal<ApiRecord[]>([]);
   readonly observability = signal<ApiRecord | null>(null);
   readonly governance = signal<ApiRecord | null>(null);
+  readonly promptRegistry = signal<ApiRecord | null>(null);
   readonly taskOverrides = signal<ApiRecord[]>([]);
   readonly automationSuggestions = signal<ApiRecord[]>([]);
   readonly whatsappDrafts = signal<ApiRecord[]>([]);
@@ -1049,11 +1156,12 @@ export class AiAssistantComponent implements OnInit {
       this.safeList<ApiRecord[]>('ai/history', { limit: 50 }, []),
       this.safeList<ApiRecord>('ai/observability', {}, {}),
       this.safeList<ApiRecord>('ai/governance/settings', {}, {}),
+      this.safeList<ApiRecord>('ai/prompt-registry', {}, { prompts: [], safetyPolicy: {} }),
       this.safeList<ApiRecord>('ai/governance/task-overrides', {}, { tasks: [] }),
       this.safeList<ApiRecord>('ai/automation/suggestions', { limit: 20 }, { suggestions: [] }),
       this.safeList<ApiRecord>('ai/whatsapp-agent/drafts', { limit: 20 }, { drafts: [] })
     ])
-      .then(([clients, services, branches, staff, products, history, observability, governance, overrides, suggestions, drafts]) => {
+      .then(([clients, services, branches, staff, products, history, observability, governance, registry, overrides, suggestions, drafts]) => {
         this.clients.set(this.rows(clients));
         this.services.set(this.rows(services));
         this.branches.set(this.rows(branches));
@@ -1062,6 +1170,7 @@ export class AiAssistantComponent implements OnInit {
         this.history.set(this.rows(history));
         this.observability.set(observability || {});
         this.governance.set(governance || {});
+        this.promptRegistry.set(registry || { prompts: [], safetyPolicy: {} });
         this.taskOverrides.set(this.rows(overrides?.tasks || overrides));
         this.automationSuggestions.set(this.rows(suggestions?.suggestions || suggestions));
         this.whatsappDrafts.set(this.rows(drafts?.drafts || drafts));
@@ -1069,7 +1178,7 @@ export class AiAssistantComponent implements OnInit {
         this.loading.set(false);
       })
       .catch((error) => {
-        this.error.set(this.api.errorText(error, 'Unable to load AI command context'));
+        this.error.set(this.api.errorText(error, 'Unable to load assistant context'));
         this.loading.set(false);
       });
   }
@@ -1077,7 +1186,7 @@ export class AiAssistantComponent implements OnInit {
   loadHistory(): void {
     this.api.list<ApiRecord[]>('ai/history', { limit: 50 }).subscribe({
       next: (history) => this.history.set(this.rows(history)),
-      error: (error) => this.error.set(this.api.errorText(error, 'Unable to load AI history'))
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to load activity history'))
     });
   }
 
@@ -1133,7 +1242,7 @@ export class AiAssistantComponent implements OnInit {
     if (!tool) return;
     const value = this.form.value;
     if (tool.taskKey.startsWith('customer360.') && !value.clientId) {
-      this.error.set('Select a client for Customer 360 AI workflows.');
+      this.error.set('Select a client for this workflow.');
       return;
     }
     if (tool.id === 'pos-cart-profitability' && !value.serviceId) {
@@ -1141,7 +1250,7 @@ export class AiAssistantComponent implements OnInit {
       return;
     }
     if (!this.taskEnabled(tool)) {
-      this.error.set(`${tool.taskKey} is disabled by AI governance policy.`);
+      this.error.set(`${tool.taskKey} is disabled by policy.`);
       return;
     }
 
@@ -1155,7 +1264,7 @@ export class AiAssistantComponent implements OnInit {
         this.loadOptionalRails();
       },
       error: (error) => {
-        this.error.set(this.api.errorText(error, 'Unable to run AI workflow'));
+        this.error.set(this.api.errorText(error, 'Unable to run workflow'));
         this.running.set(false);
       }
     });
@@ -1167,7 +1276,7 @@ export class AiAssistantComponent implements OnInit {
 
   outputSummary(output: ApiRecord): string {
     if (Array.isArray(output.summary)) return output.summary.join(' ');
-    return output.result || output.answer || output.reply || output.message || output.modelText || output.recommendedAction || 'AI result generated from saved salon data.';
+    return output.result || output.answer || output.reply || output.message || output.modelText || output.recommendedAction || 'Result generated from saved salon data.';
   }
 
   outputMetrics(output: ApiRecord): Array<{ label: string; value: string }> {
@@ -1183,8 +1292,13 @@ export class AiAssistantComponent implements OnInit {
   }
 
   primaryList(output: ApiRecord): ApiRecord[] {
-    const value = output.recommendations || output.suggestions || output.clients || output.products || output.risks || output.insights || output.actions || output.segmentIdeas || output.captions || [];
+    const value = output.recommendations || output.suggestions || output.clients || output.products || output.risks || output.insights || output.citations || output.actions || output.segmentIdeas || output.captions || [];
     return this.rows(value).slice(0, 9).map((item) => typeof item === 'string' ? { name: item, value: '' } : item);
+  }
+
+  knowledgeSources(output: ApiRecord): ApiRecord[] {
+    return this.rows(output.citations || output.knowledge?.sources || output.sources).slice(0, 5)
+      .map((item) => typeof item === 'string' ? { title: item } : item);
   }
 
   private buildPayload(tool: AiTool): ApiRecord {
@@ -1212,7 +1326,7 @@ export class AiAssistantComponent implements OnInit {
         channel: value.channel
       },
       extraContext: {
-        ui: 'AI Enterprise Copilot Command Center',
+        ui: 'Business Assistant',
         humanReviewRequired: true
       }
     };
@@ -1236,7 +1350,7 @@ export class AiAssistantComponent implements OnInit {
       .catch(() => fallback);
   }
 
-  private rows(value: unknown): ApiRecord[] {
+  rows(value: unknown): ApiRecord[] {
     if (Array.isArray(value)) return value as ApiRecord[];
     if (value && typeof value === 'object') {
       const object = value as ApiRecord;

@@ -190,8 +190,8 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
       <header class="enterprise-header">
         <div>
           <span class="eyebrow">Staff Enterprise OS</span>
-          <h1>AI Workforce Command Center</h1>
-          <p>Live staff intelligence from attendance, bookings, invoices, commission and payroll signals.</p>
+          <h1>Workforce Center</h1>
+          <p>Live staff metrics from attendance, bookings, invoices, commission and payroll signals.</p>
         </div>
         <nav class="header-actions" aria-label="Staff enterprise navigation">
           <a routerLink="/staff" class="ghost-button">Staff</a>
@@ -231,7 +231,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
 
       <section class="state-panel loading" *ngIf="loading()">
         <span class="spinner"></span>
-        <strong>Loading staff intelligence</strong>
+        <strong>Loading staff metrics</strong>
       </section>
 
       <section class="state-panel error" *ngIf="error()">
@@ -297,7 +297,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
 
         <section class="section-band command-grid">
           <div class="section-heading">
-            <span class="eyebrow">1. AI Workforce Command Center</span>
+            <span class="eyebrow">1. Workforce Center</span>
             <h2>Owner attention queue</h2>
           </div>
           <div class="command-list">
@@ -357,7 +357,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
           <div>
             <div class="section-heading">
               <span class="eyebrow">4. Skill License Matrix</span>
-              <h2>Certification readiness</h2>
+              <h2>Certification status</h2>
             </div>
             <div class="table-wrap">
               <table>
@@ -395,7 +395,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
           <div>
             <div class="section-heading">
               <span class="eyebrow">6. Burnout + Attrition Prediction</span>
-              <h2>Workforce risk radar</h2>
+              <h2>Workforce risk review</h2>
             </div>
             <div class="signal-list">
               <button type="button" class="signal-row" *ngFor="let signal of burnoutSignals()" (click)="openDetail('Burnout and attrition', signal.staffName || signal.staffId || signal.signalType || 'Signal', signal.reason || 'Staff risk', signal)">
@@ -433,7 +433,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
                   <tr><th>Staff</th><th>Gross</th><th>Commission</th><th>Risk</th></tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let row of payrollFiltered()" (click)="openDetail('Payroll intelligence', row.staffName || row.staffId || 'Payroll row', row.periodStart + ' to ' + row.periodEnd, row)">
+                  <tr *ngFor="let row of payrollFiltered()" (click)="openDetail('Payroll review', row.staffName || row.staffId || 'Payroll row', row.periodStart + ' to ' + row.periodEnd, row)">
                     <td><strong>{{ row.staffName || row.staffId }}</strong></td>
                     <td>{{ row.grossPay || 0 | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td>{{ row.commissionAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</td>
@@ -447,7 +447,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
           <div>
             <div class="section-heading">
               <span class="eyebrow">9. Live Floor Control Tower</span>
-              <h2>Today readiness</h2>
+              <h2>Today status</h2>
             </div>
             <div class="signal-list">
               <button type="button" class="signal-row" *ngFor="let item of floorFiltered()" (click)="openDetail('Floor control', item.eventType || item.staffId || 'Floor event', item.status || item.severity || 'Live event', item)">
@@ -1376,13 +1376,13 @@ export class StaffEnterpriseComponent implements OnInit {
       { label: 'Employee Masters', path: '/staff-os/employee-masters', metric: kpis.staffCount || this.staffOptions().length || 0, description: 'profile, category, salary and statutory master', tone: 'teal' },
       { label: 'Attendance Dash', path: '/staff-os/attendance-dashboard', metric: kpis.presentDays || 0, description: 'present days, late marks and attendance signals', tone: 'green' },
       { label: 'Roster Calendar', path: '/staff-os/roster-calendar', metric: kpis.scheduledShifts || 0, description: 'scheduled shifts and floor availability', tone: 'blue' },
-      { label: 'Payroll Dash', path: '/staff-os/payroll-dashboard', metric: this.moneyShort(kpis.totalRevenue || 0), description: 'salary, payout and compliance intelligence', tone: 'violet' },
+      { label: 'Payroll Dash', path: '/staff-os/payroll-dashboard', metric: this.moneyShort(kpis.totalRevenue || 0), description: 'salary, payout and compliance review', tone: 'violet' },
       { label: 'Commission Dash', path: '/staff-os/commission-dashboard', metric: this.moneyShort(kpis.totalCommission || 0), description: 'invoice linked commission and incentive payout', tone: 'amber' },
       { label: 'Staff Sales', path: '/reports/staff-sales', metric: sourceCounts['invoices'] || sourceCounts['appointments'] || 0, description: 'POS and appointment revenue attribution', tone: 'teal' },
       { label: 'Invoice Reports', path: '/reports/invoices', metric: sourceCounts['invoices'] || 0, description: 'invoice, due, GST, discount and wallet drilldown', tone: 'blue' },
       { label: 'Commission Preview', path: '/reports/commission-preview', metric: this.payrollFiltered().length, description: 'pre-payroll commission verification', tone: 'amber' },
       { label: 'Leave Mgmt', path: '/staff-os/leave-management', metric: this.approvalsFiltered().length, description: 'leave approval and availability queue', tone: 'green' },
-      { label: 'Training Center', path: '/staff-os/training-center', metric: kpis.trainingDue || this.trainingFiltered().length, description: 'AI coaching and skill upgrade suggestions', tone: 'violet' },
+      { label: 'Training Center', path: '/staff-os/training-center', metric: kpis.trainingDue || this.trainingFiltered().length, description: 'coaching and skill upgrade suggestions', tone: 'violet' },
       { label: 'Risk Signals', path: '/staff-enterprise', metric: kpis.highRiskSignals || this.riskSignalsFiltered().length, description: 'burnout, leakage and compliance alerts', tone: 'red' },
       { label: 'Tips Register', path: '/pos/tips', metric: sourceCounts['tips'] || 0, description: 'staff tip collection and payout register', tone: 'teal' }
     ];

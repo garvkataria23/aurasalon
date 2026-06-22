@@ -19,10 +19,13 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <p>Branch and date scoped reports from saved POS, appointment, staff, GST, payment, client and inventory records.</p>
         </div>
         <div class="hero-actions">
+          <a class="ghost-button" routerLink="/analytics">Analytics engine</a>
           <a class="ghost-button" routerLink="/reports/invoices">Invoice reports</a>
           <a class="ghost-button" routerLink="/reports/inward-revenue">Inward revenue</a>
           <a class="ghost-button" routerLink="/appointment-activity">Appointment activity</a>
           <a class="ghost-button" routerLink="/inventory/reports">Inventory reports</a>
+          <button class="ghost-button" type="button" (click)="createDefaultSchedule()">Schedule weekly</button>
+          <button class="ghost-button" type="button" (click)="runAnomalyDetection()">Run anomaly scan</button>
           <button class="ghost-button" type="button" (click)="load()">Refresh</button>
         </div>
       </div>
@@ -45,6 +48,78 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       </section>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
+
+      <ng-container *ngIf="analyticsCommand() as analytics">
+        <div class="metrics-grid">
+          <aura-kpi-card tone="blue" target="/kpi-details/analytics/14-day-forecast"><span>AI forecast</span><strong>{{ analytics.summary.projectedRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ analytics.summary.trendPercent }}% trend</small></aura-kpi-card>
+          <aura-kpi-card tone="violet" target="/kpi-details/analytics/high-churn-risk"><span>Churn risk</span><strong>{{ analytics.summary.highChurnRisk }}</strong><small>{{ analytics.summary.repeatRate }}% repeat rate</small></aura-kpi-card>
+          <aura-kpi-card tone="red" target="/kpi-details/analytics/anomalies"><span>Anomalies</span><strong>{{ analytics.anomalyDetection.open }}</strong><small>{{ analytics.anomalyDetection.critical }} critical</small></aura-kpi-card>
+          <aura-kpi-card tone="slate" target="/analytics"><span>Scheduled</span><strong>{{ analytics.scheduledReports.length }}</strong><small>{{ analytics.exportControls.message }}</small></aura-kpi-card>
+        </div>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Advanced report control</span>
+              <h2>KPI detail mapping, export controls and insights</h2>
+            </div>
+            <span class="badge">{{ analytics.exportControls.allowed ? 'Export allowed' : 'Export blocked' }}</span>
+          </div>
+          <div class="report-link-grid">
+            <a class="report-link-card" *ngFor="let item of analytics.kpiDetailMap" [routerLink]="item.route">
+              <span>{{ item.module }} · {{ item.source }}</span>
+              <strong>{{ item.title }}</strong>
+              <small>Drill down</small>
+            </a>
+          </div>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Insights</h2></div>
+            <div class="quick-grid">
+              <article class="action-card" *ngFor="let insight of analytics.aiInsights">
+                <strong>{{ insight.title }}</strong>
+                <span>{{ insight.recommendation }}</span>
+                <small>{{ insight.severity }}</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Scheduled reports</h2></div>
+            <div class="quick-grid">
+              <article class="action-card" *ngFor="let schedule of analytics.scheduledReports">
+                <strong>{{ schedule.name }}</strong>
+                <span>{{ schedule.cadence }} · {{ schedule.nextRunAt | date: 'short' }}</span>
+                <small>{{ schedule.status }}</small>
+              </article>
+              <article class="action-card" *ngIf="!analytics.scheduledReports.length">
+                <strong>No schedules yet</strong>
+                <span>Create weekly owner digest from this page.</span>
+                <small>Exports stay audit controlled.</small>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="section-title"><h2>Report drilldowns</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Report</th><th>Rows</th><th>Source</th><th>Open</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let drilldown of analytics.drilldowns">
+                  <td>{{ drilldown.title }}</td>
+                  <td>{{ drilldown.rows }}</td>
+                  <td>{{ drilldown.source }}</td>
+                  <td><a class="ghost-button" [routerLink]="drilldown.route">Open</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </ng-container>
 
       <ng-container *ngIf="report() as report">
         <div class="metrics-grid">
@@ -233,6 +308,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 })
 export class ReportsComponent implements OnInit {
   readonly report = signal<ApiRecord | null>(null);
+  readonly analyticsCommand = signal<ApiRecord | null>(null);
   readonly branches = signal<ApiRecord[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
@@ -288,6 +364,38 @@ export class ReportsComponent implements OnInit {
         this.error.set(error?.error?.error || 'Unable to load reports');
         this.loading.set(false);
       }
+    });
+    this.loadAnalyticsCommandCenter();
+  }
+
+  loadAnalyticsCommandCenter(): void {
+    this.api.list<ApiRecord>('analytics/report-command-center', {
+      branchId: this.branchId || this.api.selectedBranchId(),
+      from: this.from,
+      to: this.to
+    }).subscribe({
+      next: (result) => this.analyticsCommand.set(result),
+      error: () => this.analyticsCommand.set(null)
+    });
+  }
+
+  createDefaultSchedule(): void {
+    this.api.post<ApiRecord>('analytics/report-schedules', {
+      branchId: this.api.selectedBranchId(),
+      name: 'Weekly owner report digest',
+      cadence: 'weekly',
+      reportKeys: ['reports:sales-revenue', 'analytics:14-day-forecast', 'analytics:high-churn-risk'],
+      recipients: []
+    }).subscribe({
+      next: () => this.loadAnalyticsCommandCenter(),
+      error: (error) => this.error.set(this.api.errorText(error))
+    });
+  }
+
+  runAnomalyDetection(): void {
+    this.api.post<ApiRecord>('analytics/anomalies/run', { branchId: this.api.selectedBranchId() }).subscribe({
+      next: () => this.loadAnalyticsCommandCenter(),
+      error: (error) => this.error.set(this.api.errorText(error))
     });
   }
 

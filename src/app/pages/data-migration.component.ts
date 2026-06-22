@@ -67,7 +67,7 @@ type ApprovalRecord = {
         <div>
           <span class="eyebrow">Enterprise Data Migration OS</span>
           <h1>100X import command center</h1>
-          <p>Legacy salon, POS, accounting, inventory and booking data ko safe sandbox, validation, approval, import aur rollback pipeline se live modules me migrate karo.</p>
+          <p>Migrate legacy salon, POS, accounting, inventory and booking data into live modules through sandbox, validation, approval, import and rollback controls.</p>
         </div>
         <div class="score-card" [class.danger]="readinessScore() < 60" [class.warning]="readinessScore() >= 60 && readinessScore() < 85">
           <span>Go-live readiness</span>
@@ -86,6 +86,11 @@ type ApprovalRecord = {
           <span>Selected file</span>
           <strong>{{ fileName() || 'No file selected' }}</strong>
           <small>{{ fileSizeLabel() }}</small>
+        </article>
+        <article>
+          <span>Live clients</span>
+          <strong>{{ liveClientTotal() }}</strong>
+          <small>{{ migratedClientTotal() }} migrated · {{ tenantClientTotal() }} total</small>
         </article>
         <article>
           <span>Rows scanned</span>
@@ -138,7 +143,7 @@ type ApprovalRecord = {
           </div>
 
           <p class="error-text" *ngIf="fileBase64() && !summary() && !error()">
-            Final import se pehle Analyze run karo, phir approval submit/approve karo.
+            Run Analyze before final import, then submit and approve it.
           </p>
           <p class="error-text" *ngIf="error()">{{ error() }}</p>
           <p class="success-text" *ngIf="message()">{{ message() }}</p>
@@ -184,7 +189,7 @@ type ApprovalRecord = {
             <button class="secondary-button" type="button" [disabled]="!mappingDraft().length || loading()" (click)="saveMappingProfile()">Save profile</button>
           </div>
           <div class="mapping-list">
-            <article *ngFor="let row of mappingDraft().slice(0, 10)" [class.required]="row.required">
+            <article *ngFor="let row of mappingDraftPreview()" [class.required]="row.required">
               <div>
                 <strong>{{ row.targetField }}</strong>
                 <small>{{ row.aliases.slice(0, 3).join(', ') || 'No alias' }}</small>
@@ -277,14 +282,14 @@ type ApprovalRecord = {
             <button class="danger-button" type="button" [disabled]="!latestPendingApproval() || loading()" (click)="decideApproval(latestPendingApproval()?.id || '', 'rejected')">Reject latest</button>
           </div>
           <p class="error-text" *ngIf="fileBase64() && !summary()">
-            Approval se pehle Analyze run karna zaroori hai.
+            Analyze must run before approval.
           </p>
           <p class="success-text" *ngIf="summary() && !latestPendingApproval() && !importApprovalReady()">
-            Analyze complete hai. Ab "Submit for approval" click karo.
+            Analyze is complete. Click "Submit for approval".
           </p>
           <p class="error-text" *ngIf="approvalDebug()">{{ approvalDebug() }}</p>
           <div class="approval-list">
-            <article *ngFor="let approval of approvals().slice(0, 5)" [class.pending]="approval.status === 'pending'" [class.approved]="approval.status === 'approved'" [class.rejected]="approval.status === 'rejected'">
+            <article *ngFor="let approval of recentApprovals()" [class.pending]="approval.status === 'pending'" [class.approved]="approval.status === 'approved'" [class.rejected]="approval.status === 'rejected'">
               <div>
                 <strong>{{ approval.status | titlecase }} · {{ approval.resource || 'migration' }}</strong>
                 <small>{{ approval.submittedAt | date:'short' }} {{ approval.reviewedAt ? '· reviewed ' + (approval.reviewedAt | date:'short') : '' }}</small>
@@ -306,7 +311,7 @@ type ApprovalRecord = {
             <span class="status-pill">{{ duplicateDecisionCount() }}/{{ duplicateRows().length }} decided</span>
           </div>
           <div class="duplicate-list">
-            <article *ngFor="let row of duplicateRows().slice(0, 8)">
+            <article *ngFor="let row of duplicatePreviewRows()">
               <div>
                 <strong>{{ label(row.entity || 'record') }} row {{ row.sourceRowNumber || '-' }}</strong>
                 <small>{{ row.message || row.sourceExternalId || row.targetId || 'Possible duplicate' }}</small>
@@ -520,7 +525,7 @@ type ApprovalRecord = {
             <table>
               <thead><tr><th>Sheet</th><th>Row</th><th>Entity</th><th>Status</th><th>Message</th></tr></thead>
               <tbody>
-                <tr *ngFor="let row of job.rows.slice(0, 200)">
+                <tr *ngFor="let row of selectedJobRows()">
                   <td>{{ row.sourceSheet }}</td>
                   <td>{{ row.sourceRowNumber }}</td>
                   <td>{{ row.entity }}</td>
@@ -548,7 +553,7 @@ type ApprovalRecord = {
     .score-card small, .control-strip small, .risk-panel small, .recon-list small { color: #64748b; }
     .score-card.warning { border-color: #f59e0b; background: #fffbeb; }
     .score-card.danger { border-color: #ef4444; background: #fef2f2; }
-    .control-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .control-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
     .control-strip article { padding: 14px; display: grid; gap: 4px; min-width: 0; }
     .control-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .workspace-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(260px, .65fr); gap: 14px; align-items: start; }
@@ -719,12 +724,17 @@ export class DataMigrationComponent implements OnInit {
   approvals = signal<ApprovalRecord[]>([]);
   selectedJob = signal<any | null>(null);
   migrationProgress = signal(0);
+  liveClientStats = signal({ total: 0, migrated: 0 });
   sandboxMode = signal(true);
   maskPreviewPii = signal(true);
   rollbackReason = signal('');
   assistantQuestion = signal('');
   assistantAnswer = signal('');
   approvalDebug = signal('');
+  private readonly emptyTemplateColumns: MigrationTemplate['columns'] = [];
+  private relevantMappingsCacheKey = '';
+  private relevantMappingsCacheSource: any[] | null = null;
+  private relevantMappingsCache: any[] = [];
 
   entityRows = computed(() => {
     const summary = this.summary();
@@ -733,15 +743,64 @@ export class DataMigrationComponent implements OnInit {
   });
 
   hasCriticalErrors = computed(() => Boolean(this.summary()?.errorRows));
+  mappingDraftPreview = computed(() => this.mappingDraft().slice(0, 10));
+  recentApprovals = computed(() => this.approvals().slice(0, 5));
+  duplicatePreviewRows = computed(() => this.duplicateRows().slice(0, 8));
+  selectedJobRows = computed(() => (this.selectedJob()?.rows || []).slice(0, 200));
+  reconciliationLines = computed<ReconciliationLine[]>(() => this.reconciliationResult()?.lines || []);
+  completionChecklist = computed(() => this.onboarding()?.completionChecklist || [
+    { label: 'Upload source file', done: Boolean(this.fileBase64()) },
+    { label: 'Run analyze', done: Boolean(this.summary()) },
+    { label: 'Resolve critical errors', done: !this.hasCriticalErrors() },
+    { label: 'Run dry-run validation', done: false },
+    { label: 'Owner final sign-off', done: false }
+  ]);
+  validationQueues = computed<Array<{ status: 'all' | 'error' | 'warning' | 'duplicate'; label: string; count: number; detail: string }>>(() => {
+    const rows = this.previewRows();
+    const errors = rows.filter((row) => row.status === 'error').length;
+    const warnings = rows.filter((row) => row.status === 'warning').length;
+    return [
+      { status: 'error', label: 'Critical fixes', count: errors, detail: errors ? 'Must resolve before import' : 'No blockers' },
+      { status: 'warning', label: 'Review queue', count: warnings, detail: warnings ? 'Can import with owner sign-off' : 'No warnings' },
+      { status: 'duplicate', label: 'Duplicate conflicts', count: this.duplicateRows().length, detail: 'Merge / keep / link required' },
+      { status: 'all', label: 'All decisions', count: rows.length, detail: 'Full row-level report' }
+    ];
+  });
+  enterpriseChecklist = computed(() => [
+    { label: 'File size under 20MB', done: Boolean(this.fileBase64()) && this.fileSize() <= 20 * 1024 * 1024 },
+    { label: 'Required mapping fields completed', done: this.requiredMappingComplete() },
+    { label: 'No critical errors', done: !this.hasCriticalErrors() && Boolean(this.summary()) },
+    { label: 'Duplicate decisions reviewed', done: !this.duplicateRows().length || this.duplicateDecisionCount() === this.duplicateRows().length },
+    { label: 'Owner approval received', done: this.importApprovalReady() },
+    { label: 'Sandbox mode reviewed before live import', done: this.sandboxMode() || this.importApprovalReady() }
+  ]);
+  anomalyCards = computed<Array<{ label: string; count: number; detail: string; tone: string }>>(() => {
+    const rows = this.previewRows();
+    const invalidDates = rows.filter((row) => /date|future|invalid/i.test(String(row.message || ''))).length;
+    const badPhone = rows.filter((row) => /phone|mobile/i.test(String(row.message || ''))).length;
+    const badMoney = rows.filter((row) => /negative|amount|payment|invoice|discount/i.test(String(row.message || ''))).length;
+    return [
+      { label: 'Invalid dates', count: invalidDates, detail: 'Future/invalid appointment or invoice dates', tone: invalidDates ? 'warning' : 'good' },
+      { label: 'Phone/email issues', count: badPhone, detail: 'PII and contact validation issues', tone: badPhone ? 'warning' : 'good' },
+      { label: 'Money anomalies', count: badMoney, detail: 'Negative invoice/payment/discount issues', tone: badMoney ? 'danger' : 'good' }
+    ];
+  });
 
   templateColumns = () => {
     const key = this.resource || 'clients';
-    return this.templates()[key]?.columns || [];
+    return this.templates()[key]?.columns || this.emptyTemplateColumns;
   };
 
   relevantMappings = () => {
     const resource = this.resource || 'clients';
-    return this.mappings().filter((mapping) => (!mapping.resource || mapping.resource === resource) && (!mapping.sourceSoftware || mapping.sourceSoftware === this.sourceSoftware));
+    const mappings = this.mappings();
+    const cacheKey = `${resource}|${this.sourceSoftware}|${mappings.length}`;
+    if (cacheKey !== this.relevantMappingsCacheKey || mappings !== this.relevantMappingsCacheSource) {
+      this.relevantMappingsCacheKey = cacheKey;
+      this.relevantMappingsCacheSource = mappings;
+      this.relevantMappingsCache = mappings.filter((mapping) => (!mapping.resource || mapping.resource === resource) && (!mapping.sourceSoftware || mapping.sourceSoftware === this.sourceSoftware));
+    }
+    return this.relevantMappingsCache;
   };
 
   selectedAdapter = () => this.adapters()[this.sourceSoftware];
@@ -804,13 +863,33 @@ export class DataMigrationComponent implements OnInit {
       || String(row.message || '').toLowerCase().includes('already')
   ));
 
+  liveClientTotal(): number {
+    const onboarding = this.onboarding();
+    return Number(this.liveClientStats().total || onboarding?.liveClientBranchCount || onboarding?.liveClientCount || 0);
+  }
+
+  tenantClientTotal(): number {
+    const onboarding = this.onboarding();
+    return Number(onboarding?.liveClientCount ?? this.liveClientTotal());
+  }
+
+  migratedClientTotal(): number {
+    const onboarding = this.onboarding();
+    return Number(this.liveClientStats().migrated || onboarding?.migratedClientBranchCount || onboarding?.migratedClientCount || onboarding?.importedRecordsCount || 0);
+  }
+
   reconciliationRows = computed(() => {
     const summary = this.summary();
     const total = Number(summary?.totalRows || 0);
     const valid = Number(summary?.validRows || 0);
     const imported = this.jobs().reduce((sum, job) => sum + Number(job.importedRows || 0), 0);
     const affected = Number(summary?.affectedRecords || 0);
+    const liveClients = this.liveClientTotal();
+    const tenantClients = this.tenantClientTotal();
+    const migratedClients = this.migratedClientTotal();
     return [
+      { label: 'Live clients', value: liveClients, detail: tenantClients !== liveClients ? `${tenantClients} clients across all branches` : 'Live client master records' },
+      { label: 'Migrated clients', value: migratedClients, detail: 'Imported clients visible in live module' },
       { label: 'Source rows', value: total, detail: 'Rows read from uploaded workbook' },
       { label: 'Aura-ready rows', value: valid, detail: total ? `${Math.round(valid / Math.max(1, total) * 100)}% can move forward` : 'Awaiting analyze' },
       { label: 'Affected records', value: affected, detail: 'Expected create/update impact' },
@@ -859,16 +938,6 @@ export class DataMigrationComponent implements OnInit {
     return Math.round((rows.filter((row) => row.sourceColumn.trim()).length / rows.length) * 100);
   }
 
-  completionChecklist(): any[] {
-    return this.onboarding()?.completionChecklist || [
-      { label: 'Upload source file', done: Boolean(this.fileBase64()) },
-      { label: 'Run analyze', done: Boolean(this.summary()) },
-      { label: 'Resolve critical errors', done: !this.hasCriticalErrors() },
-      { label: 'Run dry-run validation', done: false },
-      { label: 'Owner final sign-off', done: false }
-    ];
-  }
-
   refreshSourceContext(): void {
     this.message.set(`${this.selectedSourceLabel()} adapter selected.`);
     this.rebuildMappingDraft();
@@ -884,7 +953,7 @@ export class DataMigrationComponent implements OnInit {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 20 * 1024 * 1024) {
-      this.error.set('File 20MB se chhoti honi chahiye. Large migration ko split karke upload karo.');
+      this.error.set('File must be under 20MB. Split large migrations before upload.');
       input.value = '';
       return;
     }
@@ -908,18 +977,18 @@ export class DataMigrationComponent implements OnInit {
   }
 
   async dryRun(): Promise<void> {
-    await this.callMigration('migration/dry-run', 'Dry run complete. Data abhi save nahi hua.');
+    await this.callMigration('migration/dry-run', 'Dry run complete. Data was not saved.');
     await this.loadJobs();
   }
 
   async runImport(): Promise<void> {
     if (!this.importApprovalReady()) {
-      this.error.set('Final import blocked: pehle Analyze run karo, phir Submit for approval, phir Approve latest.');
+      this.error.set('Final import blocked: run Analyze, submit for approval, then approve the latest request.');
       return;
     }
     if (!this.validateRequiredMapping()) return;
     if (!confirm(`${this.sandboxMode() ? 'Sandbox' : 'Live'} final import database me data save karega. Continue?`)) return;
-    await this.callMigration('migration/import', this.sandboxMode() ? 'Sandbox import complete. Review results before live migration.' : 'Final import complete. Data live modules me save ho gaya.');
+    await this.callMigration('migration/import', this.sandboxMode() ? 'Sandbox import complete. Review results before live migration.' : 'Final import complete. Data saved in live modules.');
     await this.loadJobs();
   }
 
@@ -957,8 +1026,22 @@ export class DataMigrationComponent implements OnInit {
       this.jobs.set(jobs || []);
       const onboarding = await firstValueFrom(this.api.list<any>('migration/onboarding'));
       this.onboarding.set(onboarding || null);
+      await this.loadLiveClientStats();
     } catch {
       this.jobs.set([]);
+    }
+  }
+
+  async loadLiveClientStats(): Promise<void> {
+    try {
+      const clients = await firstValueFrom(this.api.list<any[]>('clients', { limit: 10000 }));
+      const rows = clients || [];
+      this.liveClientStats.set({
+        total: rows.length,
+        migrated: rows.filter((client) => Number(client.imported || 0) === 1 || client.importBatchId || client.migrationBatchId).length
+      });
+    } catch {
+      this.liveClientStats.set({ total: 0, migrated: 0 });
     }
   }
 
@@ -981,10 +1064,6 @@ export class DataMigrationComponent implements OnInit {
     }
   }
 
-  reconciliationLines(): ReconciliationLine[] {
-    return this.reconciliationResult()?.lines || [];
-  }
-
   setExpectedTotal(key: string, value: unknown): void {
     const amount = Number(value || 0);
     this.expectedTotals.update((current) => ({
@@ -995,7 +1074,7 @@ export class DataMigrationComponent implements OnInit {
 
   async runReconciliation(): Promise<void> {
     if (!this.fileBase64()) {
-      this.error.set('Pehle Excel file select karo.');
+      this.error.set('Select an Excel file first.');
       return;
     }
     try {
@@ -1045,12 +1124,12 @@ export class DataMigrationComponent implements OnInit {
   async submitApproval(): Promise<void> {
     if (!this.summary()) {
       if (!this.fileBase64()) {
-        this.error.set('Approval ke liye pehle file select karo.');
+        this.error.set('Select a file before approval.');
         return;
       }
       await this.analyze();
       if (!this.summary()) {
-        this.error.set('Approval ke liye analyze summary nahi bani. Network response check karo.');
+        this.error.set('Analyze summary is missing for approval. Check the network response.');
         return;
       }
     }
@@ -1094,7 +1173,7 @@ export class DataMigrationComponent implements OnInit {
 
   async decideApproval(id: string, decision: 'approved' | 'rejected'): Promise<void> {
     if (!id) {
-      this.approvalDebug.set('No pending approval selected. Pehle Submit for approval click karo.');
+      this.approvalDebug.set('No pending approval selected. Submit for approval first.');
       return;
     }
     try {
@@ -1178,18 +1257,6 @@ export class DataMigrationComponent implements OnInit {
     ));
   }
 
-  validationQueues(): Array<{ status: 'all' | 'error' | 'warning' | 'duplicate'; label: string; count: number; detail: string }> {
-    const rows = this.previewRows();
-    const errors = rows.filter((row) => row.status === 'error').length;
-    const warnings = rows.filter((row) => row.status === 'warning').length;
-    return [
-      { status: 'error', label: 'Critical fixes', count: errors, detail: errors ? 'Must resolve before import' : 'No blockers' },
-      { status: 'warning', label: 'Review queue', count: warnings, detail: warnings ? 'Can import with owner sign-off' : 'No warnings' },
-      { status: 'duplicate', label: 'Duplicate conflicts', count: this.duplicateRows().length, detail: 'Merge / keep / link required' },
-      { status: 'all', label: 'All decisions', count: rows.length, detail: 'Full row-level report' }
-    ];
-  }
-
   duplicateDecision(row: any): 'merge' | 'keep' | 'link' | '' {
     return this.duplicateDecisions()[this.rowKey(row)] || '';
   }
@@ -1224,7 +1291,7 @@ export class DataMigrationComponent implements OnInit {
 
   private async callMigration(path: string, successMessage: string): Promise<void> {
     if (!this.fileBase64()) {
-      this.error.set('Pehle Excel file select karo.');
+      this.error.set('Select an Excel file first.');
       return;
     }
     try {
@@ -1282,37 +1349,14 @@ export class DataMigrationComponent implements OnInit {
     return 'Complete';
   }
 
-  enterpriseChecklist(): any[] {
-    return [
-      { label: 'File size under 20MB', done: Boolean(this.fileBase64()) && this.fileSize() <= 20 * 1024 * 1024 },
-      { label: 'Required mapping fields completed', done: this.requiredMappingComplete() },
-      { label: 'No critical errors', done: !this.hasCriticalErrors() && Boolean(this.summary()) },
-      { label: 'Duplicate decisions reviewed', done: !this.duplicateRows().length || this.duplicateDecisionCount() === this.duplicateRows().length },
-      { label: 'Owner approval received', done: this.importApprovalReady() },
-      { label: 'Sandbox mode reviewed before live import', done: this.sandboxMode() || this.importApprovalReady() }
-    ];
-  }
-
   requiredMappingComplete(): boolean {
     return this.mappingDraft().filter((row) => row.required).every((row) => row.sourceColumn.trim());
   }
 
   validateRequiredMapping(): boolean {
     if (this.requiredMappingComplete()) return true;
-    this.error.set('Required mapping fields missing hain. AI Mapping Studio me required source columns complete karo.');
+    this.error.set('Required mapping fields are missing. Complete the required source columns in Mapping Studio.');
     return false;
-  }
-
-  anomalyCards(): Array<{ label: string; count: number; detail: string; tone: string }> {
-    const rows = this.previewRows();
-    const invalidDates = rows.filter((row) => /date|future|invalid/i.test(String(row.message || ''))).length;
-    const badPhone = rows.filter((row) => /phone|mobile/i.test(String(row.message || ''))).length;
-    const badMoney = rows.filter((row) => /negative|amount|payment|invoice|discount/i.test(String(row.message || ''))).length;
-    return [
-      { label: 'Invalid dates', count: invalidDates, detail: 'Future/invalid appointment or invoice dates', tone: invalidDates ? 'warning' : 'good' },
-      { label: 'Phone/email issues', count: badPhone, detail: 'PII and contact validation issues', tone: badPhone ? 'warning' : 'good' },
-      { label: 'Money anomalies', count: badMoney, detail: 'Negative invoice/payment/discount issues', tone: badMoney ? 'danger' : 'good' }
-    ];
   }
 
   askMigrationAssistant(): void {
@@ -1327,7 +1371,7 @@ export class DataMigrationComponent implements OnInit {
     this.assistantAnswer.set([
       `${errors.length} critical errors, ${warnings.length} warnings aur ${duplicates.length} duplicate/conflict rows detect hui.`,
       topMessages.length ? `Top reasons: ${Array.from(new Set(topMessages)).slice(0, 5).join(' | ')}` : 'No row-level issue found.',
-      this.hasCriticalErrors() ? 'Final import blocked rahega jab tak critical errors fix nahi hote.' : 'Critical errors nahi hain; approval gate complete karke import kar sakte ho.'
+      this.hasCriticalErrors() ? 'Final import remains blocked until critical errors are fixed.' : 'No critical errors found. Complete the approval gate to import.'
     ].join(' '));
   }
 

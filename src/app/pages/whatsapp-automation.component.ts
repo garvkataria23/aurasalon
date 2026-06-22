@@ -35,7 +35,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
       <div class="ai-layout" *ngIf="!loading()">
         <section class="form-panel">
-          <h3>Inbound auto reply and AI intent detection</h3>
+          <h3>Inbound auto reply and intent detection</h3>
           <form [formGroup]="inboundForm" (ngSubmit)="processInbound()">
             <label class="field"><span>Phone</span><input formControlName="phone" placeholder="+91 98765 00000" /></label>
             <label class="field"><span>Name</span><input formControlName="displayName" placeholder="Lead name" /></label>

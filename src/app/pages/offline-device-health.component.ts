@@ -18,21 +18,41 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <button class="ghost-button" type="button" (click)="load()">Refresh</button>
       </div>
       <app-state [loading]="loading()" [error]="error()"></app-state>
+      <div class="metrics-grid" *ngIf="status()?.metrics as metrics">
+        <article class="metric-card"><span>Devices</span><strong>{{ metrics.devices || 0 }}</strong><small>Known offline-capable devices</small></article>
+        <article class="metric-card"><span>Ready</span><strong>{{ metrics.ready || 0 }}</strong><small>Cache and sync clear</small></article>
+        <article class="metric-card"><span>Pending</span><strong>{{ metrics.pending || 0 }}</strong><small>Queue retry needed</small></article>
+        <article class="metric-card"><span>Blocked</span><strong>{{ metrics.blocked || 0 }}</strong><small>Conflict review needed</small></article>
+      </div>
+      <section class="panel">
+        <div class="section-title">
+          <h2>Offline-first PWA</h2>
+          <span class="badge">{{ status()?.offlineFirstPwa?.ready ? 'Ready' : 'Needs cache' }}</span>
+        </div>
+        <div class="quick-grid">
+          <article class="action-card">
+            <strong>{{ status()?.offlineFirstPwa?.installPrompt }}</strong>
+            <span>{{ status()?.offlineFirstPwa?.queuePolicy }}</span>
+            <small>{{ status()?.offlineFirstPwa?.conflictPolicy }}</small>
+          </article>
+        </div>
+      </section>
       <section class="panel">
         <div class="section-title"><h2>Devices</h2></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Status</th><th>Device ID</th><th>Pending</th><th>Failed</th><th>Last seen</th><th>App version</th></tr></thead>
+            <thead><tr><th>Status</th><th>Device ID</th><th>Pending</th><th>Conflicts</th><th>Cache packs</th><th>Last seen</th><th>Next action</th></tr></thead>
             <tbody>
               <tr *ngFor="let device of devices()">
                 <td><span class="badge">{{ device.status }}</span></td>
                 <td>{{ device.deviceId }}</td>
-                <td>{{ device.pending }}</td>
-                <td>{{ device.failed }}</td>
+                <td>{{ device.queued }}</td>
+                <td>{{ device.conflicts }}</td>
+                <td>{{ device.cacheSnapshots }}</td>
                 <td>{{ device.lastSeen | date: 'short' }}</td>
-                <td>{{ device.appVersion || 'Not reported' }}</td>
+                <td>{{ device.nextAction }}</td>
               </tr>
-              <tr *ngIf="!devices().length"><td colspan="6">No device sync activity yet.</td></tr>
+              <tr *ngIf="!devices().length"><td colspan="7">No device sync activity yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -41,7 +61,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
   `
 })
 export class OfflineDeviceHealthComponent implements OnInit {
-  readonly summary = signal<ApiRecord | null>(null);
+  readonly status = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
 
@@ -50,27 +70,13 @@ export class OfflineDeviceHealthComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.api.list<ApiRecord>('offline/summary').subscribe({
-      next: (summary) => { this.summary.set(summary); this.loading.set(false); },
+    this.api.list<ApiRecord>('offline/device-sync-status').subscribe({
+      next: (status) => { this.status.set(status); this.loading.set(false); },
       error: (error) => { this.error.set(this.api.errorText(error)); this.loading.set(false); }
     });
   }
 
   devices(): ApiRecord[] {
-    const map = new Map<string, ApiRecord>();
-    for (const item of this.summary()?.syncItems || []) {
-      const id = item.deviceId || 'unknown-device';
-      const row = map.get(id) || { deviceId: id, pending: 0, failed: 0, lastSeen: item.createdAt, status: 'online', appVersion: item.appVersion || '' };
-      if (item.status === 'queued') row.pending += 1;
-      if (item.status === 'failed' || item.status === 'conflict') row.failed += 1;
-      if (!row.lastSeen || item.createdAt > row.lastSeen) row.lastSeen = item.createdAt;
-      row.status = row.failed ? 'risk' : row.pending ? 'partial' : 'online';
-      map.set(id, row);
-    }
-    for (const snapshot of this.summary()?.snapshots || []) {
-      const id = snapshot.deviceId || 'unknown-device';
-      if (!map.has(id)) map.set(id, { deviceId: id, pending: 0, failed: 0, lastSeen: snapshot.createdAt, status: 'ready', appVersion: snapshot.appVersion || '' });
-    }
-    return [...map.values()];
+    return this.status()?.devices || [];
   }
 }

@@ -27,7 +27,11 @@ const DEFAULT_POLICIES = {
   subscriptionGuardEnabled: "true",
   antiAccountSharingEnabled: "true",
   fraudWarningCenterEnabled: "true",
-  responsibleDisclosureEnabled: "true"
+  responsibleDisclosureEnabled: "true",
+  encryptionAtRestReady: "false",
+  immutableAuditEvidenceEnabled: "true",
+  soc2ReadinessEnabled: "true",
+  iso27001ReadinessEnabled: "true"
 };
 
 const EXPORT_PATH_PATTERN = /(export|download|csv|xlsx|pdf|backup|dump)/i;
@@ -89,6 +93,24 @@ function rowWithJson(row, fields = []) {
   return output;
 }
 
+function countRows(sql, params = []) {
+  return Number(db.prepare(sql).get(...params)?.count || 0);
+}
+
+function evidenceHash(rows = []) {
+  const hash = createHash("sha256");
+  for (const row of rows) {
+    hash.update(`${row.source}|${row.id}|${row.action || row.fieldName || ""}|${row.createdAt || ""}|${row.updatedAt || ""}\n`);
+  }
+  return hash.digest("hex");
+}
+
+function controlWeight(status) {
+  if (status === "ready") return 1;
+  if (status === "partial") return 0.5;
+  return 0;
+}
+
 export class SecurityAdvancedService {
   getPolicies(access = {}) {
     this.ensureDefaultPolicies(access);
@@ -98,6 +120,133 @@ export class SecurityAdvancedService {
       ORDER BY branchId ASC, policyKey ASC
     `).all(access.tenantId, access.branchId || "");
     return rows.reduce((result, row) => ({ ...result, [row.policyKey]: row.policyValue }), {});
+  }
+
+  complianceReadiness(access = {}) {
+    const policies = this.getPolicies(access);
+    const users = countRows("SELECT COUNT(*) count FROM tenant_users WHERE tenantId = ? AND status = 'active'", [access.tenantId]);
+    const twoFactorUsers = countRows("SELECT COUNT(*) count FROM tenant_users WHERE tenantId = ? AND status = 'active' AND totpEnabled = 1", [access.tenantId]);
+    const ssoTotal = countRows("SELECT COUNT(*) count FROM security_sso_settings WHERE tenantId = ?", [access.tenantId]);
+    const ssoActive = countRows("SELECT COUNT(*) count FROM security_sso_settings WHERE tenantId = ? AND status IN ('active', 'enforced', 'ready')", [access.tenantId]);
+    const auditRows = [
+      ...db.prepare("SELECT 'security_audit_logs' source, id, action, createdAt, '' updatedAt FROM security_audit_logs WHERE tenantId = ? ORDER BY createdAt DESC LIMIT 50").all(access.tenantId),
+      ...db.prepare("SELECT 'audit_logs' source, id, action, createdAt, updatedAt FROM audit_logs WHERE tenantId = ? ORDER BY createdAt DESC LIMIT 50").all(access.tenantId),
+      ...db.prepare("SELECT 'security_field_audit_logs' source, id, fieldName, createdAt, '' updatedAt FROM security_field_audit_logs WHERE tenantId = ? ORDER BY createdAt DESC LIMIT 50").all(access.tenantId)
+    ].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 100);
+    const envEncryptionKeyPresent = Boolean(process.env.AURA_DB_ENCRYPTION_KEY || process.env.DB_ENCRYPTION_KEY || process.env.SQLITE_ENCRYPTION_KEY);
+    const encryptionReady = policies.encryptionAtRestReady === "true" || envEncryptionKeyPresent;
+    const exportProtectionReady = policies.exportProtectionEnabled !== "false" && Number(policies.exportDailyLimit || 0) > 0 && Number(policies.exportMaxRecords || 0) > 0;
+    const recentRiskEvents = db.prepare(`
+      SELECT riskLevel, riskScore, reasons, createdAt FROM security_risk_events
+      WHERE tenantId = ? AND (branchId = '' OR branchId = ?)
+      ORDER BY createdAt DESC
+      LIMIT 50
+    `).all(access.tenantId, access.branchId || "");
+    const controls = [
+      { key: "two_factor", framework: "SOC2 CC6 / ISO A.5", label: "2FA for admin users", status: twoFactorUsers > 0 ? "ready" : "gap", evidence: `${twoFactorUsers}/${users} active users have TOTP enabled` },
+      { key: "sso", framework: "SOC2 CC6 / ISO A.5", label: "SSO readiness", status: ssoActive > 0 || policies.ssoEnforcementReady === "true" ? "ready" : ssoTotal > 0 ? "partial" : "gap", evidence: `${ssoTotal} SSO setting(s), ${ssoActive} active` },
+      { key: "encryption_at_rest", framework: "SOC2 CC6 / ISO A.8", label: "Encryption-at-rest readiness", status: encryptionReady ? "ready" : "gap", evidence: envEncryptionKeyPresent ? "Encryption key environment is configured" : "Policy exists; DB encryption key is not configured" },
+      { key: "immutable_audit", framework: "SOC2 CC7 / ISO A.8", label: "Immutable audit evidence", status: auditRows.length && policies.immutableAuditEvidenceEnabled !== "false" ? "ready" : "gap", evidence: `${auditRows.length} audit evidence row(s), hash ${evidenceHash(auditRows).slice(0, 16)}` },
+      { key: "export_protection", framework: "SOC2 CC6 / ISO A.8", label: "Export protection", status: exportProtectionReady ? "ready" : "gap", evidence: `Daily limit ${policies.exportDailyLimit}, max records ${policies.exportMaxRecords}, PIN required ${policies.securityPinRequiredForExport}` },
+      { key: "privacy_governance", framework: "SOC2 Privacy / ISO A.5", label: "Privacy request governance", status: policies.privacyGovernanceEnabled === "true" ? "ready" : "gap", evidence: "Client access/export/delete request queue" },
+      { key: "incident_response", framework: "SOC2 CC7 / ISO A.5", label: "Incident response playbooks", status: policies.securityPlaybooksEnabled === "true" ? "ready" : "gap", evidence: "Security response playbooks enabled" }
+    ];
+    const ready = controls.filter((control) => control.status === "ready").length;
+    const partial = controls.filter((control) => control.status === "partial").length;
+    const score = Math.round(((ready + partial * 0.5) / controls.length) * 100);
+    const riskHeatmap = this.securityRiskHeatmap({ controls, recentRiskEvents, policies });
+    const evidenceExport = this.complianceEvidenceExport({ access, controls, auditRows, riskHeatmap, policies, score });
+    return {
+      score,
+      scoreBreakdown: { ready, partial, gaps: controls.length - ready - partial, total: controls.length },
+      status: score >= 85 ? "enterprise_ready" : score >= 65 ? "sale_ready_with_gaps" : "needs_hardening",
+      controls,
+      riskHeatmap,
+      evidence: {
+        immutableAuditHash: evidenceHash(auditRows),
+        evidenceRows: auditRows.length,
+        encryptionKeyConfigured: envEncryptionKeyPresent,
+        exportProtectionReady,
+        twoFactorCoverage: { users, enabled: twoFactorUsers },
+        sso: { total: ssoTotal, active: ssoActive },
+        exportBundleId: evidenceExport.bundleId,
+        exportGeneratedAt: evidenceExport.generatedAt
+      },
+      evidenceExport,
+      nextActions: controls.filter((control) => control.status !== "ready").map((control) => control.label)
+    };
+  }
+
+  securityRiskHeatmap({ controls = [], recentRiskEvents = [], policies = {} } = {}) {
+    const statusByKey = new Map(controls.map((control) => [control.key, control.status]));
+    const criticalRisk = recentRiskEvents.filter((event) => event.riskLevel === "critical").length;
+    const warningRisk = recentRiskEvents.filter((event) => event.riskLevel === "warning").length;
+    return [
+      {
+        area: "Identity",
+        score: Math.round((controlWeight(statusByKey.get("two_factor")) + controlWeight(statusByKey.get("sso"))) * 50),
+        risk: statusByKey.get("two_factor") === "ready" && statusByKey.get("sso") !== "gap" ? "low" : "high",
+        evidence: "2FA and SSO readiness"
+      },
+      {
+        area: "Audit Evidence",
+        score: Math.round(controlWeight(statusByKey.get("immutable_audit")) * 100),
+        risk: statusByKey.get("immutable_audit") === "ready" ? "low" : "critical",
+        evidence: "Immutable audit hash and sampled rows"
+      },
+      {
+        area: "Export/Data Protection",
+        score: Math.round((controlWeight(statusByKey.get("export_protection")) + controlWeight(statusByKey.get("encryption_at_rest"))) * 50),
+        risk: policies.securityPinRequiredForExport === "true" && statusByKey.get("export_protection") === "ready" ? "low" : "warning",
+        evidence: "Export guard, PIN, encryption readiness"
+      },
+      {
+        area: "Runtime Risk",
+        score: Math.max(0, 100 - criticalRisk * 30 - warningRisk * 12),
+        risk: criticalRisk ? "critical" : warningRisk ? "warning" : "low",
+        evidence: `${recentRiskEvents.length} recent risk events`
+      },
+      {
+        area: "Privacy/Incident",
+        score: Math.round((controlWeight(statusByKey.get("privacy_governance")) + controlWeight(statusByKey.get("incident_response"))) * 50),
+        risk: statusByKey.get("privacy_governance") === "ready" && statusByKey.get("incident_response") === "ready" ? "low" : "warning",
+        evidence: "Privacy queue and response playbooks"
+      }
+    ];
+  }
+
+  complianceEvidenceExport({ access = {}, controls = [], auditRows = [], riskHeatmap = [], policies = {}, score = 0 } = {}) {
+    const generatedAt = now();
+    const bundleSeed = `${access.tenantId || ""}|${access.branchId || ""}|${generatedAt}|${evidenceHash(auditRows)}`;
+    return {
+      bundleId: `evidence_${createHash("sha256").update(bundleSeed).digest("hex").slice(0, 12)}`,
+      generatedAt,
+      tenantId: access.tenantId || "",
+      branchId: access.branchId || "",
+      framework: ["SOC2", "ISO27001"],
+      score,
+      controls: controls.map((control) => ({
+        key: control.key,
+        framework: control.framework,
+        status: control.status,
+        evidence: control.evidence
+      })),
+      riskHeatmap,
+      immutableAuditHash: evidenceHash(auditRows),
+      sampledAuditRows: auditRows.length,
+      exportProtection: {
+        enabled: policies.exportProtectionEnabled !== "false",
+        pinRequired: policies.securityPinRequiredForExport === "true",
+        dailyLimit: Number(policies.exportDailyLimit || 0),
+        maxRecords: Number(policies.exportMaxRecords || 0)
+      }
+    };
+  }
+
+  exportComplianceEvidence(access = {}, req = {}) {
+    const readiness = this.complianceReadiness(access);
+    audit("security.compliance_evidence.exported", access, req, { id: readiness.evidenceExport?.bundleId, score: readiness.score });
+    return readiness.evidenceExport;
   }
 
   updatePolicies(payload = {}, access = {}, req = {}) {

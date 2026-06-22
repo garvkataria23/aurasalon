@@ -13,6 +13,22 @@ offlineRouter.get(
   })
 );
 
+offlineRouter.get(
+  "/offline/retry-dashboard",
+  requirePermission("read", () => "offline"),
+  asyncHandler((req, res) => {
+    res.json(offlineService.retryDashboard(req.query, req.access));
+  })
+);
+
+offlineRouter.get(
+  "/offline/device-sync-status",
+  requirePermission("read", () => "offline"),
+  asyncHandler((req, res) => {
+    res.json(offlineService.deviceSyncStatus(req.query, req.access));
+  })
+);
+
 offlineRouter.post(
   "/offline/cache-snapshots",
   requirePermission("write", () => "offline"),
@@ -34,6 +50,14 @@ offlineRouter.post(
   requirePermission("write", () => "offline"),
   asyncHandler((req, res) => {
     res.json(offlineService.sync(req.body, req.access));
+  })
+);
+
+offlineRouter.post(
+  "/offline/sync-items/:id/retry",
+  requirePermission("write", () => "offline"),
+  asyncHandler((req, res) => {
+    res.json(offlineService.retrySyncItem(req.params.id, req.body, req.access));
   })
 );
 

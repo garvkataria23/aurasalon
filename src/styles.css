@@ -498,13 +498,10 @@ small,
 }
 
 .topbar {
-  display: grid;
-  grid-template-columns: minmax(160px, 310px) minmax(0, 1fr);
-  align-items: end;
-  gap: 18px;
-  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   margin-bottom: 18px;
-  padding: 10px 0 14px;
 }
 
 .topbar h1,
@@ -2651,13 +2648,20 @@ td small {
   }
 
   .topbar {
-    grid-template-columns: 1fr;
-    min-height: auto;
+    flex-direction: column;
   }
 
-  .topbar-actions {
-    grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.7fr) minmax(132px, 0.5fr) auto auto auto;
-    justify-content: stretch;
+  .topbar-main-row {
+    flex-wrap: wrap;
+    min-height: auto;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .topbar-ctx-chip-text {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .crumb-strip,
@@ -2753,7 +2757,6 @@ td small {
     padding: 16px 12px 28px;
   }
 
-  .topbar,
   .module-hero,
   .table-toolbar {
     align-items: stretch;
@@ -2761,9 +2764,13 @@ td small {
     flex-direction: column;
   }
 
-  .topbar-actions {
-    grid-template-columns: 1fr;
-    justify-content: stretch;
+  .topbar-main-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .topbar-ctx-strip {
+    overflow-x: auto;
   }
 
   .hero-actions {
@@ -3780,89 +3787,338 @@ body::before {
   padding-right: 0;
 }
 
+/* ══════════════════════════════════════════
+   Topbar — Option C (Collapsible panel)
+   ══════════════════════════════════════════ */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 24;
-  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
-  align-items: center;
-  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   margin: 0 0 16px;
-  padding: 10px 14px;
   border: 0;
-  border-bottom: 1px solid rgba(15, 118, 110, 0.12);
   border-radius: 0;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(245, 250, 248, 0.8)),
-    rgba(255, 255, 255, 0.86);
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(14px) saturate(1.12);
+  background: #0f172a;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 
-.topbar::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 6px;
-  border-radius: 0;
-  background: linear-gradient(180deg, var(--teal), var(--gold));
+/* ── Row 1: Brand + Actions ── */
+.topbar-main-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  height: 58px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.topbar-brand-title {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding-left: 8px;
+/* Brand */
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
-.topbar-brand-title .eyebrow {
-  margin-bottom: 0;
-  color: var(--teal-2);
-  font-size: 0.68rem;
+.topbar-brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #534AB7, #7F77DD);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.topbar-brand:hover .topbar-brand-mark {
+  opacity: 0.85;
+}
+
+.topbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.topbar-eyebrow {
+  font-size: 0.6rem;
+  color: #64748b;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.topbar h1 {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: clamp(1.45rem, 1.08rem + 0.8vw, 2rem);
-  line-height: 0.98;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
+.topbar-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+/* Actions row (right side) */
+.topbar-main-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Back button */
+.topbar-main-actions .back-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 
-.topbar-signal-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+.topbar-main-actions .back-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #e2e8f0;
 }
 
-.topbar-signal-row span {
-  max-width: 210px;
-  min-height: 22px;
+/* Page label */
+.topbar-page-label {
+  font-size: 0.75rem;
+  color: #3d4f63;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  padding: 0 4px;
+}
+
+/* Context chip */
+.topbar-ctx-chip {
   display: inline-flex;
   align-items: center;
-  padding: 0 8px;
-  border: 1px solid rgba(15, 118, 110, 0.13);
-  border-radius: var(--radius-pill);
-  color: #23403b;
-  background: rgba(228, 245, 239, 0.78);
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.topbar-ctx-chip:hover {
+  background: rgba(83, 74, 183, 0.2);
+  border-color: rgba(127, 119, 221, 0.4);
+  color: #e2e8f0;
+}
+
+.topbar-panel-open .topbar-ctx-chip {
+  background: rgba(83, 74, 183, 0.25);
+  border-color: rgba(127, 119, 221, 0.5);
+  color: #e2e8f0;
+}
+
+.topbar-ctx-chip-icon {
+  font-size: 0.82rem;
+  color: #7F77DD;
+  flex-shrink: 0;
+}
+
+.topbar-ctx-chip-text {
+  color: inherit;
+  font-size: 0.8rem;
+}
+
+.topbar-ctx-chevron {
   font-size: 0.68rem;
-  font-weight: 900;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #64748b;
+  transition: transform 0.2s ease;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.topbar-ctx-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Fast POS button */
+.topbar-main-actions .dark-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  background: #534AB7;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
   white-space: nowrap;
 }
 
-.topbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  align-items: end;
-  min-width: 0;
+.topbar-main-actions .dark-button:hover {
+  background: #4338a0;
+  transform: translateY(-1px);
 }
+
+.topbar-main-actions .dark-button:active {
+  transform: translateY(0);
+}
+
+/* Logout button */
+.topbar-main-actions .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.topbar-main-actions .ghost-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}
+
+/* ── Collapsible panel ── */
+.topbar-detail-panel {
+  background: #162032;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  animation: topbarSlideDown 0.18s ease;
+  overflow: hidden;
+}
+
+@keyframes topbarSlideDown {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 120px; }
+}
+
+.topbar-detail-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 12px 20px;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+.topbar-detail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 20px;
+}
+
+.topbar-detail-group:first-child {
+  padding-left: 0;
+}
+
+.topbar-detail-label {
+  font-size: 0.6rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.topbar-detail-group select {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  min-height: 32px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 110px;
+}
+
+.topbar-detail-group select:hover {
+  border-color: rgba(127, 119, 221, 0.4);
+  background: #111827;
+}
+
+.topbar-detail-group select:focus {
+  border-color: #7F77DD;
+  background: #111827;
+  box-shadow: 0 0 0 2px rgba(127, 119, 221, 0.18);
+}
+
+.topbar-detail-group select option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.topbar-detail-divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+/* Apply button */
+.topbar-detail-apply {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: #534AB7;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
+.topbar-detail-apply:hover {
+  background: #4338a0;
+  transform: translateY(-1px);
+}
+
+.topbar-detail-apply:active {
+  transform: translateY(0);
+}
+
+/* Legacy stubs — kept so old page components don't break */
+.topbar-brand-title { display: grid; gap: 4px; min-width: 0; }
+.topbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .back-button {
   flex: 0 0 auto;
@@ -4387,12 +4643,8 @@ tbody tr:hover {
   }
 
   .topbar {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     top: 0;
-  }
-
-  .topbar-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .app-shell > .enterprise-sidebar .nav-section-items {
@@ -4439,14 +4691,9 @@ tbody tr:hover {
   }
 
   .topbar {
-    position: relative;
-    top: auto;
-    padding: 16px;
-    border-radius: 22px;
-  }
-
-  .topbar-actions {
-    grid-template-columns: 1fr;
+    position: sticky;
+    top: 0;
+    border-radius: 0;
   }
 
   .topbar-actions .primary-button,

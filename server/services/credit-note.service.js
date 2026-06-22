@@ -1,4 +1,5 @@
 import { billingService } from "./billing.service.js";
+import { balanceSheetService } from "./balance-sheet.service.js";
 import { badRequest } from "../utils/app-error.js";
 
 export class CreditNoteService {
@@ -35,6 +36,17 @@ export class CreditNoteService {
       actorUserId: access.userId || "",
       payload: { creditNoteId: creditNote.id, amount, reason: payload.reason }
     });
+    try {
+      balanceSheetService.enqueueInvoiceCreditNoteEvent({ invoice, creditNote, amount, access });
+    } catch {
+      billingService.writeEvent({
+        tenantId: access.tenantId,
+        invoiceId: invoice.id,
+        eventType: "finance.gl_enqueue_failed",
+        actorUserId: access.userId || "",
+        payload: { creditNoteId: creditNote.id, amount }
+      });
+    }
     return creditNote;
   }
 }

@@ -36,7 +36,7 @@ type BrandPreset = {
 
       <div class="save-banner" *ngIf="savedMessage()">
         <strong>{{ savedMessage() }}</strong>
-        <span>Saved colors browser me store ho jayenge aur page reload ke baad bhi load honge.</span>
+        <span>Saved colors are stored in this browser and remain available after page reload.</span>
       </div>
 
       <section class="preset-rail">
@@ -740,7 +740,7 @@ export class DesignSystemComponent implements OnInit {
 
   reset(): void {
     this.applyPreset(this.presets[0]);
-    this.savedMessage.set('Default theme applied. Save karne ke liye Save Theme dabayein.');
+    this.savedMessage.set('Default theme applied. Click Save Theme to keep it.');
   }
 
   saveTheme(): void {

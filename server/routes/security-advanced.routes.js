@@ -21,6 +21,14 @@ securityAdvancedRouter.get("/security/policy", asyncHandler((req, res) => {
   res.json({ policies: securityAdvancedService.getPolicies(req.access) });
 }));
 
+securityAdvancedRouter.get("/security/compliance-readiness", asyncHandler((req, res) => {
+  res.json({ readiness: securityAdvancedService.complianceReadiness(req.access) });
+}));
+
+securityAdvancedRouter.get("/security/compliance-evidence/export", asyncHandler((req, res) => {
+  res.json({ evidence: securityAdvancedService.exportComplianceEvidence(req.access, req) });
+}));
+
 securityAdvancedRouter.put("/security/policy", asyncHandler((req, res) => {
   res.json({ policies: securityAdvancedService.updatePolicies(req.body || {}, req.access, req) });
 }));

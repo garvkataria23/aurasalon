@@ -13,6 +13,7 @@ type MasterTile = {
 };
 
 const masterTiles: MasterTile[] = [
+  { label: 'Salary Workspace', section: 'Payroll', path: '/staff-os/salary-workspace', status: 'live', accent: 'payroll' },
   { label: 'Employee Category', section: 'Core', path: '/staff-os/staff-categories', status: 'live', accent: 'people' },
   { label: 'Employee Master', section: 'Core', path: '/staff-os/staff-list', status: 'live', accent: 'people' },
   { label: 'Attendance Master', section: 'Attendance', path: '/staff-os/attendance-master', status: 'live', accent: 'time' },
@@ -28,6 +29,7 @@ const masterTiles: MasterTile[] = [
   { label: 'Employee - Service Setup', section: 'Services', path: '/staff-os/service-assignment', status: 'live', accent: 'services' },
   { label: 'Fines / Penalty Master', section: 'Payroll', path: '/staff-os/fines-penalties', status: 'live', accent: 'payroll' },
   { label: 'Allowance / Deduction Master', section: 'Payroll', path: '/staff-os/allowance-deduction', status: 'live', accent: 'payroll' },
+  { label: 'Payroll Rules', section: 'Payroll', path: '/staff-os/payroll-rules', status: 'live', accent: 'payroll' },
   { label: 'Advanced Payroll Setup', section: 'Payroll', path: '/staff-os/payroll-salary-structure', status: 'live', accent: 'payroll' },
   { label: 'Bulk Master Update [Employee]', section: 'Bulk Operations', path: '/staff-os/bulk-employee-update', status: 'live', accent: 'people' },
   { label: 'Staff Command Center', section: 'Staff Command', path: '/staff-enterprise', status: 'live', accent: 'people' },
@@ -35,9 +37,11 @@ const masterTiles: MasterTile[] = [
   { label: 'My Work', section: 'Staff Command', path: '/staff/my-work', status: 'live', accent: 'people' },
   { label: 'Connected Modules', section: 'Staff Command', path: '/staff/connected-modules', status: 'live', accent: 'services' },
   { label: 'Attendance Dashboard', section: 'Attendance Live', path: '/staff-os/attendance-dashboard', status: 'live', accent: 'time' },
+  { label: 'Face Punch', section: 'Attendance Live', path: '/staff-os/face-punch', status: 'live', accent: 'time' },
   { label: 'Roster Calendar', section: 'Attendance Live', path: '/staff-os/roster-calendar', status: 'live', accent: 'time' },
   { label: 'Leave Management', section: 'Attendance Live', path: '/staff-os/leave-management', status: 'live', accent: 'time' },
   { label: 'Payroll Dashboard', section: 'Payroll', path: '/staff-os/payroll-dashboard', status: 'live', accent: 'payroll' },
+  { label: 'Salary Generate', section: 'Payroll', path: '/staff-os/salary-generate', status: 'live', accent: 'payroll' },
   { label: 'Commissions', section: 'Commission', path: '/commissions', status: 'live', accent: 'money' },
   { label: 'Commission Dashboard', section: 'Commission', path: '/staff-os/commission-dashboard', status: 'live', accent: 'money' },
   { label: 'Performance Dashboard', section: 'Performance', path: '/staff-os/performance-dashboard', status: 'live', accent: 'services' },
@@ -125,6 +129,11 @@ const masterTiles: MasterTile[] = [
           <strong>Attendance Category</strong>
           <small>{{ counts().attendanceCategories }} rule sets</small>
         </a>
+        <a class="primary-tile payroll" routerLink="/staff-os/salary-generate">
+          <span>SG</span>
+          <strong>Salary Generate</strong>
+          <small>{{ counts().payrollRules }} payroll rules</small>
+        </a>
       </section>
 
       <div class="group-tabs" aria-label="Employee master sections">
@@ -171,7 +180,7 @@ const masterTiles: MasterTile[] = [
     .metrics strong { display: block; margin-top: 6px; font-size: 24px; letter-spacing: 0; }
     .state { color: #61746c; }
     .state.error { color: #a52828; border-color: #e7b1b1; }
-    .primary-band { display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 12px; }
+    .primary-band { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 12px; }
     .primary-tile, .tile { border: 1px solid #d9e5de; border-radius: 8px; background: #fff; color: #10201a; display: grid; gap: 7px; min-height: 118px; padding: 16px; text-align: left; text-decoration: none; }
     .primary-tile { min-height: 138px; align-content: space-between; }
     .primary-tile span, .tile-icon { align-items: center; border-radius: 8px; display: inline-flex; font-size: 12px; font-weight: 900; height: 34px; justify-content: center; width: 42px; }
@@ -181,7 +190,7 @@ const masterTiles: MasterTile[] = [
     .time .tile-icon, .primary-tile.time span { background: #eaf4f8; color: #1f6172; }
     .money .tile-icon, .primary-tile.money span { background: #fff4e4; color: #8a5a00; }
     .services .tile-icon { background: #f4efff; color: #5f4aa3; }
-    .payroll .tile-icon { background: #f3f5f7; color: #445261; }
+    .payroll .tile-icon, .primary-tile.payroll span { background: #f3f5f7; color: #445261; }
     .group-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px; border: 1px solid #d9e5de; border-radius: 8px; background: #f8fbf9; }
     .group-tabs button { background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #34483f; cursor: pointer; font-weight: 850; min-height: 36px; padding: 8px 11px; white-space: nowrap; }
     .group-tabs button.active { background: #10201a; border-color: #10201a; color: #fff; }

@@ -37,6 +37,54 @@ saasRouter.get(
   })
 );
 
+saasRouter.get(
+  "/saas/billing-preview",
+  requirePermission("read", () => "tenants"),
+  asyncHandler((req, res) => {
+    res.json(tenantService.billingPreview(req.access.tenantId, req.query.periodStart));
+  })
+);
+
+saasRouter.get(
+  "/saas/features",
+  requirePermission("read", () => "tenants"),
+  asyncHandler((req, res) => {
+    res.json(tenantService.featureAccess(req.access.tenantId));
+  })
+);
+
+saasRouter.get(
+  "/saas/tenant-health",
+  requirePermission("read", () => "tenants"),
+  asyncHandler((req, res) => {
+    res.json(tenantService.tenantHealth(req.access.tenantId));
+  })
+);
+
+saasRouter.get(
+  "/saas/subscription-limits",
+  requirePermission("read", () => "tenants"),
+  asyncHandler((req, res) => {
+    res.json(tenantService.subscriptionLimits(req.access.tenantId));
+  })
+);
+
+saasRouter.get(
+  "/saas/usage-based-billing",
+  requirePermission("read", () => "tenants"),
+  asyncHandler((req, res) => {
+    res.json(tenantService.usageBasedBilling(req.access.tenantId, req.query.periodStart));
+  })
+);
+
+saasRouter.get(
+  "/saas/white-label-readiness",
+  requirePermission("read", () => "tenants"),
+  asyncHandler((req, res) => {
+    res.json(tenantService.whiteLabelReadiness(req.access.tenantId));
+  })
+);
+
 saasRouter.post(
   "/saas/domain-mappings",
   requirePermission("write", () => "tenants"),

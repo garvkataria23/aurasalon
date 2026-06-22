@@ -40,7 +40,7 @@ const GRANTS: Record<string, string[]> = {
   cashier: ['read:*', 'write:clients', 'write:sales', 'write:invoices', 'write:payments', 'read:appointment_deposits', 'read:finance', 'write:finance'],
   accountant: ['read:*', 'write:finance', 'write:invoices', 'write:payments', 'read:appointment_deposits'],
   inventoryManager: ['read:*', 'write:products', 'write:inventory', 'write:suppliers'],
-  staff: ['read:appointments', 'read:clients', 'read:services', 'write:appointments'],
+  staff: ['read:staff', 'read:appointments', 'read:clients', 'read:services', 'write:appointments'],
   analyst: ['read:*', 'write:analytics']
 };
 

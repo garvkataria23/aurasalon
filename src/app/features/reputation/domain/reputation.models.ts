@@ -118,10 +118,17 @@ export interface ReviewPlatform {
   branchId: string;
   platformCode: string;
   platformName: string;
+  platformUrl: string;
+  businessListingId: string;
   businessListingUrl: string;
   autoSyncEnabled: boolean;
   lastSyncedAt: string;
   lastSyncStatus: string;
+  providerStatus: string;
+  tokenEnvKey: string;
+  accountId: string;
+  locationId: string;
+  pageAccountId: string;
   rateLimitPerDay: number;
   providerConfig: Record<string, unknown>;
   isActive: boolean;

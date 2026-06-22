@@ -25,7 +25,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       <ng-container *ngIf="overview() as overview">
         <div class="metrics-grid">
           <aura-kpi-card tone="teal" target="/kpi-details/super-admin/salons"><span>Salons</span><strong>{{ overview.metrics.salons }}</strong><small>{{ overview.metrics.activeSalons }} active</small></aura-kpi-card>
-          <aura-kpi-card tone="green" target="/kpi-details/super-admin/mrr"><span>MRR</span><strong>{{ overview.metrics.monthlyRecurringRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Subscription revenue</small></aura-kpi-card>
+          <aura-kpi-card tone="green" target="/kpi-details/super-admin/mrr"><span>MRR</span><strong>{{ overview.metrics.monthlyRecurringRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ overview.metrics.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} metered usage</small></aura-kpi-card>
           <aura-kpi-card tone="blue" target="/kpi-details/super-admin/tenant-sales"><span>Tenant sales</span><strong>{{ overview.metrics.transactionRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Across salons</small></aura-kpi-card>
           <aura-kpi-card tone="red" target="/kpi-details/super-admin/suspended"><span>Suspended</span><strong>{{ overview.metrics.suspendedSalons }}</strong><small>Account risk</small></aura-kpi-card>
           <aura-kpi-card tone="amber" target="/kpi-details/super-admin/trials"><span>Trials</span><strong>{{ overview.metrics.trialSalons }}</strong><small>Trial system</small></aura-kpi-card>
@@ -52,14 +52,14 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Salon</th><th>Plan</th><th>Status</th><th>MRR</th><th>Sales</th><th>Usage</th><th>Health</th><th></th></tr>
+                <tr><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th></th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let tenant of overview.tenants">
                   <td><strong>{{ tenant.name }}</strong><small>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain }}</small></td>
                   <td>{{ tenant.planName }}</td>
                   <td><span class="badge">{{ tenant.subscriptionStatus }}</span></td>
-                  <td>{{ tenant.monthlyRecurringRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ tenant.totalBillingAmount | currency: 'INR':'symbol':'1.0-0' }}<small>{{ tenant.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} usage</small></td>
                   <td>{{ tenant.transactionRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
                   <td>{{ tenant.usage.clients }} clients · {{ tenant.usage.appointments }} bookings</td>
                   <td>{{ tenant.healthScore | number: '1.0-1' }}</td>
@@ -190,7 +190,7 @@ export class SuperAdminComponent implements OnInit {
 
   readonly toggleForm = this.fb.group({
     key: ['ai.marketing', Validators.required],
-    name: ['AI marketing automation', Validators.required],
+    name: ['Marketing automation', Validators.required],
     scope: ['global'],
     enabled: [true],
     description: ['Enable AI campaign generation and retargeting workflows.']

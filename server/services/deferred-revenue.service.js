@@ -78,8 +78,8 @@ export const deferredRevenueService = {
     const { tenantId, branchId } = scope(access, payload.branchId || "");
     const asOfDate = normalizeBusinessDate(payload.asOfDate || istToday());
     const due = db.prepare(
-      "SELECT * FROM deferredSchedules WHERE tenantId=? AND status='active' AND method='straight_line' AND startDate<=?"
-    ).all(tenantId, asOfDate);
+      "SELECT * FROM deferredSchedules WHERE tenantId=? AND branchId=? AND status='active' AND method='straight_line' AND startDate<=?"
+    ).all(tenantId, branchId, asOfDate);
     const summary = { recognized: 0, totalPaise: 0, schedules: [] };
     for (const s of due) {
       const targetPeriods = Math.min(s.periods, monthsElapsed(s.startDate, asOfDate));
@@ -98,8 +98,8 @@ export const deferredRevenueService = {
   // Usage-based recognition (e.g. consume part of a package on a salon visit).
   recognizeUsage(payload = {}, access = {}) {
     const { tenantId, branchId } = scope(access, payload.branchId || "");
-    const s = db.prepare("SELECT * FROM deferredSchedules WHERE tenantId=? AND sourceType=? AND sourceId=?")
-      .get(tenantId, payload.sourceType || "package", String(payload.sourceId || ""));
+    const s = db.prepare("SELECT * FROM deferredSchedules WHERE tenantId=? AND branchId=? AND sourceType=? AND sourceId=?")
+      .get(tenantId, branchId, payload.sourceType || "package", String(payload.sourceId || ""));
     if (!s) throw notFound("Deferred schedule not found");
     if (s.status !== "active") throw badRequest(`Schedule is ${s.status}`);
     const remaining = s.totalPaise - s.recognizedPaise;

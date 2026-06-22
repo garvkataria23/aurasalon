@@ -8,20 +8,11 @@ script = ""
 [setup.win32]
 script = '''
 cd "%CODEX_WORKTREE_PATH%"
-
-echo AuraShine Setup Starting
-
 node -v
 npm -v
-
-npm install -g npm@latest
-npm install -g @angular/cli
-npm install -g nx
-
+git config --global --add safe.directory "%CODEX_WORKTREE_PATH%"
+git branch codex-start-backup 2>nul
 npm install
-
-npx nx reset || exit 0
-
 echo Setup Complete
 '''
 
@@ -31,12 +22,12 @@ script = ""
 [cleanup.win32]
 script = '''
 cd "%CODEX_WORKTREE_PATH%"
-
-echo Cleaning AuraShine Workspace
-
-rmdir /s /q .angular\cache 2>nul
-
-echo Cleanup Complete
+echo Saving all work to GitHub before cleanup...
+git add -A
+git commit -m "codex-autosave: before cleanup" 2>nul
+git push origin HEAD 2>nul
+git push origin HEAD:codex-backup 2>nul
+echo Work saved to GitHub. Cleanup done.
 '''
 
 [[actions]]
@@ -52,7 +43,7 @@ name = "Build App"
 icon = "tool"
 command = '''
 cd "%CODEX_WORKTREE_PATH%"
-npx nx build
+npm run build
 '''
 
 [[actions]]
@@ -60,7 +51,7 @@ name = "Lint Check"
 icon = "tool"
 command = '''
 cd "%CODEX_WORKTREE_PATH%"
-npx nx lint
+npm run lint
 '''
 
 [[actions]]
@@ -69,5 +60,14 @@ icon = "tool"
 command = '''
 cd "%CODEX_WORKTREE_PATH%"
 npm install
-npx nx reset
+'''
+
+[[actions]]
+name = "Backup Now"
+icon = "tool"
+command = '''
+cd "%CODEX_WORKTREE_PATH%"
+git add -A
+git commit -m "manual backup"
+git push origin HEAD
 '''

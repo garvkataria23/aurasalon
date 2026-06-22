@@ -33,7 +33,41 @@ function accountIdByCode(tenantId, branchId, code) {
 // ---------------------------------------------------------------------------
 const PAYMENT_ASSET = { cash: "1000", bank: "1010" };
 const EXPENSE_BY_CATEGORY = {
-  salary: "5100", rent: "5200", marketing: "5300", cogs: "5000", depreciation: "5400"
+  salary: "5100",
+  staff_salary: "5100",
+  commission: "5100",
+  staff_commission: "5100",
+  rent: "5200",
+  marketing: "5300",
+  utilities: "5300",
+  software_subscription: "5300",
+  communication: "5300",
+  repair_maintenance: "5300",
+  cleaning_housekeeping: "5300",
+  bank_charges: "5300",
+  professional_legal: "5300",
+  other: "5300",
+  cogs: "5000",
+  product: "5000",
+  product_consumable: "5000",
+  wastage_damage: "5000",
+  inventory_purchase: "1200",
+  fixed_asset_purchase: "1500",
+  security_deposit: "1100",
+  prepaid_expense: "1100",
+  gst_payment: "2100",
+  statutory_payment: "2100",
+  bank_deposit: "1010",
+  advance: "1100",
+  loan: "2200",
+  interest: "5300",
+  owner_drawing: "3100",
+  depreciation: "5400",
+  client_refreshment: "5300",
+  uniform: "5300",
+  stationery: "5300",
+  travel: "5300",
+  training: "5300"
 };
 
 const eventMappers = {
@@ -44,6 +78,19 @@ const eventMappers = {
       { code: p.revenueCode || "4000", creditPaise: money(p.amountPaise) }
     ]
   }),
+  "invoice.receivable": (p) => {
+    const amount = money(p.amountPaise);
+    const tax = Math.min(amount, money(p.taxPaise));
+    const revenue = amount - tax;
+    return {
+      memo: p.memo || "Invoice receivable",
+      lines: [
+        { code: "1100", debitPaise: amount },
+        ...(revenue > 0 ? [{ code: p.revenueCode || "4000", creditPaise: revenue }] : []),
+        ...(tax > 0 ? [{ code: "2100", creditPaise: tax }] : [])
+      ]
+    };
+  },
   "invoice.refund": (p) => {
     const amount = money(p.amountPaise);
     const tax = Math.min(amount, money(p.taxReversalPaise));
@@ -57,20 +104,84 @@ const eventMappers = {
       ]
     };
   },
-  "expense.recorded": (p) => ({
-    memo: p.memo || `Expense: ${p.category || "general"}`,
-    lines: [
-      { code: EXPENSE_BY_CATEGORY[p.category] || "5300", debitPaise: money(p.amountPaise) },
-      { code: p.settled === false ? "2000" : (PAYMENT_ASSET[p.mode] || "1010"), creditPaise: money(p.amountPaise) }
-    ]
-  }),
-  "inventory.purchase": (p) => ({
-    memo: p.memo || "Inventory purchase",
-    lines: [
-      { code: "1200", debitPaise: money(p.totalCostPaise) },
-      { code: p.settled === false ? "2000" : (PAYMENT_ASSET[p.mode] || "1010"), creditPaise: money(p.totalCostPaise) }
-    ]
-  }),
+  "invoice.credit_note": (p) => {
+    const amount = money(p.amountPaise);
+    const tax = Math.min(amount, money(p.taxReversalPaise));
+    const net = amount - tax;
+    return {
+      memo: p.memo || "Invoice credit note",
+      lines: [
+        { code: p.revenueCode || "4000", debitPaise: net },
+        ...(tax > 0 ? [{ code: "2100", debitPaise: tax }] : []),
+        { code: p.liabilityCode || "2000", creditPaise: amount }
+      ]
+    };
+  },
+  "invoice.void": (p) => {
+    const amount = money(p.amountPaise);
+    const tax = Math.min(amount, money(p.taxReversalPaise));
+    const net = amount - tax;
+    return {
+      memo: p.memo || "Invoice void reversal",
+      lines: [
+        { code: p.revenueCode || "4000", debitPaise: net },
+        ...(tax > 0 ? [{ code: "2100", debitPaise: tax }] : []),
+        { code: PAYMENT_ASSET[p.mode] || "1010", creditPaise: amount }
+      ]
+    };
+  },
+  "expense.recorded": (p) => {
+    const lineItems = Array.isArray(p.lineItems) ? p.lineItems : [];
+    const baseDebitLines = lineItems
+      .map((item) => ({
+        code: EXPENSE_BY_CATEGORY[item.category] || "5300",
+        debitPaise: money(item.amountPaise),
+        memo: item.memo || p.memo || ""
+      }))
+      .filter((line) => line.debitPaise > 0);
+    const totalPaise = baseDebitLines.length
+      ? baseDebitLines.reduce((sum, line) => sum + line.debitPaise, 0)
+      : money(p.amountPaise);
+    const inputGstPaise = Math.min(totalPaise, Math.max(0, money(p.inputGstPaise)));
+    let remainingInputGstPaise = inputGstPaise;
+    const debitSourceLines = baseDebitLines.length
+      ? baseDebitLines
+      : [{ code: EXPENSE_BY_CATEGORY[p.category] || "5300", debitPaise: totalPaise }];
+    const debitLines = debitSourceLines
+      .map((line, index) => {
+        if (!inputGstPaise || totalPaise <= 0) return line;
+        const share = index === debitSourceLines.length - 1
+          ? remainingInputGstPaise
+          : Math.min(line.debitPaise, Math.round((line.debitPaise / totalPaise) * inputGstPaise));
+        remainingInputGstPaise -= share;
+        return { ...line, debitPaise: line.debitPaise - share };
+      })
+      .filter((line) => line.debitPaise > 0);
+    return {
+      memo: p.memo || `Expense: ${p.category || "general"}`,
+      lines: [
+        ...debitLines,
+        ...(inputGstPaise > 0 ? [{ code: "2100", debitPaise: inputGstPaise, memo: "Input GST credit" }] : []),
+        { code: p.settled === false ? "2000" : (PAYMENT_ASSET[p.mode] || "1010"), creditPaise: totalPaise }
+      ]
+    };
+  },
+  "inventory.purchase": (p) => {
+    const inventoryPaise = money(p.totalCostPaise);
+    const taxPaise = Math.max(0, money(p.taxPaise));
+    const payablePaise = money(p.payablePaise || inventoryPaise + taxPaise);
+    const roundOffPaise = payablePaise - inventoryPaise - taxPaise;
+    return {
+      memo: p.memo || "Inventory purchase",
+      lines: [
+        { code: "1200", debitPaise: inventoryPaise },
+        ...(taxPaise > 0 ? [{ code: "2100", debitPaise: taxPaise }] : []),
+        ...(roundOffPaise > 0 ? [{ code: "5300", debitPaise: roundOffPaise, memo: "Purchase round off" }] : []),
+        ...(roundOffPaise < 0 ? [{ code: "5300", creditPaise: Math.abs(roundOffPaise), memo: "Purchase round off" }] : []),
+        { code: p.settled === false ? "2000" : (PAYMENT_ASSET[p.mode] || "1010"), creditPaise: payablePaise }
+      ]
+    };
+  },
   "inventory.cogs": (p) => ({
     memo: p.memo || "Cost of goods sold",
     lines: [
@@ -146,15 +257,18 @@ export const balanceSheetHardeningService = {
   },
 
   processOutbox(payload = {}, access = {}) {
-    const { tenantId } = scope(access);
+    const { tenantId, branchId } = scope(access, payload.branchId || "");
     const limit = Math.min(Math.max(Number(payload.limit) || 50, 1), 500);
+    const retryFailed = Boolean(payload.retryFailed || payload.forceRetryFailed);
     const now = epochSeconds();
     const pending = db.prepare(`
       SELECT * FROM glOutbox
       WHERE tenantId = @tenantId AND status IN ('pending','failed')
-        AND attempts < maxAttempts AND availableAt <= @now
+        ${branchId ? "AND branchId = @branchId" : ""}
+        AND (attempts < maxAttempts OR (@retryFailed = 1 AND status = 'failed'))
+        AND (availableAt <= @now OR (@retryFailed = 1 AND status = 'failed'))
       ORDER BY createdAt ASC LIMIT @limit
-    `).all({ tenantId, now, limit });
+    `).all(branchId ? { tenantId, branchId, retryFailed: retryFailed ? 1 : 0, now, limit } : { tenantId, retryFailed: retryFailed ? 1 : 0, now, limit });
 
     const summary = { processed: 0, posted: 0, failed: 0, results: [] };
     for (const row of pending) {
@@ -211,11 +325,13 @@ export const balanceSheetHardeningService = {
   },
 
   outbox(query = {}, access = {}) {
-    const { tenantId } = scope(access);
+    const { tenantId, branchId } = scope(access, query.branchId || "");
     const status = String(query.status || "");
-    const rows = status
-      ? db.prepare("SELECT * FROM glOutbox WHERE tenantId=? AND status=? ORDER BY createdAt DESC LIMIT 200").all(tenantId, status)
-      : db.prepare("SELECT * FROM glOutbox WHERE tenantId=? ORDER BY createdAt DESC LIMIT 200").all(tenantId);
+    const filters = ["tenantId=@tenantId"];
+    const params = { tenantId, branchId, status };
+    if (branchId) filters.push("branchId=@branchId");
+    if (status) filters.push("status=@status");
+    const rows = db.prepare(`SELECT * FROM glOutbox WHERE ${filters.join(" AND ")} ORDER BY createdAt DESC LIMIT 200`).all(params);
     return rows.map(this.outboxRow);
   },
 
@@ -254,11 +370,21 @@ export const balanceSheetHardeningService = {
         totalCostPaise: addValue, wmaCostAfterPaise: wmaAfter, qtyAfter, valueAfterPaise: valueAfter,
         sourceType: payload.sourceType || "purchase", sourceId: payload.sourceId || "", businessDate
       });
+      const taxPaise = Math.max(0, money(payload.taxPaise));
+      const payablePaise = money(payload.payablePaise || addValue + taxPaise);
       const event = this.enqueue({
         branchId, eventType: "inventory.purchase",
         eventKey: `inv-in:${sku}:${payload.sourceId || id("m")}`,
         businessDate,
-        data: { totalCostPaise: addValue, mode: payload.mode, settled: payload.settled }
+        data: {
+          totalCostPaise: addValue,
+          taxPaise,
+          payablePaise,
+          mode: payload.mode,
+          settled: payload.settled,
+          supplierId: payload.supplierId || "",
+          memo: payload.memo || `Inventory purchase ${sku}`
+        }
       }, access);
       return { sku, qtyOnHand: qtyAfter, wmaCost: rupees(wmaAfter), totalValue: rupees(valueAfter), outbox: event.event };
     })();
@@ -446,9 +572,9 @@ export const balanceSheetHardeningService = {
       detail: inv.reconciled ? "" : `Variance ${inv.variance}`
     });
 
-    const stuck = db.prepare(
-      "SELECT COUNT(*) AS n FROM glOutbox WHERE tenantId=? AND status='failed'"
-    ).get(tenantId).n;
+    const stuck = branchId
+      ? db.prepare("SELECT COUNT(*) AS n FROM glOutbox WHERE tenantId=? AND branchId=? AND status='failed'").get(tenantId, branchId).n
+      : db.prepare("SELECT COUNT(*) AS n FROM glOutbox WHERE tenantId=? AND status='failed'").get(tenantId).n;
     checks.push({
       key: "outbox_healthy", label: "No GL outbox events stuck in failed state",
       ok: stuck === 0, severity: stuck ? "warning" : "ok",
@@ -495,7 +621,9 @@ export const balanceSheetHardeningService = {
   hardeningStatus(query = {}, access = {}) {
     const { tenantId, branchId } = scope(access, query.branchId || "");
     const latest = this.latestReconciliation({ branchId }, access);
-    const failedOutbox = db.prepare("SELECT COUNT(*) AS n FROM glOutbox WHERE tenantId=? AND status='failed'").get(tenantId).n;
+    const failedOutbox = branchId
+      ? db.prepare("SELECT COUNT(*) AS n FROM glOutbox WHERE tenantId=? AND branchId=? AND status='failed'").get(tenantId, branchId).n
+      : db.prepare("SELECT COUNT(*) AS n FROM glOutbox WHERE tenantId=? AND status='failed'").get(tenantId).n;
     const criticalAlerts = db.prepare(
       "SELECT COUNT(*) AS n FROM balanceSheetAlerts WHERE tenantId=? AND branchId=? AND status='open' AND severity='critical'"
     ).get(tenantId, branchId).n;

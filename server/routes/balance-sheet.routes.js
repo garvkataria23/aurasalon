@@ -3,6 +3,7 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { balanceSheetService } from "../services/balance-sheet.service.js";
 import { balanceSheetHardeningService } from "../services/balance-sheet-hardening.service.js";
+import { balanceSheetConnector } from "../services/balance-sheet-connector.service.js";
 
 export const balanceSheetRouter = Router();
 
@@ -42,8 +43,36 @@ balanceSheetRouter.get("/balance-sheet/finance-os", requirePermission("read", ()
   res.json(balanceSheetService.financeOs(req.query, req.access));
 }));
 
+balanceSheetRouter.get("/balance-sheet/controls", requirePermission("read", () => "finance"), asyncHandler((req, res) => {
+  res.json(balanceSheetService.financeControls(req.query, req.access));
+}));
+
 balanceSheetRouter.post("/balance-sheet/pos-gl-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
   res.status(201).json(balanceSheetService.syncPosToGl(req.body, req.access));
+}));
+
+balanceSheetRouter.post("/balance-sheet/purchase-gl-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(balanceSheetService.syncPurchasesToGl(req.body, req.access));
+}));
+
+balanceSheetRouter.post("/balance-sheet/purchase-input-gst-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(balanceSheetService.syncPurchaseInputGstToGl(req.body, req.access));
+}));
+
+balanceSheetRouter.post("/balance-sheet/prepaid-advance-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(balanceSheetConnector.syncPrepaidAdvances(req.body, req.access));
+}));
+
+balanceSheetRouter.post("/balance-sheet/wallet-credit-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(balanceSheetService.syncWalletCreditsToGl(req.body, req.access));
+}));
+
+balanceSheetRouter.post("/balance-sheet/payroll-statutory-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(balanceSheetService.syncPayrollStatutoryToGl(req.body, req.access));
+}));
+
+balanceSheetRouter.post("/balance-sheet/fixed-asset-purchase-sync", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(balanceSheetService.syncFixedAssetPurchasesToGl(req.body, req.access));
 }));
 
 balanceSheetRouter.post("/balance-sheet/copilot", requirePermission("read", () => "finance"), asyncHandler((req, res) => {

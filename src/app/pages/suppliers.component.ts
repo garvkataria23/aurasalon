@@ -41,6 +41,20 @@ interface SupplierCommandRow {
   cheaperSavingPct: number;
   trendBars: number[];
   suggestedPurchase: ApiRecord | null;
+  reliabilityScore: number;
+  onTimePct: number;
+  damagePct: number;
+  returnPct: number;
+  invoiceMismatchPct: number;
+  paymentTerms: string;
+  outstandingValue: number;
+  lastPaymentAt: string;
+  creditDaysOverdue: number;
+  poDraftItems: ApiRecord[];
+  poDraftTotal: number;
+  expectedDeliveryLabel: string;
+  whatsappLogCount: number;
+  mappingWarnings: string[];
 }
 
 @Component({
@@ -95,6 +109,16 @@ interface SupplierCommandRow {
           <strong>{{ priceRiseSuppliers().length }}</strong>
           <small>Unit cost increased over history</small>
         </article>
+        <article class="metric-card amber">
+          <span>Auto PO ready</span>
+          <strong>{{ autoPoDraftRows().length }}</strong>
+          <small>{{ autoPoDraftTotal() | currency: 'INR':'symbol':'1.0-0' }} draft value</small>
+        </article>
+        <article class="metric-card red">
+          <span>Supplier payable</span>
+          <strong>{{ supplierOutstandingTotal() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Open PO + unpaid supplier risk</small>
+        </article>
       </div>
 
       <section class="supplier-intelligence-grid">
@@ -103,7 +127,7 @@ interface SupplierCommandRow {
           <div class="trend-list">
             <article *ngFor="let row of topSpendRows()">
               <div>
-                <strong>{{ row.supplier.name }}</strong>
+                <strong>{{ supplierDisplayName(row.supplier) }}</strong>
                 <span>{{ row.purchaseValue | currency: 'INR':'symbol':'1.0-0' }} · {{ row.openPoCount }} open PO</span>
               </div>
               <div class="trend-bars" aria-label="Spend trend">
@@ -118,12 +142,81 @@ interface SupplierCommandRow {
           <div class="section-title"><div><span class="eyebrow">Purchase intelligence</span><h2>Price rise and cheaper supplier signals</h2></div></div>
           <div class="alert-list compact">
             <article *ngFor="let row of purchaseIntelligenceRows()">
-              <strong>{{ row.supplier.name }}</strong>
+              <strong>{{ supplierDisplayName(row.supplier) }}</strong>
               <span *ngIf="row.priceChangePct > 0">Price increased {{ row.priceChangePct | number: '1.0-1' }}% on tracked items.</span>
               <span *ngIf="row.cheaperAlternative">{{ row.cheaperAlternative }} may save {{ row.cheaperSavingPct | number: '1.0-1' }}% on matched products.</span>
               <small>{{ row.topProductName }}</small>
             </article>
             <div class="empty-state compact" *ngIf="!purchaseIntelligenceRows().length"><strong>No price warning</strong><span>Supplier costs are stable in available purchase history.</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="supplier-workbench-grid">
+        <article class="panel">
+          <div class="section-title"><div><span class="eyebrow">Price intelligence report</span><h2>Same product, supplier-wise price</h2></div></div>
+          <div class="table-wrap mini-report-table">
+            <table>
+              <thead><tr><th>Product</th><th>Supplier rates</th><th>Best price</th><th>Saving</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of priceComparisonRows()">
+                  <td><strong>{{ row.productName }}</strong><small>{{ row.productId }}</small></td>
+                  <td>{{ row.priceLine }}</td>
+                  <td><span class="badge" [class.warn]="row.savingPct > 0">{{ row.bestSupplierName }} · {{ row.bestCost | currency: 'INR':'symbol':'1.0-0' }}</span></td>
+                  <td>{{ row.savingPct | number: '1.0-1' }}%</td>
+                </tr>
+                <tr *ngIf="!priceComparisonRows().length"><td colspan="4">No supplier-wise comparable rates yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="section-title"><div><span class="eyebrow">Auto PO recommendation</span><h2>Supplier-wise draft from low stock</h2></div></div>
+          <div class="recommendation-list">
+            <article *ngFor="let row of autoPoDraftRows()">
+              <div>
+                <strong>{{ supplierDisplayName(row.supplier) }}</strong>
+                <span>{{ row.poDraftItems.length }} products · {{ row.poDraftTotal | currency: 'INR':'symbol':'1.0-0' }} · {{ row.expectedDeliveryLabel }}</span>
+              </div>
+              <div class="row-actions">
+                <button class="ghost-button mini" type="button" (click)="buildWhatsAppDraft(row)">WhatsApp draft</button>
+                <button class="ghost-button mini" type="button" (click)="createPoForSupplier(row)" [disabled]="saving()">Create PO</button>
+              </div>
+            </article>
+            <div class="empty-state compact" *ngIf="!autoPoDraftRows().length"><strong>No auto PO needed</strong><span>Low-stock supplier-linked products will appear here.</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="supplier-workbench-grid">
+        <article class="panel">
+          <div class="section-title"><div><span class="eyebrow">Purchase + GRN reliability</span><h2>Late, short, damaged and invoice mismatch</h2></div></div>
+          <div class="reliability-list">
+            <article *ngFor="let row of reliabilityRows()">
+              <div>
+                <strong>{{ supplierDisplayName(row.supplier) }}</strong>
+                <span>Score {{ row.reliabilityScore | number: '1.0-0' }} · on-time {{ row.onTimePct | number: '1.0-0' }}%</span>
+              </div>
+              <div class="metric-strip">
+                <span>Damage {{ row.damagePct | number: '1.0-0' }}%</span>
+                <span>Return {{ row.returnPct | number: '1.0-0' }}%</span>
+                <span>Invoice mismatch {{ row.invoiceMismatchPct | number: '1.0-0' }}%</span>
+              </div>
+            </article>
+            <div class="empty-state compact" *ngIf="!reliabilityRows().length"><strong>No reliability signal yet</strong><span>GRN and variance history will build the score.</span></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="section-title"><div><span class="eyebrow">Compliance, payment and mapping</span><h2>Missing setup and payable watch</h2></div></div>
+          <div class="watch-list">
+            <article *ngFor="let row of complianceWatchRows()">
+              <strong>{{ supplierDisplayName(row.supplier) }}</strong>
+              <span>{{ rowAlertSummary(row) }}</span>
+              <small>{{ row.outstandingValue | currency: 'INR':'symbol':'1.0-0' }} payable · {{ row.paymentTerms }}</small>
+            </article>
+            <div class="empty-state compact" *ngIf="!complianceWatchRows().length"><strong>Supplier setup clean</strong><span>GSTIN, contact, payment terms and product mapping are ready.</span></div>
           </div>
         </article>
       </section>
@@ -180,13 +273,13 @@ interface SupplierCommandRow {
               <tr *ngFor="let row of filteredSupplierRows()">
                 <td>
                   <a class="supplier-link" [routerLink]="['/suppliers', row.supplier.id]">
-                    <strong>{{ row.supplier.name }}</strong>
+                    <strong>{{ supplierDisplayName(row.supplier) }}</strong>
                   </a>
                   <small>{{ row.topProductName }} · {{ row.suppliedProducts }} linked products</small>
                 </td>
                 <td>
                   <span class="score-pill" [class.score-good]="row.score >= 85" [class.score-warn]="row.score < 85 && row.score >= 70" [class.score-danger]="row.score < 70">{{ row.score | number: '1.0-0' }}</span>
-                  <small>{{ row.status }}</small>
+                  <small>{{ row.status }} · reliability {{ row.reliabilityScore | number: '1.0-0' }}</small>
                 </td>
                 <td>
                   <strong>{{ row.purchaseValue | currency: 'INR':'symbol':'1.0-0' }}</strong>
@@ -194,16 +287,18 @@ interface SupplierCommandRow {
                 </td>
                 <td>
                   <strong>{{ row.openPoValue | currency: 'INR':'symbol':'1.0-0' }}</strong>
-                  <small>{{ row.openPoCount }} open PO</small>
+                  <small>{{ row.openPoCount }} open PO · {{ row.poDraftItems.length }} draft items</small>
                 </td>
                 <td>
                   <span class="badge" [class.warn]="row.qualityRisk > 0">{{ row.qualityRisk ? row.qualityRisk + ' signals' : 'clear' }}</span>
-                  <small>{{ row.expiringBatchCount }} expiring batches</small>
+                  <small>{{ row.expiringBatchCount }} expiring · on-time {{ row.onTimePct | number: '1.0-0' }}%</small>
                 </td>
                 <td>
                   <div class="compliance-stack">
                     <span class="mini-status" [class.ok]="!row.missingGstin" [class.warn]="row.missingGstin">{{ row.missingGstin ? 'GSTIN missing' : 'GSTIN ready' }}</span>
                     <span class="mini-status" [class.ok]="!row.missingContact" [class.warn]="row.missingContact">{{ row.missingContact ? 'Contact missing' : 'Contact ready' }}</span>
+                    <span class="mini-status" [class.ok]="!row.mappingWarnings.length" [class.warn]="row.mappingWarnings.length">{{ row.mappingWarnings.length ? 'Mapping risk' : 'Products mapped' }}</span>
+                    <span class="mini-status" [class.ok]="row.paymentTerms !== 'Payment terms missing'" [class.warn]="row.paymentTerms === 'Payment terms missing'">{{ row.paymentTerms }}</span>
                     <span class="mini-status warn" *ngIf="row.statusReason">{{ row.statusReason }}</span>
                     <span class="mini-status" *ngIf="row.statusHistoryCount">{{ row.statusHistoryCount }} status events</span>
                   </div>
@@ -213,7 +308,7 @@ interface SupplierCommandRow {
                   <strong *ngIf="row.priceChangePct <= 0">Stable</strong>
                   <small>{{ row.cheaperAlternative || 'No cheaper match' }}</small>
                 </td>
-                <td>{{ row.lastPurchaseAt ? (row.lastPurchaseAt | date: 'mediumDate') : 'No purchase' }}</td>
+                <td>{{ row.lastPurchaseAt ? (row.lastPurchaseAt | date: 'mediumDate') : 'No purchase' }}<small>{{ row.outstandingValue | currency: 'INR':'symbol':'1.0-0' }} payable · {{ row.whatsappLogCount }} WhatsApp log</small></td>
                 <td class="supplier-actions">
                   <a class="ghost-button mini" [routerLink]="['/suppliers', row.supplier.id]">360</a>
                   <button class="ghost-button mini" type="button" (click)="createPoForSupplier(row)" [disabled]="saving()">Create PO</button>
@@ -310,13 +405,20 @@ interface SupplierCommandRow {
     }
 
     .supplier-kpis {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
     }
 
     .supplier-intelligence-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .supplier-workbench-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
       align-items: start;
     }
@@ -379,13 +481,19 @@ interface SupplierCommandRow {
     }
 
     .trend-list,
-    .alert-list.compact {
+    .alert-list.compact,
+    .recommendation-list,
+    .reliability-list,
+    .watch-list {
       display: grid;
       gap: 9px;
     }
 
     .trend-list article,
-    .alert-list.compact article {
+    .alert-list.compact article,
+    .recommendation-list article,
+    .reliability-list article,
+    .watch-list article {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(120px, 0.5fr);
       gap: 12px;
@@ -400,13 +508,44 @@ interface SupplierCommandRow {
       grid-template-columns: 1fr;
     }
 
+    .watch-list article {
+      grid-template-columns: 1fr;
+    }
+
     .trend-list span,
     .alert-list.compact span,
-    .alert-list.compact small {
+    .alert-list.compact small,
+    .recommendation-list span,
+    .watch-list span,
+    .watch-list small,
+    .reliability-list span {
       display: block;
       margin-top: 3px;
       color: var(--muted);
       font-size: 0.82rem;
+    }
+
+    .row-actions,
+    .metric-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      justify-content: flex-end;
+    }
+
+    .metric-strip span {
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #475569;
+      font-weight: 800;
+    }
+
+    .mini-report-table table {
+      min-width: 720px;
     }
 
     .trend-bars {
@@ -593,6 +732,7 @@ interface SupplierCommandRow {
     @media (max-width: 1180px) {
       .supplier-kpis,
       .supplier-intelligence-grid,
+      .supplier-workbench-grid,
       .supplier-form,
       .supplier-filter-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -606,6 +746,7 @@ interface SupplierCommandRow {
 
       .supplier-kpis,
       .supplier-intelligence-grid,
+      .supplier-workbench-grid,
       .supplier-form,
       .supplier-filter-row {
         grid-template-columns: 1fr;
@@ -653,6 +794,18 @@ export class SuppliersComponent implements OnInit {
   readonly purchaseIntelligenceRows = computed(() =>
     this.supplierRows().filter((row) => row.priceChangePct > 0 || row.cheaperAlternative).slice(0, 6)
   );
+  readonly priceComparisonRows = computed(() => this.buildPriceComparisonRows().slice(0, 10));
+  readonly autoPoDraftRows = computed(() => this.supplierRows().filter((row) => row.poDraftItems.length > 0).sort((a, b) => b.poDraftTotal - a.poDraftTotal).slice(0, 8));
+  readonly autoPoDraftTotal = computed(() => this.autoPoDraftRows().reduce((total, row) => total + row.poDraftTotal, 0));
+  readonly reliabilityRows = computed(() =>
+    this.supplierRows().filter((row) => row.purchaseValue > 0 || row.openPoCount > 0 || row.qualityRisk > 0).sort((a, b) => a.reliabilityScore - b.reliabilityScore).slice(0, 8)
+  );
+  readonly supplierOutstandingTotal = computed(() => this.supplierRows().reduce((total, row) => total + row.outstandingValue, 0));
+  readonly complianceWatchRows = computed(() =>
+    this.supplierRows()
+      .filter((row) => row.complianceIssues.length || row.mappingWarnings.length || row.status !== 'active' || row.creditDaysOverdue > 0 || row.outstandingValue > 0)
+      .slice(0, 10)
+  );
 
   readonly supplierForm = this.fb.group({
     name: ['', Validators.required],
@@ -687,7 +840,7 @@ export class SuppliersComponent implements OnInit {
       firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/summary', { branchId })),
       firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/reports', { branchId }))
     ]).then(([suppliers, products, batches, transactions, purchaseOrders, whatsappQueue, intelligence, inventoryReport]) => {
-      this.suppliers.set(suppliers || []);
+      this.suppliers.set(this.normalizedSuppliers(suppliers));
       this.products.set(products || []);
       this.batches.set(batches || []);
       this.transactions.set(transactions || []);
@@ -740,7 +893,7 @@ export class SuppliersComponent implements OnInit {
     this.editingId.set(String(supplier.id || ''));
     this.showForm.set(true);
     this.supplierForm.reset({
-      name: supplier.name || '',
+      name: this.supplierDisplayName(supplier),
       contactName: supplier.contactName || '',
       phone: supplier.phone || '',
       email: supplier.email || '',
@@ -783,33 +936,35 @@ export class SuppliersComponent implements OnInit {
   buildWhatsAppDraft(row: SupplierCommandRow): void {
     const vendor = row.supplier;
     const contact = vendor.phone || vendor.email || 'supplier contact';
-    const items = row.draftItems || 'Please share latest rate card, delivery availability and GST invoice terms.';
-    this.whatsappDraft.set(`Draft to ${vendor.name} (${contact})\nPurchase follow-up: ${items}\nOpen PO value: INR ${Math.round(row.openPoValue).toLocaleString('en-IN')}\nNote: Send only after owner approval.`);
+    const items = row.poDraftItems.length
+      ? row.poDraftItems.map((item, index) => `${index + 1}. ${item['productName']} - Qty ${item['quantity']} - ${this.currencyText(Number(item['totalCost'] || 0))}`).join('\n')
+      : row.draftItems || 'Please share latest rate card, delivery availability and GST invoice terms.';
+    this.whatsappDraft.set(`Draft to ${this.supplierDisplayName(vendor)} (${contact})\nPO items:\n${items}\nExpected delivery: ${row.expectedDeliveryLabel}\nTotal draft value: ${this.currencyText(row.poDraftTotal || row.openPoValue)}\nGST invoice: required with batch/expiry if applicable\nPayment terms: ${row.paymentTerms}\nOpen PO value: ${this.currencyText(row.openPoValue)}\nNote: Send only after owner approval.`);
     this.success.set('Supplier WhatsApp draft prepared.');
   }
 
   createPoForSupplier(row: SupplierCommandRow): void {
-    const draft = row.suggestedPurchase;
-    if (!draft?.['productId'] || !draft?.['branchId']) {
+    const draftItems = row.poDraftItems.length ? row.poDraftItems : (row.suggestedPurchase ? [row.suggestedPurchase] : []);
+    if (!draftItems.length || !draftItems[0]?.['branchId']) {
       this.error.set('No linked product or branch found for this supplier. Link a product/batch first.');
       return;
     }
     this.saving.set(true);
     this.error.set('');
     this.api.post<ApiRecord>('inventory-intelligence/purchase-orders', {
-      branchId: draft['branchId'],
+      branchId: draftItems[0]['branchId'],
       supplierId: row.supplier.id,
       sourceType: 'supplier_command',
-      notes: `Supplier command draft for ${row.supplier.name}. ${draft['reason'] || 'Replenishment required.'}`,
-      items: [{
-        productId: draft['productId'],
-        quantity: Number(draft['quantity'] || 1),
-        unitCost: Number(draft['unitCost'] || 0)
-      }]
+      notes: `Supplier command draft for ${this.supplierDisplayName(row.supplier)}. ${row.poDraftItems.length} recommended item(s). ${draftItems[0]['reason'] || 'Replenishment required.'}`,
+      items: draftItems.map((item) => ({
+        productId: item['productId'],
+        quantity: Number(item['quantity'] || 1),
+        unitCost: Number(item['unitCost'] || 0)
+      }))
     }).subscribe({
       next: () => {
         this.saving.set(false);
-        this.success.set(`PO draft created for ${row.supplier.name}.`);
+        this.success.set(`PO draft created for ${this.supplierDisplayName(row.supplier)}.`);
         this.load();
       },
       error: (error) => {
@@ -830,7 +985,7 @@ export class SuppliersComponent implements OnInit {
     }, row.supplier)).subscribe({
       next: () => {
         this.saving.set(false);
-        this.success.set(`${row.supplier.name} ${status === 'blocked' ? 'blocked' : 'reactivated'}.`);
+        this.success.set(`${this.supplierDisplayName(row.supplier)} ${status === 'blocked' ? 'blocked' : 'reactivated'}.`);
         this.load();
       },
       error: (error) => {
@@ -849,6 +1004,16 @@ export class SuppliersComponent implements OnInit {
     if (!String(raw.address || '').trim()) warnings.push('Billing address is missing.');
     for (const duplicate of this.duplicateWarnings(raw)) warnings.push(duplicate);
     return warnings;
+  }
+
+  rowAlertSummary(row: SupplierCommandRow): string {
+    const parts = [
+      ...row.complianceIssues,
+      ...row.mappingWarnings,
+      row.creditDaysOverdue > 0 ? `${row.creditDaysOverdue} credit day(s) overdue` : '',
+      row.outstandingValue > 0 ? `${this.currencyText(row.outstandingValue)} payable` : ''
+    ].filter(Boolean);
+    return parts.slice(0, 4).join(' · ') || 'Ready';
   }
 
   private withStatusHistory(raw: ApiRecord, existing?: ApiRecord): ApiRecord {
@@ -879,7 +1044,7 @@ export class SuppliersComponent implements OnInit {
     return this.suppliers()
       .map((supplier) => {
         const supplierId = String(supplier.id || '');
-        const supplierName = String(supplier.name || '').toLowerCase();
+        const supplierName = this.supplierDisplayName(supplier).toLowerCase();
         const scorecard = scorecards.find((row) => row.id === supplierId);
         const spendRow = supplierSpend.find((row) => row.supplierId === supplierId || row.supplier_id === supplierId);
         const supplierBatches = this.batches().filter((batch) => this.recordSupplierId(batch) === supplierId);
@@ -889,15 +1054,14 @@ export class SuppliersComponent implements OnInit {
         const purchaseTransactions = this.transactions()
           .filter((row) => this.recordSupplierId(row) === supplierId && String(row.type || '').includes('purchase'))
           .slice()
-          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-        const openPoRows = this.purchaseOrders().filter((row) => this.recordSupplierId(row) === supplierId && !['received', 'closed', 'cancelled'].includes(String(row.status || 'draft').toLowerCase()));
+          .sort((a, b) => String(b.createdAt || b.created_at || '').localeCompare(String(a.createdAt || a.created_at || '')));
+        const allPoRows = this.purchaseOrders().filter((row) => this.recordSupplierId(row) === supplierId);
+        const openPoRows = allPoRows.filter((row) => !['received', 'closed', 'cancelled', 'rejected'].includes(String(row.status || 'draft').toLowerCase()));
         const openPoValue = this.money(openPoRows.reduce((total, row) => total + this.poValue(row), 0));
         const expiringBatchCount = supplierBatches.filter((batch) => Number(batch.quantityAvailable ?? batch.quantity_available ?? 0) > 0 && this.daysUntil(String(batch.expiryDate || batch.expiry_date || '')) <= 60).length;
         const lowStockCount = suppliedProducts.filter((product) => Number(product.stock || 0) <= Number(product.lowStockThreshold || product.low_stock_threshold || 0)).length;
         const wasteCount = this.transactions().filter((row) => suppliedProductIds.has(String(row.productId || row.product_id || '')) && /waste|expiry|damage/i.test(`${row.type || ''} ${row.reason || ''}`)).length;
         const qualityRisk = expiringBatchCount + lowStockCount + wasteCount;
-        const fallbackScore = Math.max(55, 96 - qualityRisk * 7);
-        const score = Number(scorecard?.['reliabilityScore'] ?? scorecard?.['score'] ?? fallbackScore);
         const purchaseValue = this.money(Math.max(
           Number(scorecard?.['purchaseValue'] || 0),
           Number(spendRow?.['spend'] || 0),
@@ -910,12 +1074,18 @@ export class SuppliersComponent implements OnInit {
         );
         const priceSignal = this.priceSignalForSupplier(supplierId, suppliedProductIds);
         const cheaperSignal = this.cheaperSupplierSignal(supplierId, suppliedProductIds);
-        const suggestedPurchase = this.suggestedPurchaseForSupplier(supplier, suppliedProducts, supplierSuggestions);
+        const poDraftItems = this.poDraftItemsForSupplier(supplier, suppliedProducts, supplierSuggestions);
+        const suggestedPurchase = poDraftItems[0] || null;
+        const reliability = this.reliabilityMetricsFor(supplierId, suppliedProductIds, allPoRows);
+        const payment = this.paymentSnapshotFor(supplier, purchaseTransactions, openPoRows);
+        const fallbackScore = Math.max(55, reliability.score - qualityRisk * 2);
+        const score = Number(scorecard?.['reliabilityScore'] ?? scorecard?.['score'] ?? fallbackScore);
         const topProductName = suppliedProducts[0]?.['name'] || supplierSuggestions[0]?.['name'] || 'No product linked';
-        const draftItems = supplierSuggestions
-          .slice(0, 4)
-          .map((row) => `${row.name || this.productName(String(row.productId || row.product_id || ''))} - ${row.recommendedQty || row.quantity || 0} units`)
+        const draftItems = poDraftItems
+          .slice(0, 6)
+          .map((row) => `${row['productName']} - ${row['quantity']} units`)
           .join(', ');
+        const poDraftTotal = this.money(poDraftItems.reduce((total, item) => total + Number(item['totalCost'] || 0), 0));
         return {
           supplier,
           status: this.supplierStatus(supplier),
@@ -926,7 +1096,7 @@ export class SuppliersComponent implements OnInit {
           qualityRisk,
           expiringBatchCount,
           suppliedProducts: suppliedProducts.length,
-          lastPurchaseAt: String(purchaseTransactions[0]?.['createdAt'] || ''),
+          lastPurchaseAt: String(purchaseTransactions[0]?.['createdAt'] || purchaseTransactions[0]?.['created_at'] || ''),
           topProductName,
           missingContact: !String(supplier.phone || '').trim() && !String(supplier.email || '').trim(),
           missingGstin: !String(supplier.gstin || '').trim(),
@@ -938,10 +1108,24 @@ export class SuppliersComponent implements OnInit {
           cheaperAlternative: cheaperSignal.supplierName,
           cheaperSavingPct: cheaperSignal.savingPct,
           trendBars: this.trendBarsFor(purchaseTransactions),
-          suggestedPurchase
+          suggestedPurchase,
+          reliabilityScore: reliability.score,
+          onTimePct: reliability.onTimePct,
+          damagePct: reliability.damagePct,
+          returnPct: reliability.returnPct,
+          invoiceMismatchPct: reliability.invoiceMismatchPct,
+          paymentTerms: payment.terms,
+          outstandingValue: payment.outstandingValue,
+          lastPaymentAt: payment.lastPaymentAt,
+          creditDaysOverdue: payment.creditDaysOverdue,
+          poDraftItems,
+          poDraftTotal,
+          expectedDeliveryLabel: this.expectedDeliveryLabel(supplier),
+          whatsappLogCount: this.whatsappLogCountFor(supplierId),
+          mappingWarnings: this.mappingWarningsFor(suppliedProducts)
         };
       })
-      .sort((a, b) => b.qualityRisk - a.qualityRisk || b.openPoValue - a.openPoValue || b.purchaseValue - a.purchaseValue || a.supplier.name.localeCompare(b.supplier.name));
+      .sort((a, b) => b.qualityRisk - a.qualityRisk || b.openPoValue - a.openPoValue || b.purchaseValue - a.purchaseValue || this.supplierDisplayName(a.supplier).localeCompare(this.supplierDisplayName(b.supplier)));
   }
 
   private matchesFilter(row: SupplierCommandRow, override?: SupplierFilter): boolean {
@@ -962,7 +1146,7 @@ export class SuppliersComponent implements OnInit {
     const term = this.query.trim().toLowerCase();
     if (!term) return true;
     return [
-      row.supplier.name,
+      this.supplierDisplayName(row.supplier),
       row.supplier.contactName,
       row.supplier.phone,
       row.supplier.email,
@@ -977,6 +1161,48 @@ export class SuppliersComponent implements OnInit {
       .includes(term);
   }
 
+  private buildPriceComparisonRows(): ApiRecord[] {
+    const byProduct = new Map<string, ApiRecord[]>();
+    for (const row of this.transactions()) {
+      const productId = String(row.productId || row.product_id || '');
+      const supplierId = this.recordSupplierId(row);
+      const unitCost = Number(row.unitCost || row.unit_cost || 0);
+      if (!productId || !supplierId || unitCost <= 0) continue;
+      const list = byProduct.get(productId) || [];
+      list.push(row);
+      byProduct.set(productId, list);
+    }
+    const rows: ApiRecord[] = [];
+    for (const [productId, history] of byProduct.entries()) {
+      const latestBySupplier = new Map<string, ApiRecord>();
+      for (const item of history.slice().sort((a, b) => String(b.createdAt || b.created_at || '').localeCompare(String(a.createdAt || a.created_at || '')))) {
+        const supplierId = this.recordSupplierId(item);
+        if (supplierId && !latestBySupplier.has(supplierId)) latestBySupplier.set(supplierId, item);
+      }
+      const priced = Array.from(latestBySupplier.entries())
+        .map(([supplierId, item]) => ({
+          supplierId,
+          supplierName: this.supplierDisplayName(this.suppliers().find((supplier) => String(supplier.id || '') === supplierId) || {}),
+          cost: Number(item.unitCost || item.unit_cost || 0)
+        }))
+        .filter((item) => item.cost > 0)
+        .sort((a, b) => a.cost - b.cost);
+      if (priced.length < 2) continue;
+      const best = priced[0];
+      const highest = priced[priced.length - 1];
+      const savingPct = highest.cost > best.cost ? ((highest.cost - best.cost) / highest.cost) * 100 : 0;
+      rows.push({
+        productId,
+        productName: this.productName(productId),
+        priceLine: priced.slice(0, 4).map((item) => `${item.supplierName} ${this.currencyText(item.cost)}`).join(', '),
+        bestSupplierName: best.supplierName,
+        bestCost: best.cost,
+        savingPct: this.money(savingPct)
+      });
+    }
+    return rows.sort((a, b) => Number(b.savingPct || 0) - Number(a.savingPct || 0));
+  }
+
   private duplicateWarnings(raw: ApiRecord): string[] {
     const currentId = this.editingId();
     const normalizedPhone = this.digits(raw.phone);
@@ -986,9 +1212,9 @@ export class SuppliersComponent implements OnInit {
     const duplicatePhone = normalizedPhone && this.suppliers().find((supplier) => supplier.id !== currentId && this.digits(supplier.phone) === normalizedPhone);
     const duplicateEmail = normalizedEmail && this.suppliers().find((supplier) => supplier.id !== currentId && String(supplier.email || '').trim().toLowerCase() === normalizedEmail);
     const duplicateGstin = normalizedGstin && this.suppliers().find((supplier) => supplier.id !== currentId && String(supplier.gstin || '').trim().toUpperCase() === normalizedGstin);
-    if (duplicatePhone) warnings.push(`Duplicate phone already used by ${duplicatePhone.name}.`);
-    if (duplicateEmail) warnings.push(`Duplicate email already used by ${duplicateEmail.name}.`);
-    if (duplicateGstin) warnings.push(`Duplicate GSTIN already used by ${duplicateGstin.name}.`);
+    if (duplicatePhone) warnings.push(`Duplicate phone already used by ${this.supplierDisplayName(duplicatePhone)}.`);
+    if (duplicateEmail) warnings.push(`Duplicate email already used by ${this.supplierDisplayName(duplicateEmail)}.`);
+    if (duplicateGstin) warnings.push(`Duplicate GSTIN already used by ${this.supplierDisplayName(duplicateGstin)}.`);
     return warnings;
   }
 
@@ -999,6 +1225,9 @@ export class SuppliersComponent implements OnInit {
     else if (!this.isValidGstin(gstin)) issues.push('GSTIN invalid');
     if (!String(supplier.phone || '').trim() && !String(supplier.email || '').trim()) issues.push('Contact missing');
     if (!String(supplier.address || '').trim()) issues.push('Billing address missing');
+    if (!this.paymentTermsFor(supplier)) issues.push('Payment terms missing');
+    if (!String(supplier.invoiceFormat || supplier.preferredInvoiceFormat || supplier.invoice_format || '').trim()) issues.push('Invoice format missing');
+    if (this.supplierStatus(supplier) !== 'active') issues.push(`${this.supplierStatus(supplier)} status`);
     return issues;
   }
 
@@ -1017,30 +1246,44 @@ export class SuppliersComponent implements OnInit {
     }
   }
 
-  private suggestedPurchaseForSupplier(supplier: ApiRecord, suppliedProducts: ApiRecord[], suggestions: ApiRecord[]): ApiRecord | null {
-    const suggested = suggestions.find((row) => row.productId || row.product_id);
-    if (suggested) {
-      const product = this.products().find((item) => item.id === (suggested.productId || suggested.product_id));
-      return {
-        productId: suggested.productId || suggested.product_id,
+  private poDraftItemsForSupplier(supplier: ApiRecord, suppliedProducts: ApiRecord[], suggestions: ApiRecord[]): ApiRecord[] {
+    const byProduct = new Map<string, ApiRecord>();
+    for (const suggested of suggestions.filter((row) => row.productId || row.product_id)) {
+      const productId = String(suggested.productId || suggested.product_id || '');
+      if (!productId || byProduct.has(productId)) continue;
+      const product = this.products().find((item) => String(item.id || '') === productId);
+      const quantity = Number(suggested.recommendedQty || suggested.recommended_qty || suggested.quantity || 1);
+      const unitCost = Number(product?.['unitCost'] || product?.['unit_cost'] || suggested['unitCost'] || suggested['unit_cost'] || 0);
+      byProduct.set(productId, {
+        productId,
+        productName: product?.['name'] || suggested['name'] || this.productName(productId),
         branchId: suggested.branchId || suggested.branch_id || product?.['branchId'] || product?.['branch_id'] || this.api.selectedBranchId(),
-        quantity: Number(suggested.recommendedQty || suggested.quantity || 1),
-        unitCost: Number(product?.['unitCost'] || product?.['unit_cost'] || 0),
+        quantity,
+        unitCost,
+        totalCost: this.money(quantity * unitCost),
         reason: suggested.reason || 'AI reorder suggestion'
-      };
+      });
     }
-    const lowStockProduct = suppliedProducts.find((product) => Number(product.stock || 0) <= Number(product.lowStockThreshold || product.low_stock_threshold || 0));
-    const product = lowStockProduct || suppliedProducts[0];
-    if (!product) return null;
-    const threshold = Number(product.lowStockThreshold || product.low_stock_threshold || 1);
-    const stock = Number(product.stock || 0);
-    return {
-      productId: product.id,
-      branchId: product.branchId || product.branch_id || this.api.selectedBranchId(),
-      quantity: Math.max(1, threshold * 2 - stock),
-      unitCost: Number(product.unitCost || product.unit_cost || 0),
-      reason: lowStockProduct ? 'Low stock supplier-linked product' : `Manual supplier replenishment for ${supplier.name}`
-    };
+    for (const product of suppliedProducts) {
+      const productId = String(product.id || '');
+      if (!productId || byProduct.has(productId)) continue;
+      const threshold = Number(product.lowStockThreshold || product.low_stock_threshold || 0);
+      const stock = Number(product.stock || 0);
+      if (threshold > 0 && stock > threshold) continue;
+      const quantity = Math.max(1, threshold > 0 ? threshold * 2 - stock : 1);
+      const unitCost = Number(product.unitCost || product.unit_cost || product.cost || 0);
+      byProduct.set(productId, {
+        productId,
+        productName: product.name || productId,
+        branchId: product.branchId || product.branch_id || this.api.selectedBranchId(),
+        quantity,
+        unitCost,
+        totalCost: this.money(quantity * unitCost),
+        reason: stock <= threshold ? 'Low stock supplier-linked product' : `Manual supplier replenishment for ${this.supplierDisplayName(supplier)}`
+      });
+      if (byProduct.size >= 12) break;
+    }
+    return Array.from(byProduct.values()).slice(0, 12);
   }
 
   private trendBarsFor(rows: ApiRecord[]): number[] {
@@ -1089,12 +1332,123 @@ export class SuppliersComponent implements OnInit {
       const savingPct = ((currentCost - alternateCost) / currentCost) * 100;
       if (savingPct > best.savingPct) {
         best = {
-          supplierName: this.suppliers().find((supplier) => supplier.id === this.recordSupplierId(alternate))?.name || 'Alternate supplier',
+          supplierName: this.supplierDisplayName(this.suppliers().find((supplier) => String(supplier.id || '') === this.recordSupplierId(alternate)) || {}),
           savingPct: this.money(savingPct)
         };
       }
     }
     return best;
+  }
+
+  private reliabilityMetricsFor(supplierId: string, productIds: Set<string>, poRows: ApiRecord[]): { score: number; onTimePct: number; damagePct: number; returnPct: number; invoiceMismatchPct: number } {
+    const supplierPurchases = this.transactions().filter((row) => this.recordSupplierId(row) === supplierId || productIds.has(String(row.productId || row.product_id || '')));
+    const expectedRows = poRows.filter((row) => this.poExpectedDate(row));
+    const lateRows = expectedRows.filter((row) => this.isPoLate(row));
+    const onTimePct = expectedRows.length ? this.percent(expectedRows.length - lateRows.length, expectedRows.length) : Math.max(60, 100 - this.openOldPoCount(poRows) * 12);
+    const damageRows = supplierPurchases.filter((row) => /damage|damaged|short|waste|expiry|leak/i.test(`${row.type || ''} ${row.reason || ''} ${row.status || ''}`));
+    const returnRows = supplierPurchases.filter((row) => /return|replacement|refund/i.test(`${row.type || ''} ${row.reason || ''} ${row.status || ''}`));
+    const invoiceMismatchRows = poRows.filter((row) => this.poVarianceCount(row) > 0 || /invoice|gst|rate|mismatch|short|damage/i.test(`${row.status || ''} ${row.notes || ''} ${row.receiveNote || row.receive_note || ''}`));
+    const denominator = Math.max(1, poRows.length || supplierPurchases.length);
+    const damagePct = this.percent(damageRows.length, denominator);
+    const returnPct = this.percent(returnRows.length, denominator);
+    const invoiceMismatchPct = this.percent(invoiceMismatchRows.length, denominator);
+    const score = Math.max(40, Math.min(100, Math.round(100 - ((100 - onTimePct) * 0.35) - damagePct * 0.25 - returnPct * 0.15 - invoiceMismatchPct * 0.25)));
+    return { score, onTimePct, damagePct, returnPct, invoiceMismatchPct };
+  }
+
+  private paymentSnapshotFor(supplier: ApiRecord, purchaseTransactions: ApiRecord[], openPoRows: ApiRecord[]): { terms: string; outstandingValue: number; lastPaymentAt: string; creditDaysOverdue: number } {
+    const terms = this.paymentTermsFor(supplier) || 'Payment terms missing';
+    const openPoValue = openPoRows.reduce((total, row) => total + this.poValue(row), 0);
+    const unpaidPurchaseValue = purchaseTransactions.reduce((total, row) => total + Number(row.outstandingAmount || row.outstanding_amount || row.balanceDue || row.balance_due || row.payableAmount || row.payable_amount || 0), 0);
+    const outstandingValue = this.money(openPoValue + unpaidPurchaseValue);
+    const lastPaymentAt = String(supplier.lastPaymentAt || supplier.last_payment_at || purchaseTransactions.find((row) => row.paymentDate || row.payment_date || row.paidAt || row.paid_at)?.['paymentDate'] || '');
+    const creditDays = this.creditDaysFor(terms);
+    const lastPurchaseAt = String(purchaseTransactions[0]?.['createdAt'] || purchaseTransactions[0]?.['created_at'] || '');
+    const creditDaysOverdue = outstandingValue > 0 && creditDays > 0 && lastPurchaseAt ? Math.max(0, this.daysSince(lastPurchaseAt) - creditDays) : 0;
+    return { terms, outstandingValue, lastPaymentAt, creditDaysOverdue };
+  }
+
+  private paymentTermsFor(supplier: ApiRecord): string {
+    return String(supplier.preferredPaymentTerms || supplier.paymentTerms || supplier.payment_terms || '').trim();
+  }
+
+  private creditDaysFor(terms: string): number {
+    const normalized = String(terms || '').toLowerCase();
+    if (!normalized || /cash|cod|advance/.test(normalized)) return 0;
+    const match = normalized.match(/net\s*(\d+)|(\d+)\s*days?|credit\s*(\d+)/);
+    return match ? Number(match[1] || match[2] || match[3] || 0) : 0;
+  }
+
+  private expectedDeliveryLabel(supplier: ApiRecord): string {
+    const leadDays = Number(supplier.leadTimeDays || supplier.lead_time_days || 0);
+    if (!leadDays) return 'Delivery date not set';
+    const date = new Date(Date.now() + leadDays * 86400000);
+    return `${leadDays} day(s) · ${date.toLocaleDateString('en-IN')}`;
+  }
+
+  private whatsappLogCountFor(supplierId: string): number {
+    return this.whatsappQueue().filter((row) => this.recordSupplierId(row) === supplierId || String(row.supplierId || row.supplier_id || '') === supplierId).length;
+  }
+
+  private mappingWarningsFor(suppliedProducts: ApiRecord[]): string[] {
+    const warnings: string[] = [];
+    if (!suppliedProducts.length) return ['No product linked'];
+    const missingSku = suppliedProducts.filter((product) => !String(product.sku || product.code || product.productCode || product.product_code || '').trim()).length;
+    const missingAlias = suppliedProducts.filter((product) => !String(product.supplierSku || product.supplier_sku || product.vendorSku || product.vendor_sku || product.supplierAlias || '').trim()).length;
+    if (missingSku) warnings.push(`${missingSku} SKU missing`);
+    if (missingAlias) warnings.push(`${missingAlias} supplier alias missing`);
+    return warnings;
+  }
+
+  private poVarianceCount(row: ApiRecord): number {
+    return this.asArray(row.variances).length + this.asArray(row.warnings).length;
+  }
+
+  private poExpectedDate(row: ApiRecord): string {
+    return String(row.expectedDeliveryDate || row.expected_delivery_date || row.deliveryDate || row.delivery_date || '');
+  }
+
+  private poReceivedDate(row: ApiRecord): string {
+    return String(row.grnDate || row.grn_date || row.closedAt || row.closed_at || row.receivedAt || row.received_at || row.updatedAt || row.updated_at || '');
+  }
+
+  private isPoLate(row: ApiRecord): boolean {
+    const expected = this.poExpectedDate(row);
+    if (!expected) return false;
+    const expectedTime = new Date(expected).getTime();
+    if (Number.isNaN(expectedTime)) return false;
+    const received = this.poReceivedDate(row);
+    const actualTime = received ? new Date(received).getTime() : Date.now();
+    return !Number.isNaN(actualTime) && actualTime > expectedTime;
+  }
+
+  private openOldPoCount(rows: ApiRecord[]): number {
+    return rows.filter((row) => !['received', 'closed', 'cancelled', 'rejected'].includes(String(row.status || 'draft').toLowerCase()) && this.daysSince(row.createdAt || row.created_at) > 14).length;
+  }
+
+  private asArray(value: unknown): ApiRecord[] {
+    if (Array.isArray(value)) return value as ApiRecord[];
+    if (typeof value !== 'string' || !value.trim()) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private percent(part: number, total: number): number {
+    return this.money(total > 0 ? (part / total) * 100 : 0);
+  }
+
+  private daysSince(value: unknown): number {
+    const time = new Date(String(value || '')).getTime();
+    if (!value || Number.isNaN(time)) return 0;
+    return Math.max(0, Math.round((Date.now() - time) / 86400000));
+  }
+
+  private currencyText(value: number): string {
+    return `₹${Math.round(Number(value) || 0).toLocaleString('en-IN')}`;
   }
 
   private digits(value: unknown): string {
@@ -1109,14 +1463,27 @@ export class SuppliersComponent implements OnInit {
     return String(supplier.status || 'active').toLowerCase();
   }
 
-  private productName(id: string): string {
-    return this.products().find((product) => product.id === id)?.name || id || 'Product';
+  private productName(id: unknown): string {
+    const productId = String(id || '');
+    return this.products().find((product) => String(product.id || '') === productId)?.name || productId || 'Product';
+  }
+
+  supplierDisplayName(supplier: ApiRecord | null | undefined): string {
+    return String(supplier?.['name'] || supplier?.['supplierName'] || supplier?.['vendorName'] || supplier?.['id'] || 'Unnamed supplier').trim();
+  }
+
+  private normalizedSuppliers(rows: ApiRecord[] | null | undefined): ApiRecord[] {
+    return (rows || [])
+      .filter((row): row is ApiRecord => Boolean(row && typeof row === 'object'))
+      .map((row, index) => ({
+        ...row,
+        name: this.supplierDisplayName(row) || `Supplier ${index + 1}`
+      }));
   }
 
   private poValue(row: ApiRecord): number {
-    if (row.totalEstimatedCost || row.total_estimated_cost) return Number(row.totalEstimatedCost || row.total_estimated_cost || 0);
-    const items = Array.isArray(row.items) ? row.items : [];
-    return items.reduce((total, item) => total + Number(item.estimatedTotal || item.estimated_total || 0), 0);
+    if (row.totalEstimatedCost || row.total_estimated_cost || row.grandTotal || row.grand_total) return Number(row.grandTotal || row.grand_total || row.totalEstimatedCost || row.total_estimated_cost || 0);
+    return this.asArray(row.items).reduce((total, item) => total + Number(item.estimatedTotal || item.estimated_total || item.lineTotal || item.line_total || 0), 0);
   }
 
   private daysUntil(value: string): number {

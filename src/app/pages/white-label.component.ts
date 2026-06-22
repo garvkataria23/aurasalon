@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -86,7 +86,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <table>
             <thead><tr><th>Brand</th><th>Domain</th><th>Logo</th><th>Status</th><th>Default</th></tr></thead>
             <tbody>
-              <tr *ngFor="let profile of summary()?.profiles || []">
+              <tr *ngFor="let profile of profiles()">
                 <td>{{ profile.brandName }}</td>
                 <td>{{ profile.domain || '-' }}</td>
                 <td>{{ profile.logoUrl || '-' }}</td>
@@ -101,7 +101,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       <section class="panel">
         <div class="section-title"><h2>Branch branding</h2></div>
         <div class="quick-grid">
-          <article class="action-card" *ngFor="let brand of summary()?.branchBranding || []">
+          <article class="action-card" *ngFor="let brand of branchBranding()">
             <strong>{{ brand.brandName }}</strong>
             <span>{{ brand.branchId }} · {{ brand.status }}</span>
           </article>
@@ -118,6 +118,10 @@ export class WhiteLabelComponent implements OnInit {
   readonly result = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly profiles = computed(() => this.summary()?.profiles || []);
+  readonly branchBranding = computed(() => this.summary()?.branchBranding || []);
+  private tokenEntriesCacheKey = '';
+  private tokenEntriesCache: [string, string][] = [];
 
   readonly profileForm = this.fb.group({
     brandName: ['Aura Salon Pro', Validators.required],
@@ -189,7 +193,12 @@ export class WhiteLabelComponent implements OnInit {
   }
 
   tokenEntries(theme: ApiRecord = {}): [string, string][] {
-    return Object.entries(theme).filter(([, value]) => String(value).startsWith('#')) as [string, string][];
+    const cacheKey = JSON.stringify(theme || {});
+    if (cacheKey !== this.tokenEntriesCacheKey) {
+      this.tokenEntriesCacheKey = cacheKey;
+      this.tokenEntriesCache = Object.entries(theme).filter(([, value]) => String(value).startsWith('#')) as [string, string][];
+    }
+    return this.tokenEntriesCache;
   }
 
   contrast(color: string): string {

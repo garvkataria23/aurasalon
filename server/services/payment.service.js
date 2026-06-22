@@ -1,6 +1,7 @@
 import { db } from "../db.js";
 import { badRequest, conflict } from "../utils/app-error.js";
 import { billingService } from "./billing.service.js";
+import { balanceSheetConnector } from "./balance-sheet-connector.service.js";
 import { balanceSheetService } from "./balance-sheet.service.js";
 import { realtimeService } from "./realtime.service.js";
 
@@ -15,6 +16,7 @@ export class PaymentService {
     const updated = billingService.recordPayment(invoiceId, { ...payload, mode, amount }, access);
     try {
       balanceSheetService.enqueueInvoicePaymentEvent({ invoice: updated, amount, mode, access });
+      balanceSheetConnector.connectDeferredRevenueForInvoice({ invoice: updated, payments: [{ mode, amount }] }, access);
     } catch {
       billingService.writeEvent({ tenantId: access.tenantId, invoiceId, eventType: "finance.gl_enqueue_failed", actorUserId: access.userId || "", payload: { mode, amount } });
     }
@@ -88,6 +90,7 @@ export class PaymentService {
     const updated = billingService.getInvoice(invoice.id, access);
     try {
       balanceSheetService.enqueueInvoicePaymentEvent({ invoice: updated, amount, mode: payment.payment_mode || "bank", access });
+      balanceSheetConnector.connectDeferredRevenueForInvoice({ invoice: updated, payments: [{ mode: payment.payment_mode || "bank", amount }] }, access);
     } catch {
       billingService.writeEvent({ tenantId: access.tenantId, invoiceId: invoice.id, eventType: "finance.gl_enqueue_failed", actorUserId: access.userId || "provider-webhook", payload: { amount, paymentId } });
     }

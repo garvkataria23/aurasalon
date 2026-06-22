@@ -1,11 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Observable, finalize, forkJoin } from 'rxjs';
+import { Observable, catchError, finalize, forkJoin, of } from 'rxjs';
+import { ApiRecord } from '../../../core/api.service';
 import { StaffOsApi } from '../data/staff-os.api';
-import { StaffOsAllowanceDeduction, StaffOsBranch, StaffOsFinePenalty, StaffOsPayrollSalaryStructure } from '../domain/staff-os.models';
+import { StaffOsAllowanceDeduction, StaffOsBranch, StaffOsFinePenalty, StaffOsPayrollSalaryStructure, StaffOsStaff } from '../domain/staff-os.models';
 
 type PayrollDefinitionKind = 'fine' | 'allowance';
+type FinePenaltyRuleType = NonNullable<StaffOsFinePenalty['ruleType']>;
+type FinePenaltyApplyMode = NonNullable<StaffOsFinePenalty['applyMode']>;
+type FinePenaltyRuleOption = { value: string; label: string; ruleType?: FinePenaltyRuleType; ruleLabel?: string };
+type PenaltyPreviewRow = {
+  staffId: string;
+  staffName: string;
+  ruleName: string;
+  ruleType: FinePenaltyRuleType;
+  breakCount: number;
+  amount: number;
+  evidence: string;
+};
 
 @Component({
   selector: 'app-staff-payroll-definition',
@@ -56,6 +69,35 @@ type PayrollDefinitionKind = 'fine' | 'allowance';
             <span>Amount</span>
             <input type="number" min="0" [value]="amount()" (input)="amount.set(toNumber($any($event.target).value))" />
           </label>
+          <div class="rule-grid" *ngIf="kind === 'fine'">
+            <label>
+              <span>Rule trigger</span>
+              <div class="select-action">
+                <select [value]="triggerValue()" (change)="changeRuleTrigger($any($event.target).value)">
+                  <option *ngFor="let option of triggerOptions()" [value]="option.value">{{ option.label }}</option>
+                </select>
+                <button type="button" class="mini-action" (click)="startCustomTrigger()">+ Add</button>
+              </div>
+            </label>
+            <label *ngIf="customTriggerOpen()">
+              <span>New trigger name</span>
+              <input [value]="ruleLabel()" (input)="ruleLabel.set($any($event.target).value)" placeholder="Example: No uniform" />
+            </label>
+            <label>
+              <span>Apply</span>
+              <select [value]="applyMode()" (change)="applyMode.set($any($event.target).value)">
+                <option *ngFor="let option of applyModeOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+            <label>
+              <span>Trigger count</span>
+              <input type="number" min="1" [value]="triggerCount()" (input)="triggerCount.set(toCount($any($event.target).value))" />
+            </label>
+            <label class="inline">
+              <input type="checkbox" [checked]="autoDeduct()" (change)="autoDeduct.set($any($event.target).checked)" />
+              <span>Auto deduct salary</span>
+            </label>
+          </div>
           <label class="inline">
             <input type="checkbox" [checked]="hide()" (change)="hide.set($any($event.target).checked)" />
             <span>Hide</span>
@@ -71,6 +113,42 @@ type PayrollDefinitionKind = 'fine' | 'allowance';
             <button type="button" class="primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Saving...' : 'Save' }}</button>
           </footer>
         </main>
+      </section>
+
+      <section class="live-panel" *ngIf="kind === 'fine'">
+        <div class="live-head">
+          <div>
+            <p class="eyebrow">Live Rule Breaks</p>
+            <h2>Salary deduction monitor</h2>
+          </div>
+          <div class="topbar-actions">
+            <label class="period-filter">
+              <span>Period</span>
+              <input type="month" [value]="period()" (input)="changePenaltyPeriod($any($event.target).value)" />
+            </label>
+            <button type="button" class="refresh" (click)="loadPenaltyContext()">Refresh</button>
+          </div>
+        </div>
+        <div class="metric-strip">
+          <article><span>Staff impacted</span><strong>{{ penaltySummary().staff }}</strong></article>
+          <article><span>Rule breaks</span><strong>{{ penaltySummary().breaks }}</strong></article>
+          <article><span>Salary deduction</span><strong>{{ penaltySummary().amount | currency:'INR':'symbol':'1.0-0' }}</strong></article>
+        </div>
+        <div *ngIf="penaltyLoading()" class="state">Loading rule breaks...</div>
+        <div *ngIf="penaltyError()" class="state error">{{ penaltyError() }}</div>
+        <div class="preview-table">
+          <div class="preview-head"><span>Staff</span><span>Rule</span><span>Breaks</span><span>Deduction</span><span>Evidence</span></div>
+          <div class="preview-row" *ngFor="let row of penaltyPreviewRows()">
+            <strong>{{ row.staffName }}</strong>
+            <span>{{ row.ruleName }}</span>
+            <span>{{ row.breakCount }}</span>
+            <span>{{ row.amount | currency:'INR':'symbol':'1.0-0' }}</span>
+            <span>{{ row.evidence }}</span>
+          </div>
+          <div class="preview-row empty" *ngIf="!penaltyPreviewRows().length">
+            <span>No active rule breaks for this period.</span>
+          </div>
+        </div>
       </section>
     </section>
   `,
@@ -92,15 +170,32 @@ type PayrollDefinitionKind = 'fine' | 'allowance';
     .definition-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     label { color: #34483f; display: grid; font-size: 13px; font-weight: 850; gap: 6px; }
     label.inline { align-items: center; display: inline-flex; }
-    input, textarea { border: 1px solid #cbd8d2; border-radius: 8px; color: #10201a; font: inherit; padding: 10px 11px; width: 100%; }
+    input, select, textarea { border: 1px solid #cbd8d2; border-radius: 8px; color: #10201a; font: inherit; padding: 10px 11px; width: 100%; }
     input[type='checkbox'] { height: 18px; padding: 0; width: 18px; }
+    .rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .select-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .mini-action { border: 1px solid #cbd8d2; border-radius: 6px; background: #f8fbf9; color: #34483f; cursor: pointer; font-weight: 900; min-height: 40px; padding: 0 10px; white-space: nowrap; }
     .table { border: 1px solid #d9e5de; border-radius: 8px; display: grid; overflow: hidden; }
     .head, .row { align-items: center; display: grid; gap: 8px; grid-template-columns: 1fr 70px 100px; min-height: 42px; padding: 0 12px; }
     .head { background: #f8fbf9; color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .row { background: #fff; border: 0; border-top: 1px solid #edf2ef; color: #10201a; cursor: pointer; font: inherit; text-align: left; }
     .row.active { background: #f8fbf9; }
     .actions { border-top: 1px solid #edf2ef; padding-top: 12px; }
+    .live-panel { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 14px; padding: 16px; }
+    .live-head { align-items: center; display: flex; justify-content: space-between; gap: 14px; }
+    h2 { font-size: 20px; letter-spacing: 0; margin: 0; }
+    .period-filter { min-width: 170px; }
+    .metric-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .metric-strip article { background: #f8fbf9; border: 1px solid #d9e5de; border-radius: 8px; padding: 12px; }
+    .metric-strip span { color: #60766d; display: block; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .metric-strip strong { display: block; font-size: 22px; margin-top: 5px; }
+    .preview-table { border: 1px solid #d9e5de; border-radius: 8px; display: grid; overflow: hidden; }
+    .preview-head, .preview-row { align-items: center; display: grid; gap: 10px; grid-template-columns: 1fr 1.1fr 80px 120px 1.3fr; min-height: 42px; padding: 0 12px; }
+    .preview-head { background: #f8fbf9; color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .preview-row { border-top: 1px solid #edf2ef; color: #10201a; }
+    .preview-row.empty { grid-template-columns: 1fr; color: #60766d; padding: 14px; }
     @media (max-width: 920px) { .shell { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { .rule-grid, .metric-strip, .preview-head, .preview-row { grid-template-columns: 1fr; } .live-head { display: grid; } }
     @media (max-width: 640px) { .definition-page { padding: 16px; } .topbar { display: grid; } .head, .row { grid-template-columns: 1fr 56px; } .head span:last-child, .row span:last-child { display: none; } }
   `]
 })
@@ -120,6 +215,75 @@ export class StaffPayrollDefinitionComponent implements OnInit {
   readonly notes = signal('');
   readonly entryType = signal<'allowance' | 'deduction'>('allowance');
   readonly search = signal('');
+  readonly ruleType = signal<FinePenaltyRuleType>('manual');
+  readonly ruleLabel = signal('');
+  readonly customTriggerOpen = signal(false);
+  readonly triggerCount = signal(1);
+  readonly applyMode = signal<FinePenaltyApplyMode>('per_occurrence');
+  readonly autoDeduct = signal(true);
+  readonly period = signal(new Date().toISOString().slice(0, 7));
+  readonly staffRows = signal<StaffOsStaff[]>([]);
+  readonly attendanceRows = signal<ApiRecord[]>([]);
+  readonly payrollPreviewRows = signal<ApiRecord[]>([]);
+  readonly penaltyLoading = signal(false);
+  readonly penaltyError = signal('');
+  readonly ruleOptions: Array<{ value: FinePenaltyRuleType; label: string }> = [
+    { value: 'manual', label: 'Manual only' },
+    { value: 'late_count', label: 'Late count' },
+    { value: 'absent_day', label: 'Absent day' },
+    { value: 'half_day', label: 'Half day' },
+    { value: 'short_hours', label: 'Short hours' },
+    { value: 'no_clock_out', label: 'No clock out' },
+    { value: 'weekend_penalty', label: 'Weekend penalty' },
+    { value: 'sandwich_penalty', label: 'Sandwich penalty' },
+    { value: 'unpaid_week_off', label: 'Unpaid week off' }
+  ];
+  readonly triggerOptions = computed<FinePenaltyRuleOption[]>(() => {
+    const seen = new Set<string>();
+    const custom = this.fines()
+      .filter((rule) => rule.ruleLabel && (rule.ruleType || 'manual') !== 'manual')
+      .map((rule) => ({
+        value: this.customTriggerValue(rule.ruleType || 'manual', rule.ruleLabel || ''),
+        label: `${rule.ruleLabel} (${this.ruleOptionLabel(rule.ruleType || 'manual')})`,
+        ruleType: rule.ruleType || 'manual',
+        ruleLabel: rule.ruleLabel || ''
+      }))
+      .filter((option) => {
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      });
+    const currentLabel = this.ruleLabel().trim();
+    if (currentLabel) {
+      const currentValue = this.customTriggerValue(this.ruleType(), currentLabel);
+      if (!seen.has(currentValue)) {
+        custom.push({
+          value: currentValue,
+          label: `${currentLabel} (${this.ruleOptionLabel(this.ruleType())})`,
+          ruleType: this.ruleType(),
+          ruleLabel: currentLabel
+        });
+      }
+    }
+    return [
+      ...this.ruleOptions.map((option) => ({ value: option.value, label: option.label, ruleType: option.value })),
+      ...custom,
+      { value: '__add__', label: '+ Add rule trigger' }
+    ];
+  });
+  readonly applyModeOptions: Array<{ value: FinePenaltyApplyMode; label: string }> = [
+    { value: 'per_occurrence', label: 'Per occurrence' },
+    { value: 'fixed', label: 'Fixed once' }
+  ];
+  readonly penaltyPreviewRows = computed(() => this.buildPenaltyPreviewRows());
+  readonly penaltySummary = computed(() => {
+    const rows = this.penaltyPreviewRows();
+    return {
+      staff: new Set(rows.map((row) => row.staffId)).size,
+      breaks: rows.reduce((total, row) => total + row.breakCount, 0),
+      amount: rows.reduce((total, row) => total + row.amount, 0)
+    };
+  });
 
   constructor(private readonly api: StaffOsApi) {}
 
@@ -138,8 +302,27 @@ export class StaffPayrollDefinitionComponent implements OnInit {
         if (this.kind === 'fine') this.fines.set(rows as StaffOsFinePenalty[]);
         else this.allowances.set(rows as StaffOsAllowanceDeduction[]);
         this.reselect();
+        if (this.kind === 'fine') this.loadPenaltyContext();
       },
       error: (error: unknown) => this.error.set(this.apiError(error, 'Unable to load payroll definition'))
+    });
+  }
+
+  loadPenaltyContext(): void {
+    if (this.kind !== 'fine') return;
+    this.penaltyLoading.set(true);
+    this.penaltyError.set('');
+    forkJoin({
+      staff: this.api.staff({ status: 'active', limit: 1000 }),
+      attendance: this.api.attendance({ from: this.periodStart(), to: this.periodEnd(), limit: 1000 }).pipe(catchError(() => of([] as ApiRecord[]))),
+      preview: this.api.attendancePayrollPreview({ periodStart: this.periodStart(), periodEnd: this.periodEnd(), limit: 1000 }).pipe(catchError(() => of([] as ApiRecord[])))
+    }).pipe(finalize(() => this.penaltyLoading.set(false))).subscribe({
+      next: ({ staff, attendance, preview }) => {
+        this.staffRows.set(staff || []);
+        this.attendanceRows.set(attendance || []);
+        this.payrollPreviewRows.set(preview || []);
+      },
+      error: (error: unknown) => this.penaltyError.set(this.apiError(error, 'Unable to load rule breaks'))
     });
   }
 
@@ -169,6 +352,45 @@ export class StaffPayrollDefinitionComponent implements OnInit {
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  toCount(value: unknown): number {
+    return Math.max(1, this.toNumber(value));
+  }
+
+  triggerValue(): string {
+    const label = this.ruleLabel().trim();
+    return label ? this.customTriggerValue(this.ruleType(), label) : this.ruleType();
+  }
+
+  changeRuleTrigger(value: string): void {
+    if (value === '__add__') {
+      this.startCustomTrigger();
+      return;
+    }
+    if (value.startsWith('custom|')) {
+      const [, ruleType, encodedLabel] = value.split('|');
+      this.ruleType.set((ruleType || 'manual') as FinePenaltyRuleType);
+      this.ruleLabel.set(decodeURIComponent(encodedLabel || ''));
+      this.customTriggerOpen.set(true);
+      return;
+    }
+    this.ruleType.set(value as FinePenaltyRuleType);
+    this.ruleLabel.set('');
+    this.customTriggerOpen.set(false);
+  }
+
+  startCustomTrigger(): void {
+    if (this.ruleType() === 'manual') this.ruleType.set('late_count');
+    this.customTriggerOpen.set(true);
+  }
+
+  customTriggerValue(ruleType: FinePenaltyRuleType, label: string): string {
+    return `custom|${ruleType}|${encodeURIComponent(label.trim())}`;
+  }
+
+  ruleOptionLabel(ruleType: FinePenaltyRuleType): string {
+    return this.ruleOptions.find((option) => option.value === ruleType)?.label || 'Manual only';
+  }
+
   archived(): boolean {
     const selected = this.selected();
     return Boolean(selected?.hide || selected?.status !== 'active');
@@ -181,6 +403,21 @@ export class StaffPayrollDefinitionComponent implements OnInit {
     this.hide.set(Boolean(row?.hide));
     this.notes.set(row?.notes || '');
     if (row && 'entryType' in row) this.entryType.set(row.entryType);
+    if (row && 'ruleType' in row) {
+      this.ruleType.set(row.ruleType || 'manual');
+      this.ruleLabel.set(row.ruleLabel || '');
+      this.customTriggerOpen.set(Boolean(row.ruleLabel));
+      this.triggerCount.set(Math.max(1, this.toNumber(row.triggerCount || 1)));
+      this.applyMode.set(row.applyMode || 'per_occurrence');
+      this.autoDeduct.set(row.autoDeduct !== false);
+    } else if (!row && this.kind === 'fine') {
+      this.ruleType.set('manual');
+      this.ruleLabel.set('');
+      this.customTriggerOpen.set(false);
+      this.triggerCount.set(1);
+      this.applyMode.set('per_occurrence');
+      this.autoDeduct.set(true);
+    }
     this.saveError.set('');
   }
 
@@ -189,7 +426,7 @@ export class StaffPayrollDefinitionComponent implements OnInit {
     this.saveError.set('');
     const selected = this.selected();
     const payload = this.kind === 'fine'
-      ? { name: this.name(), amount: this.amount(), hide: this.hide(), notes: this.notes(), status: this.hide() ? 'archived' : 'active', ...(selected ? { version: selected.version } : {}) }
+      ? { name: this.name(), amount: this.amount(), amountPaise: Math.round(this.amount() * 100), ruleType: this.ruleType(), ruleLabel: this.ruleLabel().trim(), triggerCount: this.triggerCount(), applyMode: this.applyMode(), autoDeduct: this.autoDeduct(), hide: this.hide(), notes: this.notes(), status: this.hide() ? 'archived' : 'active', ...(selected ? { version: selected.version } : {}) }
       : { description: this.name(), entryType: this.entryType(), hide: this.hide(), notes: this.notes(), status: this.hide() ? 'archived' : 'active', ...(selected ? { version: selected.version } : {}) };
     const request: Observable<StaffOsFinePenalty | StaffOsAllowanceDeduction> = this.kind === 'fine'
       ? selected ? this.api.updateFinePenalty(selected.id, payload) : this.api.createFinePenalty(payload)
@@ -216,6 +453,117 @@ export class StaffPayrollDefinitionComponent implements OnInit {
       next: () => this.load(),
       error: (error: unknown) => this.saveError.set(this.apiError(error, 'Unable to update payroll definition'))
     });
+  }
+
+  changePenaltyPeriod(value: string): void {
+    this.period.set(value || new Date().toISOString().slice(0, 7));
+    this.loadPenaltyContext();
+  }
+
+  buildPenaltyPreviewRows(): PenaltyPreviewRow[] {
+    const rules = this.fines().filter((rule) =>
+      !rule.hide &&
+      rule.status !== 'archived' &&
+      rule.autoDeduct !== false &&
+      (rule.ruleType || 'manual') !== 'manual'
+    );
+    if (!rules.length) return [];
+    const previewByStaff = new Map(this.payrollPreviewRows().map((row) => [String(row['staffId'] || row['staff_id'] || ''), row]));
+    const attendanceByStaff = this.attendanceRows().reduce((map, row) => {
+      const staffId = String(row['staffId'] || row['staff_id'] || '');
+      if (!staffId) return map;
+      const rows = map.get(staffId) || [];
+      rows.push(row);
+      map.set(staffId, rows);
+      return map;
+    }, new Map<string, ApiRecord[]>());
+    const rows: PenaltyPreviewRow[] = [];
+    for (const staff of this.staffRows()) {
+      const metrics = this.penaltyMetrics(previewByStaff.get(staff.id), attendanceByStaff.get(staff.id) || []);
+      for (const rule of rules) {
+        const breakCount = this.ruleBreakCount(rule, metrics);
+        if (!breakCount) continue;
+        rows.push({
+          staffId: staff.id,
+          staffName: this.staffName(staff),
+          ruleName: rule.ruleLabel || rule.name,
+          ruleType: rule.ruleType || 'manual',
+          breakCount,
+          amount: Math.round((rule.amount || 0) * breakCount),
+          evidence: this.ruleEvidence(rule.ruleType || 'manual', metrics, rule.ruleLabel)
+        });
+      }
+    }
+    return rows.sort((a, b) => b.amount - a.amount || a.staffName.localeCompare(b.staffName));
+  }
+
+  penaltyMetrics(preview: ApiRecord | undefined, logs: ApiRecord[]): Record<string, number> {
+    const attendance = logs.reduce((summary, row) => {
+      const status = String(row['status'] || row['attendanceStatus'] || row['attendance_status'] || '').toLowerCase();
+      summary.late += status.includes('late') ? 1 : 0;
+      summary.half += status.includes('half') ? 1 : 0;
+      summary.noClockOut += (row['clockInAt'] || row['clock_in_at']) && !(row['clockOutAt'] || row['clock_out_at']) ? 1 : 0;
+      summary.workedHours += this.attendanceDurationHours(row);
+      return summary;
+    }, { late: 0, half: 0, noClockOut: 0, workedHours: 0 });
+    const workedHours = Math.max(this.toNumber(preview?.['workedHours']), Math.round(attendance.workedHours * 100) / 100);
+    const requiredHours = this.toNumber(preview?.['requiredHours']);
+    return {
+      late_count: Math.max(this.toNumber(preview?.['lateCount']), attendance.late),
+      absent_day: this.toNumber(preview?.['absentDays']),
+      half_day: Math.max(this.toNumber(preview?.['halfDays']), attendance.half),
+      short_hours: Math.max(0, requiredHours - workedHours),
+      no_clock_out: attendance.noClockOut,
+      weekend_penalty: this.toNumber(preview?.['weekendPenaltyDays']),
+      sandwich_penalty: this.toNumber(preview?.['sandwichPenaltyDays']),
+      unpaid_week_off: this.toNumber(preview?.['unpaidWeekOffDays'])
+    };
+  }
+
+  ruleBreakCount(rule: StaffOsFinePenalty, metrics: Record<string, number>): number {
+    const metric = metrics[rule.ruleType || 'manual'] || 0;
+    const trigger = Math.max(1, this.toNumber(rule.triggerCount || 1));
+    if (metric < trigger) return 0;
+    return rule.applyMode === 'fixed' ? 1 : Math.max(1, Math.floor(metric / trigger));
+  }
+
+  ruleEvidence(ruleType: FinePenaltyRuleType, metrics: Record<string, number>, customLabel = ''): string {
+    const value = metrics[ruleType] || 0;
+    const labels: Record<FinePenaltyRuleType, string> = {
+      manual: 'Manual',
+      late_count: 'Late',
+      absent_day: 'Absent',
+      half_day: 'Half day',
+      short_hours: 'Short hours',
+      no_clock_out: 'No clock out',
+      weekend_penalty: 'Weekend penalty',
+      sandwich_penalty: 'Sandwich penalty',
+      unpaid_week_off: 'Unpaid week off'
+    };
+    return `${customLabel || labels[ruleType]} ${Math.round(value * 100) / 100}`;
+  }
+
+  staffName(staff: StaffOsStaff): string {
+    return staff.fullName || `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || staff.id;
+  }
+
+  attendanceDurationHours(row: ApiRecord): number {
+    const clockIn = this.parseAttendanceTime(row['clockInAt'] || row['clock_in_at']);
+    const clockOut = this.parseAttendanceTime(row['clockOutAt'] || row['clock_out_at']);
+    if (!clockIn || !clockOut || clockOut <= clockIn) return 0;
+    return (clockOut - clockIn) / 36e5;
+  }
+
+  parseAttendanceTime(value: unknown): number {
+    if (!value) return 0;
+    const parsed = new Date(String(value)).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  periodStart(): string { return `${this.period()}-01`; }
+  periodEnd(): string {
+    const [year, month] = this.period().split('-').map(Number);
+    return new Date(year, month, 0).toISOString().slice(0, 10);
   }
 
   private reselect(): void {

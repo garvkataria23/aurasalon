@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -81,7 +81,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             <table>
               <thead><tr><th>Action</th><th>Actor</th><th>Target</th><th>Severity</th><th>Created</th></tr></thead>
               <tbody>
-                <tr *ngFor="let log of summary()?.auditLogs || []">
+                <tr *ngFor="let log of auditLogs()">
                   <td>{{ log.action }}</td>
                   <td>{{ log.actorRole }} · {{ log.actorUserId }}</td>
                   <td>{{ log.targetType }} {{ log.targetId }}</td>
@@ -96,11 +96,11 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         <section class="panel">
           <div class="section-title"><h2>Sessions and backups</h2></div>
           <div class="rank-list">
-            <article *ngFor="let session of summary()?.sessions || []">
+            <article *ngFor="let session of sessions()">
               <div><strong>{{ session.userId }}</strong><span>{{ session.status }} · {{ session.deviceId || 'no device' }}</span></div>
               <button class="ghost-button mini" type="button" (click)="revoke(session)" [disabled]="session.status !== 'active'">Revoke</button>
             </article>
-            <article *ngFor="let backup of summary()?.backups || []">
+            <article *ngFor="let backup of backups()">
               <div><strong>{{ backup.type }}</strong><span>{{ backup.fileSizeBytes }} bytes · {{ backup.status }}</span></div>
               <small>{{ backup.createdAt | date: 'short' }}</small>
             </article>
@@ -114,7 +114,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <table>
             <thead><tr><th>Method</th><th>Path</th><th>Status</th><th>Duration</th><th>Created</th></tr></thead>
             <tbody>
-              <tr *ngFor="let event of summary()?.activities || []">
+              <tr *ngFor="let event of activities()">
                 <td>{{ event.method }}</td>
                 <td>{{ event.path }}</td>
                 <td>{{ event.statusCode }}</td>
@@ -135,6 +135,11 @@ export class SecurityLayerComponent implements OnInit {
   readonly result = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly controlEntries = computed(() => Object.entries(this.summary()?.controls || {}) as [string, string][]);
+  readonly auditLogs = computed(() => this.summary()?.auditLogs || []);
+  readonly sessions = computed(() => this.summary()?.sessions || []);
+  readonly backups = computed(() => this.summary()?.backups || []);
+  readonly activities = computed(() => this.summary()?.activities || []);
 
   readonly permissionForm = this.fb.group({
     role: ['frontDesk', Validators.required],
@@ -162,10 +167,6 @@ export class SecurityLayerComponent implements OnInit {
         this.loading.set(false);
       }
     });
-  }
-
-  controlEntries(): [string, string][] {
-    return Object.entries(this.summary()?.controls || {});
   }
 
   savePermission(): void {

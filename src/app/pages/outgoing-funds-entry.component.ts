@@ -22,6 +22,10 @@ type OutgoingLineItem = {
   amount: number;
   salaryMonthYear: string;
   remarks: string;
+  categoryLabel?: string;
+  categoryBucket?: string;
+  balanceSheetImpact?: string;
+  operating?: boolean;
 };
 
 type LineDialogDraft = {
@@ -40,12 +44,26 @@ type OutgoingFundEntry = ApiRecord & {
   expenseBranchName?: string;
   paidFromAccountId: string;
   paidFromAccountName: string;
+  paidToAccountId?: string;
+  paidToAccountName?: string;
+  payeeName?: string;
   amount: number;
+  gstAmount?: number;
+  netAmount?: number;
   paymentMode: string;
   chequeDate?: string;
   chequeNo?: string;
   transactionType?: string;
+  salaryMonthYear?: string;
   lineItems?: OutgoingLineItem[];
+  billUrl?: string;
+  impactType?: string;
+  linkedPartyType?: string;
+  linkedPartyId?: string;
+  linkedPartyName?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected' | 'not_required';
+  approvedBy?: string;
+  approvedAt?: string;
   remarks?: string;
   status: 'draft' | 'posted' | 'cancelled' | 'deleted';
   balanceSheetLink?: {
@@ -85,6 +103,10 @@ type OutgoingFundEntry = ApiRecord & {
         <article><span>Draft entries</span><strong>{{ draftCount() }}</strong><small>Not posted yet</small></article>
         <article><span>Posted entries</span><strong>{{ postedCount() }}</strong><small>Ready for ledger review</small></article>
         <article><span>Balance Sheet link</span><strong>{{ linkedCount() }}/{{ postableCount() }}</strong><small>Queued or posted to GL outbox</small></article>
+        <article><span>Salon categories</span><strong>{{ categoryCount() }}</strong><small>Covered in visible rows</small></article>
+        <article><span>Operating outgoing</span><strong>{{ money(operatingOutgoing()) }}</strong><small>Expense impact</small></article>
+        <article><span>Balance Sheet only</span><strong>{{ money(balanceSheetOnlyOutgoing()) }}</strong><small>Asset, liability or owner movement</small></article>
+        <article><span>Review rows</span><strong>{{ reviewLineCount() }}</strong><small>Needs better category naming</small></article>
       </section>
 
       <div class="outgoing-layout" *ngIf="!loading() && !error()">
@@ -110,7 +132,7 @@ type OutgoingFundEntry = ApiRecord & {
             >
               <span>
                 <strong>{{ entry.entryNo || '-' }}</strong>
-                <small>{{ entry.entryDate }} · {{ entry.transactionType || 'Outgoing' }}</small>
+                <small>{{ entry.entryDate }} · {{ entryCategoryLabel(entry) }}</small>
               </span>
               <span>
                 <strong>{{ money(entry.amount) }}</strong>
@@ -145,6 +167,28 @@ type OutgoingFundEntry = ApiRecord & {
               <label><span>Cheque No :</span><input formControlName="chequeNo" /></label>
             </div>
 
+            <div class="connection-grid">
+              <label><span>GST Amount :</span><input type="number" min="0" step="0.01" formControlName="gstAmount" /></label>
+              <label><span>Bill / Invoice :</span><input formControlName="billUrl" placeholder="Upload URL / file path" /></label>
+              <label><span>BS Impact :</span>
+                <select formControlName="impactType">
+                  <option *ngFor="let option of impactTypes" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+              <label><span>Link Type :</span>
+                <select formControlName="linkedPartyType">
+                  <option *ngFor="let option of partyTypes" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+              <label><span>Linked ID :</span><input formControlName="linkedPartyId" placeholder="staff/vendor/customer id" /></label>
+              <label><span>Linked Name :</span><input formControlName="linkedPartyName" placeholder="staff/vendor/customer name" /></label>
+              <label><span>Approval :</span>
+                <select formControlName="approvalStatus">
+                  <option *ngFor="let option of approvalStatuses" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+            </div>
+
             <div class="line-grid">
               <div class="line-head">
                 <span>Sno</span>
@@ -152,6 +196,8 @@ type OutgoingFundEntry = ApiRecord & {
                 <span>Type</span>
                 <span>Account / Particular</span>
                 <span>Amount</span>
+                <span>Salon Category</span>
+                <span>BS Impact</span>
                 <span>Salary Month / Year</span>
                 <span>Remarks</span>
                 <span></span>
@@ -168,6 +214,8 @@ type OutgoingFundEntry = ApiRecord & {
                   <option *ngFor="let account of accounts()" [value]="account.id">{{ account.accountName }}{{ account.groupName ? ' - ' + account.groupName : '' }}</option>
                 </select>
                 <input type="text" inputmode="decimal" [value]="amountInput(item.amount)" (input)="updateLineAmount(i, $any($event.target).value)" />
+                <span class="category-cell">{{ lineCategoryLabel(item) }}</span>
+                <span class="impact-cell">{{ lineImpact(item) }}</span>
                 <input type="month" [ngModel]="item.salaryMonthYear" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateLine(i, { salaryMonthYear: $event })" />
                 <input [ngModel]="item.remarks" [ngModelOptions]="{ standalone: true }" (ngModelChange)="updateLine(i, { remarks: $event })" />
                 <button class="icon-button danger" type="button" (click)="removeLine(i)">×</button>
@@ -193,7 +241,7 @@ type OutgoingFundEntry = ApiRecord & {
                   </select>
                 </label>
                 <label><span>Amount :</span><input type="text" inputmode="decimal" [ngModel]="lineDialog().amountText" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchLineDialog({ amountText: $event })" /></label>
-                <label *ngIf="lineDialog().type === 'Salary'"><span>Salary Month :</span><input type="month" [ngModel]="lineDialog().salaryMonthYear" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchLineDialog({ salaryMonthYear: $event })" /></label>
+                <label *ngIf="isSalaryType(lineDialog().type)"><span>Salary Month :</span><input type="month" [ngModel]="lineDialog().salaryMonthYear" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchLineDialog({ salaryMonthYear: $event })" /></label>
                 <label><span>Remarks :</span><textarea rows="3" [ngModel]="lineDialog().remarks" [ngModelOptions]="{ standalone: true }" (ngModelChange)="patchLineDialog({ remarks: $event })"></textarea></label>
                 <button class="dialog-ok" type="button" (click)="commitLineDialog()">Ok</button>
               </div>
@@ -207,6 +255,7 @@ type OutgoingFundEntry = ApiRecord & {
               <div class="voucher-total">
                 <span>Total Amount</span>
                 <strong>{{ money(lineTotal()) }}</strong>
+                <small>GST {{ money(entryGstAmount()) }} · Net {{ money(entryNetAmount()) }}</small>
               </div>
             </div>
 
@@ -246,7 +295,7 @@ type OutgoingFundEntry = ApiRecord & {
     .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
     .panel-title h3 { margin: 3px 0 0; letter-spacing: 0; }
     .search-row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 8px; font-weight: 900; color: #334155; margin-bottom: 10px; }
-    .search-row input, .voucher-head input, .voucher-head select, .line-row input, .line-row select, .remarks-footer textarea {
+    .search-row input, .voucher-head input, .voucher-head select, .connection-grid input, .connection-grid select, .line-row input, .line-row select, .remarks-footer textarea {
       width: 100%;
       border: 1px solid #9fb2b8;
       border-radius: 3px;
@@ -277,13 +326,16 @@ type OutgoingFundEntry = ApiRecord & {
     .window-titlebar strong { font-size: 20px; }
     .voucher-form { display: grid; gap: 10px; padding: 10px; }
     .voucher-head { display: grid; grid-template-columns: 170px 150px 210px 280px 190px 180px; gap: 9px 12px; align-items: end; }
-    .voucher-head label, .remarks-footer label { display: grid; gap: 5px; color: #26364b; font-weight: 900; }
-    .voucher-head span, .remarks-footer span { font-size: 13px; }
+    .connection-grid { display: grid; grid-template-columns: 140px minmax(220px, 1fr) 150px 150px 170px 220px 150px; gap: 9px 12px; align-items: end; border: 1px solid #9fb2b8; background: #eef7f5; padding: 9px; }
+    .voucher-head label, .connection-grid label, .remarks-footer label { display: grid; gap: 5px; color: #26364b; font-weight: 900; }
+    .voucher-head span, .connection-grid span, .remarks-footer span { font-size: 13px; }
     .line-grid { border: 1px solid #8ea4aa; background: #fff; min-height: 390px; overflow: auto; }
-    .line-head, .line-row { display: grid; grid-template-columns: 48px 120px 130px minmax(220px, 1fr) 120px 160px minmax(180px, .8fr) 46px; align-items: stretch; }
+    .line-head, .line-row { display: grid; grid-template-columns: 48px 120px 190px minmax(220px, 1fr) 120px 180px 220px 160px minmax(180px, .8fr) 46px; align-items: stretch; }
     .line-head { position: sticky; top: 0; z-index: 1; background: #eef3f6; color: #26364b; font-size: 12px; font-weight: 950; }
     .line-head span, .line-row > span, .line-row input, .line-row select { border-right: 1px solid #d1dce1; border-bottom: 1px solid #e2e8ec; border-radius: 0; }
     .line-head span, .line-row > span { padding: 8px; }
+    .category-cell { font-weight: 900; color: #0f8f79; background: #f2fbf8; }
+    .impact-cell { color: #53657d; font-size: 12px; line-height: 1.25; }
     .line-row input, .line-row select { border-left: 0; border-top: 0; }
     .sno { display: grid; place-items: center; font-weight: 900; color: #53657d; }
     .category-strip { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -321,12 +373,12 @@ type OutgoingFundEntry = ApiRecord & {
     @media (max-width: 1340px) {
       .outgoing-layout { grid-template-columns: 1fr; }
       .entry-list { max-height: 300px; }
-      .voucher-head { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .voucher-head, .connection-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 820px) {
       .module-hero { align-items: stretch; flex-direction: column; }
-      .metric-grid, .voucher-head, .remarks-footer { grid-template-columns: 1fr; }
-      .line-head, .line-row { grid-template-columns: 42px 110px 120px 220px 110px 140px 180px 42px; min-width: 964px; }
+      .metric-grid, .voucher-head, .connection-grid, .remarks-footer { grid-template-columns: 1fr; }
+      .line-head, .line-row { grid-template-columns: 42px 110px 180px 220px 110px 180px 220px 140px 180px 42px; min-width: 1420px; }
       .bottom-toolbar { justify-content: stretch; }
       .tool-button { flex: 1 1 120px; }
     }
@@ -346,8 +398,72 @@ export class OutgoingFundsEntryComponent implements OnInit {
   readonly activeType = signal('Daily Exp.');
   readonly lineDialog = signal<LineDialogDraft>(blankDialog('Daily Exp.'));
 
-  readonly transactionTypes = ['Daily Exp.', 'Bank Depo.', 'Purch. Pymt', 'Misc. Pymt', 'Other Out.', 'Salary', 'Advance', 'Loan', 'Daily Inc.'];
+  readonly transactionTypes = [
+    'Daily Exp.',
+    'Rent',
+    'Utilities',
+    'Marketing Ads',
+    'Software / SMS',
+    'Repair / Maintenance',
+    'Cleaning / Laundry',
+    'Bank / Payment Charges',
+    'Legal / License',
+    'Product Purchase',
+    'Product Consumable',
+    'Wastage / Damage',
+    'Fixed Asset Purchase',
+    'Staff Salary',
+    'Staff Commission',
+    'Client Refreshment',
+    'Uniform / Grooming',
+    'Stationery / Printing',
+    'Training / Education',
+    'Travel / Conveyance',
+    'Security Deposit',
+    'Prepaid Expense',
+    'GST Payment',
+    'Statutory Payment',
+    'Interest / Finance Cost',
+    'Petty Cash Transfer',
+    'Owner Drawing',
+    'Bank Depo.',
+    'Purch. Pymt',
+    'Misc. Pymt',
+    'Other Out.',
+    'Salary',
+    'Advance',
+    'Loan',
+    'Daily Inc.'
+  ];
   readonly paymentModes = ['Cash', 'Bank Transfer', 'UPI', 'Card', 'Cheque', 'NEFT', 'RTGS', 'IMPS', 'Wallet', 'Other'];
+  readonly impactTypes = [
+    { value: '', label: 'Auto' },
+    { value: 'expense', label: 'Expense' },
+    { value: 'inventory', label: 'Inventory' },
+    { value: 'fixed_asset', label: 'Fixed Asset' },
+    { value: 'tax', label: 'Tax / GST' },
+    { value: 'advance', label: 'Advance / Prepaid' },
+    { value: 'loan', label: 'Loan' },
+    { value: 'owner', label: 'Owner Drawing' },
+    { value: 'transfer', label: 'Cash / Bank Transfer' },
+    { value: 'other', label: 'Other' }
+  ];
+  readonly partyTypes = [
+    { value: 'none', label: 'None' },
+    { value: 'vendor', label: 'Vendor' },
+    { value: 'staff', label: 'Staff' },
+    { value: 'customer', label: 'Customer' },
+    { value: 'asset', label: 'Asset' },
+    { value: 'loan', label: 'Loan' },
+    { value: 'owner', label: 'Owner' },
+    { value: 'other', label: 'Other' }
+  ];
+  readonly approvalStatuses = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'not_required', label: 'Not required' }
+  ];
 
   readonly cashBankAccounts = computed(() => {
     const matches = this.accounts().filter((account) => {
@@ -381,6 +497,11 @@ export class OutgoingFundsEntryComponent implements OnInit {
   readonly postedCount = computed(() => this.entries().filter((entry) => entry.status === 'posted').length);
   readonly postableCount = computed(() => this.entries().filter((entry) => !['cancelled', 'deleted'].includes(entry.status)).length);
   readonly linkedCount = computed(() => this.entries().filter((entry) => ['pending', 'posted', 'failed'].includes(entry.balanceSheetLink?.status || '')).length);
+  readonly visibleLines = computed(() => this.entries().filter((entry) => entry.status !== 'deleted').flatMap((entry) => entryLines(entry)));
+  readonly categoryCount = computed(() => new Set(this.visibleLines().map((line) => lineCategory(line).key)).size);
+  readonly operatingOutgoing = computed(() => this.visibleLines().filter((line) => lineCategory(line).operating).reduce((sum, line) => sum + moneyValue(line.amount), 0));
+  readonly balanceSheetOnlyOutgoing = computed(() => this.visibleLines().filter((line) => !lineCategory(line).operating).reduce((sum, line) => sum + moneyValue(line.amount), 0));
+  readonly reviewLineCount = computed(() => this.visibleLines().filter((line) => lineCategory(line).key === 'other').length);
 
   readonly entryForm = this.fb.group({
     entryNo: [''],
@@ -391,6 +512,13 @@ export class OutgoingFundsEntryComponent implements OnInit {
     paymentMode: ['Cash', Validators.required],
     chequeDate: [''],
     chequeNo: [''],
+    gstAmount: [0],
+    billUrl: [''],
+    impactType: [''],
+    linkedPartyType: ['none'],
+    linkedPartyId: [''],
+    linkedPartyName: [''],
+    approvalStatus: ['pending'],
     remarks: [''],
     status: ['draft', Validators.required]
   });
@@ -541,8 +669,9 @@ export class OutgoingFundsEntryComponent implements OnInit {
     this.error.set('');
     this.success.set('');
     const firstLine = lineItems[0] || blankLine(this.activeType());
+    const formValue = this.entryForm.getRawValue();
     const payload = {
-      ...this.entryForm.getRawValue(),
+      ...formValue,
       branchId: this.api.selectedBranchId(),
       expenseBranchId: this.api.selectedBranchId(),
       transactionType: firstLine.type || this.activeType(),
@@ -551,7 +680,8 @@ export class OutgoingFundsEntryComponent implements OnInit {
       paidToAccountName: firstLine.accountName,
       payeeName: firstLine.accountName,
       amount: this.lineTotal(),
-      lineItems: this.renumber(lineItems)
+      gstAmount: Math.min(this.lineTotal(), Math.max(0, moneyValue(formValue.gstAmount))),
+      lineItems: this.renumber(lineItems).map((line) => ({ ...line, ...lineCategoryPayload(line) }))
     };
     const request = this.editingId()
       ? this.api.update<OutgoingFundEntry>('transactions/outgoing-funds', this.editingId(), payload)
@@ -628,6 +758,32 @@ export class OutgoingFundsEntryComponent implements OnInit {
   dialogTitle(type: string): string {
     return ({
       'Daily Exp.': 'Daily Expenses',
+      Rent: 'Rent / Lease',
+      Utilities: 'Electricity / Water / Internet',
+      'Marketing Ads': 'Marketing / Ads',
+      'Software / SMS': 'Software / SMS / WhatsApp',
+      'Repair / Maintenance': 'Repair / Maintenance',
+      'Cleaning / Laundry': 'Cleaning / Laundry',
+      'Bank / Payment Charges': 'Bank / Payment Charges',
+      'Legal / License': 'Professional / Legal / License',
+      'Product Purchase': 'Inventory Product Purchase',
+      'Product Consumable': 'Product Consumable Expense',
+      'Wastage / Damage': 'Wastage / Expiry / Damage',
+      'Fixed Asset Purchase': 'Fixed Asset Purchase',
+      'Staff Salary': 'Staff Salary',
+      'Staff Commission': 'Staff Commission',
+      'Client Refreshment': 'Client Refreshment',
+      'Uniform / Grooming': 'Uniform / Grooming',
+      'Stationery / Printing': 'Stationery / Printing',
+      'Training / Education': 'Training / Education',
+      'Travel / Conveyance': 'Travel / Conveyance',
+      'Security Deposit': 'Security Deposit',
+      'Prepaid Expense': 'Prepaid Expense',
+      'GST Payment': 'GST / Tax Payment',
+      'Statutory Payment': 'PF / ESI / PT / TDS Payment',
+      'Interest / Finance Cost': 'Interest / Finance Cost',
+      'Petty Cash Transfer': 'Petty Cash Transfer',
+      'Owner Drawing': 'Owner Drawing',
       'Bank Depo.': 'Bank Deposit',
       'Purch. Pymt': 'Payment To Vendors',
       'Misc. Pymt': 'Misc. Purchase',
@@ -637,6 +793,10 @@ export class OutgoingFundsEntryComponent implements OnInit {
       Loan: 'Loan',
       'Daily Inc.': 'Daily Income'
     } as Record<string, string>)[type] || type;
+  }
+
+  isSalaryType(type: string): boolean {
+    return ['Salary', 'Staff Salary'].includes(type);
   }
 
   dialogAccounts(type: string): LedgerAccount[] {
@@ -661,6 +821,27 @@ export class OutgoingFundsEntryComponent implements OnInit {
 
   money(value: unknown): string {
     return moneyValue(value).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+
+  entryGstAmount(): number {
+    return Math.min(this.lineTotal(), Math.max(0, moneyValue(this.entryForm.value.gstAmount)));
+  }
+
+  entryNetAmount(): number {
+    return Math.max(0, this.lineTotal() - this.entryGstAmount());
+  }
+
+  lineCategoryLabel(line: Partial<OutgoingLineItem>): string {
+    return stringValue(line.categoryLabel) || lineCategory(line).label;
+  }
+
+  lineImpact(line: Partial<OutgoingLineItem>): string {
+    return stringValue(line.balanceSheetImpact) || lineCategory(line).impact;
+  }
+
+  entryCategoryLabel(entry: OutgoingFundEntry): string {
+    const line = entryLines(entry)[0];
+    return line ? this.lineCategoryLabel(line) : entry.transactionType || 'Outgoing';
   }
 
   balanceSheetLabel(entry: OutgoingFundEntry): string {
@@ -716,6 +897,27 @@ function legacyLine(entry: OutgoingFundEntry): OutgoingLineItem {
   };
 }
 
+function entryLines(entry: OutgoingFundEntry): OutgoingLineItem[] {
+  return Array.isArray(entry.lineItems) && entry.lineItems.length ? entry.lineItems : [legacyLine(entry)];
+}
+
+function lineCategory(line: Partial<OutgoingLineItem>): { key: string; label: string; bucket: string; impact: string; operating: boolean } {
+  const text = `${line.type || ''} ${line.accountName || ''} ${line.remarks || ''}`.toLowerCase();
+  const match = SALON_CATEGORY_RULES.find((rule) => rule.patterns.some((pattern) => text.includes(pattern))) || SALON_CATEGORY_RULES[SALON_CATEGORY_RULES.length - 1];
+  return match;
+}
+
+function lineCategoryPayload(line: Partial<OutgoingLineItem>): ApiRecord {
+  const category = lineCategory(line);
+  return {
+    category: category.key,
+    categoryLabel: category.label,
+    categoryBucket: category.bucket,
+    balanceSheetImpact: category.impact,
+    operating: category.operating
+  };
+}
+
 function defaultEntryForm(branchId = ''): ApiRecord {
   return {
     entryNo: '',
@@ -726,6 +928,13 @@ function defaultEntryForm(branchId = ''): ApiRecord {
     paymentMode: 'Cash',
     chequeDate: '',
     chequeNo: '',
+    gstAmount: 0,
+    billUrl: '',
+    impactType: '',
+    linkedPartyType: 'none',
+    linkedPartyId: '',
+    linkedPartyName: '',
+    approvalStatus: 'pending',
     remarks: '',
     status: 'draft'
   };
@@ -739,3 +948,35 @@ function moneyValue(value: unknown): number {
 function stringValue(value: unknown): string {
   return value === undefined || value === null ? '' : String(value);
 }
+
+const SALON_CATEGORY_RULES = [
+  { key: 'salary', label: 'Staff Salary', bucket: 'staff', impact: 'Expense reduces profit/equity', operating: true, patterns: ['staff salary', 'salary', 'payroll', 'wage', 'overtime'] },
+  { key: 'staff_commission', label: 'Staff Commission / Incentive', bucket: 'staff', impact: 'Expense reduces profit/equity', operating: true, patterns: ['staff commission', 'commission', 'incentive'] },
+  { key: 'advance', label: 'Staff / Client Advance', bucket: 'advance_asset', impact: 'Advance asset increases', operating: false, patterns: ['staff advance', 'client advance', 'advance'] },
+  { key: 'rent', label: 'Rent / Lease', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['rent', 'lease', 'kiraya'] },
+  { key: 'utilities', label: 'Electricity / Water / Internet', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['utility', 'electricity', 'water', 'internet', 'wifi', 'phone'] },
+  { key: 'inventory_purchase', label: 'Product Purchase / Inventory', bucket: 'inventory', impact: 'Inventory asset or vendor payable', operating: false, patterns: ['product purchase', 'inventory purchase', 'stock purchase', 'purch. pymt', 'vendor payment'] },
+  { key: 'product_consumable', label: 'Product Consumable / COGS', bucket: 'inventory', impact: 'COGS/product expense', operating: true, patterns: ['product consumable', 'consume', 'consumable', 'cogs'] },
+  { key: 'wastage_damage', label: 'Wastage / Expiry / Damage', bucket: 'inventory', impact: 'Inventory loss impact', operating: true, patterns: ['wastage', 'waste', 'expiry', 'damage', 'shortage'] },
+  { key: 'fixed_asset_purchase', label: 'Fixed Asset Purchase', bucket: 'fixed_asset', impact: 'Fixed asset increases', operating: false, patterns: ['fixed asset', 'chair', 'mirror', 'machine', 'dryer', 'steamer', 'printer', 'computer', 'cctv', 'interior', 'furniture', 'equipment'] },
+  { key: 'repair_maintenance', label: 'Repair / Maintenance', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['repair', 'maintenance', 'ac service', 'plumbing', 'amc'] },
+  { key: 'cleaning_housekeeping', label: 'Cleaning / Laundry / Housekeeping', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['cleaning', 'laundry', 'towel', 'housekeeping', 'sanitize', 'pest'] },
+  { key: 'client_refreshment', label: 'Client Refreshment', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['tea', 'coffee', 'refreshment', 'snack', 'water bottle'] },
+  { key: 'uniform', label: 'Uniform / Grooming', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['uniform', 'apron', 'staff dress', 'grooming'] },
+  { key: 'stationery', label: 'Stationery / Printing', bucket: 'admin', impact: 'Expense reduces profit/equity', operating: true, patterns: ['stationery', 'printing', 'paper', 'bill book'] },
+  { key: 'marketing', label: 'Marketing / Ads / Referral', bucket: 'sales_marketing', impact: 'Expense reduces profit/equity', operating: true, patterns: ['marketing', 'ads', 'instagram', 'facebook', 'google', 'campaign', 'lead', 'influencer', 'referral', 'banner', 'brochure', 'signage'] },
+  { key: 'software_subscription', label: 'Software / SMS / WhatsApp', bucket: 'admin', impact: 'Expense reduces profit/equity', operating: true, patterns: ['software', 'subscription', 'sms', 'whatsapp', 'crm', 'pos', 'saas', 'domain', 'hosting'] },
+  { key: 'bank_charges', label: 'Bank / Payment Gateway Charges', bucket: 'finance_cost', impact: 'Expense reduces profit/equity', operating: true, patterns: ['bank charges', 'payment charge', 'gateway', 'mdr', 'card charge', 'upi charge', 'fee'] },
+  { key: 'professional_legal', label: 'CA / Legal / License', bucket: 'admin', impact: 'Expense reduces profit/equity', operating: true, patterns: ['legal', 'license', 'licence', 'professional', 'ca', 'audit', 'gst filing', 'compliance'] },
+  { key: 'gst_payment', label: 'GST / Tax Payment', bucket: 'tax', impact: 'Tax payable/credit adjusts', operating: false, patterns: ['gst payment', 'gst paid', 'tax payment', 'gst challan', 'tax challan'] },
+  { key: 'statutory_payment', label: 'PF / ESI / PT / TDS Payment', bucket: 'tax', impact: 'Statutory liability reduces', operating: false, patterns: ['pf', 'esi', 'tds', 'professional tax', 'statutory'] },
+  { key: 'security_deposit', label: 'Security Deposit', bucket: 'deposit_asset', impact: 'Deposit asset increases', operating: false, patterns: ['security deposit', 'deposit', 'rent deposit'] },
+  { key: 'prepaid_expense', label: 'Prepaid Expense', bucket: 'prepaid_asset', impact: 'Prepaid asset increases', operating: false, patterns: ['prepaid', 'advance rent', 'annual subscription', 'yearly subscription'] },
+  { key: 'loan', label: 'Loan / EMI Principal', bucket: 'loan', impact: 'Loan liability reduces', operating: false, patterns: ['loan', 'emi', 'principal'] },
+  { key: 'interest', label: 'Interest / Finance Cost', bucket: 'finance_cost', impact: 'Expense reduces profit/equity', operating: true, patterns: ['interest', 'finance cost'] },
+  { key: 'owner_drawing', label: 'Owner Drawing', bucket: 'owner', impact: 'Owner equity/drawing adjusts', operating: false, patterns: ['owner drawing', 'drawing', 'withdrawal', 'personal'] },
+  { key: 'bank_deposit', label: 'Bank Deposit / Cash Transfer', bucket: 'cash_transfer', impact: 'Cash/bank movement only', operating: false, patterns: ['bank depo', 'bank deposit', 'cash deposit', 'cash transfer', 'petty cash transfer'] },
+  { key: 'travel', label: 'Travel / Conveyance', bucket: 'operations', impact: 'Expense reduces profit/equity', operating: true, patterns: ['travel', 'travelling', 'conveyance', 'cab', 'auto', 'fuel'] },
+  { key: 'training', label: 'Training / Education', bucket: 'staff', impact: 'Expense reduces profit/equity', operating: true, patterns: ['training', 'course', 'education', 'academy'] },
+  { key: 'other', label: 'Other Salon Outgoing', bucket: 'review', impact: 'Review required', operating: true, patterns: ['other out', 'misc', 'daily exp', 'expense'] }
+];

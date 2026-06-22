@@ -119,7 +119,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
                 <span>Mark</span>
                 <select formControlName="lateMarkStatusId">
                   <option value="">Select status</option>
-                  <option *ngFor="let status of statuses()" [value]="status.id">{{ status.code }} · {{ status.name }}</option>
+                  <option *ngFor="let status of statusOptions()" [value]="status.id">{{ statusLabel(status) }}</option>
                 </select>
               </label>
               <label class="field">
@@ -137,7 +137,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
                 <span>Mark later than</span>
                 <select formControlName="severeLateStatusId">
                   <option value="">Select status</option>
-                  <option *ngFor="let status of statuses()" [value]="status.id">{{ status.code }} · {{ status.name }}</option>
+                  <option *ngFor="let status of statusOptions()" [value]="status.id">{{ statusLabel(status) }}</option>
                 </select>
               </label>
               <label class="field">
@@ -158,7 +158,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
                 <input type="number" min="0" [value]="slab.toMinutes" (input)="updateSlab(i, 'toMinutes', $any($event.target).value)" />
                 <select [value]="slab.statusId || ''" (change)="updateSlabStatus(i, $any($event.target).value)">
                   <option value="">Select</option>
-                  <option *ngFor="let status of statuses()" [value]="status.id">{{ status.code }} · {{ status.name }}</option>
+                  <option *ngFor="let status of statusOptions()" [value]="status.id">{{ statusLabel(status) }}</option>
                 </select>
                 <button type="button" class="icon-button" (click)="removeSlab(i)">×</button>
               </div>
@@ -182,6 +182,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
             </label>
 
             <div class="state error full" *ngIf="saveError()">{{ saveError() }}</div>
+            <div class="state warn full" *ngIf="!statusOptions().length && !loading()">Add an active status code in Attendance Master to enable late/slab status selection.</div>
 
             <footer class="actions full">
               <button type="button" class="refresh" (click)="cancel()">Cancel</button>
@@ -216,6 +217,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
     .metrics strong { display: block; font-size: 24px; margin-top: 6px; }
     .state { color: #61746c; padding: 14px; }
     .error { color: #a52828; border-color: #e7b1b1; }
+    .warn { color: #8a5a00; border-color: #f0d79b; background: #fffaf0; }
     .rule-shell { display: grid; grid-template-columns: minmax(300px, .75fr) minmax(520px, 1.25fr); gap: 16px; align-items: start; }
     .list-panel, .editor-panel { display: grid; gap: 14px; padding: 16px; }
     .filters { display: grid; grid-template-columns: 1fr; gap: 10px; }
@@ -315,6 +317,26 @@ export class AttendanceCategoryPage implements OnInit {
     return this.records().filter((record) => record.status === 'active' && !record.hide).length;
   }
 
+  statusOptions(): StaffOsAttendanceMaster[] {
+    return this.statuses().filter((status) => status.status !== 'archived' && !status.hide);
+  }
+
+  statusLabel(status: StaffOsAttendanceMaster): string {
+    const code = this.cleanStatusText(status.code || '');
+    const name = this.cleanStatusText(status.name || '');
+    if (code && name && code.toLowerCase() !== name.toLowerCase()) return `${code} · ${name}`;
+    return name || code || 'Attendance status';
+  }
+
+  private cleanStatusText(value: string): string {
+    return String(value || '')
+      .replace(/\bQA\s*\d+\b/gi, '')
+      .replace(/\b\d{6,}\b/g, '')
+      .replace(/\s*[-·]\s*$/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   shiftCount(): number {
     return this.records().reduce((total, record) => total + (record.allowableShiftIds?.length || 0), 0);
   }
@@ -360,6 +382,11 @@ export class AttendanceCategoryPage implements OnInit {
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+    const slabError = this.validateSlabs();
+    if (slabError) {
+      this.saveError.set(slabError);
       return;
     }
     const record = this.editing();
@@ -442,6 +469,15 @@ export class AttendanceCategoryPage implements OnInit {
       attendanceSlabs: this.slabs(),
       allowableShiftIds: this.selectedShiftIds()
     };
+  }
+
+  private validateSlabs(): string {
+    const slabs = this.slabs().filter((slab) => slab.fromMinutes || slab.toMinutes || slab.statusId);
+    for (const slab of slabs) {
+      if (Number(slab.toMinutes || 0) < Number(slab.fromMinutes || 0)) return 'To Min. cannot be less than From Min. in an attendance slab.';
+      if (!slab.statusId) return 'Select a status for each attendance slab.';
+    }
+    return '';
   }
 
   private defaultValue(): Record<string, unknown> {

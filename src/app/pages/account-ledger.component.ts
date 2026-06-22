@@ -137,7 +137,7 @@ type LedgerResponse = {
               <tr *ngIf="!data.entries.length" class="empty-row">
                 <td colspan="15">
                   <strong>No ledger transactions yet</strong>
-                  <span>Account Master ka account selectable hai. Opening balance yahan show ho raha hai; vouchers/purchase/payment entries connect hone par rows yahin dikhenge.</span>
+                  <span>Opening balance is available. Voucher, purchase and payment entries will appear here after posting.</span>
                 </td>
               </tr>
             </tbody>

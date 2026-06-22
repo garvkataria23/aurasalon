@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db } from "../db.js";
 import { badRequest, conflict, forbidden, notFound } from "../utils/app-error.js";
+import { jobQueueService } from "./job-queue.service.js";
 import { realtimeService } from "./realtime.service.js";
 import { securityService } from "./security.service.js";
 import { staffLoginService } from "./staff-login.service.js";
@@ -19,6 +20,8 @@ const attendanceLateMarkModes = new Set(["every_x_late", "all_after_x_late"]);
 const targetIncentiveTypes = new Set(["service", "product", "membership", "branch_admin", "admin", "all_transaction"]);
 const targetAssigneeTypes = new Set(["staff", "branch", "standard"]);
 const allowanceDeductionTypes = new Set(["allowance", "deduction"]);
+const finePenaltyRuleTypes = new Set(["manual", "late_count", "absent_day", "half_day", "short_hours", "no_clock_out", "weekend_penalty", "sandwich_penalty", "unpaid_week_off"]);
+const finePenaltyApplyModes = new Set(["per_occurrence", "fixed"]);
 
 function normalizeAccess(access = {}) {
   if (!access.tenantId) throw forbidden("Tenant context is required");
@@ -173,6 +176,28 @@ function normalizeAllowanceDeductionType(value = "allowance") {
   const entryType = normalized === "deductions" ? "deduction" : normalized === "allowances" ? "allowance" : normalized;
   if (!allowanceDeductionTypes.has(entryType)) throw badRequest("Invalid allowance/deduction type");
   return entryType;
+}
+
+function normalizeFinePenaltyRuleType(value = "manual") {
+  const normalized = String(value || "manual").trim().replace(/[\s-]+/g, "_").toLowerCase();
+  const aliases = {
+    late: "late_count",
+    absent: "absent_day",
+    half: "half_day",
+    short_hour: "short_hours",
+    missing_clock_out: "no_clock_out",
+    weekoff: "unpaid_week_off"
+  };
+  const ruleType = aliases[normalized] || normalized;
+  if (!finePenaltyRuleTypes.has(ruleType)) throw badRequest("Invalid fine/penalty rule type");
+  return ruleType;
+}
+
+function normalizeFinePenaltyApplyMode(value = "per_occurrence") {
+  const normalized = String(value || "per_occurrence").trim().replace(/[\s-]+/g, "_").toLowerCase();
+  const mode = normalized === "one_time" ? "fixed" : normalized;
+  if (!finePenaltyApplyModes.has(mode)) throw badRequest("Invalid fine/penalty apply mode");
+  return mode;
 }
 
 function deriveCode(value = "", fallbackPrefix = "ST") {
@@ -415,12 +440,19 @@ function rowToServiceAssignmentMaster(row) {
 
 function rowToFinePenaltyMaster(row) {
   if (!row) return null;
+  const amountPaise = Number(row.amount_paise ?? Math.round(Number(row.amount || 0) * 100));
   return {
     id: row.id,
     tenantId: row.tenant_id,
     branchId: row.branch_id || "",
     name: row.name,
-    amount: Number(row.amount || 0),
+    amount: amountPaise ? amountPaise / 100 : Number(row.amount || 0),
+    amountPaise,
+    ruleType: row.rule_type || "manual",
+    ruleLabel: row.rule_label || "",
+    triggerCount: Number(row.trigger_count || 1),
+    applyMode: row.apply_mode || "per_occurrence",
+    autoDeduct: Number(row.auto_deduct ?? 1) === 1,
     hide: Number(row.hide || 0) === 1,
     notes: row.notes || "",
     status: row.status || "active",
@@ -496,11 +528,85 @@ function rowToCamel(row = {}) {
   ]));
 }
 
+function firstStaffEmail(staff = {}) {
+  return [staff.email, staff.loginEmail]
+    .map((value) => String(value || "").trim())
+    .find((value) => value.includes("@")) || "";
+}
+
+function firstStaffPhone(staff = {}) {
+  return [staff.mobile, staff.phone, staff.whatsapp, staff.whatsappNumber]
+    .map((value) => String(value || "").trim())
+    .find((value) => value.replace(/\D/g, "").length >= 7) || "";
+}
+
+function formatRosterDate(value = "") {
+  const [year, month, day] = String(value || "").split("-");
+  return year && month && day ? `${day}/${month}/${year}` : String(value || "");
+}
+
+function rosterNotificationCopy(schedule = {}, staff = {}) {
+  const staffName = staff.fullName || staff.firstName || "Staff";
+  const timing = `${schedule.startTime || ""} - ${schedule.endTime || ""}`.trim();
+  const dateLabel = formatRosterDate(schedule.scheduleDate);
+  const branchLabel = schedule.branchId || "your salon";
+  return {
+    subject: `Roster shift assigned: ${dateLabel} ${timing}`.trim(),
+    body: `Hi ${staffName}, your roster shift is scheduled for ${dateLabel}, ${timing} at ${branchLabel}. Please report on time.`
+  };
+}
+
+function formatRupees(value = 0) {
+  return Math.round(parseNumber(value, 0)).toLocaleString("en-IN");
+}
+
+function penaltyNotificationCopy(run = {}, staff = {}, row = {}) {
+  const staffName = staff.fullName || staff.firstName || row.staffName || "Staff";
+  const period = `${formatRosterDate(run.periodStart || row.periodStart || "")} - ${formatRosterDate(run.periodEnd || row.periodEnd || "")}`;
+  const breakdown = Array.isArray(row.rulePenaltyBreakdown) ? row.rulePenaltyBreakdown : [];
+  const ruleText = breakdown.length
+    ? breakdown.map((item) => `${item.ruleName || "Penalty rule"} (${item.evidence || `${item.breakCount || 1} break`})`).join(", ")
+    : "Penalty rule break";
+  const amount = breakdown.reduce((total, item) => total + parseNumber(item.amount, 0), 0) || parseNumber(row.rulePenalty, 0);
+  return {
+    amount,
+    body: `Hi ${staffName}, penalty applied for ${period}: ${ruleText}. Penalty amount Rs ${formatRupees(amount)} will be deducted in payroll. Contact manager if this looks incorrect.`
+  };
+}
+
 function daysBetweenInclusive(startDate, endDate) {
   const start = new Date(`${startDate}T00:00:00.000Z`);
   const end = new Date(`${endDate}T00:00:00.000Z`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 1;
   return Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+}
+
+function dateRangeInclusive(startDate, endDate) {
+  const start = new Date(`${startDate}T00:00:00.000Z`);
+  const end = new Date(`${endDate || startDate}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [startDate];
+  const dates = [];
+  for (let cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    dates.push(cursor.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function leaveBalancePeriod(startDate, quotaPeriod = "yearly") {
+  const date = new Date(`${startDate}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return { start: startDate, end: startDate };
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  if (quotaPeriod === "monthly") {
+    return {
+      start: new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10),
+      end: new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10)
+    };
+  }
+  return {
+    start: `${year}-01-01`,
+    end: `${year}-12-31`
+  };
 }
 
 function buildStaffPayload(payload = {}, access) {
@@ -868,12 +974,30 @@ function buildFinePenaltyMasterPayload(payload = {}, access, existing = null) {
   if (branchId) assertBranch(access, branchId);
   const name = String(payload.name ?? existing?.name ?? "").trim();
   if (!name) throw badRequest("Fine/Penalty name is required");
+  const payloadAmount = payload.amount !== undefined
+    ? parseNumber(payload.amount, 0)
+    : payload.amountPaise !== undefined
+      ? parseNumber(payload.amountPaise, 0) / 100
+      : payload.amount_paise !== undefined
+        ? parseNumber(payload.amount_paise, 0) / 100
+        : undefined;
+  const amount = Math.max(0, parseNumber(payloadAmount ?? existing?.amount ?? (existing?.amount_paise ? Number(existing.amount_paise) / 100 : 0), 0));
+  const amountPaise = Math.max(0, Math.round(parseNumber(
+    payload.amountPaise ?? payload.amount_paise ?? (payloadAmount !== undefined ? amount * 100 : existing?.amount_paise ?? amount * 100),
+    amount * 100
+  )));
   return {
     id: existing?.id || payload.id || makeId("fine"),
     tenant_id: access.tenantId,
     branch_id: branchId,
     name,
-    amount: parseNumber(payload.amount ?? existing?.amount, 0),
+    amount,
+    amount_paise: amountPaise,
+    rule_type: normalizeFinePenaltyRuleType(payload.ruleType ?? payload.rule_type ?? existing?.rule_type ?? "manual"),
+    rule_label: String(payload.ruleLabel ?? payload.rule_label ?? existing?.rule_label ?? "").trim().slice(0, 80),
+    trigger_count: Math.max(1, parseNumber(payload.triggerCount ?? payload.trigger_count ?? existing?.trigger_count, 1)),
+    apply_mode: normalizeFinePenaltyApplyMode(payload.applyMode ?? payload.apply_mode ?? existing?.apply_mode ?? "per_occurrence"),
+    auto_deduct: payload.autoDeduct !== undefined ? boolInt(payload.autoDeduct) : payload.auto_deduct !== undefined ? boolInt(payload.auto_deduct) : Number(existing?.auto_deduct ?? 1),
     hide: payload.hide !== undefined ? boolInt(payload.hide) : Number(existing?.hide ?? 0),
     notes: payload.notes ?? existing?.notes ?? "",
     status: payload.status ?? existing?.status ?? "active",
@@ -1916,9 +2040,9 @@ export class StaffOsService {
     const row = buildFinePenaltyMasterPayload(payload, access);
     db.transaction(() => {
       db.prepare(`INSERT INTO staff_fine_penalty_master (
-        id, tenant_id, branch_id, name, amount, hide, notes, status, version, created_by, created_at, updated_at
+        id, tenant_id, branch_id, name, amount, amount_paise, rule_type, rule_label, trigger_count, apply_mode, auto_deduct, hide, notes, status, version, created_by, created_at, updated_at
       ) VALUES (
-        @id, @tenant_id, @branch_id, @name, @amount, @hide, @notes, @status, @version, @created_by, @created_at, @updated_at
+        @id, @tenant_id, @branch_id, @name, @amount, @amount_paise, @rule_type, @rule_label, @trigger_count, @apply_mode, @auto_deduct, @hide, @notes, @status, @version, @created_by, @created_at, @updated_at
       )`).run(row);
       this.writeAudit("staff.fine_penalty_created", "staff_fine_penalty_master", row.id, access, { after: row, branchId: row.branch_id });
     })();
@@ -1936,7 +2060,9 @@ export class StaffOsService {
     const next = buildFinePenaltyMasterPayload(payload, access, existing);
     db.transaction(() => {
       db.prepare(`UPDATE staff_fine_penalty_master SET branch_id = @branch_id, name = @name, amount = @amount,
-        hide = @hide, notes = @notes, status = @status, version = @version, updated_at = @updated_at
+        amount_paise = @amount_paise, rule_type = @rule_type, rule_label = @rule_label, trigger_count = @trigger_count,
+        apply_mode = @apply_mode, auto_deduct = @auto_deduct, hide = @hide, notes = @notes,
+        status = @status, version = @version, updated_at = @updated_at
         WHERE id = @id AND tenant_id = @tenant_id`).run(next);
       this.writeAudit("staff.fine_penalty_updated", "staff_fine_penalty_master", id, access, { before: existing, after: next, branchId: next.branch_id });
     })();
@@ -2342,7 +2468,101 @@ export class StaffOsService {
     });
     const schedule = trx();
     this.emit("staff:shift_created", access, branchId, row.id);
+    this.queueRosterNotifications(schedule, staff, access);
     return schedule;
+  }
+
+  queueRosterNotifications(schedule = {}, staff = {}, access = {}) {
+    const branchId = schedule.branchId || staff.branchId || access.branchId || "";
+    const copy = rosterNotificationCopy(schedule, staff);
+    const metadata = {
+      scheduleId: schedule.id,
+      staffId: staff.id,
+      scheduleDate: schedule.scheduleDate,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      source: "staff-roster"
+    };
+    const preference = db.prepare("SELECT * FROM staff_notification_preferences WHERE tenant_id = ? AND staff_id = ?").get(access.tenantId, staff.id) || {};
+    const targets = [
+      {
+        channel: "whatsapp",
+        recipient: Number(preference.whatsapp_opt_in ?? 1) === 1 ? firstStaffPhone(staff) : "",
+        jobType: "whatsapp_send",
+        payload: {
+          phone: firstStaffPhone(staff),
+          body: copy.body,
+          branchId,
+          source: "staff-roster",
+          eventType: "staff_roster_created",
+          refId: schedule.id,
+          variables: {
+            client_name: staff.fullName || staff.firstName || "Staff",
+            staff_name: staff.fullName || staff.firstName || "Staff",
+            date: formatRosterDate(schedule.scheduleDate),
+            time: `${schedule.startTime || ""} - ${schedule.endTime || ""}`.trim()
+          }
+        }
+      },
+      {
+        channel: "email",
+        recipient: firstStaffEmail(staff),
+        jobType: "email_send",
+        payload: {
+          to: firstStaffEmail(staff),
+          subject: copy.subject,
+          message: copy.body,
+          body: copy.body,
+          branchId,
+          staffId: staff.id,
+          type: "staff_roster_created",
+          refId: schedule.id
+        }
+      }
+    ];
+
+    for (const target of targets) {
+      if (!target.recipient) continue;
+      try {
+        const job = jobQueueService.enqueue({
+          tenantId: access.tenantId,
+          jobType: target.jobType,
+          payload: target.payload,
+          priority: 3
+        });
+        const row = {
+          id: makeId("snotif"),
+          tenant_id: access.tenantId,
+          branch_id: branchId,
+          staff_id: staff.id,
+          notification_type: "staff_roster_created",
+          template_id: "",
+          channel: target.channel,
+          language: preference.language || "en-IN",
+          message_preview: copy.body,
+          sensitive: 0,
+          requires_approval: 0,
+          status: "queued",
+          quiet_hours_deferred: 0,
+          scheduled_at: now(),
+          metadata_json: json({ ...metadata, jobId: job.id, channel: target.channel }),
+          created_by: access.userId || ""
+        };
+        db.prepare(`INSERT INTO staff_notification_queue
+          (id, tenant_id, branch_id, staff_id, notification_type, template_id, channel, language, message_preview, sensitive, requires_approval, status, quiet_hours_deferred, scheduled_at, metadata_json, created_by)
+          VALUES (@id, @tenant_id, @branch_id, @staff_id, @notification_type, @template_id, @channel, @language, @message_preview, @sensitive, @requires_approval, @status, @quiet_hours_deferred, @scheduled_at, @metadata_json, @created_by)`).run(row);
+        this.writeAudit("staff.roster_notification_queued", "staff_notification_queue", row.id, access, { after: row, branchId });
+      } catch (error) {
+        try {
+          this.writeAudit("staff.roster_notification_failed", "staff_schedules", schedule.id, access, {
+            branchId,
+            details: { channel: target.channel, error: String(error?.message || error).slice(0, 250) }
+          });
+        } catch {
+          // Notification delivery is best-effort after roster creation succeeds.
+        }
+      }
+    }
   }
 
   updateSchedule(id, payload = {}, access) {
@@ -2627,16 +2847,34 @@ export class StaffOsService {
     if (!leave) throw notFound("Leave request not found");
     assertBranch(access, leave.branch_id);
     if (payload.version !== undefined && Number(payload.version) !== Number(leave.version)) throw conflict("Leave request was updated by another request");
+    if (leave.status === status) return rowToCamel(leave);
     const stamp = now();
     db.transaction(() => {
       db.prepare(`UPDATE staff_leaves SET status = ?, approved_by = ?, approved_at = ?, rejection_reason = ?, version = version + 1, updated_at = ?
         WHERE id = ? AND tenant_id = ?`).run(status, access.userId || "", stamp, status === "rejected" ? payload.reason || "" : "", stamp, id, access.tenantId);
+      db.prepare("DELETE FROM leave_calendar_events WHERE tenant_id = ? AND leave_id = ?").run(access.tenantId, leave.id);
       if (status === "approved") {
         const days = daysBetweenInclusive(leave.start_date, leave.end_date);
-        db.prepare(`INSERT INTO leave_calendar_events (id, tenant_id, branch_id, leave_id, staff_id, event_date, status)
-          VALUES (?, ?, ?, ?, ?, ?, 'approved')`).run(makeId("lcal"), access.tenantId, leave.branch_id, leave.id, leave.staff_id, leave.start_date);
-        db.prepare(`UPDATE leave_balances SET used = used + ?, balance = balance - ?, version = version + 1, updated_at = ?
-          WHERE tenant_id = ? AND staff_id = ? AND leave_type = ?`).run(days, days, stamp, access.tenantId, leave.staff_id, leave.leave_type);
+        const master = db.prepare(`SELECT leave_quota, quota_period FROM staff_leave_type_master
+          WHERE tenant_id = ? AND code = ? AND (branch_id = ? OR branch_id = '')
+          ORDER BY CASE WHEN branch_id = ? THEN 0 ELSE 1 END LIMIT 1`)
+          .get(access.tenantId, leave.leave_type, leave.branch_id, leave.branch_id);
+        const period = leaveBalancePeriod(leave.start_date, master?.quota_period || "yearly");
+        const balance = db.prepare(`SELECT * FROM leave_balances
+          WHERE tenant_id = ? AND staff_id = ? AND leave_type = ? AND period_start = ?`)
+          .get(access.tenantId, leave.staff_id, leave.leave_type, period.start);
+        if (balance) {
+          db.prepare(`UPDATE leave_balances SET used = used + ?, balance = balance - ?, version = version + 1, updated_at = ?
+            WHERE id = ? AND tenant_id = ?`).run(days, days, stamp, balance.id, access.tenantId);
+        } else {
+          const quota = parseNumber(master?.leave_quota, 0);
+          db.prepare(`INSERT INTO leave_balances (id, tenant_id, staff_id, leave_type, balance, used, period_start, period_end)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(makeId("lvbal"), access.tenantId, leave.staff_id, leave.leave_type, quota - days, days, period.start, period.end);
+        }
+        for (const eventDate of dateRangeInclusive(leave.start_date, leave.end_date)) {
+          db.prepare(`INSERT INTO leave_calendar_events (id, tenant_id, branch_id, leave_id, staff_id, event_date, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'approved')`).run(makeId("lcal"), access.tenantId, leave.branch_id, leave.id, leave.staff_id, eventDate);
+        }
       }
       this.writeAudit(`staff.leave_${status}`, "staff_leaves", id, access, { before: leave, after: { status }, branchId: leave.branch_id });
     })();
@@ -2651,12 +2889,19 @@ export class StaffOsService {
       branch_id: query.branchId || query.branch_id || access.requestedBranchId || "",
       staff_id: query.staffId || query.staff_id || "",
       status: query.status || "",
+      from: query.from || query.startDate || query.start_date || query.dateFrom || "",
+      to: query.to || query.endDate || query.end_date || query.dateTo || "",
       limit: Math.min(parseNumber(query.limit, 100), 500)
     };
     const filters = [branchScopedWhere(access, params)];
     if (params.staff_id) filters.push("staff_id = @staff_id");
     if (params.status) filters.push("status = @status");
-    return db.prepare(`SELECT * FROM staff_leaves WHERE ${filters.join(" AND ")} ORDER BY created_at DESC LIMIT @limit`).all(params).map(rowToCamel);
+    if (params.from) filters.push("end_date >= @from");
+    if (params.to) filters.push("start_date <= @to");
+    return db.prepare(`SELECT *,
+      MAX(1, CAST(julianday(end_date) - julianday(start_date) + 1 AS INTEGER)) AS days,
+      MAX(1, CAST(julianday(end_date) - julianday(start_date) + 1 AS INTEGER)) AS value
+      FROM staff_leaves WHERE ${filters.join(" AND ")} ORDER BY created_at DESC LIMIT @limit`).all(params).map(rowToCamel);
   }
 
   leaveBalances(query = {}, access) {
@@ -2674,7 +2919,11 @@ export class StaffOsService {
     const periodStart = payload.periodStart || payload.period_start;
     const periodEnd = payload.periodEnd || payload.period_end;
     if (!periodStart || !periodEnd) throw badRequest("periodStart and periodEnd are required");
-    const staffRows = this.listStaff({ branchId, status: "active", limit: 500 }, access);
+    let staffRows = this.listStaff({ branchId, status: "active", limit: 500 }, access);
+    const payloadRows = Array.isArray(payload.payrollRows) ? payload.payrollRows : [];
+    const payloadRowsByStaff = new Map(payloadRows.map((row) => [String(row.staffId || row.staff_id || ""), row]));
+    if (payloadRows.length) staffRows = staffRows.filter((staff) => payloadRowsByStaff.has(String(staff.id)));
+    if (payloadRows.length && !staffRows.length) throw badRequest("No matching active staff found for payrollRows");
     const grossBase = parseNumber(payload.defaultGrossAmount ?? payload.default_gross_amount, 30000);
     const trx = db.transaction(() => {
       const run = {
@@ -2693,29 +2942,45 @@ export class StaffOsService {
         VALUES (@id, @tenant_id, @branch_id, @period_start, @period_end, @status, @gross_amount, @deductions_amount, @net_amount, @created_by)`).run(run);
       let gross = 0;
       let deductions = 0;
+      let net = 0;
       for (const staff of staffRows) {
+        const generatedRow = payloadRowsByStaff.get(String(staff.id));
         const salaryRow = db.prepare(`SELECT new_ctc FROM salary_revision_history
           WHERE tenant_id = ? AND staff_id = ? AND approval_status = 'approved' AND effective_date <= ?
           ORDER BY effective_date DESC, approved_at DESC LIMIT 1`).get(access.tenantId, staff.id, periodEnd);
         const salaryProfile = staff.employeeDetails?.attendanceSalary || {};
         const profileGross = parseNumber(salaryProfile.basicSalary, 0);
         const effectiveGross = salaryRow?.new_ctc ? Number(salaryRow.new_ctc) / 12 : (profileGross || grossBase);
-        const itemGross = parseNumber(payload.grossAmountByStaff?.[staff.id], effectiveGross);
+        const itemGross = generatedRow ? parseNumber(generatedRow.grossEarning ?? generatedRow.gross_amount, 0) : parseNumber(payload.grossAmountByStaff?.[staff.id], effectiveGross);
         const pf = salaryProfile.pfApplicable === false ? 0 : Math.min(itemGross * 0.12, 1800);
         const tds = salaryProfile.tdsApplicable === false ? 0 : (itemGross > 50000 ? itemGross * 0.05 : 0);
         const pt = salaryProfile.ptApplicable === false ? 0 : (itemGross > 15000 ? 200 : 0);
         const esic = salaryProfile.esicApplicable === false ? 0 : (itemGross <= 21000 ? itemGross * 0.0075 : 0);
-        const deduction = pf + tds + pt + esic;
+        const statutoryDeduction = pf + tds + pt + esic;
+        const previewDeduction = generatedRow
+          ? parseNumber(generatedRow.deductions, 0) + parseNumber(generatedRow.advanceDeducted, 0)
+          : 0;
+        const deduction = generatedRow ? previewDeduction + statutoryDeduction : statutoryDeduction;
+        const netAmount = generatedRow ? Math.max(0, parseNumber(generatedRow.netSalary ?? generatedRow.net_amount, itemGross - deduction) - statutoryDeduction) : itemGross - deduction;
+        const overtimeAmount = generatedRow ? parseNumber(generatedRow.otAmount, 0) : 0;
+        const bonusAmount = generatedRow
+          ? parseNumber(generatedRow.totalCommission, 0) + parseNumber(generatedRow.weekOffPayout, 0) + parseNumber(generatedRow.tips, 0) + parseNumber(generatedRow.allowances, 0)
+          : 0;
         gross += itemGross;
         deductions += deduction;
+        net += netAmount;
         db.prepare(`INSERT INTO staff_payroll_items (id, tenant_id, payroll_run_id, branch_id, staff_id, gross_amount, deduction_amount, net_amount, statutory_json)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-          makeId("payitem"), access.tenantId, run.id, staff.branchId, staff.id, itemGross, deduction, itemGross - deduction,
+          makeId("payitem"), access.tenantId, run.id, staff.branchId, staff.id, itemGross, deduction, netAmount,
           json({
             pf,
             esic,
             tds,
             professionalTax: pt,
+            overtimeAmount,
+            bonusAmount,
+            generatedFromPreview: Boolean(generatedRow),
+            preview: generatedRow || null,
             complianceMode: "draft-ready",
             salarySource: salaryRow?.new_ctc ? "approved_salary_revision" : (profileGross ? "staff_employee_details" : "default_gross_amount"),
             profilePaymentMode: salaryProfile.paymentMode || "",
@@ -2731,13 +2996,100 @@ export class StaffOsService {
         );
       }
       db.prepare(`UPDATE staff_payroll_runs SET gross_amount = ?, deductions_amount = ?, net_amount = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`)
-        .run(gross, deductions, gross - deductions, now(), run.id, access.tenantId);
-      this.writeAudit("staff.payroll_generated", "staff_payroll_runs", run.id, access, { after: { ...run, gross, deductions }, branchId });
+        .run(gross, deductions, net, now(), run.id, access.tenantId);
+      this.writeAudit("staff.payroll_generated", "staff_payroll_runs", run.id, access, { after: { ...run, gross, deductions, net }, branchId });
       return rowToCamel(db.prepare("SELECT * FROM staff_payroll_runs WHERE id = ? AND tenant_id = ?").get(run.id, access.tenantId));
     });
     const run = trx();
     this.emit("staff:payroll_generated", access, branchId, run.id);
-    return { ...run, items: this.payrollItems(run.id, access) };
+    const penaltyNotifications = this.queuePayrollPenaltyNotifications(run, staffRows, payloadRowsByStaff, access);
+    return { ...run, items: this.payrollItems(run.id, access), penaltyNotifications };
+  }
+
+  queuePayrollPenaltyNotifications(run = {}, staffRows = [], payloadRowsByStaff = new Map(), access = {}) {
+    const results = [];
+    for (const staff of staffRows) {
+      const generatedRow = payloadRowsByStaff.get(String(staff.id));
+      const breakdown = Array.isArray(generatedRow?.rulePenaltyBreakdown) ? generatedRow.rulePenaltyBreakdown : [];
+      const amount = parseNumber(generatedRow?.rulePenalty, 0);
+      if (!amount || !breakdown.length) continue;
+      const branchId = staff.branchId || run.branchId || access.branchId || "";
+      const preference = db.prepare("SELECT * FROM staff_notification_preferences WHERE tenant_id = ? AND staff_id = ?").get(access.tenantId, staff.id) || {};
+      const phone = Number(preference.whatsapp_opt_in ?? 1) === 1 ? firstStaffPhone(staff) : "";
+      const copy = penaltyNotificationCopy(run, staff, generatedRow);
+      const metadata = {
+        payrollRunId: run.id,
+        staffId: staff.id,
+        periodStart: run.periodStart || generatedRow.periodStart || "",
+        periodEnd: run.periodEnd || generatedRow.periodEnd || "",
+        rulePenalty: amount,
+        rulePenaltyPaise: Math.round(amount * 100),
+        breakdown,
+        source: "salary-generate"
+      };
+      if (!phone) {
+        this.writeAudit("staff.penalty_notification_skipped", "staff_payroll_runs", run.id, access, {
+          branchId,
+          details: { staffId: staff.id, reason: Number(preference.whatsapp_opt_in ?? 1) !== 1 ? "whatsapp_opt_out" : "missing_staff_phone", ...metadata }
+        });
+        results.push({ staffId: staff.id, status: "skipped", reason: "missing_or_opted_out_phone" });
+        continue;
+      }
+      try {
+        const job = jobQueueService.enqueue({
+          tenantId: access.tenantId,
+          jobType: "whatsapp_send",
+          payload: {
+            phone,
+            body: copy.body,
+            branchId,
+            staffId: staff.id,
+            source: "staff-penalty",
+            eventType: "staff_penalty_applied",
+            refId: run.id,
+            variables: {
+              client_name: staff.fullName || staff.firstName || generatedRow.staffName || "Staff",
+              staff_name: staff.fullName || staff.firstName || generatedRow.staffName || "Staff",
+              penalty_amount: formatRupees(copy.amount),
+              period_start: metadata.periodStart,
+              period_end: metadata.periodEnd,
+              rule_breaks: breakdown.map((item) => item.ruleName || "Penalty rule").join(", ")
+            }
+          },
+          priority: 2
+        });
+        const row = {
+          id: makeId("snotif"),
+          tenant_id: access.tenantId,
+          branch_id: branchId,
+          staff_id: staff.id,
+          notification_type: "staff_penalty_applied",
+          template_id: "",
+          channel: "whatsapp",
+          language: preference.language || "en-IN",
+          message_preview: copy.body,
+          sensitive: 0,
+          requires_approval: 0,
+          status: "queued",
+          quiet_hours_deferred: 0,
+          scheduled_at: now(),
+          metadata_json: json({ ...metadata, jobId: job.id, channel: "whatsapp" }),
+          created_by: access.userId || ""
+        };
+        db.prepare(`INSERT INTO staff_notification_queue
+          (id, tenant_id, branch_id, staff_id, notification_type, template_id, channel, language, message_preview, sensitive, requires_approval, status, quiet_hours_deferred, scheduled_at, metadata_json, created_by)
+          VALUES (@id, @tenant_id, @branch_id, @staff_id, @notification_type, @template_id, @channel, @language, @message_preview, @sensitive, @requires_approval, @status, @quiet_hours_deferred, @scheduled_at, @metadata_json, @created_by)`).run(row);
+        this.writeAudit("staff.penalty_notification_queued", "staff_notification_queue", row.id, access, { after: row, branchId });
+        results.push({ staffId: staff.id, status: "queued", notificationId: row.id, jobId: job.id });
+      } catch (error) {
+        this.writeAudit("staff.penalty_notification_failed", "staff_payroll_runs", run.id, access, {
+          branchId,
+          details: { staffId: staff.id, error: String(error?.message || error).slice(0, 250), ...metadata }
+        });
+        results.push({ staffId: staff.id, status: "failed", error: String(error?.message || error) });
+      }
+    }
+    return results;
   }
 
   listPayroll(query = {}, access) {
@@ -3224,11 +3576,13 @@ export class StaffOsService {
     };
     db.prepare(`INSERT INTO staff_audit_logs (id, tenant_id, branch_id, actor_user_id, actor_role, action, entity_type, entity_id, before_json, after_json, details_json)
       VALUES (@id, @tenant_id, @branch_id, @actor_user_id, @actor_role, @action, @entity_type, @entity_id, @before_json, @after_json, @details_json)`).run(row);
-    try {
-      securityService.audit({ action, targetType: entityType, targetId: entityId, details: { branchId, ...details }, severity: "info" }, access);
-    } catch {
-      // Staff OS audit_log remains the source of truth if global audit is unavailable.
-    }
+    setTimeout(() => {
+      try {
+        securityService.audit({ action, targetType: entityType, targetId: entityId, details: { branchId, ...details }, severity: "info" }, access);
+      } catch {
+        // Staff OS audit_log remains the source of truth if global audit is unavailable.
+      }
+    }, 0);
     return row;
   }
 }

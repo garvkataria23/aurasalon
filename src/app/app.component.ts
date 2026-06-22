@@ -160,69 +160,98 @@ type NavGroup = {
       </aside>
 
       <main class="workspace" id="main-content">
-        <header class="topbar">
-          <div class="topbar-brand-title">
-            <span class="eyebrow">{{ i18n.t('shell.workspace', 'Enterprise command workspace') }}</span>
-            <h1>Aurashine OS</h1>
-            <div class="topbar-signal-row" aria-label="Current workspace context">
-              <span>{{ activePageLabel() }}</span>
-              <span>{{ state.tenantScopeLabel() }}</span>
-              <span>{{ state.userRole() }}</span>
+        <header class="topbar" [class.topbar-panel-open]="contextPanelOpen()">
+          <!-- Brand bar + actions -->
+          <div class="topbar-main-row">
+            <div class="topbar-brand">
+              <span class="topbar-brand-mark" aria-hidden="true">A</span>
+              <div class="topbar-brand-text">
+                <span class="topbar-eyebrow">{{ i18n.t('shell.workspace', 'Enterprise workspace') }}</span>
+                <span class="topbar-name">Aurashine OS</span>
+              </div>
+            </div>
+            <div class="topbar-main-actions">
+              <button
+                class="ghost-button back-button"
+                type="button"
+                (click)="goBack()"
+                [attr.aria-label]="backButtonLabel()"
+                [title]="backButtonLabel()"
+              >
+                <span aria-hidden="true">&larr;</span>
+                <span>{{ i18n.t('shell.back', 'Back') }}</span>
+              </button>
+              <span class="topbar-page-label">{{ activePageLabel() }}</span>
+              <!-- Context summary chip — click to toggle collapsible panel -->
+              <button
+                class="topbar-ctx-chip"
+                type="button"
+                (click)="contextPanelOpen.set(!contextPanelOpen())"
+                [attr.aria-expanded]="contextPanelOpen()"
+                title="Workspace context settings"
+              >
+                <span class="topbar-ctx-chip-icon" aria-hidden="true">&#9881;</span>
+                <span class="topbar-ctx-chip-text">
+                  {{ state.tenantScopeLabel() }} &middot; {{ state.userRole() }} &middot; {{ i18n.countryCode().toUpperCase() }} {{ i18n.languageCode().toUpperCase() }}
+                </span>
+                <span class="topbar-ctx-chevron" [class.rotated]="contextPanelOpen()" aria-hidden="true">&#9662;</span>
+              </button>
+              <a class="dark-button" routerLink="/pos">{{ i18n.t('shell.fastPos', 'Fast POS') }}</a>
+              <button class="ghost-button" type="button" (click)="logout()">{{ i18n.t('shell.logout', 'Logout') }}</button>
             </div>
           </div>
-          <div class="topbar-actions">
-            <button
-              class="ghost-button back-button"
-              type="button"
-              (click)="goBack()"
-              [attr.aria-label]="backButtonLabel()"
-              [title]="backButtonLabel()"
-            >
-              <span aria-hidden="true">&larr;</span>
-              <span>Back</span>
-            </button>
-            <label class="select-label country-scope">
-              <span>{{ i18n.t('shell.country', 'Country') }}</span>
-              <select [ngModel]="i18n.countryCode()" (ngModelChange)="selectCountry($event)">
-                <option *ngFor="let country of i18n.countries" [value]="country.code">{{ country.label }}</option>
-              </select>
-            </label>
-            <label class="select-label language-scope">
-              <span>{{ i18n.t('shell.language', 'Language') }}</span>
-              <select [ngModel]="i18n.languageCode()" (ngModelChange)="selectLanguage($event)">
-                <option *ngFor="let language of i18n.languages" [value]="language.code">{{ language.label }}</option>
-              </select>
-            </label>
-            <label class="select-label tenant-scope">
-              <span>{{ i18n.t('shell.tenant', 'Tenant') }}</span>
-              <select [ngModel]="state.selectedTenantId()" (ngModelChange)="selectTenant($event)">
-                <option *ngFor="let tenant of tenants()" [value]="tenant.id">{{ tenant.name || tenant.id }}</option>
-              </select>
-            </label>
-            <label class="select-label branch-scope">
-              <span>{{ i18n.t('shell.branch', 'Branch') }}</span>
-              <select [ngModel]="state.selectedBranchId()" (ngModelChange)="selectBranch($event)">
-                <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name || branch.id }}</option>
-              </select>
-            </label>
-            <label class="select-label role-scope">
-              <span>{{ i18n.t('shell.role', 'Role') }}</span>
-              <select [ngModel]="state.userRole()" (ngModelChange)="selectRole($event)">
-                <option value="owner">Owner</option>
-                <option value="superAdmin">Super admin</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="receptionist">Receptionist</option>
-                <option value="frontDesk">Front desk</option>
-                <option value="staff">Staff</option>
-                <option value="accountant">Accountant</option>
-                <option value="inventoryManager">Inventory manager</option>
-                <option value="analyst">Analyst</option>
-                <option value="customMarketingLead">Custom marketing lead</option>
-              </select>
-            </label>
-            <a class="dark-button" routerLink="/pos">{{ i18n.t('shell.fastPos', 'Fast POS') }}</a>
-            <button class="ghost-button" type="button" (click)="logout()">{{ i18n.t('shell.logout', 'Logout') }}</button>
+
+          <!-- Collapsible context panel — shown only when chip clicked -->
+          <div class="topbar-detail-panel" *ngIf="contextPanelOpen()" role="region" aria-label="Workspace context panel">
+            <div class="topbar-detail-inner">
+              <div class="topbar-detail-group">
+                <span class="topbar-detail-label">{{ i18n.t('shell.country', 'Country') }}</span>
+                <select [ngModel]="i18n.countryCode()" (ngModelChange)="selectCountry($event)">
+                  <option *ngFor="let country of i18n.countries" [value]="country.code">{{ country.label }}</option>
+                </select>
+              </div>
+              <div class="topbar-detail-divider" aria-hidden="true"></div>
+              <div class="topbar-detail-group">
+                <span class="topbar-detail-label">{{ i18n.t('shell.language', 'Language') }}</span>
+                <select [ngModel]="i18n.languageCode()" (ngModelChange)="selectLanguage($event)">
+                  <option *ngFor="let language of i18n.languages" [value]="language.code">{{ language.label }}</option>
+                </select>
+              </div>
+              <div class="topbar-detail-divider" aria-hidden="true"></div>
+              <div class="topbar-detail-group">
+                <span class="topbar-detail-label">{{ i18n.t('shell.tenant', 'Tenant') }}</span>
+                <select [ngModel]="state.selectedTenantId()" (ngModelChange)="selectTenant($event)">
+                  <option *ngFor="let tenant of tenants()" [value]="tenant.id">{{ tenant.name || tenant.id }}</option>
+                </select>
+              </div>
+              <div class="topbar-detail-divider" aria-hidden="true"></div>
+              <div class="topbar-detail-group">
+                <span class="topbar-detail-label">{{ i18n.t('shell.branch', 'Branch') }}</span>
+                <select [ngModel]="state.selectedBranchId()" (ngModelChange)="selectBranch($event)">
+                  <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+                </select>
+              </div>
+              <div class="topbar-detail-divider" aria-hidden="true"></div>
+              <div class="topbar-detail-group">
+                <span class="topbar-detail-label">{{ i18n.t('shell.role', 'Role') }}</span>
+                <select [ngModel]="state.userRole()" (ngModelChange)="selectRole($event)">
+                  <option value="owner">Owner</option>
+                  <option value="superAdmin">Super admin</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="receptionist">Receptionist</option>
+                  <option value="frontDesk">Front desk</option>
+                  <option value="staff">Staff</option>
+                  <option value="accountant">Accountant</option>
+                  <option value="inventoryManager">Inventory manager</option>
+                  <option value="analyst">Analyst</option>
+                  <option value="customMarketingLead">Custom marketing lead</option>
+                </select>
+              </div>
+              <button class="topbar-detail-apply" type="button" (click)="contextPanelOpen.set(false)">
+                Apply
+              </button>
+            </div>
           </div>
         </header>
         <div class="state error" *ngIf="globalError()">
@@ -259,6 +288,7 @@ export class AppComponent {
   readonly previousRoute = signal('');
   readonly sidebarCompact = signal(this.readInitialSidebarCompact());
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
+  readonly contextPanelOpen = signal(false);
   private loadedLocalizationTenantId = '';
 
   readonly favoriteNavItems: NavItem[] = [
@@ -329,6 +359,24 @@ export class AppComponent {
         { path: '/pos/payment-modes', label: 'Payment Modes', icon: 'PM', keywords: 'cash card upi payment' },
         { path: '/memberships', label: 'Membership Sales', icon: 'MS', keywords: 'membership sale pos loyalty credits redemption' },
         { path: '/packages', label: 'Packages', icon: 'PK', keywords: 'package prepaid credits bundle' }
+      ]
+    },
+    {
+      id: 'happy-hours',
+      label: 'Happy Hours',
+      icon: 'HH',
+      primaryPath: '/discount-rules',
+      items: [
+        { path: '/discount-rules', label: 'Control Room', icon: 'HH', keywords: 'happy hours discount rules offers control tower pricing' },
+        { path: '/discount-rules/control-tower', label: 'Control Tower', icon: 'CT', keywords: 'happy hours promotion calendar coupon roi segments staff incentive public offers' },
+        { path: '/discount-rules/rules', label: 'Rules', icon: 'DR', keywords: 'discount rule builder approval role limit' },
+        { path: '/discount-rules/coupon-engine', label: 'Coupons', icon: 'CP', keywords: 'coupon promo code validation redemption' },
+        { path: '/discount-rules/approvals', label: 'Approvals', icon: 'AP', keywords: 'discount approvals owner manager role limits' },
+        { path: '/discount-rules/audit-log', label: 'Audit Log', icon: 'AL', keywords: 'discount audit gst impact compliance trail' },
+        { path: '/discount-rules/simulations', label: 'Simulations', icon: 'SM', keywords: 'discount simulation margin roi sandbox' },
+        { path: '/discount-rules/anomalies', label: 'Anomalies', icon: 'AN', keywords: 'discount anomaly abuse risk fraud' },
+        { path: '/pricing/level6-readiness', label: 'Level 6 Readiness', icon: 'L6', keywords: 'yield clv federated learning pricing readiness gates' },
+        { path: '/pricing/market-intelligence', label: 'Market Intel', icon: 'MI', keywords: 'competitor prices market intelligence pricing' }
       ]
     },
     {

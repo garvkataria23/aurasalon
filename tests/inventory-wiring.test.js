@@ -64,6 +64,10 @@ test("Inventory Angular routes cover home cards and detail pages", () => {
   for (const linkedPath of ["/inventory/reorder", "/inventory/fifo", "/inventory/financial"]) {
     assert.match(inventoryHome, new RegExp(`routerLink="${linkedPath.replace("/", "\\/")}"`), `${linkedPath} card should stay linked from inventory home`);
   }
+  assert.doesNotMatch(inventoryHome, /routerLink="\/inventory\/product-360"/, "Product 360 card should not point at a missing static route");
+  assert.doesNotMatch(inventoryHome, /routerLink="\/inventory\/supplier-360"/, "Supplier 360 card should not point at a missing static route");
+  assert.match(inventoryHome, /\['\/inventory\/products', id\]/, "Product 360 card should link to the product detail route");
+  assert.match(inventoryHome, /\['\/suppliers', id\]/, "Supplier 360 card should link to the supplier detail route");
 });
 
 test("Inventory backend APIs and repositories are mounted for legacy and v1 clients", () => {

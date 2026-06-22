@@ -40,12 +40,19 @@ test("High-value appointment quote requires 20 percent deposit at 2000 threshold
 });
 
 test("Deposit booking creates payment-pending appointment and payment link", () => {
+  assert.match(depositGateService, /const BOOKING_STATUSES = new Set\(\[[\s\S]*"payment_pending"[\s\S]*"completed"[\s\S]*"cancelled"[\s\S]*"no-show"[\s\S]*\]\)/, "Booking truth should stay limited to appointment lifecycle statuses");
+  assert.match(depositGateService, /status:\s*bookingStatus\(payload\.status\)/, "Deposit gate should normalize requested booking status before create");
   assert.match(depositGateService, /status:\s*"payment_pending"/, "High-value booking should stay payment pending until deposit is paid");
   assert.match(depositGateService, /enterpriseSchedulerService\.createMultiServiceBooking\(gatedPayload,\s*access,\s*req\)/, "Deposit booking should use enterprise scheduler");
+  assert.match(depositGateService, /holdCreatedAppointmentsForDeposit\(result,\s*access\.tenantId\)/, "Deposit booking should force created appointments back to payment pending after link creation");
+  assert.ok(depositGateService.indexOf("holdCreatedAppointmentsForDeposit(result, access.tenantId)") < depositGateService.indexOf("razorpayBookingService.createPaymentLink"), "Appointments should be held payment_pending before payment link creation can fail");
+  assert.match(depositGateService, /SET status = 'payment_pending',\s*depositStatus = 'pending'/, "Pending deposit appointments must not look booked or paid before webhook confirmation");
   assert.match(depositGateService, /razorpayBookingService\.createPaymentLink\(\{[\s\S]*amount:\s*quote\.depositAmount/, "Deposit booking should create a payment link for the deposit amount");
   assert.match(depositGateService, /paymentLinkId:\s*link\.linkId[\s\S]*paymentLink:\s*link\.shortUrl/, "Deposit result should return payment link details");
   assert.match(appointmentEnterprisePage, /appointment-deposits\/multi-service-bookings/, "Appointment page should use deposit-gated booking endpoint");
   assert.match(appointmentEnterprisePage, /20% advance link sent/, "Appointment page should tell staff/client that 20 percent advance link was sent");
+  assert.doesNotMatch(appointmentEnterprisePage, /'billed'/, "Appointment drawer should not expose billed as a booking status");
+  assert.doesNotMatch(appointmentEnterprisePage, /'paid'/, "Appointment drawer should not expose paid as a booking status");
 });
 
 test("Payment webhook confirms appointment after deposit is paid", () => {
@@ -54,6 +61,8 @@ test("Payment webhook confirms appointment after deposit is paid", () => {
   assert.match(razorpayBookingService, /else if \(status === "failed"\) \{[\s\S]*bookingDepositService\.markDepositFailed/, "Failed webhook should mark deposit failed");
   assert.match(razorpayBookingService, /link\.providerEventId === event\.eventId && link\.webhookReceivedAt/, "Webhook processing should be idempotent");
   assert.match(bookingDepositService, /depositStatus:\s*"paid"[\s\S]*status:\s*appointment\.status === "payment_pending" \? "booked" : appointment\.status/, "Paid deposit should confirm payment-pending appointment");
+  assert.match(bookingDepositService, /bookingGroupId[\s\S]*SELECT id FROM appointments WHERE tenantId = \? AND bookingGroupId = \?/, "Paid deposit should confirm the whole booking group");
+  assert.match(bookingDepositService, /details:\s*\{[\s\S]*appointmentIds:\s*targetIds/, "Paid deposit audit should include every appointment confirmed by the group payment");
   assert.match(bookingDepositService, /action:\s*"deposit\.paid"/, "Paid deposit should be audited");
 });
 

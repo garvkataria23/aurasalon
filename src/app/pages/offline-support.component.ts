@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
@@ -65,7 +65,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         <section class="panel">
           <div class="section-title"><h2>Offline guidance</h2></div>
           <div class="quick-grid">
-            <article class="action-card" *ngFor="let item of summary()?.guidance || []"><strong>{{ item }}</strong><span>Operational rule</span></article>
+            <article class="action-card" *ngFor="let item of guidance()"><strong>{{ item }}</strong><span>Operational rule</span></article>
           </div>
         </section>
       </div>
@@ -82,14 +82,15 @@ export class OfflineSupportComponent implements OnInit {
   readonly result = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly guidance = computed(() => this.summary()?.guidance || []);
 
   readonly cacheForm = this.fb.group({ deviceId: ['front-desk-terminal', Validators.required], branchId: ['', Validators.required] });
   readonly appointmentForm = this.fb.group({ clientId: ['', Validators.required], serviceId: ['', Validators.required], branchId: ['', Validators.required], startAt: [this.defaultLocalTime(), Validators.required] });
   readonly billingForm = this.fb.group({ clientId: ['', Validators.required], serviceId: ['', Validators.required], branchId: ['', Validators.required], mode: ['upi'] });
   readonly modules = [
     { path: '/offline/readiness', title: 'Offline Readiness Score', detail: 'Branch/device score, cache freshness, pending queue and conflict risk.', signal: 'Readiness / cache strategy' },
-    { path: '/offline/devices', title: 'Device Sync Health', detail: 'Online/offline posture from device IDs, last queue activity and failed sync signals.', signal: 'Terminal and tablet health' },
-    { path: '/offline/sync-queue', title: 'Smart Sync Queue', detail: 'Priority sync board with billing, appointments and inventory ordering.', signal: 'Retry / force sync' },
+    { path: '/offline/devices', title: 'Device Sync Status', detail: 'Live device readiness from cache snapshots, queue load, retry state and blocked conflicts.', signal: 'PWA / tablet / staff app health' },
+    { path: '/offline/sync-queue', title: 'Smart Sync Queue', detail: 'Priority sync board with retry dashboard for billing, appointments and inventory ordering.', signal: 'Retry dashboard / force sync' },
     { path: '/offline/conflicts', title: 'Conflict Resolution Center', detail: 'Server vs device conflict review and manager decision workflow.', signal: 'Keep server / device / merge' },
     { path: '/offline/billing', title: 'Offline Billing Protection', detail: 'Focused billing page with duplicate, payment and final sync safeguards.', signal: 'Invoice continuity' },
     { path: '/offline/appointments', title: 'Offline Appointment Protection', detail: 'Focused appointment queue with slot, staff and duplicate booking checks.', signal: 'Booking continuity' },

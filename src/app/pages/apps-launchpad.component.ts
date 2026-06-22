@@ -44,28 +44,28 @@ const SUITE_GROUPS: SuiteGroup[] = [
     apps: [
       { path: '/dashboard', label: 'Live Dashboard', description: 'Revenue, bookings, dues, stock alerts and staff performance in one branch-aware view.', icon: 'DB', tone: 'teal', status: 'Live', tags: ['dashboard', 'kpi', 'owner'] },
       { path: '/dashboard/executive', label: 'Executive Dashboard', description: 'Board-level metrics for revenue, performance, branches and operating health.', icon: 'EX', tone: 'blue', status: 'Ready', tags: ['executive', 'analytics'] },
-      { path: '/command-center', label: 'AI Command Center', description: 'Autonomous salon intelligence, daily briefings, approvals and owner controls.', icon: 'AI', tone: 'violet', status: 'AI', tags: ['ai', 'command', 'automation'] },
-      { path: '/command-center/engagement', label: 'Engagement', description: 'Hyperconnect command view for client conversations, follow-ups and engagement activity.', icon: 'EC', tone: 'green', status: 'Ready', tags: ['engagement', 'whatsapp'] },
+      { path: '/command-center', label: 'Command Center', description: 'Owner controls, daily actions and approval queues.', icon: 'AI', tone: 'violet', status: 'AI', tags: ['ai', 'command', 'automation'] },
+      { path: '/command-center/engagement', label: 'Engagement', description: 'Client conversations, follow-ups and engagement activity.', icon: 'EC', tone: 'green', status: 'Ready', tags: ['engagement', 'whatsapp'] },
       { path: '/analytics', label: 'Advanced Analytics', description: 'Deep revenue, retention, staff productivity and branch comparison analytics.', icon: 'AN', tone: 'blue', status: 'Ready', tags: ['analytics', 'reports'] },
       { path: '/reports', label: 'Reports Center', description: 'Operational reports for sales, staff, inventory, commission and account ledgers.', icon: 'RP', tone: 'neutral', status: 'Ready', tags: ['reports', 'export'] },
       { path: '/reports/invoices', label: 'Invoice Reports', description: 'Invoice, GST, discount, product, membership, wallet and due audit reporting.', icon: 'IR', tone: 'neutral', status: 'Ready', tags: ['invoice', 'audit'] },
       { path: '/kpi-monitoring', label: 'KPI Monitoring', description: 'Target tracking for utilization, repeat rate, conversion and revenue alerts.', icon: 'KM', tone: 'amber', status: 'Ready', tags: ['kpi', 'alerts'] },
       { path: '/data-warehouse', label: 'Warehouse', description: 'Historical snapshots, facts and dimensions for reporting-ready business data.', icon: 'DW', tone: 'blue', status: 'Ready', tags: ['data', 'warehouse'] },
-      { path: '/predictive-forecasting', label: 'Forecast AI', description: 'Revenue, inventory and demand forecasting models with branch-ready predictions.', icon: 'PF', tone: 'violet', status: 'AI', tags: ['forecast', 'ai'] }
+      { path: '/predictive-forecasting', label: 'Forecasting', description: 'Revenue, inventory and demand forecasts by branch.', icon: 'PF', tone: 'violet', status: 'AI', tags: ['forecast', 'ai'] }
     ]
   },
   {
     id: 'frontdesk',
     label: 'Front Desk OS',
-    subtitle: 'Appointments, guests, queue, booking site and customer intelligence.',
+    subtitle: 'Appointments, guests, queue, booking site and client records.',
     apps: [
       { path: '/appointments', label: 'Appointment Calendar', description: 'Create, move, complete and monitor front-desk appointments.', icon: 'CA', tone: 'teal', status: 'Live', tags: ['appointments', 'calendar'] },
       { path: '/appointments-enterprise', label: 'Enterprise Scheduler', description: 'Multi-staff and multi-service scheduling with resource-aware operations.', icon: 'ES', tone: 'blue', status: 'Ready', tags: ['scheduler', 'resources'] },
       { path: '/appointment-activity', label: 'Activity Center', description: 'Appointment lifecycle, cancellations, no-shows, reschedules and reliability audit.', icon: 'AC', tone: 'amber', status: 'Ready', tags: ['audit', 'appointments'] },
-      { path: '/smart-booking', label: 'Smart Booking', description: 'AI-assisted booking workflow, slot logic and conversion intelligence.', icon: 'SB', tone: 'violet', status: 'AI', tags: ['booking', 'ai'] },
+      { path: '/smart-booking', label: 'Smart Booking', description: 'Booking workflow, slot logic and conversion tracking.', icon: 'SB', tone: 'violet', status: 'AI', tags: ['booking', 'ai'] },
       { path: '/book', label: 'Online Booking Site', description: 'Public guest booking experience for service discovery and appointment requests.', icon: 'OB', tone: 'green', status: 'Live', tags: ['online', 'guest'] },
       { path: '/clients', label: 'Client CRM', description: 'Guest records, visit history, preferences, notes and salon relationship data.', icon: 'CL', tone: 'teal', status: 'Live', tags: ['crm', 'guest'] },
-      { path: '/customer-360', label: 'Customer 360', description: 'Lifetime value, churn signals, personalization and next-best actions.', icon: '360', tone: 'violet', status: 'AI', tags: ['customer', 'ai'] },
+      { path: '/customer-360', label: 'Customer Profile', description: 'Lifetime value, visit history, retention and next actions.', icon: 'CI', tone: 'violet', status: 'AI', tags: ['customer', 'ai'] },
       { path: '/queue-system', label: 'Smart Queue', description: 'Walk-in queue displays, live tokens and branch floor flow.', icon: 'QU', tone: 'amber', status: 'Ready', tags: ['queue', 'walkin'] }
     ]
   },
@@ -75,7 +75,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
     subtitle: 'Checkout, invoices, payments, memberships, packages and daily cash control.',
     apps: [
       { path: '/pos', label: 'Fast POS', description: 'Service and product checkout with payments, discounts and invoice flow.', icon: 'POS', tone: 'green', status: 'Live', tags: ['pos', 'billing'] },
-      { path: '/billing', label: 'Enterprise Billing', description: 'Invoice list, reconciliation, refunds, closing and production billing workflows.', icon: 'BI', tone: 'blue', status: 'Ready', tags: ['billing', 'refunds'] },
+      { path: '/billing', label: 'Billing Center', description: 'Invoice list, reconciliation, refunds and closing workflows.', icon: 'BI', tone: 'blue', status: 'Ready', tags: ['billing', 'refunds'] },
       { path: '/pos/invoices', label: 'POS Invoices', description: 'Search invoices, due balances, collections, receipt status and bill activity.', icon: 'IN', tone: 'neutral', status: 'Live', tags: ['invoice', 'payment'] },
       { path: '/pos/holds', label: 'Held Invoices', description: 'Parked bills and interrupted checkout recovery for busy counters.', icon: 'HI', tone: 'amber', status: 'Ready', tags: ['holds', 'checkout'] },
       { path: '/pos/payment-modes', label: 'Payment Modes', description: 'Cash, card, UPI, gateway and branch payment configuration.', icon: 'PM', tone: 'teal', status: 'Admin', tags: ['payment', 'settings'] },
@@ -87,10 +87,10 @@ const SUITE_GROUPS: SuiteGroup[] = [
   {
     id: 'inventory',
     label: 'Inventory & Suppliers',
-    subtitle: 'Products, suppliers, purchase orders, stock audit, recipes and AI bill drafts.',
+    subtitle: 'Products, suppliers, purchase orders, stock audit and recipes.',
     apps: [
       { path: '/inventory', label: 'Products & Inventory', description: 'Product master, stock, low-stock alerts, valuation and movement visibility.', icon: 'IV', tone: 'teal', status: 'Live', tags: ['inventory', 'products'] },
-      { path: '/inventory/purchase-bill-drafts', label: 'AI Bill Drafts', description: 'Review AI-assisted purchase bill drafts before stock confirmation.', icon: 'AI', tone: 'violet', status: 'AI', tags: ['purchase', 'ocr', 'draft'] },
+      { path: '/inventory/purchase-bill-drafts', label: 'Bill Drafts', description: 'Review purchase bill drafts before stock confirmation.', icon: 'AI', tone: 'violet', status: 'AI', tags: ['purchase', 'ocr', 'draft'] },
       { path: '/inventory/purchase-orders', label: 'Purchase Orders', description: 'Supplier purchase orders, receiving and procurement tracking.', icon: 'PO', tone: 'blue', status: 'Ready', tags: ['purchase', 'supplier'] },
       { path: '/suppliers', label: 'Suppliers', description: 'Vendor profiles, GST details, purchasing contact and supplier health.', icon: 'SP', tone: 'neutral', status: 'Ready', tags: ['vendor', 'supplier'] },
       { path: '/inventory/recipes', label: 'Service Recipes', description: 'Service consumption recipes for internal product deduction and costing.', icon: 'RC', tone: 'green', status: 'Ready', tags: ['bom', 'services'] },
@@ -104,9 +104,9 @@ const SUITE_GROUPS: SuiteGroup[] = [
     label: 'Staff & Payroll',
     subtitle: 'Employee master, attendance, roster, payroll, commission and performance.',
     apps: [
-      { path: '/staff', label: 'Smart Staff', description: 'Staff roster, active team, performance signals and operational staff controls.', icon: 'ST', tone: 'teal', status: 'Live', tags: ['staff', 'employee'] },
-      { path: '/staff-os', label: 'Staff OS', description: 'Attendance, leave, payroll, roster, training, tasks and staff operating system.', icon: 'SO', tone: 'blue', status: 'Ready', tags: ['staff', 'payroll'] },
-      { path: '/staff-enterprise', label: 'Staff Enterprise', description: 'Enterprise staff profiles, documents, reviews, approvals and lifecycle actions.', icon: 'SE', tone: 'violet', status: 'Ready', tags: ['hr', 'enterprise'] },
+      { path: '/staff-os/employee-masters', label: 'Staff OS', description: 'Employee master, attendance, payroll and lifecycle actions.', icon: 'SO', tone: 'blue', status: 'Ready', tags: ['staff', 'payroll'] },
+      { path: '/staff-os/staff-list', label: 'Staff Directory', description: 'Active team, staff categories, documents and operational staff controls.', icon: 'ST', tone: 'teal', status: 'Live', tags: ['staff', 'employee'] },
+      { path: '/staff-os/salary-workspace', label: 'Salary Setup', description: 'Salary setup connected to attendance, rules and payout states.', icon: 'SW', tone: 'violet', status: 'Ready', tags: ['hr', 'enterprise'] },
       { path: '/staff/my-work', label: 'My Work', description: 'Staff self-service view for appointments, work summary and own performance.', icon: 'MW', tone: 'green', status: 'Live', tags: ['staff', 'self'] },
       { path: '/staff-os/attendance-dashboard', label: 'Attendance Dashboard', description: 'Present, absent, late, shift and biometric attendance visibility.', icon: 'AD', tone: 'amber', status: 'Ready', tags: ['attendance'] },
       { path: '/staff-os/payroll-dashboard', label: 'Payroll Dashboard', description: 'Salary, deductions, statutory values and payroll export controls.', icon: 'PD', tone: 'blue', status: 'Ready', tags: ['payroll'] },
@@ -119,7 +119,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
     label: 'Finance & Compliance',
     subtitle: 'Ledgers, outgoing funds, GST, statutory compliance and controls.',
     apps: [
-      { path: '/finance', label: 'Finance Engine', description: 'Cash flow, expense intelligence, margin and finance command workflows.', icon: 'FN', tone: 'blue', status: 'Ready', tags: ['finance'] },
+      { path: '/finance', label: 'Finance', description: 'Cash flow, expenses, margin and finance workflows.', icon: 'FN', tone: 'blue', status: 'Ready', tags: ['finance'] },
       { path: '/account-master', label: 'Account Master', description: 'Chart of accounts and ledger-ready financial master records.', icon: 'AM', tone: 'neutral', status: 'Admin', tags: ['accounts'] },
       { path: '/reports/account-ledger', label: 'Account Ledger', description: 'Ledger report for account movement and reconciled finance visibility.', icon: 'AL', tone: 'teal', status: 'Ready', tags: ['ledger', 'report'] },
       { path: '/transactions/outgoing-funds', label: 'Outgoing Funds', description: 'Vendor, expense, payout and cash-out transaction entry.', icon: 'OF', tone: 'amber', status: 'Ready', tags: ['expense', 'transactions'] },
@@ -132,14 +132,14 @@ const SUITE_GROUPS: SuiteGroup[] = [
     label: 'Growth, WhatsApp & AI',
     subtitle: 'Marketing, reputation, recommendations, WhatsApp and salon automation.',
     apps: [
-      { path: '/marketing', label: 'AI Marketing', description: 'Campaigns, win-back, upsell, retention and client segmentation automation.', icon: 'MK', tone: 'violet', status: 'AI', tags: ['marketing', 'ai'] },
+      { path: '/marketing', label: 'Marketing', description: 'Campaigns, win-back, upsell, retention and client segments.', icon: 'MK', tone: 'violet', status: 'AI', tags: ['marketing', 'ai'] },
       { path: '/growth-rank-bot', label: 'AI Rank Bot', description: 'Instagram, Facebook and Google rank-readiness audits with ethical local SEO, content and review workflows.', icon: 'RB', tone: 'violet', status: 'AI', tags: ['rank', 'google', 'instagram'] },
       { path: '/whatsapp', label: 'WhatsApp Automation', description: 'Reminders, renewals, templates, payment links and provider-ready messaging.', icon: 'WA', tone: 'green', status: 'Ready', tags: ['whatsapp'] },
-      { path: '/engagement', label: 'Engagement Center', description: 'Client engagement command center across messages, actions and journeys.', icon: 'EC', tone: 'blue', status: 'Ready', tags: ['engagement'] },
+      { path: '/engagement', label: 'Engagement Center', description: 'Client messages, actions and journeys.', icon: 'EC', tone: 'blue', status: 'Ready', tags: ['engagement'] },
       { path: '/message-logs', label: 'Message Logs', description: 'SMS, email and WhatsApp delivery tracking with provider payloads.', icon: 'ML', tone: 'neutral', status: 'Ready', tags: ['messages'] },
       { path: '/reputation', label: 'Reputation', description: 'Review inbox, response drafting, alerts and reputation operations.', icon: 'RV', tone: 'amber', status: 'AI', tags: ['reviews'] },
-      { path: '/growth-advisor', label: 'Growth Advisor', description: 'AI revenue growth tasks, missed opportunity signals and action plans.', icon: 'GA', tone: 'violet', status: 'AI', tags: ['growth'] },
-      { path: '/recommendation-engine', label: 'Recommendation Engine', description: 'Next service, product and booking recommendations with feedback loops.', icon: 'RE', tone: 'violet', status: 'AI', tags: ['recommendation'] },
+      { path: '/growth-advisor', label: 'Growth Advisor', description: 'Revenue growth tasks, missed opportunities and action plans.', icon: 'GA', tone: 'violet', status: 'AI', tags: ['growth'] },
+      { path: '/recommendation-engine', label: 'Recommendations', description: 'Next service, product and booking suggestions.', icon: 'RE', tone: 'violet', status: 'AI', tags: ['recommendation'] },
       { path: '/voice-receptionist', label: 'Voice Receptionist', description: 'Call transcript, multilingual intent, callback and booking action records.', icon: 'VR', tone: 'blue', status: 'AI', tags: ['voice'] }
     ]
   },
@@ -151,7 +151,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
       { path: '/super-admin', label: 'Super Admin', description: 'Tenant-level SaaS administration, platform controls and global visibility.', icon: 'SA', tone: 'red', status: 'Admin', tags: ['saas', 'admin'] },
       { path: '/saas', label: 'SaaS Onboarding', description: 'Tenant onboarding, branch readiness and subscription operating controls.', icon: 'SX', tone: 'blue', status: 'Admin', tags: ['tenant'] },
       { path: '/branches', label: 'Multi-Branch', description: 'Branch profiles, GSTIN, address, status and branch-level operations.', icon: 'BR', tone: 'teal', status: 'Admin', tags: ['branch'] },
-      { path: '/permissions', label: 'Permissions', description: 'RBAC-ready role and permission matrix for enterprise access control.', icon: 'PM', tone: 'red', status: 'Admin', tags: ['rbac'] },
+      { path: '/permissions', label: 'Permissions', description: 'Role and permission matrix for access control.', icon: 'PM', tone: 'red', status: 'Admin', tags: ['rbac'] },
       { path: '/security', label: 'Security Layer', description: 'Security controls, audit posture, sessions and hardening readiness.', icon: 'SL', tone: 'red', status: 'Admin', tags: ['security'] },
       { path: '/offline', label: 'Offline Support', description: 'Offline POS and booking sync readiness with conflict-aware workflows.', icon: 'OF', tone: 'amber', status: 'Ready', tags: ['offline'] },
       { path: '/developer-api', label: 'Developer API', description: 'API key records, scopes, rate limits and partner access readiness.', icon: 'API', tone: 'blue', status: 'Admin', tags: ['api'] },
@@ -170,7 +170,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
         <div>
           <span class="eyebrow">AuraShine full suite</span>
           <h2>All Apps</h2>
-          <p>One operating surface for salon CRM, booking, POS, inventory, staff, finance, WhatsApp, AI and SaaS admin.</p>
+          <p>One place for salon CRM, booking, POS, inventory, staff, finance, WhatsApp and admin tools.</p>
         </div>
         <div class="header-actions">
           <a class="ghost-button" routerLink="/dashboard/executive">Executive</a>

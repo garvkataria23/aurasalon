@@ -55,11 +55,13 @@ export type PosHeldInvoiceDraft = {
   items: unknown[];
   tips: unknown[];
   payments: Record<string, number>;
+  bookingAdvanceAppliedAmount?: number;
   discount: number;
   discountMode?: 'amount' | 'percent';
   couponCode: string;
   creditsUsed: number;
   membershipId: string;
+  benefitServiceMappings?: unknown[];
   subtotal: number;
   total: number;
   balanceDue: number;
@@ -80,6 +82,7 @@ export type PosActiveBillingDraft = {
   items: unknown[];
   tips: unknown[];
   payments: Record<string, number>;
+  bookingAdvanceAppliedAmount?: number;
   discount: number;
   discountMode: 'amount' | 'percent';
   couponCode: string;
@@ -87,6 +90,7 @@ export type PosActiveBillingDraft = {
   couponMessage: string;
   creditsUsed: number;
   membershipId: string;
+  benefitServiceMappings?: unknown[];
   clientSearchText: string;
   serviceSearchText: string;
   productSearchText: string;

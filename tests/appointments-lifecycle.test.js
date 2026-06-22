@@ -138,7 +138,8 @@ test("appointment validation blocks overlaps and lifecycle endpoints create bill
     const converted = await api(baseUrl, `/appointments/${created.payload.id}/convert-to-sale`, { method: "POST" });
     assert.equal(converted.response.status, 201);
     assert.equal(converted.payload.sale.appointmentId, created.payload.id);
-    assert.ok(["billed", "paid"].includes(converted.payload.appointment.status));
+    assert.equal(converted.payload.appointment.status, "completed");
+    assert.equal(converted.payload.appointment.billable, 1);
 
     const duplicateStart = new Date(start.getTime() + 7 * 86_400_000).toISOString();
     const duplicate = await api(baseUrl, `/appointments/${created.payload.id}/duplicate`, {

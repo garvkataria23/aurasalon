@@ -14,13 +14,44 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       <div class="module-hero">
         <div>
           <span class="eyebrow">Advanced analytics engine</span>
-          <h2>Forecasting, productivity, retention, churn, heatmaps and branch intelligence</h2>
+          <h2>Forecasting, productivity, retention, churn, heatmaps and branch reports</h2>
           <p>Analytics runs calculate from persisted appointments, sales, invoices, clients, memberships, staff, inventory and WhatsApp leads.</p>
         </div>
-        <button class="ghost-button" type="button" (click)="run()">Generate snapshot</button>
+        <div class="form-actions">
+          <button class="ghost-button" type="button" (click)="createSchedule()">Schedule digest</button>
+          <button class="ghost-button" type="button" (click)="runAnomalyScan()">Run anomaly scan</button>
+          <button class="ghost-button" type="button" (click)="run()">Generate snapshot</button>
+        </div>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
+
+      <section class="panel" *ngIf="commandCenter() as command">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">Analytics control room</span>
+            <h2>Insights, scheduled reports, export controls and anomaly detection</h2>
+          </div>
+          <span class="badge">{{ command.exportControls.allowed ? 'Export controlled' : 'Export blocked' }}</span>
+        </div>
+        <div class="quick-grid">
+          <article class="action-card">
+            <strong>{{ command.anomalyDetection.open }}</strong>
+            <span>Open anomalies</span>
+            <small>{{ command.anomalyDetection.critical }} critical · {{ command.anomalyDetection.warning }} warning</small>
+          </article>
+          <article class="action-card">
+            <strong>{{ command.scheduledReports.length }}</strong>
+            <span>Scheduled reports</span>
+            <small>{{ command.exportControls.message }}</small>
+          </article>
+          <article class="action-card" *ngFor="let insight of command.aiInsights">
+            <strong>{{ insight.title }}</strong>
+            <span>{{ insight.recommendation }}</span>
+            <small>{{ insight.severity }}</small>
+          </article>
+        </div>
+      </section>
 
       <section class="form-panel">
         <h3>Analysis scope</h3>
@@ -261,6 +292,7 @@ export class AnalyticsEngineComponent implements OnInit {
   readonly metrics = signal<ApiRecord | null>(null);
   readonly insights = signal<string[]>([]);
   readonly snapshots = signal<ApiRecord[]>([]);
+  readonly commandCenter = signal<ApiRecord | null>(null);
   readonly branches = signal<ApiRecord[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
@@ -288,6 +320,7 @@ export class AnalyticsEngineComponent implements OnInit {
       .then(([branches, snapshots]) => {
         this.branches.set(branches || []);
         this.snapshots.set(snapshots || []);
+        this.loadCommandCenter();
         this.run();
       })
       .catch((error) => {
@@ -305,6 +338,7 @@ export class AnalyticsEngineComponent implements OnInit {
         this.metrics.set(result.metrics);
         this.insights.set(result.insights || []);
         this.loadSnapshots();
+        this.loadCommandCenter();
         this.loading.set(false);
       },
       error: (error) => {
@@ -318,6 +352,32 @@ export class AnalyticsEngineComponent implements OnInit {
     this.api.list<ApiRecord[]>('analytics/snapshots').subscribe({
       next: (snapshots) => this.snapshots.set(snapshots),
       error: () => this.snapshots.set([])
+    });
+  }
+
+  loadCommandCenter(): void {
+    this.api.list<ApiRecord>('analytics/report-command-center', this.filterForm.value).subscribe({
+      next: (result) => this.commandCenter.set(result),
+      error: () => this.commandCenter.set(null)
+    });
+  }
+
+  createSchedule(): void {
+    this.api.post<ApiRecord>('analytics/report-schedules', {
+      ...this.filterForm.value,
+      name: 'Analytics owner digest',
+      cadence: 'weekly',
+      reportKeys: ['analytics:14-day-forecast', 'analytics:high-churn-risk', 'analytics:anomalies']
+    }).subscribe({
+      next: () => this.loadCommandCenter(),
+      error: (error) => this.error.set(this.api.errorText(error))
+    });
+  }
+
+  runAnomalyScan(): void {
+    this.api.post<ApiRecord>('analytics/anomalies/run', this.filterForm.value).subscribe({
+      next: () => this.loadCommandCenter(),
+      error: (error) => this.error.set(this.api.errorText(error))
     });
   }
 

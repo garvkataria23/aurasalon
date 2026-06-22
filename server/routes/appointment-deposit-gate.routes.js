@@ -30,3 +30,11 @@ appointmentDepositGateRouter.get(
     res.json(appointmentDepositGateService.report(req.query, req.access));
   })
 );
+
+appointmentDepositGateRouter.patch(
+  "/appointment-deposits/followups/:paymentLinkId",
+  requirePermission("write", () => "appointment_deposits"),
+  asyncHandler((req, res) => {
+    res.json(appointmentDepositGateService.updateFollowUp(req.params.paymentLinkId, req.body, req.access));
+  })
+);

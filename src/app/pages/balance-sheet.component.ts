@@ -21,17 +21,30 @@ type CostCenterPnl = { fromDate: string; toDate: string; costCenters: Array<{ co
 type DeferredList = { deferredLiability: number; schedules: Array<{ id: string; sourceType: string; sourceId: string; customerId: string; total: number; recognized: number; deferredBalance: number; method: string; periods: number; startDate: string; status: string }> };
 type AssetRegister = { grossBlock: number; accumulatedDepreciation: number; netBlock: number; assets: Array<{ code: string; name: string; category: string; method: string; cost: number; accumulatedDepreciation: number; netBookValue: number; status: string }> };
 type CostStructure = { fromDate: string; toDate: string; revenue: number; variableCost: number; fixedCost: number; salaryCost: number; contributionMargin: number; contributionMarginRatioPct: number; salaryToRevenuePct: number | null; breakEvenRevenue: number | null; breakEvenClients: number | null; netProfit: number; marginOfSafetyPct: number | null; lines: Array<{ code: string; name: string; behavior: string; category: string; amount: number }> };
-type DailyOperations = { businessDate: string; invoiceCount: number; sales: number; paid: number; discount: number; gst: number; productConsumption: number; dailyRent: number; salary: number; commission: number; directCost: number; netAfterTrackedCost: number; staff: Array<{ staffId: string; name: string; role: string; attendance: string; minutesWorked: number; revenue: number; dailySalary: number; commission: number; totalStaffCost: number; netContribution: number }>; products: Array<{ sku: string; qty: number; cost: number }> };
+type DailyOperations = { businessDate: string; invoiceCount: number; sales: number; paid: number; due: number; discount: number; gst: number; productConsumption: number; dailyRent: number; salary: number; commission: number; directCost: number; netAfterTrackedCost: number; staff: Array<{ staffId: string; name: string; role: string; attendance: string; minutesWorked: number; revenue: number; dailySalary: number; commission: number; totalStaffCost: number; netContribution: number }>; products: Array<{ sku: string; qty: number; cost: number }> };
 type FinanceOs = {
   asOfDate: string;
   month: string;
-  outgoingImpact: { total: number; cash: number; bank: number; profitAfterOutgoing: number; recent: Array<{ id: string; entryNo: string; category: string; payee: string; mode: string; amount: number; status: string }> };
+  outgoingImpact: { total: number; cash: number; bank: number; profitAfterOutgoing: number; recent: Array<{ id: string; entryNo: string; category: string; categoryKey?: string; bucket?: string; impact?: string; payee: string; mode: string; amount: number; gstAmount?: number; billUrl?: string; linkedPartyType?: string; linkedPartyName?: string; approvalStatus?: string; status: string }> };
+  outgoingCoverage: {
+    total: number; operating: number; balanceSheetOnly: number; categoriesUsed: number; categoriesAvailable: number;
+    connection: { inputGst: number; withBill: number; missingBill: number; linked: number; missingLink: number; approved: number; pendingApproval: number };
+    buckets: Array<{ bucket: string; amount: number; entries: number }>;
+    categories: Array<{ key: string; label: string; bucket: string; impact: string; operating: boolean; amount: number; entries: number }>;
+    missing: Array<{ key: string; label: string; bucket: string; impact: string }>;
+  };
+  purchasePayables: { total: number; inventory: number; gst: number; bills: number; recent: Array<{ id: string; sourceType: string; billNo: string; supplierName: string; total: number; inventory: number; gst: number; glStatus: string }> };
+  purchaseInputGst: { total: number; bills: number; postedOrQueued: number; pending: number; recent: Array<{ id: string; sourceType: string; billNo: string; supplierName: string; inputGst: number; inventory: number; total: number; glStatus: string }> };
+  prepaidAdvances: { total: number; balance: number; schedules: number; membership: number; packageAdvance: number; giftCard: number; recent: Array<{ id: string; sourceType: string; sourceId: string; total: number; recognized: number; balance: number; method: string; status: string }> };
+  walletCredits: { total: number; wallet: number; storeCredit: number; clients: number; storeCredits: number; transactions: number; todayIssued: number; todayRedeemed: number; recent: Array<{ id: string; sourceType: string; customerId: string; reference: string; balance: number; status: string }> };
+  payrollStatutory: { month: string; total: number; pf: number; esi: number; pt: number; tds: number; rows: number; pending: number; recent: Array<{ id: string; category: string; staffId: string; payrollId: string; wageMonth: string; amount: number; status: string }> };
+  fixedAssetControl: { month: string; grossBlock: number; accumulatedDepreciation: number; netBlock: number; purchases: number; depreciation: number; assets: number; depreciationEntries: number; recent: Array<{ id: string; type: string; code: string; name: string; date: string; amount: number; status: string }> };
   todayTimeline: Array<{ at: string; type: string; title: string; amount: number }>;
   ownerDailyClose: { ready: boolean; warnings: number; checklist: Array<{ key: string; label: string; done: boolean }> };
   cashBankReconciliation: { cashCollection: number; bankCollection: number; cashOutgoing: number; bankOutgoing: number; expectedCash: number; expectedBankNet: number; paymentRows: number; outgoingRows: number };
   expenseCategoryProfit: Array<{ category: string; amount: number; netAfterCategory: number; sources: string[] }>;
   branchWiseBalanceSheet: Array<{ branchId: string; branchName: string; cash: number; receivable: number; payable: number; stock: number; profit: number }>;
-  invoiceDrilldown: Array<{ invoiceId: string; invoiceNumber: string; revenue: number; gst: number; glStatus: string }>;
+  invoiceDrilldown: Array<{ invoiceId: string; invoiceNumber: string; revenue: number; paid: number; due: number; gst: number; glStatus: string; receivableStatus?: string }>;
   gstPayableControl: { todayCollected: number; monthEstimate: number; postedOrQueued: number; payablePaise: number };
   livePosToGl: { posSales: number; glRevenue: number; difference: number; outboxPending: number; outboxFailed: number; outboxPosted: number };
   dailyProfit: { sales: number; gst: number; discount: number; salary: number; commission: number; rent: number; productConsumption: number; netAfterTrackedCost: number };
@@ -44,12 +57,27 @@ type FinanceOs = {
   copilotPrompts: string[];
   monthEndClose: { month: string; checklist: Array<{ key: string; label: string; done: boolean; amount: number }> };
 };
-type PosGlSyncResult = { fromDate: string; toDate: string; scanned: number; enqueued: number; duplicate: number; skipped: number };
+type FinanceWorkspaceCategoryKey = 'main' | 'invoices' | 'purchase' | 'purchaseGst' | 'staff' | 'inventory' | 'cash' | 'wallet' | 'fixedAssets' | 'journals' | 'alerts';
+type PosGlSyncResult = { fromDate: string; toDate: string; scanned: number; enqueued: number; duplicate: number; skipped: number; receivable?: number; paid?: number };
+type PurchaseGlSyncResult = { fromDate: string; toDate: string; scanned: number; enqueued: number; duplicate: number; skipped: number; payable: number; gst: number };
+type PurchaseInputGstSyncResult = PurchaseGlSyncResult & { inputGst: number; inputGstBills: number };
+type PrepaidAdvanceSyncResult = { fromDate: string; toDate: string; scanned: number; prepaidInvoices: number; created: number; duplicate: number; skipped: number; deferred: number; schedules: Array<{ invoiceId: string; invoiceNumber: string; sourceType: string; sourceId: string; deferredBalance: number; status: string }> };
+type WalletCreditSyncResult = { fromDate: string; toDate: string; scanned: number; posted: number; duplicate: number; skipped: number; credited: number; redeemed: number; liability: number; events: Array<{ sourceType: string; sourceId: string; customerId: string; status: string; amount: number; journalEntryId: string }> };
+type PayrollStatutorySyncResult = { month: string; scanned: number; posted: number; duplicate: number; skipped: number; liability: number; pf: number; esi: number; pt: number; tds: number; events: Array<{ id: string; category: string; staffId: string; payrollId: string; amount: number; status: string; journalEntryId: string }> };
+type FixedAssetPurchaseSyncResult = { fromDate: string; toDate: string; scanned: number; posted: number; duplicate: number; skipped: number; purchases: number; events: Array<{ code: string; name: string; amount: number; status: string; journalEntryId: string }> };
+type DepreciationRunResult = { period: string; skipped?: boolean; posted?: number; totalPaise?: number; totalDepreciation?: number };
 type CopilotAnswer = { question: string; answer: string; actions: string[]; asOfDate: string; reportVersion: string };
 type InventoryCogsSyncResult = { fromDate: string; toDate: string; scanned: number; enqueued: number; duplicate: number; skipped: number; cogs: number };
 type DailyAccrualResult = { businessDate: string; posted: number; entries: Array<{ key: string; memo: string; amount: number; journalEntryId: string }> };
-type MonthCloseAutomationResult = { period: string; fromDate: string; toDate: string; posToGl: PosGlSyncResult; inventoryCogs: InventoryCogsSyncResult; accruals: DailyAccrualResult; snapshotId: string; nextSteps: string[] };
-type OwnerDailyCloseResult = { asOfDate: string; ready: boolean; warnings: number; posToGl: PosGlSyncResult; cogs: InventoryCogsSyncResult; accruals: DailyAccrualResult };
+type MonthCloseAutomationResult = { period: string; fromDate: string; toDate: string; posToGl: PosGlSyncResult; purchases?: PurchaseGlSyncResult; wallets?: WalletCreditSyncResult; payrollStatutory?: PayrollStatutorySyncResult; fixedAssetPurchases?: FixedAssetPurchaseSyncResult; inventoryCogs: InventoryCogsSyncResult; accruals: DailyAccrualResult; snapshotId: string; nextSteps: string[] };
+type OwnerDailyCloseResult = { asOfDate: string; ready: boolean; warnings: number; posToGl: PosGlSyncResult; purchases?: PurchaseGlSyncResult; wallets?: WalletCreditSyncResult; payrollStatutory?: PayrollStatutorySyncResult; fixedAssetPurchases?: FixedAssetPurchaseSyncResult; cogs: InventoryCogsSyncResult; accruals: DailyAccrualResult };
+type FinanceControls = {
+  sourceOfTruth: string;
+  productionReady: boolean;
+  varianceDetection: Array<{ key: string; label: string; amount: number; severity: string }>;
+  auditTrail: Array<{ id: string; businessDate: string; sourceType: string; sourceId: string; memo: string; status: string; createdBy: string; createdAt: string }>;
+  exportControl: { allowed: boolean; reason: string; format: string; watermark: string };
+};
 type DrillNode = { id: string; label: string; type: 'root' | 'group' | 'ledger' | 'voucher'; amount: number; level: number; children?: DrillNode[] };
 type GraphPoint = { label: string; revenue: number; profit: number; cash: number };
 type ForecastPoint = { month: string; assets: number; liabilities: number; netWorth: number; expectedInflow: number; expectedOutflow: number; closingCash: number };
@@ -171,7 +199,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
         </div>
         <div class="spacer"></div>
         <span class="ready-chip" [class.on]="hardening()?.productionReady">{{ hardening()?.productionReady ? 'Production ready' : 'Hardening pending' }}</span>
-        <button class="ghost" type="button" (click)="exportCsv()">Export CSV</button>
+        <button class="ghost" type="button" [disabled]="financeControls()?.exportControl?.allowed === false" (click)="exportCsv()">Export CSV</button>
         <button class="ghost" type="button" (click)="print()">Print</button>
         <button class="solid" type="button" [disabled]="loading()" (click)="load()">Refresh</button>
       </div>
@@ -218,170 +246,273 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
             <article class="card" [class.flag]="s.totals.accountingEquationDifference"><span>Difference</span><strong>{{ fmt(s.totals.accountingEquationDifference) }}</strong></article>
           </section>
 
-          <section class="panel" *ngIf="dailyOps() as d">
-            <div class="panel-head">
-              <h2>Today live operating breakup</h2>
-              <span class="muted small">{{ d.businessDate }} · invoices {{ d.invoiceCount }}</span>
-            </div>
-            <section class="cards mini">
-              <article class="card"><span>Aaj ki sale</span><strong>{{ fmt(d.sales) }}</strong></article>
-              <article class="card"><span>Staff salary today</span><strong>{{ fmt(d.salary) }}</strong></article>
-              <article class="card"><span>Commission today</span><strong>{{ fmt(d.commission) }}</strong></article>
-              <article class="card"><span>Product consumed</span><strong>{{ fmt(d.productConsumption) }}</strong></article>
-              <article class="card"><span>Daily rent</span><strong>{{ fmt(d.dailyRent) }}</strong></article>
-              <article class="card" [class.flag]="d.netAfterTrackedCost < 0"><span>After tracked cost</span><strong>{{ fmt(d.netAfterTrackedCost) }}</strong></article>
-            </section>
-            <div class="split tight">
-              <article>
-                <h3>Staff earning and attendance</h3>
-                <div class="scroll"><table><thead><tr><th>Staff</th><th>Attendance</th><th class="r">Sale</th><th class="r">Salary</th><th class="r">Commission</th><th class="r">Net</th></tr></thead>
-                  <tbody><tr *ngFor="let r of d.staff"><td>{{ r.name }}</td><td class="muted">{{ r.attendance }}</td><td class="r">{{ fmt(r.revenue) }}</td><td class="r">{{ fmt(r.dailySalary) }}</td><td class="r">{{ fmt(r.commission) }}</td><td class="r">{{ fmt(r.netContribution) }}</td></tr></tbody>
-                </table></div>
-              </article>
-              <article>
-                <h3>Product consumption</h3>
-                <div class="empty" *ngIf="!d.products.length">Aaj inventory issue/consume entry nahi mili.</div>
-                <div class="scroll" *ngIf="d.products.length"><table><thead><tr><th>SKU</th><th class="r">Qty</th><th class="r">Cost</th></tr></thead>
-                  <tbody><tr *ngFor="let p of d.products"><td>{{ p.sku }}</td><td class="r">{{ p.qty }}</td><td class="r">{{ fmt(p.cost) }}</td></tr></tbody>
-                </table></div>
-              </article>
-            </div>
-          </section>
-
-          <section class="panel finance-os" *ngIf="financeOs() as f">
-            <div class="panel-head">
-              <h2>AI Growth Finance OS</h2>
-              <span class="muted small">10 advanced controls · {{ f.asOfDate }}</span>
-            </div>
-            <div class="row-controls">
-              <button class="solid" type="button" [disabled]="busy()" (click)="syncPosToGl()">Sync POS to GL</button>
+          <section class="panel finance-workspace" *ngIf="financeOs() as f">
+            <div class="panel-head workspace-head">
+              <div>
+                <h2>Finance Workspace</h2>
+                <span class="muted small">Finance controls · {{ f.asOfDate }}</span>
+              </div>
               <button class="solid" type="button" [disabled]="busy()" (click)="ownerDailyClose()">Owner daily close</button>
-              <button class="ghost" type="button" [disabled]="busy()" (click)="syncInventoryCogs()">Sync COGS</button>
-              <button class="ghost" type="button" [disabled]="busy()" (click)="postDailyAccruals()">Post daily accruals</button>
-              <button class="solid" type="button" [disabled]="busy()" (click)="runMonthCloseAutomation()">One-click month close</button>
-              <span class="muted small" *ngIf="posGlSync() as s">Scanned {{ s.scanned }} · Enqueued {{ s.enqueued }} · Duplicate {{ s.duplicate }}</span>
             </div>
-            <div class="row-controls muted small">
-              <span *ngIf="inventoryCogsSync() as c">COGS: {{ c.scanned }} scanned · {{ c.enqueued }} queued · {{ fmt(c.cogs) }}</span>
-              <span *ngIf="dailyAccruals() as a">Accruals: {{ a.posted }} journals posted</span>
-              <span *ngIf="monthCloseAutomation() as m">Month close: {{ m.period }} · snapshot {{ m.snapshotId }}</span>
+            <div class="sync-strip">
+              <span *ngIf="posGlSync() as s">POS: {{ s.enqueued }} queued · due {{ fmt(s.receivable || 0) }}</span>
+              <span *ngIf="purchaseGlSync() as p">Purchases: {{ p.enqueued }} queued · payable {{ fmt(p.payable) }}</span>
+              <span *ngIf="purchaseInputGstSync() as g">Input GST: {{ g.inputGstBills }} bills · {{ fmt(g.inputGst) }}</span>
+              <span *ngIf="walletCreditSync() as w">Wallet: {{ w.posted }} posted · {{ fmt(w.liability) }}</span>
+              <span *ngIf="payrollStatutorySync() as p">Payroll: {{ p.posted }} posted · {{ fmt(p.liability) }}</span>
+              <span *ngIf="fixedAssetPurchaseSync() as a">Assets: {{ a.posted }} posted · {{ fmt(a.purchases) }}</span>
+              <span *ngIf="inventoryCogsSync() as c">COGS: {{ c.enqueued }} queued · {{ fmt(c.cogs) }}</span>
             </div>
-            <section class="cards mini">
-              <article class="card"><span>1. POS → GL sync</span><strong>{{ fmt(f.livePosToGl.difference) }}</strong><span class="small muted">gap · pending {{ f.livePosToGl.outboxPending }}</span></article>
-              <article class="card"><span>2. Daily profit</span><strong>{{ fmt(f.dailyProfit.netAfterTrackedCost) }}</strong><span class="small muted">after tracked costs</span></article>
-              <article class="card"><span>3. Staff profitability</span><strong>{{ f.staffProfitability.length }}</strong><span class="small muted">staff rows live</span></article>
-              <article class="card"><span>4. Service margin</span><strong>{{ f.serviceMargins.length }}</strong><span class="small muted">services/items analyzed</span></article>
-              <article class="card"><span>5. Inventory consume</span><strong>{{ fmt(f.inventoryConsumption.total) }}</strong><span class="small muted">WMA vs GL {{ fmt(f.inventoryConsumption.difference) }}</span></article>
-              <article class="card"><span>6. Fixed cost/day</span><strong>{{ fmt(f.fixedCostAllocation.dailyRent + f.fixedCostAllocation.dailySalary) }}</strong><span class="small muted">rent + salary</span></article>
-              <article class="card"><span>7. Journal alerts</span><strong>{{ f.journalSuggestions.length }}</strong><span class="small muted">auto suggestions</span></article>
-              <article class="card"><span>8. Reconciliation</span><strong>{{ f.reconciliation.balanced ? 'OK' : 'Check' }}</strong><span class="small muted">diff {{ fmt(f.reconciliation.accountingEquationDifference) }}</span></article>
-              <article class="card"><span>9. AI copilot</span><strong>{{ f.copilotPrompts.length }}</strong><span class="small muted">owner questions ready</span></article>
-              <article class="card"><span>10. Month close</span><strong>{{ doneCount(f.monthEndClose.checklist) }}/{{ f.monthEndClose.checklist.length }}</strong><span class="small muted">{{ f.monthEndClose.month }}</span></article>
-              <article class="card"><span>Outgoing impact</span><strong>{{ fmt(f.outgoingImpact.total) }}</strong><span class="small muted">profit after {{ fmt(f.outgoingImpact.profitAfterOutgoing) }}</span></article>
-              <article class="card"><span>Daily close</span><strong>{{ f.ownerDailyClose.ready ? 'Ready' : 'Check' }}</strong><span class="small muted">{{ f.ownerDailyClose.warnings }} warnings</span></article>
-              <article class="card"><span>Cash expected</span><strong>{{ fmt(f.cashBankReconciliation.expectedCash) }}</strong><span class="small muted">bank net {{ fmt(f.cashBankReconciliation.expectedBankNet) }}</span></article>
-              <article class="card"><span>GST payable</span><strong>{{ fmt(f.gstPayableControl.todayCollected) }}</strong><span class="small muted">month {{ fmt(f.gstPayableControl.monthEstimate) }}</span></article>
-            </section>
-            <div class="split tight">
-              <article>
-                <h3>Today finance timeline</h3>
-                <div class="stage" *ngFor="let e of f.todayTimeline"><span class="dot" [attr.data-state]="e.type === 'gl' ? 'ok' : 'warn'"></span><span class="st-label">{{ e.type }} · {{ e.title }}</span><span class="st-note muted small">{{ e.at }} · {{ fmt(e.amount) }}</span></div>
-                <div class="empty" *ngIf="!f.todayTimeline.length">Aaj timeline activity nahi mili.</div>
-              </article>
-              <article>
-                <h3>Owner daily close checklist</h3>
-                <div class="stage" *ngFor="let c of f.ownerDailyClose.checklist"><span class="dot" [attr.data-state]="c.done ? 'ok' : 'warn'"></span><span class="st-label">{{ c.label }}</span><span class="st-note muted small">{{ c.done ? 'done' : 'pending' }}</span></div>
-              </article>
-            </div>
-            <div class="split tight">
-              <article>
-                <h3>Outgoing fund live impact</h3>
-                <div class="scroll"><table><thead><tr><th>Entry</th><th>Payee</th><th>Mode</th><th class="r">Amount</th></tr></thead>
-                  <tbody><tr *ngFor="let o of f.outgoingImpact.recent"><td>{{ o.entryNo || o.category }}</td><td>{{ o.payee }}</td><td>{{ o.mode }}</td><td class="r">{{ fmt(o.amount) }}</td></tr></tbody>
-                </table></div>
-                <div class="empty" *ngIf="!f.outgoingImpact.recent.length">Aaj outgoing fund entry nahi mili.</div>
-              </article>
-              <article>
-                <h3>Cash / Bank reconciliation</h3>
-                <div class="metric"><span>Cash collection</span><strong>{{ fmt(f.cashBankReconciliation.cashCollection) }}</strong></div>
-                <div class="metric"><span>Cash outgoing</span><strong>{{ fmt(f.cashBankReconciliation.cashOutgoing) }}</strong></div>
-                <div class="metric"><span>Expected cash</span><strong>{{ fmt(f.cashBankReconciliation.expectedCash) }}</strong></div>
-                <div class="metric"><span>Expected bank net</span><strong>{{ fmt(f.cashBankReconciliation.expectedBankNet) }}</strong></div>
-              </article>
-            </div>
-            <div class="split tight">
-              <article>
-                <h3>Expense category profit view</h3>
-                <div class="scroll"><table><thead><tr><th>Category</th><th class="r">Cost</th><th class="r">Net after</th><th>Source</th></tr></thead>
-                  <tbody><tr *ngFor="let e of f.expenseCategoryProfit"><td>{{ e.category }}</td><td class="r">{{ fmt(e.amount) }}</td><td class="r">{{ fmt(e.netAfterCategory) }}</td><td>{{ e.sources.join(', ') }}</td></tr></tbody>
-                </table></div>
-              </article>
-              <article>
-                <h3>Invoice to Balance Sheet drilldown</h3>
-                <div class="scroll"><table><thead><tr><th>Invoice</th><th class="r">Revenue</th><th class="r">GST</th><th>GL</th></tr></thead>
-                  <tbody><tr *ngFor="let i of f.invoiceDrilldown"><td>{{ i.invoiceNumber }}</td><td class="r">{{ fmt(i.revenue) }}</td><td class="r">{{ fmt(i.gst) }}</td><td>{{ i.glStatus }}</td></tr></tbody>
-                </table></div>
-              </article>
-            </div>
-            <article>
-              <h3>Branch wise Balance Sheet</h3>
-              <div class="scroll"><table><thead><tr><th>Branch</th><th class="r">Cash/Bank</th><th class="r">Receivable</th><th class="r">Payable</th><th class="r">Stock</th><th class="r">Profit</th></tr></thead>
-                <tbody><tr *ngFor="let b of f.branchWiseBalanceSheet"><td>{{ b.branchName }}</td><td class="r">{{ fmt(b.cash) }}</td><td class="r">{{ fmt(b.receivable) }}</td><td class="r">{{ fmt(b.payable) }}</td><td class="r">{{ fmt(b.stock) }}</td><td class="r">{{ fmt(b.profit) }}</td></tr></tbody>
-              </table></div>
-            </article>
-            <div class="split tight">
-              <article>
-                <h3>Auto journal suggestions</h3>
-                <div class="insight" *ngFor="let s of f.journalSuggestions" [attr.data-sev]="s.severity">
-                  <strong>{{ s.title }}</strong><span>{{ s.text }}</span><small>{{ s.action }}</small>
-                </div>
-                <div class="empty" *ngIf="!f.journalSuggestions.length">No pending journal suggestion.</div>
-              </article>
-              <article>
-                <h3>Owner AI copilot prompts</h3>
-                <div class="ledger-preview" *ngFor="let p of f.copilotPrompts"><strong>{{ p }}</strong><span>Ready from live finance data</span></div>
-                <div class="form-row copilot-row">
-                  <input placeholder="Ask: Aaj profit kam kyu hai?" [ngModel]="copilotQuestion()" (ngModelChange)="copilotQuestion.set($event)" />
-                  <button class="solid" type="button" [disabled]="busy() || !copilotQuestion()" (click)="askFinanceCopilot()">Ask</button>
-                </div>
-                <div class="insight" *ngIf="copilotAnswer() as a" data-sev="ok">
-                  <strong>{{ a.question }}</strong><span>{{ a.answer }}</span><small>{{ a.actions.join(' · ') }}</small>
-                </div>
-              </article>
-            </div>
-            <div class="split tight">
-              <article>
-                <h3>Service wise true margin</h3>
-                <div class="scroll"><table><thead><tr><th>Service / item</th><th class="r">Revenue</th><th class="r">Product</th><th class="r">Comm.</th><th class="r">Margin</th></tr></thead>
-                  <tbody><tr *ngFor="let s of f.serviceMargins"><td>{{ s.name }}</td><td class="r">{{ fmt(s.revenue) }}</td><td class="r">{{ fmt(s.productCost) }}</td><td class="r">{{ fmt(s.staffCommission) }}</td><td class="r">{{ fmt(s.margin) }} · {{ s.marginPct }}%</td></tr></tbody>
-                </table></div>
-              </article>
-              <article>
-                <h3>Month-end close checklist</h3>
-                <div class="stage" *ngFor="let c of f.monthEndClose.checklist"><span class="dot" [attr.data-state]="c.done ? 'ok' : 'warn'"></span><span class="st-label">{{ c.label }}</span><span class="st-note muted small">{{ fmt(c.amount) }}</span></div>
-              </article>
-            </div>
-          </section>
 
-          <section class="split" *ngIf="sheet() as s">
-            <article class="panel">
-              <h2>Composition</h2>
-              <p class="muted small">Where the money sits and how it's funded.</p>
-              <svg class="bars" viewBox="0 0 320 120" preserveAspectRatio="none" aria-hidden="true">
-                <g *ngFor="let b of compositionBars(); let i = index">
-                  <rect [attr.x]="0" [attr.y]="i*40+8" [attr.width]="b.width" height="22" [attr.fill]="b.color" rx="3"></rect>
-                  <text [attr.x]="6" [attr.y]="i*40+23" class="bar-label">{{ b.label }}</text>
-                  <text [attr.x]="314" [attr.y]="i*40+23" class="bar-value" text-anchor="end">{{ fmt(b.value) }}</text>
-                </g>
-              </svg>
-            </article>
-            <article class="panel">
-              <h2>Liquidity</h2>
-              <div class="metric"><span>Working capital</span><strong>{{ fmt(s.workingCapital.workingCapital) }}</strong></div>
-              <div class="metric"><span>Current ratio</span><strong>{{ s.workingCapital.currentRatio ?? '—' }}</strong></div>
-              <div class="metric"><span>Quick ratio</span><strong>{{ s.workingCapital.quickRatio ?? '—' }}</strong></div>
-              <div class="metric"><span>Cash runway</span><strong>{{ s.workingCapital.cashRunwayDays ?? '—' }} days</strong></div>
-            </article>
+            <div class="workspace-shell">
+              <aside class="category-rail" aria-label="Balance Sheet categories">
+                <button *ngFor="let c of financeWorkspaceCategories" type="button" class="category-tile"
+                  [class.active]="financeWorkspaceCategory() === c.key"
+                  [attr.data-state]="financeCategoryState(c.key)"
+                  (click)="financeWorkspaceCategory.set(c.key)">
+                  <span>{{ c.label }}</span>
+                  <strong>{{ financeCategoryValue(c.key) }}</strong>
+                  <small>{{ financeCategoryNote(c.key) }}</small>
+                </button>
+              </aside>
+
+              <section class="workspace-detail" [ngSwitch]="financeWorkspaceCategory()">
+                <header class="detail-head" *ngIf="selectedFinanceCategory() as active">
+                  <div>
+                    <span class="kicker">Selected category</span>
+                    <h2>{{ active.label }}</h2>
+                    <p class="muted small">{{ active.source }}</p>
+                  </div>
+                  <span class="pill" [class.bad]="financeCategoryState(active.key) === 'bad'">{{ financeCategoryStatus(active.key) }}</span>
+                </header>
+
+                <article *ngSwitchCase="'main'" class="detail-body">
+                  <div class="balance-columns" *ngIf="sheet() as s">
+                    <div><h3>Assets</h3><div class="metric" *ngFor="let r of s.sections.assets"><span>{{ r.name }}</span><strong>{{ fmt(r.balance) }}</strong></div></div>
+                    <div><h3>Liabilities</h3><div class="metric" *ngFor="let r of s.sections.liabilities"><span>{{ r.name }}</span><strong>{{ fmt(r.balance) }}</strong></div></div>
+                    <div><h3>Equity</h3><div class="metric" *ngFor="let r of s.sections.equity"><span>{{ r.name }}</span><strong>{{ fmt(r.balance) }}</strong></div></div>
+                  </div>
+                  <div class="split tight" *ngIf="sheet() as s">
+                    <div>
+                      <h3>Composition</h3>
+                      <svg class="bars" viewBox="0 0 320 120" preserveAspectRatio="none" aria-hidden="true">
+                        <g *ngFor="let b of compositionBars(); let i = index">
+                          <rect [attr.x]="0" [attr.y]="i*40+8" [attr.width]="b.width" height="22" [attr.fill]="b.color" rx="3"></rect>
+                          <text [attr.x]="6" [attr.y]="i*40+23" class="bar-label">{{ b.label }}</text>
+                          <text [attr.x]="314" [attr.y]="i*40+23" class="bar-value" text-anchor="end">{{ fmt(b.value) }}</text>
+                        </g>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3>Liquidity</h3>
+                      <div class="metric"><span>Working capital</span><strong>{{ fmt(s.workingCapital.workingCapital) }}</strong></div>
+                      <div class="metric"><span>Current ratio</span><strong>{{ s.workingCapital.currentRatio ?? '—' }}</strong></div>
+                      <div class="metric"><span>Quick ratio</span><strong>{{ s.workingCapital.quickRatio ?? '—' }}</strong></div>
+                      <div class="metric"><span>Cash runway</span><strong>{{ s.workingCapital.cashRunwayDays ?? '—' }} days</strong></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article *ngSwitchCase="'invoices'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="syncPosToGl()">Sync POS to GL</button><a class="link-button" href="/pos/invoices">Open POS invoices</a></div>
+                  <section class="cards mini" *ngIf="dailyOps() as d">
+                    <article class="card"><span>Today's sale</span><strong>{{ fmt(d.sales) }}</strong></article>
+                    <article class="card" [class.flag]="d.due > 0"><span>Invoice due</span><strong>{{ fmt(d.due) }}</strong></article>
+                    <article class="card"><span>Paid</span><strong>{{ fmt(d.paid) }}</strong></article>
+                    <article class="card"><span>GST collected</span><strong>{{ fmt(d.gst) }}</strong></article>
+                  </section>
+                  <h3>Invoice to Balance Sheet drilldown</h3>
+                  <div class="scroll"><table><thead><tr><th>Invoice</th><th class="r">Revenue</th><th class="r">Paid</th><th class="r">Due</th><th class="r">GST</th><th>GL</th></tr></thead>
+                    <tbody><tr *ngFor="let i of f.invoiceDrilldown"><td>{{ i.invoiceNumber }}</td><td class="r">{{ fmt(i.revenue) }}</td><td class="r">{{ fmt(i.paid) }}</td><td class="r">{{ fmt(i.due) }}</td><td class="r">{{ fmt(i.gst) }}</td><td>{{ i.receivableStatus !== 'none' ? i.receivableStatus : i.glStatus }}</td></tr></tbody>
+                  </table></div>
+                </article>
+
+                <article *ngSwitchCase="'purchase'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="syncPurchasesToGl()">Sync purchases</button><a class="link-button" href="/inventory">Open inventory</a></div>
+                  <section class="cards mini">
+                    <article class="card"><span>Vendor payable</span><strong>{{ fmt(f.purchasePayables.total) }}</strong></article>
+                    <article class="card"><span>Inventory</span><strong>{{ fmt(f.purchasePayables.inventory) }}</strong></article>
+                    <article class="card"><span>GST</span><strong>{{ fmt(f.purchasePayables.gst) }}</strong></article>
+                    <article class="card"><span>Bills</span><strong>{{ f.purchasePayables.bills }}</strong></article>
+                  </section>
+                  <h3>Purchase bill to Vendor Payable</h3>
+                  <div class="scroll"><table><thead><tr><th>Bill</th><th>Supplier</th><th class="r">Inventory</th><th class="r">GST</th><th class="r">Payable</th><th>GL</th></tr></thead>
+                    <tbody><tr *ngFor="let p of f.purchasePayables.recent"><td>{{ p.billNo || p.id }}</td><td>{{ p.supplierName || p.sourceType }}</td><td class="r">{{ fmt(p.inventory) }}</td><td class="r">{{ fmt(p.gst) }}</td><td class="r">{{ fmt(p.total) }}</td><td>{{ p.glStatus }}</td></tr></tbody>
+                  </table></div>
+                  <div class="empty" *ngIf="!f.purchasePayables.recent.length">No confirmed purchase bill or received PO found today.</div>
+                </article>
+
+                <article *ngSwitchCase="'purchaseGst'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="syncPurchaseInputGst()">Sync input GST</button><button class="ghost" type="button" [disabled]="busy()" (click)="syncPurchasesToGl()">Sync full purchase</button></div>
+                  <section class="cards mini">
+                    <article class="card"><span>Input GST</span><strong>{{ fmt(f.purchaseInputGst.total) }}</strong></article>
+                    <article class="card"><span>GST bills</span><strong>{{ f.purchaseInputGst.bills }}</strong></article>
+                    <article class="card"><span>Queued/posted</span><strong>{{ f.purchaseInputGst.postedOrQueued }}</strong></article>
+                    <article class="card" [class.flag]="f.purchaseInputGst.pending > 0"><span>Pending</span><strong>{{ f.purchaseInputGst.pending }}</strong></article>
+                  </section>
+                  <h3>Purchase GST / Input GST</h3>
+                  <div class="scroll"><table><thead><tr><th>Bill</th><th>Supplier</th><th class="r">Input GST</th><th class="r">Inventory</th><th class="r">Bill Total</th><th>GL</th></tr></thead>
+                    <tbody><tr *ngFor="let g of f.purchaseInputGst.recent"><td>{{ g.billNo || g.id }}</td><td>{{ g.supplierName || g.sourceType }}</td><td class="r">{{ fmt(g.inputGst) }}</td><td class="r">{{ fmt(g.inventory) }}</td><td class="r">{{ fmt(g.total) }}</td><td>{{ g.glStatus }}</td></tr></tbody>
+                  </table></div>
+                  <div class="empty" *ngIf="!f.purchaseInputGst.recent.length">No purchase GST/input GST found today.</div>
+                </article>
+
+                <article *ngSwitchCase="'staff'" class="detail-body">
+                  <section class="cards mini" *ngIf="dailyOps() as d">
+                    <article class="card"><span>Salary today</span><strong>{{ fmt(d.salary) }}</strong></article>
+                    <article class="card"><span>Commission today</span><strong>{{ fmt(d.commission) }}</strong></article>
+                    <article class="card"><span>Staff rows</span><strong>{{ d.staff.length }}</strong></article>
+                    <article class="card"><span>Payroll statutory</span><strong>{{ fmt(f.payrollStatutory.total) }}</strong></article>
+                  </section>
+                  <h3>Staff earning and attendance</h3>
+                  <div class="scroll" *ngIf="dailyOps() as d"><table><thead><tr><th>Staff</th><th>Attendance</th><th class="r">Sale</th><th class="r">Salary</th><th class="r">Commission</th><th class="r">Net</th></tr></thead>
+                    <tbody><tr *ngFor="let r of d.staff"><td>{{ r.name }}</td><td class="muted">{{ r.attendance }}</td><td class="r">{{ fmt(r.revenue) }}</td><td class="r">{{ fmt(r.dailySalary) }}</td><td class="r">{{ fmt(r.commission) }}</td><td class="r">{{ fmt(r.netContribution) }}</td></tr></tbody>
+                  </table></div>
+                  <h3>Payroll statutory liability</h3>
+                  <div class="scroll"><table><thead><tr><th>Type</th><th>Staff</th><th>Payroll</th><th>Month</th><th class="r">Liability</th><th>Status</th></tr></thead>
+                    <tbody><tr *ngFor="let p of f.payrollStatutory.recent"><td>{{ p.category | uppercase }}</td><td>{{ p.staffId }}</td><td>{{ p.payrollId }}</td><td>{{ p.wageMonth }}</td><td class="r">{{ fmt(p.amount) }}</td><td>{{ p.status }}</td></tr></tbody>
+                  </table></div>
+                </article>
+
+                <article *ngSwitchCase="'inventory'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="syncInventoryCogs()">Sync COGS</button><a class="link-button" href="/inventory/product-consume">Open product consume</a></div>
+                  <section class="cards mini">
+                    <article class="card"><span>Product consumed</span><strong>{{ fmt(f.inventoryConsumption.total) }}</strong></article>
+                    <article class="card"><span>WMA inventory</span><strong>{{ fmt(f.inventoryConsumption.wmaInventory) }}</strong></article>
+                    <article class="card"><span>GL inventory</span><strong>{{ fmt(f.inventoryConsumption.glInventory) }}</strong></article>
+                    <article class="card" [class.flag]="f.inventoryConsumption.difference !== 0"><span>Difference</span><strong>{{ fmt(f.inventoryConsumption.difference) }}</strong></article>
+                  </section>
+                  <div class="split tight">
+                    <div>
+                      <h3>Product consumption</h3>
+                      <div class="scroll"><table><thead><tr><th>SKU</th><th class="r">Qty</th><th class="r">Cost</th></tr></thead>
+                        <tbody><tr *ngFor="let p of f.inventoryConsumption.products"><td>{{ p.sku }}</td><td class="r">{{ p.qty }}</td><td class="r">{{ fmt(p.cost) }}</td></tr></tbody>
+                      </table></div>
+                    </div>
+                    <div>
+                      <h3>Service wise true margin</h3>
+                      <div class="scroll"><table><thead><tr><th>Service / item</th><th class="r">Revenue</th><th class="r">Product</th><th class="r">Comm.</th><th class="r">Margin</th></tr></thead>
+                        <tbody><tr *ngFor="let s of f.serviceMargins"><td>{{ s.name }}</td><td class="r">{{ fmt(s.revenue) }}</td><td class="r">{{ fmt(s.productCost) }}</td><td class="r">{{ fmt(s.staffCommission) }}</td><td class="r">{{ fmt(s.margin) }} · {{ s.marginPct }}%</td></tr></tbody>
+                      </table></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article *ngSwitchCase="'cash'" class="detail-body">
+                  <section class="cards mini">
+                    <article class="card"><span>Cash collection</span><strong>{{ fmt(f.cashBankReconciliation.cashCollection) }}</strong></article>
+                    <article class="card"><span>Cash outgoing</span><strong>{{ fmt(f.cashBankReconciliation.cashOutgoing) }}</strong></article>
+                    <article class="card"><span>Expected cash</span><strong>{{ fmt(f.cashBankReconciliation.expectedCash) }}</strong></article>
+                    <article class="card"><span>Expected bank net</span><strong>{{ fmt(f.cashBankReconciliation.expectedBankNet) }}</strong></article>
+                    <article class="card"><span>Salon categories used</span><strong>{{ f.outgoingCoverage.categoriesUsed }}/{{ f.outgoingCoverage.categoriesAvailable }}</strong></article>
+                    <article class="card"><span>Operating outgoing</span><strong>{{ fmt(f.outgoingCoverage.operating) }}</strong></article>
+                    <article class="card"><span>Balance Sheet only</span><strong>{{ fmt(f.outgoingCoverage.balanceSheetOnly) }}</strong></article>
+                    <article class="card" [class.flag]="f.outgoingCoverage.missing.length > 0"><span>Missing category checks</span><strong>{{ f.outgoingCoverage.missing.length }}</strong></article>
+                    <article class="card"><span>Outgoing input GST</span><strong>{{ fmt(f.outgoingCoverage.connection.inputGst) }}</strong></article>
+                    <article class="card" [class.flag]="f.outgoingCoverage.connection.missingBill > 0"><span>Bill missing</span><strong>{{ f.outgoingCoverage.connection.missingBill }}</strong></article>
+                    <article class="card" [class.flag]="f.outgoingCoverage.connection.missingLink > 0"><span>Party link missing</span><strong>{{ f.outgoingCoverage.connection.missingLink }}</strong></article>
+                    <article class="card" [class.flag]="f.outgoingCoverage.connection.pendingApproval > 0"><span>Approval pending</span><strong>{{ f.outgoingCoverage.connection.pendingApproval }}</strong></article>
+                  </section>
+                  <div class="split tight">
+                    <div>
+                      <h3>Outgoing coverage by bucket</h3>
+                      <div class="scroll"><table><thead><tr><th>Bucket</th><th class="r">Entries</th><th class="r">Amount</th></tr></thead>
+                        <tbody><tr *ngFor="let b of f.outgoingCoverage.buckets"><td>{{ b.bucket }}</td><td class="r">{{ b.entries }}</td><td class="r">{{ fmt(b.amount) }}</td></tr></tbody>
+                      </table></div>
+                    </div>
+                    <div>
+                      <h3>Salon category coverage</h3>
+                      <div class="scroll"><table><thead><tr><th>Category</th><th>Impact</th><th class="r">Amount</th></tr></thead>
+                        <tbody><tr *ngFor="let c of f.outgoingCoverage.categories"><td>{{ c.label }}</td><td>{{ c.impact }}</td><td class="r">{{ fmt(c.amount) }}</td></tr></tbody>
+                      </table></div>
+                    </div>
+                  </div>
+                  <h3>Outgoing fund live impact</h3>
+                  <div class="scroll"><table><thead><tr><th>Entry</th><th>Category</th><th>Payee</th><th>Mode</th><th>Impact</th><th>Linked party</th><th>Approval</th><th>Bill</th><th class="r">GST</th><th class="r">Amount</th></tr></thead>
+                    <tbody><tr *ngFor="let o of f.outgoingImpact.recent"><td>{{ o.entryNo || o.category }}</td><td>{{ o.category }}</td><td>{{ o.payee }}</td><td>{{ o.mode }}</td><td>{{ o.impact || o.bucket || '-' }}</td><td>{{ o.linkedPartyName || o.linkedPartyType || '-' }}</td><td>{{ o.approvalStatus || '-' }}</td><td>{{ o.billUrl ? 'linked' : 'missing' }}</td><td class="r">{{ fmt(o.gstAmount || 0) }}</td><td class="r">{{ fmt(o.amount) }}</td></tr></tbody>
+                  </table></div>
+                  <h3>Coverage checklist not used today</h3>
+                  <div class="coverage-tags">
+                    <span *ngFor="let m of f.outgoingCoverage.missing">{{ m.label }}</span>
+                  </div>
+                </article>
+
+                <article *ngSwitchCase="'wallet'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="syncWalletCreditsToGl()">Sync wallet</button><button class="ghost" type="button" [disabled]="busy()" (click)="syncPrepaidAdvances()">Sync advances</button></div>
+                  <section class="cards mini">
+                    <article class="card"><span>Wallet / store credit</span><strong>{{ fmt(f.walletCredits.total) }}</strong></article>
+                    <article class="card"><span>Prepaid balance</span><strong>{{ fmt(f.prepaidAdvances.balance) }}</strong></article>
+                    <article class="card"><span>Membership</span><strong>{{ fmt(f.prepaidAdvances.membership) }}</strong></article>
+                    <article class="card"><span>Gift card</span><strong>{{ fmt(f.prepaidAdvances.giftCard) }}</strong></article>
+                  </section>
+                  <div class="split tight">
+                    <div>
+                      <h3>Wallet / Store Credit</h3>
+                      <div class="scroll"><table><thead><tr><th>Type</th><th>Client</th><th>Reference</th><th class="r">Liability</th><th>Status</th></tr></thead>
+                        <tbody><tr *ngFor="let w of f.walletCredits.recent"><td>{{ w.sourceType }}</td><td>{{ w.customerId }}</td><td>{{ w.reference || w.id }}</td><td class="r">{{ fmt(w.balance) }}</td><td>{{ w.status }}</td></tr></tbody>
+                      </table></div>
+                    </div>
+                    <div>
+                      <h3>Membership / Package / Gift Card Advance</h3>
+                      <div class="scroll"><table><thead><tr><th>Type</th><th>Ref</th><th class="r">Total</th><th class="r">Recognized</th><th class="r">Balance</th><th>Status</th></tr></thead>
+                        <tbody><tr *ngFor="let a of f.prepaidAdvances.recent"><td>{{ a.sourceType }}</td><td>{{ a.sourceId || a.id }}</td><td class="r">{{ fmt(a.total) }}</td><td class="r">{{ fmt(a.recognized) }}</td><td class="r">{{ fmt(a.balance) }}</td><td>{{ a.status }}</td></tr></tbody>
+                      </table></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article *ngSwitchCase="'fixedAssets'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="syncFixedAssetPurchasesToGl()">Sync fixed assets</button><button class="ghost" type="button" [disabled]="busy()" (click)="runDepreciation()">Run depreciation</button></div>
+                  <section class="cards mini">
+                    <article class="card"><span>Gross block</span><strong>{{ fmt(f.fixedAssetControl.grossBlock) }}</strong></article>
+                    <article class="card"><span>Accumulated depreciation</span><strong>{{ fmt(f.fixedAssetControl.accumulatedDepreciation) }}</strong></article>
+                    <article class="card"><span>Net block</span><strong>{{ fmt(f.fixedAssetControl.netBlock) }}</strong></article>
+                    <article class="card"><span>Depreciation</span><strong>{{ fmt(f.fixedAssetControl.depreciation) }}</strong></article>
+                  </section>
+                  <h3>Fixed Asset Purchase + Depreciation</h3>
+                  <div class="scroll"><table><thead><tr><th>Type</th><th>Code</th><th>Name</th><th>Date/Period</th><th class="r">Amount</th><th>Status</th></tr></thead>
+                    <tbody><tr *ngFor="let a of f.fixedAssetControl.recent"><td>{{ a.type }}</td><td>{{ a.code }}</td><td>{{ a.name }}</td><td>{{ a.date }}</td><td class="r">{{ fmt(a.amount) }}</td><td>{{ a.status }}</td></tr></tbody>
+                  </table></div>
+                </article>
+
+                <article *ngSwitchCase="'journals'" class="detail-body">
+                  <div class="action-row"><button class="solid" type="button" [disabled]="busy()" (click)="postDailyAccruals()">Post daily accruals</button><button class="ghost" type="button" [disabled]="busy()" (click)="runMonthCloseAutomation()">One-click month close</button><button class="ghost" type="button" [disabled]="busy()" (click)="processOutbox()">Process GL outbox</button></div>
+                  <div class="split tight">
+                    <div>
+                      <h3>Today finance timeline</h3>
+                      <div class="stage" *ngFor="let e of f.todayTimeline"><span class="dot" [attr.data-state]="e.type === 'gl' ? 'ok' : 'warn'"></span><span class="st-label">{{ e.type }} · {{ e.title }}</span><span class="st-note muted small">{{ e.at }} · {{ fmt(e.amount) }}</span></div>
+                    </div>
+                    <div>
+                      <h3>Owner daily close checklist</h3>
+                      <div class="stage" *ngFor="let c of f.ownerDailyClose.checklist"><span class="dot" [attr.data-state]="c.done ? 'ok' : 'warn'"></span><span class="st-label">{{ c.label }}</span><span class="st-note muted small">{{ c.done ? 'done' : 'pending' }}</span></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article *ngSwitchCase="'alerts'" class="detail-body">
+                  <div class="split tight">
+                    <div>
+                      <h3>Auto journal suggestions</h3>
+                      <div class="insight" *ngFor="let s of f.journalSuggestions" [attr.data-sev]="s.severity">
+                        <strong>{{ s.title }}</strong><span>{{ s.text }}</span><small>{{ s.action }}</small>
+                      </div>
+                      <div class="empty" *ngIf="!f.journalSuggestions.length">No pending journal suggestion.</div>
+                    </div>
+                    <div>
+                      <h3>Owner AI copilot</h3>
+                      <div class="ledger-preview" *ngFor="let p of f.copilotPrompts"><strong>{{ p }}</strong><span>Ready from live finance data</span></div>
+                      <div class="form-row copilot-row">
+                        <input placeholder="Ask: Why is profit low today?" [ngModel]="copilotQuestion()" (ngModelChange)="copilotQuestion.set($event)" />
+                        <button class="solid" type="button" [disabled]="busy() || !copilotQuestion()" (click)="askFinanceCopilot()">Ask</button>
+                      </div>
+                      <div class="insight" *ngIf="copilotAnswer() as a" data-sev="ok">
+                        <strong>{{ a.question }}</strong><span>{{ a.answer }}</span><small>{{ a.actions.join(' · ') }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </section>
+            </div>
           </section>
 
           <section class="panel" *ngIf="(sheet()?.alerts || []).length">
@@ -436,7 +567,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
           <section class="split ledger-master-grid">
             <article class="panel">
               <div class="panel-head"><h2>Auto ledger grouping</h2><span class="muted small">Tally-style master engine</span></div>
-              <p class="muted small">Ledger name type karo. System group, side, hint aur confidence auto suggest karega. Manual override bhi available hai.</p>
+              <p class="muted small">Type a ledger name. The system will suggest group, side, hint and confidence. Manual override is also available.</p>
               <div class="form-col">
                 <label><span>Ledger name</span><input placeholder="e.g. Salary, Furniture, Cash at Bank" [ngModel]="ledgerDraftName()" (ngModelChange)="onLedgerDraftName($event)" /></label>
                 <label><span>Suggested group</span>
@@ -467,7 +598,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
             </article>
             <article class="panel">
               <div class="panel-head"><h2>Ledger preview</h2><span class="muted small">No report screen added</span></div>
-              <div class="empty" *ngIf="!ledgerDrafts().length">Abhi koi ledger preview nahi hai.</div>
+              <div class="empty" *ngIf="!ledgerDrafts().length">No ledger preview yet.</div>
               <div class="ledger-preview" *ngFor="let l of ledgerDrafts()">
                 <strong>{{ l.name }}</strong>
                 <span>{{ l.group }} · {{ l.side | titlecase }}</span>
@@ -515,6 +646,8 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
           <section class="cards">
             <article class="card wide"><span>Deferred revenue liability (unearned)</span><strong>{{ fmt(deferred()?.deferredLiability) }}</strong></article>
             <article class="card"><button class="solid full" type="button" [disabled]="busy()" (click)="recognizeDue()">Recognize due revenue</button></article>
+            <article class="card"><button class="ghost full" type="button" [disabled]="busy()" (click)="syncPrepaidAdvances()">Sync prepaid advances</button></article>
+            <article class="card" *ngIf="prepaidAdvanceSync() as a"><span>Synced advances</span><strong>{{ a.created }}</strong><span class="small muted">{{ a.prepaidInvoices }} invoices · {{ fmt(a.deferred) }}</span></article>
           </section>
           <section class="panel">
             <div class="panel-head"><h2>Schedules</h2></div>
@@ -644,7 +777,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
           <section class="split" *ngIf="costs() as c">
             <article class="panel">
               <h2>Break-even</h2>
-              <p class="muted small">Har mahine itna kamana zaroori hai costs cover karne ke liye.</p>
+              <p class="muted small">Minimum monthly revenue needed to cover costs.</p>
               <div class="metric"><span>Break-even revenue</span><strong>{{ c.breakEvenRevenue === null ? '—' : fmt(c.breakEvenRevenue) }}</strong></div>
               <div class="metric"><span>Break-even clients / month</span><strong>{{ c.breakEvenClients ?? '—' }}</strong></div>
               <div class="metric"><span>Margin of safety</span><strong>{{ c.marginOfSafetyPct === null ? '—' : (c.marginOfSafetyPct + '%') }}</strong></div>
@@ -665,7 +798,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
           </section>
 
           <section class="panel" *ngIf="(costs()?.lines || []).length">
-            <div class="panel-head"><h2>Cost breakdown</h2><span class="muted small">Behavior badal ke reclassify karo</span></div>
+            <div class="panel-head"><h2>Cost breakdown</h2><span class="muted small">Change behavior to reclassify</span></div>
             <div class="scroll"><table><thead><tr><th>Account</th><th>Category</th><th>Behavior</th><th class="r">Amount</th></tr></thead>
               <tbody><tr *ngFor="let l of costs()?.lines">
                 <td>{{ l.code }} · {{ l.name }}</td><td class="muted">{{ l.category }}</td>
@@ -680,7 +813,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
         <ng-container *ngSwitchCase="'simulator'">
           <section class="panel">
             <div class="panel-head"><h2>Profit simulator</h2><button class="ghost" type="button" (click)="resetSim()">Reset</button></div>
-            <p class="muted small">Aaj ke numbers pe "what-if" chalao — kuch bhi save nahi hota, sirf preview.</p>
+            <p class="muted small">Run a "what-if" on today's numbers. Nothing is saved; this is only a preview.</p>
             <div class="sliders">
               <label class="sl"><span>Price uplift <b>{{ simPrice() }}%</b></span><input type="range" min="-30" max="50" [ngModel]="simPrice()" (ngModelChange)="simPrice.set(+$event)" /></label>
               <label class="sl"><span>Footfall change <b>{{ simVolume() }}%</b></span><input type="range" min="-50" max="100" [ngModel]="simVolume()" (ngModelChange)="simVolume.set(+$event)" /></label>
@@ -710,7 +843,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
         <ng-container *ngSwitchCase="'drilldown'">
           <section class="panel">
             <div class="panel-head"><h2>Tally Prime style drill down</h2><span class="muted small">Group → Ledger → Voucher</span></div>
-            <p class="muted small">Kisi bhi group par click karo. Ledger par click karne se original postings ledger tab me open ho jayengi.</p>
+            <p class="muted small">Click any group. Clicking a ledger opens original postings in the ledger tab.</p>
             <div class="drill-tree" *ngIf="drillTree() as tree">
               <ng-container *ngFor="let n of tree">
                 <button type="button" class="drill-row" [style.paddingLeft.px]="n.level * 18 + 12" (click)="onDrill(n)">
@@ -803,6 +936,29 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
               </div>
             </article>
           </section>
+          <section class="split" *ngIf="financeControls() as fc">
+            <article class="panel">
+              <h2>Variance detection</h2>
+              <div class="stage" *ngFor="let row of fc.varianceDetection">
+                <span class="dot" [attr.data-state]="row.severity === 'ok' ? 'ok' : (row.severity === 'critical' ? 'pending' : 'warn')"></span>
+                <span class="st-label">{{ row.label }}</span>
+                <span class="st-note muted small">{{ fmt(row.amount) }}</span>
+              </div>
+              <div class="ready" [class.on]="fc.exportControl.allowed"><strong>{{ fc.exportControl.allowed ? 'Export allowed' : 'Export review required' }}</strong><span>{{ fc.exportControl.reason }}</span></div>
+              <p class="muted small">Source of truth: {{ fc.sourceOfTruth }}</p>
+            </article>
+            <article class="panel">
+              <h2>Audit trail</h2>
+              <div class="recon">
+                <div class="stage" *ngFor="let row of fc.auditTrail.slice(0, 8)">
+                  <span class="dot" [attr.data-state]="row.status === 'posted' ? 'ok' : 'warn'"></span>
+                  <span class="st-label">{{ row.businessDate }} · {{ row.sourceType }}</span>
+                  <span class="st-note muted small">{{ row.memo || row.sourceId || row.id }}</span>
+                </div>
+                <div class="empty" *ngIf="!fc.auditTrail.length">No journal audit trail yet.</div>
+              </div>
+            </article>
+          </section>
         </ng-container>
       </ng-container>
     </section>
@@ -837,6 +993,31 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
     .tabs button { padding: 9px 14px; border: 0; background: transparent; color: var(--muted); font-weight: 800; border-radius: 8px 8px 0 0; border-bottom: 2px solid transparent; }
     .tabs button.active { color: var(--brandink); border-bottom-color: var(--brand); background: var(--soft); }
     .loading, .empty { padding: 28px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; background: var(--soft); }
+    .finance-workspace { display: grid; gap: 14px; }
+    .workspace-head { align-items: flex-start; gap: 12px; }
+    .sync-strip { display: flex; gap: 8px; flex-wrap: wrap; min-height: 30px; }
+    .sync-strip span { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; color: var(--muted); background: var(--soft); font-size: 12px; font-weight: 800; }
+    .workspace-shell { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 14px; align-items: start; }
+    .category-rail { display: grid; gap: 8px; position: sticky; top: 12px; }
+    .category-tile { min-height: 82px; width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); padding: 12px; display: grid; gap: 4px; text-align: left; align-content: center; border-left: 4px solid var(--line); }
+    .category-tile:hover, .category-tile.active { background: var(--soft); border-color: #b7c8df; }
+    .category-tile.active { box-shadow: 0 10px 24px rgba(16, 32, 56, .08); }
+    .category-tile[data-state='ok'] { border-left-color: var(--good); }
+    .category-tile[data-state='warn'] { border-left-color: var(--warn); }
+    .category-tile[data-state='bad'] { border-left-color: var(--bad); }
+    .category-tile span { font-size: 13px; font-weight: 900; line-height: 1.25; }
+    .category-tile strong { font-size: 19px; letter-spacing: 0; white-space: normal; overflow-wrap: anywhere; }
+    .category-tile small { color: var(--muted); font-size: 11px; line-height: 1.3; }
+    .workspace-detail { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fbfdff; display: grid; gap: 14px; }
+    .detail-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+    .detail-head h2 { margin: 3px 0; font-size: 20px; }
+    .detail-body { display: grid; gap: 14px; min-width: 0; }
+    .balance-columns { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+    .balance-columns > div, .detail-body > .split > div { min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 12px; }
+    .action-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .link-button { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; border-radius: 9px; border: 1px solid #cdd9e8; background: #fff; color: var(--brand); font-weight: 800; text-decoration: none; }
+    .coverage-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .coverage-tags span { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; background: var(--soft); color: var(--muted); font-size: 12px; font-weight: 800; }
     .cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
     .card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fff; display: grid; gap: 6px; align-content: start; }
     .card.wide { grid-column: span 3; } .card span { font-size: 12px; color: var(--muted); } .card strong { font-size: 24px; letter-spacing: -.01em; }
@@ -920,7 +1101,8 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
     .manual-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-bottom: 14px; }
     .manual-grid .wide { grid-column: 1 / -1; }
 
-    @media (max-width: 920px) { .masthead, .split { grid-template-columns: 1fr; } .cards { grid-template-columns: repeat(2,1fr); } .card.wide { grid-column: span 2; } .cc-row { grid-template-columns: 1fr; } .cockpit { grid-template-columns: 1fr; } .sliders, .manual-grid { grid-template-columns: 1fr; } .forecast-grid { grid-template-columns: repeat(2,1fr); } .vital { grid-template-columns: 110px 1fr; } }
+    @media (max-width: 920px) { .masthead, .split, .workspace-shell, .balance-columns { grid-template-columns: 1fr; } .category-rail { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); } .workspace-detail { padding: 12px; } .cards { grid-template-columns: repeat(2,1fr); } .card.wide { grid-column: span 2; } .cc-row { grid-template-columns: 1fr; } .cockpit { grid-template-columns: 1fr; } .sliders, .manual-grid { grid-template-columns: 1fr; } .forecast-grid { grid-template-columns: repeat(2,1fr); } .vital { grid-template-columns: 110px 1fr; } }
+    @media (max-width: 620px) { .category-rail, .cards { grid-template-columns: 1fr; } .detail-head, .workspace-head { display: grid; } .category-tile { min-height: 74px; } }
     @media print { .controls, .tabs, .ghost, .solid, .row-controls, .form-row, .ctl { display: none !important; } .panel, .card, .masthead { break-inside: avoid; } }
     @media (prefers-reduced-motion: no-preference) { .prog-fill, .cc-bar .fill { transition: width .4s ease; } }
     button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
@@ -943,6 +1125,20 @@ export class BalanceSheetComponent implements OnInit {
     { key: 'hardening', label: 'Hardening' }
   ];
   tab = signal('overview');
+  readonly financeWorkspaceCategories: Array<{ key: FinanceWorkspaceCategoryKey; label: string; source: string }> = [
+    { key: 'main', label: 'Main Balance Sheet', source: 'journalEntryLines + journalEntries + chartOfAccounts' },
+    { key: 'invoices', label: 'Invoice Due / Receivable', source: 'POS invoices + payments' },
+    { key: 'purchase', label: 'Purchase / Vendor Payable', source: 'purchase bills + received purchase orders' },
+    { key: 'purchaseGst', label: 'Purchase GST / Input GST', source: 'purchase_bill_drafts.gst_amount + purchase_order_items.received_gst_amount' },
+    { key: 'staff', label: 'Staff Salary / Commission', source: 'attendance, payroll components, POS staff allocation' },
+    { key: 'inventory', label: 'Product Consume / Inventory', source: 'inventory movements + product consume drafts + WMA stock' },
+    { key: 'cash', label: 'Cash / Bank Reconciliation', source: 'payments + outgoing fund entries' },
+    { key: 'wallet', label: 'Wallet / Advance', source: 'wallet transactions + deferred schedules' },
+    { key: 'fixedAssets', label: 'Fixed Assets / Depreciation', source: 'fixed asset register + depreciation journals' },
+    { key: 'journals', label: 'Journal / GL Sync', source: 'glOutbox + journalEntries + daily close controls' },
+    { key: 'alerts', label: 'Alerts / Copilot', source: 'reconciliation, variance detection, finance suggestions' }
+  ];
+  financeWorkspaceCategory = signal<FinanceWorkspaceCategoryKey>('main');
   asOfDate = signal(new Date().toISOString().slice(0, 10));
   loading = signal(false);
   busy = signal(false);
@@ -952,6 +1148,7 @@ export class BalanceSheetComponent implements OnInit {
   sheet = signal<BalanceSheet | null>(null);
   trial = signal<TrialBalance | null>(null);
   hardening = signal<HardeningStatus | null>(null);
+  financeControls = signal<FinanceControls | null>(null);
   pnl = signal<CostCenterPnl | null>(null);
   deferred = signal<DeferredList | null>(null);
   assets = signal<AssetRegister | null>(null);
@@ -959,11 +1156,18 @@ export class BalanceSheetComponent implements OnInit {
   dailyOps = signal<DailyOperations | null>(null);
   financeOs = signal<FinanceOs | null>(null);
   posGlSync = signal<PosGlSyncResult | null>(null);
+  purchaseGlSync = signal<PurchaseGlSyncResult | null>(null);
+  purchaseInputGstSync = signal<PurchaseInputGstSyncResult | null>(null);
+  prepaidAdvanceSync = signal<PrepaidAdvanceSyncResult | null>(null);
+  walletCreditSync = signal<WalletCreditSyncResult | null>(null);
+  payrollStatutorySync = signal<PayrollStatutorySyncResult | null>(null);
+  fixedAssetPurchaseSync = signal<FixedAssetPurchaseSyncResult | null>(null);
+  depreciationRun = signal<DepreciationRunResult | null>(null);
   inventoryCogsSync = signal<InventoryCogsSyncResult | null>(null);
   dailyAccruals = signal<DailyAccrualResult | null>(null);
   monthCloseAutomation = signal<MonthCloseAutomationResult | null>(null);
   ownerDailyCloseResult = signal<OwnerDailyCloseResult | null>(null);
-  copilotQuestion = signal('Aaj profit kam kyu hai?');
+  copilotQuestion = signal('Why is profit low today?');
   copilotAnswer = signal<CopilotAnswer | null>(null);
   ledgerRows = signal<any[]>([]);
 
@@ -1033,14 +1237,14 @@ export class BalanceSheetComponent implements OnInit {
     if (!s || !c) return [];
     const wc = s.workingCapital; const inr = (n: number) => '₹' + Math.round(n).toLocaleString('en-IN');
     const out: Array<{ severity: string; title: string; text: string }> = [];
-    if ((c.salaryToRevenuePct ?? 0) > 40) out.push({ severity: 'warn', title: 'Salary cost zyada hai', text: `Salary revenue ka ${c.salaryToRevenuePct}% hai. Healthy salon me 30-35% hota hai — per-chair productivity (Cost Centers) ya pricing review karo.` });
-    if (wc.cashRunwayDays != null && wc.cashRunwayDays < 30) out.push({ severity: 'critical', title: 'Cash runway kam', text: `Sirf ${wc.cashRunwayDays} din ka cash. Pending collections chase karo aur non-essential kharche rok do.` });
-    if (c.netProfit < 0) out.push({ severity: 'critical', title: 'Break-even ke neeche', text: `Is period me ${inr(Math.abs(c.netProfit))} ka loss. Break-even ke liye ${c.breakEvenClients ?? '—'} clients/month chahiye.` });
+    if ((c.salaryToRevenuePct ?? 0) > 40) out.push({ severity: 'warn', title: 'Salary cost is high', text: `Salary is ${c.salaryToRevenuePct}% of revenue. A healthy salon is usually 30-35%; review per-chair productivity in Cost Centers or pricing.` });
+    if (wc.cashRunwayDays != null && wc.cashRunwayDays < 30) out.push({ severity: 'critical', title: 'Cash runway is low', text: `Only ${wc.cashRunwayDays} days of cash runway. Chase pending collections and pause non-essential expenses.` });
+    if (c.netProfit < 0) out.push({ severity: 'critical', title: 'Below break-even', text: `This period has a ${inr(Math.abs(c.netProfit))} loss. Break-even needs ${c.breakEvenClients ?? '—'} clients/month.` });
     else if ((c.marginOfSafetyPct ?? 100) < 10) out.push({ severity: 'warn', title: 'Patli profit cushion', text: `Margin of safety sirf ${c.marginOfSafetyPct}%. Thodi si sales giri to loss me aa sakte ho — Simulator me dekh lo.` });
-    if (wc.currentRatio != null && wc.currentRatio < 1) out.push({ severity: 'warn', title: 'Short-term liquidity tight', text: `Current ratio ${wc.currentRatio}. Current liabilities current assets se zyada — payment timing manage karo.` });
-    if (d && d.deferredLiability > 0 && d.deferredLiability > (wc.currentAssets || 0)) out.push({ severity: 'warn', title: 'Unearned revenue exposure', text: `${inr(d.deferredLiability)} ke prepaid packages/memberships ki service abhi deni baaki hai — ye cash already kharch mat samjho.` });
-    if (h && (!h.latestReconciliation || h.latestReconciliation.status !== 'ok')) out.push({ severity: 'warn', title: 'Books reconcile nahi hue', text: 'Hardening tab me Run reconciliation chalao taaki numbers production-grade ho.' });
-    if (!out.length) out.push({ severity: 'ok', title: 'Sab healthy', text: 'Koi red flag nahi — numbers solid hain. Aise hi maintain karo.' });
+    if (wc.currentRatio != null && wc.currentRatio < 1) out.push({ severity: 'warn', title: 'Short-term liquidity tight', text: `Current ratio is ${wc.currentRatio}. Current liabilities are higher than current assets; manage payment timing.` });
+    if (d && d.deferredLiability > 0 && d.deferredLiability > (wc.currentAssets || 0)) out.push({ severity: 'warn', title: 'Unearned revenue exposure', text: `${inr(d.deferredLiability)} in prepaid packages or memberships still needs service delivery. Do not treat this as free cash.` });
+    if (h && (!h.latestReconciliation || h.latestReconciliation.status !== 'ok')) out.push({ severity: 'warn', title: 'Books are not reconciled', text: 'Run reconciliation in the Hardening tab to make the numbers production-ready.' });
+    if (!out.length) out.push({ severity: 'ok', title: 'Healthy', text: 'No red flags found. Numbers look solid.' });
     return out.slice(0, 5);
   });
 
@@ -1098,15 +1302,15 @@ export class BalanceSheetComponent implements OnInit {
     const out: AiInsight[] = [];
     const inventory = s.sections.assets.find((x) => /inventory|stock/i.test(x.name))?.balance || 0;
     const inventoryPct = s.totals.assets > 0 ? Math.round((inventory / s.totals.assets) * 1000) / 10 : 0;
-    if (inventory > 0) out.push({ severity: inventoryPct > 45 ? 'warn' : 'ok', title: 'Inventory analysis', text: `Inventory assets ka ${inventoryPct}% hai.`, action: inventoryPct > 45 ? 'Inventory slow-moving hai kya check karo aur dead stock reduce karo.' : 'Inventory level controlled dikh raha hai.' });
+    if (inventory > 0) out.push({ severity: inventoryPct > 45 ? 'warn' : 'ok', title: 'Inventory analysis', text: `Inventory is ${inventoryPct}% of assets.`, action: inventoryPct > 45 ? 'Check for slow-moving inventory and reduce dead stock.' : 'Inventory level looks controlled.' });
     const currentRatio = s.workingCapital.currentRatio ?? 0;
-    out.push({ severity: currentRatio >= 1.5 ? 'ok' : currentRatio >= 1 ? 'warn' : 'critical', title: 'Current ratio', text: currentRatio >= 1.5 ? `Current Ratio healthy hai (${currentRatio}).` : `Current Ratio weak/tight hai (${currentRatio}).`, action: currentRatio >= 1.5 ? 'Payment cycle normal maintain karo.' : 'Receivables fast collect karo aur short-term payments schedule karo.' });
+    out.push({ severity: currentRatio >= 1.5 ? 'ok' : currentRatio >= 1 ? 'warn' : 'critical', title: 'Current ratio', text: currentRatio >= 1.5 ? `Current Ratio is healthy (${currentRatio}).` : `Current Ratio is weak or tight (${currentRatio}).`, action: currentRatio >= 1.5 ? 'Maintain the normal payment cycle.' : 'Collect receivables faster and schedule short-term payments.' });
     const debtText = d.debtToEquity < 1 ? 'Debt level medium hai' : d.debtToEquity < 2 ? 'Debt level watch par hai' : 'Debt level high hai';
     out.push({ severity: d.debtToEquity < 1 ? 'ok' : d.debtToEquity < 2 ? 'warn' : 'critical', title: 'Debt level', text: `${debtText}. Debt-to-equity ${d.debtToEquity} hai.`, action: d.debtToEquity < 1 ? 'Leverage comfortable hai.' : 'Debt repayment plan aur owner capital options dekho.' });
-    if (d.netMarginPct < 8) out.push({ severity: 'warn', title: 'Net margin low', text: `Net margin ${d.netMarginPct}% hai. Profit cushion patla hai.`, action: 'Top expenses reclassify karo aur high-margin services push karo.' });
-    if ((s.workingCapital.cashRunwayDays ?? 999) < 45) out.push({ severity: 'critical', title: 'Cash runway alert', text: `${s.workingCapital.cashRunwayDays} days cash runway hai.`, action: '30-day collection drive aur non-essential purchases hold karo.' });
-    if ((c.salaryToRevenuePct ?? 0) > 35) out.push({ severity: 'warn', title: 'Salary productivity check', text: `Salary revenue ka ${c.salaryToRevenuePct}% consume kar rahi hai.`, action: 'Per-chair revenue dashboard se low productivity slots identify karo.' });
-    if (s.balanced && out.length <= 3) out.push({ severity: 'ok', title: 'Finance engine healthy', text: 'Balance sheet balanced hai aur major accounting equation red flag nahi dikh raha.', action: 'Forecast tab me next 12 months monitor karte raho.' });
+    if (d.netMarginPct < 8) out.push({ severity: 'warn', title: 'Net margin low', text: `Net margin is ${d.netMarginPct}%. Profit cushion is thin.`, action: 'Reclassify top expenses and push high-margin services.' });
+    if ((s.workingCapital.cashRunwayDays ?? 999) < 45) out.push({ severity: 'critical', title: 'Cash runway alert', text: `${s.workingCapital.cashRunwayDays} days of cash runway.`, action: 'Run a 30-day collection drive and hold non-essential purchases.' });
+    if ((c.salaryToRevenuePct ?? 0) > 35) out.push({ severity: 'warn', title: 'Salary productivity check', text: `Salary is consuming ${c.salaryToRevenuePct}% of revenue.`, action: 'Use the per-chair revenue dashboard to identify low-productivity slots.' });
+    if (s.balanced && out.length <= 3) out.push({ severity: 'ok', title: 'Finance engine healthy', text: 'Balance sheet is balanced and no major accounting equation red flag is visible.', action: 'Continue monitoring the next 12 months.' });
     return out;
   });
 
@@ -1154,7 +1358,7 @@ export class BalanceSheetComponent implements OnInit {
 
   suggestLedgerGrouping(name: string): LedgerGroupingSuggestion {
     const key = this.normalLedgerKey(name);
-    if (!key) return { group: 'Suspense / Review Required', side: 'unknown', hint: 'Ledger name type karo to suggestion aayega.', confidence: 0, source: 'review' };
+    if (!key) return { group: 'Suspense / Review Required', side: 'unknown', hint: 'Type a ledger name to get a suggestion.', confidence: 0, source: 'review' };
     if (LEDGER_GROUPING[key]) return LEDGER_GROUPING[key];
 
     const smartRules: Array<{ test: RegExp; group: string; side: LedgerSide; hint: string }> = [
@@ -1175,7 +1379,7 @@ export class BalanceSheetComponent implements OnInit {
 
     const match = smartRules.find((r) => r.test.test(key));
     if (match) return { ...match, confidence: 65, source: 'smart' };
-    return { group: 'Suspense / Review Required', side: 'unknown', hint: 'Mapping nahi mila. Manual group select karo.', confidence: 0, source: 'review' };
+    return { group: 'Suspense / Review Required', side: 'unknown', hint: 'Mapping not found. Select a manual group.', confidence: 0, source: 'review' };
   }
 
   private normalLedgerKey(name: string): string {
@@ -1231,7 +1435,7 @@ export class BalanceSheetComponent implements OnInit {
     if (!c || !r) return '';
     if (r.deltaNet > 0) return `Ye changes profit ${'₹' + Math.round(r.deltaNet).toLocaleString('en-IN')} badha denge.`;
     if (r.deltaNet < 0) return `Ye changes profit ${'₹' + Math.round(Math.abs(r.deltaNet)).toLocaleString('en-IN')} ghata denge — soch ke chalo.`;
-    return 'Sliders hilao to profit, break-even aur clients live update honge.';
+    return 'Move sliders to update profit, break-even and clients live.';
   });
 
   compositionBars = computed(() => {
@@ -1287,6 +1491,73 @@ export class BalanceSheetComponent implements OnInit {
     const n = Number(v || 0);
     return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
   }
+  selectedFinanceCategory(): { key: FinanceWorkspaceCategoryKey; label: string; source: string } {
+    return this.financeWorkspaceCategories.find((item) => item.key === this.financeWorkspaceCategory()) || this.financeWorkspaceCategories[0];
+  }
+  financeCategoryValue(key: FinanceWorkspaceCategoryKey): string {
+    const f = this.financeOs();
+    const s = this.sheet();
+    const d = this.dailyOps();
+    if (!f && key !== 'main') return '—';
+    switch (key) {
+      case 'main': return this.fmt(s?.totals?.assets);
+      case 'invoices': return this.fmt(d?.due || 0);
+      case 'purchase': return this.fmt(f?.purchasePayables.total);
+      case 'purchaseGst': return this.fmt(f?.purchaseInputGst.total);
+      case 'staff': return this.fmt((d?.salary || 0) + (d?.commission || 0));
+      case 'inventory': return this.fmt(f?.inventoryConsumption.total);
+      case 'cash': return this.fmt(f?.cashBankReconciliation.expectedCash);
+      case 'wallet': return this.fmt((f?.walletCredits.total || 0) + (f?.prepaidAdvances.balance || 0));
+      case 'fixedAssets': return this.fmt(f?.fixedAssetControl.netBlock);
+      case 'journals': return `${f?.livePosToGl.outboxPending || 0} pending`;
+      case 'alerts': return `${f?.journalSuggestions.length || 0} alerts`;
+      default: return '—';
+    }
+  }
+  financeCategoryNote(key: FinanceWorkspaceCategoryKey): string {
+    const f = this.financeOs();
+    const s = this.sheet();
+    const d = this.dailyOps();
+    switch (key) {
+      case 'main': return s?.balanced ? 'Assets = Liabilities + Equity' : `Diff ${this.fmt(s?.totals?.accountingEquationDifference)}`;
+      case 'invoices': return `${d?.invoiceCount || 0} invoices · paid ${this.fmt(d?.paid || 0)}`;
+      case 'purchase': return `${f?.purchasePayables.bills || 0} bills · GST ${this.fmt(f?.purchasePayables.gst || 0)}`;
+      case 'purchaseGst': return `${f?.purchaseInputGst.bills || 0} bills · pending ${f?.purchaseInputGst.pending || 0}`;
+      case 'staff': return `${d?.staff.length || 0} staff · statutory ${this.fmt(f?.payrollStatutory.total || 0)}`;
+      case 'inventory': return `WMA vs GL ${this.fmt(f?.inventoryConsumption.difference || 0)}`;
+      case 'cash': return `bank net ${this.fmt(f?.cashBankReconciliation.expectedBankNet || 0)}`;
+      case 'wallet': return `wallet ${this.fmt(f?.walletCredits.total || 0)} · advance ${this.fmt(f?.prepaidAdvances.balance || 0)}`;
+      case 'fixedAssets': return `buy ${this.fmt(f?.fixedAssetControl.purchases || 0)} · dep ${this.fmt(f?.fixedAssetControl.depreciation || 0)}`;
+      case 'journals': return `posted ${f?.livePosToGl.outboxPosted || 0} · failed ${f?.livePosToGl.outboxFailed || 0}`;
+      case 'alerts': return `daily close ${f?.ownerDailyClose.ready ? 'ready' : 'check'}`;
+      default: return '';
+    }
+  }
+  financeCategoryStatus(key: FinanceWorkspaceCategoryKey): string {
+    const state = this.financeCategoryState(key);
+    if (state === 'bad') return 'Needs check';
+    if (state === 'warn') return 'Pending';
+    return 'Live';
+  }
+  financeCategoryState(key: FinanceWorkspaceCategoryKey): 'ok' | 'warn' | 'bad' {
+    const f = this.financeOs();
+    const s = this.sheet();
+    const d = this.dailyOps();
+    switch (key) {
+      case 'main': return s && !s.balanced ? 'bad' : 'ok';
+      case 'invoices': return (d?.due || 0) > 0 ? 'warn' : 'ok';
+      case 'purchase': return (f?.purchasePayables.bills || 0) > 0 ? 'warn' : 'ok';
+      case 'purchaseGst': return (f?.purchaseInputGst.pending || 0) > 0 ? 'warn' : 'ok';
+      case 'staff': return (d?.staff.length || 0) === 0 ? 'warn' : 'ok';
+      case 'inventory': return (f?.inventoryConsumption.difference || 0) !== 0 ? 'bad' : 'ok';
+      case 'cash': return (f?.cashBankReconciliation.expectedCash || 0) < 0 ? 'bad' : 'ok';
+      case 'wallet': return (f?.walletCredits.total || 0) + (f?.prepaidAdvances.balance || 0) > 0 ? 'warn' : 'ok';
+      case 'fixedAssets': return (f?.fixedAssetControl.depreciationEntries || 0) === 0 && (f?.fixedAssetControl.assets || 0) > 0 ? 'warn' : 'ok';
+      case 'journals': return (f?.livePosToGl.outboxFailed || 0) > 0 ? 'bad' : ((f?.livePosToGl.outboxPending || 0) > 0 ? 'warn' : 'ok');
+      case 'alerts': return (f?.journalSuggestions || []).some((item) => item.severity === 'critical') ? 'bad' : ((f?.journalSuggestions || []).some((item) => item.severity !== 'ok') ? 'warn' : 'ok');
+      default: return 'ok';
+    }
+  }
   pct(part: number, whole: number): number { return whole ? Math.min(100, Math.round((part / whole) * 100)) : 0; }
   doneCount(rows: Array<{ done: boolean }>): number { return rows.filter((row) => row.done).length; }
   ccWidth(net: number): number {
@@ -1317,10 +1588,11 @@ export class BalanceSheetComponent implements OnInit {
     try {
       this.loading.set(true); this.error.set('');
       const p = { asOfDate: this.asOfDate() };
-      const [sheet, trial, hardening, pnl, deferred, assets, costs, dailyOps, financeOs] = await Promise.all([
+      const [sheet, trial, hardening, controls, pnl, deferred, assets, costs, dailyOps, financeOs] = await Promise.all([
         firstValueFrom(this.api.list<BalanceSheet>('balance-sheet/live', p)),
         firstValueFrom(this.api.list<TrialBalance>('balance-sheet/trial-balance', p)),
         firstValueFrom(this.api.list<HardeningStatus>('balance-sheet/hardening', {})),
+        firstValueFrom(this.api.list<FinanceControls>('balance-sheet/controls', p)),
         firstValueFrom(this.api.list<CostCenterPnl>('balance-sheet/dimensional-pnl', { toDate: this.asOfDate() })),
         firstValueFrom(this.api.list<DeferredList>('balance-sheet/deferred/schedules', {})),
         firstValueFrom(this.api.list<AssetRegister>('balance-sheet/assets', {})),
@@ -1328,7 +1600,7 @@ export class BalanceSheetComponent implements OnInit {
         firstValueFrom(this.api.list<DailyOperations>('balance-sheet/daily-operations', p).pipe(catchError(() => of(this.emptyDailyOperations())))),
         firstValueFrom(this.api.list<FinanceOs>('balance-sheet/finance-os', p).pipe(catchError(() => of(this.emptyFinanceOs()))))
       ]);
-      this.sheet.set(sheet); this.trial.set(trial); this.hardening.set(hardening);
+      this.sheet.set(sheet); this.trial.set(trial); this.hardening.set(hardening); this.financeControls.set(controls);
       this.pnl.set(pnl); this.deferred.set(deferred); this.assets.set(assets);
       this.costs.set(costs); this.dailyOps.set(dailyOps); this.financeOs.set(this.normalizeFinanceOs(financeOs));
     } catch (e: any) {
@@ -1370,6 +1642,7 @@ export class BalanceSheetComponent implements OnInit {
       invoiceCount: 0,
       sales: 0,
       paid: 0,
+      due: 0,
       discount: 0,
       gst: 0,
       productConsumption: 0,
@@ -1389,6 +1662,13 @@ export class BalanceSheetComponent implements OnInit {
       asOfDate: this.asOfDate(),
       month: this.asOfDate().slice(0, 7),
       outgoingImpact: { total: 0, cash: 0, bank: 0, profitAfterOutgoing: 0, recent: [] },
+      outgoingCoverage: { total: 0, operating: 0, balanceSheetOnly: 0, categoriesUsed: 0, categoriesAvailable: 0, connection: { inputGst: 0, withBill: 0, missingBill: 0, linked: 0, missingLink: 0, approved: 0, pendingApproval: 0 }, buckets: [], categories: [], missing: [] },
+      purchasePayables: { total: 0, inventory: 0, gst: 0, bills: 0, recent: [] },
+      purchaseInputGst: { total: 0, bills: 0, postedOrQueued: 0, pending: 0, recent: [] },
+      prepaidAdvances: { total: 0, balance: 0, schedules: 0, membership: 0, packageAdvance: 0, giftCard: 0, recent: [] },
+      walletCredits: { total: 0, wallet: 0, storeCredit: 0, clients: 0, storeCredits: 0, transactions: 0, todayIssued: 0, todayRedeemed: 0, recent: [] },
+      payrollStatutory: { month: this.asOfDate().slice(0, 7), total: 0, pf: 0, esi: 0, pt: 0, tds: 0, rows: 0, pending: 0, recent: [] },
+      fixedAssetControl: { month: this.asOfDate().slice(0, 7), grossBlock: 0, accumulatedDepreciation: 0, netBlock: 0, purchases: 0, depreciation: 0, assets: 0, depreciationEntries: 0, recent: [] },
       todayTimeline: [],
       ownerDailyClose: { ready: false, warnings: 0, checklist: [] },
       cashBankReconciliation: { cashCollection: 0, bankCollection: 0, cashOutgoing: 0, bankOutgoing: 0, expectedCash: 0, expectedBankNet: 0, paymentRows: 0, outgoingRows: 0 },
@@ -1402,9 +1682,9 @@ export class BalanceSheetComponent implements OnInit {
       serviceMargins: [],
       inventoryConsumption: { total: 0, products: [], wmaInventory: 0, glInventory: 0, difference: 0 },
       fixedCostAllocation: { dailyRent: 0, dailySalary: 0, fixedCostMonth: 0, salaryCostMonth: 0 },
-      journalSuggestions: [{ severity: 'warn', title: 'Finance OS backend pending', text: 'Backend restart ke baad live 10-point report load hogi.', action: 'Backend restart karo aur Refresh dabao.' }],
+      journalSuggestions: [{ severity: 'warn', title: 'Finance backend pending', text: 'Live 10-point report will load after backend restart.', action: 'Restart backend and click Refresh.' }],
       reconciliation: { posVsGlRevenueDifference: 0, inventoryDifference: 0, balanced: true, accountingEquationDifference: 0 },
-      copilotPrompts: ['Aaj profit kam kyu hai?', 'Kaunsa staff profitable hai?', 'Kaunsa service loss me hai?', 'POS sale GL me post hui ya nahi?'],
+      copilotPrompts: ['Why is profit low today?', 'Which staff is profitable?', 'Which service is in loss?', 'Was POS sale posted to GL?'],
       monthEndClose: {
         month: this.asOfDate().slice(0, 7),
         checklist: [
@@ -1426,6 +1706,13 @@ export class BalanceSheetComponent implements OnInit {
       ...fallback,
       ...incoming,
       outgoingImpact: { ...fallback.outgoingImpact, ...(incoming.outgoingImpact || {}) },
+      outgoingCoverage: { ...fallback.outgoingCoverage, ...(incoming.outgoingCoverage || {}), connection: { ...fallback.outgoingCoverage.connection, ...(incoming.outgoingCoverage?.connection || {}) } },
+      purchasePayables: { ...fallback.purchasePayables, ...(incoming.purchasePayables || {}) },
+      purchaseInputGst: { ...fallback.purchaseInputGst, ...(incoming.purchaseInputGst || {}) },
+      prepaidAdvances: { ...fallback.prepaidAdvances, ...(incoming.prepaidAdvances || {}) },
+      walletCredits: { ...fallback.walletCredits, ...(incoming.walletCredits || {}) },
+      payrollStatutory: { ...fallback.payrollStatutory, ...(incoming.payrollStatutory || {}) },
+      fixedAssetControl: { ...fallback.fixedAssetControl, ...(incoming.fixedAssetControl || {}) },
       ownerDailyClose: { ...fallback.ownerDailyClose, ...(incoming.ownerDailyClose || {}) },
       cashBankReconciliation: { ...fallback.cashBankReconciliation, ...(incoming.cashBankReconciliation || {}) },
       gstPayableControl: { ...fallback.gstPayableControl, ...(incoming.gstPayableControl || {}) },
@@ -1462,7 +1749,10 @@ export class BalanceSheetComponent implements OnInit {
     return this.act(async () => firstValueFrom(this.api.post<any>('balance-sheet/deferred/recognize-due', { asOfDate: this.asOfDate() })), 'Due revenue recognized.');
   }
   runDepreciation(): Promise<void> {
-    return this.act(async () => firstValueFrom(this.api.post<any>('balance-sheet/assets/depreciation/run', { period: this.depMonth() })), 'Depreciation posted for the period.');
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<DepreciationRunResult>('balance-sheet/assets/depreciation/run', { period: this.depMonth() }));
+      this.depreciationRun.set(result);
+    }, 'Depreciation posted for the period.');
   }
   reconcile(): Promise<void> {
     return this.act(async () => firstValueFrom(this.api.post<any>('balance-sheet/reconcile', { asOfDate: this.asOfDate() })), 'Reconciliation complete.');
@@ -1475,6 +1765,43 @@ export class BalanceSheetComponent implements OnInit {
       const result = await firstValueFrom(this.api.post<PosGlSyncResult>('balance-sheet/pos-gl-sync', { asOfDate: this.asOfDate() }));
       this.posGlSync.set(result);
     }, 'POS invoices queued for GL sync.');
+  }
+  syncPurchasesToGl(): Promise<void> {
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<PurchaseGlSyncResult>('balance-sheet/purchase-gl-sync', { asOfDate: this.asOfDate() }));
+      this.purchaseGlSync.set(result);
+    }, 'Purchase bills queued for vendor payable.');
+  }
+  syncPurchaseInputGst(): Promise<void> {
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<PurchaseInputGstSyncResult>('balance-sheet/purchase-input-gst-sync', { asOfDate: this.asOfDate() }));
+      this.purchaseInputGstSync.set(result);
+      this.purchaseGlSync.set(result);
+    }, 'Purchase GST/input GST synced to Balance Sheet.');
+  }
+  syncPrepaidAdvances(): Promise<void> {
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<PrepaidAdvanceSyncResult>('balance-sheet/prepaid-advance-sync', { asOfDate: this.asOfDate() }));
+      this.prepaidAdvanceSync.set(result);
+    }, 'Membership, package and gift-card advances synced.');
+  }
+  syncWalletCreditsToGl(): Promise<void> {
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<WalletCreditSyncResult>('balance-sheet/wallet-credit-sync', { asOfDate: this.asOfDate() }));
+      this.walletCreditSync.set(result);
+    }, 'Wallet and store credit synced to Balance Sheet.');
+  }
+  syncPayrollStatutoryToGl(): Promise<void> {
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<PayrollStatutorySyncResult>('balance-sheet/payroll-statutory-sync', { asOfDate: this.asOfDate() }));
+      this.payrollStatutorySync.set(result);
+    }, 'Payroll statutory liability synced to Balance Sheet.');
+  }
+  syncFixedAssetPurchasesToGl(): Promise<void> {
+    return this.act(async () => {
+      const result = await firstValueFrom(this.api.post<FixedAssetPurchaseSyncResult>('balance-sheet/fixed-asset-purchase-sync', { asOfDate: this.asOfDate() }));
+      this.fixedAssetPurchaseSync.set(result);
+    }, 'Fixed asset purchases synced to Balance Sheet.');
   }
   syncInventoryCogs(): Promise<void> {
     return this.act(async () => {
@@ -1492,12 +1819,20 @@ export class BalanceSheetComponent implements OnInit {
     return this.act(async () => {
       const result = await firstValueFrom(this.api.post<MonthCloseAutomationResult>('balance-sheet/month-close-automation', { asOfDate: this.asOfDate(), period: this.lockMonth() }));
       this.monthCloseAutomation.set(result);
+      if (result.purchases) this.purchaseGlSync.set(result.purchases);
+      if (result.wallets) this.walletCreditSync.set(result.wallets);
+      if (result.payrollStatutory) this.payrollStatutorySync.set(result.payrollStatutory);
+      if (result.fixedAssetPurchases) this.fixedAssetPurchaseSync.set(result.fixedAssetPurchases);
     }, 'Month close automation prepared.');
   }
   ownerDailyClose(): Promise<void> {
     return this.act(async () => {
       const result = await firstValueFrom(this.api.post<OwnerDailyCloseResult>('balance-sheet/owner-daily-close', { asOfDate: this.asOfDate() }));
       this.ownerDailyCloseResult.set(result);
+      if (result.purchases) this.purchaseGlSync.set(result.purchases);
+      if (result.wallets) this.walletCreditSync.set(result.wallets);
+      if (result.payrollStatutory) this.payrollStatutorySync.set(result.payrollStatutory);
+      if (result.fixedAssetPurchases) this.fixedAssetPurchaseSync.set(result.fixedAssetPurchases);
     }, 'Owner daily close completed.');
   }
   askFinanceCopilot(): Promise<void> {
@@ -1515,13 +1850,13 @@ export class BalanceSheetComponent implements OnInit {
     return this.act(async () => firstValueFrom(this.api.post<any>('balance-sheet/periods/reopen', {
       period,
       reason: `Manual finance entry needed for ${period}`
-    })), `${period} period unlocked. Ab entry post karo.`);
+    })), `${period} period unlocked. Post the entry now.`);
   }
 
   postManualJournal(): Promise<void> {
     return this.act(async () => {
       const amountPaise = this.paise(this.manualAmount());
-      if (amountPaise <= 0) throw new Error('Amount 0 se zyada hona chahiye.');
+      if (amountPaise <= 0) throw new Error('Amount must be greater than 0.');
       const type = this.manualType();
       const sourceId = `${type}:${this.manualDate()}:${Date.now()}`;
       let debitAccountId = '';
@@ -1544,8 +1879,8 @@ export class BalanceSheetComponent implements OnInit {
         creditAccountId = this.customCreditAccountId();
         memo ||= 'Custom manual journal';
       }
-      if (!debitAccountId || !creditAccountId) throw new Error('Debit aur credit ledger select karo.');
-      if (debitAccountId === creditAccountId) throw new Error('Debit aur credit ledger same nahi ho sakte.');
+      if (!debitAccountId || !creditAccountId) throw new Error('Select debit and credit ledger.');
+      if (debitAccountId === creditAccountId) throw new Error('Debit and credit ledger cannot be the same.');
       await firstValueFrom(this.api.post('balance-sheet/journals', {
         businessDate: this.manualDate(),
         sourceType: `manual.${type}`,
@@ -1567,7 +1902,7 @@ export class BalanceSheetComponent implements OnInit {
       const code = this.assetCode().trim();
       const name = this.assetName().trim();
       if (!code || !name) throw new Error('Asset code aur name required hai.');
-      if (costPaise <= 0) throw new Error('Asset cost 0 se zyada hona chahiye.');
+      if (costPaise <= 0) throw new Error('Asset cost must be greater than 0.');
       await firstValueFrom(this.api.post('balance-sheet/assets', {
         code,
         name,
@@ -1590,7 +1925,7 @@ export class BalanceSheetComponent implements OnInit {
 
   private accountIdByCode(code: string): string {
     const account = (this.trial()?.rows || []).find((row: any) => row.code === code);
-    if (!account?.accountId) throw new Error(`Ledger ${code} abhi load nahi hua. Refresh karo.`);
+    if (!account?.accountId) throw new Error(`Ledger ${code} has not loaded yet. Refresh and try again.`);
     return account.accountId;
   }
 
@@ -1599,6 +1934,11 @@ export class BalanceSheetComponent implements OnInit {
   exportCsv(): void {
     const s = this.sheet();
     if (!s) return;
+    const control = this.financeControls()?.exportControl;
+    if (control && control.allowed === false) {
+      this.error.set(control.reason);
+      return;
+    }
     const rows: string[][] = [['Section', 'Code', 'Account', 'Balance']];
     (['assets', 'liabilities', 'equity'] as const).forEach((sec) =>
       s.sections[sec].forEach((r) => rows.push([sec, r.code, r.name, String(r.balance)])));

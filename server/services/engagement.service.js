@@ -2884,13 +2884,133 @@ export class EngagementService {
       .slice(0, 100);
     const escalatedThreads = unresolvedConversations.filter((item) => item.thread.status === "escalated");
     const staffPerformance = this.staffAccountabilityReport({ ...query, branchId }, access);
+    const actionQueue = this.engagementActionQueue({ ...query, branchId }, access);
     return {
       generatedAt: now(),
       branchId,
       overdueQueue,
       unresolvedConversations,
       escalatedThreads,
-      staffPerformance
+      staffPerformance,
+      actionQueue
+    };
+  }
+
+  engagementActionQueue(query = {}, access) {
+    const branchId = branchScope(access, query.branchId);
+    const messages = scopedRows("engagement_messages", access, branchId, { orderBy: "updated_at", max: 1000 }).map(rowToMessage).filter(Boolean);
+    const drafts = scopedRows("engagement_drafts", access, branchId, { orderBy: "updated_at", max: 1000 }).map(rowToDraft).filter(Boolean);
+    const templates = scopedRows("engagement_templates", access, branchId, { orderBy: "updated_at", max: 500 }).map(rowToTemplate).filter(Boolean);
+    const recovery = scopedRows("engagement_recovery_opportunities", access, branchId, { orderBy: "updated_at", max: 1000 }).map(rowToRecoveryOpportunity).filter(Boolean);
+    const readiness = this.listProviderReadiness({ branchId, channel: "whatsapp" }, access);
+    const whatsappProviders = readiness.providers || [];
+
+    const pendingApproval = [
+      ...messages.filter((message) => message.approvalStatus === "pending"),
+      ...drafts.filter((draft) => draft.approvalStatus === "pending" || (draft.approvalRequired && draft.status !== "approved"))
+    ];
+    const quietHoursBlocked = messages.filter((message) => {
+      const reason = `${message.failureReason || ""} ${message.metadata?.blockedReason || ""}`.toLowerCase();
+      return message.status === "send_blocked" && reason.includes("quiet");
+    });
+    const deliveryAttention = messages.filter((message) => {
+      if (message.direction !== "outbound") return false;
+      const status = text(message.status).toLowerCase();
+      const deliveryStatus = text(message.deliveryStatus).toLowerCase();
+      return ["failed", "send_blocked", "pending_send"].includes(status) || ["failed", "blocked", "pending", "queued"].includes(deliveryStatus);
+    });
+    const conversionTracking = recovery.filter((item) => {
+      if (["done", "lost", "archived"].includes(item.status)) return false;
+      return numberValue(item.expectedValue) > 0 || ["abandoned_appointment", "payment_due", "inactive_client", "package_expiry", "membership_expiry"].includes(item.opportunityType);
+    });
+    const campaignApproval = templates.filter((template) => {
+      return template.channel === "whatsapp" && (template.approvalStatus === "pending" || template.status === "draft" || template.providerStatus === "pending");
+    });
+    const providerReadiness = whatsappProviders.filter((provider) => !provider.providerConfigured || provider.sendMode !== "direct_send_ready");
+
+    const items = [];
+    const push = (type, title, count, priority, description, actionLabel, actionTarget, sample = []) => {
+      if (!count) return;
+      items.push({ type, title, count, priority, description, actionLabel, actionTarget, sample: sample.slice(0, 5) });
+    };
+
+    push(
+      "pending_approval",
+      "Approval queue",
+      pendingApproval.length,
+      "urgent",
+      "Drafts and sensitive WhatsApp messages waiting for manager approval before send.",
+      "Open conversation approvals",
+      "inbox",
+      pendingApproval
+    );
+    push(
+      "quiet_hours",
+      "Quiet-hours blocked",
+      quietHoursBlocked.length,
+      "high",
+      "Messages are held because the client communication policy blocks after-hours sends.",
+      "Review send policy",
+      "providers",
+      quietHoursBlocked
+    );
+    push(
+      "delivery_attention",
+      "Delivery attention",
+      deliveryAttention.length,
+      "high",
+      "Outbound WhatsApp messages need provider status review, retry, or manual follow-up.",
+      "Open reports",
+      "reports",
+      deliveryAttention
+    );
+    push(
+      "conversion_tracking",
+      "Conversion tracking",
+      conversionTracking.length,
+      "normal",
+      "Open recovery and campaign opportunities need follow-up to close revenue attribution.",
+      "Open recovery board",
+      "recovery",
+      conversionTracking
+    );
+    push(
+      "campaign_approval",
+      "Campaign approval",
+      campaignApproval.length,
+      "normal",
+      "WhatsApp templates and campaign drafts need approval before live use.",
+      "Open reports",
+      "reports",
+      campaignApproval
+    );
+    push(
+      "provider_readiness",
+      "Provider readiness",
+      providerReadiness.length,
+      "high",
+      "WhatsApp provider setup is incomplete or still pending direct-send adapter readiness.",
+      "Open providers",
+      "providers",
+      providerReadiness
+    );
+
+    return {
+      generatedAt: now(),
+      branchId,
+      summary: {
+        pendingApproval: pendingApproval.length,
+        quietHoursBlocked: quietHoursBlocked.length,
+        deliveryAttention: deliveryAttention.length,
+        conversionTracking: conversionTracking.length,
+        campaignApproval: campaignApproval.length,
+        providerReadiness: providerReadiness.length,
+        totalActions: items.reduce((sum, item) => sum + item.count, 0)
+      },
+      items: items.sort((a, b) => {
+        const rank = { urgent: 0, high: 1, normal: 2, low: 3 };
+        return (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9) || b.count - a.count || a.title.localeCompare(b.title);
+      })
     };
   }
 

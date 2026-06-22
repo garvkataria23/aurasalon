@@ -343,10 +343,24 @@ function invoicePaymentRows(source = {}) {
   return arrayFrom(source, ["payments", "paymentSplit", "payment_split", "paymentModes", "payment_modes"]);
 }
 
+function invoicePaymentMode(payment = {}) {
+  return String(fieldValue(payment, ["mode", "paymentMode", "payment_mode", "label"], "")).trim().toLowerCase();
+}
+
+function bookingAdvanceAdjustedAmount(source = {}) {
+  return invoicePaymentRows(source)
+    .filter((payment) => invoicePaymentMode(payment) === "booking_advance")
+    .reduce((sum, payment) => sum + numberValue(fieldValue(payment, ["amount", "paid", "value"])), 0);
+}
+
 function invoicePaid(source = {}) {
   const explicitPaid = numberValue(fieldValue(source, ["paid", "paidAmount", "paid_amount", "collected", "amountPaid", "amount_paid"]));
   if (explicitPaid > 0) return explicitPaid;
   return invoicePaymentRows(source).reduce((sum, payment) => sum + numberValue(fieldValue(payment, ["amount", "paid", "value"])), 0);
+}
+
+function counterPaymentCollectedAmount(source = {}) {
+  return Math.max(0, invoicePaid(source) - bookingAdvanceAdjustedAmount(source));
 }
 
 function invoiceDue(source = {}) {
@@ -417,6 +431,7 @@ function buildFinanceImpact(before = {}, after = {}, actionType = "edited") {
   return {
     originalTotal,
     updatedTotal,
+    amountDifference: updatedTotal - originalTotal,
     paymentDifference: updatedPaid - originalPaid,
     gstDifference: invoiceGst(after) - invoiceGst(before),
     dueDifference: updatedDue - originalDue,
@@ -767,6 +782,27 @@ function loadInvoiceLookup(tenantId) {
   ];
   const where = tenantColumn ? `WHERE ${tenantColumn} = @tenantId` : "";
   const rows = db.prepare(`SELECT ${selectParts.join(", ")} FROM invoices ${where}`).all({ tenantId });
+  if (tableExists("invoice_payments") && rows.length) {
+    const invoiceIds = rows.map((row) => String(row.id || "")).filter(Boolean);
+    if (invoiceIds.length) {
+      const placeholders = invoiceIds.map(() => "?").join(",");
+      const payments = db.prepare(
+        `SELECT invoice_id AS invoiceId, payment_mode AS paymentMode, amount, status
+           FROM invoice_payments
+          WHERE tenant_id = ? AND invoice_id IN (${placeholders}) AND status = 'paid'
+          ORDER BY created_at, id`
+      ).all(tenantId, ...invoiceIds);
+      const paymentsByInvoice = new Map();
+      for (const payment of payments) {
+        const invoiceId = String(payment.invoiceId || "");
+        if (!paymentsByInvoice.has(invoiceId)) paymentsByInvoice.set(invoiceId, []);
+        paymentsByInvoice.get(invoiceId).push(payment);
+      }
+      rows.forEach((row) => {
+        row.payments = paymentsByInvoice.get(String(row.id || "")) || [];
+      });
+    }
+  }
   return new Map(rows.map((row) => [String(row.id), row]));
 }
 
@@ -869,6 +905,7 @@ function normalizeInvoiceActivity(row, invoiceLookup) {
     branchId: String(pickValue(merged, ["branchId", "branch_id"], "")),
     branchName: String(pickValue(merged, ["branchName", "branch_name"], "")),
     actionByUser: String(pickValue(merged, ["actionByUser", "userId", "user_id", "actorUserId", "actor_user_id"], "system")),
+    invoiceCreatedAt: String(pickValue({ ...invoice, ...beforeSnapshot, ...afterSnapshot }, ["invoiceCreatedAt", "invoice_created_at", "createdAt", "created_at", "date"], "")),
     actionTime: String(pickValue(merged, ["actionTime", "createdAt", "created_at"], new Date().toISOString())),
     status: workflowStatus,
     approvalRequired: boolValue(pickValue(merged, ["approvalRequired", "approval_required"], false)),
@@ -892,6 +929,8 @@ function normalizeInvoiceActivity(row, invoiceLookup) {
     total: numberValue(pickValue(merged, ["total", "grandTotal", "grand_total"], 0)),
     paid: numberValue(pickValue(merged, ["paid", "paidAmount", "paid_amount"], 0)),
     balance: numberValue(pickValue(merged, ["balance", "due", "dueAmount", "due_amount"], 0)),
+    advanceAdjusted: bookingAdvanceAdjustedAmount(merged),
+    counterPaid: counterPaymentCollectedAmount(merged),
     paymentModes: activityPaymentModes,
     financeImpact,
     changes: buildInvoiceChanges(beforeSnapshot, afterSnapshot)
@@ -1708,6 +1747,8 @@ function reportRows(rows, actionType) {
       amount: row.total,
       paid: row.paid,
       due: row.balance,
+      advanceAdjusted: row.advanceAdjusted || 0,
+      counterPaid: row.counterPaid || 0,
       status: row.status,
       actionByUser: row.actionByUser,
       riskLevel: row.riskLevel,
@@ -1804,8 +1845,11 @@ function buildInvoiceActivityReports(rows) {
     status: row.status,
     paymentModes: (row.paymentModes || []).join(" | "),
     amount: row.total,
+    amountDifference: row.financeImpact?.amountDifference || 0,
     paid: row.paid,
     due: row.balance,
+    advanceAdjusted: row.advanceAdjusted || 0,
+    counterPaid: row.counterPaid || 0,
     paymentDifference: row.financeImpact?.paymentDifference || 0,
     actionByUser: row.actionByUser,
     approvalStatus: row.approvalStatus || "",
@@ -1858,8 +1902,11 @@ function reportToCsv(rows) {
     "status",
     "paymentModes",
     "amount",
+    "amountDifference",
     "paid",
     "due",
+    "advanceAdjusted",
+    "counterPaid",
     "paymentDifference",
     "actionByUser",
     "approvalStatus",

@@ -4,6 +4,7 @@ import test from "node:test";
 
 const appComponent = readFileSync("src/app/app.component.ts", "utf8");
 const appRoutes = readFileSync("src/app/app.routes.ts", "utf8");
+const appsLaunchpad = readFileSync("src/app/pages/apps-launchpad.component.ts", "utf8");
 const staffOsRoutes = readFileSync("src/app/features/staff-os/staff-os.routes.ts", "utf8");
 const serverApp = readFileSync("server/app.js", "utf8");
 const staffOsRouter = readFileSync("server/routes/staff-os.routes.js", "utf8");
@@ -18,51 +19,34 @@ const staffPayrollService = readFileSync("server/services/staff-payroll.service.
 const staffAttendanceService = readFileSync("server/services/staff-attendance.service.js", "utf8");
 
 const staffSidebarPaths = [
-  "/staff-enterprise",
-  "/staff-os",
-  "/staff",
   "/staff/my-work",
-  "/staff/connected-modules",
+  "/staff-os/salary-workspace",
   "/staff-os/staff-list",
   "/staff-os/staff-categories",
-  "/staff-os/staff-profile",
   "/staff-os/employee-masters",
   "/staff-os/attendance-master",
   "/staff-os/leave-master",
   "/staff-os/shift-master",
   "/staff-os/attendance-category",
+  "/staff-os/face-punch",
   "/staff-os/service-assignment",
-  "/staff-os/bulk-employee-update",
   "/staff-os/attendance-dashboard",
   "/staff-os/roster-calendar",
   "/staff-os/leave-management",
-  "/staff-os/heatmaps/roster",
-  "/staff-os/heatmaps/attendance",
-  "/staff-os/heatmaps/leave-calendar",
+  "/staff-os/payroll-rules",
+  "/staff-os/salary-generate",
   "/staff-os/payroll-dashboard",
   "/staff-os/fines-penalties",
   "/staff-os/allowance-deduction",
   "/staff-os/payroll-salary-structure",
-  "/staff-os/heatmaps/payroll-cost",
   "/pos/tips",
   "/commissions",
   "/staff-os/commission-dashboard",
   "/staff-os/target-incentives/service",
-  "/staff-os/target-incentives/product",
-  "/staff-os/target-incentives/membership",
-  "/staff-os/target-incentives/branch-admin",
-  "/staff-os/target-incentives/admin",
-  "/staff-os/target-incentives/all-transaction",
   "/reports/commission-preview",
   "/reports/staff-sales",
   "/reports/invoices",
-  "/staff-os/performance-dashboard",
-  "/staff-os/heatmaps/utilization",
-  "/staff-os/leaderboard",
-  "/staff-os/training-center",
-  "/staff-os/task-board",
-  "/staff-os/mobile-preview",
-  "/training-academy"
+  "/staff-os/training-center"
 ];
 
 const topLevelStaffRoutes = [
@@ -81,6 +65,7 @@ const topLevelStaffRoutes = [
 
 const staffOsChildRoutes = [
   "staff-list",
+  "salary-workspace",
   "staff-categories",
   "staff-profile",
   "employee-masters",
@@ -88,12 +73,15 @@ const staffOsChildRoutes = [
   "leave-master",
   "shift-master",
   "attendance-category",
+  "face-punch",
   "service-assignment",
   "bulk-employee-update",
   "attendance-dashboard",
   "roster-calendar",
   "leave-management",
   "payroll-dashboard",
+  "payroll-rules",
+  "salary-generate",
   "fines-penalties",
   "allowance-deduction",
   "payroll-salary-structure",
@@ -119,9 +107,13 @@ const staffOsChildRoutes = [
 test("Staff sidebar exposes every Staff OS route needed for sale-ready HR operations", () => {
   assert.match(appComponent, /id:\s*'staff'/, "Staff sidebar group should exist");
   assert.match(appComponent, /primaryPath:\s*'\/staff-os\/employee-masters'/, "Staff group should open employee masters");
+  assert.match(appComponent, /path:\s*'\/staff-os\/employee-masters'[\s\S]*label:\s*'Staff OS'/, "top quick Staff OS action should open employee masters");
   for (const path of staffSidebarPaths) {
     assert.match(appComponent, new RegExp(`path:\\s*'${path.replace("/", "\\/")}'`), `${path} should be in Staff sidebar`);
   }
+  assert.doesNotMatch(appComponent, /path:\s*'\/staff'/, "legacy staff directory should not be a direct sidebar duplicate");
+  assert.doesNotMatch(appComponent, /path:\s*'\/staff-enterprise'/, "legacy staff enterprise should not be a direct sidebar duplicate");
+  assert.doesNotMatch(appComponent, /path:\s*'\/staff-os'/, "Staff OS shell route should not compete with concrete Staff OS pages");
 });
 
 test("Staff Angular routes and lazy Staff OS child routes stay wired", () => {
@@ -133,6 +125,11 @@ test("Staff Angular routes and lazy Staff OS child routes stay wired", () => {
   }
   assert.match(appRoutes, /staff-os[\s\S]*permissionGuard[\s\S]*read:staff/, "Staff OS shell should be permission guarded");
   assert.match(appRoutes, /staff\/my-work[\s\S]*permissionGuard[\s\S]*read:appointments/, "My Work should be appointment-read guarded");
+  assert.match(appRoutes, /path:\s*'staff'[\s\S]*redirectTo:\s*'staff-os\/employee-masters'/, "legacy /staff should redirect to Staff OS");
+  assert.match(appRoutes, /path:\s*'staff-enterprise'[\s\S]*redirectTo:\s*'staff-os\/employee-masters'/, "legacy /staff-enterprise should redirect to Staff OS");
+  assert.doesNotMatch(appsLaunchpad, /path:\s*'\/staff-enterprise'/, "Apps launchpad should not expose legacy Staff Enterprise duplicate");
+  assert.doesNotMatch(appsLaunchpad, /path:\s*'\/staff'[\s,}]/, "Apps launchpad should not expose legacy Smart Staff duplicate");
+  assert.match(appsLaunchpad, /path:\s*'\/staff-os\/employee-masters'[\s\S]*label:\s*'Staff OS'/, "Apps launchpad should open canonical Staff OS");
 });
 
 test("Staff backend routers are mounted for v1 and legacy clients", () => {

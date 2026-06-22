@@ -12,6 +12,10 @@ type OutgoingLineItem = {
   amount: number;
   salaryMonthYear?: string;
   remarks?: string;
+  categoryLabel?: string;
+  categoryBucket?: string;
+  balanceSheetImpact?: string;
+  operating?: boolean;
 };
 
 type OutgoingFundEntry = ApiRecord & {
@@ -22,6 +26,11 @@ type OutgoingFundEntry = ApiRecord & {
   updatedAt?: string;
   paidFromAccountName?: string;
   amount: number;
+  gstAmount?: number;
+  billUrl?: string;
+  linkedPartyType?: string;
+  linkedPartyName?: string;
+  approvalStatus?: string;
   transactionType?: string;
   lineItems?: OutgoingLineItem[];
   remarks?: string;
@@ -35,6 +44,12 @@ type ReportRow = {
   savedTime: string;
   type: string;
   accountName: string;
+  category: string;
+  impact: string;
+  link: string;
+  approval: string;
+  bill: string;
+  gstAmount: number;
   amount: number;
   salaryMonthYear: string;
   remarks: string;
@@ -50,7 +65,7 @@ type ReportRow = {
         <div>
           <span class="eyebrow">Transactions / Funds</span>
           <h2>Outgoing Funds Saved Entries</h2>
-          <p>Save ke baad vouchers yahan date-wise aur row-wise dikhte hain.</p>
+          <p>Saved vouchers appear here date-wise and row-wise.</p>
         </div>
         <div class="actions">
           <a class="button primary" routerLink="/transactions/outgoing-funds">New Entry</a>
@@ -70,6 +85,9 @@ type ReportRow = {
         <article><span>Saved rows</span><strong>{{ rows().length }}</strong></article>
         <article><span>Total amount</span><strong>{{ money(total()) }}</strong></article>
         <article><span>Vouchers</span><strong>{{ entries().length }}</strong></article>
+        <article><span>Categories</span><strong>{{ categoryCount() }}</strong></article>
+        <article><span>Input GST</span><strong>{{ money(gstTotal()) }}</strong></article>
+        <article><span>Approval pending</span><strong>{{ pendingApprovalCount() }}</strong></article>
       </section>
 
       <section class="panel" *ngIf="!loading() && !error()">
@@ -82,6 +100,12 @@ type ReportRow = {
                 <th>OG No</th>
                 <th>Type</th>
                 <th>Name</th>
+                <th>Salon Category</th>
+                <th>BS Impact</th>
+                <th>Linked party</th>
+                <th>Approval</th>
+                <th>Bill</th>
+                <th class="r">GST</th>
                 <th class="r">Amount</th>
                 <th>Salary Month</th>
                 <th>Remarks</th>
@@ -94,17 +118,23 @@ type ReportRow = {
                 <td>{{ row.entryNo || '-' }}</td>
                 <td>{{ row.type }}</td>
                 <td>{{ row.accountName }}</td>
+                <td>{{ row.category }}</td>
+                <td>{{ row.impact }}</td>
+                <td>{{ row.link || '-' }}</td>
+                <td>{{ row.approval || '-' }}</td>
+                <td>{{ row.bill }}</td>
+                <td class="r">{{ money(row.gstAmount) }}</td>
                 <td class="r">{{ money(row.amount) }}</td>
                 <td>{{ row.salaryMonthYear || '-' }}</td>
                 <td>{{ row.remarks || '-' }}</td>
               </tr>
               <tr *ngIf="!filteredRows().length">
-                <td colspan="8" class="empty">No saved outgoing entry found.</td>
+                <td colspan="14" class="empty">No saved outgoing entry found.</td>
               </tr>
             </tbody>
             <tfoot *ngIf="filteredRows().length">
               <tr>
-                <td colspan="5">Grand Total</td>
+                <td colspan="11">Grand Total</td>
                 <td class="r">{{ money(filteredTotal()) }}</td>
                 <td colspan="2"></td>
               </tr>
@@ -128,13 +158,13 @@ type ReportRow = {
     label { display: grid; gap: 5px; color: #26364b; font-weight: 900; }
     label span { font-size: 13px; }
     input { min-height: 40px; border: 1px solid #9fb2b8; border-radius: 4px; padding: 0 10px; font: inherit; }
-    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
     .summary article { padding: 16px; border-top: 4px solid #0f8f79; }
     .summary span { display: block; color: #53657d; font-weight: 800; }
     .summary strong { display: block; margin-top: 8px; font-size: 28px; }
     .panel { overflow: hidden; }
     .table-scroll { overflow: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 940px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1520px; }
     th, td { padding: 10px 12px; border-bottom: 1px solid #d8e2e8; text-align: left; }
     th { background: #eef3f6; color: #26364b; font-size: 12px; text-transform: uppercase; }
     .r { text-align: right; font-variant-numeric: tabular-nums; }
@@ -167,6 +197,12 @@ export class OutgoingFundsReportComponent implements OnInit {
       savedTime: this.savedTime(entry),
       type: line.type || entry.transactionType || 'Outgoing',
       accountName: line.accountName || String(entry['paidToAccountName'] || entry['payeeName'] || ''),
+      category: line.categoryLabel || lineCategory(line).label,
+      impact: line.balanceSheetImpact || lineCategory(line).impact,
+      link: entry.linkedPartyName || entry.linkedPartyType || '',
+      approval: entry.approvalStatus || 'pending',
+      bill: entry.billUrl ? 'linked' : 'missing',
+      gstAmount: index === 0 ? moneyValue(entry.gstAmount) : 0,
       amount: moneyValue(line.amount),
       salaryMonthYear: line.salaryMonthYear || '',
       remarks: line.remarks || entry.remarks || ''
@@ -181,13 +217,16 @@ export class OutgoingFundsReportComponent implements OnInit {
       const inRange = (!from || row.entryDate >= from) && (!to || row.entryDate <= to);
       if (!inRange) return false;
       if (!term) return true;
-      return [row.entryNo, row.entryDate, row.savedTime, row.type, row.accountName, row.salaryMonthYear, row.remarks]
+      return [row.entryNo, row.entryDate, row.savedTime, row.type, row.accountName, row.category, row.impact, row.link, row.approval, row.bill, row.salaryMonthYear, row.remarks]
         .some((value) => String(value || '').toLowerCase().includes(term));
     });
   });
 
   readonly total = computed(() => this.rows().reduce((sum, row) => sum + moneyValue(row.amount), 0));
   readonly filteredTotal = computed(() => this.filteredRows().reduce((sum, row) => sum + moneyValue(row.amount), 0));
+  readonly categoryCount = computed(() => new Set(this.filteredRows().map((row) => row.category)).size);
+  readonly gstTotal = computed(() => this.entries().reduce((sum, entry) => sum + moneyValue(entry.gstAmount), 0));
+  readonly pendingApprovalCount = computed(() => this.entries().filter((entry) => (entry.approvalStatus || 'pending') === 'pending').length);
 
   constructor(private readonly api: ApiService) {}
 
@@ -234,3 +273,40 @@ function moneyValue(value: unknown): number {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
 }
+
+function lineCategory(line: Partial<OutgoingLineItem>): { key: string; label: string; impact: string } {
+  const text = `${line.type || ''} ${line.accountName || ''} ${line.remarks || ''}`.toLowerCase();
+  return SALON_CATEGORY_RULES.find((rule) => rule.patterns.some((pattern) => text.includes(pattern))) || SALON_CATEGORY_RULES[SALON_CATEGORY_RULES.length - 1];
+}
+
+const SALON_CATEGORY_RULES = [
+  { key: 'salary', label: 'Staff Salary', impact: 'Expense reduces profit/equity', patterns: ['staff salary', 'salary', 'payroll', 'wage', 'overtime'] },
+  { key: 'staff_commission', label: 'Staff Commission / Incentive', impact: 'Expense reduces profit/equity', patterns: ['staff commission', 'commission', 'incentive'] },
+  { key: 'advance', label: 'Staff / Client Advance', impact: 'Advance asset increases', patterns: ['staff advance', 'client advance', 'advance'] },
+  { key: 'rent', label: 'Rent / Lease', impact: 'Expense reduces profit/equity', patterns: ['rent', 'lease', 'kiraya'] },
+  { key: 'utilities', label: 'Electricity / Water / Internet', impact: 'Expense reduces profit/equity', patterns: ['utility', 'electricity', 'water', 'internet', 'wifi', 'phone'] },
+  { key: 'inventory_purchase', label: 'Product Purchase / Inventory', impact: 'Inventory asset or vendor payable', patterns: ['product purchase', 'inventory purchase', 'stock purchase', 'purch. pymt', 'vendor payment'] },
+  { key: 'product_consumable', label: 'Product Consumable / COGS', impact: 'COGS/product expense', patterns: ['product consumable', 'consume', 'consumable', 'cogs'] },
+  { key: 'wastage_damage', label: 'Wastage / Expiry / Damage', impact: 'Inventory loss impact', patterns: ['wastage', 'waste', 'expiry', 'damage', 'shortage'] },
+  { key: 'fixed_asset_purchase', label: 'Fixed Asset Purchase', impact: 'Fixed asset increases', patterns: ['fixed asset', 'chair', 'mirror', 'machine', 'dryer', 'steamer', 'printer', 'computer', 'cctv', 'interior', 'furniture', 'equipment'] },
+  { key: 'repair_maintenance', label: 'Repair / Maintenance', impact: 'Expense reduces profit/equity', patterns: ['repair', 'maintenance', 'ac service', 'plumbing', 'amc'] },
+  { key: 'cleaning_housekeeping', label: 'Cleaning / Laundry / Housekeeping', impact: 'Expense reduces profit/equity', patterns: ['cleaning', 'laundry', 'towel', 'housekeeping', 'sanitize', 'pest'] },
+  { key: 'client_refreshment', label: 'Client Refreshment', impact: 'Expense reduces profit/equity', patterns: ['tea', 'coffee', 'refreshment', 'snack', 'water bottle'] },
+  { key: 'uniform', label: 'Uniform / Grooming', impact: 'Expense reduces profit/equity', patterns: ['uniform', 'apron', 'staff dress', 'grooming'] },
+  { key: 'stationery', label: 'Stationery / Printing', impact: 'Expense reduces profit/equity', patterns: ['stationery', 'printing', 'paper', 'bill book'] },
+  { key: 'marketing', label: 'Marketing / Ads / Referral', impact: 'Expense reduces profit/equity', patterns: ['marketing', 'ads', 'instagram', 'facebook', 'google', 'campaign', 'lead', 'influencer', 'referral', 'banner', 'brochure', 'signage'] },
+  { key: 'software_subscription', label: 'Software / SMS / WhatsApp', impact: 'Expense reduces profit/equity', patterns: ['software', 'subscription', 'sms', 'whatsapp', 'crm', 'pos', 'saas', 'domain', 'hosting'] },
+  { key: 'bank_charges', label: 'Bank / Payment Gateway Charges', impact: 'Expense reduces profit/equity', patterns: ['bank charges', 'payment charge', 'gateway', 'mdr', 'card charge', 'upi charge', 'fee'] },
+  { key: 'professional_legal', label: 'CA / Legal / License', impact: 'Expense reduces profit/equity', patterns: ['legal', 'license', 'licence', 'professional', 'ca', 'audit', 'gst filing', 'compliance'] },
+  { key: 'gst_payment', label: 'GST / Tax Payment', impact: 'Tax payable/credit adjusts', patterns: ['gst payment', 'gst paid', 'tax payment', 'gst challan', 'tax challan'] },
+  { key: 'statutory_payment', label: 'PF / ESI / PT / TDS Payment', impact: 'Statutory liability reduces', patterns: ['pf', 'esi', 'tds', 'professional tax', 'statutory'] },
+  { key: 'security_deposit', label: 'Security Deposit', impact: 'Deposit asset increases', patterns: ['security deposit', 'deposit', 'rent deposit'] },
+  { key: 'prepaid_expense', label: 'Prepaid Expense', impact: 'Prepaid asset increases', patterns: ['prepaid', 'advance rent', 'annual subscription', 'yearly subscription'] },
+  { key: 'loan', label: 'Loan / EMI Principal', impact: 'Loan liability reduces', patterns: ['loan', 'emi', 'principal'] },
+  { key: 'interest', label: 'Interest / Finance Cost', impact: 'Expense reduces profit/equity', patterns: ['interest', 'finance cost'] },
+  { key: 'owner_drawing', label: 'Owner Drawing', impact: 'Owner equity/drawing adjusts', patterns: ['owner drawing', 'drawing', 'withdrawal', 'personal'] },
+  { key: 'bank_deposit', label: 'Bank Deposit / Cash Transfer', impact: 'Cash/bank movement only', patterns: ['bank depo', 'bank deposit', 'cash deposit', 'cash transfer', 'petty cash transfer'] },
+  { key: 'travel', label: 'Travel / Conveyance', impact: 'Expense reduces profit/equity', patterns: ['travel', 'travelling', 'conveyance', 'cab', 'auto', 'fuel'] },
+  { key: 'training', label: 'Training / Education', impact: 'Expense reduces profit/equity', patterns: ['training', 'course', 'education', 'academy'] },
+  { key: 'other', label: 'Other Salon Outgoing', impact: 'Review required', patterns: ['other out', 'misc', 'daily exp', 'expense'] }
+];

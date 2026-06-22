@@ -95,6 +95,34 @@ interface EngagementDetail extends ApiRecord {
         {{ pendingApprovalCount() }} draft{{ pendingApprovalCount() === 1 ? '' : 's' }} pending approval.
       </div>
 
+      <section class="action-queue-strip" *ngIf="engagementActionQueue().length">
+        <div class="section-title-row">
+          <div>
+            <span class="eyebrow">WhatsApp operations</span>
+            <h3>Engagement action queue</h3>
+            <p>Approval queue, quiet-hours blocks, delivery status and conversion follow-ups from live engagement data.</p>
+          </div>
+          <button class="ghost-button mini" type="button" (click)="loadManagerActions()">Refresh queue</button>
+        </div>
+        <div class="action-queue-grid">
+          <button
+            class="action-queue-card"
+            type="button"
+            *ngFor="let item of engagementActionQueue()"
+            [class.urgent]="item.priority === 'urgent'"
+            [class.high]="item.priority === 'high'"
+            (click)="openActionQueueTarget(item)"
+          >
+            <span class="badge" [class.pending]="item.priority === 'normal'" [class.danger]="item.priority === 'urgent' || item.priority === 'high'">
+              {{ actionQueueTypeLabel(item.type) }}
+            </span>
+            <strong>{{ item.count || 0 }}</strong>
+            <span>{{ item.title }}</span>
+            <small>{{ item.description }}</small>
+          </button>
+        </div>
+      </section>
+
       <section class="engagement-shell" *ngIf="!loading()">
         <aside class="thread-rail">
           <div class="rail-section">
@@ -1502,10 +1530,20 @@ interface EngagementDetail extends ApiRecord {
     .conversation-empty { min-height: calc(100vh - 220px); display: grid; place-items: center; align-content: center; gap: 10px; color: #53657d; text-align: center; padding: 30px; }
     .conversation-empty strong { color: #111827; font-size: 22px; }
     .state.info { background: #eef8ff; border: 1px solid #bfdbfe; color: #1d4e89; padding: 12px 14px; border-radius: 8px; }
+    .action-queue-strip { border: 1px solid #dce5e2; background: #fff; border-radius: 8px; padding: 14px; display: grid; gap: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .05); }
+    .action-queue-strip p { margin: 3px 0 0; color: #53657d; line-height: 1.45; }
+    .action-queue-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+    .action-queue-card { text-align: left; border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 6px; min-width: 0; cursor: pointer; }
+    .action-queue-card:hover { border-color: #0f8f79; background: #eef8f5; }
+    .action-queue-card.urgent { border-color: #f4b4ae; background: #fff8f7; }
+    .action-queue-card.high { border-color: #f4d28c; background: #fffaf0; }
+    .action-queue-card strong { font-size: 24px; color: #111827; }
+    .action-queue-card span:not(.badge) { font-weight: 900; color: #26364b; overflow-wrap: anywhere; }
+    .action-queue-card small { color: #607083; line-height: 1.35; }
     .empty-state.compact { padding: 18px 12px; }
-    @media (max-width: 1280px) { .engagement-shell { grid-template-columns: 280px minmax(420px, 1fr); } .client-rail { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } }
+    @media (max-width: 1280px) { .engagement-shell { grid-template-columns: 280px minmax(420px, 1fr); } .client-rail { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } .action-queue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 1040px) { .reports-toolbar, .reports-kpis, .reports-grid { grid-template-columns: 1fr; } .reports-actions { grid-column: auto; justify-content: start; } .reports-grid .wide { grid-column: auto; } }
-    @media (max-width: 840px) { .engagement-shell { grid-template-columns: 1fr; } .thread-rail, .conversation-panel, .client-rail { max-height: none; } .timeline { max-height: none; } .composer-toolbar { grid-template-columns: 1fr; } .timeline-item { max-width: 100%; } .client-rail { grid-template-columns: 1fr; } .review-center-grid, .recovery-board, .recovery-kpis, .recovery-toolbar, .risk-board, .risk-kpis, .risk-toolbar, .sla-grid, .sla-kpis, .reports-toolbar, .reports-kpis, .reports-grid, .audit-toolbar { grid-template-columns: 1fr; } .sla-row { display: grid; } .sla-row-metrics { justify-items: start; } }
+    @media (max-width: 840px) { .engagement-shell { grid-template-columns: 1fr; } .thread-rail, .conversation-panel, .client-rail { max-height: none; } .timeline { max-height: none; } .composer-toolbar { grid-template-columns: 1fr; } .timeline-item { max-width: 100%; } .client-rail { grid-template-columns: 1fr; } .review-center-grid, .recovery-board, .recovery-kpis, .recovery-toolbar, .risk-board, .risk-kpis, .risk-toolbar, .sla-grid, .sla-kpis, .reports-toolbar, .reports-kpis, .reports-grid, .audit-toolbar, .action-queue-grid { grid-template-columns: 1fr; } .sla-row { display: grid; } .sla-row-metrics { justify-items: start; } }
   `]
 })
 export class EngagementCommandCenterComponent implements OnInit {
@@ -1642,6 +1680,10 @@ export class EngagementCommandCenterComponent implements OnInit {
   readonly pendingApprovalCount = computed(() => {
     return (this.selectedDetail()?.messages || []).filter((message) => message.approvalStatus === 'pending').length;
   });
+  readonly engagementActionQueue = computed(() => {
+    const actionQueue = (this.managerView()?.['actionQueue'] || {}) as ApiRecord;
+    return ((actionQueue['items'] || []) as ApiRecord[]).slice(0, 6);
+  });
 
   constructor(private readonly api: ApiService) {}
 
@@ -1654,6 +1696,7 @@ export class EngagementCommandCenterComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     this.providerWarning.set('');
+    this.loadManagerActions();
     this.api.list<EngagementThread[]>('engagement/threads', { limit: 100 })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
@@ -2075,6 +2118,42 @@ export class EngagementCommandCenterComponent implements OnInit {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount)) return '₹0';
     return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+  }
+
+  loadManagerActions(): void {
+    this.api.list<ApiRecord>('engagement/manager-view', { limit: 100 }).subscribe({
+      next: (manager) => this.managerView.set(manager || null),
+      error: () => this.managerView.set(null)
+    });
+  }
+
+  actionQueueTypeLabel(type: unknown): string {
+    const labels: Record<string, string> = {
+      pending_approval: 'Approval',
+      quiet_hours: 'Quiet hours',
+      delivery_attention: 'Delivery',
+      conversion_tracking: 'Conversion',
+      campaign_approval: 'Campaign',
+      provider_readiness: 'Provider'
+    };
+    return labels[String(type || '')] || 'Action';
+  }
+
+  openActionQueueTarget(item: ApiRecord): void {
+    const target = String(item?.['actionTarget'] || '');
+    if (target === 'recovery') {
+      this.openRecoveryDrawer();
+      return;
+    }
+    if (target === 'reports') {
+      this.openReportsDrawer();
+      return;
+    }
+    if (target === 'providers') {
+      this.openProviderDrawer();
+      return;
+    }
+    this.selectChannel('whatsapp');
   }
 
   openProviderDrawer(): void {

@@ -97,6 +97,7 @@ export const bookingDepositService = {
     if (!link) throw notFound("Payment link not found");
     const targetAppointmentId = appointmentId || link.appointmentId;
     const appointment = targetAppointmentId ? repositories.appointments.getById(targetAppointmentId, { tenantId }) : null;
+    let targetIds = targetAppointmentId ? [targetAppointmentId] : [];
     const txn = db.transaction(() => {
       db.prepare(
         `UPDATE booking_payment_links
@@ -104,10 +105,23 @@ export const bookingDepositService = {
          WHERE id = ? AND tenantId = ?`
       ).run(transactionId, link.id, tenantId);
       if (appointment) {
+        const groupAppointmentIds = appointment.bookingGroupId
+          ? db.prepare("SELECT id FROM appointments WHERE tenantId = ? AND bookingGroupId = ?").all(tenantId, appointment.bookingGroupId).map((row) => row.id)
+          : [appointment.id];
+        targetIds = groupAppointmentIds.length ? groupAppointmentIds : [appointment.id];
+        const placeholders = targetIds.map(() => "?").join(",");
         repositories.appointments.update(appointment.id, {
           depositStatus: "paid",
           status: appointment.status === "payment_pending" ? "booked" : appointment.status
         }, { tenantId });
+        db.prepare(
+          `UPDATE appointments
+              SET depositStatus = 'paid',
+                  status = CASE WHEN status = 'payment_pending' THEN 'booked' ELSE status END,
+                  updatedAt = ?
+            WHERE tenantId = ?
+              AND id IN (${placeholders})`
+        ).run(new Date().toISOString(), tenantId, ...targetIds);
       }
       insertAudit({
         tenantId,
@@ -116,7 +130,7 @@ export const bookingDepositService = {
         action: "deposit.paid",
         entityType: "appointment",
         entityId: targetAppointmentId,
-        details: { paymentLinkId: link.id, transactionId, amount: link.amount }
+        details: { paymentLinkId: link.id, transactionId, amount: link.amount, bookingGroupId: appointment?.bookingGroupId || "", appointmentIds: targetIds }
       });
     });
     txn();

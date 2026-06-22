@@ -38,7 +38,7 @@ type StaffDirectoryRow = ApiRecord & {
         <div class="staff-title-block">
           <span class="eyebrow">Smart staff management</span>
           <h2>Commission, attendance, shifts, performance, incentives and payroll</h2>
-          <p>Staff intelligence calculates from saved sales, appointments, shifts and attendance records.</p>
+          <p>Staff metrics calculate from saved sales, appointments, shifts and attendance records.</p>
         </div>
 
         <form class="staff-filter-bar" [formGroup]="filterForm" (ngSubmit)="load()">
@@ -119,7 +119,7 @@ type StaffDirectoryRow = ApiRecord & {
               <section class="panel compact-panel">
                 <div class="section-title compact-title">
                   <div>
-                    <span class="eyebrow">AI staff insights</span>
+                    <span class="eyebrow">Staff insights</span>
                     <h2>Recommendations</h2>
                   </div>
                 </div>

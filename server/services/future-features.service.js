@@ -17,8 +17,13 @@ const allowedTypes = new Set([
   "demand-forecasting",
   "inventory-prediction",
   "voice-booking-assistant",
+  "voice-receptionist",
+  "dynamic-pricing",
   "smart-kiosk-mode",
-  "ai-receptionist"
+  "ai-receptionist",
+  "franchise-os",
+  "smart-forms",
+  "marketplace"
 ]);
 
 const workflowDefinitions = [
@@ -39,6 +44,15 @@ const workflowDefinitions = [
     modules: ["Services", "POS Billing", "Appointments"],
     routes: ["/services", "/pos", "/appointments"],
     action: "Review service price upside"
+  },
+  {
+    type: "dynamic-pricing",
+    label: "Dynamic pricing engine",
+    category: "Revenue",
+    sourceKeys: ["services", "sales", "appointments", "memberships"],
+    modules: ["Services", "POS Billing", "Appointments", "Memberships"],
+    routes: ["/services", "/pos", "/appointments", "/memberships"],
+    action: "Generate review-before-action pricing rules"
   },
   {
     type: "offer-engine",
@@ -95,6 +109,15 @@ const workflowDefinitions = [
     action: "Recommend bookable slots from voice transcript"
   },
   {
+    type: "voice-receptionist",
+    label: "AI voice receptionist",
+    category: "Front desk",
+    sourceKeys: ["clients", "appointments", "services", "memberships", "whatsappThreads"],
+    modules: ["Client CRM", "Appointments", "Services", "Memberships", "WhatsApp"],
+    routes: ["/clients", "/appointments", "/services", "/memberships", "/whatsapp"],
+    action: "Classify call, suggest booking action and prepare handoff"
+  },
+  {
     type: "smart-kiosk-mode",
     label: "Smart kiosk mode",
     category: "Front desk",
@@ -111,6 +134,33 @@ const workflowDefinitions = [
     modules: ["Client CRM", "Appointments", "Services", "Memberships", "WhatsApp"],
     routes: ["/clients", "/appointments", "/services", "/memberships", "/whatsapp"],
     action: "Route booking, complaint, payment or membership intent"
+  },
+  {
+    type: "franchise-os",
+    label: "Franchise OS",
+    category: "Enterprise",
+    sourceKeys: ["branches", "sales", "staff", "appointments"],
+    modules: ["Branches", "POS Billing", "Staff", "Appointments"],
+    routes: ["/settings", "/pos", "/staff", "/appointments"],
+    action: "Review royalty, compliance and branch action plan"
+  },
+  {
+    type: "smart-forms",
+    label: "Smart forms builder",
+    category: "Experience",
+    sourceKeys: ["clients", "services", "appointments"],
+    modules: ["Client CRM", "Services", "Appointments"],
+    routes: ["/clients", "/services", "/appointments"],
+    action: "Generate consent and consultation workflows"
+  },
+  {
+    type: "marketplace",
+    label: "App marketplace",
+    category: "Platform",
+    sourceKeys: ["clients", "sales", "appointments", "whatsappThreads", "memberships"],
+    modules: ["Client CRM", "POS Billing", "Appointments", "WhatsApp", "Memberships"],
+    routes: ["/clients", "/pos", "/appointments", "/whatsapp", "/memberships"],
+    action: "Recommend provider connectors and install plan"
   }
 ];
 
@@ -214,6 +264,8 @@ export class FutureFeaturesService {
         return this.growthAdvisor(payload, context);
       case "pricing-optimizer":
         return this.pricingOptimizer(payload, context);
+      case "dynamic-pricing":
+        return this.dynamicPricing(payload, context);
       case "offer-engine":
         return this.offerEngine(payload, context);
       case "emotion-analysis":
@@ -226,10 +278,18 @@ export class FutureFeaturesService {
         return this.inventoryPrediction(payload, context);
       case "voice-booking-assistant":
         return this.voiceBookingAssistant(payload, context, access);
+      case "voice-receptionist":
+        return this.voiceReceptionist(payload, context, access);
       case "smart-kiosk-mode":
         return this.smartKioskMode(payload, context, access);
       case "ai-receptionist":
         return this.aiReceptionist(payload, context);
+      case "franchise-os":
+        return this.franchiseOs(payload, context);
+      case "smart-forms":
+        return this.smartForms(payload, context);
+      case "marketplace":
+        return this.marketplace(payload, context);
       default:
         throw badRequest("Unknown future feature workflow");
     }
@@ -466,6 +526,27 @@ export class FutureFeaturesService {
     };
   }
 
+  approvalFlow({ role = "manager", checkpoint = "Review generated workflow", evidence = [], blockers = [] } = {}) {
+    return {
+      status: blockers.length ? "blocked" : "ready_for_review",
+      requiredRole: role,
+      checkpoint,
+      evidence,
+      blockers,
+      auditMode: "review-before-action"
+    };
+  }
+
+  actionPlan(steps = []) {
+    return steps.map((step, index) => ({
+      step: index + 1,
+      owner: step.owner || "manager",
+      action: step.action,
+      target: step.target || "workflow",
+      status: step.status || "pending_review"
+    }));
+  }
+
   growthAdvisor(_payload, context) {
     const lowStock = context.products.filter((item) => Number(item.stock || 0) <= Number(item.lowStockThreshold || 0));
     const inactive = context.clients.filter((client) => daysSince(client.lastVisitAt) > 60);
@@ -505,6 +586,63 @@ export class FutureFeaturesService {
       recommendations,
       actions: ["Review suggested service prices", "Test price change at one branch", "Track conversion after 14 days"],
       confidence: 0.82
+    };
+  }
+
+  dynamicPricing(payload, context) {
+    const optimizer = this.pricingOptimizer(payload, context);
+    const bookedAppointments = context.appointments.filter((item) => ["booked", "arrived", "completed"].includes(item.status));
+    const weekendBookings = bookedAppointments.filter((item) => {
+      const day = new Date(item.startAt || item.date || now()).getDay();
+      return [0, 6].includes(day);
+    }).length;
+    const peakMultiplier = bookedAppointments.length ? weekendBookings / bookedAppointments.length : 0;
+    const ruleDrafts = optimizer.recommendations.slice(0, 5).map((item, index) => ({
+      name: `${item.service || "Service"} demand guardrail`,
+      scope: "service",
+      serviceId: item.serviceId,
+      status: "review",
+      conditions: {
+        demandWindow: peakMultiplier > 0.35 ? "weekend-peak" : "standard",
+        minBookings: Math.max(3, Math.ceil(bookedAppointments.length / 8)),
+        membershipProtected: true
+      },
+      adjustments: {
+        suggestedPrice: item.suggestedPrice,
+        maxIncreasePercent: index === 0 ? 12 : 8,
+        floorPrice: item.currentPrice
+      },
+      approval: {
+        required: true,
+        mode: "manager-review",
+        reason: item.rationale
+      }
+    }));
+    return {
+      title: "Dynamic pricing engine",
+      averageTicket: optimizer.averageTicket,
+      demandSignal: peakMultiplier > 0.35 ? "peak-sensitive" : "stable",
+      ruleDrafts,
+      totalMonthlyOpportunity: optimizer.totalMonthlyOpportunity,
+      approvalFlow: this.approvalFlow({
+        role: "owner/admin",
+        checkpoint: "Approve one branch pilot before price changes go live",
+        evidence: [`${bookedAppointments.length} appointment signals`, `${optimizer.recommendations.length} service price recommendations`],
+        blockers: ruleDrafts.length ? [] : ["No service price recommendations available yet"]
+      }),
+      actionPlan: this.actionPlan([
+        { action: "Review rule drafts", target: "dynamicPricingRules" },
+        { action: "Save one draft rule", target: "dynamicPricingRules" },
+        { action: "Monitor conversion and complaints for 14 days", target: "appointments + POS" }
+      ]),
+      draftPayloads: ruleDrafts.map((rule) => ({
+        label: rule.name,
+        endpoint: "dynamicPricingRules",
+        ready: true,
+        payload: rule
+      })),
+      actions: ["Review rule drafts", "Approve one branch pilot", "Monitor conversion and complaints"],
+      confidence: 0.83
     };
   }
 
@@ -634,6 +772,61 @@ export class FutureFeaturesService {
     };
   }
 
+  voiceReceptionist(payload, context, access) {
+    const phrase = payload.transcript || payload.prompt || "Client wants to book an appointment";
+    const lower = phrase.toLowerCase();
+    const intent = lower.includes("refund") || lower.includes("paid")
+      ? "payment"
+      : lower.includes("complaint") || lower.includes("bad") || lower.includes("late")
+        ? "complaint"
+        : lower.includes("member") || lower.includes("package")
+          ? "membership"
+          : "booking";
+    const receptionist = this.aiReceptionist({ ...payload, intent }, context);
+    const booking = intent === "booking" ? this.voiceBookingAssistant({ ...payload, transcript: phrase }, context, access) : null;
+    return {
+      title: "AI voice receptionist",
+      intent,
+      script: receptionist.script,
+      routing: receptionist.routing,
+      recommendedSlots: booking?.recommendedSlots || [],
+      session: booking?.session || null,
+      handoff: {
+        required: intent === "complaint" || receptionist.confidence < 0.75,
+        queue: intent === "complaint" ? "manager" : "front-desk",
+        reason: intent === "complaint" ? "Service recovery needed" : "Low confidence or payment-sensitive request"
+      },
+      approvalFlow: this.approvalFlow({
+        role: intent === "complaint" ? "manager" : "front-desk",
+        checkpoint: "Verify caller identity and consent before creating a call log",
+        evidence: [`Intent: ${intent}`, booking ? `${booking.recommendedSlots.length} slot options` : "No slot action required"],
+        blockers: payload.phone ? [] : ["Caller phone is required before saving call log"]
+      }),
+      actionPlan: this.actionPlan([
+        { action: "Capture consent and caller phone", owner: "front-desk", target: "voice-receptionist/calls" },
+        { action: intent === "booking" ? "Confirm recommended slot" : "Route to correct desk", owner: "front-desk", target: intent },
+        { action: "Escalate sensitive calls", owner: "manager", target: "handoff queue", status: intent === "complaint" ? "required" : "conditional" }
+      ]),
+      draftPayloads: payload.phone ? [{
+        label: `${payload.phone} ${intent} call`,
+        endpoint: "voice-receptionist/calls",
+        ready: true,
+        payload: {
+          branchId: payload.branchId || context.branchId,
+          phone: payload.phone,
+          intent,
+          language: payload.language || "en-IN",
+          transcript: [{ at: now(), speaker: "client", text: phrase }],
+          entities: { intent, recommendedSlots: booking?.recommendedSlots || [] },
+          summary: receptionist.script,
+          humanHandoffRequired: intent === "complaint"
+        }
+      }] : [],
+      actions: ["Capture call transcript", "Classify intent", "Suggest next action", "Handoff when needed"],
+      confidence: 0.86
+    };
+  }
+
   smartKioskMode(payload, context, access) {
     const branchId = payload.branchId || context.branchId || context.branches[0]?.id || "";
     const queue = smartBookingService.queuePrediction({ branchId }, access);
@@ -676,6 +869,172 @@ export class FutureFeaturesService {
       actions: ["Classify intent", "Offer next best action", "Escalate when confidence is low"],
       context: { openBookings: context.appointments.filter((item) => item.status === "booked").length },
       confidence: 0.87
+    };
+  }
+
+  franchiseOs(payload, context) {
+    const royaltyPercent = Number(payload.royaltyPercent || 8);
+    const units = (context.branches.length ? context.branches : [{ id: context.branchId || "default", name: "Current branch" }]).map((branch) => {
+      const branchSales = context.sales.filter((sale) => !branch.id || !sale.branchId || sale.branchId === branch.id);
+      const revenue = branchSales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+      const branchAppointments = context.appointments.filter((appointment) => !branch.id || !appointment.branchId || appointment.branchId === branch.id);
+      const staffCount = context.staff.filter((staff) => !branch.id || !staff.branchId || staff.branchId === branch.id).length;
+      const complianceScore = Math.min(100, 62 + Math.min(18, staffCount * 3) + Math.min(20, branchAppointments.length));
+      return {
+        branchId: branch.id,
+        branchName: branch.name || branch.id,
+        revenue: money(revenue),
+        royaltyDue: money(revenue * royaltyPercent / 100),
+        complianceScore,
+        status: complianceScore >= 85 ? "ready" : "needs review"
+      };
+    });
+    return {
+      title: "Franchise OS",
+      royaltyPercent,
+      units,
+      totalRoyaltyDue: money(units.reduce((sum, unit) => sum + Number(unit.royaltyDue || 0), 0)),
+      complianceActions: units.filter((unit) => unit.status !== "ready").map((unit) => `${unit.branchName}: complete SOP and audit checklist`),
+      approvalFlow: this.approvalFlow({
+        role: "owner",
+        checkpoint: "Owner approval required before franchise unit or royalty draft is created",
+        evidence: [`${units.length} branch/unit signals`, `Royalty percent ${royaltyPercent}`],
+        blockers: units.length ? [] : ["No branch data available for franchise planning"]
+      }),
+      actionPlan: this.actionPlan([
+        { action: "Review branch compliance scores", owner: "owner", target: "franchise-os/units" },
+        { action: "Create franchise unit draft", owner: "owner", target: "franchise-os/units" },
+        { action: "Prepare royalty run after unit approval", owner: "accountant", target: "franchise-os/royalty-runs" }
+      ]),
+      draftPayloads: units.slice(0, 1).map((unit) => ({
+        label: `${unit.branchName} franchise unit`,
+        endpoint: "franchise-os/units",
+        ready: true,
+        payload: {
+          branchId: unit.branchId || context.branchId,
+          franchiseName: `${unit.branchName} Franchise`,
+          ownerName: payload.ownerName || "",
+          ownerEmail: payload.ownerEmail || "",
+          royaltyPercent,
+          territory: { branchId: unit.branchId, branchName: unit.branchName },
+          sopScore: unit.complianceScore,
+          status: unit.status === "ready" ? "ready" : "onboarding"
+        }
+      })),
+      actions: ["Review royalty run", "Open compliance checklist", "Publish shared operating template"],
+      confidence: 0.82
+    };
+  }
+
+  smartForms(_payload, context) {
+    const formDrafts = context.services.slice(0, 5).map((service) => ({
+      name: `${service.name || "Service"} consultation form`,
+      formType: "consultation-consent",
+      version: 1,
+      status: "draft",
+      schema: {
+        clientFields: ["allergies", "skinSensitivity", "previousTreatment", "preferredStyle"],
+        serviceId: service.id,
+        requiredBefore: "appointment-check-in"
+      },
+      rules: {
+        requireSignature: true,
+        managerReview: Number(service.price || 0) > 3000,
+        repeatClientShortcut: context.clients.length > 0
+      },
+      signatureConfig: {
+        mode: "digital",
+        auditTrail: true
+      }
+    }));
+    return {
+      title: "Smart forms builder",
+      formDrafts,
+      appointmentCoverage: context.appointments.length,
+      clientCoverage: context.clients.length,
+      approvalFlow: this.approvalFlow({
+        role: "manager",
+        checkpoint: "Confirm legal text and signature rules before publishing",
+        evidence: [`${context.services.length} services`, `${context.appointments.length} appointments`, `${context.clients.length} clients`],
+        blockers: formDrafts.length ? [] : ["No services available to attach a smart form"]
+      }),
+      actionPlan: this.actionPlan([
+        { action: "Review generated form schema", target: "smartForms" },
+        { action: "Save draft form", target: "smartForms" },
+        { action: "Attach form to service check-in", target: "appointments" }
+      ]),
+      draftPayloads: formDrafts.map((form) => ({
+        label: form.name,
+        endpoint: "smartForms",
+        ready: true,
+        payload: form
+      })),
+      actions: ["Review form drafts", "Attach to services", "Enable digital signature before check-in"],
+      confidence: 0.84
+    };
+  }
+
+  marketplace(_payload, context) {
+    const connectorPlan = [
+      {
+        name: "WhatsApp messaging",
+        provider: "whatsapp",
+        category: "engagement",
+        priority: context.whatsappThreads.length ? "maintain" : "install",
+        reason: context.whatsappThreads.length ? "Conversation data is already flowing" : "Required for reminders and review links"
+      },
+      {
+        name: "Payment collection",
+        provider: "payments",
+        category: "billing",
+        priority: context.sales.length ? "optimize" : "install",
+        reason: "Needed for deposits, invoices and online settlement"
+      },
+      {
+        name: "Calendar sync",
+        provider: "calendar",
+        category: "appointments",
+        priority: context.appointments.length ? "connect" : "prepare",
+        reason: "Keeps staff availability and reminders aligned"
+      },
+      {
+        name: "Reputation sync",
+        provider: "reviews",
+        category: "growth",
+        priority: "connect",
+        reason: "Turns invoice review links into profile-visible reputation workflows"
+      }
+    ];
+    return {
+      title: "App marketplace",
+      connectorPlan,
+      installReadiness: `${connectorPlan.filter((item) => item.priority !== "prepare").length}/${connectorPlan.length}`,
+      approvalFlow: this.approvalFlow({
+        role: "owner",
+        checkpoint: "Credential owner must approve connector creation before live sync",
+        evidence: connectorPlan.map((item) => `${item.name}: ${item.priority}`),
+        blockers: []
+      }),
+      actionPlan: this.actionPlan([
+        { action: "Create provider connector draft", owner: "owner", target: "marketplace/connectors" },
+        { action: "Attach credential reference", owner: "admin", target: "provider credentials" },
+        { action: "Run first sync and check health", owner: "admin", target: "marketplace health" }
+      ]),
+      draftPayloads: connectorPlan.map((connector) => ({
+        label: connector.name,
+        endpoint: "marketplace/connectors",
+        ready: true,
+        payload: {
+          providerKey: connector.provider,
+          providerType: connector.category,
+          displayName: connector.name,
+          capabilities: [connector.reason],
+          health: { configured: false, liveSendEnabled: false, reason: connector.reason },
+          status: "draft"
+        }
+      })),
+      actions: ["Create provider connector", "Configure credentials", "Run first sync"],
+      confidence: 0.81
     };
   }
 }

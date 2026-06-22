@@ -28,6 +28,22 @@ function accountId(tenantId, branchId, code) {
   return row.id;
 }
 
+function assetCostPaise(a) {
+  return money(a.costPaise || a.purchaseCostPaise);
+}
+
+function assetSalvagePaise(a) {
+  return money(a.salvagePaise || a.salvageValuePaise);
+}
+
+function assetMethod(a) {
+  return String(a.method || a.depreciationMethod || "SLM").toUpperCase();
+}
+
+function assetWdvRatePct(a) {
+  return Number(a.wdvRatePct ?? a.wdvRatePercent ?? 0) || 0;
+}
+
 // Stage 24 — fixed asset register with Companies Act style depreciation.
 // SLM = (cost - salvage) / usefulLifeMonths per month. WDV = netBookValue *
 // (annual % / 12). Depreciation is exactly-once per asset per month (UNIQUE
@@ -43,6 +59,8 @@ export const fixedAssetService = {
     const method = payload.method === "WDV" ? "WDV" : "SLM";
     const acquisitionDate = normalizeBusinessDate(payload.acquisitionDate || istToday());
     const paymentMode = PAYMENT_ASSET[payload.paymentMode] ? payload.paymentMode : "bank";
+    const salvagePaise = money(payload.salvagePaise);
+    const wdvRatePct = Number(payload.wdvRatePct) || 0;
 
     const assetId = id("fa");
     const existing = db.prepare("SELECT * FROM fixedAssets WHERE tenantId=? AND branchId=? AND code=?").get(tenantId, branchId, code);
@@ -60,13 +78,23 @@ export const fixedAssetService = {
     }, access);
 
     db.prepare(`
-      INSERT INTO fixedAssets (id, tenantId, branchId, code, name, category, acquisitionDate, costPaise, salvagePaise, usefulLifeMonths, method, wdvRatePct)
-      VALUES (@id, @tenantId, @branchId, @code, @name, @category, @acquisitionDate, @costPaise, @salvagePaise, @usefulLifeMonths, @method, @wdvRatePct)
+      INSERT INTO fixedAssets (
+        id, tenantId, branchId, code, name, category, acquisitionDate, costPaise, salvagePaise,
+        usefulLifeMonths, method, wdvRatePct, assetName, purchaseDate, purchaseCostPaise,
+        salvageValuePaise, depreciationMethod, wdvRatePercent
+      )
+      VALUES (
+        @id, @tenantId, @branchId, @code, @name, @category, @acquisitionDate, @costPaise, @salvagePaise,
+        @usefulLifeMonths, @method, @wdvRatePct, @assetName, @purchaseDate, @purchaseCostPaise,
+        @salvageValuePaise, @depreciationMethod, @wdvRatePercent
+      )
     `).run({
       id: assetId, tenantId, branchId, code, name,
       category: String(payload.category || "equipment"), acquisitionDate, costPaise,
-      salvagePaise: money(payload.salvagePaise), usefulLifeMonths: Math.max(1, Number(payload.usefulLifeMonths) || 60),
-      method, wdvRatePct: Number(payload.wdvRatePct) || 0
+      salvagePaise, usefulLifeMonths: Math.max(1, Number(payload.usefulLifeMonths) || 60),
+      method, wdvRatePct, assetName: name, purchaseDate: acquisitionDate,
+      purchaseCostPaise: costPaise, salvageValuePaise: salvagePaise,
+      depreciationMethod: method.toLowerCase(), wdvRatePercent: wdvRatePct
     });
     return this.assetView(db.prepare("SELECT * FROM fixedAssets WHERE id=?").get(assetId));
   },
@@ -105,12 +133,14 @@ export const fixedAssetService = {
   },
 
   monthlyDepreciation(a) {
-    const depreciable = a.costPaise - a.salvagePaise;
+    const costPaise = assetCostPaise(a);
+    const salvagePaise = assetSalvagePaise(a);
+    const depreciable = costPaise - salvagePaise;
     const remaining = depreciable - a.accumulatedDepreciationPaise;
     if (remaining <= 0) return 0;
-    if (a.method === "WDV") {
-      const nbv = a.costPaise - a.accumulatedDepreciationPaise;
-      const monthly = Math.round(nbv * (a.wdvRatePct / 100) / 12);
+    if (assetMethod(a) === "WDV") {
+      const nbv = costPaise - a.accumulatedDepreciationPaise;
+      const monthly = Math.round(nbv * (assetWdvRatePct(a) / 100) / 12);
       return Math.min(Math.max(0, monthly), remaining);
     }
     const monthly = Math.round(depreciable / a.usefulLifeMonths);
@@ -124,13 +154,14 @@ export const fixedAssetService = {
     if (a.status === "disposed") throw badRequest("Asset already disposed");
     const disposeDate = normalizeBusinessDate(payload.disposeDate || istToday());
     const proceeds = money(payload.proceedsPaise);
-    const nbv = a.costPaise - a.accumulatedDepreciationPaise;
+    const costPaise = assetCostPaise(a);
+    const nbv = costPaise - a.accumulatedDepreciationPaise;
     const gain = proceeds - nbv;
 
     const lines = [];
     if (proceeds > 0) lines.push({ accountId: accountId(tenantId, branchId, PAYMENT_ASSET[PAYMENT_ASSET[payload.paymentMode] ? payload.paymentMode : "bank"]), debitPaise: proceeds });
     if (a.accumulatedDepreciationPaise > 0) lines.push({ accountId: accountId(tenantId, branchId, "1590"), debitPaise: a.accumulatedDepreciationPaise });
-    lines.push({ accountId: accountId(tenantId, branchId, "1500"), creditPaise: a.costPaise });
+    lines.push({ accountId: accountId(tenantId, branchId, "1500"), creditPaise: costPaise });
     if (gain > 0) lines.push({ accountId: accountId(tenantId, branchId, "4200"), creditPaise: gain });
     if (gain < 0) lines.push({ accountId: accountId(tenantId, branchId, "5500"), debitPaise: -gain });
 
@@ -146,11 +177,13 @@ export const fixedAssetService = {
 
   assetView(a) {
     if (!a) return null;
-    const nbv = a.costPaise - a.accumulatedDepreciationPaise;
+    const costPaise = assetCostPaise(a);
+    const salvagePaise = assetSalvagePaise(a);
+    const nbv = costPaise - a.accumulatedDepreciationPaise;
     return {
-      id: a.id, code: a.code, name: a.name, category: a.category, method: a.method,
-      acquisitionDate: a.acquisitionDate, cost: rupees(a.costPaise), salvage: rupees(a.salvagePaise),
-      usefulLifeMonths: a.usefulLifeMonths, wdvRatePct: a.wdvRatePct,
+      id: a.id, code: a.code || a.id, name: a.name || a.assetName, category: a.category || "equipment", method: assetMethod(a),
+      acquisitionDate: a.acquisitionDate || a.purchaseDate, cost: rupees(costPaise), salvage: rupees(salvagePaise),
+      usefulLifeMonths: a.usefulLifeMonths, wdvRatePct: assetWdvRatePct(a),
       accumulatedDepreciation: rupees(a.accumulatedDepreciationPaise), netBookValue: rupees(nbv), status: a.status
     };
   },
@@ -158,7 +191,7 @@ export const fixedAssetService = {
   register(query = {}, access = {}) {
     const { tenantId, branchId } = scope(access, query.branchId || "");
     const rows = db.prepare("SELECT * FROM fixedAssets WHERE tenantId=? AND branchId=? ORDER BY code").all(tenantId, branchId);
-    const grossPaise = rows.reduce((s, r) => s + r.costPaise, 0);
+    const grossPaise = rows.reduce((s, r) => s + assetCostPaise(r), 0);
     const accumPaise = rows.reduce((s, r) => s + r.accumulatedDepreciationPaise, 0);
     return {
       grossBlock: rupees(grossPaise), accumulatedDepreciation: rupees(accumPaise),

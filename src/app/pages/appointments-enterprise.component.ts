@@ -1,7 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
@@ -33,6 +33,18 @@ type BookingLineDraft = {
   durationMinutes: number;
   chair: string;
   room: string;
+};
+
+type ClientServiceHistoryRow = {
+  id: string;
+  date: string;
+  serviceId: string;
+  serviceName: string;
+  staffId: string;
+  staffName: string;
+  price: number;
+  durationMinutes: number;
+  invoiceNumber: string;
 };
 
 type AppointmentBillLine = {
@@ -71,6 +83,7 @@ type SchedulerContext = {
   blockedTimes: ApiRecord[];
   waitlist: ApiRecord[];
   summary: ApiRecord;
+  actionQueue: ApiRecord[];
 };
 
 type CalendarDay = {
@@ -103,7 +116,7 @@ type LaneBlock = {
   top: number;
   height: number;
   label: string;
-  kind: 'shift' | 'blocked';
+  kind: 'shift' | 'blocked' | 'unavailable';
   reason: string;
 };
 
@@ -111,7 +124,7 @@ const DAY_START_MINUTES = 8 * 60;
 const DAY_END_MINUTES = 22 * 60;
 const ROW_HEIGHT = 44;
 const STAFF_LIMIT = 15;
-const STATUS_OPTIONS = ['payment_pending', 'booked', 'confirmed', 'arrived', 'waiting', 'in-service', 'completed', 'billed', 'paid', 'cancelled', 'no-show'];
+const STATUS_OPTIONS = ['payment_pending', 'booked', 'confirmed', 'arrived', 'waiting', 'in-service', 'completed', 'cancelled', 'no-show'];
 const STATUS_TONES: Record<string, string> = {
   booked: 'blue',
   payment_pending: 'amber',
@@ -132,8 +145,17 @@ const STATUS_TONES: Record<string, string> = {
   imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
   template: `
     <section class="enterprise-scheduler">
-      <app-state [loading]="loading()" [error]="error()" loadingText="Loading enterprise scheduler"></app-state>
-      <ng-container *ngIf="!loading() && !error()">
+      <app-state [loading]="loading()" [error]="drawer() ? '' : error()" loadingText="Loading enterprise scheduler"></app-state>
+      <ng-container *ngIf="!loading() && (!error() || drawer())">
+        <section class="deposit-followup-strip" *ngIf="adjustedDueFollowUpCount() > 0">
+          <div>
+            <span class="eyebrow">Front-desk follow-up</span>
+            <strong>{{ adjustedDueFollowUpCount() }} adjusted + due booking(s) pending</strong>
+            <small>Advance is adjusted; counter collection is still pending.</small>
+          </div>
+          <button class="ghost-button mini" type="button" (click)="openDepositFollowUpReport()">Open deposit report</button>
+        </section>
+
         <section class="month-strip-band">
           <button type="button" (click)="shiftMonth(-1)" aria-label="Previous month">&lt;&lt;</button>
           <strong class="month-range-label">{{ selectedDate() | date: 'MMM yyyy' }}</strong>
@@ -212,6 +234,16 @@ const STATUS_TONES: Record<string, string> = {
               ></button>
               <span class="current-time-line" *ngIf="currentTimeBodyTop() >= 0" [style.top.px]="currentTimeBodyTop()"></span>
 
+              <button
+                class="lane-block roster-closed"
+                type="button"
+                *ngFor="let block of unavailableBlocksByStaff().get(person.id) || []; trackBy: trackBlock"
+                [style.top.px]="block.top"
+                [style.height.px]="block.height"
+                (click)="showRosterClosed(block, $event)"
+              >
+                {{ block.label }}
+              </button>
               <div class="lane-block shift" *ngFor="let block of shiftBlocksByStaff().get(person.id) || []; trackBy: trackBlock" [style.top.px]="block.top" [style.height.px]="block.height">
                 {{ block.label }}
               </div>
@@ -257,12 +289,12 @@ const STATUS_TONES: Record<string, string> = {
             class="ops-panel ops-launch ai-slot-launch"
             role="button"
             tabindex="0"
-            aria-label="Open AI slot pilot"
+            aria-label="Open slot suggestions"
             (click)="openAiSlotPilot()"
             (keydown.enter)="openAiSlotPilot()"
             (keydown.space)="openAiSlotPilot(); $event.preventDefault()"
           >
-            <div class="panel-head"><span class="eyebrow">AI slot pilot</span><strong>Best safe slots</strong><small>Open</small></div>
+            <div class="panel-head"><span class="eyebrow">Slot suggestions</span><strong>Best safe slots</strong><small>Open</small></div>
             <p>{{ smartSlots().length }} safe slot suggestions ready</p>
           </article>
           <article
@@ -281,13 +313,13 @@ const STATUS_TONES: Record<string, string> = {
             class="ops-panel ops-launch pulse"
             role="button"
             tabindex="0"
-            aria-label="Open operations risk radar"
+            aria-label="Open operations queue"
             (click)="openOperationsPulse()"
             (keydown.enter)="openOperationsPulse()"
             (keydown.space)="openOperationsPulse(); $event.preventDefault()"
           >
             <div class="panel-head"><span class="eyebrow">Operations pulse</span><strong>Risk radar</strong></div>
-            <p>{{ summaryValue('capacityPct') }}% capacity - {{ summaryValue('conflicts') }} conflicts - {{ summaryValue('blockedTimes') }} blocked</p>
+            <p>{{ actionQueue().length }} action(s) - {{ summaryValue('capacityPct') }}% capacity - {{ summaryValue('conflicts') }} conflicts - {{ summaryValue('blockedTimes') }} blocked</p>
           </article>
         </section>
       </ng-container>
@@ -297,7 +329,7 @@ const STATUS_TONES: Record<string, string> = {
       <aside class="scheduler-drawer ai-slot-drawer" *ngIf="drawer() === 'ai-slots'">
         <header>
           <div>
-            <span class="eyebrow">AI slot pilot</span>
+            <span class="eyebrow">Slot suggestions</span>
             <h3>Best safe slots</h3>
           </div>
           <button type="button" (click)="closeDrawer()">×</button>
@@ -316,7 +348,7 @@ const STATUS_TONES: Record<string, string> = {
         <header>
           <div>
             <span class="eyebrow">Calendar operations</span>
-            <h3>Demand queue and risk radar</h3>
+            <h3>Demand queue</h3>
           </div>
           <button type="button" (click)="closeDrawer()">×</button>
         </header>
@@ -343,6 +375,20 @@ const STATUS_TONES: Record<string, string> = {
               <div><span>Blocked</span><strong>{{ summaryValue('blockedTimes') }}</strong><small>staff unavailable slots</small></div>
               <div><span>No-show</span><strong>{{ summaryValue('noShow') }}</strong><small>recovery queue</small></div>
             </div>
+          </section>
+
+          <section class="drawer-panel">
+            <div class="panel-head">
+              <span class="eyebrow">Booking action queue</span>
+              <strong>{{ actionQueue().length }} live task{{ actionQueue().length === 1 ? '' : 's' }}</strong>
+            </div>
+            <div class="waitlist-row action-row" *ngFor="let row of actionQueue(); trackBy: trackApiRecord">
+              <strong>{{ row['title'] || actionTypeLabel(row['type']) }}</strong>
+              <span>{{ actionTypeLabel(row['type']) }} · {{ row['priority'] || 'medium' }}</span>
+              <small>{{ row['detail'] || '-' }}</small>
+              <small>{{ row['suggestedAction'] || 'Review this booking signal.' }}</small>
+            </div>
+            <div class="empty-state" *ngIf="!actionQueue().length">No conflicts, waitlist pressure, no-show recovery or capacity actions for this view.</div>
           </section>
         </div>
       </aside>
@@ -386,6 +432,31 @@ const STATUS_TONES: Record<string, string> = {
           </label>
           <label><span>Status</span><select formControlName="status"><option *ngFor="let status of statusOptions" [value]="status">{{ label(status) }}</option></select></label>
           <label><span>Notes</span><textarea formControlName="notes" rows="2"></textarea></label>
+
+          <section class="previous-service-panel" *ngIf="selectedBookingClientId()">
+            <div class="service-line-head">
+              <div>
+                <strong>Previous services</strong>
+                <small>Review the client's previous services and last charged price.</small>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="refreshPreviousServices()" [disabled]="clientServiceHistoryLoading()">
+                {{ clientServiceHistoryLoading() ? 'Loading' : 'Refresh' }}
+              </button>
+            </div>
+            <div class="previous-service-list" *ngIf="clientServiceHistory().length; else noPreviousServices">
+              <article *ngFor="let item of clientServiceHistory(); trackBy: trackClientServiceHistory">
+                <div>
+                  <strong>{{ item.serviceName }}</strong>
+                  <span>{{ formatShortDate(item.date) }} · {{ item.staffName || 'Staff' }} · {{ item.invoiceNumber || 'Invoice' }}</span>
+                  <small>Last charged {{ money(item.price) }} · {{ item.durationMinutes || 30 }}m</small>
+                </div>
+                <button class="ghost-button mini edit-action" type="button" (click)="addPreviousServiceToBooking(item)">Add service</button>
+              </article>
+            </div>
+            <ng-template #noPreviousServices>
+              <p class="inline-hint">{{ clientServiceHistoryLoading() ? 'Loading previous service history.' : clientServiceHistoryError() || 'No previous service history found for this client.' }}</p>
+            </ng-template>
+          </section>
 
           <div class="service-line-head">
             <strong>Services</strong>
@@ -458,10 +529,11 @@ const STATUS_TONES: Record<string, string> = {
             <label><input type="checkbox" formControlName="notifyStaff" /> Staff</label>
             <label><input type="checkbox" formControlName="notifyOwner" /> Owner</label>
           </fieldset>
+          <p class="inline-hint danger" *ngIf="error()">{{ error() }}</p>
 
           <div class="drawer-actions">
             <button class="ghost-button" type="button" (click)="closeDrawer()">Cancel</button>
-            <button class="primary-button" type="submit" [disabled]="saving() || bookingForm.invalid">{{ saving() ? 'Saving...' : 'Create booking' }}</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || bookingForm.invalid">{{ saving() ? 'Saving...' : (editingAppointmentId() ? 'Update booking' : 'Create booking') }}</button>
           </div>
         </form>
       </aside>
@@ -556,7 +628,7 @@ const STATUS_TONES: Record<string, string> = {
           <button class="bill-close" type="button" (click)="closeDrawer()">×</button>
           <div>
             <h3>View Bill</h3>
-            <span>{{ appointment.startAt | date: 'shortTime' }} · {{ label(appointment.status || 'booked') }}</span>
+                <span>{{ appointment.startAt | date: 'shortTime' }} · {{ appointmentBillingLabel(appointment) }}</span>
           </div>
           <button class="ghost-button mini" type="button" (click)="printAppointmentBill()">Print</button>
         </header>
@@ -640,7 +712,9 @@ const STATUS_TONES: Record<string, string> = {
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'client')">SMS client</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'staff')">SMS staff</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'owner')">SMS owner</button>
-                <button class="primary-button" type="button" (click)="convertToPos(appointment)">POS handoff</button>
+                <button class="primary-button" type="button" (click)="convertToPos(appointment)" [disabled]="billingStatusChecking() || appointmentBillingLocked(appointment)">
+                  {{ billingStatusChecking() ? 'Checking bill...' : (appointmentBillingLocked(appointment) ? 'Already billed' : 'POS handoff') }}
+                </button>
               </div>
             </section>
           </div>
@@ -671,6 +745,21 @@ const STATUS_TONES: Record<string, string> = {
       background: rgba(255,255,255,.94);
       box-shadow: 0 18px 42px rgba(15, 23, 42, .08);
     }
+    .deposit-followup-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 16px;
+      border: 1px solid #f7d7a5;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fff8ec, #ffffff);
+      box-shadow: 0 14px 30px rgba(148, 96, 9, 0.08);
+    }
+    .deposit-followup-strip strong,
+    .deposit-followup-strip small { display: block; }
+    .deposit-followup-strip strong { color: #8a4b08; font-size: 16px; margin-top: 2px; }
+    .deposit-followup-strip small { margin-top: 4px; color: #8b6b45; }
     h2, h3 { margin: 0; color: #111827; }
     h2 { font-size: 34px; line-height: 1.05; }
     h3 { font-size: 22px; }
@@ -735,8 +824,9 @@ const STATUS_TONES: Record<string, string> = {
     .lane-cell { display: block; width: 100%; height: var(--row-height); border: 0; border-bottom: 1px solid #edf2f1; background: white; cursor: crosshair; }
     .lane-cell:hover { background: #f0fdfa; outline: 1px solid #99f6e4; }
     .lane-block { position: absolute; left: 0; right: 0; z-index: 1; border: 1px solid rgba(15,23,42,.08); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; overflow: hidden; }
-    .lane-block.shift { background: #fed7aa; color: #7c2d12; }
+    .lane-block.shift { background: rgba(254, 215, 170, .82); color: #7c2d12; pointer-events: none; }
     .lane-block.blocked { background: repeating-linear-gradient(135deg, rgba(148,163,184,.25), rgba(148,163,184,.25) 8px, rgba(226,232,240,.7) 8px, rgba(226,232,240,.7) 16px); color: #334155; cursor: pointer; }
+    .lane-block.roster-closed { background: repeating-linear-gradient(135deg, rgba(148,163,184,.2), rgba(148,163,184,.2) 8px, rgba(241,245,249,.82) 8px, rgba(241,245,249,.82) 16px); color: #64748b; cursor: not-allowed; }
     .appointment-card { position: absolute; left: 8px; right: 8px; z-index: 4; border-radius: 8px; border: 1px solid #475569; padding: 8px 10px; text-align: left; color: #172033; overflow: hidden; cursor: grab; box-shadow: 0 10px 20px rgba(15,23,42,.12); }
     .appointment-card strong, .appointment-card b, .appointment-card span, .appointment-card small { display: block; line-height: 1.2; }
     .appointment-card strong { font-size: 12px; }
@@ -841,6 +931,12 @@ const STATUS_TONES: Record<string, string> = {
     .chair-field-compact { grid-column: span 3; }
     .service-remove-button { grid-column: span 2; min-height: 42px; }
     .service-line-head, .remove-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .previous-service-panel { display: grid; gap: 10px; border: 1px solid rgba(15, 118, 110, .18); border-radius: 12px; padding: 12px; background: #f8fffd; }
+    .previous-service-panel small, .previous-service-list span { display: block; color: #64748b; margin-top: 3px; }
+    .previous-service-list { display: grid; gap: 8px; max-height: 280px; overflow: auto; }
+    .previous-service-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid #dbe7e4; border-radius: 10px; padding: 10px; background: #fff; }
+    .previous-service-list strong { color: #172033; }
+    .edit-action { border-color: rgba(15, 118, 110, .35); background: #f0fdfa; color: #0f766e; font-weight: 900; }
     .search-select { display: grid; gap: 6px; align-content: start; }
     .smart-picker { position: relative; min-width: 0; }
     .smart-search-results { position: absolute; z-index: 95; top: calc(100% + 6px); left: 0; right: 0; display: grid; max-height: 260px; overflow: auto; border: 1px solid #cfe0dc; border-radius: 12px; background: #ffffff; box-shadow: 0 18px 36px rgba(15,23,42,.18); padding: 6px; }
@@ -879,16 +975,20 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly resizeState = signal<{ appointment: ApiRecord; startY: number; originalEnd: string } | null>(null);
   private timer = 0;
+  private noticeTimer = 0;
   readonly api = inject(ApiService);
   readonly state = inject(AppStateService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly rowHeight = ROW_HEIGHT;
   readonly statusOptions = STATUS_OPTIONS;
   readonly context = signal<SchedulerContext | null>(null);
+  readonly adjustedDueFollowUpCount = signal(0);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
+  readonly billingStatusChecking = signal(false);
   readonly lastBookedClientId = signal('');
   readonly showClientHistoryToastAction = computed(() => !!this.lastBookedClientId() && this.notice().toLowerCase().includes('appointment'));
   readonly waitlistError = signal('');
@@ -910,6 +1010,9 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly bookingLines = signal<BookingLineDraft[]>([]);
   readonly bookingClientSearch = signal('');
   readonly bookingClientSearchActive = signal(false);
+  readonly clientServiceHistory = signal<ClientServiceHistoryRow[]>([]);
+  readonly clientServiceHistoryLoading = signal(false);
+  readonly clientServiceHistoryError = signal('');
   readonly serviceSearchByLine = signal<Record<string, string>>({});
   readonly staffSearchByLine = signal<Record<string, string>>({});
   readonly serviceSearchActiveByLine = signal<Record<string, boolean>>({});
@@ -983,6 +1086,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly clients = computed(() => this.context()?.clients || []);
   readonly services = computed(() => this.context()?.services || []);
   readonly waitlist = computed(() => this.context()?.waitlist || []);
+  readonly actionQueue = computed(() => this.context()?.actionQueue || []);
   readonly allStaffChoices = computed(() => this.visibleStaff());
   readonly filteredClients = computed(() => {
     const query = this.normalizeSearch(this.bookingClientSearch());
@@ -1017,6 +1121,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   });
 
   readonly shiftBlocksByStaff = computed(() => this.groupBlocks((this.context()?.schedules || []).map((row) => this.shiftBlock(row))));
+  readonly unavailableBlocksByStaff = computed(() => this.groupBlocks(this.unavailableRosterBlocks()));
   readonly blockedBlocksByStaff = computed(() => this.groupBlocks((this.context()?.blockedTimes || []).map((row) => this.blockedBlock(row))));
 
   readonly smartSlots = computed(() => {
@@ -1026,7 +1131,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
         if (slot.minute < 10 * 60) continue;
         const keyCount = this.cellCount(staff.id, slot.minute);
         const inBlocked = (this.blockedBlocksByStaff().get(staff.id) || []).some((block) => slot.minute >= this.topToMinute(block.top) && slot.minute < this.topToMinute(block.top + block.height));
-        if (!keyCount && !inBlocked) {
+        if (!keyCount && !inBlocked && this.isStaffWorkingAt(staff.id, slot.minute)) {
           slots.push({ staff, slot, reason: 'Open slot with no visible conflict' });
           break;
         }
@@ -1037,6 +1142,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.applyRouteDateSelection();
     this.load();
     this.timer = window.setInterval(() => this.now.set(new Date()), 60000);
     window.addEventListener('pointermove', this.onResizeMove);
@@ -1045,8 +1151,17 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.clearInterval(this.timer);
+    window.clearTimeout(this.noticeTimer);
     window.removeEventListener('pointermove', this.onResizeMove);
     window.removeEventListener('pointerup', this.onResizeEnd);
+  }
+
+  private showNotice(message: string, autoHideMs = 3200): void {
+    window.clearTimeout(this.noticeTimer);
+    this.notice.set(message);
+    this.noticeTimer = window.setTimeout(() => {
+      if (this.notice() === message) this.notice.set('');
+    }, autoHideMs);
   }
 
   async load(): Promise<void> {
@@ -1054,20 +1169,32 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.error.set('');
     try {
       const branchId = this.state.selectedBranchId();
-      const context = await firstValueFrom(this.api.list<SchedulerContext>('enterprise-scheduler/context', {
-        branchId,
-        date: this.selectedDate(),
-        from: this.selectedDate(),
-        to: this.nextDate(this.selectedDate()),
-        staffLimit: STAFF_LIMIT,
-        staffOffset: this.staffOffset(),
-        staffSearch: this.staffSearch(),
-        status: this.statusFilter(),
-        clientLimit: 120,
-        serviceLimit: 300
-      }));
+      const selectedDate = this.selectedDate();
+      const [context, depositReport] = await Promise.all([
+        firstValueFrom(this.api.list<SchedulerContext>('enterprise-scheduler/context', {
+          branchId,
+          date: selectedDate,
+          from: selectedDate,
+          to: this.nextDate(selectedDate),
+          staffLimit: STAFF_LIMIT,
+          staffOffset: this.staffOffset(),
+          staffSearch: this.staffSearch(),
+          status: this.statusFilter(),
+          clientLimit: 120,
+          serviceLimit: 300
+        })),
+        firstValueFrom(this.api.list<{ rows?: ApiRecord[] }>('appointment-deposits/report', {
+          branchId,
+          from: selectedDate,
+          to: selectedDate
+        }))
+      ]);
       this.context.set(context);
+      this.openRouteAppointmentIfNeeded(context?.appointments || []);
+      const rows = Array.isArray(depositReport?.rows) ? depositReport.rows : [];
+      this.adjustedDueFollowUpCount.set(rows.filter((row) => Number(row.advanceAdjusted || 0) > 0 && Number(row.counterDue || 0) > 0).length);
     } catch (error) {
+      this.adjustedDueFollowUpCount.set(0);
       this.error.set(this.api.errorText(error, 'Unable to load enterprise scheduler'));
     } finally {
       this.loading.set(false);
@@ -1078,6 +1205,26 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.selectedDate.set(date);
     this.staffOffset.set(0);
     this.load();
+  }
+
+  private applyRouteDateSelection(): void {
+    const routeDate = String(this.route.snapshot.queryParamMap.get('date') || '');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(routeDate)) {
+      this.selectedDate.set(routeDate);
+    }
+  }
+
+  private openRouteAppointmentIfNeeded(appointments: ApiRecord[]): void {
+    const appointmentId = String(this.route.snapshot.queryParamMap.get('appointmentId') || '');
+    if (!appointmentId) return;
+    const appointment = appointments.find((row) => String(row.id || '') === appointmentId);
+    if (!appointment) return;
+    this.openAppointment(appointment);
+    this.router.navigate([], {
+      queryParams: { appointmentId: null, date: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   shiftMonth(direction: number): void {
@@ -1126,13 +1273,23 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.drawer.set('operations');
   }
 
+  openDepositFollowUpReport(): void {
+    this.router.navigateByUrl('/appointment-deposits?settlement=adjusted_due');
+  }
+
   openQuickBooking(staff: StaffLane, slot: TimeSlot): void {
+    if (!this.isStaffWorkingAt(staff.id, slot.minute)) {
+      this.showNotice(`${staff.name} is not available at ${slot.label}.`);
+      return;
+    }
+    this.error.set('');
     this.selectedStaff.set(staff);
     this.selectedAppointment.set(null);
     this.editingAppointmentId.set('');
     this.bookingForm.reset({ clientId: '', status: 'booked', notes: '', notifyClient: true, notifyStaff: true, notifyOwner: false });
     this.bookingClientSearch.set('');
     this.bookingClientSearchActive.set(false);
+    this.clearClientServiceHistory();
     this.serviceSearchByLine.set({});
     this.staffSearchByLine.set({});
     this.serviceSearchActiveByLine.set({});
@@ -1142,6 +1299,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   openEditAppointment(appointment: ApiRecord): void {
+    this.error.set('');
     const staffId = String(appointment.staffId || this.visibleStaff()[0]?.id || '');
     const serviceIds = this.appointmentServiceIds(appointment);
     const startAt = this.localInputFromIso(appointment.startAt || appointment.createdAt || new Date().toISOString());
@@ -1149,6 +1307,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.editingAppointmentId.set(String(appointment.id || ''));
     this.bookingClientSearch.set(this.clientName(appointment.clientId));
     this.bookingClientSearchActive.set(false);
+    this.loadClientServiceHistory(String(appointment.clientId || ''));
     this.serviceSearchByLine.set({});
     this.staffSearchByLine.set({});
     this.serviceSearchActiveByLine.set({});
@@ -1182,17 +1341,27 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.bookingClientSearchActive.set(true);
     const selected = this.clients().find((client) => this.bookingClientOption(client) === next);
     this.bookingForm.patchValue({ clientId: selected?.id || '' }, { emitEvent: false });
+    if (selected?.id) {
+      this.loadClientServiceHistory(String(selected.id));
+    } else {
+      this.clearClientServiceHistory();
+    }
   }
 
   selectBookingClient(client: ApiRecord): void {
     this.bookingClientSearch.set(this.bookingClientOption(client));
     this.bookingForm.patchValue({ clientId: client.id || '' }, { emitEvent: false });
     this.bookingClientSearchActive.set(false);
+    this.loadClientServiceHistory(String(client.id || ''));
   }
 
   selectedBookingClientLabel(): string {
     const clientId = String(this.bookingForm.value.clientId || '');
     return clientId ? this.bookingClientOption(this.clientById().get(clientId) || { id: clientId }) : '';
+  }
+
+  selectedBookingClientId(): string {
+    return String(this.bookingForm.value.clientId || '');
   }
 
   showBookingClientResults(): boolean {
@@ -1271,6 +1440,57 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.updateLine(line.id, 'staffId', String(person.id || ''));
     this.setLineSearch('staff', line.id, this.bookingStaffOption(person));
     this.setLineSearchActive('staff', line.id, false);
+  }
+
+  refreshPreviousServices(): void {
+    this.loadClientServiceHistory(this.selectedBookingClientId(), true);
+  }
+
+  async loadClientServiceHistory(clientId: string, force = false): Promise<void> {
+    if (!clientId) {
+      this.clearClientServiceHistory();
+      return;
+    }
+    if (!force && this.clientServiceHistory().some((row) => row.id.includes(clientId))) return;
+    this.clientServiceHistoryLoading.set(true);
+    this.clientServiceHistoryError.set('');
+    try {
+      const [invoices, sales] = await Promise.all([
+        firstValueFrom(this.api.list<ApiRecord[]>('invoices', { clientId, customerId: clientId, limit: 200 })),
+        firstValueFrom(this.api.list<ApiRecord[]>('sales', { clientId, customerId: clientId, limit: 200 }))
+      ]);
+      this.clientServiceHistory.set(this.buildClientServiceHistory(clientId, invoices || [], sales || []));
+    } catch (error) {
+      this.clientServiceHistory.set([]);
+      this.clientServiceHistoryError.set(this.api.errorText(error, 'Unable to load previous service history.'));
+    } finally {
+      this.clientServiceHistoryLoading.set(false);
+    }
+  }
+
+  addPreviousServiceToBooking(item: ClientServiceHistoryRow): void {
+    const service = this.findServiceForHistory(item);
+    if (!service?.id) {
+      this.showNotice(`${item.serviceName} was not found in the service master. Select the service manually.`);
+      return;
+    }
+    const lines = this.bookingLines();
+    const emptyLine = lines.find((line) => !line.serviceId);
+    const target = emptyLine || this.blankLine(item.staffId || this.visibleStaff()[0]?.id || '', this.nextServiceStartTime());
+    const nextLine = {
+      ...target,
+      serviceId: String(service.id),
+      staffId: item.staffId || target.staffId || this.visibleStaff()[0]?.id || '',
+      durationMinutes: Number(item.durationMinutes || service.durationMinutes || 30)
+    };
+    this.bookingLines.set(emptyLine
+      ? lines.map((line) => line.id === emptyLine.id ? nextLine : line)
+      : [...lines, nextLine]);
+    this.setLineSearch('service', nextLine.id, this.bookingServiceOption(service));
+    if (nextLine.staffId) {
+      this.setLineSearch('staff', nextLine.id, this.bookingStaffOption(this.staffById().get(nextLine.staffId) || { id: nextLine.staffId, name: item.staffName || nextLine.staffId }));
+    }
+    this.showNotice(`${item.serviceName} added. Last charged ${this.money(item.price)}.`);
   }
 
   showLineServiceResults(line: BookingLineDraft): boolean {
@@ -1423,9 +1643,15 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   async createBooking(): Promise<void> {
     if (this.bookingForm.invalid) return;
+    this.error.set('');
     const lines = this.bookingLines();
     if (lines.some((line) => !line.serviceId || !line.staffId || !line.startAt)) {
       this.error.set('Every service line needs service, staff and start time.');
+      return;
+    }
+    const conflictMessage = this.bookingConflictMessage(lines);
+    if (conflictMessage) {
+      this.error.set(conflictMessage);
       return;
     }
     const notifyTargets = [
@@ -1447,41 +1673,119 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
           staffId: line.staffId,
           startAt: this.isoFromLocal(line.startAt),
           durationMinutes: Number(line.durationMinutes || 30),
-          chair: line.chair,
-          room: line.room
+          chair: String(line.chair || '').trim(),
+          room: String(line.room || '').trim()
         }))
       };
       if (this.editingAppointmentId()) {
         const line = lines[0];
+        const editingAppointment = this.selectedAppointment();
         await firstValueFrom(this.api.update<ApiRecord>('appointments', this.editingAppointmentId(), {
           branchId: payload.branchId,
           clientId: payload.clientId,
           status: payload.status,
           notes: payload.notes,
+          version: editingAppointment?.version || 1,
           serviceIds: [line.serviceId],
           staffId: line.staffId,
           startAt: this.isoFromLocal(line.startAt),
           endAt: this.isoFromLocal(this.addLocalMinutes(line.startAt, Number(line.durationMinutes || 30))),
           durationMinutes: Number(line.durationMinutes || 30),
-          chair: line.chair,
-          room: line.room
+          chair: String(line.chair || '').trim(),
+          room: String(line.room || '').trim()
         }));
         this.lastBookedClientId.set(bookedClientId);
-        this.notice.set('Appointment updated');
+        this.showNotice('Appointment updated');
       } else {
         const result = await firstValueFrom(this.api.post<ApiRecord>('appointment-deposits/multi-service-bookings', payload));
         this.lastBookedClientId.set(bookedClientId);
-        this.notice.set(result.deposit?.required
+        this.showNotice(result.deposit?.required
           ? `20% advance link sent: ${result.deposit.depositAmount} INR. Appointment will confirm after payment.`
           : `${result.appointments?.length || lines.length} appointment service line(s) created`);
       }
       this.closeDrawer();
       await this.load();
     } catch (error) {
-      this.error.set(this.api.errorText(error, 'Unable to create booking'));
+      this.error.set(this.bookingErrorText(error));
     } finally {
       this.saving.set(false);
     }
+  }
+
+  private bookingConflictMessage(lines: BookingLineDraft[]): string {
+    const drafts = lines.map((line, index) => {
+      const startAt = this.isoFromLocal(line.startAt);
+      const endAt = this.isoFromLocal(this.addLocalMinutes(line.startAt, Number(line.durationMinutes || 30)));
+      return {
+        index,
+        line,
+        startAt,
+        endAt,
+        startMs: new Date(startAt).getTime(),
+        endMs: new Date(endAt).getTime(),
+        chair: String(line.chair || '').trim()
+      };
+    });
+    for (let left = 0; left < drafts.length; left += 1) {
+      for (let right = left + 1; right < drafts.length; right += 1) {
+        const first = drafts[left];
+        const second = drafts[right];
+        if (!this.timeRangesOverlap(first.startMs, first.endMs, second.startMs, second.endMs)) continue;
+        const sameStaff = first.line.staffId && first.line.staffId === second.line.staffId;
+        const sameChair = first.chair && first.chair === second.chair;
+        if (sameStaff || sameChair) {
+          return `Service ${first.index + 1} and ${second.index + 1} overlap on the same ${sameStaff ? 'staff' : 'chair'}. Choose a different time.`;
+        }
+      }
+    }
+
+    const editingId = this.editingAppointmentId();
+    const activeAppointments = (this.context()?.appointments || []).filter((appointment) => {
+      if (editingId && String(appointment.id || '') === editingId) return false;
+      return !['cancelled', 'canceled', 'no-show', 'deleted'].includes(String(appointment.status || '').toLowerCase());
+    });
+    for (const draft of drafts) {
+      for (const appointment of activeAppointments) {
+        const appointmentStart = new Date(String(appointment.startAt || '')).getTime();
+        const appointmentEnd = new Date(String(appointment.endAt || appointment.startAt || '')).getTime();
+        if (!this.timeRangesOverlap(draft.startMs, draft.endMs, appointmentStart, appointmentEnd)) continue;
+        const sameStaff = draft.line.staffId && String(appointment.staffId || '') === draft.line.staffId;
+        const sameChair = draft.chair && String(appointment.chair || '') === draft.chair;
+        if (sameStaff || sameChair) {
+          const staff = this.staffName(String(appointment.staffId || draft.line.staffId || ''));
+          const client = this.clientName(String(appointment.clientId || ''));
+          const service = this.serviceNames(this.appointmentServiceIds(appointment));
+          const time = `${this.shortTime(String(appointment.startAt || ''))}-${this.shortTime(String(appointment.endAt || appointment.startAt || ''))}`;
+          return `Service ${draft.index + 1}: ${staff} is busy at ${time}${client ? ` (${client}${service ? ` · ${service}` : ''})` : ''}. Change time or staff.`;
+        }
+      }
+    }
+    return '';
+  }
+
+  private bookingErrorText(error: unknown): string {
+    const conflicts = this.errorConflicts(error);
+    if (conflicts.length) {
+      const first = conflicts[0];
+      const staff = this.staffName(String(first.staffId || ''));
+      const client = this.clientName(String(first.clientId || ''));
+      const service = this.serviceNames(this.appointmentServiceIds(first));
+      const time = first.startAt ? `${this.shortTime(String(first.startAt))}-${this.shortTime(String(first.endAt || first.startAt))}` : '';
+      return `${staff || 'Staff'} is busy at ${time}${client ? ` (${client}${service ? ` · ${service}` : ''})` : ''}. Change time or staff.`;
+    }
+    return this.api.errorText(error, 'Unable to create booking');
+  }
+
+  private errorConflicts(error: unknown): ApiRecord[] {
+    const payload = (error as { error?: ApiRecord })?.error || {};
+    const details = payload.details || (payload.error as ApiRecord | undefined)?.details || {};
+    const conflicts = (details as ApiRecord)?.conflicts;
+    return Array.isArray(conflicts) ? conflicts : [];
+  }
+
+  private timeRangesOverlap(leftStart: number, leftEnd: number, rightStart: number, rightEnd: number): boolean {
+    if (![leftStart, leftEnd, rightStart, rightEnd].every(Number.isFinite)) return false;
+    return leftStart < rightEnd && leftEnd > rightStart;
   }
 
   openAddBlockedTime(staff: StaffLane, slot: TimeSlot, event: Event): void {
@@ -1552,7 +1856,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
         branchId: this.context()?.branchId || this.state.selectedBranchId(),
         ...this.blockForm.value
       }));
-      this.notice.set('Blocked time saved');
+      this.showNotice('Blocked time saved');
       this.closeDrawer();
       await this.load();
     } catch (error) {
@@ -1571,7 +1875,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     try {
       await firstValueFrom(this.api.delete(`enterprise-scheduler/blocked-times`, idValue));
-      this.notice.set('Blocked time removed');
+      this.showNotice('Blocked time removed');
       await this.load();
     } catch (error) {
       this.error.set(this.api.errorText(error, 'Unable to remove blocked time'));
@@ -1584,14 +1888,26 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.selectedAppointment.set(appointment);
     this.appointmentDetailTab.set('booking');
     this.drawer.set('appointment');
+    void this.refreshAppointmentBillingStatus(appointment);
   }
 
   async setStatus(appointment: ApiRecord, status: string): Promise<void> {
     try {
-      await firstValueFrom(this.api.post(`appointments/${appointment.id}/status`, { status }));
-      this.notice.set(`Appointment marked ${this.label(status)}`);
+      const localGroupRows = this.appointmentGroupRows(appointment);
+      const idsToUpdate = Array.from(new Set(localGroupRows.map((row) => String(row.id || '')).filter(Boolean)));
+      const result = await firstValueFrom(this.api.post<ApiRecord>(`appointments/${appointment.id}/status`, { status, applyGroup: true }));
+      await Promise.all(idsToUpdate
+        .filter((id) => id !== String(appointment.id || ''))
+        .map((id) => firstValueFrom(this.api.post<ApiRecord>(`appointments/${id}/status`, { status, applyGroup: true }))));
+      const updatedAppointment = (result['appointment'] as ApiRecord | undefined) || appointment;
+      const groupAppointments = this.appointmentGroupRows(
+        updatedAppointment,
+        Array.isArray(result['appointments']) ? result['appointments'] as ApiRecord[] : localGroupRows
+      );
+      const serviceCount = this.groupAppointmentServiceIds(appointment, groupAppointments).length || groupAppointments.length || 1;
+      this.showNotice(`${serviceCount} service line${serviceCount === 1 ? '' : 's'} marked ${this.label(status)}`);
       if (status === 'completed') {
-        this.goToPos(appointment);
+        this.goToPos(updatedAppointment, groupAppointments);
         return;
       }
       await this.load();
@@ -1603,14 +1919,16 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   async queueSms(appointment: ApiRecord, target: 'client' | 'staff' | 'owner'): Promise<void> {
     try {
       await firstValueFrom(this.api.post(`appointment-sms/appointments/${appointment.id}/queue`, { target }));
-      this.notice.set(`SMS queued for ${target}`);
+      this.showNotice(`SMS queued for ${target}`);
     } catch (error) {
       this.error.set(this.api.errorText(error, 'Unable to queue SMS'));
     }
   }
 
   async convertToPos(appointment: ApiRecord): Promise<void> {
-    this.goToPos(appointment);
+    if (await this.ensureAppointmentPosAllowed(appointment)) {
+      this.goToPos(appointment);
+    }
   }
 
   printAppointmentBill(): void {
@@ -1691,7 +2009,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private async moveAppointment(appointment: ApiRecord, staffId: string, startAt: string, endAt: string, reason: string): Promise<void> {
     try {
       await firstValueFrom(this.api.patch(`enterprise-scheduler/appointments/${appointment.id}/move`, { staffId, startAt, endAt, reason }));
-      this.notice.set('Appointment updated');
+      this.showNotice('Appointment updated');
       await this.load();
     } catch (error) {
       this.error.set(this.api.errorText(error, 'Unable to move appointment'));
@@ -1738,7 +2056,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       await this.load();
       this.closeDrawer();
     } catch (error) {
-      this.waitlistError.set(this.api.errorText(error, 'Waitlist entry save nahi hua'));
+      this.waitlistError.set(this.api.errorText(error, 'Unable to save waitlist entry'));
     } finally {
       this.waitlistSaving.set(false);
     }
@@ -1746,6 +2064,15 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   summaryValue(key: string): number {
     return Number(this.context()?.summary?.[key] || 0);
+  }
+
+  appointmentBillingLocked(appointment: ApiRecord): boolean {
+    return !!appointment?.billingLocked;
+  }
+
+  appointmentBillingLabel(appointment: ApiRecord): string {
+    if (this.appointmentBillingLocked(appointment)) return 'Already billed';
+    return this.label(String(appointment.status || 'booked'));
   }
 
   cellCount(staffId: string, minute: number): number {
@@ -1822,6 +2149,60 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       kind: 'shift',
       reason: `${date} ${row.shiftType || 'regular'}`
     };
+  }
+
+  unavailableRosterBlocks(): LaneBlock[] {
+    const blocks: LaneBlock[] = [];
+    for (const staff of this.visibleStaff()) {
+      const shifts = (this.shiftBlocksByStaff().get(staff.id) || [])
+        .map((block) => ({
+          start: this.topToMinute(block.top),
+          end: this.topToMinute(block.top + block.height)
+        }))
+        .filter((block) => block.end > block.start)
+        .sort((a, b) => a.start - b.start);
+      if (!shifts.length) continue;
+      let cursor = DAY_START_MINUTES;
+      shifts.forEach((shift, index) => {
+        const start = Math.max(DAY_START_MINUTES, shift.start);
+        const end = Math.min(DAY_END_MINUTES, shift.end);
+        if (start > cursor) {
+          blocks.push(this.unavailableRosterBlock(staff.id, cursor, start));
+        }
+        cursor = Math.max(cursor, end);
+        if (index === shifts.length - 1 && cursor < DAY_END_MINUTES) {
+          blocks.push(this.unavailableRosterBlock(staff.id, cursor, DAY_END_MINUTES));
+        }
+      });
+    }
+    return blocks;
+  }
+
+  unavailableRosterBlock(staffId: string, start: number, end: number): LaneBlock {
+    return {
+      id: `unavailable-${staffId}-${start}-${end}`,
+      staffId,
+      top: this.minuteTop(start),
+      height: Math.max(ROW_HEIGHT, ((end - start) / this.slotMinutes()) * ROW_HEIGHT),
+      label: 'Off shift',
+      kind: 'unavailable',
+      reason: 'Outside staff shift'
+    };
+  }
+
+  isStaffWorkingAt(staffId: string, minute: number): boolean {
+    const shifts = this.shiftBlocksByStaff().get(staffId) || [];
+    if (!shifts.length) return true;
+    return shifts.some((block) => {
+      const start = this.topToMinute(block.top);
+      const end = this.topToMinute(block.top + block.height);
+      return minute >= start && minute < end;
+    });
+  }
+
+  showRosterClosed(block: LaneBlock, event: Event): void {
+    event.stopPropagation();
+    this.showNotice(`${block.reason}: booking is not allowed at this time.`);
   }
 
   blockedBlock(row: ApiRecord): LaneBlock {
@@ -1972,6 +2353,20 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return String(person.name || person.phone || person.id || 'Staff');
   }
 
+  actionTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      conflict_detection: 'Conflict detection',
+      chair_conflict: 'Chair conflict',
+      deposit_follow_up: 'Deposit follow-up',
+      no_show_recovery: 'No-show recovery',
+      waitlist_match: 'Waitlist match',
+      staff_service_matching: 'Staff/service matching',
+      capacity_optimization: 'Capacity optimization',
+      calendar_sync: 'Calendar sync'
+    };
+    return labels[type] || this.label(type || 'action');
+  }
+
   label(value: string): string {
     return String(value || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
   }
@@ -1999,9 +2394,16 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   trackSmartSlot(_: number, slot: { staff: StaffLane; slot: TimeSlot }): string { return `${slot.staff.id}-${slot.slot.minute}`; }
   trackBillLine(_: number, line: AppointmentBillLine): string { return line.id; }
   trackActivityLine(_: number, line: AppointmentActivityLine): string { return line.id; }
+  trackClientServiceHistory(_: number, line: ClientServiceHistoryRow): string { return line.id; }
+
+  formatShortDate(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
 
   private blankLine(staffId: string, startAt: string): BookingLineDraft {
-    return { id: `line_${Math.random().toString(16).slice(2)}`, serviceId: '', staffId, startAt, durationMinutes: 30, chair: 'Chair 1', room: '' };
+    return { id: `line_${Math.random().toString(16).slice(2)}`, serviceId: '', staffId, startAt, durationMinutes: 30, chair: '', room: '' };
   }
 
   private dateInput(date: Date): string {
@@ -2047,6 +2449,118 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private isoAtMinute(minute: number): string {
     return this.isoFromLocal(this.localDateTime(minute));
+  }
+
+  private nextServiceStartTime(): string {
+    const last = this.bookingLines().at(-1);
+    return last ? this.addLocalMinutes(last.startAt, Number(last.durationMinutes || 30)) : this.localDateTime(10 * 60);
+  }
+
+  private clearClientServiceHistory(): void {
+    this.clientServiceHistory.set([]);
+    this.clientServiceHistoryError.set('');
+    this.clientServiceHistoryLoading.set(false);
+  }
+
+  private buildClientServiceHistory(clientId: string, invoices: ApiRecord[], sales: ApiRecord[]): ClientServiceHistoryRow[] {
+    const salesById = new Map(sales.map((sale) => [String(sale.id || ''), sale]));
+    const rows: ClientServiceHistoryRow[] = [];
+    for (const invoice of invoices) {
+      const invoiceClientId = String(invoice.clientId || invoice.client_id || invoice.customerId || invoice.customer_id || '');
+      const sale = salesById.get(String(invoice.saleId || invoice.sale_id || '')) || {};
+      const saleClientId = String(sale.clientId || sale.client_id || sale.customerId || sale.customer_id || '');
+      if (invoiceClientId && invoiceClientId !== clientId) continue;
+      if (!invoiceClientId && saleClientId && saleClientId !== clientId) continue;
+      rows.push(...this.historyRowsFromSource(clientId, invoice, sale));
+    }
+    for (const sale of sales) {
+      const saleClientId = String(sale.clientId || sale.client_id || sale.customerId || sale.customer_id || '');
+      if (saleClientId !== clientId) continue;
+      if (invoices.some((invoice) => String(invoice.saleId || invoice.sale_id || '') === String(sale.id || ''))) continue;
+      rows.push(...this.historyRowsFromSource(clientId, sale, sale));
+    }
+    const seen = new Set<string>();
+    return rows
+      .filter((row) => {
+        const key = `${row.date}|${row.serviceId || row.serviceName}|${row.price}|${row.invoiceNumber}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 12);
+  }
+
+  private historyRowsFromSource(clientId: string, invoice: ApiRecord, sale: ApiRecord): ClientServiceHistoryRow[] {
+    const date = String(invoice.invoiceDate || invoice.invoice_date || invoice.createdAt || invoice.created_at || sale.createdAt || sale.created_at || new Date().toISOString());
+    const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_no || invoice.id || sale.id || '');
+    return this.lineItemsFrom(invoice, sale)
+      .filter((item) => this.isServiceLine(item))
+      .map((item, index) => this.historyRowFromItem(clientId, item, date, invoiceNumber, index));
+  }
+
+  private historyRowFromItem(clientId: string, item: ApiRecord, date: string, invoiceNumber: string, index: number): ClientServiceHistoryRow {
+    const serviceId = String(item.serviceId || item.service_id || item.id || item.itemId || item.item_id || '');
+    const service = this.serviceById().get(serviceId) || this.findServiceByName(String(item.name || item.serviceName || item.title || ''));
+    const matchedServiceId = String(service?.id || serviceId || '');
+    const staffId = String(item.staffId || item.staff_id || '');
+    return {
+      id: `${clientId}-${invoiceNumber}-${matchedServiceId || index}-${index}`,
+      date,
+      serviceId: matchedServiceId,
+      serviceName: String(item.serviceName || item.name || item.title || service?.name || serviceId || 'Service'),
+      staffId,
+      staffName: String(item.staffName || item.staff_name || this.staffById().get(staffId)?.name || ''),
+      price: this.numberValue(item.finalAmount, item.total, item.lineTotal, item.price, item.rate, item.amount, service?.price, 0),
+      durationMinutes: this.numberValue(item.durationMinutes, item.duration, service?.durationMinutes, 30),
+      invoiceNumber
+    };
+  }
+
+  private lineItemsFrom(invoice: ApiRecord, sale: ApiRecord): ApiRecord[] {
+    const candidates = [
+      invoice.lineItems,
+      invoice.line_items,
+      invoice.items,
+      invoice.invoiceItems,
+      sale.items,
+      sale.lineItems,
+      sale.line_items
+    ];
+    for (const value of candidates) {
+      const rows = this.parseRecordArray(value);
+      if (rows.length) return rows;
+    }
+    return [];
+  }
+
+  private parseRecordArray(value: unknown): ApiRecord[] {
+    if (Array.isArray(value)) return value.filter((row): row is ApiRecord => !!row && typeof row === 'object');
+    if (typeof value !== 'string' || !value.trim()) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((row): row is ApiRecord => !!row && typeof row === 'object') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private isServiceLine(item: ApiRecord): boolean {
+    const type = String(item.type || item.itemType || item.item_type || item.category || '').toLowerCase();
+    if (type.includes('service')) return true;
+    const id = String(item.serviceId || item.service_id || item.id || item.itemId || item.item_id || '');
+    if (id && this.serviceById().has(id)) return true;
+    return !!this.findServiceByName(String(item.name || item.serviceName || item.title || ''));
+  }
+
+  private findServiceForHistory(item: ClientServiceHistoryRow): ApiRecord | undefined {
+    return this.serviceById().get(item.serviceId) || this.findServiceByName(item.serviceName);
+  }
+
+  private findServiceByName(name: string): ApiRecord | undefined {
+    const normalized = this.normalizeSearch(name);
+    if (!normalized) return undefined;
+    return this.services().find((service) => this.normalizeSearch(service.name || service.title || service.id) === normalized);
   }
 
   private waitlistWindowIso(date: string, time: string): string {
@@ -2124,13 +2638,83 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return this.parseJsonArray(value).filter(Boolean);
   }
 
-  private goToPos(appointment: ApiRecord): void {
+  private goToPos(appointment: ApiRecord, sourceRows: ApiRecord[] = []): void {
+    const groupRows = this.appointmentGroupRows(appointment, sourceRows);
+    const serviceIds = this.groupAppointmentServiceIds(appointment, groupRows);
+    const appointmentIds = groupRows.map((row) => String(row.id || '')).filter(Boolean);
+    const bookingGroupId = this.bookingGroupIdOf(appointment) || groupRows.map((row) => this.bookingGroupIdOf(row)).find(Boolean) || '';
     this.router.navigate(['/pos'], {
       queryParams: {
         appointmentId: appointment.id || undefined,
+        appointmentIds: appointmentIds.length > 1 ? appointmentIds.join(',') : undefined,
+        bookingGroupId: bookingGroupId || undefined,
+        serviceIds: serviceIds.length ? serviceIds.join(',') : undefined,
         clientId: appointment.clientId || undefined,
         q: this.clientById().get(appointment.clientId)?.phone || this.clientName(appointment.clientId) || undefined
       }
     });
+  }
+
+  private bookingGroupIdOf(appointment: ApiRecord): string {
+    return String(appointment.bookingGroupId || appointment.booking_group_id || '').trim();
+  }
+
+  private appointmentGroupRows(appointment: ApiRecord, sourceRows: ApiRecord[] = []): ApiRecord[] {
+    const bookingGroupId = this.bookingGroupIdOf(appointment);
+    const rows = sourceRows.length ? sourceRows : this.context()?.appointments || [];
+    if (!bookingGroupId) {
+      const clientId = String(appointment.clientId || '').trim();
+      const appointmentDate = this.dateInput(new Date(String(appointment.startAt || appointment.date || new Date().toISOString())));
+      const grouped = rows.filter((row) => {
+        const rowClientId = String(row.clientId || '').trim();
+        const rowDate = this.dateInput(new Date(String(row.startAt || row.date || new Date().toISOString())));
+        return clientId && rowClientId === clientId && rowDate === appointmentDate;
+      });
+      if (!grouped.some((row) => String(row.id || '') === String(appointment.id || ''))) grouped.unshift(appointment);
+      return grouped.length ? grouped : [appointment];
+    }
+    const grouped = rows.filter((row) => this.bookingGroupIdOf(row) === bookingGroupId);
+    if (!grouped.some((row) => String(row.id || '') === String(appointment.id || ''))) grouped.unshift(appointment);
+    return grouped.length ? grouped : [appointment];
+  }
+
+  private groupAppointmentServiceIds(appointment: ApiRecord, sourceRows: ApiRecord[] = []): string[] {
+    const ids: string[] = [];
+    for (const row of this.appointmentGroupRows(appointment, sourceRows)) {
+      for (const serviceId of this.appointmentServiceIds(row)) {
+        ids.push(serviceId);
+      }
+    }
+    return ids;
+  }
+
+  private async ensureAppointmentPosAllowed(appointment: ApiRecord): Promise<boolean> {
+    const latest = await this.refreshAppointmentBillingStatus(appointment);
+    if (this.appointmentBillingLocked(latest)) {
+      this.showNotice(`Appointment ${appointment.id || ''} is already billed. POS is locked.`);
+      return false;
+    }
+    return true;
+  }
+
+  private async refreshAppointmentBillingStatus(appointment: ApiRecord): Promise<ApiRecord> {
+    const appointmentId = String(appointment.id || '');
+    if (!appointmentId) return appointment;
+    this.billingStatusChecking.set(true);
+    try {
+      const status = await firstValueFrom(this.api.list<ApiRecord>(`enterprise-scheduler/appointments/${appointmentId}/billing-status`));
+      const next = {
+        ...appointment,
+        billingLocked: !!status?.billed,
+        billedInvoiceId: status?.invoiceId || '',
+        billedInvoiceNumber: status?.invoiceNumber || ''
+      };
+      this.selectedAppointment.update((current) => current && String(current.id || '') === appointmentId ? next : current);
+      return next;
+    } catch {
+      return appointment;
+    } finally {
+      this.billingStatusChecking.set(false);
+    }
   }
 }

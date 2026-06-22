@@ -82,6 +82,14 @@ aiRouter.get(
 );
 
 aiRouter.get(
+  "/ai/prompt-registry",
+  asyncHandler((req, res) => {
+    requireAiAdmin(req.access);
+    res.json(aiAssistantLlmService.promptRegistry(req.access));
+  })
+);
+
+aiRouter.get(
   "/ai/observability",
   asyncHandler((req, res) => {
     res.json(observability(req.access));

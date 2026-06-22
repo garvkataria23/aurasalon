@@ -13,6 +13,14 @@ enterpriseSchedulerRouter.get(
   })
 );
 
+enterpriseSchedulerRouter.get(
+  "/enterprise-scheduler/appointments/:id/billing-status",
+  requirePermission("read", () => "appointments"),
+  asyncHandler((req, res) => {
+    res.json(enterpriseSchedulerService.appointmentBillingStatus(req.params.id, req.access));
+  })
+);
+
 enterpriseSchedulerRouter.post(
   "/enterprise-scheduler/blocked-times",
   requirePermission("write", () => "appointments"),

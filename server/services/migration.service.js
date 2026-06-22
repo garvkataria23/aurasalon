@@ -370,11 +370,13 @@ export const migrationService = {
     const errors = jobs.reduce((total, job) => total + Number(job.errorRows || 0), 0);
     const importedRecords = jobs.reduce((total, job) => total + Number(job.importedRows || 0), 0);
     const rollbackHistory = jobs.filter((job) => job.status === "rolled_back").length;
+    const clientTotals = liveClientTotals(access);
     return {
       uploadStatus: lastJob ? lastJob.status : "not_started",
       migrationProgress: lastJob ? progressFor(lastJob) : 0,
       errorsCount: errors,
       importedRecordsCount: importedRecords,
+      ...clientTotals,
       rollbackHistory,
       completionChecklist: [
         { key: "template", label: "Download or review resource template", done: true },
@@ -1497,6 +1499,39 @@ function insertMigrationRow(table, data) {
 
 function updateMigrationRow(table, rowId, data, scope) {
   return updateRow(table, rowId, jsonBindData(data), scope);
+}
+
+function liveClientTotals(access = {}) {
+  const tenantId = access.tenantId || "";
+  const branchId = access.requestedBranchId || access.branchId || "";
+  if (!tenantId) {
+    return { liveClientCount: 0, liveClientBranchCount: 0, migratedClientCount: 0, migratedClientBranchCount: 0, selectedBranchId: "" };
+  }
+
+  const columns = new Set(columnsFor("clients"));
+  const activeWhere = ["tenantId = ?"];
+  if (columns.has("deletedAt")) activeWhere.push("COALESCE(deletedAt, '') = ''");
+
+  const importedSignals = [];
+  if (columns.has("imported")) importedSignals.push("imported = 1");
+  if (columns.has("importBatchId")) importedSignals.push("COALESCE(importBatchId, '') <> ''");
+  if (columns.has("migrationBatchId")) importedSignals.push("COALESCE(migrationBatchId, '') <> ''");
+
+  const count = (extraWhere = [], params = []) => db
+    .prepare(`SELECT COUNT(*) AS count FROM clients WHERE ${[...activeWhere, ...extraWhere].join(" AND ")}`)
+    .get(tenantId, ...params)?.count || 0;
+
+  const branchWhere = branchId ? ["branchId = ?"] : [];
+  const branchParams = branchId ? [branchId] : [];
+  const migratedWhere = importedSignals.length ? [`(${importedSignals.join(" OR ")})`] : [];
+
+  return {
+    liveClientCount: Number(count()),
+    liveClientBranchCount: Number(count(branchWhere, branchParams)),
+    migratedClientCount: Number(count(migratedWhere)),
+    migratedClientBranchCount: Number(count([...branchWhere, ...migratedWhere], branchParams)),
+    selectedBranchId: branchId
+  };
 }
 
 function autoMapColumns(columns, resource) {

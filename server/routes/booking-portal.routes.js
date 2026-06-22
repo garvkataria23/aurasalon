@@ -3,6 +3,7 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { bookingPortalService } from "../services/booking-portal.service.js";
 import { securityService } from "../services/security.service.js";
+import { enrichServicesWithHappyHours, enrichSlotsWithHappyHours } from "../utils/happy-hours-portal-enrichment.js";
 
 export const bookingPortalRouter = Router();
 
@@ -10,7 +11,12 @@ bookingPortalRouter.get(
   "/booking-portal/context",
   requirePermission("read", () => "booking-portal"),
   asyncHandler((req, res) => {
-    res.json(bookingPortalService.context(req.query, req.access));
+    const context = bookingPortalService.context(req.query, req.access);
+    const scope = { ...req.access, branchId: req.query.branchId || req.access.branchId || context.branches?.[0]?.id || "" };
+    res.json({
+      ...context,
+      services: enrichServicesWithHappyHours(context.services || [], scope)
+    });
   })
 );
 
@@ -18,7 +24,12 @@ bookingPortalRouter.post(
   "/booking-portal/slots",
   requirePermission("write", () => "booking-portal"),
   asyncHandler((req, res) => {
-    res.status(201).json(bookingPortalService.slots(req.body, req.access));
+    const result = bookingPortalService.slots(req.body, req.access);
+    const scope = { ...req.access, branchId: req.body.branchId || req.access.branchId || "" };
+    res.status(201).json({
+      ...result,
+      recommendations: enrichSlotsWithHappyHours(result.recommendations || [], scope)
+    });
   })
 );
 

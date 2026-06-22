@@ -117,6 +117,12 @@ export function ensureStaffOsSchema() {
   ensureColumn("staff_shift_templates", "version", "INTEGER DEFAULT 1");
   ensureColumn("staff_shift_templates", "created_by", "TEXT DEFAULT ''");
   ensureColumn("staff_shift_templates", "updated_at", "TEXT DEFAULT ''");
+  ensureColumn("staff_fine_penalty_master", "amount_paise", "INTEGER DEFAULT 0");
+  ensureColumn("staff_fine_penalty_master", "rule_type", "TEXT DEFAULT 'manual'");
+  ensureColumn("staff_fine_penalty_master", "rule_label", "TEXT DEFAULT ''");
+  ensureColumn("staff_fine_penalty_master", "trigger_count", "REAL DEFAULT 1");
+  ensureColumn("staff_fine_penalty_master", "apply_mode", "TEXT DEFAULT 'per_occurrence'");
+  ensureColumn("staff_fine_penalty_master", "auto_deduct", "INTEGER DEFAULT 1");
   ensured = true;
   logger.info("staff_os_schema_ensured", {
     migrations: migrationPaths.map((migrationPath) => migrationPath.split(/[\\/]/).pop())

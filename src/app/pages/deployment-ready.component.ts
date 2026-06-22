@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -36,7 +36,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         <section class="panel">
           <div class="section-title"><h2>Preflight checklist</h2></div>
           <div class="rank-list">
-            <article *ngFor="let item of summary()?.checklist || []">
+            <article *ngFor="let item of checklist()">
               <div><strong>{{ item.name }}</strong><span>{{ item.detail }}</span></div>
               <span class="badge" [class.success]="item.passed">{{ item.passed ? 'ready' : 'missing' }}</span>
             </article>
@@ -61,7 +61,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <table>
             <thead><tr><th>Type</th><th>Environment</th><th>Version</th><th>Status</th><th>Created</th></tr></thead>
             <tbody>
-              <tr *ngFor="let event of summary()?.events || []">
+              <tr *ngFor="let event of events()">
                 <td>{{ event.type }}</td>
                 <td>{{ event.environment }}</td>
                 <td>{{ event.version || 'local' }}</td>
@@ -76,7 +76,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       <section class="panel">
         <div class="section-title"><h2>Backups</h2></div>
         <div class="rank-list">
-          <article *ngFor="let backup of summary()?.backups || []">
+          <article *ngFor="let backup of backups()">
             <div><strong>{{ backup.type }}</strong><span>{{ backup.fileSizeBytes }} bytes · {{ backup.checksum }}</span></div>
             <small>{{ backup.createdAt | date: 'short' }}</small>
           </article>
@@ -93,6 +93,9 @@ export class DeploymentReadyComponent implements OnInit {
   readonly loading = signal(false);
   readonly busy = signal(false);
   readonly error = signal('');
+  readonly checklist = computed(() => this.summary()?.checklist || []);
+  readonly events = computed(() => this.summary()?.events || []);
+  readonly backups = computed(() => this.summary()?.backups || []);
 
   readonly eventForm = this.fb.group({
     type: ['release', Validators.required],

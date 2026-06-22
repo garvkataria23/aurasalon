@@ -5,6 +5,7 @@ import { tenantService } from "./tenant.service.js";
 import { invoiceCalculationService } from "./invoice-calculation.service.js";
 import { invoiceNumberService } from "./invoice-number.service.js";
 import { billingInventoryService } from "./billing-inventory.service.js";
+import { billingHappyHours } from "../utils/billing-happy-hours.middleware.js";
 import {
   assertDiscountLimit,
   assertInvoiceEditable,
@@ -58,6 +59,23 @@ function parseJson(value, fallback) {
   }
 }
 
+function mergeHappyHoursBillDiscount(payload = {}, hhResult = {}) {
+  const extraPaise = Math.max(0, Number(hhResult.groupDiscountPaise || 0) + Number(hhResult.bundleSavingsPaise || 0));
+  const existing = payload.billDiscount || payload.bill_discount || {};
+  if (!extraPaise) return existing;
+  const type = existing.type || existing.discount_type || "amount";
+  const existingValue = Number(existing.value ?? existing.discount_value ?? 0) || 0;
+  if ((type === "percent" || type === "percentage") && existingValue > 0) return existing;
+  const existingPaise = type === "amount"
+    ? Math.max(0, Math.round(existingValue * 100))
+    : 0;
+  return {
+    type: "amount",
+    value: money(existingPaise / 100 + extraPaise / 100),
+    reason: [existing.reason || existing.discount_reason, "happy_hours_group_bundle"].filter(Boolean).join("+")
+  };
+}
+
 function scopedColumn(table) {
   const columns = safeColumns(table);
   if (columns.includes("tenant_id")) return "tenant_id";
@@ -88,6 +106,65 @@ function normalizeReferenceItem(row, type, fallback = {}) {
     batch_id: fallback.batch_id || fallback.batchId || "",
     appointment_service_id: fallback.appointment_service_id || fallback.appointmentServiceId || ""
   };
+}
+
+function fallbackClientId(tenantId, branchId) {
+  return `client_walkin_${tenantId}_${branchId || "tenant"}`.replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
+function insertDynamic(table, data = {}) {
+  const columns = Object.keys(data);
+  if (!columns.length) return;
+  db.prepare(`
+    INSERT INTO ${table} (${columns.join(", ")})
+    VALUES (${columns.map((column) => `@${column}`).join(", ")})
+  `).run(data);
+}
+
+function ensureLegacyClient({ tenantId, branchId, clientId, stamp }) {
+  const columns = safeColumns("clients");
+  if (!clientId || !columns.includes("id")) return clientId;
+  const existing = db.prepare("SELECT id FROM clients WHERE id = ?").get(clientId);
+  if (existing) return clientId;
+  const row = { id: clientId };
+  if (columns.includes("tenantId")) row.tenantId = tenantId;
+  if (columns.includes("tenant_id")) row.tenant_id = tenantId;
+  if (columns.includes("branchId")) row.branchId = branchId;
+  if (columns.includes("branch_id")) row.branch_id = branchId;
+  if (columns.includes("name")) row.name = "Walk-in Client";
+  if (columns.includes("phone")) row.phone = `walkin${String(Date.now()).slice(-8)}`;
+  if (columns.includes("createdAt")) row.createdAt = stamp;
+  if (columns.includes("created_at")) row.created_at = stamp;
+  if (columns.includes("updatedAt")) row.updatedAt = stamp;
+  if (columns.includes("updated_at")) row.updated_at = stamp;
+  insertDynamic("clients", row);
+  return clientId;
+}
+
+function ensureLegacySale({ tenantId, branchId, saleId, clientId, items, calculation, stamp }) {
+  const columns = safeColumns("sales");
+  if (!saleId || !columns.includes("id")) return saleId;
+  const existing = db.prepare("SELECT id FROM sales WHERE id = ?").get(saleId);
+  if (existing) return saleId;
+  const row = { id: saleId };
+  if (columns.includes("tenantId")) row.tenantId = tenantId;
+  if (columns.includes("tenant_id")) row.tenant_id = tenantId;
+  if (columns.includes("branchId")) row.branchId = branchId;
+  if (columns.includes("branch_id")) row.branch_id = branchId;
+  if (columns.includes("clientId")) row.clientId = clientId;
+  if (columns.includes("client_id")) row.client_id = clientId;
+  if (columns.includes("items")) row.items = JSON.stringify(items || []);
+  if (columns.includes("subtotal")) row.subtotal = calculation.subtotal;
+  if (columns.includes("discount")) row.discount = calculation.discount_total;
+  if (columns.includes("gstAmount")) row.gstAmount = calculation.tax_total;
+  if (columns.includes("total")) row.total = calculation.grand_total;
+  if (columns.includes("status")) row.status = "completed";
+  if (columns.includes("createdAt")) row.createdAt = stamp;
+  if (columns.includes("created_at")) row.created_at = stamp;
+  if (columns.includes("updatedAt")) row.updatedAt = stamp;
+  if (columns.includes("updated_at")) row.updated_at = stamp;
+  insertDynamic("sales", row);
+  return saleId;
 }
 
 function hashEvent(payload, previousHash = "") {
@@ -191,12 +268,22 @@ export class BillingService {
   createDraft(payload = {}, access = {}) {
     requireEnterpriseBillingSchema();
     const draft = validateDraftInvoicePayload(payload, access);
-    const calculation = this.calculate(draft, access);
     const tenantId = access.tenantId;
     const actorUserId = access.userId || "";
+    const hhResult = billingHappyHours.processHappyHoursForInvoice({
+      tenantId,
+      branchId: draft.branch_id,
+      items: draft.items,
+      bypass: payload.bypassHappyHours === true,
+      groupSize: payload.groupSize,
+      date: payload.happyHoursDate ? new Date(payload.happyHoursDate) : undefined
+    });
+    const billDiscount = mergeHappyHoursBillDiscount({ ...payload, ...draft }, hhResult);
+    const calculation = this.calculate({ ...draft, items: hhResult.items, billDiscount }, access);
 
     const txn = db.transaction(() => {
       const invoiceId = makeId("inv");
+      const stamp = now();
       const number = this.numberService.nextInvoiceNumberInTransaction({
         tenantId,
         branchId: draft.branch_id,
@@ -205,17 +292,57 @@ export class BillingService {
         date: draft.invoice_date || draft.invoiceDate || new Date()
       });
 
+      const invoiceColumns = safeColumns("invoices");
+      const hasHappyHoursColumn = invoiceColumns.includes("happyHourDiscountPaise");
+      const legacyClientId = draft.customer_id || draft.clientId || fallbackClientId(tenantId, draft.branch_id);
+      const legacySaleId = draft.saleId || draft.sale_id || `sale_${invoiceId.slice(4)}`;
+      if (invoiceColumns.includes("clientId")) {
+        ensureLegacyClient({ tenantId, branchId: draft.branch_id, clientId: legacyClientId, stamp });
+      }
+      if (invoiceColumns.includes("saleId")) {
+        ensureLegacySale({
+          tenantId,
+          branchId: draft.branch_id,
+          saleId: legacySaleId,
+          clientId: legacyClientId,
+          items: draft.items,
+          calculation,
+          stamp
+        });
+      }
+      const compatibilityColumns = [];
+      const compatibilityValues = [];
+      const compatibilityParams = {};
+      const addCompatibility = (column, value) => {
+        if (!invoiceColumns.includes(column)) return;
+        compatibilityColumns.push(column);
+        compatibilityValues.push(`@${column}`);
+        compatibilityParams[column] = value;
+      };
+      addCompatibility("saleId", legacySaleId);
+      addCompatibility("clientId", legacyClientId);
+      addCompatibility("invoiceNumber", number.invoiceNo);
+      addCompatibility("lineItems", JSON.stringify(draft.items || []));
+      addCompatibility("discount", calculation.discount_total);
+      addCompatibility("gstAmount", calculation.tax_total);
+      addCompatibility("total", calculation.grand_total);
+      addCompatibility("paid", 0);
+      addCompatibility("balance", calculation.due_amount);
+      addCompatibility("tenantId", tenantId);
+      addCompatibility("branchId", draft.branch_id);
+      addCompatibility("createdAt", stamp);
+      addCompatibility("updatedAt", stamp);
       db.prepare(
         `INSERT INTO invoices
           (id, tenant_id, branch_id, financial_year, invoice_no, invoice_type, appointment_id, customer_id,
            corporate_account_id, credit_account_id, status, payment_status, source, subtotal, discount_total,
            tax_total, tip_total, round_off, grand_total, paid_amount, due_amount, refund_amount, currency,
-           notes, terms, gstin, place_of_supply, created_by, created_at, updated_at)
+           notes, terms, gstin, place_of_supply, created_by, created_at, updated_at${hasHappyHoursColumn ? ", happyHourDiscountPaise" : ""}${compatibilityColumns.map((column) => `, ${column}`).join("")})
          VALUES
           (@id, @tenantId, @branchId, @financialYear, @invoiceNo, @invoiceType, @appointmentId, @customerId,
            @corporateAccountId, @creditAccountId, 'draft', 'unpaid', @source, @subtotal, @discountTotal,
            @taxTotal, @tipTotal, @roundOff, @grandTotal, 0, @dueAmount, 0, @currency,
-           @notes, @terms, @gstin, @placeOfSupply, @createdBy, @createdAt, @updatedAt)`
+           @notes, @terms, @gstin, @placeOfSupply, @createdBy, @createdAt, @updatedAt${hasHappyHoursColumn ? ", @happyHourDiscountPaise" : ""}${compatibilityValues.map((value) => `, ${value}`).join("")})`
       ).run({
         id: invoiceId,
         tenantId,
@@ -241,17 +368,35 @@ export class BillingService {
         gstin: draft.gstin || "",
         placeOfSupply: draft.place_of_supply || draft.placeOfSupply || "",
         createdBy: actorUserId,
-        createdAt: now(),
-        updatedAt: now()
+        createdAt: stamp,
+        updatedAt: stamp,
+        happyHourDiscountPaise: hhResult.totalDiscountPaise,
+        ...compatibilityParams
       });
 
       this.replaceCalculatedRows(invoiceId, tenantId, calculation);
+      billingHappyHours.saveHappyHoursAudit({
+        tenantId,
+        branchId: draft.branch_id,
+        invoiceId,
+        appliedHappyHours: hhResult.appliedHappyHours,
+        totalDiscountPaise: hhResult.happyHourDiscountPaise
+      });
       this.writeEvent({
         tenantId,
         invoiceId,
         eventType: "invoice.created",
         actorUserId,
-        payload: { invoiceNo: number.invoiceNo, status: "draft", totals: this.totalsFromCalculation(calculation) }
+        payload: {
+          invoiceNo: number.invoiceNo,
+          status: "draft",
+          totals: this.totalsFromCalculation(calculation),
+          happyHourDiscountPaise: hhResult.totalDiscountPaise,
+          happyHourDirectDiscountPaise: hhResult.happyHourDiscountPaise,
+          groupDiscountPaise: hhResult.groupDiscountPaise,
+          bundleSavingsPaise: hhResult.bundleSavingsPaise,
+          appliedHappyHourIds: hhResult.appliedHappyHourIds
+        }
       });
 
       return this.getInvoice(invoiceId, access);
@@ -600,12 +745,15 @@ export class BillingService {
     const status = paymentStatus === "paid" ? "paid" : "pending_payment";
 
     const txn = db.transaction(() => {
+      const invoiceColumns = safeColumns("invoices");
+      const finalizeAssignments = ["status = @status", "payment_status = @paymentStatus"];
+      if (invoiceColumns.includes("finalized_at")) finalizeAssignments.push("finalized_at = @finalizedAt");
+      if (invoiceColumns.includes("finalizedAt")) finalizeAssignments.push("finalizedAt = @finalizedAt");
+      if (invoiceColumns.includes("updated_at")) finalizeAssignments.push("updated_at = @updatedAt");
+      if (invoiceColumns.includes("updatedAt")) finalizeAssignments.push("updatedAt = @updatedAt");
       db.prepare(
         `UPDATE invoices
-            SET status = @status,
-                payment_status = @paymentStatus,
-                finalized_at = @finalizedAt,
-                updated_at = @updatedAt
+            SET ${finalizeAssignments.join(", ")}
           WHERE tenant_id = @tenantId AND id = @invoiceId`
       ).run({
         status,
@@ -656,12 +804,19 @@ export class BillingService {
         lockedAt: now()
       });
     }
-    db.prepare(
-      `UPDATE invoices
-          SET locked_at = COALESCE(locked_at, @lockedAt),
-              updated_at = @lockedAt
-        WHERE tenant_id = @tenantId AND id = @invoiceId`
-    ).run({ lockedAt: now(), tenantId: access.tenantId, invoiceId });
+    const invoiceColumns = safeColumns("invoices");
+    const lockAssignments = [];
+    if (invoiceColumns.includes("locked_at")) lockAssignments.push("locked_at = COALESCE(locked_at, @lockedAt)");
+    if (invoiceColumns.includes("lockedAt")) lockAssignments.push("lockedAt = COALESCE(lockedAt, @lockedAt)");
+    if (invoiceColumns.includes("updated_at")) lockAssignments.push("updated_at = @lockedAt");
+    if (invoiceColumns.includes("updatedAt")) lockAssignments.push("updatedAt = @lockedAt");
+    if (lockAssignments.length) {
+      db.prepare(
+        `UPDATE invoices
+            SET ${lockAssignments.join(", ")}
+          WHERE tenant_id = @tenantId AND id = @invoiceId`
+      ).run({ lockedAt: now(), tenantId: access.tenantId, invoiceId });
+    }
     this.writeEvent({
       tenantId: access.tenantId,
       invoiceId,

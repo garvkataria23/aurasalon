@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, computed, effect, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable, finalize, forkJoin } from 'rxjs';
+import { AppStateService } from '../../../core/state/app-state.service';
 import { StaffOsApi } from '../data/staff-os.api';
 import {
   StaffOsAttendanceMaster,
@@ -93,7 +94,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
               <span>Branch</span>
               <select [value]="branchFilter()" (change)="setBranchFilter($any($event.target).value)">
                 <option value="">All</option>
-                <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+                <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
               </select>
             </label>
           </div>
@@ -133,7 +134,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
               <span>Branch</span>
               <select formControlName="branchId">
                 <option value="">All branches</option>
-                <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+                <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
               </select>
             </label>
 
@@ -328,6 +329,31 @@ export class StaffMasterDefinitionComponent implements OnInit {
   readonly saveError = signal('');
   readonly search = signal('');
   readonly branchFilter = signal('');
+  private liveBranchSyncedId = '';
+  private recordsLoaded = false;
+  readonly branchOptions = computed(() => this.normalizedBranches(this.branches()));
+  readonly filteredRecords = computed(() => {
+    const query = this.search().trim().toLowerCase();
+    const branchId = this.branchFilter();
+    return this.records().filter((record) => {
+      const branchMatches = !branchId || !record.branchId || record.branchId === branchId;
+      if (!branchMatches) return false;
+      if (!query) return true;
+      return `${record.name} ${this.recordCode(record)} ${this.recordSubline(record)}`.toLowerCase().includes(query);
+    });
+  });
+  readonly visibleCount = computed(() => this.records().filter((record) => !record.hide && record.status === 'active').length);
+  readonly hiddenCount = computed(() => this.records().filter((record) => record.hide || record.status !== 'active').length);
+  readonly auxiliaryMetricLabel = computed(() => {
+    if (this.isShift()) return 'Regular';
+    if (this.isLeave()) return 'Paid';
+    return 'Bookable';
+  });
+  readonly auxiliaryMetricValue = computed(() => {
+    if (this.isShift()) return this.records().filter((record) => (record as StaffOsShiftMaster).shiftType === 'regular').length;
+    if (this.isLeave()) return this.records().filter((record) => (record as StaffOsLeaveMaster).paid).length;
+    return this.records().filter((record) => (record as StaffOsAttendanceMaster).availableForAppointment).length;
+  });
 
   readonly masterForm = this.fb.group({
     branchId: [''],
@@ -354,9 +380,22 @@ export class StaffMasterDefinitionComponent implements OnInit {
     status: ['active']
   });
 
-  constructor(private readonly api: StaffOsApi, private readonly fb: UntypedFormBuilder) {}
+  constructor(
+    private readonly api: StaffOsApi,
+    private readonly fb: UntypedFormBuilder,
+    private readonly route: ActivatedRoute,
+    private readonly appState: AppStateService
+  ) {
+    effect(() => {
+      const branchId = this.preferredBranchId();
+      if (!branchId || branchId === this.liveBranchSyncedId) return;
+      this.applyLiveBranch(branchId);
+      if (this.recordsLoaded) this.load();
+    });
+  }
 
   ngOnInit(): void {
+    this.applyLiveBranch(this.preferredBranchId());
     this.applyModeValidators();
     this.startNew();
     this.load();
@@ -388,52 +427,26 @@ export class StaffMasterDefinitionComponent implements OnInit {
         : this.api.shiftMasters({ branchId: this.branchFilter(), limit: 500 });
 
     forkJoin({
-      branches: this.api.branches({ limit: 200 }),
+      branches: this.api.branches({ includeAllBranches: true, limit: 500 }),
       records: masterRequest,
       shifts: this.api.shiftMasters({ limit: 500 })
     }).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: ({ branches, records, shifts }) => {
-        this.branches.set(branches);
+        this.branches.set(branches || []);
         this.records.set(records as MasterRecord[]);
         this.shifts.set(shifts);
+        this.recordsLoaded = true;
+        this.applyLiveBranch(this.preferredBranchId());
       },
       error: (error: unknown) => this.error.set(this.apiError(error, `Unable to load ${this.config().title}`))
     });
   }
 
-  filteredRecords(): MasterRecord[] {
-    const query = this.search().trim().toLowerCase();
-    const branchId = this.branchFilter();
-    return this.records().filter((record) => {
-      const branchMatches = !branchId || !record.branchId || record.branchId === branchId;
-      if (!branchMatches) return false;
-      if (!query) return true;
-      return `${record.name} ${this.recordCode(record)} ${this.recordSubline(record)}`.toLowerCase().includes(query);
-    });
-  }
-
-  visibleCount(): number {
-    return this.records().filter((record) => !record.hide && record.status === 'active').length;
-  }
-
-  hiddenCount(): number {
-    return this.records().filter((record) => record.hide || record.status !== 'active').length;
-  }
-
-  auxiliaryMetricLabel(): string {
-    if (this.isShift()) return 'Regular';
-    if (this.isLeave()) return 'Paid';
-    return 'Bookable';
-  }
-
-  auxiliaryMetricValue(): number {
-    if (this.isShift()) return this.records().filter((record) => (record as StaffOsShiftMaster).shiftType === 'regular').length;
-    if (this.isLeave()) return this.records().filter((record) => (record as StaffOsLeaveMaster).paid).length;
-    return this.records().filter((record) => (record as StaffOsAttendanceMaster).availableForAppointment).length;
-  }
-
   setBranchFilter(branchId: string): void {
     this.branchFilter.set(branchId);
+    if (!this.editing()) {
+      this.masterForm.patchValue({ branchId }, { emitEvent: false });
+    }
     this.load();
   }
 
@@ -462,11 +475,14 @@ export class StaffMasterDefinitionComponent implements OnInit {
     }
     this.syncSelectedShiftName();
     const record = this.editing();
-    const payload = record ? { ...this.payload(), version: record.version } : this.payload();
+    const rawPayload = this.payload();
+    const duplicate = record ? null : this.duplicateRecordForPayload(rawPayload);
+    const targetRecord = record || duplicate;
+    const payload = targetRecord ? { ...rawPayload, version: targetRecord.version } : rawPayload;
     this.saving.set(true);
     this.saveError.set('');
-    const request: Observable<MasterRecord> = record
-      ? this.updateRecord(record.id, payload)
+    const request: Observable<MasterRecord> = targetRecord
+      ? this.updateRecord(targetRecord.id, payload)
       : this.createRecord(payload);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
@@ -528,6 +544,17 @@ export class StaffMasterDefinitionComponent implements OnInit {
     return `${attendance.dayCount} day · ${attendance.paid ? 'Paid' : 'Un Paid'}`;
   }
 
+  private duplicateRecordForPayload(payload: Record<string, unknown>): MasterRecord | null {
+    const code = String(payload['code'] || payload['shortCode'] || '').trim().toLowerCase();
+    const branchId = String(payload['branchId'] || '').trim();
+    if (!code) return null;
+    return this.records().find((record) => {
+      const recordCode = this.recordCode(record).trim().toLowerCase();
+      const recordBranch = String(record.branchId || '').trim();
+      return recordCode === code && recordBranch === branchId;
+    }) || null;
+  }
+
   private createRecord(payload: Record<string, unknown>): Observable<MasterRecord> {
     if (this.isAttendance()) return this.api.createAttendanceMaster(payload);
     if (this.isLeave()) return this.api.createLeaveMaster(payload);
@@ -585,6 +612,62 @@ export class StaffMasterDefinitionComponent implements OnInit {
     if (this.isAttendance()) return { ...common, code: 'PR', name: 'Present' };
     if (this.isLeave()) return { ...common, code: 'CL', name: 'Casual Leave', availableForAppointment: false, leaveQuota: 12 };
     return { ...common, code: 'REG', name: 'Regular Shift' };
+  }
+
+  private preferredBranchId(): string {
+    return this.appState.selectedBranchId()
+      || this.route.snapshot.queryParamMap.get('branchId')
+      || this.route.snapshot.queryParamMap.get('branchld')
+      || '';
+  }
+
+  private applyLiveBranch(branchId: string): void {
+    if (!branchId) return;
+    this.liveBranchSyncedId = branchId;
+    this.branchFilter.set(branchId);
+    if (!this.editing()) {
+      this.masterForm.patchValue({ branchId }, { emitEvent: false });
+    }
+  }
+
+  private normalizedBranches(branches: StaffOsBranch[]): StaffOsBranch[] {
+    const selectedBranchId = this.preferredBranchId();
+    const seenIds = new Set<string>();
+    const seenLabels = new Set<string>();
+    const rows: StaffOsBranch[] = [];
+    const orderedBranches = selectedBranchId
+      ? [...branches].sort((left, right) => {
+          if (left.id === selectedBranchId) return -1;
+          if (right.id === selectedBranchId) return 1;
+          return 0;
+        })
+      : branches;
+
+    for (const branch of orderedBranches) {
+      const id = String(branch.id || '').trim();
+      const label = String(branch.name || id).trim();
+      const labelKey = label.toLowerCase();
+      if (id !== selectedBranchId && this.isGeneratedBranchLabel(label)) continue;
+      if (!id || seenIds.has(id) || seenLabels.has(labelKey)) continue;
+      seenIds.add(id);
+      seenLabels.add(labelKey);
+      rows.push({ ...branch, id, name: label });
+    }
+
+    if (selectedBranchId && !rows.some((branch) => branch.id === selectedBranchId)) {
+      rows.unshift({ id: selectedBranchId, name: selectedBranchId });
+    }
+
+    return rows.sort((left, right) => {
+      if (left.id === selectedBranchId) return -1;
+      if (right.id === selectedBranchId) return 1;
+      return String(left.name || left.id).localeCompare(String(right.name || right.id));
+    });
+  }
+
+  private isGeneratedBranchLabel(label: string): boolean {
+    const normalized = label.trim().toLowerCase();
+    return normalized.startsWith('client 360 branch') || normalized.startsWith('level 8 lock branch');
   }
 
   private valueFromRecord(record: MasterRecord): Record<string, unknown> {

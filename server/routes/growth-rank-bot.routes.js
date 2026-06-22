@@ -15,6 +15,14 @@ growthRankBotRouter.get(
 );
 
 growthRankBotRouter.get(
+  "/growth-rank-bot/command-center",
+  requirePermission("read", () => "marketing"),
+  asyncHandler((req, res) => {
+    res.json(growthRankBotService.commandCenter(req.query, req.access));
+  })
+);
+
+growthRankBotRouter.get(
   "/growth-rank-bot/audits",
   requirePermission("read", () => "marketing"),
   asyncHandler((req, res) => {
@@ -157,6 +165,14 @@ growthRankBotRouter.patch(
   requirePermission("write", () => "marketing"),
   asyncHandler((req, res) => {
     res.json(growthRankBotService.updateProposalStatus(req.params.id, req.body, req.access));
+  })
+);
+
+growthRankBotRouter.patch(
+  "/growth-rank-bot/approval-workflow/:type/:id/status",
+  requirePermission("write", () => "marketing"),
+  asyncHandler((req, res) => {
+    res.json(growthRankBotService.updateApprovalWorkflowItem(req.params.type, req.params.id, req.body, req.access));
   })
 );
 

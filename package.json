@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "api": "node server/index.js",
-    "client": "ng serve --host 127.0.0.1 --port 4300 --proxy-config proxy.conf.json",
+    "client": "set GOMAXPROCS=2&& set NG_BUILD_MAX_WORKERS=2&& set NODE_OPTIONS=--max-old-space-size=4096&& ng serve --host 127.0.0.1 --port 4300 --proxy-config proxy.conf.json",
     "dev": "concurrently -k -n API,WEB -c cyan,green \"npm:api\" \"npm:client\"",
     "start:api": "node server/index.js",
     "start:prod": "node server/index.js",

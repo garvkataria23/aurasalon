@@ -267,6 +267,12 @@ export interface StaffOsFinePenalty {
   branchId?: string;
   name: string;
   amount: number;
+  amountPaise?: number;
+  ruleType?: 'manual' | 'late_count' | 'absent_day' | 'half_day' | 'short_hours' | 'no_clock_out' | 'weekend_penalty' | 'sandwich_penalty' | 'unpaid_week_off';
+  ruleLabel?: string;
+  triggerCount?: number;
+  applyMode?: 'per_occurrence' | 'fixed';
+  autoDeduct?: boolean;
   hide: boolean;
   notes?: string;
   status: string;

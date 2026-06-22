@@ -83,6 +83,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <div><span>Wallet balance</span><strong>{{ wallet().walletBalance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
               <div><span>Service credits</span><strong>{{ wallet().serviceCredits?.remaining || 0 }} left</strong></div>
               <div><span>Credits used</span><strong>{{ wallet().serviceCredits?.used || 0 }}</strong></div>
+              <div><span>Active packages</span><strong>{{ wallet().packageSummary?.activeCount || 0 }}</strong></div>
+              <div><span>Package credits</span><strong>{{ wallet().packageSummary?.creditsRemaining || 0 }}</strong></div>
               <div><span>Family sharing</span><strong>{{ wallet().familySharing?.status || 'not_shared' }}</strong></div>
             </div>
             <ng-template #noWallet>
@@ -257,15 +259,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <div class="quick-grid" *ngIf="wallets().length; else noWalletSnapshots">
             <article class="action-card" *ngFor="let wallet of wallets()">
               <strong>{{ wallet.clientName || wallet.clientId }}</strong>
-              <span>{{ wallet.activePlanName || 'No active membership' }} · Wallet {{ wallet.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</span>
+              <span>{{ wallet.activePlanName || 'No active benefits' }} · Wallet {{ wallet.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</span>
               <span>Credits {{ wallet.serviceCredits?.remaining || 0 }} left / {{ wallet.serviceCredits?.used || 0 }} used · Product {{ wallet.productDiscount || wallet.productDiscountPercent || 0 }}%</span>
-              <span>Expiry {{ wallet.expiryDate || '-' }} · Auto-renew {{ wallet.autoRenew ? 'On' : 'Off' }} · Family {{ wallet.familySharing?.status || 'not_shared' }}</span>
+              <span>Packages {{ wallet.packageSummary?.activeCount || 0 }} · Expiry {{ wallet.expiryDate || '-' }} · Auto-renew {{ wallet.autoRenew ? 'On' : 'Off' }} · Family {{ wallet.familySharing?.status || 'not_shared' }}</span>
             </article>
           </div>
           <ng-template #noWalletSnapshots>
             <div class="empty-panel">
               <strong>No wallet snapshots yet.</strong>
-              <span>Membership sell/renew/upgrade ke baad client wallet yahan live dikhega.</span>
+              <span>Client wallet updates appear here after membership sell, renew or upgrade.</span>
             </div>
           </ng-template>
         </section>

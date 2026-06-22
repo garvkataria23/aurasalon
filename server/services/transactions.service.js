@@ -13,6 +13,7 @@ import {
 } from "./enterprise-command-utils.js";
 import { balanceSheetHardeningService } from "./balance-sheet-hardening.service.js";
 import { ensureHardeningSchema } from "./balance-sheet-hardening-schema.service.js";
+import { classifySalonOutgoing } from "./salon-outgoing-category.service.js";
 
 const OUTGOING_COLUMNS = {
   branchId: "branch_id",
@@ -33,14 +34,38 @@ const OUTGOING_COLUMNS = {
   transactionType: "transaction_type",
   salaryMonthYear: "salary_month_year",
   lineItemsJson: "line_items_json",
+  gstAmount: "gst_amount",
+  billUrl: "bill_url",
+  impactType: "impact_type",
+  linkedPartyType: "linked_party_type",
+  linkedPartyId: "linked_party_id",
+  linkedPartyName: "linked_party_name",
+  approvalStatus: "approval_status",
+  approvedBy: "approved_by",
+  approvedAt: "approved_at",
   remarks: "remarks",
   status: "status",
   postedToLedger: "posted_to_ledger"
 };
 
+const OUTGOING_SCHEMA_COLUMNS = {
+  gst_amount: "REAL DEFAULT 0",
+  bill_url: "TEXT DEFAULT ''",
+  impact_type: "TEXT DEFAULT ''",
+  linked_party_type: "TEXT DEFAULT 'none'",
+  linked_party_id: "TEXT DEFAULT ''",
+  linked_party_name: "TEXT DEFAULT ''",
+  approval_status: "TEXT DEFAULT 'pending'",
+  approved_by: "TEXT DEFAULT ''",
+  approved_at: "TEXT DEFAULT ''"
+};
+
+let outgoingFundSchemaReady = false;
+
 export const transactionsService = {
   outgoingFunds(query = {}, access) {
     requireTenant(access);
+    ensureOutgoingFundSchema();
     const branchId = branchFrom(query, access);
     if (branchId) assertBranch(access, branchId);
     const params = {
@@ -72,6 +97,7 @@ export const transactionsService = {
 
   createOutgoingFund(payload = {}, access) {
     requireManager(access);
+    ensureOutgoingFundSchema();
     const normalized = normalizeOutgoingFund(payload, access);
     const row = {
       id: makeId("ofe"),
@@ -99,6 +125,7 @@ export const transactionsService = {
 
   updateOutgoingFund(id, payload = {}, access) {
     requireManager(access);
+    ensureOutgoingFundSchema();
     const existing = this.findOutgoingFund(id, access);
     const normalized = normalizeOutgoingFund(payload, access, existing);
     const row = {
@@ -134,6 +161,7 @@ export const transactionsService = {
 
   findOutgoingFund(id, access) {
     requireTenant(access);
+    ensureOutgoingFundSchema();
     const row = db.prepare("SELECT * FROM outgoing_fund_entries WHERE id = ? AND tenant_id = ?").get(id, access.tenantId);
     if (!row) throw notFound("Outgoing fund entry not found");
     if (row.branch_id) assertBranch(access, row.branch_id);
@@ -179,12 +207,30 @@ function normalizeOutgoingFund(payload = {}, access, existing = {}) {
   next.transaction_type = clean(next.transaction_type ?? existing.transaction_type) || "Daily Exp.";
   next.salary_month_year = clean(next.salary_month_year ?? existing.salary_month_year);
   next.remarks = clean(next.remarks ?? existing.remarks);
+  const category = classifySalonOutgoing(next.transaction_type, next.paid_to_account_name, next.remarks);
+  next.gst_amount = Math.min(next.amount, Math.max(0, money(next.gst_amount ?? existing.gst_amount)));
+  next.bill_url = clean(next.bill_url ?? existing.bill_url);
+  next.impact_type = normalizeImpactType(next.impact_type ?? existing.impact_type, category);
+  next.linked_party_type = normalizeLinkedPartyType(next.linked_party_type ?? existing.linked_party_type);
+  next.linked_party_id = clean(next.linked_party_id ?? existing.linked_party_id);
+  next.linked_party_name = clean(next.linked_party_name ?? existing.linked_party_name);
+  next.approval_status = normalizeApprovalStatus(next.approval_status ?? existing.approval_status);
+  next.approved_by = clean(next.approved_by ?? existing.approved_by);
+  next.approved_at = clean(next.approved_at ?? existing.approved_at);
+  if (next.approval_status === "approved" && !next.approved_at) next.approved_at = now();
+  if (next.approval_status !== "approved") {
+    next.approved_by = "";
+    next.approved_at = "";
+  }
   next.status = ["draft", "posted", "cancelled", "deleted"].includes(clean(next.status ?? existing.status)) ? clean(next.status ?? existing.status) : "draft";
   next.posted_to_ledger = truthy(next.posted_to_ledger ?? existing.posted_to_ledger) ? 1 : 0;
   return next;
 }
 
 function mapOutgoingFund(row = {}, access = {}) {
+  const balanceSheetLink = outgoingFundBalanceSheetLink(row, access);
+  const approvalStatus = row.approval_status || "pending";
+  const hasPartyLink = Boolean(row.linked_party_name || (row.linked_party_type && row.linked_party_type !== "none"));
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -199,20 +245,37 @@ function mapOutgoingFund(row = {}, access = {}) {
     paidToAccountName: row.paid_to_account_name || "",
     payeeName: row.payee_name || "",
     amount: number(row.amount),
+    gstAmount: number(row.gst_amount),
+    netAmount: Math.max(0, number(row.amount) - number(row.gst_amount)),
     paymentMode: row.payment_mode || "",
     chequeDate: row.cheque_date || "",
     referenceNo: row.reference_no || "",
     chequeNo: row.cheque_no || "",
     transactionType: row.transaction_type || "",
     salaryMonthYear: row.salary_month_year || "",
-    lineItems: parseJson(row.line_items_json, []),
+    lineItems: parseJson(row.line_items_json, []).map(enrichOutgoingLineItem),
+    billUrl: row.bill_url || "",
+    impactType: row.impact_type || "",
+    linkedPartyType: row.linked_party_type || "none",
+    linkedPartyId: row.linked_party_id || "",
+    linkedPartyName: row.linked_party_name || "",
+    approvalStatus,
+    approvedBy: row.approved_by || "",
+    approvedAt: row.approved_at || "",
     remarks: row.remarks || "",
     status: row.status || "draft",
     postedToLedger: Boolean(row.posted_to_ledger),
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
     version: number(row.version, 1),
-    balanceSheetLink: outgoingFundBalanceSheetLink(row, access)
+    balanceSheetLink,
+    connectionStatus: {
+      hasGst: number(row.gst_amount) > 0,
+      hasBill: Boolean(row.bill_url),
+      hasPartyLink,
+      approved: ["approved", "not_required"].includes(approvalStatus),
+      glStatus: balanceSheetLink.status || "not-linked"
+    }
   };
 }
 
@@ -237,8 +300,13 @@ function queueOutgoingFundToBalanceSheet(entry = {}, access = {}) {
   if (!entry.id || amountPaise <= 0 || entry.status === "cancelled" || entry.status === "deleted") {
     return { status: "skipped", reason: "not-postable" };
   }
+  if (entry.approvalStatus === "rejected") {
+    return { status: "skipped", reason: "approval-rejected" };
+  }
   const category = categoryFromOutgoingType(entry.transactionType, entry.paidToAccountName);
   const mode = modeFromPayment(entry.paymentMode, entry.paidFromAccountName);
+  const lineItems = outgoingGlLines(entry);
+  const inputGstPaise = Math.min(amountPaise, Math.max(0, Math.round(number(entry.gstAmount) * 100)));
   const result = balanceSheetHardeningService.enqueue({
     branchId: entry.branchId || "",
     eventType: "expense.recorded",
@@ -246,13 +314,21 @@ function queueOutgoingFundToBalanceSheet(entry = {}, access = {}) {
     businessDate: entry.entryDate,
     data: {
       amountPaise,
+      inputGstPaise,
       category,
       mode,
+      lineItems,
       settled: entry.status !== "draft",
       memo: `Outgoing fund ${entry.entryNo || entry.id}: ${entry.paidToAccountName || entry.transactionType || "expense"}`,
       source: "outgoing_fund_entries",
       sourceId: entry.id,
       entryNo: entry.entryNo,
+      billUrl: entry.billUrl,
+      impactType: entry.impactType,
+      linkedPartyType: entry.linkedPartyType,
+      linkedPartyId: entry.linkedPartyId,
+      linkedPartyName: entry.linkedPartyName,
+      approvalStatus: entry.approvalStatus,
       paymentMode: entry.paymentMode,
       paidFromAccountName: entry.paidFromAccountName,
       paidToAccountName: entry.paidToAccountName,
@@ -267,18 +343,42 @@ function queueOutgoingFundToBalanceSheet(entry = {}, access = {}) {
   };
 }
 
-function categoryFromOutgoingType(type = "", accountName = "") {
-  const text = `${type} ${accountName}`.toLowerCase();
-  if (text.includes("salary") || text.includes("payroll")) return "salary";
-  if (text.includes("rent")) return "rent";
-  if (text.includes("stock") || text.includes("purchase") || text.includes("product") || text.includes("cogs")) return "cogs";
-  if (text.includes("depreciation")) return "depreciation";
-  return "marketing";
+function outgoingGlLines(entry = {}) {
+  const items = Array.isArray(entry.lineItems) ? entry.lineItems : [];
+  return items
+    .map((item) => {
+      const amountPaise = Math.round(number(item.amount) * 100);
+      const category = classifySalonOutgoing(item.type, item.accountName, item.remarks);
+      return {
+        amountPaise,
+        category: category.key,
+        bucket: category.bucket,
+        impact: category.impact,
+        operating: category.operating,
+        memo: clean(item.remarks || item.accountName || item.type)
+      };
+    })
+    .filter((item) => item.amountPaise > 0);
+}
+
+function categoryFromOutgoingType(type = "", accountName = "", remarks = "") {
+  return classifySalonOutgoing(type, accountName, remarks).key;
 }
 
 function modeFromPayment(paymentMode = "", accountName = "") {
   const text = `${paymentMode} ${accountName}`.toLowerCase();
   return text.includes("cash") ? "cash" : "bank";
+}
+
+function ensureOutgoingFundSchema() {
+  if (outgoingFundSchemaReady) return;
+  const existing = new Set(db.prepare("PRAGMA table_info(outgoing_fund_entries)").all().map((row) => row.name));
+  for (const [column, definition] of Object.entries(OUTGOING_SCHEMA_COLUMNS)) {
+    if (!existing.has(column)) {
+      db.prepare(`ALTER TABLE outgoing_fund_entries ADD COLUMN ${column} ${definition}`).run();
+    }
+  }
+  outgoingFundSchemaReady = true;
 }
 
 function makeEntryNo() {
@@ -300,7 +400,7 @@ function clean(value) {
 function normalizeLineItems(items = []) {
   if (!Array.isArray(items)) return [];
   return items
-    .map((item, index) => ({
+    .map((item, index) => enrichOutgoingLineItem({
       sno: number(item.sno, index + 1),
       type: clean(item.type) || "Daily Exp.",
       accountId: clean(item.accountId ?? item.account_id),
@@ -311,6 +411,19 @@ function normalizeLineItems(items = []) {
     }))
     .filter((item) => item.amount > 0 || item.accountName || item.remarks)
     .map((item, index) => ({ ...item, sno: index + 1 }));
+}
+
+function enrichOutgoingLineItem(item = {}) {
+  const category = classifySalonOutgoing(item.type, item.accountName, item.remarks);
+  return {
+    ...item,
+    category: category.key,
+    categoryLabel: category.label,
+    categoryBucket: category.bucket,
+    balanceSheetImpact: category.impact,
+    glCategory: category.glCategory,
+    operating: category.operating
+  };
 }
 
 function parseJson(value, fallback) {
@@ -328,4 +441,29 @@ function money(value) {
 
 function truthy(value) {
   return value === true || value === 1 || value === "1" || value === "true";
+}
+
+function normalizeImpactType(value, category = {}) {
+  const cleanValue = clean(value).toLowerCase();
+  const allowed = new Set(["expense", "inventory", "fixed_asset", "tax", "advance", "loan", "owner", "transfer", "other"]);
+  if (allowed.has(cleanValue)) return cleanValue;
+  if (category.operating) return "expense";
+  if (["inventory_purchase", "product_consumable", "wastage_damage"].includes(category.key)) return "inventory";
+  if (category.key === "fixed_asset_purchase") return "fixed_asset";
+  if (["gst_payment", "statutory_payment"].includes(category.key)) return "tax";
+  if (["advance", "security_deposit", "prepaid_expense"].includes(category.key)) return "advance";
+  if (["loan", "interest"].includes(category.key)) return "loan";
+  if (category.key === "owner_drawing") return "owner";
+  if (category.key === "bank_deposit") return "transfer";
+  return "other";
+}
+
+function normalizeLinkedPartyType(value) {
+  const cleanValue = clean(value).toLowerCase();
+  return ["none", "staff", "vendor", "customer", "asset", "loan", "owner", "other"].includes(cleanValue) ? cleanValue : "none";
+}
+
+function normalizeApprovalStatus(value) {
+  const cleanValue = clean(value).toLowerCase();
+  return ["pending", "approved", "rejected", "not_required"].includes(cleanValue) ? cleanValue : "pending";
 }

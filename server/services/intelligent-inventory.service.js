@@ -1,6 +1,7 @@
 import { applyInventoryDelta } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { badRequest, conflict, notFound } from "../utils/app-error.js";
+import { balanceSheetConnector } from "./balance-sheet-connector.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const now = () => new Date().toISOString();
@@ -159,7 +160,25 @@ export class IntelligentInventoryService {
       referenceId: batch.id,
       tenantId: access.tenantId
     });
-    return { batch, transaction };
+    const balanceSheet = balanceSheetConnector.connectInventoryPurchase({
+      product,
+      productId,
+      branchId,
+      quantity: Number(quantity),
+      unitCost: Number(unitCost ?? product.unitCost ?? 0),
+      batch,
+      transaction,
+      sourceType: payload.sourceType || "purchase-entry",
+      sourceId: payload.sourceId || transaction.id || batch.id,
+      businessDate: transaction.createdAt || batch.createdAt,
+      taxAmount: payload.taxAmount ?? payload.gstAmount ?? payload.gst_amount ?? 0,
+      payableAmount: payload.payableAmount ?? payload.lineTotal ?? payload.line_total ?? payload.totalAmount ?? 0,
+      mode: payload.mode,
+      settled: payload.settled,
+      supplierId,
+      memo: payload.reason || "Purchase entry"
+    }, access);
+    return { batch, transaction, balanceSheet };
   }
 
   createBatch(payload, access) {

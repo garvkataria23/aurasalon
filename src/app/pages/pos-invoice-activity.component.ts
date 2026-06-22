@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../core/api.service';
+import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -20,6 +20,7 @@ interface InvoiceActivityChange {
 interface InvoiceFinanceImpact {
   originalTotal: number;
   updatedTotal: number;
+  amountDifference: number;
   paymentDifference: number;
   gstDifference: number;
   dueDifference: number;
@@ -41,11 +42,14 @@ interface InvoiceActivityApiRow {
   branchId?: string | null;
   branchName?: string | null;
   actionByUser?: string | null;
+  invoiceCreatedAt?: string | null;
   actionTime?: string | null;
   status?: string | null;
   total?: number | string | null;
   paid?: number | string | null;
   balance?: number | string | null;
+  advanceAdjusted?: number | string | null;
+  counterPaid?: number | string | null;
   paymentModes?: string[] | string | null;
   changes?: InvoiceActivityChange[] | string | null;
   financeImpact?: Partial<InvoiceFinanceImpact> | string | null;
@@ -76,6 +80,11 @@ interface InvoiceActivityApiRow {
 interface InvoiceActivityResponse {
   rows?: InvoiceActivityApiRow[];
   total?: number;
+}
+
+interface TodayInvoiceSummary {
+  count: number;
+  billed: number;
 }
 
 interface InvoiceReportSummary {
@@ -126,6 +135,8 @@ interface InvoiceActivityActionReportRow {
   amount: number;
   paid: number;
   due: number;
+  advanceAdjusted: number;
+  counterPaid: number;
   status: string;
   actionByUser: string;
   riskLevel: InvoiceRiskLevel;
@@ -160,11 +171,14 @@ interface InvoiceActivityRow {
   branchId: string;
   branchName: string;
   actionByUser: string;
+  invoiceCreatedAt: string;
   actionTime: string;
   status: string;
   total: number;
   paid: number;
   balance: number;
+  advanceAdjusted: number;
+  counterPaid: number;
   paymentModes: string[];
   changes: InvoiceActivityChange[];
   financeImpact: InvoiceFinanceImpact;
@@ -214,6 +228,11 @@ interface InvoiceActivityRow {
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="metrics-grid" *ngIf="!loading() && !error()">
+        <article class="metric-card teal">
+          <span>Today invoices</span>
+          <strong>{{ todayInvoices().count }}</strong>
+          <small>{{ currency(todayInvoices().billed) }} billed today</small>
+        </article>
         <article class="metric-card blue">
           <span>Edited invoices</span>
           <strong>{{ count('edited') }}</strong>
@@ -242,7 +261,7 @@ interface InvoiceActivityRow {
         <article class="metric-card red">
           <span>High-risk activities</span>
           <strong>{{ highRiskCount() }}</strong>
-          <small>AI review recommended</small>
+          <small>Review recommended</small>
         </article>
       </div>
 
@@ -369,7 +388,7 @@ interface InvoiceActivityRow {
                 <small>Cash, card and UPI adjustments</small>
               </article>
               <article>
-                <span>AI risk</span>
+                <span>Risk</span>
                 <strong>{{ report.summary?.highRiskActivities || 0 }}</strong>
                 <small>{{ report.summary?.criticalRiskActivities || 0 }} critical activity</small>
               </article>
@@ -491,12 +510,14 @@ interface InvoiceActivityRow {
                 </div>
                 <table *ngIf="paymentUpdateReportRowsCache.length; else noPaymentUpdateReport">
                   <thead>
-                    <tr><th>Invoice</th><th>Client</th><th>Status</th><th>Due</th></tr>
+                    <tr><th>Invoice</th><th>Client</th><th>Advance adjusted</th><th>Counter paid</th><th>Status</th><th>Due</th></tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of paymentUpdateReportRowsPreview">
                       <td>{{ row.invoiceNumber }}</td>
                       <td>{{ row.clientName }}</td>
+                      <td>{{ currency(row.advanceAdjusted || 0) }}</td>
+                      <td>{{ currency(row.counterPaid || 0) }}</td>
                       <td>{{ statusLabel(row.status) }}</td>
                       <td>{{ currency(row.due) }}</td>
                     </tr>
@@ -521,8 +542,11 @@ interface InvoiceActivityRow {
                 <th>Action</th>
                 <th>Payment</th>
                 <th>Amount</th>
+                <th>Amount change</th>
+                <th>Advance adjusted</th>
+                <th>Counter paid</th>
                 <th>By user</th>
-                <th>Time</th>
+                <th>Created / changed</th>
                 <th>Status</th>
                 <th>Risk</th>
                 <th>Review</th>
@@ -548,15 +572,34 @@ interface InvoiceActivityRow {
                   <strong>{{ currency(row.total) }}</strong>
                   <small>Paid {{ currency(row.paid) }} / Due {{ currency(row.balance) }}</small>
                 </td>
+                <td>
+                  <strong [class.amount-down]="row.financeImpact.amountDifference < 0" [class.amount-up]="row.financeImpact.amountDifference > 0">{{ signedCurrency(row.financeImpact.amountDifference) }}</strong>
+                  <small>{{ currency(row.financeImpact.originalTotal) }} -> {{ currency(row.financeImpact.updatedTotal) }}</small>
+                </td>
+                <td>{{ currency(row.advanceAdjusted) }}</td>
+                <td>{{ currency(row.counterPaid) }}</td>
                 <td>{{ row.actionByUser }}</td>
-                <td>{{ formatTime(row.actionTime) }}</td>
+                <td>
+                  <strong>{{ formatTime(row.invoiceCreatedAt || row.actionTime) }}</strong>
+                  <small>Changed {{ formatTime(row.actionTime) }}</small>
+                </td>
                 <td><span class="badge" [ngClass]="statusBadgeClass(row.status)">{{ statusLabel(row.status) }}</span></td>
                 <td>
                   <span class="badge" [ngClass]="riskBadgeClass(row.riskLevel)">{{ riskLabel(row.riskLevel) }}</span>
                   <small>{{ row.riskReason }}</small>
                 </td>
                 <td>
-                  <button type="button" class="ghost-button mini" (click)="reviewNow(row)">View details</button>
+                  <div class="review-actions">
+                    <a
+                      *ngIf="row.invoiceId"
+                      class="ghost-button mini edit-action"
+                      routerLink="/pos/invoices"
+                      [queryParams]="{ invoice: row.invoiceId }"
+                    >
+                      Edit invoice
+                    </a>
+                    <button type="button" class="ghost-button mini" (click)="reviewNow(row)">View details</button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -570,7 +613,17 @@ interface InvoiceActivityRow {
               <h3>{{ selected.invoiceNumber }}</h3>
               <p>{{ actionLabel(selected.actionType) }} by {{ selected.actionByUser }} on {{ formatDate(selected.actionTime) }} at {{ formatTime(selected.actionTime) }}</p>
             </div>
-            <button type="button" class="ghost-button mini" (click)="closeDetail()">Close</button>
+            <div class="review-actions">
+              <a
+                *ngIf="selected.invoiceId"
+                class="ghost-button mini edit-action"
+                routerLink="/pos/invoices"
+                [queryParams]="{ invoice: selected.invoiceId }"
+              >
+                Edit invoice
+              </a>
+              <button type="button" class="ghost-button mini" (click)="closeDetail()">Close</button>
+            </div>
           </div>
 
           <div class="invoice-summary-grid">
@@ -588,6 +641,11 @@ interface InvoiceActivityRow {
               <span>Total</span>
               <strong>{{ currency(selected.total) }}</strong>
               <small>Paid {{ currency(selected.paid) }} / Due {{ currency(selected.balance) }}</small>
+            </article>
+            <article>
+              <span>Created / changed</span>
+              <strong>{{ formatDateTime(selected.invoiceCreatedAt || selected.actionTime) }}</strong>
+              <small>Changed {{ formatDateTime(selected.actionTime) }}</small>
             </article>
             <article>
               <span>Status</span>
@@ -614,6 +672,11 @@ interface InvoiceActivityRow {
                 <span>Updated total</span>
                 <strong>{{ currency(selected.financeImpact.updatedTotal) }}</strong>
                 <small>After activity</small>
+              </article>
+              <article>
+                <span>Amount difference</span>
+                <strong [class.amount-down]="selected.financeImpact.amountDifference < 0" [class.amount-up]="selected.financeImpact.amountDifference > 0">{{ signedCurrency(selected.financeImpact.amountDifference) }}</strong>
+                <small>{{ currency(selected.financeImpact.originalTotal) }} -> {{ currency(selected.financeImpact.updatedTotal) }}</small>
               </article>
               <article>
                 <span>Payment difference</span>
@@ -646,7 +709,7 @@ interface InvoiceActivityRow {
           <section class="risk-review-panel" [ngClass]="riskBadgeClass(selected.riskLevel)">
             <div class="section-title invoice-activity-title">
               <div>
-                <span class="eyebrow">AI risk detection</span>
+                <span class="eyebrow">Risk detection</span>
                 <h3>{{ riskLabel(selected.riskLevel) }} risk</h3>
               </div>
               <span class="badge" [ngClass]="riskBadgeClass(selected.riskLevel)">Score {{ selected.riskScore }}</span>
@@ -930,6 +993,28 @@ interface InvoiceActivityRow {
     .invoice-activity-table tr.selected-row {
       background: var(--color-primary-soft);
       box-shadow: inset 4px 0 0 var(--teal);
+    }
+
+    .amount-down {
+      color: #b91c1c;
+    }
+
+    .amount-up {
+      color: #047857;
+    }
+
+    .review-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .edit-action {
+      border-color: rgba(15, 118, 110, 0.35);
+      background: #f0fdfa;
+      color: #0f766e;
+      font-weight: 800;
     }
 
     .activity-detail-drawer {
@@ -1235,6 +1320,7 @@ export class PosInvoiceActivityComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   rows = signal<InvoiceActivityRow[]>([]);
+  todayInvoices = signal<TodayInvoiceSummary>({ count: 0, billed: 0 });
   selectedRow = signal<InvoiceActivityRow | null>(null);
   approvalSaving = signal<string | null>(null);
   approvalError = signal('');
@@ -1286,6 +1372,14 @@ export class PosInvoiceActivityComponent implements OnInit {
   refreshAll(): void {
     this.load();
     this.loadReports();
+    this.loadTodayInvoices();
+  }
+
+  loadTodayInvoices(): void {
+    this.api.list<ApiRecord[]>('invoices', { limit: 1000 }).subscribe({
+      next: (rows) => this.todayInvoices.set(this.buildTodayInvoiceSummary(rows || [])),
+      error: () => this.todayInvoices.set({ count: 0, billed: 0 })
+    });
   }
 
   load(): void {
@@ -1477,8 +1571,11 @@ export class PosInvoiceActivityComponent implements OnInit {
       'status',
       'paymentModes',
       'amount',
+      'amountDifference',
       'paid',
       'due',
+      'advanceAdjusted',
+      'counterPaid',
       'paymentDifference',
       'actionByUser',
       'approvalStatus',
@@ -1511,7 +1608,7 @@ export class PosInvoiceActivityComponent implements OnInit {
       'Daily invoice edit/delete report',
       ...this.dailyReportRows(report).slice(0, 12).map((row) => `${row.date} - edits ${row.edits}, deletes ${row.deletions}, amount ${this.currency(row.totalAmount)}`),
       '',
-      'AI risk detection',
+      'Risk detection',
       `High risk activities: ${report.summary?.highRiskActivities || 0} | Critical: ${report.summary?.criticalRiskActivities || 0}`,
       ...this.reportExportRows().filter((row) => ['high', 'critical'].includes(String(row['riskLevel'] || ''))).slice(0, 12).map((row) => `${row['riskLevel']} - ${row['invoiceNumber']} - ${row['riskReason']} - ${row['suggestedAction']}`),
       '',
@@ -1733,6 +1830,7 @@ export class PosInvoiceActivityComponent implements OnInit {
       card: 'Card',
       upi: 'UPI',
       wallet: 'Wallet',
+      booking_advance: 'Booking advance',
       bank: 'Bank',
       untracked: 'Untracked'
     };
@@ -1822,8 +1920,11 @@ export class PosInvoiceActivityComponent implements OnInit {
       status: row.status,
       paymentModes: row.paymentModes.join(' | '),
       amount: row.total,
+      amountDifference: row.financeImpact.amountDifference,
       paid: row.paid,
       due: row.balance,
+      advanceAdjusted: row.advanceAdjusted,
+      counterPaid: row.counterPaid,
       paymentDifference: 0,
       actionByUser: row.actionByUser,
       approvalStatus: row.approvalStatus,
@@ -1852,7 +1953,34 @@ export class PosInvoiceActivityComponent implements OnInit {
   }
 
   private todayKey(): string {
-    return new Date().toISOString().slice(0, 10);
+    return this.localDateKey(new Date());
+  }
+
+  private buildTodayInvoiceSummary(rows: ApiRecord[]): TodayInvoiceSummary {
+    const today = this.todayKey();
+    const todayRows = rows.filter((row) => {
+      const status = String(row['status'] || row['documentStatus'] || row['document_status'] || '').toLowerCase();
+      if (['deleted', 'voided', 'cancelled'].includes(status)) return false;
+      const date = this.invoiceCreatedDate(row);
+      return date ? this.localDateKey(date) === today : false;
+    });
+    return {
+      count: todayRows.length,
+      billed: this.numberValue(todayRows.reduce((sum, row) => sum + this.numberValue(row['total'] ?? row['grandTotal'] ?? row['grand_total']), 0))
+    };
+  }
+
+  private invoiceCreatedDate(row: ApiRecord): Date | null {
+    const value = row['invoiceDate'] || row['invoice_date'] || row['createdAt'] || row['created_at'] || row['date'];
+    const date = new Date(String(value || ''));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private localDateKey(value: Date): string {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private simplePdf(lines: string[]): string {
@@ -1914,11 +2042,14 @@ export class PosInvoiceActivityComponent implements OnInit {
       branchId: this.text(row.branchId) || '-',
       branchName: this.text(row.branchName) || this.text(row.branchId) || '-',
       actionByUser: this.text(row.actionByUser) || 'System',
+      invoiceCreatedAt: this.dateValue(row.invoiceCreatedAt || row.actionTime),
       actionTime,
       status: this.text(row.status) || actionType,
       total: this.numberValue(row.total),
       paid: this.numberValue(row.paid),
       balance: this.numberValue(row.balance),
+      advanceAdjusted: this.numberValue(row.advanceAdjusted),
+      counterPaid: this.numberValue(row.counterPaid),
       paymentModes: this.normalizePaymentModes(row.paymentModes),
       changes: this.normalizeChanges(row.changes),
       financeImpact: this.normalizeFinanceImpact(row.financeImpact),
@@ -1990,6 +2121,7 @@ export class PosInvoiceActivityComponent implements OnInit {
     return {
       originalTotal: this.numberValue(impact.originalTotal),
       updatedTotal: this.numberValue(impact.updatedTotal),
+      amountDifference: this.numberValue(impact.amountDifference ?? (this.numberValue(impact.updatedTotal) - this.numberValue(impact.originalTotal))),
       paymentDifference: this.numberValue(impact.paymentDifference),
       gstDifference: this.numberValue(impact.gstDifference),
       dueDifference: this.numberValue(impact.dueDifference),

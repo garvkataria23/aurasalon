@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const reportsComponent = readFileSync("src/app/pages/reports.component.ts", "utf8");
+const analyticsComponent = readFileSync("src/app/pages/analytics-engine.component.ts", "utf8");
+const kpiDetailComponent = readFileSync("src/app/pages/kpi-detail.component.ts", "utf8");
+const analyticsRoutes = readFileSync("server/routes/analytics.routes.js", "utf8");
+const advancedAnalyticsService = readFileSync("server/services/advanced-analytics.service.js", "utf8");
 const operationsRoutes = readFileSync("server/routes/operations.routes.js", "utf8");
 const salonOperations = readFileSync("server/services/salon-operations.service.js", "utf8");
 const staffSalesReport = readFileSync("server/services/staff-sales-report.service.js", "utf8");
@@ -33,4 +37,38 @@ test("Staff sales and commission reports resolve Staff OS staff IDs", () => {
   assert.match(staffSalesReport, /staffOsService\.listStaff\(\{ branchId,\s*status: "active"/, "staff sales should resolve Staff OS names");
   assert.match(commissionPreview, /staffOsService\.listStaff\(\{ branchId,\s*status: "active"/, "commission preview should resolve Staff OS incentive profiles");
   assert.match(commissionPreview, /function incentiveRuleFor/, "Staff OS incentive details should be converted into preview rules");
+});
+
+test("Reports analytics advanced controls are wired end to end", () => {
+  for (const endpoint of [
+    "/analytics/report-command-center",
+    "/analytics/kpi-detail/:module/:kpiKey",
+    "/analytics/export-controls",
+    "/analytics/report-schedules",
+    "/analytics/anomalies/run"
+  ]) {
+    assert.ok(analyticsRoutes.includes(endpoint), `${endpoint} should be routed`);
+  }
+  for (const method of [
+    "reportCommandCenter",
+    "kpiDetail",
+    "createSchedule",
+    "exportControls",
+    "runAnomalyDetection",
+    "aiInsights",
+    "reportDrilldowns",
+    "kpiDetailMap"
+  ]) {
+    assert.match(advancedAnalyticsService, new RegExp(`${method}\\(`), `${method} should exist in analytics service`);
+  }
+  assert.match(advancedAnalyticsService, /anomalyDetectionService/, "Analytics service should use anomaly detection");
+  assert.match(reportsComponent, /analytics\/report-command-center/, "Reports page should load advanced command center");
+  assert.match(reportsComponent, /analytics\/report-schedules/, "Reports page should create scheduled reports");
+  assert.match(reportsComponent, /analytics\/anomalies\/run/, "Reports page should trigger anomaly scan");
+  assert.match(reportsComponent, /kpiDetailMap/, "Reports page should render KPI detail mapping");
+  assert.match(analyticsComponent, /commandCenter/, "Analytics page should show command center state");
+  assert.match(analyticsComponent, /createSchedule/, "Analytics page should expose scheduled report action");
+  assert.match(analyticsComponent, /runAnomalyScan/, "Analytics page should expose anomaly action");
+  assert.match(kpiDetailComponent, /analytics\/kpi-detail\/\$\{this\.moduleName\(\)\}\/\$\{this\.kpiKey\(\)\}/, "Generic KPI page should load mapped drilldown data");
+  assert.match(kpiDetailComponent, /Mapped KPI drill-down/, "Generic KPI page should no longer be a placeholder");
 });

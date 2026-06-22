@@ -512,8 +512,13 @@ export class FutureFeaturesComponent implements OnInit {
     { type: 'demand-forecasting', label: 'AI demand forecasting', category: 'Operations', prompt: 'Forecast demand for the next 7 days and connect staffing plus inventory actions.', summary: 'Demand plan' },
     { type: 'inventory-prediction', label: 'AI inventory prediction', category: 'Inventory', prompt: 'Predict reorder needs and stockout risk from live inventory, services and demand.', summary: 'Reorder plan' },
     { type: 'voice-booking-assistant', label: 'Voice booking assistant', category: 'Front desk', prompt: 'Book hair color tomorrow evening and suggest available slots.', summary: 'Slot options' },
+    { type: 'voice-receptionist', label: 'AI voice receptionist', category: 'Front desk', prompt: 'Classify a live call, suggest the next booking or handoff action, and keep evidence connected.', summary: 'Call router' },
+    { type: 'dynamic-pricing', label: 'Dynamic pricing engine', category: 'Revenue', prompt: 'Create review-before-action dynamic pricing rules from live demand and sales signals.', summary: 'Rule drafts' },
     { type: 'smart-kiosk-mode', label: 'Smart kiosk mode', category: 'Front desk', prompt: 'Start a self check-in kiosk session and estimate queue wait.', summary: 'Kiosk session' },
-    { type: 'ai-receptionist', label: 'AI receptionist', category: 'Front desk', prompt: 'Classify booking, payment, membership or complaint intent and route it safely.', summary: 'Intent router' }
+    { type: 'ai-receptionist', label: 'AI receptionist', category: 'Front desk', prompt: 'Classify booking, payment, membership or complaint intent and route it safely.', summary: 'Intent router' },
+    { type: 'franchise-os', label: 'Franchise OS', category: 'Enterprise', prompt: 'Create franchise royalty, compliance and branch action summary from live branch data.', summary: 'Operator summary' },
+    { type: 'smart-forms', label: 'Smart forms builder', category: 'Experience', prompt: 'Generate service-specific consultation and consent forms with signature rules.', summary: 'Form drafts' },
+    { type: 'marketplace', label: 'App marketplace', category: 'Platform', prompt: 'Recommend provider connectors and plugin install actions for this tenant.', summary: 'Install plan' }
   ];
 
   readonly runForm = this.fb.group({

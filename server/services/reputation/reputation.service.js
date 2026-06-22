@@ -14,6 +14,7 @@ import {
 } from "../enterprise-command-utils.js";
 import { resourceService } from "../resource.service.js";
 import { reputationAlertService } from "./alert.service.js";
+import { syncReputationPlatform } from "./provider-sync.service.js";
 import { reviewRequesterService } from "./review-requester.service.js";
 
 const SUPPORTED_PLATFORMS = {
@@ -298,12 +299,13 @@ export const reputationService = {
   draftReplies(reviewId, payload = {}, access) {
     const review = this.findReview(reviewId, access);
     auditDecision("reputation.ai_draft_requested", review.source === "legacy" ? "reputation_reviews" : "reviews_v2", reviewId, access, { branchId: review.branchId, details: { tone: payload.tone || "warm" } });
+    const drafts = buildReplyDrafts(review, payload);
     return {
       reviewId,
-      providerStatus: "not_configured",
+      providerStatus: "local_rule_draft",
       approvalRequired: true,
-      drafts: [],
-      message: "AI reply generation is not configured in Phase 2. Phase 4 will add cached AI draft generation with human approval."
+      drafts,
+      message: "AI provider is not connected, so Aura generated approval-ready local draft options from the review rating and sentiment."
     };
   },
 
@@ -363,6 +365,7 @@ export const reputationService = {
        WHERE tenant_id = ? AND branch_id = ? AND platform_code = ?
        ORDER BY created_at DESC LIMIT 1`
     ).get(access.tenantId, branchId, platformCode);
+    const providerConfig = providerConfigFromPayload(platformCode, payload);
     const data = {
       id: existing?.id || makeId("rplat"),
       tenant_id: access.tenantId,
@@ -375,7 +378,7 @@ export const reputationService = {
       auto_sync_enabled: payload.autoSyncEnabled === false || payload.auto_sync_enabled === 0 ? 0 : 1,
       last_sync_status: "not_configured",
       rate_limit_per_day: payload.rateLimitPerDay || payload.rate_limit_per_day || config.rateLimitPerDay,
-      provider_config_json: toJson({ providerStatus: "not_configured", oauthRequired: true }),
+      provider_config_json: toJson(providerConfig),
       is_active: 1,
       updated_at: now()
     };
@@ -398,29 +401,44 @@ export const reputationService = {
         VALUES (@id, @tenant_id, @branch_id, @platform_code, @platform_name, @platform_url, @business_listing_id, @business_listing_url, @auto_sync_enabled, @last_sync_status, @rate_limit_per_day, @provider_config_json, @is_active, CURRENT_TIMESTAMP, @updated_at)`).run(data);
     }
     const platform = this.platform(data.id, access);
-    auditDecision(existing ? "reputation.platform_updated" : "reputation.platform_connected", "review_platforms", platform.id, access, { branchId, details: { platformCode, providerStatus: "not_configured" } });
+    auditDecision(existing ? "reputation.platform_updated" : "reputation.platform_connected", "review_platforms", platform.id, access, { branchId, details: { platformCode, providerStatus: providerConfig.providerStatus, tokenEnvKey: providerConfig.tokenEnvKey || "" } });
     emitEvent("reputation:platform_sync_failed", access, branchId, platform.id, { platformCode, status: "not_configured" });
     return {
       platform,
-      providerStatus: "not_configured",
+      providerStatus: providerConfig.providerStatus,
       oauthRequired: true,
       message: "OAuth provider credentials are not configured. Platform record was saved without external sync."
     };
   },
 
-  syncPlatform(id, payload = {}, access) {
+  async syncPlatform(id, payload = {}, access) {
     requireManager(access);
     const platform = this.platform(id, access);
-    db.prepare("UPDATE review_platforms SET last_sync_status = 'not_configured', updated_at = ? WHERE id = ? AND tenant_id = ?").run(now(), id, access.tenantId);
-    auditDecision("reputation.platform_sync_attempted", "review_platforms", id, access, { branchId: platform.branchId, details: { status: "not_configured", ...payload } });
-    emitEvent("reputation:platform_sync_failed", access, platform.branchId, id, { platformCode: platform.platformCode, status: "not_configured" });
-    return {
-      platform: this.platform(id, access),
-      status: "not_configured",
-      synced: false,
-      importedReviews: 0,
-      message: "No external provider adapter is configured for this platform."
-    };
+    try {
+      const result = await syncReputationPlatform(platform, access, payload);
+      const stamp = now();
+      db.prepare(
+        `UPDATE review_platforms
+         SET last_sync_status = @status,
+             last_synced_at = @last_synced_at,
+             updated_at = @updated_at
+         WHERE id = @id AND tenant_id = @tenant_id`
+      ).run({
+        status: result.status || "synced",
+        last_synced_at: result.synced ? stamp : platform.lastSyncedAt || "",
+        updated_at: stamp,
+        id,
+        tenant_id: access.tenantId
+      });
+      auditDecision("reputation.platform_sync_attempted", "review_platforms", id, access, { branchId: platform.branchId, details: result });
+      emitEvent(result.synced ? "reputation:platform_synced" : "reputation:platform_sync_failed", access, platform.branchId, id, { platformCode: platform.platformCode, ...result });
+      return { platform: this.platform(id, access), ...result };
+    } catch (error) {
+      db.prepare("UPDATE review_platforms SET last_sync_status = 'failed', updated_at = ? WHERE id = ? AND tenant_id = ?").run(now(), id, access.tenantId);
+      auditDecision("reputation.platform_sync_failed", "review_platforms", id, access, { branchId: platform.branchId, details: { error: error.message } });
+      emitEvent("reputation:platform_sync_failed", access, platform.branchId, id, { platformCode: platform.platformCode, status: "failed" });
+      return { platform: this.platform(id, access), status: "failed", synced: false, importedReviews: 0, message: error.message };
+    }
   },
 
   oauthUrl(id, access) {
@@ -444,6 +462,14 @@ export const reputationService = {
 
   sendReviewRequest(appointmentId, payload = {}, access) {
     return reviewRequesterService.sendForAppointment(appointmentId, payload, access);
+  },
+
+  publicReviewRequest(requestId) {
+    return reviewRequesterService.publicRequest(requestId);
+  },
+
+  submitPublicFeedback(requestId, payload = {}) {
+    return reviewRequesterService.submitPublicFeedback(requestId, payload);
   },
 
   internalFeedback(payload = {}, access) {
@@ -803,6 +829,64 @@ function filterLegacyRows(rows, query) {
     }
     return true;
   });
+}
+
+function providerConfigFromPayload(platformCode, payload = {}) {
+  const incoming = typeof payload.providerConfig === "object" && payload.providerConfig
+    ? payload.providerConfig
+    : parseJson(payload.providerConfig || payload.provider_config_json, {});
+  const tokenEnvKey = payload.tokenEnvKey || payload.providerTokenEnvKey || incoming.tokenEnvKey || defaultProviderEnvKey(platformCode);
+  const accountId = payload.accountId || incoming.accountId || "";
+  const locationId = payload.locationId || incoming.locationId || "";
+  const instagramAccountId = payload.instagramAccountId || payload.pageAccountId || incoming.instagramAccountId || "";
+  const pageId = payload.pageId || payload.pageAccountId || incoming.pageId || "";
+  return {
+    providerStatus: tokenEnvKey && process.env[tokenEnvKey] ? "configured" : "not_configured",
+    oauthRequired: true,
+    credentialMode: "env_reference",
+    tokenEnvKey,
+    accountId,
+    locationId,
+    instagramAccountId,
+    pageId,
+    graphVersion: payload.graphVersion || incoming.graphVersion || "",
+    updatedAt: now()
+  };
+}
+
+function defaultProviderEnvKey(platformCode) {
+  const envKeys = {
+    google: "GOOGLE_BUSINESS_PROFILE_ACCESS_TOKEN",
+    instagram: "META_GRAPH_ACCESS_TOKEN",
+    facebook: "META_GRAPH_ACCESS_TOKEN",
+    yelp: "YELP_API_KEY"
+  };
+  return envKeys[platformCode] || "";
+}
+
+function buildReplyDrafts(review = {}, payload = {}) {
+  const name = String(review.reviewerName || "there").split(/\s+/)[0] || "there";
+  const rating = Number(review.rating || 0);
+  const platformName = review.platformName || review.platform || "your review";
+  const tone = String(payload.tone || "warm").toLowerCase();
+  if (isNegative(review)) {
+    return [
+      `Hi ${name}, thank you for telling us about this. We are sorry your visit did not meet the standard we expect. Please share a convenient time or contact detail so our manager can review this and make it right.`,
+      `Hi ${name}, we appreciate your honest feedback on ${platformName}. We are checking this with the team and would like to resolve it personally. Please message us with your visit details.`
+    ];
+  }
+  if (rating >= 4) {
+    return [
+      `Hi ${name}, thank you for the lovely review. We are glad you enjoyed your visit and look forward to welcoming you again soon.`,
+      `Thanks ${name}. Your feedback means a lot to the team. We will keep working to give you the same great experience every time.`
+    ];
+  }
+  return [
+    `Hi ${name}, thank you for sharing your feedback. We are noting this with the team and will use it to improve your next visit.`,
+    tone === "formal"
+      ? `Dear ${name}, thank you for reviewing us. We appreciate the feedback and will review it internally for service improvement.`
+      : `Thanks ${name}. We appreciate the honest review and will keep improving.`
+  ];
 }
 
 function encodeValue(column, value) {

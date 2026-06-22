@@ -149,8 +149,8 @@ export class ReputationApiService {
     );
   }
 
-  connectPlatform(code: string, branchId: string): Observable<ApiRecord> {
-    return this.api.post<ApiRecord>(`reputation/platforms/connect/${code}`, { branchId }).pipe(
+  connectPlatform(code: string, branchId: string, payload: ApiRecord = {}): Observable<ApiRecord> {
+    return this.api.post<ApiRecord>(`reputation/platforms/connect/${code}`, { branchId, ...payload }).pipe(
       catchError((error) =>
         shouldUseLegacyFallback(error)
           ? of({
@@ -161,6 +161,10 @@ export class ReputationApiService {
           : throwError(() => error)
       )
     );
+  }
+
+  sendReviewRequest(appointmentId: string, payload: ApiRecord = {}): Observable<ApiRecord> {
+    return this.api.post<ApiRecord>(`reputation/requests/send/${appointmentId}`, payload);
   }
 
   selectedBranchId(): string {
@@ -339,17 +343,25 @@ function normalizePlatformsResponse(value: ApiRecord = {}): ReputationPlatformsR
 
 function normalizePlatform(input: unknown = {}): ReviewPlatform {
   const value = record(input);
+  const providerConfig = record(value['providerConfig']);
   return {
     id: string(value['id']),
     branchId: string(value['branchId']),
     platformCode: string(value['platformCode']),
     platformName: string(value['platformName'], 'Review platform'),
+    platformUrl: string(value['platformUrl']),
+    businessListingId: string(value['businessListingId']),
     businessListingUrl: string(value['businessListingUrl']),
     autoSyncEnabled: boolean(value['autoSyncEnabled']),
     lastSyncedAt: string(value['lastSyncedAt']),
     lastSyncStatus: string(value['lastSyncStatus'], 'not_configured'),
+    providerStatus: string(value['providerStatus'] ?? providerConfig['providerStatus'], 'not_configured'),
+    tokenEnvKey: string(value['tokenEnvKey'] ?? providerConfig['tokenEnvKey']),
+    accountId: string(value['accountId'] ?? providerConfig['accountId']),
+    locationId: string(value['locationId'] ?? providerConfig['locationId']),
+    pageAccountId: string(value['pageAccountId'] ?? providerConfig['pageId'] ?? providerConfig['instagramAccountId']),
     rateLimitPerDay: number(value['rateLimitPerDay']),
-    providerConfig: record(value['providerConfig']),
+    providerConfig,
     isActive: boolean(value['isActive'], true)
   };
 }

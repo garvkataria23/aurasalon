@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -8,7 +8,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 @Component({
   selector: 'app-inventory-fifo',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent],
   template: `
     <section class="page-stack fifo-page">
       <div class="module-hero compact-hero">

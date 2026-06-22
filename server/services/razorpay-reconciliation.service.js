@@ -3,6 +3,12 @@ import { badRequest, notFound } from "../utils/app-error.js";
 import { realtimeService } from "./realtime.service.js";
 
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
+const PROVIDER_MODES = {
+  razorpay: ["razorpay"],
+  upi: ["upi", "gpay", "googlepay", "paytm", "phonepe"],
+  card: ["card", "credit_card", "debit_card", "credit", "debit"],
+  bank: ["bank", "bank_transfer", "neft", "rtgs", "imps"]
+};
 
 function day(value = "") {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? value : new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
@@ -10,31 +16,57 @@ function day(value = "") {
 
 export class RazorpayReconciliationService {
   fetchSettlement({ date, branchId = "" } = {}, access = {}) {
-    const settlementDate = day(date);
+    return this.matchSettlement({ provider: "razorpay", date, branchId }, access);
+  }
+
+  matchSettlement(payload = {}, access = {}) {
+    const provider = String(payload.provider || "razorpay").trim().toLowerCase();
+    const modes = PROVIDER_MODES[provider] || PROVIDER_MODES.razorpay;
+    const settlementDate = day(payload.date || payload.settlementDate || payload.settlement_date);
+    const branchId = payload.branchId || access.requestedBranchId || access.branchId || "";
+    const modeParams = Object.fromEntries(modes.map((mode, index) => [`mode${index}`, mode]));
+    const modeWhere = modes.map((_, index) => `@mode${index}`).join(", ");
     const payments = db.prepare(
       `SELECT ip.*, i.branch_id
          FROM invoice_payments ip
          JOIN invoices i ON i.tenant_id = ip.tenant_id AND i.id = ip.invoice_id
         WHERE ip.tenant_id = @tenantId
-          AND ip.provider = 'razorpay'
+          AND (
+            lower(COALESCE(NULLIF(ip.provider, ''), ip.payment_mode)) IN (${modeWhere})
+            OR lower(ip.payment_mode) IN (${modeWhere})
+          )
           AND ip.status = 'paid'
           AND substr(ip.paid_at, 1, 10) = @settlementDate
           ${branchId ? "AND i.branch_id = @branchId" : ""}`
-    ).all({ tenantId: access.tenantId, settlementDate, branchId });
+    ).all({ tenantId: access.tenantId, settlementDate, branchId, ...modeParams });
     const captured = money(payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0));
-    const fees = money(captured * 0.02);
-    const taxOnFees = money(fees * 0.18);
+    const feePercent = Number(payload.feePercent ?? payload.fee_percent ?? 2);
+    const taxPercent = Number(payload.taxPercent ?? payload.tax_percent ?? 18);
+    const fees = payload.fees !== undefined ? money(payload.fees) : money(captured * (feePercent / 100));
+    const taxOnFees = payload.taxOnFees !== undefined || payload.tax_on_fees !== undefined
+      ? money(payload.taxOnFees ?? payload.tax_on_fees)
+      : money(fees * (taxPercent / 100));
     const refunds = db.prepare(
       `SELECT SUM(ir.amount) AS amount
          FROM invoice_refunds ir
          JOIN invoices i ON i.tenant_id = ir.tenant_id AND i.id = ir.invoice_id
         WHERE ir.tenant_id = @tenantId
           AND substr(ir.created_at, 1, 10) = @settlementDate
-          ${branchId ? "AND i.branch_id = @branchId" : ""}`
-    ).get({ tenantId: access.tenantId, settlementDate, branchId });
+          ${branchId ? "AND i.branch_id = @branchId" : ""}
+          AND EXISTS (
+            SELECT 1 FROM invoice_payments ip
+             WHERE ip.tenant_id = ir.tenant_id
+               AND ip.invoice_id = ir.invoice_id
+               AND (
+                 lower(COALESCE(NULLIF(ip.provider, ''), ip.payment_mode)) IN (${modeWhere})
+                 OR lower(ip.payment_mode) IN (${modeWhere})
+               )
+          )`
+    ).get({ tenantId: access.tenantId, settlementDate, branchId, ...modeParams });
     const refundTotal = money(refunds?.amount || 0);
-    const expected = money(captured - fees - taxOnFees - refundTotal);
-    const settled = money(Number(process.env.RAZORPAY_SETTLEMENT_OVERRIDE || expected));
+    const adjustments = money(payload.adjustments ?? payload.adjustmentAmount ?? payload.adjustment_amount ?? 0);
+    const expected = money(captured - fees - taxOnFees - refundTotal + adjustments);
+    const settled = money(payload.settledAmount ?? payload.settled_amount ?? (provider === "razorpay" ? process.env.RAZORPAY_SETTLEMENT_OVERRIDE : expected) ?? expected);
     const difference = money(settled - expected);
     const status = Math.abs(difference) <= 0.01 ? "matched" : "mismatch";
     const id = `recon_${crypto.randomUUID().slice(0, 12)}`;
@@ -43,22 +75,32 @@ export class RazorpayReconciliationService {
         (id, tenant_id, branch_id, provider, provider_settlement_id, settlement_date, expected_amount,
          settled_amount, fees, tax_on_fees, refunds, adjustments, difference, status, raw_payload, created_at)
        VALUES
-        (@id, @tenantId, @branchId, 'razorpay', @providerSettlementId, @settlementDate, @expectedAmount,
-         @settledAmount, @fees, @taxOnFees, @refunds, 0, @difference, @status, @rawPayload, CURRENT_TIMESTAMP)`
+        (@id, @tenantId, @branchId, @provider, @providerSettlementId, @settlementDate, @expectedAmount,
+          @settledAmount, @fees, @taxOnFees, @refunds, @adjustments, @difference, @status, @rawPayload, CURRENT_TIMESTAMP)`
     ).run({
       id,
       tenantId: access.tenantId,
       branchId,
-      providerSettlementId: `rzp_${settlementDate}_${Date.now()}`,
+      provider,
+      providerSettlementId: payload.providerSettlementId || payload.provider_settlement_id || `${provider}_${settlementDate}_${Date.now()}`,
       settlementDate,
       expectedAmount: expected,
       settledAmount: settled,
       fees,
       taxOnFees,
       refunds: refundTotal,
+      adjustments,
       difference,
       status,
-      rawPayload: JSON.stringify({ mode: "local_reconciliation", payments: payments.length })
+      rawPayload: JSON.stringify({
+        mode: "local_reconciliation",
+        provider,
+        paymentCount: payments.length,
+        paymentIds: payments.map((payment) => payment.id),
+        invoiceIds: [...new Set(payments.map((payment) => payment.invoice_id).filter(Boolean))],
+        feePercent,
+        taxPercent
+      })
     });
     if (status === "mismatch") {
       realtimeService.broadcast("reconciliation:mismatch", { id, settlementDate, difference }, { tenantId: access.tenantId, branchId });

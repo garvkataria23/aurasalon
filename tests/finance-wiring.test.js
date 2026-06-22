@@ -14,6 +14,7 @@ const financeService = readFileSync("server/services/finance-engine.service.js",
 const transactionsService = readFileSync("server/services/transactions.service.js", "utf8");
 const balanceSheetService = readFileSync("server/services/balance-sheet.service.js", "utf8");
 const hardeningService = readFileSync("server/services/balance-sheet-hardening.service.js", "utf8");
+const outgoingCategoryService = readFileSync("server/services/salon-outgoing-category.service.js", "utf8");
 const financePage = readFileSync("src/app/pages/finance-engine.component.ts", "utf8");
 const accountLedgerPage = readFileSync("src/app/pages/account-ledger.component.ts", "utf8");
 const outgoingFundsPage = readFileSync("src/app/pages/outgoing-funds-entry.component.ts", "utf8");
@@ -83,6 +84,7 @@ test("Finance APIs require finance permissions and audit sensitive mutations", (
   assert.match(accountRoutes, /validateBody\(\{ required: \["accountName"\] \}\)/, "account creation should validate accountName");
   assert.match(transactionsRoutes, /\/transactions\/outgoing-funds[\s\S]*requirePermission\("write",\s*\(\) => "finance"\)[\s\S]*validateBody\(\{ required: \["entryDate", "amount"\] \}\)/, "outgoing funds should require finance write and amount/date");
   assert.match(balanceRoutes, /\/balance-sheet\/journals[\s\S]*requirePermission\("write",\s*\(\) => "finance"\)/, "manual journals should require write finance");
+  assert.match(balanceRoutes, /\/balance-sheet\/controls[\s\S]*requirePermission\("read",\s*\(\) => "finance"\)/, "finance controls should require read finance");
   assert.match(hardeningRoutes, /\/balance-sheet\/outbox\/process[\s\S]*requirePermission\("write",\s*\(\) => "finance"\)/, "GL outbox processing should require write finance");
 });
 
@@ -101,9 +103,16 @@ test("Finance pages call their backend APIs with branch-aware surfaces", () => {
   assert.match(accountLedgerPage, /account-master\/ledger[\s\S]*branchId:\s*this\.api\.selectedBranchId\(\)/, "Account Ledger should load branch-scoped ledger rows");
   assert.match(outgoingFundsPage, /transactions\/outgoing-funds[\s\S]*branchId:\s*this\.api\.selectedBranchId\(\)/, "Outgoing Funds should load branch-scoped entries");
   assert.match(outgoingFundsPage, /routerLink="\/transactions\/outgoing-funds-report"/, "Outgoing Funds entry should link to saved report");
+  assert.match(outgoingFundsPage, /Salon Category[\s\S]*BS Impact/, "Outgoing Funds entry should expose salon category and Balance Sheet impact columns");
+  assert.match(outgoingFundsPage, /GST Amount[\s\S]*Bill \/ Invoice[\s\S]*Linked Name[\s\S]*Approval/, "Outgoing Funds entry should capture GST, bill proof, linked party and approval status");
   assert.match(outgoingFundsReportPage, /transactions\/outgoing-funds[\s\S]*branchId:\s*this\.api\.selectedBranchId\(\)/, "Outgoing Funds report should load branch-scoped saved entries");
+  assert.match(outgoingFundsReportPage, /Salon Category[\s\S]*BS Impact/, "Outgoing Funds report should expose category and Balance Sheet impact");
+  assert.match(outgoingFundsReportPage, /Input GST[\s\S]*Approval pending[\s\S]*Linked party/, "Outgoing Funds report should expose GST, approval and party link status");
   assert.match(accountMasterPage, /account-master\/accounts[\s\S]*branchId:\s*this\.api\.selectedBranchId\(\)/, "Account Master should use branch-scoped account lists");
-  assert.match(balanceSheetPage, /balance-sheet\/live[\s\S]*balance-sheet\/trial-balance[\s\S]*balance-sheet\/hardening/, "Balance Sheet should load live, trial, and hardening data");
+  assert.match(balanceSheetPage, /balance-sheet\/live[\s\S]*balance-sheet\/trial-balance[\s\S]*balance-sheet\/hardening[\s\S]*balance-sheet\/controls/, "Balance Sheet should load live, trial, hardening and finance controls data");
+  assert.match(balanceSheetPage, /Outgoing input GST[\s\S]*Bill missing[\s\S]*Party link missing[\s\S]*Approval pending/, "Balance Sheet should show outgoing connection coverage");
+  assert.match(balanceSheetPage, /Variance detection[\s\S]*Source of truth[\s\S]*Audit trail/, "Balance Sheet should expose variance detection and audit trail controls");
+  assert.match(balanceSheetPage, /financeControls\(\)\?\.exportControl\?\.allowed === false/, "CSV export should be gated by finance export controls");
 });
 
 test("Finance services keep tenant, branch and integer-paise accounting invariants", () => {
@@ -111,11 +120,22 @@ test("Finance services keep tenant, branch and integer-paise accounting invarian
   assert.match(financeService, /money\(/, "Finance service should normalize money values");
   assert.match(transactionsService, /balanceSheetHardeningService\.enqueue\(\{[\s\S]*eventType: "expense\.recorded"/, "Outgoing funds should enqueue GL expense events");
   assert.match(transactionsService, /eventKey: `outgoing-fund:\$\{access\.tenantId\}:\$\{entry\.id\}`/, "Outgoing funds should use idempotent event keys");
+  assert.match(transactionsService, /classifySalonOutgoing[\s\S]*balanceSheetImpact/, "Outgoing funds should enrich line items with salon category engine metadata");
+  assert.match(transactionsService, /OUTGOING_SCHEMA_COLUMNS[\s\S]*gst_amount[\s\S]*bill_url[\s\S]*approval_status/, "Outgoing funds should persist GST, bill and approval metadata without touching db.js");
+  assert.match(transactionsService, /inputGstPaise[\s\S]*linkedPartyType[\s\S]*approvalStatus/, "Outgoing funds should send GST and linked-party metadata to GL outbox");
+  assert.match(outgoingCategoryService, /fixed_asset_purchase[\s\S]*gst_payment[\s\S]*owner_drawing[\s\S]*SALON_OUTGOING_CATEGORIES/, "Salon outgoing category engine should cover asset, tax and owner movements");
+  assert.match(balanceSheetService, /outgoingCoverage[\s\S]*salonOutgoingCoverage/, "Balance Sheet should expose outgoing coverage from salon category engine");
+  assert.match(balanceSheetService, /outgoingConnection[\s\S]*inputGst[\s\S]*missingBill[\s\S]*pendingApproval/, "Balance Sheet should expose outgoing connection completeness");
+  assert.match(hardeningService, /inputGstPaise[\s\S]*Input GST credit/, "Expense GL mapper should split outgoing input GST from net expense");
   assert.match(balanceSheetService, /Journal entry must balance: total debit must equal total credit/, "Journal service should enforce debit equals credit");
   assert.match(balanceSheetService, /INSERT INTO journalEntryLines/, "Journal lines should remain the posting source");
   assert.match(balanceSheetService, /INSERT OR REPLACE INTO balanceSheetSnapshots/, "Balance Sheet snapshots should stay archival");
   assert.match(balanceSheetService, /SELECT \* FROM periodLocks WHERE tenantId = \? AND branchId = \? AND period = \?/, "period locks should be tenant and branch scoped");
   assert.match(balanceSheetService, /productionReady/, "Balance Sheet should expose production readiness");
+  assert.match(balanceSheetService, /financeControls\(query = \{\}, access = \{\}\)/, "Balance Sheet service should expose finance controls");
+  assert.match(balanceSheetService, /sourceOfTruth:\s*"journalEntryLines"/, "Finance controls should identify journal lines as source of truth");
+  assert.match(balanceSheetService, /varianceDetection[\s\S]*accounting_equation[\s\S]*trial_balance[\s\S]*inventory_wma_gl/, "Finance controls should include variance detection checks");
+  assert.match(balanceSheetService, /exportControl:[\s\S]*allowed:[\s\S]*watermark/, "Finance controls should expose export control status");
   assert.match(hardeningService, /INSERT OR IGNORE INTO glOutbox/, "GL outbox should be idempotent");
   assert.match(hardeningService, /idempotencyKey: `outbox:\$\{row\.eventKey\}`/, "Outbox journal posting should keep idempotency keys");
 });

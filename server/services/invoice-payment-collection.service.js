@@ -52,6 +52,12 @@ function invoiceClientId(invoice = {}) {
   return firstText(invoice.clientId, invoice.customer_id, invoice.customerId);
 }
 
+function invoiceAppointmentId(invoice = {}) {
+  if (invoice.appointment_id || invoice.appointmentId) return firstText(invoice.appointment_id, invoice.appointmentId);
+  if (!invoice.saleId) return "";
+  return db.prepare("SELECT appointmentId FROM sales WHERE id = ?").get(invoice.saleId)?.appointmentId || "";
+}
+
 function invoiceNumber(invoice = {}) {
   return firstText(invoice.invoiceNumber, invoice.invoice_no, invoice.id);
 }
@@ -189,6 +195,40 @@ function branchFor(branchId = "", tenantId = DEFAULT_TENANT_ID) {
   if (!branchId || !safeColumns("branches").includes("id")) return {};
   const tenantClause = safeColumns("branches").includes("tenantId") ? " AND tenantId = @tenantId" : "";
   return db.prepare(`SELECT * FROM branches WHERE id = @branchId${tenantClause}`).get({ branchId, tenantId }) || {};
+}
+
+function bookingAdvanceSummary(invoice = {}, tenantId = DEFAULT_TENANT_ID) {
+  const appointmentId = invoiceAppointmentId(invoice);
+  if (!appointmentId) {
+    return {
+      appointmentId: "",
+      bookingAdvanceStatus: "not_required",
+      bookingAdvancePaid: 0,
+      bookingAdvancePending: 0,
+      bookingAdvanceLinkId: ""
+    };
+  }
+  const rows = db.prepare(
+    `SELECT id, amount, status, providerPaymentId
+       FROM booking_payment_links
+      WHERE tenantId = ?
+        AND appointmentId = ?
+      ORDER BY datetime(createdAt) DESC, id DESC`
+  ).all(tenantId, appointmentId);
+  const paid = money(rows
+    .filter((row) => String(row.status || "").toLowerCase() === "paid" || row.providerPaymentId)
+    .reduce((sum, row) => sum + Number(row.amount || 0), 0));
+  const pending = money(rows
+    .filter((row) => ["pending", "sent"].includes(String(row.status || "").toLowerCase()))
+    .reduce((sum, row) => sum + Number(row.amount || 0), 0));
+  const latestStatus = String(invoice.depositStatus || rows[0]?.status || "not_required").toLowerCase();
+  return {
+    appointmentId,
+    bookingAdvanceStatus: latestStatus || "not_required",
+    bookingAdvancePaid: paid,
+    bookingAdvancePending: pending,
+    bookingAdvanceLinkId: rows[0]?.id || ""
+  };
 }
 
 export class InvoicePaymentCollectionService {
@@ -740,18 +780,24 @@ export class InvoicePaymentCollectionService {
   }
 
   invoiceSummary(invoice = {}) {
+    const advance = bookingAdvanceSummary(invoice, firstText(invoice.tenant_id, invoice.tenantId));
     return {
       id: invoice.id,
       invoiceNumber: invoiceNumber(invoice),
       tenantId: firstText(invoice.tenant_id, invoice.tenantId),
       branchId: invoiceBranchId(invoice),
       clientId: invoiceClientId(invoice),
+      appointmentId: advance.appointmentId,
       status: invoice.status,
       paymentStatus: invoice.payment_status || invoice.status,
       total: invoiceTotal(invoice),
       paid: invoicePaid(invoice),
       due: invoiceDue(invoice),
-      paymentLinkId: invoice.payment_link_id || ""
+      paymentLinkId: invoice.payment_link_id || "",
+      bookingAdvanceStatus: advance.bookingAdvanceStatus,
+      bookingAdvancePaid: advance.bookingAdvancePaid,
+      bookingAdvancePending: advance.bookingAdvancePending,
+      bookingAdvanceLinkId: advance.bookingAdvanceLinkId
     };
   }
 

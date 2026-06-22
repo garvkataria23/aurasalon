@@ -58,12 +58,17 @@ export class AuthService {
     if (!tenant) throw badRequest("Tenant not found");
     tenantService.ensureSubscriptionActive(tenant.id);
     const users = repositories.tenantUsers.list({ limit: 10000 }, { tenantId: tenant.id });
-    const loginIdentity = String(payload.loginId || payload.email || payload.userId || "").trim().toLowerCase();
-    const user = users.find((item) =>
-      (payload.userId && item.id === payload.userId) ||
-      (loginIdentity && String(item.email || "").toLowerCase() === loginIdentity) ||
-      (loginIdentity && String(item.loginId || "").toLowerCase() === loginIdentity)
-    );
+    const userId = String(payload.userId || "").trim();
+    const emailIdentity = String(payload.email || "").trim().toLowerCase();
+    const loginIdIdentity = String(payload.loginId || "").trim().toLowerCase();
+    const loginIdentity = emailIdentity || loginIdIdentity || userId;
+    let user = userId ? users.find((item) => item.id === userId) : null;
+    if (!user && emailIdentity) {
+      user = users.find((item) => String(item.email || "").toLowerCase() === emailIdentity);
+    }
+    if (!user && loginIdIdentity) {
+      user = users.find((item) => String(item.loginId || "").toLowerCase() === loginIdIdentity);
+    }
     if (!user) {
       intrusionDetectionService.recordFailedLogin({ tenantId: tenant.id, email: loginIdentity, ip: request.ip || "", userAgent: request.userAgent || "" });
       throw unauthorized("Invalid login credentials");

@@ -6,11 +6,15 @@ import {
   StaffOsBranch,
   StaffOsMetric,
   StaffOsPerformanceResponse,
+  StaffOsPayrollSalaryStructure,
+  StaffOsLeaveMaster,
   StaffOsRiskScore,
   StaffOsSchedule,
   StaffOsServiceOption,
+  StaffOsShiftMaster,
   StaffOsStaff,
   StaffOsStaffCategory,
+  StaffOsTargetIncentive,
   StaffOsTask
 } from '../domain/staff-os.models';
 
@@ -28,6 +32,9 @@ export class StaffOsStore {
   readonly packages = signal<ApiRecord[]>([]);
   readonly staffCategories = signal<StaffOsStaffCategory[]>([]);
   readonly staff = signal<StaffOsStaff[]>([]);
+  readonly leaveMasters = signal<StaffOsLeaveMaster[]>([]);
+  readonly leaves = signal<ApiRecord[]>([]);
+  readonly shiftMasters = signal<StaffOsShiftMaster[]>([]);
   readonly schedules = signal<StaffOsSchedule[]>([]);
   readonly attendance = signal<ApiRecord[]>([]);
   readonly biometricCenter = signal<ApiRecord | null>(null);
@@ -37,8 +44,10 @@ export class StaffOsStore {
   readonly gatewayManifest = signal<ApiRecord | null>(null);
   readonly attendanceRisks = signal<ApiRecord[]>([]);
   readonly attendancePayrollPreview = signal<ApiRecord[]>([]);
+  readonly payrollStructures = signal<StaffOsPayrollSalaryStructure[]>([]);
   readonly ownerAlerts = signal<ApiRecord[]>([]);
   readonly performance = signal<StaffOsPerformanceResponse>(emptyPerformance);
+  readonly targetIncentives = signal<StaffOsTargetIncentive[]>([]);
   readonly risks = signal<StaffOsRiskScore[]>([]);
   readonly tasks = signal<StaffOsTask[]>([]);
   readonly loading = signal(false);
@@ -72,19 +81,56 @@ export class StaffOsStore {
     this.api.memberships({ limit: 1000 }).subscribe({ next: (rows) => this.memberships.set(rows || []), error: () => this.memberships.set([]) });
     this.api.packages({ limit: 1000 }).subscribe({ next: (rows) => this.packages.set(rows || []), error: () => this.packages.set([]) });
     this.api.staffCategories({ limit: 500 }).subscribe({ next: (rows) => this.staffCategories.set(rows), error: () => undefined });
+    this.api.leaveMasters({ visibleOnly: 'true', limit: 500 }).subscribe({ next: (rows) => this.leaveMasters.set(rows || []), error: () => this.leaveMasters.set([]) });
+    this.loadLeaves();
+    this.api.shiftMasters({ visibleOnly: 'true', limit: 500 }).subscribe({ next: (rows) => this.shiftMasters.set(rows || []), error: () => this.shiftMasters.set([]) });
     this.api.schedules().subscribe({ next: (rows) => this.schedules.set(rows), error: () => undefined });
     this.loadAttendanceCenter();
     this.api.performance().subscribe({ next: (response) => this.performance.set(response), error: () => undefined });
+    this.api.targetIncentives({ limit: 500 }).subscribe({ next: (rows) => this.targetIncentives.set(rows || []), error: () => this.targetIncentives.set([]) });
     this.api.burnoutRisk().subscribe({ next: (rows) => this.risks.set(rows), error: () => undefined });
-    this.api.tasks().subscribe({ next: (rows) => this.tasks.set(rows), error: () => undefined });
+    this.api.tasks({ status: 'open' }).subscribe({ next: (rows) => this.tasks.set(rows), error: () => undefined });
+    this.api.payrollStructures({ limit: 200 }).subscribe({ next: (rows) => this.payrollStructures.set(rows || []), error: () => this.payrollStructures.set([]) });
   }
 
   createStaff(payload: Record<string, unknown>) {
     return this.api.createStaff(payload);
   }
 
+  updateStaff(staff: StaffOsStaff, payload: Record<string, unknown>) {
+    return this.api.updateStaff(staff.id, { ...payload, version: staff.version });
+  }
+
   updateStaffStatus(staff: StaffOsStaff, status: string) {
     return this.api.updateStaffStatus(staff.id, { status, version: staff.version });
+  }
+
+  createTask(payload: Record<string, unknown>) {
+    return this.api.createTask(payload);
+  }
+
+  updateTask(task: StaffOsTask, payload: Record<string, unknown>) {
+    return this.api.updateTask(task.id, { ...payload, version: task.version });
+  }
+
+  createSchedule(payload: Record<string, unknown>) {
+    return this.api.createSchedule(payload);
+  }
+
+  loadLeaves(params: ApiRecord = {}): void {
+    this.api.leaves({ limit: 200, ...params }).subscribe({ next: (rows) => this.leaves.set(rows || []), error: () => this.leaves.set([]) });
+  }
+
+  requestLeave(payload: Record<string, unknown>) {
+    return this.api.requestLeave(payload);
+  }
+
+  approveLeave(leave: ApiRecord, payload: Record<string, unknown> = {}) {
+    return this.api.approveLeave(String(leave['id'] || ''), this.versionedPayload(leave, payload));
+  }
+
+  rejectLeave(leave: ApiRecord, payload: Record<string, unknown> = {}) {
+    return this.api.rejectLeave(String(leave['id'] || ''), this.versionedPayload(leave, payload));
   }
 
   createStaffCategory(payload: Record<string, unknown>) {
@@ -148,11 +194,23 @@ export class StaffOsStore {
     return this.api.cameraPunch(payload);
   }
 
+  manualClockIn(payload: ApiRecord) {
+    return this.api.clockIn(payload);
+  }
+
+  manualClockOut(payload: ApiRecord) {
+    return this.api.clockOut(payload);
+  }
+
   runAttendanceFraudScan(payload: ApiRecord) {
     return this.api.runAttendanceFraudScan(payload);
   }
 
   generateAttendancePayrollPreview(payload: ApiRecord) {
     return this.api.generateAttendancePayrollPreview(payload);
+  }
+
+  private versionedPayload(row: ApiRecord, payload: Record<string, unknown>): ApiRecord {
+    return row['version'] === undefined ? payload : { ...payload, version: row['version'] };
   }
 }

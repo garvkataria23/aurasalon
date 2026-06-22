@@ -4,6 +4,9 @@ import test from "node:test";
 
 const appComponent = readFileSync("src/app/app.component.ts", "utf8");
 const appRoutes = readFileSync("src/app/app.routes.ts", "utf8");
+const appsLaunchpad = readFileSync("src/app/pages/apps-launchpad.component.ts", "utf8");
+const dashboardPage = readFileSync("src/app/pages/dashboard.component.ts", "utf8");
+const customer360Page = readFileSync("src/app/pages/customer-360.component.ts", "utf8");
 const serverApp = readFileSync("server/app.js", "utf8");
 const depositRoutes = readFileSync("server/routes/appointment-deposit-gate.routes.js", "utf8");
 const enterpriseSchedulerRoutes = readFileSync("server/routes/enterprise-scheduler.routes.js", "utf8");
@@ -33,6 +36,12 @@ test("Front Desk sidebar exposes every sale-critical module", () => {
   for (const path of frontDeskPaths) {
     assert.match(appComponent, new RegExp(`path:\\s*'${path.replace("/", "\\/")}'`), `${path} should be in Front Desk sidebar`);
   }
+  assert.match(appComponent, /path:\s*'\/customer-360'[\s\S]*label:\s*'Customer Intelligence'/, "aggregate customer dashboard should be labelled as intelligence");
+  assert.match(appsLaunchpad, /path:\s*'\/customer-360'[\s\S]*label:\s*'Customer Intelligence'/, "apps launchpad should use Customer Intelligence for aggregate dashboard");
+  assert.match(dashboardPage, /Open customer intelligence/, "dashboard should avoid Client 360 naming for aggregate dashboard");
+  assert.match(appComponent, /path:\s*'\/clients'[\s\S]*label:\s*'Client CRM'/, "client records should remain the CRM entry");
+  assert.doesNotMatch(appComponent, /path:\s*'\/customer-360'[\s\S]*label:\s*'Client 360'/, "Client 360 should be reserved for individual profile pages");
+  assert.doesNotMatch(appsLaunchpad, /path:\s*'\/customer-360'[\s\S]*label:\s*'Customer 360'/, "aggregate dashboard should not use Customer 360 label in launchpad");
 });
 
 test("Front Desk Angular routes stay wired to pages or module routes", () => {
@@ -53,6 +62,9 @@ test("Front Desk Angular routes stay wired to pages or module routes", () => {
   }
   assert.match(appRoutes, /path:\s*'appointment-deposits'[\s\S]*permissionGuard[\s\S]*read:appointment_deposits/, "deposit report must stay permission guarded");
   assert.match(appRoutes, /path:\s*'queue-system'[\s\S]*entity:\s*'queueDisplays'/, "queue TV should use the queueDisplays resource");
+  assert.match(appRoutes, /path:\s*'customer-360'[\s\S]*title:\s*'Customer Intelligence'/, "aggregate customer route title should be Customer Intelligence");
+  assert.match(appRoutes, /path:\s*'clients\/:id'[\s\S]*title:\s*'Client Profile'/, "individual Client 360 profile route should stay canonical");
+  assert.match(customer360Page, /\[routerLink\]="\['\/clients', profileData\.client\.id\]"/, "Customer Intelligence should deep-link to Client 360 profile");
 });
 
 test("Front Desk backend APIs are mounted for legacy and v1 clients", () => {
@@ -71,6 +83,8 @@ test("Front Desk backend APIs are mounted for legacy and v1 clients", () => {
     assert.match(serverApp, new RegExp(`import \\{ ${routerName} \\}`), `${routerName} should be imported`);
     assert.match(serverApp, new RegExp(`app\\.use\\("/api(?:/v1)?",(?:\\s*authenticateJwt\\(\\),)?\\s*${routerName}\\)`), `${routerName} should be mounted`);
   }
+  assert.match(serverApp, /canonicalBase:\s*"\/api\/v1"/, "API versions endpoint should expose /api/v1 as canonical");
+  assert.match(serverApp, /status:\s*"legacy-compatibility"/, "legacy /api mount should be documented as compatibility alias");
 });
 
 test("Front Desk APIs keep tenant, branch and permission boundaries", () => {

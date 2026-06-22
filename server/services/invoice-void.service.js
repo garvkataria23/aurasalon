@@ -2,6 +2,7 @@ import { db } from "../db.js";
 import { badRequest, conflict, forbidden } from "../utils/app-error.js";
 import { billingService } from "./billing.service.js";
 import { billingInventoryService } from "./billing-inventory.service.js";
+import { balanceSheetService } from "./balance-sheet.service.js";
 import { realtimeService } from "./realtime.service.js";
 
 function isSameDay(value) {
@@ -48,6 +49,17 @@ export class InvoiceVoidService {
         actorUserId: access.userId || "",
         payload: { reason: payload.reason, rollback }
       });
+      try {
+        balanceSheetService.enqueueInvoiceVoidEvent({ invoice, reason: payload.reason, mode: payload.mode || payload.paymentMode || "", access });
+      } catch {
+        billingService.writeEvent({
+          tenantId: access.tenantId,
+          invoiceId,
+          eventType: "finance.gl_enqueue_failed",
+          actorUserId: access.userId || "",
+          payload: { reason: payload.reason }
+        });
+      }
       realtimeService.broadcast("invoice:voided", { invoiceId, reason: payload.reason }, { tenantId: access.tenantId, branchId: invoice.branch_id });
       realtimeService.broadcast("audit:sensitive_action", { action: "invoice.voided", invoiceId, reason: payload.reason }, { tenantId: access.tenantId, branchId: invoice.branch_id });
       return billingService.getInvoice(invoiceId, access);

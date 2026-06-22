@@ -16,6 +16,7 @@ import { resourceService } from "../services/resource.service.js";
 import { slotReservationService } from "../services/slot-reservation.service.js";
 import { assertEmail, assertPhone, assertServiceIds } from "../validators/booking-portal-v2.validator.js";
 import { badRequest } from "../utils/app-error.js";
+import { enrichServicesWithHappyHours, enrichSlotsWithHappyHours } from "../utils/happy-hours-portal-enrichment.js";
 
 export const bookingPortalV2Router = Router();
 
@@ -61,7 +62,7 @@ bookingPortalV2Router.get("/booking-portal/v2/services", asyncHandler((req, res)
        AND COALESCE(onlineBookable, 1) = 1
      ORDER BY category, name`
   ).all(req.access.tenantId);
-  res.json(rows);
+  res.json(enrichServicesWithHappyHours(rows, { ...req.access, branchId: req.query.branchId || req.access.branchId || "" }));
 }));
 
 bookingPortalV2Router.get("/booking-portal/v2/staff", asyncHandler((req, res) => {
@@ -83,7 +84,7 @@ bookingPortalV2Router.post("/booking-portal/v2/slots", captchaMiddleware, asyncH
     bookingSessionService.recordFunnelEvent({ tenantId: req.access.tenantId, sessionId: req.body.sessionId, eventName: "slot_selected", eventData: { count: result.slots.length } });
   }
   res.setHeader("X-Cache", result.cache || "MISS");
-  res.json(result);
+  res.json({ ...result, slots: enrichSlotsWithHappyHours(result.slots || [], { ...req.access, branchId: req.body.branchId || req.access.branchId || "" }) });
 }));
 
 bookingPortalV2Router.post("/booking-portal/v2/holds", asyncHandler((req, res) => {

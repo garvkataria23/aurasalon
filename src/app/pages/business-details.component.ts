@@ -39,7 +39,7 @@ type BusinessNotificationProfile = {
       <div>
         <p class="eyebrow">Business details</p>
         <h2>SMS routing and business profile</h2>
-        <p>Client, staff aur owner SMS ke liye salon identity, owner mobile, provider mode aur delivery channels yahin se control honge.</p>
+        <p>Salon identity, owner mobile, provider mode and delivery channels control client, staff and owner SMS.</p>
       </div>
       <div class="hero-actions">
         <a class="ghost-button link-button" routerLink="/clients">Client page</a>
@@ -78,7 +78,7 @@ type BusinessNotificationProfile = {
       <article class="sms-route-card owner">
         <span class="route-kicker">Owner SMS</span>
         <h3>Owner mobile routing</h3>
-        <p>Owner booking alerts aur invoice alerts neeche saved owner mobiles par queue honge.</p>
+        <p>Owner booking alerts and invoice alerts will queue to the saved owner mobile numbers below.</p>
         <div class="route-status">
           <strong [class.ready]="ownerSmsReady()">{{ ownerSmsReady() ? ownerMobileCount() + ' mobile(s)' : 'Add owner mobile' }}</strong>
           <small>{{ channelList(form.ownerChannels) }}</small>

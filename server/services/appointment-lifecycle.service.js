@@ -39,6 +39,41 @@ function updateStatus(id, status, access, extra = {}, meta = {}) {
   return { appointment: updated };
 }
 
+function bookingGroupIdOf(row = {}) {
+  return String(row.bookingGroupId || row.booking_group_id || "").trim();
+}
+
+function groupMembersFor(current, access) {
+  const bookingGroupId = bookingGroupIdOf(current);
+  if (!bookingGroupId) return [current];
+  return repositories.appointments
+    .list({ branchId: current.branchId || "", limit: 10000 }, scope(access, current.branchId || ""))
+    .filter((row) => bookingGroupIdOf(row) === bookingGroupId);
+}
+
+function statusExtraFor(current, status, payload = {}) {
+  if (!payload.reason) return {};
+  return {
+    notes: [current.notes, `Status ${status}: ${payload.reason}`].filter(Boolean).join(" | ")
+  };
+}
+
+function updateStatusForGroup(id, status, payload = {}, access) {
+  const current = appointment(id, access);
+  const members = groupMembersFor(current, access);
+  const appointments = members.map((member) => updateStatus(member.id, status, access, statusExtraFor(member, status, payload), {
+    action: actionForStatus(status),
+    reason: payload.reason || "",
+    source: "status-board-group"
+  }).appointment);
+  return {
+    appointment: appointments.find((row) => row.id === id) || appointments[0],
+    appointments,
+    bookingGroupId: bookingGroupIdOf(current),
+    appliedToGroup: appointments.length > 1
+  };
+}
+
 const ALLOWED_STATUSES = new Set([
   "draft",
   "booked",
@@ -58,12 +93,11 @@ export const appointmentLifecycleService = {
   setStatus(id, payload = {}, access) {
     const status = String(payload.status || "").trim().toLowerCase();
     if (!ALLOWED_STATUSES.has(status)) throw badRequest("Unsupported appointment status");
-    const extra = {};
-    if (payload.reason) {
-      const current = appointment(id, access);
-      extra.notes = [current.notes, `Status ${status}: ${payload.reason}`].filter(Boolean).join(" | ");
+    if (payload.applyGroup || payload.applyBookingGroup || payload.scope === "bookingGroup") {
+      return updateStatusForGroup(id, status, payload, access);
     }
-    return updateStatus(id, status, access, extra, {
+    const current = appointment(id, access);
+    return updateStatus(id, status, access, statusExtraFor(current, status, payload), {
       action: actionForStatus(status),
       reason: payload.reason || "",
       source: "status-board"
@@ -194,8 +228,7 @@ export const appointmentLifecycleService = {
       items,
       payments: payload.payments || []
     }, access);
-    const paid = Number(result.invoice?.balance || 0) <= 0;
-    const updated = repositories.appointments.update(current.id, { status: paid ? "paid" : "billed", billable: 1 }, scope(access, current.branchId));
+    const updated = repositories.appointments.update(current.id, { status: current.status, billable: 1 }, scope(access, current.branchId));
     appointmentActivityService.logActivity({
       action: APPOINTMENT_ACTIVITY_ACTIONS.BILLED,
       appointment: updated,

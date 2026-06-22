@@ -94,13 +94,60 @@ interface KpiRow {
       </ng-container>
 
       <ng-template #genericDetail>
-        <section class="panel">
+        <app-state [loading]="loading()" [error]="error()"></app-state>
+        <section class="panel kpi-summary-panel" *ngIf="!loading()">
           <div class="section-title">
-            <h3>Current KPI value summary</h3>
+            <div>
+              <span class="eyebrow">Mapped KPI drill-down</span>
+              <h3>{{ genericData()?.definition?.title || kpiTitle() }}</h3>
+            </div>
+            <small>{{ genericRows().length }} rows</small>
           </div>
-          <div class="empty-state">
-            <strong>{{ kpiTitle() }}</strong>
-            <span>Detailed breakdown coming soon</span>
+          <div class="kpi-summary-strip" *ngIf="genericStats().length">
+            <article *ngFor="let stat of genericStats()">
+              <span>{{ stat.label }}</span>
+              <strong>{{ stat.value }}</strong>
+              <small>{{ stat.hint }}</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="genericData()?.aiInsights?.length">
+          <div class="section-title"><h3>Insights</h3></div>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let insight of genericData()?.aiInsights || []">
+              <strong>{{ insight.title }}</strong>
+              <span>{{ insight.recommendation }}</span>
+              <small>{{ insight.severity }}</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="!loading()">
+          <div class="section-title">
+            <h3>Rows</h3>
+            <span class="badge">{{ genericData()?.exportControls?.message || 'Export controlled' }}</span>
+          </div>
+          <div class="kpi-table-wrap">
+            <table>
+              <thead><tr><th>Item</th><th>Context</th><th>Value</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of genericRows()">
+                  <td><strong>{{ row.title }}</strong></td>
+                  <td>{{ row.meta }}</td>
+                  <td>{{ row.value }}</td>
+                  <td><span class="badge">{{ row.status }}</span></td>
+                </tr>
+                <tr *ngIf="!genericRows().length">
+                  <td colspan="4">
+                    <div class="empty-state">
+                      <strong>No rows for this KPI</strong>
+                      <span>Mapped report rows will appear once source data exists.</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </ng-template>
@@ -228,6 +275,7 @@ export class KpiDetailComponent implements OnInit {
     suppliers: [],
     intelligence: null
   });
+  readonly genericData = signal<ApiRecord | null>(null);
 
   readonly kpiTitle = computed(() => this.toTitle(this.kpiKey()));
   readonly backRoute = computed(() => this.moduleRoute(this.moduleName()));
@@ -235,6 +283,8 @@ export class KpiDetailComponent implements OnInit {
   ngOnInit(): void {
     if (this.isInventory()) {
       this.loadInventory();
+    } else {
+      this.loadGeneric();
     }
   }
 
@@ -382,6 +432,30 @@ export class KpiDetailComponent implements OnInit {
         this.error.set(error?.error?.error || error?.message || 'Unable to load KPI details');
         this.loading.set(false);
       });
+  }
+
+  private loadGeneric(): void {
+    this.loading.set(true);
+    this.error.set('');
+    firstValueFrom(this.api.list<ApiRecord>(`analytics/kpi-detail/${this.moduleName()}/${this.kpiKey()}`, {
+      branchId: this.api.selectedBranchId()
+    }))
+      .then((data) => {
+        this.genericData.set(data);
+        this.loading.set(false);
+      })
+      .catch((error) => {
+        this.error.set(error?.error?.error || error?.message || 'Unable to load KPI details');
+        this.loading.set(false);
+      });
+  }
+
+  genericStats(): KpiStat[] {
+    return (this.genericData()?.['stats'] || []) as KpiStat[];
+  }
+
+  genericRows(): KpiRow[] {
+    return (this.genericData()?.['rows'] || []) as KpiRow[];
   }
 
   private expiringProducts(): ApiRecord[] {

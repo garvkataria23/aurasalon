@@ -45,6 +45,16 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             <strong>{{ context.access?.role }}</strong>
             <small>{{ context.access?.branchId || 'All permitted branches' }}</small>
           </aura-kpi-card>
+          <aura-kpi-card tone="violet" target="/kpi-details/saas-onboarding/billing-preview">
+            <span>Billing preview</span>
+            <strong>{{ (context.billingPreview?.totalAmount || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <small>{{ (context.billingPreview?.baseAmount || 0) | currency: 'INR':'symbol':'1.0-0' }} base + {{ (context.billingPreview?.usageAmount || 0) | currency: 'INR':'symbol':'1.0-0' }} usage</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="red" target="/kpi-details/saas-onboarding/tenant-health">
+            <span>Tenant health</span>
+            <strong>{{ context.tenantHealth?.score || 0 }}%</strong>
+            <small>{{ context.tenantHealth?.status || 'Not checked' }}</small>
+          </aura-kpi-card>
         </div>
 
         <section class="panel">
@@ -59,6 +69,88 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
               <strong>{{ item.label }}</strong>
               <span>{{ item.used }} used / {{ item.limit || 'unlimited' }} allowed</span>
               <div class="stage-track"><span [style.width.%]="item.percent"></span></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Subscription billing</span>
+              <h2>Current period metering</h2>
+            </div>
+            <small>{{ context.billingPreview?.periodStart }} · {{ context.billingPreview?.status }}</small>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let row of context.billingPreview?.usageRows || []">
+              <strong>{{ row.label }}</strong>
+              <span>{{ row.used }} used · {{ row.included }} included · {{ row.overage }} billable</span>
+              <small>{{ row.amount | currency: 'INR':'symbol':'1.0-0' }} usage amount</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Advanced SaaS health</span>
+              <h2>Tenant health, subscription limits and usage-based billing</h2>
+            </div>
+            <small>{{ context.usageBasedBilling?.invoiceMode }} · {{ context.usageBasedBilling?.status }}</small>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let signal of context.tenantHealth?.signals || []">
+              <strong>{{ signal.label }}</strong>
+              <span>{{ signal.score }}% · {{ signal.status }}</span>
+            </article>
+            <article class="action-card">
+              <strong>Next invoice estimate</strong>
+              <span>{{ (context.usageBasedBilling?.nextInvoiceEstimate || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+              <small>{{ (context.usageBasedBilling?.projectedUsageAmount || 0) | currency: 'INR':'symbol':'1.0-0' }} projected usage</small>
+            </article>
+          </div>
+          <div class="activity-list" *ngIf="context.subscriptionLimits?.rows?.length">
+            <article *ngFor="let row of context.subscriptionLimits.rows">
+              <div>
+                <strong>{{ row.metric }}</strong>
+                <span>{{ row.used }} used / {{ row.limit || 'unlimited' }} · {{ row.remaining ?? 'unlimited' }} remaining</span>
+              </div>
+              <span class="badge">{{ row.status }}</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Plan feature flags</span>
+              <h2>Feature access for this tenant</h2>
+            </div>
+          </div>
+          <div class="activity-list">
+            <article *ngFor="let feature of context.featureAccess || []">
+              <div>
+                <strong>{{ feature.name }}</strong>
+                <span>{{ feature.key }} · {{ feature.reason }}</span>
+              </div>
+              <span class="badge">{{ feature.allowed ? 'enabled' : 'locked' }}</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">White-label readiness</span>
+              <h2>Brand, domain and theme setup</h2>
+            </div>
+            <small>{{ context.whiteLabelReadiness?.score || 0 }}% · {{ context.whiteLabelReadiness?.status }}</small>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let check of context.whiteLabelReadiness?.checks || []">
+              <strong>{{ check.label }}</strong>
+              <span>{{ check.evidence }}</span>
+              <span class="badge">{{ check.status }}</span>
             </article>
           </div>
         </section>

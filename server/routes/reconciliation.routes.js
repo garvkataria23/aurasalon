@@ -9,6 +9,10 @@ reconciliationRouter.post("/reconciliation/razorpay/fetch", requirePermission("w
   res.status(201).json(razorpayReconciliationService.fetchSettlement({ ...req.body, date: req.query.date || req.body.date }, req.access));
 }));
 
+reconciliationRouter.post("/reconciliation/:provider/match", requirePermission("write", () => "finance"), asyncHandler((req, res) => {
+  res.status(201).json(razorpayReconciliationService.matchSettlement({ ...req.body, provider: req.params.provider, date: req.query.date || req.body.date }, req.access));
+}));
+
 reconciliationRouter.get("/reconciliation", requirePermission("read", () => "finance"), asyncHandler((req, res) => {
   res.json(razorpayReconciliationService.list(req.query, req.access));
 }));

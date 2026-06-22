@@ -1,5 +1,6 @@
 import { db } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
+import { tenantService } from "./tenant.service.js";
 import { badRequest, forbidden, notFound } from "../utils/app-error.js";
 
 const now = () => new Date().toISOString();
@@ -41,6 +42,7 @@ export class SuperAdminService {
       const tenantSales = sales.filter((sale) => sale.tenantId === tenant.id);
       const tenantInvoices = invoices.filter((invoice) => invoice.tenantId === tenant.id);
       const plan = planById.get(tenant.planId);
+      const billingPreview = tenantService.billingPreview(tenant.id);
       const usage = {
         branches: count("branches", tenant.id),
         staff: count("staff", tenant.id),
@@ -61,6 +63,9 @@ export class SuperAdminService {
         planName: plan?.name || tenant.planId,
         planId: tenant.planId,
         monthlyRecurringRevenue: Number(plan?.priceMonthly || 0),
+        meteredUsageRevenue: Number(billingPreview.usageAmount || 0),
+        billingPreview,
+        totalBillingAmount: Number(billingPreview.totalAmount || 0),
         transactionRevenue: money(sumRows(tenantSales, (sale) => sale.total)),
         outstanding: money(sumRows(tenantInvoices.filter((invoice) => invoice.status !== "paid"), (invoice) => invoice.balance)),
         usage,
@@ -74,6 +79,8 @@ export class SuperAdminService {
       suspendedSalons: tenants.filter((tenant) => tenant.subscriptionStatus === "suspended" || tenant.status === "suspended").length,
       trialSalons: tenants.filter((tenant) => tenant.subscriptionStatus === "trialing").length,
       monthlyRecurringRevenue: money(sumRows(tenantRows, (tenant) => tenant.monthlyRecurringRevenue)),
+      meteredUsageRevenue: money(sumRows(tenantRows, (tenant) => tenant.meteredUsageRevenue)),
+      totalPlatformBilling: money(sumRows(tenantRows, (tenant) => tenant.totalBillingAmount)),
       transactionRevenue: money(sumRows(tenantRows, (tenant) => tenant.transactionRevenue)),
       outstanding: money(sumRows(tenantRows, (tenant) => tenant.outstanding)),
       averageHealth: tenantRows.length ? pct(sumRows(tenantRows, (tenant) => tenant.healthScore) / tenantRows.length) : 0

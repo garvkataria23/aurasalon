@@ -335,13 +335,13 @@ export class StaffConnectedModulesComponent implements OnInit {
         ]
       },
       {
-        eyebrow: 'Reports and AI',
+        eyebrow: 'Reports',
         title: 'Performance and command reporting',
         links: [
           { label: 'Staff Sales Report', path: '/reports/staff-sales', description: 'Staff revenue, services and product sales report', badge: badge('pos') },
           { label: 'Commission Preview', path: '/reports/commission-preview', description: 'Payroll-ready commission audit before payout', badge: badge('commission') },
           { label: 'Staff Enterprise OS', path: '/staff-enterprise', description: 'Documents, leave, reviews, transfers and enterprise actions', badge: 'OS' },
-          { label: 'Staff OS', path: '/staff-os', description: 'Advanced roster, mobile, tasks, heatmaps and AI staff tools', badge: 'AI' }
+          { label: 'Staff OS', path: '/staff-os', description: 'Advanced roster, mobile, tasks, heatmaps and staff tools', badge: 'Tools' }
         ]
       }
     ];

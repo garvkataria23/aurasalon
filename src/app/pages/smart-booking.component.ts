@@ -28,7 +28,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         <aura-kpi-card tone="blue" target="/kpi-details/smart-booking/online-requests"><span>Online requests</span><strong>{{ metrics.onlineRequests }}</strong><small>Portal requests</small></aura-kpi-card>
         <aura-kpi-card tone="red" target="/kpi-details/smart-booking/conflict-risks"><span>Conflict risks</span><strong>{{ metrics.conflictRisks }}</strong><small>Prevented overlaps</small></aura-kpi-card>
         <aura-kpi-card tone="green" target="/kpi-details/smart-booking/qr-check-ins"><span>QR check-ins</span><strong>{{ metrics.qrCheckinsToday }}</strong><small>Today</small></aura-kpi-card>
-        <aura-kpi-card tone="violet" target="/kpi-details/smart-booking/predicted-wait"><span>Predicted wait</span><strong>{{ metrics.predictedWaitMinutes }}m</strong><small>Queue intelligence</small></aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/kpi-details/smart-booking/predicted-wait"><span>Predicted wait</span><strong>{{ metrics.predictedWaitMinutes }}m</strong><small>Queue status</small></aura-kpi-card>
       </div>
 
       <div class="dashboard-grid">

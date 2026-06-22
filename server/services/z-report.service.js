@@ -41,6 +41,8 @@ export class ZReportService {
     const paymentMap = Object.fromEntries(payments.map((row) => [row.payment_mode, money(row.amount)]));
     const salesTotal = money(invoices.reduce((sum, invoice) => sum + Number(invoice.grand_total || 0), 0));
     const refundTotal = money(invoices.reduce((sum, invoice) => sum + Number(invoice.refund_amount || 0), 0));
+    const openingCash = Number(payload.opening_cash || payload.openingCash || 0);
+    const closingCash = Number(payload.closing_cash || payload.closingCash || 0);
     const reportJson = {
       invoices,
       payments,
@@ -83,9 +85,9 @@ export class ZReportService {
       invoiceCount: invoices.length,
       voidCount: invoices.filter((invoice) => invoice.status === "voided").length,
       refundCount: invoices.filter((invoice) => Number(invoice.refund_amount || 0) > 0).length,
-      openingCash: Number(payload.opening_cash || payload.openingCash || 0),
-      closingCash: Number(payload.closing_cash || payload.closingCash || 0),
-      cashDifference: money(Number(payload.closing_cash || payload.closingCash || 0) - (paymentMap.cash || 0)),
+      openingCash,
+      closingCash,
+      cashDifference: money(closingCash - (openingCash + (paymentMap.cash || 0))),
       generatedBy: access.userId || "",
       reportJson: JSON.stringify(reportJson)
     });

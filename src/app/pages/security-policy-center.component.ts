@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -29,7 +29,59 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <article class="metric-card"><span>Risk score</span><strong>{{ latestRisk()?.riskScore ?? 0 }}</strong><small>{{ latestRisk()?.riskLevel || 'No signal' }}</small></article>
         <article class="metric-card"><span>Zenoti-style pack</span><strong>{{ zenotiPackCount() }}</strong><small>Advanced controls</small></article>
         <article class="metric-card"><span>Access devices</span><strong>{{ managedDevices().devices?.length || 0 }}</strong><small>Netflix-style control</small></article>
+        <article class="metric-card"><span>Compliance readiness</span><strong>{{ complianceReadiness()?.score || 0 }}%</strong><small>{{ complianceReadiness()?.status || 'Not checked' }}</small></article>
       </div>
+
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <h2>SOC2 / ISO Readiness</h2>
+            <p>Enterprise-sale evidence for 2FA, SSO, encryption-at-rest readiness and immutable audit controls.</p>
+          </div>
+          <div class="inline-row">
+            <button class="ghost-button" type="button" (click)="loadComplianceReadiness()">Refresh readiness</button>
+            <button class="primary-button" type="button" (click)="exportComplianceEvidence()">Export evidence</button>
+          </div>
+        </div>
+        <div class="quick-grid" *ngIf="complianceReadiness() as readiness">
+          <article class="action-card score-card">
+            <small>Compliance score</small>
+            <strong>{{ readiness.score || 0 }}%</strong>
+            <span>{{ readiness.status }} · {{ readiness.scoreBreakdown?.ready || 0 }} ready / {{ readiness.scoreBreakdown?.total || 0 }} controls</span>
+          </article>
+          <article class="action-card" *ngFor="let control of complianceControls()">
+            <small>{{ control.framework }}</small>
+            <strong>{{ control.label }}</strong>
+            <span>{{ control.evidence }}</span>
+            <span class="badge">{{ control.status }}</span>
+          </article>
+          <article class="action-card">
+            <small>Immutable evidence hash</small>
+            <strong>{{ readiness.evidence?.immutableAuditHash?.slice(0, 16) || '-' }}</strong>
+            <span>{{ readiness.evidence?.evidenceRows || 0 }} audit rows sampled for chain evidence.</span>
+          </article>
+          <article class="action-card">
+            <small>Export protection</small>
+            <strong>{{ readiness.evidence?.exportProtectionReady ? 'Ready' : 'Gap' }}</strong>
+            <span>Evidence bundle: {{ readiness.evidence?.exportBundleId || '-' }}</span>
+          </article>
+        </div>
+        <div class="risk-heatmap" *ngIf="riskHeatmapRows().length">
+          <article *ngFor="let row of riskHeatmapRows()" [class]="'risk-tile ' + (row.risk || 'low')">
+            <small>{{ row.area }}</small>
+            <strong>{{ row.score || 0 }}</strong>
+            <span>{{ row.risk }} · {{ row.evidence }}</span>
+          </article>
+        </div>
+        <div class="evidence-export" *ngIf="evidenceExport() as evidence">
+          <div>
+            <small>Audit evidence export</small>
+            <strong>{{ evidence.bundleId }}</strong>
+            <span>{{ evidence.framework?.join(', ') }} · {{ evidence.generatedAt | date: 'short' }}</span>
+          </div>
+          <pre>{{ evidence | json }}</pre>
+        </div>
+      </section>
 
       <section class="panel">
         <div class="section-title">
@@ -78,7 +130,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <table>
             <thead><tr><th>Device</th><th>User</th><th>IP</th><th>Status</th><th>Last seen</th><th></th></tr></thead>
             <tbody>
-              <tr *ngFor="let device of managedDevices().devices || []">
+              <tr *ngFor="let device of managedDeviceRows()">
                 <td>{{ device.deviceName || device.deviceId }}</td>
                 <td>{{ device.userId || '-' }}</td>
                 <td>{{ device.ipAddress || '-' }}</td>
@@ -89,7 +141,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <button class="ghost-button mini" type="button" (click)="signOutAll(device.userId)">Sign out all</button>
                 </td>
               </tr>
-              <tr *ngIf="!(managedDevices().devices || []).length"><td colspan="6">No managed device records yet.</td></tr>
+              <tr *ngIf="!managedDeviceRows().length"><td colspan="6">No managed device records yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -397,7 +449,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .form-grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
     .form-grid label span { display: block; margin-bottom: 8px; color: #5b6b80; font-weight: 800; }
     .inline-row { display: flex; gap: 10px; }
-    @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr; } .inline-row { flex-direction: column; } }
+    .risk-heatmap { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .risk-tile, .evidence-export { border: 1px solid #d8e2ef; border-radius: 8px; padding: 14px; background: #f8fbfd; display: grid; gap: 6px; }
+    .risk-tile strong { font-size: 24px; }
+    .risk-tile.low { border-color: #9fd6c8; background: #f1fbf7; }
+    .risk-tile.warning { border-color: #f4c56e; background: #fff8e9; }
+    .risk-tile.high, .risk-tile.critical { border-color: #ef9a9a; background: #fff1f1; }
+    .evidence-export { margin-top: 14px; }
+    .evidence-export pre { max-height: 260px; overflow: auto; margin: 0; border-radius: 8px; background: #0f172a; color: #e2e8f0; padding: 12px; white-space: pre-wrap; }
+    @media (max-width: 900px) { .form-grid, .risk-heatmap { grid-template-columns: 1fr; } .inline-row { flex-direction: column; } }
   `]
 })
 export class SecurityPolicyCenterComponent implements OnInit {
@@ -419,6 +479,10 @@ export class SecurityPolicyCenterComponent implements OnInit {
   readonly sharingEvents = signal<ApiRecord[]>([]);
   readonly fraudWarnings = signal<ApiRecord[]>([]);
   readonly disclosureReports = signal<ApiRecord[]>([]);
+  readonly complianceReadiness = signal<ApiRecord | null>(null);
+  readonly evidenceExport = signal<ApiRecord | null>(null);
+  readonly complianceControls = computed(() => this.complianceReadiness()?.controls || []);
+  readonly managedDeviceRows = computed(() => this.managedDevices().devices || []);
   readonly loading = signal(false);
   readonly error = signal('');
   pin = '';
@@ -449,7 +513,11 @@ export class SecurityPolicyCenterComponent implements OnInit {
     { key: 'subscriptionGuardEnabled', layer: 'Subscription Guard', label: 'Subscription guard', detail: 'Locks premium reports/export/AI modules on expired plans.' },
     { key: 'antiAccountSharingEnabled', layer: 'Anti Account Sharing', label: 'Account sharing detection', detail: 'Flags many devices or branches using the same account.' },
     { key: 'fraudWarningCenterEnabled', layer: 'Fraud Warning Center', label: 'Fraud warning center', detail: 'Client-visible phishing and OTP safety messages.' },
-    { key: 'responsibleDisclosureEnabled', layer: 'Bug Report', label: 'Responsible disclosure', detail: 'Security issue report queue for owner/admin review.' }
+    { key: 'responsibleDisclosureEnabled', layer: 'Bug Report', label: 'Responsible disclosure', detail: 'Security issue report queue for owner/admin review.' },
+    { key: 'encryptionAtRestReady', layer: 'SOC2 / ISO Readiness', label: 'Encryption-at-rest ready', detail: 'Marks encryption-at-rest rollout as ready after DB/key infrastructure is configured.' },
+    { key: 'immutableAuditEvidenceEnabled', layer: 'SOC2 / ISO Readiness', label: 'Immutable audit evidence', detail: 'Produces tenant audit evidence hash from append-only security and activity logs.' },
+    { key: 'soc2ReadinessEnabled', layer: 'SOC2 / ISO Readiness', label: 'SOC2 readiness', detail: 'Tracks SOC2 control evidence for access, audit, privacy and incident response.' },
+    { key: 'iso27001ReadinessEnabled', layer: 'SOC2 / ISO Readiness', label: 'ISO 27001 readiness', detail: 'Tracks ISO-style access, encryption, audit and incident control evidence.' }
   ];
 
   constructor(private readonly api: ApiService) {}
@@ -471,6 +539,7 @@ export class SecurityPolicyCenterComponent implements OnInit {
         this.loadAccessRules();
         this.loadDataMasks();
         this.loadPlaybooks();
+        this.loadComplianceReadiness();
         this.loadZenotiPack();
         this.loadNetflixPack();
       },
@@ -523,6 +592,23 @@ export class SecurityPolicyCenterComponent implements OnInit {
   loadPlaybooks(): void {
     this.api.list<{ playbooks: ApiRecord[] }>('security/playbooks').subscribe({
       next: (result) => this.playbooks.set(result.playbooks || []),
+      error: (error) => this.error.set(this.api.errorText(error))
+    });
+  }
+
+  loadComplianceReadiness(): void {
+    this.api.list<{ readiness: ApiRecord }>('security/compliance-readiness').subscribe({
+      next: (result) => {
+        this.complianceReadiness.set(result.readiness || null);
+        if (result.readiness?.evidenceExport) this.evidenceExport.set(result.readiness.evidenceExport);
+      },
+      error: (error) => this.error.set(this.api.errorText(error))
+    });
+  }
+
+  exportComplianceEvidence(): void {
+    this.api.list<{ evidence: ApiRecord }>('security/compliance-evidence/export').subscribe({
+      next: (result) => this.evidenceExport.set(result.evidence || null),
       error: (error) => this.error.set(this.api.errorText(error))
     });
   }
@@ -662,6 +748,10 @@ export class SecurityPolicyCenterComponent implements OnInit {
 
   latestRisk(): ApiRecord | null {
     return this.riskEvents()[0] || null;
+  }
+
+  riskHeatmapRows(): ApiRecord[] {
+    return (this.complianceReadiness()?.riskHeatmap || []) as ApiRecord[];
   }
 
   joinList(value: unknown): string {

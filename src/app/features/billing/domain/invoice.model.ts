@@ -7,6 +7,12 @@ export interface InvoiceItem {
   quantity: number;
   unit_price: number;
   discount_amount?: number;
+  originalPricePaise?: number;
+  finalPricePaise?: number;
+  happyHourDiscountPaise?: number;
+  happyHourLineDiscountPaise?: number;
+  happyHourId?: number | null;
+  happyHourName?: string;
   tax_rate?: number;
   tax_amount?: number;
   total_amount?: number;
@@ -37,6 +43,8 @@ export interface InvoiceDraft {
   invoice_type?: string;
   source?: string;
   items: InvoiceItem[];
+  bypassHappyHours?: boolean;
+  groupSize?: number;
   billDiscount?: { type: 'amount' | 'percent'; value: number; reason?: string };
 }
 

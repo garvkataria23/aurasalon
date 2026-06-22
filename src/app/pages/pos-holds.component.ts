@@ -75,7 +75,7 @@ import { PosHeldInvoiceDraft, PosSettingsService } from '../core/pos-settings.se
         <ng-template #emptyState>
           <div class="empty-state">
             <strong>No held invoices</strong>
-            <span>POS me invoice items add karke Hold invoice dabao. Yahan draft show hoga.</span>
+            <span>Add invoice items in POS and click Hold invoice. Draft will appear here.</span>
             <a class="primary-button fit" routerLink="/pos">Create hold invoice</a>
           </div>
         </ng-template>

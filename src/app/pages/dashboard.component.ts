@@ -71,17 +71,17 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             <small>{{ data.lowStockAlerts[0]?.name || 'Stock is healthy' }}</small>
             <b>Open stock</b>
           </a>
-          <a class="dashboard-hub-card" routerLink="/staff">
+          <a class="dashboard-hub-card" routerLink="/staff-os/employee-masters">
             <span class="eyebrow">Staff</span>
             <strong>{{ data.staffPerformance[0]?.name || 'No ranking yet' }}</strong>
             <small>{{ (data.staffPerformance[0]?.revenue || 0) | currency: 'INR':'symbol':'1.0-0' }} top revenue</small>
-            <b>Open staff</b>
+            <b>Open Staff OS</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/customer-360">
             <span class="eyebrow">Customers</span>
             <strong>{{ data.repeatCustomerRate }}% repeat</strong>
             <small>{{ data.newClients }} new clients this month</small>
-            <b>Open customer 360</b>
+            <b>Open customer intelligence</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/smart-booking">
             <span class="eyebrow">Online booking</span>

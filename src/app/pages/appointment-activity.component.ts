@@ -151,7 +151,7 @@ interface ClientHistory {
         <div class="section-title activity-title">
           <div>
             <span class="eyebrow">Advanced reports</span>
-            <h3>Cancellation, reschedule and no-show intelligence</h3>
+            <h3>Cancellation, reschedule and no-show review</h3>
           </div>
           <div class="action-row">
             <span>Generated {{ formatDateTime(report()?.generatedAt || '') }}</span>

@@ -39,7 +39,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <section class="panel">
           <div class="section-title"><h2>Role library</h2></div>
           <div class="rank-list">
-            <article *ngFor="let role of matrix()?.roles || []">
+            <article *ngFor="let role of roles()">
               <div>
                 <strong>{{ role.name }}</strong>
                 <span>{{ role.role }} · {{ role.isSystem ? 'system' : 'custom' }}</span>
@@ -64,7 +64,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of matrix()?.matrix || []">
+              <tr *ngFor="let row of accessRows()">
                 <td><strong>{{ row.role }}</strong></td>
                 <td *ngFor="let resource of visibleResources()">
                   <span class="badge" *ngIf="row.resources?.[resource]?.admin">admin</span>
@@ -88,6 +88,8 @@ export class PermissionMatrixComponent implements OnInit {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
+  readonly roles = computed(() => this.matrix()?.roles || []);
+  readonly accessRows = computed(() => this.matrix()?.matrix || []);
   readonly visibleResources = computed(() => (this.matrix()?.resources || []).slice(0, 10));
 
   readonly roleForm = this.fb.group({

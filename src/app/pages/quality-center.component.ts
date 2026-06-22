@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
@@ -35,7 +35,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       <section class="panel">
         <div class="section-title"><h2>Quality gates</h2></div>
         <div class="quick-grid">
-          <article class="action-card" *ngFor="let check of summary()?.checks || []">
+          <article class="action-card" *ngFor="let check of checks()">
             <strong>{{ check.name }}</strong>
             <span>{{ check.detail }}</span>
             <span class="badge" [class.success]="check.passed">{{ check.passed ? 'passed' : 'blocked' }}</span>
@@ -49,7 +49,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <table>
             <thead><tr><th>Type</th><th>Status</th><th>Result</th><th>Completed</th></tr></thead>
             <tbody>
-              <tr *ngFor="let run of summary()?.runs || []">
+              <tr *ngFor="let run of runs()">
                 <td>{{ run.type }}</td>
                 <td><span class="badge" [class.success]="run.status === 'passed'">{{ run.status }}</span></td>
                 <td>{{ run.result | json }}</td>
@@ -70,6 +70,8 @@ export class QualityCenterComponent implements OnInit {
   readonly loading = signal(false);
   readonly busy = signal(false);
   readonly error = signal('');
+  readonly checks = computed(() => this.summary()?.checks || []);
+  readonly runs = computed(() => this.summary()?.runs || []);
 
   constructor(private readonly api: ApiService) {}
 

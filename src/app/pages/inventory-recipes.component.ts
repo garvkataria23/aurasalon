@@ -34,15 +34,12 @@ const DEFAULT_MODIFIERS = [
     <section class="page-stack inventory-enterprise-page recipes-page">
       <div class="module-hero recipe-command-hero">
         <div class="hero-copy">
-          <span class="eyebrow">Inventory / Auto product consume</span>
-          <h2>Auto Product Consume Service Setup</h2>
-          <p>Set which inventory products a service uses. POS checkout, appointment completion and invoice finalization then auto-consume stock with FIFO live tracking.</p>
+          <span class="eyebrow">Inventory / Recipes</span>
+          <h2>Service Recipes</h2>
           <div class="hero-signal-row">
             <span>{{ branchRecipeStatus() }}</span>
             <span>{{ approvedRecipes().length }} approved BOMs</span>
             <span>{{ highAlertCount() }} high-risk alerts</span>
-            <span>POS checkout linked</span>
-            <span>No physical stock entry</span>
           </div>
         </div>
         <div class="hero-actions">
@@ -56,57 +53,26 @@ const DEFAULT_MODIFIERS = [
 
       <div class="metric-grid recipe-kpi-grid">
         <article class="kpi-card accent-teal">
-          <span>Configured BOMs</span>
+          <span>Configured</span>
           <strong>{{ metric('configuredRecipes') }}</strong>
-          <small>{{ approvedRecipes().length }} approved · {{ pendingRecipes().length }} pending/draft</small>
+          <small>{{ approvedRecipes().length }} approved / {{ pendingRecipes().length }} draft</small>
         </article>
         <article class="kpi-card accent-red">
-          <span>Missing recipes</span>
+          <span>Missing</span>
           <strong>{{ metric('missingRecipes') }}</strong>
-          <small>{{ coveragePct() }}% service coverage</small>
+          <small>{{ coveragePct() }}% covered</small>
         </article>
         <article class="kpi-card accent-amber">
-          <span>Low stock forecast</span>
+          <span>Stock risk</span>
           <strong>{{ metric('lowStockForecast') }}</strong>
-          <small>Next 15 days recipe demand</small>
+          <small>15-day demand</small>
         </article>
         <article class="kpi-card accent-violet">
-          <span>Avg margin</span>
+          <span>Margin</span>
           <strong>{{ metric('averageMarginPct') }}%</strong>
-          <small>{{ weakMarginRows().length }} recipe(s) below floor</small>
+          <small>{{ weakMarginRows().length }} below floor</small>
         </article>
       </div>
-
-      <section class="recipe-command-strip">
-        <article class="command-card primary">
-          <span class="eyebrow">Decision signal</span>
-          <div class="decision-row">
-            <strong>{{ riskLevel() }}</strong>
-            <span class="recipe-health-pill" [class.watch]="riskLevel() === 'Watch'" [class.danger]="riskLevel() === 'High'">{{ coveragePct() }}% covered</span>
-          </div>
-          <p>{{ decisionSummary() }}</p>
-        </article>
-        <article class="command-card">
-          <span class="eyebrow">Next action</span>
-          <strong>{{ topActionTitle() }}</strong>
-          <p>{{ topActionMessage() }}</p>
-        </article>
-        <article class="command-card compact">
-          <span class="eyebrow">Recipe automation</span>
-          <div class="automation-grid">
-            <div><strong>POS</strong><small>checkout auto consume</small></div>
-            <div><strong>Invoice</strong><small>finalization live track</small></div>
-            <div><strong>FIFO</strong><small>batch deduction</small></div>
-          </div>
-        </article>
-      </section>
-
-      <section class="auto-consume-flow">
-        <article><span>Trigger 1</span><strong>POS service billed</strong><small>Service recipe expands into product usage lines.</small></article>
-        <article><span>Trigger 2</span><strong>Appointment complete</strong><small>Approved recipe can consume stock from the appointment lifecycle.</small></article>
-        <article><span>Trigger 3</span><strong>Invoice finalization</strong><small>Invoice inventory hook posts service usage and live ledger rows.</small></article>
-        <article><span>Live result</span><strong>Inventory tracked</strong><small>FIFO stock, usage logs, shortage and overuse alerts stay connected.</small></article>
-      </section>
 
       <div class="enterprise-grid two editor-grid">
         <section class="panel editor-panel recipe-canvas">
@@ -294,7 +260,7 @@ const DEFAULT_MODIFIERS = [
       --recipe-line: color-mix(in srgb, var(--line) 76%, white);
       --recipe-soft: color-mix(in srgb, var(--teal) 9%, white);
       --recipe-glow: 0 22px 58px color-mix(in srgb, var(--ink) 9%, transparent);
-      gap: 18px;
+      gap: 14px;
     }
 
     .hero-actions,
@@ -309,8 +275,10 @@ const DEFAULT_MODIFIERS = [
     }
 
     .recipe-command-hero {
-      align-items: stretch;
-      min-height: 184px;
+      align-items: center;
+      width: 100%;
+      min-height: 250px;
+      padding: 12px 14px;
       border: 1px solid color-mix(in srgb, var(--teal) 18%, var(--line));
       background:
         radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--amber) 18%, transparent), transparent 30%),
@@ -321,16 +289,16 @@ const DEFAULT_MODIFIERS = [
 
     .hero-copy {
       display: grid;
-      gap: 10px;
-      max-width: 900px;
+      gap: 6px;
+      max-width: 560px;
     }
 
     .hero-copy h2 {
       max-width: 920px;
       margin: 0;
-      font-size: clamp(30px, 4vw, 50px);
-      letter-spacing: -0.06em;
-      line-height: 0.98;
+      font-size: clamp(22px, 2.4vw, 30px);
+      letter-spacing: 0;
+      line-height: 1.04;
     }
 
     .hero-copy p,
@@ -345,22 +313,22 @@ const DEFAULT_MODIFIERS = [
 
     .hero-signal-row {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
-      margin-top: 4px;
+      margin-top: 0;
     }
 
     .hero-signal-row span,
     .recipe-health-pill {
       display: inline-flex;
       align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
+      min-height: 24px;
+      padding: 0 9px;
       border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line));
       border-radius: 999px;
       background: color-mix(in srgb, var(--surface) 86%, white);
       color: var(--ink);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
     }
@@ -387,7 +355,10 @@ const DEFAULT_MODIFIERS = [
     .recipe-kpi-grid .kpi-card {
       position: relative;
       overflow: hidden;
-      min-height: 122px;
+      min-height: 104px;
+      display: grid;
+      align-content: start;
+      gap: 6px;
       border-top: 4px solid var(--teal);
     }
 
@@ -422,6 +393,28 @@ const DEFAULT_MODIFIERS = [
       letter-spacing: -0.045em;
     }
 
+    .recipe-kpi-grid .kpi-card > span,
+    .recipe-kpi-grid .kpi-card > small {
+      position: relative;
+      z-index: 1;
+      max-width: calc(100% - 72px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .recipe-kpi-grid .kpi-card > strong {
+      position: relative;
+      z-index: 1;
+      margin-top: 0;
+      line-height: 1;
+    }
+
+    .recipe-kpi-grid .kpi-card > small {
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
     .recipe-command-strip {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(320px, 0.78fr);
@@ -431,8 +424,8 @@ const DEFAULT_MODIFIERS = [
     .command-card {
       min-width: 0;
       display: grid;
-      gap: 10px;
-      padding: 18px;
+      gap: 8px;
+      padding: 16px;
       border: 1px solid var(--recipe-line);
       border-radius: 22px;
       background:
@@ -464,9 +457,18 @@ const DEFAULT_MODIFIERS = [
 
     .decision-row strong,
     .command-card > strong {
-      font-size: clamp(22px, 2.4vw, 34px);
-      letter-spacing: -0.05em;
+      font-size: clamp(21px, 2vw, 30px);
+      letter-spacing: -0.03em;
       line-height: 1;
+    }
+
+    .command-card p {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      font-size: 13px;
+      line-height: 1.35;
     }
 
     .recipe-health-pill.watch {
@@ -1031,36 +1033,36 @@ export class InventoryRecipesComponent implements OnInit {
 
   decisionSummary(): string {
     if (this.metric('missingRecipes')) {
-      return `${this.metric('missingRecipes')} active services still need a service BOM before exact professional stock deduction can be trusted.`;
+      return `${this.metric('missingRecipes')} services need BOM.`;
     }
     if (this.metric('lowStockForecast')) {
-      return `${this.metric('lowStockForecast')} products may run low from upcoming recipe demand in the 15-day horizon.`;
+      return `${this.metric('lowStockForecast')} product stock risks.`;
     }
     if (this.weakMarginRows().length) {
-      return `${this.weakMarginRows().length} service recipes are below their margin floor and need price or product-cost review.`;
+      return `${this.weakMarginRows().length} low-margin recipes.`;
     }
-    return 'Recipes are mapped, margin is inside target, and no open stock pressure is visible for the selected branch.';
+    return 'Recipes are healthy.';
   }
 
   topActionTitle(): string {
     const suggestion = this.dashboardList('aiSuggestions')[0];
     if (suggestion?.title) return String(suggestion.title);
-    if (this.topMissingRecipe()?.serviceName) return 'Create missing service BOM';
-    if (this.topLowStockForecast()?.productName) return 'Review recipe stock pressure';
-    if (this.weakMarginRows()[0]?.serviceName) return 'Review weak-margin recipe';
-    return 'Recipe governance is stable';
+    if (this.topMissingRecipe()?.serviceName) return 'Create BOM';
+    if (this.topLowStockForecast()?.productName) return 'Check stock';
+    if (this.weakMarginRows()[0]?.serviceName) return 'Check margin';
+    return 'Stable';
   }
 
   topActionMessage(): string {
     const suggestion = this.dashboardList('aiSuggestions')[0];
     if (suggestion?.message) return String(suggestion.message);
     const missing = this.topMissingRecipe();
-    if (missing) return `${missing.serviceName} is active but has no approved BOM.`;
+    if (missing) return `${missing.serviceName} needs a recipe.`;
     const lowStock = this.topLowStockForecast();
-    if (lowStock) return `${lowStock.productName} needs ${lowStock.requiredQty} ${lowStock.unit} for upcoming booked services.`;
+    if (lowStock) return `${lowStock.productName}: ${lowStock.requiredQty} ${lowStock.unit} needed.`;
     const weak = this.weakMarginRows()[0];
-    if (weak) return `${weak.serviceName} margin is ${weak.expectedMarginPct}% against a ${weak.marginFloorPct || 0}% floor.`;
-    return 'No urgent missing-BOM, stock-pressure or margin-floor action is exposed by the current data.';
+    if (weak) return `${weak.serviceName}: ${weak.expectedMarginPct}% margin.`;
+    return 'No urgent action.';
   }
 
   dashboardList(key: string): ApiRecord[] {

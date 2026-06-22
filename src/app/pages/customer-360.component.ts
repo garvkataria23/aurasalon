@@ -1,6 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
@@ -8,7 +9,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 @Component({
   selector: 'app-customer-360',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent, AuraKpiCardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent, AuraKpiCardComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -76,6 +77,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <div class="profile-stats">
             <span>LTV</span><strong>{{ profileData.metrics.lifetimeValue | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <span>Risk</span><strong>{{ profileData.metrics.riskScore }}</strong>
+            <a class="ghost-button mini" [routerLink]="['/clients', profileData.client.id]">Open Client 360 profile</a>
           </div>
         </section>
 
@@ -135,6 +137,62 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             </div>
           </section>
 
+          <section class="panel">
+            <div class="section-title"><h2>Wallet, membership and loyalty</h2></div>
+            <div class="quick-grid">
+              <article class="action-card">
+                <strong>{{ (profileData.wallet?.balance || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <span>Wallet balance · latest {{ profileData.wallet?.latestWalletTransaction?.type || 'none' }}</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ profileData.wallet?.loyaltyBalance || 0 }}</strong>
+                <span>Loyalty points · latest {{ profileData.wallet?.latestLoyaltyTransaction?.type || 'none' }}</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ profileData.membershipSummary?.status || 'none' }}</strong>
+                <span>{{ profileData.membershipSummary?.activeMembership?.planName || profileData.membershipSummary?.activeMembership?.name || 'No active plan' }}</span>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Visit history</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Status</th><th>Services</th><th>Amount</th><th>Balance</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let visit of profileData.visitHistory || []">
+                    <td>{{ visit.startAt | date: 'mediumDate' }}</td>
+                    <td>{{ visit.status }}</td>
+                    <td>{{ (visit.services || []).join(', ') || 'No service linked' }}</td>
+                    <td>{{ visit.amount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ visit.balance | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  </tr>
+                  <tr *ngIf="!(profileData.visitHistory || []).length"><td colspan="5"><div class="empty-state"><strong>No visit history</strong><span>Completed appointments and invoices will appear here.</span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Review linkage</h2></div>
+            <article class="action-card">
+              <strong>{{ profileData.reviewLinkage?.averageRating !== null ? (profileData.reviewLinkage?.averageRating | number: '1.1-1') + ' / 5' : 'No reviews' }}</strong>
+              <span>{{ profileData.reviewLinkage?.reviewCount || 0 }} reviews · {{ profileData.reviewLinkage?.negativeCount || 0 }} recovery signals</span>
+            </article>
+            <div class="rank-list">
+              <article *ngFor="let review of profileData.reviewLinkage?.reviews || []">
+                <div><strong>{{ review.platformName }} · {{ review.rating }}/5</strong><span>{{ review.reviewText || review.title || 'No text captured' }}</span></div>
+                <small>{{ review.reviewedAt | date: 'short' }}</small>
+              </article>
+              <article *ngIf="!(profileData.reviewLinkage?.reviews || []).length"><div><strong>No linked reviews</strong><span>Invoice review links and platform sync reviews will connect here.</span></div></article>
+            </div>
+          </section>
+        </div>
+
+        <div class="dashboard-grid">
           <section class="panel">
             <div class="section-title"><h2>Notes timeline</h2></div>
             <div class="rank-list">

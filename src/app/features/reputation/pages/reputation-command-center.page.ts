@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { StateComponent } from '../../../shared/ui/state/state.component';
@@ -13,8 +14,16 @@ interface PlatformCard {
   connected: boolean;
   reviewCount: number;
   averageRating: number;
+  platformUrl: string;
+  businessListingId: string;
+  businessListingUrl: string;
   lastSyncStatus: string;
   lastSyncedAt: string;
+  providerStatus: string;
+  tokenEnvKey: string;
+  accountId: string;
+  locationId: string;
+  pageAccountId: string;
 }
 
 interface StaffPreview {
@@ -27,7 +36,7 @@ interface StaffPreview {
 @Component({
   selector: 'app-reputation-command-center-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StateComponent],
   template: `
     <section class="rep-page">
       <header class="page-heading">
@@ -122,6 +131,8 @@ interface StaffPreview {
             <div>
               <strong>{{ platform.name }}</strong>
               <span>{{ platform.connected ? platform.lastSyncStatus || 'connected' : platform.reviewCount ? 'legacy data only' : 'not connected' }}</span>
+              <small *ngIf="platform.businessListingId">ID: {{ platform.businessListingId }}</small>
+              <small>{{ platform.providerStatus || 'not_configured' }} · {{ platform.tokenEnvKey || 'credential env pending' }}</small>
             </div>
             <div class="platform-rating">
               <b>{{ platform.averageRating | number: '1.1-1' }}</b>
@@ -133,6 +144,36 @@ interface StaffPreview {
           </article>
         </section>
         <p class="platform-action-message" *ngIf="platformActionMessage">{{ platformActionMessage }}</p>
+
+        <section class="request-panel">
+          <div>
+            <span class="eyebrow">Review link</span>
+            <h3>Send invoice review link</h3>
+            <p>The link is queued automatically after invoice or checkout. For manual resend or testing, enter the appointment ID and send it from here.</p>
+          </div>
+          <label class="field">
+            <span>Appointment ID</span>
+            <input [(ngModel)]="reviewAppointmentId" placeholder="appt_..." />
+          </label>
+          <label class="field">
+            <span>Invoice ID</span>
+            <input [(ngModel)]="reviewInvoiceId" placeholder="inv_... optional" />
+          </label>
+          <label class="field">
+            <span>Channel</span>
+            <select [(ngModel)]="reviewChannel">
+              <option value="auto">Auto</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="sms">SMS</option>
+              <option value="email">Email</option>
+              <option value="in_app">In-app</option>
+            </select>
+          </label>
+          <button class="primary-link button-like" type="button" [class.disabled]="reviewRequestBusy" (click)="sendReviewLink()">
+            {{ reviewRequestBusy ? 'Sending' : 'Send review link' }}
+          </button>
+          <p class="platform-action-message request-message" *ngIf="reviewRequestMessage">{{ reviewRequestMessage }}</p>
+        </section>
 
         <div class="drawer-backdrop" *ngIf="setupPlatform" (click)="closePlatformSetup()"></div>
         <aside class="platform-setup-drawer" *ngIf="setupPlatform as setup">
@@ -162,6 +203,44 @@ interface StaffPreview {
               <ul>
                 <li *ngFor="let item of platformSetupRequirements">{{ item }}</li>
               </ul>
+            </section>
+
+            <section class="setup-form">
+              <strong>Connection details</strong>
+              <label class="field">
+                <span>{{ listingIdLabel(setup.code) }}</span>
+                <input [(ngModel)]="platformBusinessListingId" [placeholder]="listingIdPlaceholder(setup.code)" />
+              </label>
+              <label class="field">
+                <span>Listing/Profile URL</span>
+                <input [(ngModel)]="platformBusinessListingUrl" placeholder="https://..." />
+              </label>
+              <label class="field">
+                <span>Provider app/account URL</span>
+                <input [(ngModel)]="platformUrl" placeholder="Optional provider console or profile URL" />
+              </label>
+              <label class="field">
+                <span>Provider OAuth/API credential env key</span>
+                <input [(ngModel)]="platformTokenEnvKey" [placeholder]="credentialPlaceholder(setup.code)" />
+              </label>
+              <label class="field">
+                <span>Provider account ID</span>
+                <input [(ngModel)]="platformAccountId" placeholder="accounts/... or provider account ID" />
+              </label>
+              <label class="field">
+                <span>Location ID</span>
+                <input [(ngModel)]="platformLocationId" placeholder="locations/... optional" />
+              </label>
+              <label class="field">
+                <span>Page / Instagram account ID</span>
+                <input [(ngModel)]="platformPageAccountId" placeholder="Facebook page ID or Instagram business account ID" />
+              </label>
+              <div class="saved-connection" *ngIf="setup.businessListingId || setup.businessListingUrl">
+                <span>Saved connection</span>
+                <strong>{{ setup.businessListingId || 'ID missing' }}</strong>
+                <small>{{ setup.businessListingUrl || setup.lastSyncStatus }}</small>
+                <small>{{ setup.providerStatus || 'not_configured' }} · {{ setup.tokenEnvKey || 'credential env pending' }}</small>
+              </div>
             </section>
 
             <section>
@@ -222,6 +301,38 @@ interface StaffPreview {
             </section>
 
             <section>
+              <span class="eyebrow">AI reply draft</span>
+              <h3>Approval queue</h3>
+              <div class="draft-box" *ngIf="data.recentReviews.length; else noDraftReview">
+                <label class="field">
+                  <span>Review</span>
+                  <select [(ngModel)]="replyDraftReviewId">
+                    <option value="">Select review</option>
+                    <option *ngFor="let review of data.recentReviews" [value]="review.id">
+                      {{ review.platformName }} · {{ review.reviewerName || review.id }}
+                    </option>
+                  </select>
+                </label>
+                <button class="ghost-button slim" type="button" (click)="draftReply()" [disabled]="replyDraftBusy || !replyDraftReviewId">
+                  {{ replyDraftBusy ? 'Drafting' : 'Generate draft' }}
+                </button>
+                <p class="platform-action-message" *ngIf="replyDraftMessage">{{ replyDraftMessage }}</p>
+                <div class="draft-list" *ngIf="replyDrafts.length">
+                  <article class="draft-row" *ngFor="let draft of replyDrafts">
+                    <p>{{ draft }}</p>
+                    <button class="primary-link button-like slim" type="button" (click)="saveDraftReply(draft)">Save for approval</button>
+                  </article>
+                </div>
+              </div>
+              <ng-template #noDraftReview>
+                <div class="empty-box compact">
+                  <strong>No review selected</strong>
+                  <span>Recent reviews will appear here for reply drafting.</span>
+                </div>
+              </ng-template>
+            </section>
+
+            <section>
               <span class="eyebrow">Staff preview</span>
               <h3>Attribution</h3>
               <div class="staff-list" *ngIf="staffPreviewRows.length; else noStaff">
@@ -245,7 +356,7 @@ interface StaffPreview {
   `,
   styles: [`
     .rep-page { display: grid; gap: 18px; }
-    .page-heading, .score-panel, .alerts-panel, .feed-panel, .analytics-panel, .kpi-card, .platform-card {
+    .page-heading, .score-panel, .alerts-panel, .feed-panel, .analytics-panel, .kpi-card, .platform-card, .request-panel {
       border: 1px solid #dbe4e8;
       border-radius: 8px;
       background: #fff;
@@ -288,6 +399,12 @@ interface StaffPreview {
     .platform-rating b { color: #0f172a; font-size: 24px; }
     .platform-card .slim { grid-column: 1 / -1; padding: 9px 10px; }
     .platform-action-message { margin: 10px 0 0; color: #53657d; font-size: 13px; }
+    .request-panel { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(180px, 220px) minmax(180px, 220px) 150px auto; gap: 14px; align-items: end; padding: 18px; }
+    .request-panel h3 { margin: 4px 0; color: #0f172a; letter-spacing: 0; }
+    .request-panel p { margin: 0; color: #53657d; line-height: 1.45; }
+    .field { display: grid; gap: 6px; color: #334155; font-size: 13px; font-weight: 900; }
+    .field input, .field select { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; color: #0f172a; font: inherit; min-height: 42px; padding: 9px 11px; }
+    .request-message { grid-column: 1 / -1; }
     .drawer-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(15, 23, 42, .56); }
     .platform-setup-drawer { position: fixed; inset: 0 0 0 auto; z-index: 41; width: min(560px, 100vw); background: #fff; box-shadow: -22px 0 44px rgba(15, 23, 42, .24); display: flex; flex-direction: column; }
     .drawer-head { display: flex; gap: 12px; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e5edf1; }
@@ -300,6 +417,9 @@ interface StaffPreview {
     .setup-warning { border: 1px solid #fed7aa; background: #fff7ed; color: #9a3412; border-radius: 8px; padding: 12px; font-weight: 800; line-height: 1.45; }
     .setup-message { margin: 0; border: 1px solid #c7e8df; background: #f4fbf8; color: #0f766e; border-radius: 8px; padding: 12px; font-weight: 800; line-height: 1.45; }
     .platform-setup-drawer section { border-top: 1px solid #edf2f5; padding-top: 16px; display: grid; gap: 10px; }
+    .setup-form { grid-template-columns: 1fr; }
+    .saved-connection { border: 1px solid #dbe4e8; border-radius: 8px; padding: 12px; display: grid; gap: 4px; background: #f8fafc; }
+    .saved-connection span, .saved-connection small { color: #53657d; }
     .platform-setup-drawer ul, .platform-setup-drawer ol { margin: 0; padding-left: 22px; color: #53657d; line-height: 1.55; display: grid; gap: 8px; }
     .drawer-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #edf2f5; padding-top: 16px; }
     .button-like { border: 0; cursor: pointer; }
@@ -313,15 +433,18 @@ interface StaffPreview {
     .analytics-panel { display: grid; gap: 22px; }
     .analytics-panel section + section { border-top: 1px solid #e5edf1; padding-top: 20px; }
     .staff-row { border: 1px solid #edf2f5; border-radius: 8px; padding: 12px; display: grid; gap: 4px; }
+    .draft-box, .draft-list { display: grid; gap: 10px; }
+    .draft-row { border: 1px solid #edf2f5; border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+    .draft-row p { margin: 0; color: #334155; line-height: 1.45; }
     .empty-box { border: 1px dashed #cfdbe3; border-radius: 8px; padding: 20px; display: grid; gap: 6px; text-align: center; color: #0f172a; }
     .empty-box.compact { text-align: left; }
     @media (max-width: 1180px) {
-      .kpi-grid, .platform-grid, .score-grid, .ops-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .kpi-grid, .platform-grid, .score-grid, .ops-grid, .request-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .score-panel { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
       .page-heading, .heading-actions, .alert-row, .feed-row { align-items: stretch; flex-direction: column; }
-      .kpi-grid, .platform-grid, .score-grid, .ops-grid { grid-template-columns: 1fr; }
+      .kpi-grid, .platform-grid, .score-grid, .ops-grid, .request-panel { grid-template-columns: 1fr; }
       .page-heading h2 { font-size: 28px; }
       .sentiment { margin-left: 0; width: fit-content; }
     }
@@ -344,6 +467,22 @@ export class ReputationCommandCenterPage implements OnInit {
   error = '';
   platformActionBusy = '';
   platformActionMessage = '';
+  reviewAppointmentId = '';
+  reviewInvoiceId = '';
+  reviewChannel = 'auto';
+  reviewRequestBusy = false;
+  reviewRequestMessage = '';
+  platformBusinessListingId = '';
+  platformBusinessListingUrl = '';
+  platformUrl = '';
+  platformTokenEnvKey = '';
+  platformAccountId = '';
+  platformLocationId = '';
+  platformPageAccountId = '';
+  replyDraftReviewId = '';
+  replyDraftBusy = false;
+  replyDraftMessage = '';
+  replyDrafts: string[] = [];
 
   constructor(private readonly reputationApi: ReputationApiService) {}
 
@@ -404,9 +543,46 @@ export class ReputationCommandCenterPage implements OnInit {
     });
   }
 
+  sendReviewLink(): void {
+    const appointmentId = this.reviewAppointmentId.trim();
+    if (!appointmentId || this.reviewRequestBusy) {
+      this.reviewRequestMessage = appointmentId ? '' : 'Appointment ID required hai.';
+      return;
+    }
+    this.reviewRequestBusy = true;
+    this.reviewRequestMessage = '';
+    this.reputationApi.sendReviewRequest(appointmentId, {
+      invoiceId: this.reviewInvoiceId.trim(),
+      channel: this.reviewChannel,
+      force: true
+    }).subscribe({
+      next: (response) => {
+        const status = String(response['status'] || 'queued');
+        const request = response['request'] as { id?: string } | undefined;
+        const requestId = request?.id || '';
+        this.reviewRequestMessage = requestId
+          ? `Review link queued. Customer link: /reputation/internal-feedback?requestId=${requestId}${this.reviewInvoiceId.trim() ? `&invoiceId=${this.reviewInvoiceId.trim()}` : ''}`
+          : `Review request ${status}.`;
+        this.reviewRequestBusy = false;
+        this.load();
+      },
+      error: (error) => {
+        this.reviewRequestMessage = error?.error?.error || error?.message || 'Unable to send review link.';
+        this.reviewRequestBusy = false;
+      }
+    });
+  }
+
   openPlatformSetup(platform: PlatformCard): void {
     this.setupPlatform = platform;
     this.platformSetupMessage = '';
+    this.platformBusinessListingId = platform.businessListingId || '';
+    this.platformBusinessListingUrl = platform.businessListingUrl || '';
+    this.platformUrl = platform.platformUrl || '';
+    this.platformTokenEnvKey = platform.tokenEnvKey || this.defaultCredentialEnvKey(platform.code);
+    this.platformAccountId = platform.accountId || '';
+    this.platformLocationId = platform.locationId || '';
+    this.platformPageAccountId = platform.pageAccountId || '';
     if (platform.code === 'google') {
       this.platformSetupRequirements = [
         'Verified Google Business Profile listing access',
@@ -440,16 +616,31 @@ export class ReputationCommandCenterPage implements OnInit {
   closePlatformSetup(): void {
     this.setupPlatform = null;
     this.platformSetupMessage = '';
+    this.platformBusinessListingId = '';
+    this.platformBusinessListingUrl = '';
+    this.platformUrl = '';
+    this.platformTokenEnvKey = '';
+    this.platformAccountId = '';
+    this.platformLocationId = '';
+    this.platformPageAccountId = '';
   }
 
   confirmPlatformConnect(platform: PlatformCard): void {
     if (!this.selectedBranchId) {
-      this.platformSetupMessage = 'Branch missing: top dropdown me "All branches" ke bajay ek real branch select karo, phir connect karo.';
+      this.platformSetupMessage = 'Branch missing: select a real branch instead of "All branches", then connect.';
       return;
     }
     this.platformActionBusy = platform.code;
     this.platformSetupMessage = '';
-    this.reputationApi.connectPlatform(platform.code, this.selectedBranchId).subscribe({
+    this.reputationApi.connectPlatform(platform.code, this.selectedBranchId, {
+      businessListingId: this.platformBusinessListingId.trim(),
+      businessListingUrl: this.platformBusinessListingUrl.trim(),
+      platformUrl: this.platformUrl.trim(),
+      tokenEnvKey: this.platformTokenEnvKey.trim(),
+      accountId: this.platformAccountId.trim(),
+      locationId: this.platformLocationId.trim(),
+      pageAccountId: this.platformPageAccountId.trim()
+    }).subscribe({
       next: (response) => {
         const result = response as { providerStatus?: string; status?: string; message?: string };
         this.platformSetupMessage = result.message || `${platform.name}: ${result.providerStatus || result.status || 'connection record created'}`;
@@ -460,6 +651,64 @@ export class ReputationCommandCenterPage implements OnInit {
       error: (error) => {
         this.platformSetupMessage = error?.error?.error || error?.message || `Unable to connect ${platform.name}`;
         this.platformActionBusy = '';
+      }
+    });
+  }
+
+  listingIdLabel(code: string): string {
+    if (code === 'instagram') return 'Instagram business account ID / Facebook page ID';
+    if (code === 'google') return 'Google location/listing ID';
+    if (code === 'facebook') return 'Facebook page ID';
+    return 'Business listing ID / account ID';
+  }
+
+  credentialPlaceholder(code: string): string {
+    return this.defaultCredentialEnvKey(code) || 'PROVIDER_ACCESS_TOKEN_ENV';
+  }
+
+  listingIdPlaceholder(code: string): string {
+    if (code === 'instagram') return '1784... or page_...';
+    if (code === 'google') return 'locations/123456789 or listing ID';
+    if (code === 'facebook') return 'Facebook page ID';
+    return 'Provider listing/account ID';
+  }
+
+  draftReply(): void {
+    const reviewId = this.replyDraftReviewId.trim();
+    if (!reviewId || this.replyDraftBusy) return;
+    this.replyDraftBusy = true;
+    this.replyDraftMessage = '';
+    this.replyDrafts = [];
+    this.reputationApi.draftReplies(reviewId, { tone: 'warm' }).subscribe({
+      next: (response) => {
+        this.replyDrafts = response.drafts || [];
+        this.replyDraftMessage = response.message || (this.replyDrafts.length ? 'Draft ready for approval.' : 'No draft returned.');
+        this.replyDraftBusy = false;
+      },
+      error: (error) => {
+        this.replyDraftMessage = error?.error?.error || error?.message || 'Unable to generate reply draft.';
+        this.replyDraftBusy = false;
+      }
+    });
+  }
+
+  saveDraftReply(draft: string): void {
+    const reviewId = this.replyDraftReviewId.trim();
+    if (!reviewId || !draft.trim()) return;
+    this.replyDraftBusy = true;
+    this.reputationApi.createReply(reviewId, {
+      replyText: draft.trim(),
+      aiGenerated: true,
+      approvalStatus: 'pending'
+    }).subscribe({
+      next: () => {
+        this.replyDraftMessage = 'Draft saved for approval.';
+        this.replyDraftBusy = false;
+        this.load();
+      },
+      error: (error) => {
+        this.replyDraftMessage = error?.error?.error || error?.message || 'Unable to save draft.';
+        this.replyDraftBusy = false;
       }
     });
   }
@@ -483,6 +732,7 @@ export class ReputationCommandCenterPage implements OnInit {
     this.sentimentPreviewRows = this.buildSentimentRows(recentReviews);
     this.staffPreviewRows = this.buildStaffLeaderboard(recentReviews);
     this.reviewQueryParams = Object.fromEntries(recentReviews.map((review) => [review.id, { selected: review.id }]));
+    if (!this.replyDraftReviewId && recentReviews.length) this.replyDraftReviewId = recentReviews[0].id;
   }
 
   private buildPlatformCards(): PlatformCard[] {
@@ -502,10 +752,28 @@ export class ReputationCommandCenterPage implements OnInit {
         connected: Boolean(connection),
         reviewCount: summary?.reviewCount || 0,
         averageRating: summary?.averageRating || 0,
+        platformUrl: connection?.platformUrl || '',
+        businessListingId: connection?.businessListingId || '',
+        businessListingUrl: connection?.businessListingUrl || '',
         lastSyncStatus: connection?.lastSyncStatus || summary?.lastSyncStatus || 'not_configured',
-        lastSyncedAt: connection?.lastSyncedAt || summary?.lastSyncedAt || ''
+        lastSyncedAt: connection?.lastSyncedAt || summary?.lastSyncedAt || '',
+        providerStatus: connection?.providerStatus || 'not_configured',
+        tokenEnvKey: connection?.tokenEnvKey || this.defaultCredentialEnvKey(platform.code),
+        accountId: connection?.accountId || '',
+        locationId: connection?.locationId || '',
+        pageAccountId: connection?.pageAccountId || ''
       };
     });
+  }
+
+  private defaultCredentialEnvKey(code: string): string {
+    const envKeys: Record<string, string> = {
+      google: 'GOOGLE_BUSINESS_PROFILE_ACCESS_TOKEN',
+      instagram: 'META_GRAPH_ACCESS_TOKEN',
+      facebook: 'META_GRAPH_ACCESS_TOKEN',
+      yelp: 'YELP_API_KEY'
+    };
+    return envKeys[String(code || '').toLowerCase()] || '';
   }
 
   private buildScoreSegments(data: ReputationDashboard): Array<{ label: string; value: number }> {

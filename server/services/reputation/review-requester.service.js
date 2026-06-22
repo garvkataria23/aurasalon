@@ -99,7 +99,7 @@ export const reviewRequesterService = {
     const requestRow = existing
       ? this.updateExistingRequest(existing, { channel, maxAttempts }, access)
       : this.createSentRequest({ campaign, appointment, branchId, channel, idempotencyKey }, access);
-    const outbound = this.queueOutbound({ request: requestRow, appointment, campaign, client, branch, channel, routing }, access);
+    const outbound = this.queueOutbound({ request: requestRow, appointment, campaign, client, branch, channel, routing, invoiceId: payload.invoiceId || payload.invoice_id || "" }, access);
 
     auditDecision("reputation.review_request_sent", "review_requests_sent", requestRow.id, access, {
       branchId,
@@ -195,6 +195,58 @@ export const reviewRequesterService = {
     return mapSent(row);
   },
 
+  publicRequest(id) {
+    if (!id) throw badRequest("requestId is required");
+    const row = db.prepare(
+      `SELECT r.*, c.name AS customer_name, c.phone AS customer_phone, c.email AS customer_email,
+              a.startAt AS appointment_start_at, a.serviceIds AS service_ids,
+              b.name AS branch_name
+       FROM review_requests_sent r
+       LEFT JOIN clients c ON c.id = r.customer_id
+       LEFT JOIN appointments a ON a.id = r.appointment_id
+       LEFT JOIN branches b ON b.id = r.branch_id
+       WHERE r.id = ?
+       LIMIT 1`
+    ).get(id);
+    if (!row) throw notFound("Review request not found");
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      branchId: row.branch_id || "",
+      branchName: row.branch_name || "Aura Salon",
+      customerId: row.customer_id || "",
+      customerName: row.customer_name || "Guest",
+      appointmentId: row.appointment_id || "",
+      appointmentStartAt: row.appointment_start_at || "",
+      serviceIds: parseJson(row.service_ids, []),
+      submitted: Boolean(row.review_submitted),
+      submittedReviewId: row.submitted_review_id || ""
+    };
+  },
+
+  submitPublicFeedback(id, payload = {}) {
+    const request = this.publicRequest(id);
+    if (request.submitted && !payload.allowUpdate) {
+      return { status: "already_submitted", requestId: id, reviewId: request.submittedReviewId };
+    }
+    const access = {
+      tenantId: request.tenantId,
+      role: "owner",
+      userId: "public-review-link",
+      branchId: request.branchId,
+      branchIds: request.branchId ? [request.branchId] : []
+    };
+    return this.internalFeedback({
+      ...payload,
+      requestId: id,
+      branchId: request.branchId,
+      customerId: request.customerId,
+      appointmentId: request.appointmentId,
+      reviewerName: payload.reviewerName || payload.customerName || request.customerName,
+      invoiceId: payload.invoiceId || payload.invoice_id || ""
+    }, access);
+  },
+
   findSentByIdempotency(idempotencyKey, access) {
     if (!idempotencyKey) return null;
     const row = db.prepare("SELECT * FROM review_requests_sent WHERE tenant_id = ? AND idempotency_key = ? ORDER BY created_at DESC LIMIT 1").get(access.tenantId, idempotencyKey);
@@ -243,11 +295,13 @@ export const reviewRequesterService = {
     return this.sentRequest(existing.id, access);
   },
 
-  queueOutbound({ request, appointment, campaign, client, branch, channel, routing }, access) {
+  queueOutbound({ request, appointment, campaign, client, branch, channel, routing, invoiceId = "" }, access) {
+    const query = new URLSearchParams({ requestId: request.id });
+    if (invoiceId) query.set("invoiceId", invoiceId);
     const data = {
       customer_name: client?.name || "there",
       branch_name: branch?.name || "Aura Salon",
-      feedback_link: `/reputation/internal-feedback?requestId=${encodeURIComponent(request.id)}`,
+      feedback_link: `/reputation/internal-feedback?${query.toString()}`,
       public_review_link: this.publicReviewLink(campaign)
     };
     const body = render(campaign?.messageTemplate || DEFAULT_TEMPLATE, data);

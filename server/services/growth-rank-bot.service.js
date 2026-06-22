@@ -32,6 +32,11 @@ function roiPercent(profit, spend) {
   return spend > 0 ? Math.round((profit / spend) * 1000) / 10 : 0;
 }
 
+function priorityRank(value) {
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  return order[String(value || "medium").toLowerCase()] ?? 2;
+}
+
 function parseJson(value, fallback = {}) {
   try {
     return JSON.parse(value || "");
@@ -1390,6 +1395,207 @@ export class GrowthRankBotService {
       publishingPlanner: rows.publishingPlanner.map(this.publishingPlannerRow),
       seoPages: rows.seoPages.map(this.seoPageRow),
       competitorAlerts: rows.competitorAlerts.map(this.competitorAlertRow)
+    };
+  }
+
+  commandCenter(query = {}, access = {}) {
+    const board = this.dashboard(query, access);
+    const recommendationQueue = this.growthRecommendationQueue(board);
+    const approvalWorkflow = this.growthApprovalWorkflow(board);
+    const campaignRoi = this.growthCampaignRoi(board);
+    const socialLeadTracking = this.growthSocialLeadTracking(board);
+    return {
+      metrics: {
+        openRecommendations: recommendationQueue.filter((item) => item.status !== "done").length,
+        approvalRequired: approvalWorkflow.filter((item) => item.status === "approval_required" || item.status === "pending_approval").length,
+        socialLeads: socialLeadTracking.leads.length,
+        campaignProfit: campaignRoi.profit,
+        campaignRoiPercent: campaignRoi.roiPercent,
+        bestCampaign: campaignRoi.best?.campaignName || "",
+        worstCampaign: campaignRoi.worst?.campaignName || ""
+      },
+      recommendationQueue,
+      approvalWorkflow,
+      campaignRoi,
+      socialLeadTracking,
+      seoRankBot: {
+        trackedKeywords: board.rankKeywords.length,
+        weakKeywords: board.rankKeywords.filter((item) => Number(item.currentRank || 0) > 10),
+        nextAction: board.rankKeywords.some((item) => Number(item.currentRank || 0) > 10)
+          ? "Create service/city SEO page and proof content for weak keywords."
+          : "Keep weekly manual rank import and Google Business posts active."
+      },
+      campaignPlanner: {
+        scheduled: board.publishingPlanner.length,
+        pendingApproval: board.publishingPlanner.filter((item) => item.approvalStatus !== "approved").length,
+        nextSlots: board.publishingPlanner.slice(0, 6)
+      },
+      guardrails: [
+        "No auto-publish without owner approval.",
+        "No fake reviews, fake followers or guaranteed rank claims.",
+        "Budget changes require approval when ROI or attribution is unclear.",
+        "Social leads must be linked to booking or invoice before scale-up."
+      ]
+    };
+  }
+
+  updateApprovalWorkflowItem(type, id, payload = {}, access = {}) {
+    const normalizedType = clean(type || "", 40);
+    const status = clean(payload.status || payload.approvalStatus || "approved", 60);
+    if (normalizedType === "content") return this.updateContentStatus(id, { status }, access);
+    if (normalizedType === "proposal") return this.updateProposalStatus(id, { status, invoiceStatus: payload.invoiceStatus }, access);
+    if (normalizedType === "task") return this.updateTaskStatus(id, { status: status === "approved" ? "done" : status }, access);
+    if (normalizedType === "planner" || normalizedType === "publishing") {
+      if (!access.tenantId) throw badRequest("Tenant context is required");
+      tenantService.ensureSubscriptionActive(access.tenantId);
+      const row = db.prepare("SELECT * FROM growth_rank_bot_publishing_planner WHERE id = ? AND tenant_id = ?").get(clean(id, 80), access.tenantId);
+      if (!row) throw notFound("Growth publishing planner item not found");
+      if (row.branch_id) tenantService.assertBranchAccess(access, row.branch_id);
+      const publishStatus = clean(payload.publishStatus || (status === "approved" ? "scheduled_draft" : row.publish_status), 60);
+      db.prepare(`
+        UPDATE growth_rank_bot_publishing_planner
+        SET approval_status = ?, publish_status = ?, updated_at = ?
+        WHERE id = ? AND tenant_id = ?
+      `).run(status, publishStatus, now(), row.id, access.tenantId);
+      return this.publishingPlannerRow(db.prepare("SELECT * FROM growth_rank_bot_publishing_planner WHERE id = ? AND tenant_id = ?").get(row.id, access.tenantId));
+    }
+    throw badRequest("Unsupported growth approval type");
+  }
+
+  growthRecommendationQueue(board = {}) {
+    const queue = [];
+    for (const task of board.tasks || []) {
+      if (task.status === "done") continue;
+      queue.push({
+        id: task.id,
+        source: "ai_growth_task",
+        priority: task.priority || "medium",
+        title: task.title,
+        why: `${task.channel || "Growth"} task is still open.`,
+        action: "Complete task or assign owner",
+        status: task.status,
+        approvalRequired: false
+      });
+    }
+    for (const campaign of board.campaignProfit || []) {
+      if (Number(campaign.roiPercent || 0) >= 100) continue;
+      queue.push({
+        id: campaign.id,
+        source: "campaign_roi",
+        priority: "high",
+        title: `Review low ROI campaign: ${campaign.campaignName}`,
+        why: `ROI ${campaign.roiPercent}% on spend INR ${campaign.spend}.`,
+        action: "Pause, revise creative, or move budget after approval",
+        status: "approval_required",
+        approvalRequired: true
+      });
+    }
+    for (const keyword of board.rankKeywords || []) {
+      if (Number(keyword.currentRank || 0) <= 10) continue;
+      queue.push({
+        id: keyword.id,
+        source: "seo_rank_bot",
+        priority: "medium",
+        title: `Improve keyword rank: ${keyword.keyword}`,
+        why: `Current rank ${keyword.currentRank}, target top 10.`,
+        action: "Generate local SEO page, Google post and proof content",
+        status: keyword.status || "open",
+        approvalRequired: false
+      });
+    }
+    for (const alert of board.competitorAlerts || []) {
+      if (alert.status === "resolved") continue;
+      queue.push({
+        id: alert.id,
+        source: "competitor_watch",
+        priority: alert.severity === "high" ? "high" : "medium",
+        title: `Counter ${alert.competitorName}`,
+        why: alert.signalType,
+        action: alert.recommendedAction,
+        status: alert.status,
+        approvalRequired: true
+      });
+    }
+    return queue
+      .sort((left, right) => priorityRank(left.priority) - priorityRank(right.priority))
+      .slice(0, 25);
+  }
+
+  growthApprovalWorkflow(board = {}) {
+    const approvals = [
+      ...(board.approvals || []).map((item) => ({
+        id: item.id,
+        type: "content",
+        title: item.title,
+        status: item.status === "approved" ? "approved" : item.status === "rejected" ? "rejected" : "pending_approval",
+        owner: "client-owner",
+        source: item.contentType || "content"
+      })),
+      ...(board.publishingPlanner || []).map((item) => ({
+        id: item.id,
+        type: "planner",
+        title: item.title,
+        status: item.approvalStatus === "approved" ? "approved" : "approval_required",
+        owner: item.provider || "publishing-provider",
+        source: item.channel
+      })),
+      ...(board.proposals || []).map((item) => ({
+        id: item.id,
+        type: "proposal",
+        title: item.title,
+        status: item.status === "won" ? "approved" : item.status || "draft",
+        owner: "owner",
+        source: item.packageName
+      }))
+    ];
+    return approvals.slice(0, 30);
+  }
+
+  growthCampaignRoi(board = {}) {
+    const rows = board.campaignProfit || [];
+    const spend = rows.reduce((sum, item) => sum + Number(item.spend || 0), 0);
+    const revenue = rows.reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+    const profit = rows.reduce((sum, item) => sum + Number(item.profit || 0), 0);
+    const sorted = [...rows].sort((a, b) => Number(b.roiPercent || 0) - Number(a.roiPercent || 0));
+    return {
+      spend,
+      revenue,
+      profit,
+      roiPercent: roiPercent(profit, spend),
+      best: sorted[0] || null,
+      worst: sorted[sorted.length - 1] || null,
+      rows: sorted.slice(0, 20),
+      scaleRule: "Scale only profitable campaigns with attribution and owner approval."
+    };
+  }
+
+  growthSocialLeadTracking(board = {}) {
+    const attribution = board.attributionEvents || [];
+    const leads = [
+      ...(board.leads || []).map((item) => ({
+        id: item.id,
+        source: item.source || item.channel || "manual_lead",
+        leadName: item.leadName || item.name || "Lead",
+        eventType: item.status || "lead",
+        bookingId: item.bookingId || "",
+        estimatedValue: Number(item.estimatedValue || 0),
+        status: item.status || "open"
+      })),
+      ...attribution
+    ];
+    const bySource = leads.reduce((acc, item) => {
+      const source = item.source || "Unknown";
+      const current = acc.get(source) || { source, leads: 0, bookings: 0, estimatedValue: 0 };
+      current.leads += 1;
+      current.bookings += item.bookingId ? 1 : 0;
+      current.estimatedValue += Number(item.estimatedValue || 0);
+      acc.set(source, current);
+      return acc;
+    }, new Map());
+    return {
+      leads: leads.slice(0, 50),
+      bySource: [...bySource.values()],
+      conversionRule: "Track lead source through WhatsApp, booking and invoice before increasing budget."
     };
   }
 

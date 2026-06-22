@@ -163,7 +163,7 @@ type PlanLifecycleDialog = {
           <div>
             <span class="eyebrow">Today focus</span>
             <h3>{{ report().expiringSoon?.length || 0 }} renewal follow-ups</h3>
-            <p>Expiring plans, POS eligibility and renewal WhatsApp queue ek jagah se manage karo.</p>
+            <p>Manage expiring plans, POS eligibility and renewal WhatsApp queue in one place.</p>
           </div>
           <div class="overview-actions">
             <button class="primary-button" type="button" (click)="setTab('sell')">Sell membership</button>
@@ -301,27 +301,29 @@ type PlanLifecycleDialog = {
             <article class="action-card selected-client-card">
               <strong>{{ client.name || client.fullName || client.id }}</strong>
               <span>{{ client.phone || client.email || 'No phone/email saved' }}</span>
-              <span>{{ selectedClientMemberships().length }} active membership{{ selectedClientMemberships().length === 1 ? '' : 's' }}</span>
+              <span>{{ selectedClientBenefitsLabel() }}</span>
             </article>
 
             <article class="action-card wallet-panel" *ngIf="membershipWallet() as wallet">
               <strong>Membership Wallet</strong>
-              <span>{{ wallet.activePlanName || 'No active membership' }}</span>
+              <span>{{ wallet.activePlanName || 'No active benefits' }}</span>
               <div class="wallet-snapshot-grid">
                 <div><span>Wallet balance</span><b>{{ wallet.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</b></div>
                 <div><span>Service credits</span><b>{{ wallet.serviceCredits?.remaining || 0 }} left / {{ wallet.serviceCredits?.used || 0 }} used</b></div>
+                <div><span>Active packages</span><b>{{ wallet.packageSummary?.activeCount || 0 }}</b></div>
+                <div><span>Package credits</span><b>{{ wallet.packageSummary?.creditsRemaining || 0 }}</b></div>
                 <div><span>Product discount</span><b>{{ wallet.productDiscount || wallet.productDiscountPercent || 0 }}%</b></div>
                 <div><span>Expiry</span><b>{{ wallet.expiryDate || '-' }}</b></div>
                 <div><span>Auto-renew</span><b>{{ wallet.autoRenew ? 'On' : 'Off' }}</b></div>
                 <div><span>Family sharing</span><b>{{ wallet.familySharing?.status || 'not_shared' }}</b></div>
               </div>
-              <span>{{ wallet.walletConnection?.source || 'wallet balance' }} · {{ wallet.planBenefits?.serviceDiscountPercent || 0 }}% service benefit</span>
+              <span>{{ wallet.walletConnection?.source || 'wallet balance' }} · {{ wallet.planBenefits?.serviceDiscountPercent || 0 }}% service benefit · {{ packageNamesLabel(wallet) }}</span>
             </article>
 
             <div class="mini-membership-list" *ngIf="selectedClientMemberships().length; else noClientMemberships">
               <article *ngFor="let membership of selectedClientMemberships()">
                 <div>
-                  <strong>{{ membership.planName }}</strong>
+                  <strong>{{ membership.planName }} <small>({{ membershipBenefitTypeLabel(membership) }})</small></strong>
                   <span>{{ membershipDaysLeftLabel(membership) }} · {{ membership.creditsRemaining || 0 }} credits left</span>
                 </div>
                 <b>{{ membershipDiscount(membership) }}%</b>
@@ -330,8 +332,8 @@ type PlanLifecycleDialog = {
 
             <ng-template #noClientMemberships>
               <div class="empty-panel compact-empty">
-                <strong>No active membership for this client.</strong>
-                <span>Sell button ke baad yahi client ka live membership record update hoga.</span>
+                <strong>No active membership or package for this client.</strong>
+                <span>This client's live benefit record updates after selling.</span>
               </div>
             </ng-template>
           </ng-container>
@@ -477,7 +479,7 @@ type PlanLifecycleDialog = {
         <ng-template #noAutoRenewQueue>
           <div class="empty-panel compact-empty">
             <strong>No auto-renew action due.</strong>
-            <span>Auto-renew enabled memberships due within 7 days or failed retries yahan dikhenge.</span>
+            <span>Auto-renew enabled memberships due within 7 days or failed retries appear here.</span>
           </div>
         </ng-template>
       </section>
@@ -570,7 +572,7 @@ type PlanLifecycleDialog = {
             <ng-template #noCommissionImpact>
               <div class="empty-panel compact-empty">
                 <strong>No cancellation impact.</strong>
-                <span>Cancelled/refunded membership commission flags yahan dikhte hain.</span>
+                <span>Cancelled or refunded membership commission flags appear here.</span>
               </div>
             </ng-template>
           </section>
@@ -643,7 +645,7 @@ type PlanLifecycleDialog = {
         <ng-template #noMembershipRisk>
           <div class="empty-panel compact-empty">
             <strong>No matching risk signals.</strong>
-            <span>Free renewal, expiry abuse, downgrade/refund leakage aur credit mismatch yahan show honge.</span>
+            <span>Free renewal, expiry abuse, downgrade/refund leakage and credit mismatch appear here.</span>
           </div>
         </ng-template>
       </section>
@@ -731,6 +733,28 @@ type PlanLifecycleDialog = {
           <article><span>Renewal revenue</span><strong>{{ reportMetric('renewalRevenue') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Filtered renewals</small></article>
           <article><span>Credit liability</span><strong>{{ reportMetric('creditLiability') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Unused credit value</small></article>
           <article><span>Discount leakage</span><strong>{{ reportMetric('discountLeakage') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Membership discount audit</small></article>
+          <article><span>Action queue</span><strong>{{ reportMetric('actionQueue') }}</strong><small>Renewal, wallet and plan tasks</small></article>
+        </section>
+
+        <section class="form-panel report-card action-queue-card">
+          <div class="section-title compact-section-title">
+            <div>
+              <span class="eyebrow">Advanced queue</span>
+              <h3>Membership action queue</h3>
+            </div>
+            <span class="badge" [class.danger]="reportMetric('actionQueue') > 0">{{ reportMetric('actionQueue') }} open</span>
+          </div>
+          <div class="table-wrap compact-table" *ngIf="reportSet('actionQueue').length; else noMembershipActionQueue">
+            <table><thead><tr><th>Priority</th><th>Type</th><th>Client / plan</th><th>Value</th><th>Next action</th></tr></thead>
+              <tbody><tr *ngFor="let row of reportSet('actionQueue').slice(0, 10)">
+                <td><span class="badge" [ngClass]="riskBadgeClass(row['priority'])">{{ row['priority'] }}</span></td>
+                <td>{{ actionQueueTypeLabel(row['queueType']) }}</td>
+                <td>{{ row['primary'] || row['clientName'] || row['planName'] || '-' }}<small>{{ row['dueOn'] || row['planName'] || '' }}</small></td>
+                <td>{{ actionQueueValue(row) }}</td>
+                <td>{{ row['suggestedAction'] }}</td>
+              </tr></tbody></table>
+          </div>
+          <ng-template #noMembershipActionQueue><div class="empty-panel compact-empty"><strong>No membership action queue.</strong><span>Expiry alerts, auto-renew recovery, wallet liability and package profitability tasks will appear here.</span></div></ng-template>
         </section>
 
         <div class="report-grid">
@@ -1982,7 +2006,7 @@ export class MembershipsComponent implements OnInit {
       includedServices = JSON.parse(this.planForm.value.includedServicesText || '[]');
       benefitRules = JSON.parse(this.planForm.value.benefitRulesText || '{}');
     } catch {
-      this.error.set('Included services ya benefit rules valid JSON hona chahiye.');
+      this.error.set('Included services or benefit rules must be valid JSON.');
       this.saving.set(false);
       return;
     }
@@ -2006,7 +2030,7 @@ export class MembershipsComponent implements OnInit {
     request.subscribe({
       next: () => {
         this.saving.set(false);
-        this.message.set(this.editingPlanId() ? 'Membership plan update ho gaya.' : 'Membership plan create ho gaya.');
+        this.message.set(this.editingPlanId() ? 'Membership plan updated.' : 'Membership plan created.');
         this.resetPlanForm();
         this.load();
       },
@@ -2068,7 +2092,7 @@ export class MembershipsComponent implements OnInit {
       paidAmount: Number(value.paidAmount || plan?.price || 0)
     }).subscribe({
       next: (result) => {
-        this.message.set('Client membership ledger me save ho gaya aur POS eligibility update ho gayi.');
+        this.message.set('Client membership ledger saved and POS eligibility updated.');
         this.eligibility.set((result as ApiRecord)?.eligibility || null);
         this.membershipWallet.set(((result as ApiRecord)?.eligibility as ApiRecord | undefined)?.['wallet'] || null);
         this.saving.set(false);
@@ -2112,7 +2136,7 @@ export class MembershipsComponent implements OnInit {
     const value = this.renewalForm.value;
     const paidAmount = Number(value.paidAmount || 0);
     if (paidAmount <= 0 && !String(value.zeroReason || '').trim()) {
-      this.error.set('₹0 renewal ke liye reason required hai.');
+      this.error.set('Reason is required for ₹0 renewal.');
       return;
     }
     this.lifecycle(membership, 'renew', {
@@ -2139,7 +2163,7 @@ export class MembershipsComponent implements OnInit {
   openPlanLifecycleDialog(membership: ApiRecord, action: 'upgrade' | 'downgrade'): void {
     const plan = this.membershipPlans().find((item) => item.id === this.quickLifecyclePlanId);
     if (!plan) {
-      this.error.set('Upgrade/downgrade ke liye target plan select karo.');
+      this.error.set('Select a target plan for upgrade or downgrade.');
       return;
     }
     this.renewalMembership.set(null);
@@ -2255,7 +2279,7 @@ export class MembershipsComponent implements OnInit {
       return;
     }
     if (dialog.action === 'upgrade' && payableAmount <= 0 && !zeroReason) {
-      this.error.set('₹0 upgrade ke liye reason required hai.');
+      this.error.set('Reason is required for ₹0 upgrade.');
       return;
     }
     const plan = dialog.targetPlan;
@@ -2296,9 +2320,9 @@ export class MembershipsComponent implements OnInit {
       next: (result) => {
         const response = result as ApiRecord;
         if (response?.['pendingApproval']) {
-          this.message.set(response['message'] || `Membership ${action} approval request create ho gaya. Membership abhi change nahi hui.`);
+          this.message.set(response['message'] || `Membership ${action} approval request created. Membership has not changed yet.`);
         } else {
-          this.message.set(`Membership ${action} ho gaya.`);
+          this.message.set(`Membership ${action} completed.`);
         }
         this.saving.set(false);
         if (action === 'renew') this.renewalMembership.set(null);
@@ -2419,7 +2443,7 @@ export class MembershipsComponent implements OnInit {
     this.saving.set(true);
     this.api.post('membership-enterprise/family', this.familyForm.value).subscribe({
       next: () => {
-        this.message.set('Family membership link save ho gaya.');
+        this.message.set('Family membership link saved.');
         this.saving.set(false);
         this.load();
       },
@@ -2443,7 +2467,7 @@ export class MembershipsComponent implements OnInit {
   approveReminder(reminder: ApiRecord): void {
     this.api.post(`membership-enterprise/reminders/${reminder.id}/approve`, {}).subscribe({
       next: () => {
-        this.message.set('Reminder approved. Provider configured hoga to WhatsApp queue se send ho sakta hai.');
+      this.message.set('Reminder approved. It can be sent from the WhatsApp queue when the provider is configured.');
         this.load();
       },
       error: (error) => this.error.set(error?.error?.error || 'Unable to approve reminder')
@@ -2457,7 +2481,7 @@ export class MembershipsComponent implements OnInit {
     }).subscribe({
       next: (result) => {
         const retry = (result as ApiRecord)?.['retry'] as ApiRecord | undefined;
-        this.message.set(`Auto-renew retry logged: ${retry?.['failureReason'] || 'provider confirmation required'}. Membership extend nahi hua.`);
+        this.message.set(`Auto-renew retry logged: ${retry?.['failureReason'] || 'provider confirmation required'}. Membership was not extended.`);
         this.saving.set(false);
         this.load();
       },
@@ -2491,7 +2515,7 @@ export class MembershipsComponent implements OnInit {
       note: 'Resumed from membership desk'
     }).subscribe({
       next: () => {
-        this.message.set('Auto-renew resumed. Payment method missing hoga to reminder queue me gaya.');
+        this.message.set('Auto-renew resumed. If payment method is missing, it moved to the reminder queue.');
         this.saving.set(false);
         this.load();
       },
@@ -2515,7 +2539,7 @@ export class MembershipsComponent implements OnInit {
       clientId: signal['clientId'] || ''
     }).subscribe({
       next: () => {
-        this.message.set('Membership risk signal reviewed aur audit log ho gaya.');
+        this.message.set('Membership risk signal reviewed and audit log created.');
         this.saving.set(false);
         this.load();
       },
@@ -2554,7 +2578,7 @@ export class MembershipsComponent implements OnInit {
     this.api.create('giftCards', { ...value, balance: value.initialValue, redeemHistory: [] }).subscribe({
       next: () => {
         this.saving.set(false);
-        this.message.set('Gift card save ho gaya.');
+        this.message.set('Gift card saved.');
         this.load();
       },
       error: (error) => {
@@ -2589,6 +2613,16 @@ export class MembershipsComponent implements OnInit {
     const clientId = String(this.membershipForm.value.clientId || '');
     if (!clientId) return [];
     return this.activeMemberships().filter((membership) => membership.clientId === clientId);
+  }
+
+  selectedClientBenefitsLabel(): string {
+    const rows = this.selectedClientMemberships();
+    const membershipCount = rows.filter((membership) => this.membershipBenefitType(membership) === 'membership').length;
+    const packageCount = rows.filter((membership) => this.membershipBenefitType(membership) === 'package').length;
+    const parts = [];
+    if (membershipCount) parts.push(`${membershipCount} active membership${membershipCount === 1 ? '' : 's'}`);
+    if (packageCount) parts.push(`${packageCount} active package${packageCount === 1 ? '' : 's'}`);
+    return parts.join(' · ') || 'No active benefits';
   }
 
   totalMemberCount(): number {
@@ -2694,6 +2728,7 @@ export class MembershipsComponent implements OnInit {
       `Plan profitability rows: ${metrics['planWiseProfitability'] || 0}`,
       `Credit liability: Rs ${metrics['creditLiability'] || 0}`,
       `Auto-renew failed payments: ${metrics['autoRenewFailedPayments'] || 0}`,
+      `Action queue: ${metrics['actionQueue'] || 0}`,
       `Upgrade/downgrade rows: ${metrics['upgradeDowngrade'] || 0}`,
       `Discount leakage: Rs ${metrics['discountLeakage'] || 0}`,
       ...rows.map((row) => `${row['report']}: ${row['primary'] || row['clientName'] || row['planName'] || row['staffName'] || ''} ${row['amount'] || row['value'] || ''}`)
@@ -2719,6 +2754,27 @@ export class MembershipsComponent implements OnInit {
     return `risk-badge risk-${level || 'low'}${level === 'critical' || level === 'high' ? ' danger' : ''}`;
   }
 
+  actionQueueTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      expiry_alert: 'Expiry alert',
+      auto_renew_recovery: 'Auto-renew recovery',
+      credit_liability: 'Wallet liability',
+      package_profitability: 'Package profitability',
+      risk_review: 'Risk review'
+    };
+    return labels[type] || type || 'Action';
+  }
+
+  actionQueueValue(row: ApiRecord): string {
+    if (row['queueType'] === 'credit_liability' || row['queueType'] === 'package_profitability') {
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(row['amount'] || 0));
+    }
+    if (row['queueType'] === 'expiry_alert') return `${row['value'] ?? '-'} days`;
+    if (row['queueType'] === 'auto_renew_recovery') return `${row['value'] || 0} retries`;
+    if (row['queueType'] === 'risk_review') return `${row['value'] || 0} score`;
+    return String(row['value'] ?? row['amount'] ?? '-');
+  }
+
   riskTitle(signal: ApiRecord): string {
     return String(signal['code'] || 'membership_risk').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
@@ -2740,9 +2796,28 @@ export class MembershipsComponent implements OnInit {
   clientWalletOption(client: ApiRecord): string {
     const active = this.activeMemberships().find((membership) => membership.clientId === client.id);
     const walletBalance = Number(client.walletBalance || 0);
-    const plan = active?.['planName'] ? ` · ${active['planName']}` : ' · No active membership';
+    const plan = active?.['planName'] ? ` · ${active['planName']}` : ' · No active benefits';
     const credits = active ? ` · ${Number(active['creditsRemaining'] || 0)} cr` : '';
     return `${client.name || client.fullName || client.id} · ${client.phone || client.email || client.id} · Wallet ₹${walletBalance}${plan}${credits}`;
+  }
+
+  membershipBenefitType(membership: ApiRecord): 'membership' | 'package' {
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    if (history.some((item) => item?.type === 'package_sale' || item?.packageId)) return 'package';
+    if (String(membership.planName || '').trim().toLowerCase().startsWith('package:')) return 'package';
+    const credits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
+    if (credits.some((item) => item?.packageId)) return 'package';
+    return 'membership';
+  }
+
+  membershipBenefitTypeLabel(membership: ApiRecord): string {
+    return this.membershipBenefitType(membership) === 'package' ? 'Package' : 'Membership';
+  }
+
+  packageNamesLabel(wallet: ApiRecord): string {
+    const names = Array.isArray(wallet?.['packageSummary']?.['names']) ? wallet['packageSummary']['names'].filter(Boolean) : [];
+    if (!names.length) return 'No active package';
+    return names.slice(0, 2).join(', ');
   }
 
   membershipDiscount(membership: ApiRecord): number {
@@ -2753,7 +2828,7 @@ export class MembershipsComponent implements OnInit {
 
   membershipTakenDate(membership: ApiRecord): string {
     const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
-    const sold = history.find((item) => item?.type === 'membership_sale' || item?.type === 'manual_membership_assignment');
+    const sold = history.find((item) => item?.type === 'membership_sale' || item?.type === 'package_sale' || item?.type === 'manual_membership_assignment');
     return sold?.date || membership.createdAt || '';
   }
 
@@ -2800,7 +2875,7 @@ export class MembershipsComponent implements OnInit {
 
   loadSelfServiceSummary(): void {
     if (!this.selfServiceClientId) {
-      this.error.set('Self-service ke liye client select karo.');
+      this.error.set('Select a client for self-service.');
       return;
     }
     this.saving.set(true);
@@ -2822,7 +2897,7 @@ export class MembershipsComponent implements OnInit {
 
   createSelfServiceStatusLink(): void {
     if (!this.selfServiceClientId) {
-      this.error.set('Status link ke liye client select karo.');
+      this.error.set('Select a client for status link.');
       return;
     }
     const baseUrl = window.location.origin;
@@ -2841,7 +2916,7 @@ export class MembershipsComponent implements OnInit {
 
   createWhatsAppSummary(): void {
     if (!this.selfServiceClientId) {
-      this.error.set('WhatsApp summary ke liye client select karo.');
+      this.error.set('Select a client for WhatsApp summary.');
       return;
     }
     this.selfServiceMutation(
@@ -2858,7 +2933,7 @@ export class MembershipsComponent implements OnInit {
 
   createSelfServiceRenewLink(): void {
     if (!this.selfServiceMembershipId) {
-      this.error.set('Renew link ke liye membership select karo.');
+      this.error.set('Select a membership for renew link.');
       return;
     }
     this.selfServiceMutation(
@@ -2869,7 +2944,7 @@ export class MembershipsComponent implements OnInit {
 
   createSelfServicePaymentMethodUpdate(): void {
     if (!this.selfServiceMembershipId) {
-      this.error.set('Payment method update ke liye membership select karo.');
+      this.error.set('Select a membership to update payment method.');
       return;
     }
     this.selfServiceMutation(
@@ -2882,20 +2957,20 @@ export class MembershipsComponent implements OnInit {
 
   createSelfServiceCancelRequest(): void {
     if (!this.selfServiceMembershipId || !this.selfServiceCancelReason.trim()) {
-      this.error.set('Cancellation request ke liye membership aur reason required hai.');
+      this.error.set('Membership and reason are required for cancellation request.');
       return;
     }
     this.selfServiceMutation(
       this.api.post<ApiRecord>(`membership-enterprise/memberships/${this.selfServiceMembershipId}/self-service/cancel-request`, {
         reason: this.selfServiceCancelReason.trim()
       }),
-      'Cancellation request pending approval me create ho gaya. Membership abhi cancel nahi hui.'
+      'Cancellation request has been created for approval. Membership is not cancelled yet.'
     );
   }
 
   createManualCreditAdjustmentRequest(): void {
     if (!this.selfServiceMembershipId || !this.selfServiceCreditReason.trim()) {
-      this.error.set('Manual credit adjustment ke liye membership aur reason required hai.');
+      this.error.set('Membership and reason are required for manual credit adjustment.');
       return;
     }
     this.selfServiceMutation(
@@ -2903,7 +2978,7 @@ export class MembershipsComponent implements OnInit {
         creditDelta: Number(this.selfServiceCreditDelta || 0),
         reason: this.selfServiceCreditReason.trim()
       }),
-      'Manual credit adjustment pending approval me create ho gaya. Credits abhi change nahi hue.'
+      'Manual credit adjustment has been created for approval. Credits are not changed yet.'
     );
   }
 

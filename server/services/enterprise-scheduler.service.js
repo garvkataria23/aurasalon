@@ -179,9 +179,41 @@ export class EnterpriseSchedulerService {
     const visibleStaff = staffPool.slice(staffOffset, staffOffset + staffLimit);
     const visibleStaffIds = new Set(visibleStaff.map((person) => person.id));
     const rangeQuery = { branchId, from, to: exclusiveTo, limit: 5000 };
-    const allAppointments = repositories.appointments
+    const rawAppointments = repositories.appointments
       .list(rangeQuery, scopedQuery(access, branchId))
       .filter((appointment) => !status || String(appointment.status || "").toLowerCase() === status);
+    const sales = repositories.sales.list({ branchId, limit: 10000 }, scopedQuery(access, branchId));
+    const saleIdsByAppointmentId = new Map();
+    for (const sale of sales) {
+      const appointmentId = String(sale.appointmentId || "");
+      if (!appointmentId) continue;
+      const rows = saleIdsByAppointmentId.get(appointmentId) || [];
+      rows.push(String(sale.id || ""));
+      saleIdsByAppointmentId.set(appointmentId, rows);
+    }
+    const billedAppointmentIds = new Set(
+      repositories.invoices
+        .list({ limit: 10000 }, scopedQuery(access, branchId))
+        .filter((invoice) => String(invoice.status || "").trim().toLowerCase() !== "deleted")
+        .flatMap((invoice) => {
+          const directAppointmentId = String(invoice.appointmentId || "");
+          if (directAppointmentId) return [directAppointmentId];
+          const sale = sales.find((row) => String(row.id || "") === String(invoice.saleId || ""));
+          return sale?.appointmentId ? [String(sale.appointmentId)] : [];
+        })
+        .filter(Boolean)
+    );
+    const billedBookingGroupIds = new Set(
+      rawAppointments
+        .filter((appointment) => billedAppointmentIds.has(String(appointment.id || "")))
+        .map((appointment) => String(appointment.bookingGroupId || ""))
+        .filter(Boolean)
+    );
+    const allAppointments = rawAppointments.map((appointment) => ({
+      ...appointment,
+      billingLocked: billedAppointmentIds.has(String(appointment.id || "")) || billedBookingGroupIds.has(String(appointment.bookingGroupId || "")),
+      billedSaleIds: saleIdsByAppointmentId.get(String(appointment.id || "")) || []
+    }));
     const appointments = allAppointments.filter((appointment) => !visibleStaffIds.size || visibleStaffIds.has(appointment.staffId || ""));
     const schedules = this.schedules(branchId, from, exclusiveTo, access).filter((row) => visibleStaffIds.has(row.staffId));
     const blockedTimes = this.blocks(branchId, from, exclusiveTo, access).filter((row) => visibleStaffIds.has(row.staffId));
@@ -189,6 +221,7 @@ export class EnterpriseSchedulerService {
     const servicesForSummary = repositories.services.list({ limit: 1500 }, { tenantId: access.tenantId });
     const services = repositories.services.list({ q: serviceSearch, limit: serviceLimit }, { tenantId: access.tenantId });
     const clients = repositories.clients.list({ branchId, q: clientSearch, limit: clientLimit }, tenantService.accessScope(access, "clients"));
+    const summary = this.summary({ appointments: allAppointments, visibleAppointments: appointments, schedules, blockedTimes, waitlist, staff: visibleStaff, services: servicesForSummary });
 
     return {
       branchId,
@@ -212,7 +245,46 @@ export class EnterpriseSchedulerService {
       schedules,
       blockedTimes,
       waitlist,
-      summary: this.summary({ appointments: allAppointments, visibleAppointments: appointments, schedules, blockedTimes, waitlist, staff: visibleStaff, services: servicesForSummary })
+      summary,
+      actionQueue: this.actionQueue({ appointments: allAppointments, visibleAppointments: appointments, schedules, blockedTimes, waitlist, staff: visibleStaff, services: servicesForSummary, summary })
+    };
+  }
+
+  appointmentBillingStatus(idValue, access = {}) {
+    const appointmentId = String(idValue || "").trim();
+    if (!appointmentId) throw badRequest("appointmentId is required");
+    const appointment = repositories.appointments.getById(appointmentId, scopedQuery(access));
+    if (!appointment) throw notFound("Appointment not found");
+    const branchId = String(appointment.branchId || access.branchId || "");
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+    const bookingGroupId = String(appointment.bookingGroupId || "").trim();
+    const groupAppointments = bookingGroupId
+      ? repositories.appointments
+        .list({ branchId, limit: 10000 }, scopedQuery(access, branchId))
+        .filter((row) => String(row.bookingGroupId || "") === bookingGroupId)
+      : [appointment];
+    const appointmentIds = new Set(groupAppointments.map((row) => String(row.id || "")).filter(Boolean));
+    const sales = repositories.sales.list(branchId ? { branchId, limit: 10000 } : { limit: 10000 }, scopedQuery(access, branchId));
+    const saleIds = new Set(
+      sales
+        .filter((sale) => appointmentIds.has(String(sale.appointmentId || "")))
+        .map((sale) => String(sale.id || ""))
+    );
+    const invoice = repositories.invoices
+      .list({ limit: 10000 }, scopedQuery(access, branchId))
+      .find((row) => {
+        const status = String(row.status || "").trim().toLowerCase();
+        if (status === "deleted") return false;
+        return appointmentIds.has(String(row.appointmentId || "")) || saleIds.has(String(row.saleId || ""));
+      });
+    return {
+      appointmentId,
+      appointmentIds: [...appointmentIds],
+      bookingGroupId,
+      billed: !!invoice,
+      invoiceId: String(invoice?.id || ""),
+      invoiceNumber: String(invoice?.invoiceNumber || ""),
+      status: String(invoice?.status || "")
     };
   }
 
@@ -464,7 +536,8 @@ export class EnterpriseSchedulerService {
       return sum + (appointment.serviceIds || []).reduce((inner, serviceId) => inner + Number(serviceById.get(serviceId)?.price || 0), 0);
     }, 0);
     const byStatus = appointments.reduce((map, appointment) => {
-      const status = String(appointment.status || "booked").toLowerCase();
+      const rawStatus = String(appointment.status || "booked").toLowerCase();
+      const status = rawStatus === "completed" && appointment.billingLocked ? "billed" : rawStatus;
       map[status] = (map[status] || 0) + 1;
       return map;
     }, {});
@@ -484,6 +557,127 @@ export class EnterpriseSchedulerService {
       blockedTimes: blockedTimes.length,
       plannedShifts: schedules.length
     };
+  }
+
+  actionQueue({ appointments = [], visibleAppointments = [], schedules = [], blockedTimes = [], waitlist = [], staff = [], services = [], summary = {} } = {}) {
+    const serviceById = new Map(services.map((service) => [service.id, service]));
+    const staffById = new Map(staff.map((person) => [person.id, person]));
+    const rows = [];
+    const rank = { critical: 0, high: 1, medium: 2, low: 3 };
+    const push = (row) => rows.push({
+      id: id("booking_action"),
+      status: "open",
+      ...row
+    });
+
+    for (const pair of this.conflictPairs(visibleAppointments).slice(0, 20)) {
+      push({
+        type: pair.sharedStaff ? "conflict_detection" : "chair_conflict",
+        priority: "critical",
+        appointmentId: pair.left.id,
+        relatedAppointmentId: pair.right.id,
+        clientId: pair.left.clientId || pair.right.clientId || "",
+        staffId: pair.left.staffId || pair.right.staffId || "",
+        title: pair.sharedStaff ? "Staff overlap detected" : "Chair overlap detected",
+        detail: `${pair.left.startAt || ""} clashes with ${pair.right.startAt || ""}`,
+        suggestedAction: "Move one appointment or assign a different staff/chair before confirmation.",
+        dueAt: pair.left.startAt || pair.right.startAt || ""
+      });
+    }
+
+    for (const appointment of visibleAppointments.filter((row) => String(row.status || "").toLowerCase() === "payment_pending").slice(0, 20)) {
+      push({
+        type: "deposit_follow_up",
+        priority: "high",
+        appointmentId: appointment.id,
+        clientId: appointment.clientId || "",
+        staffId: appointment.staffId || "",
+        title: "Deposit pending booking",
+        detail: this.appointmentServicesLabel(appointment, serviceById),
+        suggestedAction: "Confirm payment link status or collect advance before marking booked.",
+        dueAt: appointment.startAt || ""
+      });
+    }
+
+    for (const appointment of visibleAppointments.filter((row) => String(row.status || "").toLowerCase() === "no-show").slice(0, 20)) {
+      push({
+        type: "no_show_recovery",
+        priority: "medium",
+        appointmentId: appointment.id,
+        clientId: appointment.clientId || "",
+        staffId: appointment.staffId || "",
+        title: "No-show recovery",
+        detail: this.appointmentServicesLabel(appointment, serviceById),
+        suggestedAction: "Send recovery message, collect policy note, or move client to rebooking follow-up.",
+        dueAt: appointment.startAt || ""
+      });
+    }
+
+    for (const row of waitlist.slice(0, 25)) {
+      push({
+        type: "waitlist_match",
+        priority: Number(row.priority || 0) >= 8 ? "high" : "medium",
+        clientId: row.clientId || "",
+        staffId: row.staffId || "",
+        title: "Waitlist client ready",
+        detail: this.waitlistServiceLabel(row, serviceById),
+        suggestedAction: "Match with the next safe slot or promote from waitlist.",
+        dueAt: row.preferredDate || row.windowStart || ""
+      });
+    }
+
+    const missingAssignment = visibleAppointments
+      .filter((row) => !row.staffId || !this.appointmentServiceIds(row).length)
+      .slice(0, 20);
+    for (const appointment of missingAssignment) {
+      push({
+        type: "staff_service_matching",
+        priority: "high",
+        appointmentId: appointment.id,
+        clientId: appointment.clientId || "",
+        staffId: appointment.staffId || "",
+        title: "Staff/service assignment incomplete",
+        detail: this.appointmentServicesLabel(appointment, serviceById),
+        suggestedAction: "Assign the correct staff and service before sending confirmation.",
+        dueAt: appointment.startAt || ""
+      });
+    }
+
+    if (Number(summary.capacityPct || 0) >= 90) {
+      push({
+        type: "capacity_optimization",
+        priority: Number(summary.capacityPct || 0) >= 110 ? "critical" : "high",
+        title: "Capacity pressure high",
+        detail: `${summary.capacityPct}% booked, ${summary.bookedMinutes || 0}/${summary.plannedMinutes || 0} minutes used`,
+        suggestedAction: "Add backup staff, open another chair, or move flexible appointments.",
+        dueAt: ""
+      });
+    } else if (Number(summary.capacityPct || 0) < 45 && waitlist.length) {
+      push({
+        type: "capacity_optimization",
+        priority: "medium",
+        title: "Capacity available with waitlist",
+        detail: `${summary.capacityPct || 0}% booked and ${waitlist.length} waitlist client(s)`,
+        suggestedAction: "Promote waitlist clients into safe open slots.",
+        dueAt: ""
+      });
+    }
+
+    for (const block of blockedTimes.slice(0, 10)) {
+      push({
+        type: "calendar_sync",
+        priority: "low",
+        staffId: block.staffId || "",
+        title: "Blocked time on calendar",
+        detail: `${staffById.get(block.staffId)?.name || block.staffId || "Staff"} ${block.startAt || ""}`,
+        suggestedAction: "Keep calendar feed synced so online booking avoids unavailable time.",
+        dueAt: block.startAt || ""
+      });
+    }
+
+    return rows
+      .sort((a, b) => (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9) || String(a.dueAt || "").localeCompare(String(b.dueAt || "")))
+      .slice(0, 120);
   }
 
   scheduleMinutes(schedule) {
@@ -511,6 +705,39 @@ export class EnterpriseSchedulerService {
       }
     }
     return count;
+  }
+
+  conflictPairs(rows) {
+    const pairs = [];
+    for (let i = 0; i < rows.length; i += 1) {
+      for (let j = i + 1; j < rows.length; j += 1) {
+        const left = rows[i];
+        const right = rows[j];
+        if (INACTIVE_APPOINTMENT_STATUSES.has(String(left.status || "").toLowerCase())) continue;
+        if (INACTIVE_APPOINTMENT_STATUSES.has(String(right.status || "").toLowerCase())) continue;
+        const sharedStaff = left.staffId && left.staffId === right.staffId;
+        const sharedChair = left.chair && left.chair === right.chair;
+        if ((sharedStaff || sharedChair) && overlaps(left.startAt, left.endAt || addMinutes(left.startAt, 30), right.startAt, right.endAt || addMinutes(right.startAt, 30))) {
+          pairs.push({ left, right, sharedStaff, sharedChair });
+        }
+      }
+    }
+    return pairs;
+  }
+
+  appointmentServiceIds(appointment = {}) {
+    return Array.isArray(appointment.serviceIds) ? appointment.serviceIds : [];
+  }
+
+  appointmentServicesLabel(appointment = {}, serviceById = new Map()) {
+    const names = this.appointmentServiceIds(appointment).map((serviceId) => serviceById.get(serviceId)?.name || serviceId).filter(Boolean);
+    return names.join(", ") || "Service details pending";
+  }
+
+  waitlistServiceLabel(row = {}, serviceById = new Map()) {
+    const ids = Array.isArray(row.serviceIds) ? row.serviceIds : [row.serviceId].filter(Boolean);
+    const names = ids.map((serviceId) => serviceById.get(serviceId)?.name || serviceId).filter(Boolean);
+    return names.join(", ") || "Any matching service";
   }
 }
 
