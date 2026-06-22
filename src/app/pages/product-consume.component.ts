@@ -208,6 +208,13 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
           <article><span>Stock recon</span><strong>{{ report['summary']?.stockReconciliationRows || 0 }}</strong><small>seal/open check</small></article>
           <article><span>Recipe compliance</span><strong>{{ report['summary']?.serviceRecipeComplianceRows || 0 }}</strong><small>service control</small></article>
         </div>
+        <div class="owner-metrics">
+          <article><span>Forecast burn</span><strong>{{ report['summary']?.forecastBurnRows || 0 }}</strong><small>next 30 days</small></article>
+          <article><span>Anomalies</span><strong>{{ report['summary']?.usageAnomalies || 0 }}</strong><small>spike/waste</small></article>
+          <article><span>Expiry priority</span><strong>{{ report['summary']?.expiryPriorityRows || 0 }}</strong><small>FEFO control</small></article>
+          <article><span>Cost drift</span><strong>{{ report['summary']?.costDriftRows || 0 }}</strong><small>unit variance</small></article>
+          <article><span>Manager actions</span><strong>{{ report['summary']?.managerActions || 0 }}</strong><small>to review</small></article>
+        </div>
         <div class="report-grid">
           <div class="report-table">
             <h4>Product-wise usage</h4>
@@ -471,6 +478,71 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
               <small>{{ row['overuseLines'] || 0 }} overuse · {{ row['missingRecipeLines'] || 0 }} missing recipe</small>
             </div>
             <small *ngIf="!ledgerServiceRecipeComplianceRows().length">No recipe compliance rows.</small>
+          </article>
+        </div>
+        <div class="owner-control-grid">
+          <article>
+            <h4>Forecast burn</h4>
+            <div class="risk-row" *ngFor="let row of ledgerForecastBurnRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] || 'Product' }}</strong>
+              <span>{{ row['dailyQty'] || 0 }} {{ row['unit'] || '' }}/day · {{ money(row['forecast30Cost'] || 0) }} / 30d</span>
+              <small>{{ row['daysOpenBalance'] || 'NA' }} days open balance · sealed {{ row['sealedStock'] || 0 }}</small>
+            </div>
+            <small *ngIf="!ledgerForecastBurnRows().length">No forecast burn rows.</small>
+          </article>
+          <article>
+            <h4>Usage anomaly</h4>
+            <div class="risk-row" *ngFor="let row of ledgerUsageAnomalyRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['period'] }}</strong>
+              <span>{{ row['spikePct'] || 0 }}% spike · waste {{ row['exceptionRatio'] || 0 }}%</span>
+              <small>{{ row['entries'] || 0 }} entries · {{ money(row['usageCost'] || 0) }}</small>
+            </div>
+            <small *ngIf="!ledgerUsageAnomalyRows().length">No usage anomaly rows.</small>
+          </article>
+          <article>
+            <h4>Expiry priority</h4>
+            <div class="risk-row" *ngFor="let row of ledgerExpiryPriorityRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] || 'Product' }}</strong>
+              <span>{{ row['batchNumber'] || 'batch' }} · expiry {{ row['daysToExpiry'] || 0 }} days</span>
+              <small>Use in {{ row['daysToUseAtVelocity'] || 'NA' }} days · gap {{ row['expiryGapDays'] || 'NA' }}</small>
+            </div>
+            <small *ngIf="!ledgerExpiryPriorityRows().length">No expiry priority rows.</small>
+          </article>
+          <article>
+            <h4>Cost drift</h4>
+            <div class="risk-row" *ngFor="let row of ledgerCostDriftRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] || 'Product' }}</strong>
+              <span>{{ row['driftPct'] || 0 }}% drift · {{ row['samples'] || 0 }} samples</span>
+              <small>Min {{ money(row['minUnitCost'] || 0) }} · max {{ money(row['maxUnitCost'] || 0) }}</small>
+            </div>
+            <small *ngIf="!ledgerCostDriftRows().length">No cost drift rows.</small>
+          </article>
+          <article>
+            <h4>Client repeat usage</h4>
+            <div class="risk-row" *ngFor="let row of ledgerClientRepeatUsageRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['clientName'] || 'Walk-in client' }}</strong>
+              <span>{{ row['serviceName'] || 'Service' }} · {{ row['productName'] || 'Product' }}</span>
+              <small>{{ row['count'] || 0 }} visits · avg {{ money(row['avgCost'] || 0) }}</small>
+            </div>
+            <small *ngIf="!ledgerClientRepeatUsageRows().length">No repeat usage rows.</small>
+          </article>
+          <article>
+            <h4>Adjustment heatmap</h4>
+            <div class="risk-row" *ngFor="let row of ledgerAdjustmentReasonHeatRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['usageType'] || 'adjustment' }}</strong>
+              <span>{{ row['reason'] || 'No reason' }} · {{ row['count'] || 0 }} entries</span>
+              <small>{{ row['totalUsedText'] || '0' }} · {{ money(row['cost'] || 0) }}</small>
+            </div>
+            <small *ngIf="!ledgerAdjustmentReasonHeatRows().length">No adjustment heat rows.</small>
+          </article>
+          <article>
+            <h4>Manager action queue</h4>
+            <div class="risk-row" *ngFor="let row of ledgerManagerActionRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['title'] || row['actionType'] }}</strong>
+              <span>{{ row['actionType'] || 'action' }} · {{ row['riskLevel'] || 'watch' }}</span>
+              <small>{{ row['detail'] || 'Review required' }}</small>
+            </div>
+            <small *ngIf="!ledgerManagerActionRows().length">No manager actions.</small>
           </article>
         </div>
         <div class="report-feed">
@@ -1358,6 +1430,34 @@ export class ProductConsumeComponent {
 
   ledgerServiceRecipeComplianceRows(): ApiRecord[] {
     return (this.controlLedgerReport()?.['serviceRecipeComplianceRows'] || []) as ApiRecord[];
+  }
+
+  ledgerForecastBurnRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['forecastBurnRows'] || []) as ApiRecord[];
+  }
+
+  ledgerUsageAnomalyRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['usageAnomalyRows'] || []) as ApiRecord[];
+  }
+
+  ledgerExpiryPriorityRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['expiryPriorityRows'] || []) as ApiRecord[];
+  }
+
+  ledgerCostDriftRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['costDriftRows'] || []) as ApiRecord[];
+  }
+
+  ledgerClientRepeatUsageRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['clientRepeatUsageRows'] || []) as ApiRecord[];
+  }
+
+  ledgerAdjustmentReasonHeatRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['adjustmentReasonHeatRows'] || []) as ApiRecord[];
+  }
+
+  ledgerManagerActionRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['managerActionRows'] || []) as ApiRecord[];
   }
 
   ledgerVarianceRows(): ApiRecord[] {

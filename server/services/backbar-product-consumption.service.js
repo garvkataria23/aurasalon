@@ -1486,6 +1486,149 @@ export class BackbarProductConsumptionService {
         riskLevel: compliancePct < 70 ? "high" : compliancePct < 90 ? "medium" : "watch"
       };
     }).filter((row) => row.recipeLines > 0).sort((a, b) => Number(a.compliancePct || 0) - Number(b.compliancePct || 0)).slice(0, 80);
+    const productDailyUsageMap = new Map(productRows.map((row) => {
+      const productEntries = entries.filter((entry) => entry.productId === row.productId);
+      const usedQty = productEntries.reduce((sum, entry) => sum + number(entry.usedQty, 0), 0);
+      const usageCost = productEntries.reduce((sum, entry) => sum + number(entry.productCost, 0), 0);
+      return [row.productId, {
+        dailyQty: money(usedQty / measuredDays),
+        dailyCost: money(usageCost / measuredDays),
+        unit: productEntries[0]?.unit || ""
+      }];
+    }));
+    const forecastBurnRows = productRows.map((row) => {
+      const velocity = productDailyUsageMap.get(row.productId) || {};
+      const product = productById.get(row.productId) || {};
+      const productContainers = containers.filter((container) => container.productId === row.productId && container.status !== "finished");
+      const openBalanceQty = money(productContainers.reduce((sum, container) => sum + number(container.balanceQty, 0), 0));
+      const sealedStock = number(product.stock, 0);
+      const forecast7Cost = money(number(velocity.dailyCost, 0) * 7);
+      const forecast30Cost = money(number(velocity.dailyCost, 0) * 30);
+      const daysOpenBalance = number(velocity.dailyQty, 0) > 0 ? Math.floor(openBalanceQty / number(velocity.dailyQty, 0)) : null;
+      return {
+        productId: row.productId,
+        productName: row.productName,
+        dailyQty: velocity.dailyQty || 0,
+        dailyCost: velocity.dailyCost || 0,
+        unit: velocity.unit || "",
+        openBalanceQty,
+        sealedStock,
+        forecast7Cost,
+        forecast30Cost,
+        daysOpenBalance,
+        riskLevel: daysOpenBalance !== null && daysOpenBalance <= 3 ? "high" : daysOpenBalance !== null && daysOpenBalance <= 10 ? "medium" : "watch"
+      };
+    }).filter((row) => row.dailyQty > 0 || row.forecast30Cost > 0).sort((a, b) => Number(b.forecast30Cost || 0) - Number(a.forecast30Cost || 0)).slice(0, 80);
+    const averageDailyCost = dailyTrendRows.length ? dailyTrendRows.reduce((sum, row) => sum + number(row.usageCost, 0), 0) / dailyTrendRows.length : 0;
+    const usageAnomalyRows = dailyTrendRows.map((row) => {
+      const spikePct = averageDailyCost > 0 ? money(((number(row.usageCost, 0) - averageDailyCost) / averageDailyCost) * 100) : 0;
+      const exceptionRatio = number(row.usageCost, 0) > 0 ? money((number(row.exceptionCost, 0) / number(row.usageCost, 0)) * 100) : 0;
+      return {
+        period: row.period,
+        entries: row.entries,
+        usageCost: row.usageCost,
+        exceptionCost: row.exceptionCost,
+        spikePct,
+        exceptionRatio,
+        riskLevel: spikePct >= 75 || exceptionRatio >= 25 ? "high" : spikePct >= 35 || exceptionRatio > 0 ? "medium" : "watch"
+      };
+    }).filter((row) => row.riskLevel !== "watch").sort((a, b) => Number(b.spikePct || 0) - Number(a.spikePct || 0) || Number(b.exceptionRatio || 0) - Number(a.exceptionRatio || 0)).slice(0, 80);
+    const expiryPriorityRows = batchExpiryRows.map((batch) => {
+      const velocity = productDailyUsageMap.get(batch.productId) || {};
+      const daysToUseAtVelocity = number(velocity.dailyQty, 0) > 0 ? Math.ceil(number(batch.quantityAvailable, 0) / number(velocity.dailyQty, 0)) : null;
+      const expiryGapDays = daysToUseAtVelocity !== null && batch.daysToExpiry !== null ? number(batch.daysToExpiry, 0) - daysToUseAtVelocity : null;
+      return {
+        ...batch,
+        dailyQty: velocity.dailyQty || 0,
+        unit: velocity.unit || "",
+        daysToUseAtVelocity,
+        expiryGapDays,
+        riskLevel: expiryGapDays !== null && expiryGapDays < 0 ? "high" : expiryGapDays !== null && expiryGapDays <= 10 ? "medium" : batch.riskLevel || "watch"
+      };
+    }).sort((a, b) => number(a.expiryGapDays, 9999) - number(b.expiryGapDays, 9999)).slice(0, 80);
+    const costDriftRows = productRows.map((row) => {
+      const costs = entries
+        .filter((entry) => entry.productId === row.productId && number(entry.usedQty, 0) > 0 && number(entry.productCost, 0) > 0)
+        .map((entry) => money(number(entry.productCost, 0) / number(entry.usedQty, 1)));
+      if (!costs.length) return null;
+      const minUnitCost = Math.min(...costs);
+      const maxUnitCost = Math.max(...costs);
+      const avgUnitCost = money(costs.reduce((sum, cost) => sum + cost, 0) / costs.length);
+      const driftPct = minUnitCost > 0 ? money(((maxUnitCost - minUnitCost) / minUnitCost) * 100) : 0;
+      return {
+        productId: row.productId,
+        productName: row.productName,
+        samples: costs.length,
+        minUnitCost,
+        maxUnitCost,
+        avgUnitCost,
+        driftPct,
+        riskLevel: driftPct >= 30 ? "high" : driftPct >= 10 ? "medium" : "watch"
+      };
+    }).filter(Boolean).filter((row) => row.riskLevel !== "watch").sort((a, b) => Number(b.driftPct || 0) - Number(a.driftPct || 0)).slice(0, 80);
+    const clientRepeatUsageRows = groupUsageRows(clientEntries, (entry) => `${entry.clientId || entry.clientName || "walk-in"}|${entry.serviceId || entry.serviceName || "service"}|${entry.productId || entry.productName || "product"}`, (entry) => ({
+      clientId: entry.clientId || "",
+      clientName: entry.clientName || "Walk-in client",
+      serviceId: entry.serviceId || "",
+      serviceName: entry.serviceName || "Service",
+      productId: entry.productId || "",
+      productName: entry.productName || "Product"
+    })).map((row) => ({
+      ...row,
+      avgCost: row.count > 0 ? money(number(row.cost, 0) / number(row.count, 1)) : 0,
+      riskLevel: row.count >= 3 && number(row.cost, 0) >= 1000 ? "high" : row.count >= 2 ? "medium" : "watch"
+    })).filter((row) => row.count >= 2).sort((a, b) => Number(b.cost || 0) - Number(a.cost || 0)).slice(0, 80);
+    const adjustmentReasonHeatRows = groupUsageRows(exceptionEntries, (entry) => `${entry.usageType || "manual_adjustment"}|${entry.reason || "No reason"}`, (entry) => ({
+      usageType: entry.usageType || "manual_adjustment",
+      reason: entry.reason || "No reason"
+    })).map((row) => ({
+      ...row,
+      riskLevel: row.reason === "No reason" || number(row.cost, 0) >= 1000 || number(row.count, 0) >= 3 ? "high" : "medium"
+    })).sort((a, b) => Number(b.cost || 0) - Number(a.cost || 0) || Number(b.count || 0) - Number(a.count || 0)).slice(0, 80);
+    const managerActionRows = [
+      ...pendingConsumeRows.filter((row) => number(row.ageHours, 0) >= 24).map((row) => ({
+        actionType: "pending_consume",
+        title: `Confirm consume ${row.invoiceNumber || row.draftId}`,
+        detail: `${row.clientName || "Client"} · ${row.lineCount || 0} lines · ${row.ageHours || 0}h pending`,
+        riskLevel: "high",
+        actionAt: row.updatedAt || ""
+      })),
+      ...approvalSlaRows.filter((row) => row.slaStatus === "breached").map((row) => ({
+        actionType: "approval_sla",
+        title: `Review override ${row.productName}`,
+        detail: `${row.staffName || "Staff"} · ${row.ageHours || 0}h · ${row.reason || "No reason"}`,
+        riskLevel: "high",
+        actionAt: row.createdAt || ""
+      })),
+      ...usageAnomalyRows.slice(0, 8).map((row) => ({
+        actionType: "usage_anomaly",
+        title: `Check usage spike ${row.period}`,
+        detail: `${row.spikePct || 0}% spike · waste ${row.exceptionRatio || 0}%`,
+        riskLevel: row.riskLevel,
+        actionAt: row.period
+      })),
+      ...expiryPriorityRows.filter((row) => row.riskLevel === "high").slice(0, 8).map((row) => ({
+        actionType: "expiry_priority",
+        title: `Use expiring batch ${row.productName}`,
+        detail: `${row.batchNumber || "batch"} · ${row.daysToExpiry || 0} days expiry · velocity ${row.dailyQty || 0}/day`,
+        riskLevel: "high",
+        actionAt: row.expiryDate || ""
+      })),
+      ...productControlScoreRows.filter((row) => row.riskLevel === "high").slice(0, 8).map((row) => ({
+        actionType: "control_score",
+        title: `Audit product ${row.productName}`,
+        detail: `Score ${row.score || 0} · ${row.reasonText || "risk"}`,
+        riskLevel: "high",
+        actionAt: ""
+      })),
+      ...reasonComplianceRows.filter((row) => row.severity === "high").slice(0, 8).map((row) => ({
+        actionType: "reason_compliance",
+        title: `Fix reason gaps ${row.productName}`,
+        detail: `${row.staffName || "Staff"} · ${row.missingReasons || 0} missing`,
+        riskLevel: "high",
+        actionAt: row.lastUsedAt || ""
+      }))
+    ].sort((a, b) => number(riskRank[b.riskLevel], 0) - number(riskRank[a.riskLevel], 0) || String(b.actionAt || "").localeCompare(String(a.actionAt || ""))).slice(0, 80);
     const branchRows = groupUsageRows(entries, (entry) => entry.branchId || "all", (entry) => ({
       branchId: entry.branchId || "",
       branchName: entry.branchId || "All branches"
@@ -1607,7 +1750,14 @@ export class BackbarProductConsumptionService {
         staffProductRisks: staffProductRiskRows.length,
         stockReconciliationRows: stockReconciliationRows.length,
         containerLifecycleRows: containerLifecycleRows.length,
-        serviceRecipeComplianceRows: serviceRecipeComplianceRows.length
+        serviceRecipeComplianceRows: serviceRecipeComplianceRows.length,
+        forecastBurnRows: forecastBurnRows.length,
+        usageAnomalies: usageAnomalyRows.length,
+        expiryPriorityRows: expiryPriorityRows.length,
+        costDriftRows: costDriftRows.length,
+        clientRepeatUsageRows: clientRepeatUsageRows.length,
+        adjustmentReasonHeatRows: adjustmentReasonHeatRows.length,
+        managerActions: managerActionRows.length
       },
       productRows,
       staffRows,
@@ -1638,6 +1788,13 @@ export class BackbarProductConsumptionService {
       stockReconciliationRows,
       containerLifecycleRows,
       serviceRecipeComplianceRows,
+      forecastBurnRows,
+      usageAnomalyRows,
+      expiryPriorityRows,
+      costDriftRows,
+      clientRepeatUsageRows,
+      adjustmentReasonHeatRows,
+      managerActionRows,
       approvals,
       alerts,
       recentEntries: entries,
