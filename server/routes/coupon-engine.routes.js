@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { couponEngineRepo } from "../repositories/coupon-engine.repo.js";
+import { validateBody } from "../validators/request-validator.js";
 import { badRequest, notFound } from "../utils/app-error.js";
 
 export const couponEngineRouter = Router();
@@ -70,6 +71,7 @@ couponEngineRouter.get(
 
 couponEngineRouter.post(
   "/",
+  validateBody({ required: ["code"] }),
   asyncHandler((req, res) => {
     try {
       res.status(201).json(couponEngineRepo.createCoupon(withScope(req)));
@@ -95,6 +97,7 @@ couponEngineRouter.patch(
 
 couponEngineRouter.post(
   "/validate",
+  validateBody({ required: ["code"] }),
   asyncHandler((req, res) => {
     try {
       res.json(couponEngineRepo.validateCoupon(withScope(req)));
@@ -106,6 +109,7 @@ couponEngineRouter.post(
 
 couponEngineRouter.post(
   "/redeem",
+  validateBody({ required: ["code"] }),
   asyncHandler((req, res) => {
     try {
       res.json(couponEngineRepo.redeemCoupon(withScope(req)));
