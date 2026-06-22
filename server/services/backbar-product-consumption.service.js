@@ -98,6 +98,31 @@ function ensureBackbarSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_backbar_alerts_scope ON backbar_product_alerts(tenant_id, branch_id, status, createdAt);
     CREATE INDEX IF NOT EXISTS idx_backbar_alerts_product ON backbar_product_alerts(tenant_id, branch_id, productId, createdAt);
+
+    CREATE TABLE IF NOT EXISTS backbar_override_requests (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      branch_id TEXT NOT NULL DEFAULT '',
+      productId TEXT NOT NULL,
+      productName TEXT NOT NULL DEFAULT '',
+      activeContainerId TEXT NOT NULL DEFAULT '',
+      activeContainerNo INTEGER NOT NULL DEFAULT 0,
+      activeBalanceQty REAL NOT NULL DEFAULT 0,
+      stockUnit TEXT NOT NULL DEFAULT 'pcs',
+      measureUnit TEXT NOT NULL DEFAULT 'ml',
+      capacityQty REAL NOT NULL DEFAULT 0,
+      reason TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      requestedBy TEXT NOT NULL DEFAULT '',
+      approvedBy TEXT NOT NULL DEFAULT '',
+      approvedAt TEXT NOT NULL DEFAULT '',
+      rejectedBy TEXT NOT NULL DEFAULT '',
+      rejectedAt TEXT NOT NULL DEFAULT '',
+      decisionNote TEXT NOT NULL DEFAULT '',
+      createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_backbar_override_requests_scope ON backbar_override_requests(tenant_id, branch_id, status, createdAt);
   `);
   schemaReady = true;
 }
@@ -212,6 +237,20 @@ function mapAlert(row = {}) {
   return camel(row);
 }
 
+function mapOverrideRequest(row = {}) {
+  const mapped = camel(row);
+  return {
+    ...mapped,
+    activeContainerNo: Number(mapped.activeContainerNo || 0),
+    activeBalanceQty: money(mapped.activeBalanceQty),
+    capacityQty: money(mapped.capacityQty)
+  };
+}
+
+function tableExists(name) {
+  return Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(name));
+}
+
 function usageText(entries = []) {
   const qtyByUnit = {};
   for (const entry of entries) {
@@ -220,6 +259,12 @@ function usageText(entries = []) {
   }
   const parts = Object.entries(qtyByUnit).map(([unit, qty]) => `${qty} ${unit}`);
   return parts.length ? parts.join(" + ") : "0";
+}
+
+function daysOpen(dateText = "") {
+  const opened = new Date(dateText || 0).getTime();
+  if (!opened) return 0;
+  return Math.max(0, Math.floor((Date.now() - opened) / 86400000));
 }
 
 export class BackbarProductConsumptionService {
@@ -549,6 +594,247 @@ export class BackbarProductConsumptionService {
     };
   }
 
+  ownerDashboard(query = {}, access = {}) {
+    ensureBackbarSchema();
+    const branchId = query.branchId || query.branch_id || access.requestedBranchId || access.branchId || "";
+    if (branchId) assertBranch(access, branchId);
+    const today = now().slice(0, 10);
+    const period = String(query.period || "daily").toLowerCase() === "weekly" ? "weekly" : "daily";
+    const fallbackStart = new Date(`${today}T00:00:00.000Z`);
+    if (period === "weekly") fallbackStart.setUTCDate(fallbackStart.getUTCDate() - 6);
+    const startDate = String(query.startDate || query.start_date || fallbackStart.toISOString().slice(0, 10));
+    const endDate = String(query.endDate || query.end_date || today);
+    const scopeParams = { tenant_id: access.tenantId };
+    const branchFilter = branchId ? " AND branch_id = @branch_id" : "";
+    if (branchId) scopeParams.branch_id = branchId;
+    const periodParams = { ...scopeParams, start_date: startDate, end_date: endDate };
+
+    const containers = db.prepare(`
+      SELECT * FROM backbar_product_containers
+      WHERE tenant_id = @tenant_id${branchFilter}
+      ORDER BY updatedAt DESC
+      LIMIT 1000
+    `).all(scopeParams).map(mapContainer);
+    const entries = db.prepare(`
+      SELECT * FROM backbar_product_usage_entries
+      WHERE tenant_id = @tenant_id${branchFilter}
+        AND substr(createdAt, 1, 10) >= @start_date
+        AND substr(createdAt, 1, 10) <= @end_date
+      ORDER BY createdAt DESC
+      LIMIT 1000
+    `).all(periodParams).map(mapUsage);
+    const alerts = db.prepare(`
+      SELECT * FROM backbar_product_alerts
+      WHERE tenant_id = @tenant_id${branchFilter}
+        AND status = 'open'
+      ORDER BY createdAt DESC
+      LIMIT 500
+    `).all(scopeParams).map(mapAlert);
+    const approvalRequests = this.listOverrideRequests({ branchId, status: "pending", limit: 100 }, access).requests;
+    const productIds = [...new Set(containers.map((container) => container.productId).filter(Boolean))];
+    const products = productIds.length
+      ? db.prepare(`SELECT * FROM products WHERE tenantId = ? AND id IN (${placeholders(productIds)})`).all(access.tenantId, ...productIds)
+      : [];
+    const productById = new Map(products.map((product) => [product.id, product]));
+    const advancedAlerts = [];
+
+    for (const container of containers.filter((row) => row.status !== "finished")) {
+      const product = productById.get(container.productId) || {};
+      const openDays = daysOpen(container.openedAt);
+      if (openDays >= number(query.openDaysThreshold, 14)) {
+        advancedAlerts.push({
+          alertType: "open_container_age",
+          severity: "medium",
+          productId: container.productId,
+          productName: container.productName,
+          title: `${container.productName} container open ${openDays} days`,
+          message: `${container.stockUnit} #${container.containerNo} abhi bhi ${container.balanceQty} ${container.measureUnit} balance hai.`,
+          evidence: { containerId: container.id, containerNo: container.containerNo, openDays }
+        });
+      }
+      if (container.capacityQty > 0 && (container.balanceQty / container.capacityQty) * 100 <= LOW_BALANCE_PCT) {
+        advancedAlerts.push({
+          alertType: "low_balance",
+          severity: "medium",
+          productId: container.productId,
+          productName: container.productName,
+          title: `${container.productName} low balance`,
+          message: `${container.balanceQty} ${container.measureUnit} left in ${container.stockUnit} #${container.containerNo}.`,
+          evidence: { containerId: container.id, balanceQty: container.balanceQty, capacityQty: container.capacityQty }
+        });
+      }
+      const expiry = product.expiryDate || product.expiry_date || product.expiry || product.expiresAt || product.expires_at || "";
+      const expiryDays = expiry ? Math.ceil((new Date(expiry).getTime() - Date.now()) / 86400000) : null;
+      if (expiryDays !== null && expiryDays >= 0 && expiryDays <= number(query.expiryDaysThreshold, 30)) {
+        advancedAlerts.push({
+          alertType: "expiry_near",
+          severity: expiryDays <= 7 ? "high" : "medium",
+          productId: container.productId,
+          productName: container.productName,
+          title: `${container.productName} expiry near`,
+          message: `${expiryDays} days me expiry aa rahi hai.`,
+          evidence: { expiry, expiryDays }
+        });
+      }
+    }
+
+    const byProduct = new Map();
+    for (const entry of entries) {
+      const row = byProduct.get(entry.productId) || { productId: entry.productId, productName: entry.productName, totalQty: 0, exceptionQty: 0, exceptionCost: 0, clientEntries: 0, exceptionEntries: 0 };
+      row.totalQty = money(row.totalQty + number(entry.usedQty, 0));
+      if (entry.usageType === "client") row.clientEntries += 1;
+      else {
+        row.exceptionQty = money(row.exceptionQty + number(entry.usedQty, 0));
+        row.exceptionCost = money(row.exceptionCost + number(entry.productCost, 0));
+        row.exceptionEntries += 1;
+      }
+      byProduct.set(entry.productId, row);
+    }
+    for (const row of byProduct.values()) {
+      if (row.totalQty > 0 && row.exceptionQty / row.totalQty >= 0.25) {
+        advancedAlerts.push({
+          alertType: "high_wastage_trend",
+          severity: "high",
+          productId: row.productId,
+          productName: row.productName,
+          title: `${row.productName} wastage high`,
+          message: `${row.exceptionQty} of ${row.totalQty} used qty is waste/adjustment in this period.`,
+          evidence: row
+        });
+      }
+      if (row.exceptionEntries > row.clientEntries && row.exceptionEntries >= 2) {
+        advancedAlerts.push({
+          alertType: "leakage_risk",
+          severity: "high",
+          productId: row.productId,
+          productName: row.productName,
+          title: `${row.productName} leakage risk`,
+          message: `Adjustment entries client usage se zyada hain. Stock aur client usage match review karo.`,
+          evidence: row
+        });
+      }
+    }
+
+    const serviceProfit = this.serviceProfitSnapshot({ branchId, startDate, endDate }, access);
+    for (const row of serviceProfit.overuseRows.slice(0, 8)) {
+      advancedAlerts.push({
+        alertType: "repeated_overuse",
+        severity: row.count >= 3 ? "high" : "medium",
+        productId: row.productId,
+        productName: row.productName,
+        title: `${row.staffName || "Staff"} repeated overuse`,
+        message: `${row.count} overuse lines for ${row.productName} / ${row.serviceName}.`,
+        evidence: row
+      });
+    }
+
+    return {
+      branchId,
+      period,
+      startDate,
+      endDate,
+      summary: {
+        openContainers: containers.filter((container) => container.status === "open").length,
+        finishedContainers: containers.filter((container) => container.status === "finished").length,
+        usageCost: money(entries.reduce((sum, entry) => sum + number(entry.productCost, 0), 0)),
+        exceptionCost: money(entries.filter((entry) => entry.usageType !== "client").reduce((sum, entry) => sum + number(entry.productCost, 0), 0)),
+        advancedAlerts: advancedAlerts.length + alerts.length,
+        pendingApprovals: approvalRequests.length,
+        serviceRevenue: serviceProfit.summary.serviceRevenue,
+        productCost: serviceProfit.summary.productCost,
+        actualProfit: serviceProfit.summary.actualProfit
+      },
+      advancedAlerts: [...advancedAlerts, ...alerts].slice(0, 80),
+      approvalRequests,
+      serviceProfit: serviceProfit.rows
+    };
+  }
+
+  serviceProfitSnapshot({ branchId = "", startDate = "", endDate = "" } = {}, access = {}) {
+    if (!tableExists("product_consume_drafts")) {
+      return { summary: { serviceRevenue: 0, productCost: 0, actualProfit: 0 }, rows: [], overuseRows: [] };
+    }
+    const params = { tenant_id: access.tenantId, start_date: startDate, end_date: endDate };
+    const filters = ["tenant_id = @tenant_id", "status = 'confirmed'"];
+    if (branchId) {
+      filters.push("branch_id = @branch_id");
+      params.branch_id = branchId;
+    }
+    if (startDate) filters.push("substr(updated_at, 1, 10) >= @start_date");
+    if (endDate) filters.push("substr(updated_at, 1, 10) <= @end_date");
+    const drafts = db.prepare(`SELECT * FROM product_consume_drafts WHERE ${filters.join(" AND ")} ORDER BY updated_at DESC LIMIT 1000`).all(params);
+    const invoiceIds = [...new Set(drafts.map((draft) => draft.invoice_id).filter(Boolean))];
+    const invoiceItems = tableExists("invoice_items") && invoiceIds.length
+      ? db.prepare(`SELECT * FROM invoice_items WHERE tenant_id = ? AND invoice_id IN (${placeholders(invoiceIds)})`).all(access.tenantId, ...invoiceIds)
+      : [];
+    const itemsByInvoice = new Map();
+    for (const item of invoiceItems) {
+      const rows = itemsByInvoice.get(item.invoice_id) || [];
+      rows.push(item);
+      itemsByInvoice.set(item.invoice_id, rows);
+    }
+    const overuse = new Map();
+    const byService = new Map();
+    for (const draft of drafts) {
+      const lines = parseLineItems(draft);
+      const productCost = money(number(draft.actual_cost, 0));
+      const serviceItems = (itemsByInvoice.get(draft.invoice_id) || []).filter((item) => item.item_type === "service");
+      const matched = serviceItems.find((item) => item.item_id === draft.service_id || item.appointment_service_id === draft.service_id)
+        || (serviceItems.length === 1 ? serviceItems[0] : null);
+      const revenue = money(number(matched?.total_amount, 0));
+      const key = draft.service_id || draft.service_name || "unknown";
+      const row = byService.get(key) || {
+        serviceId: draft.service_id || "",
+        serviceName: draft.service_name || "Service",
+        invoiceCount: 0,
+        serviceRevenue: 0,
+        productCost: 0,
+        actualProfit: 0,
+        profitMarginPct: 0,
+        revenueLinked: 0
+      };
+      row.invoiceCount += 1;
+      row.serviceRevenue = money(row.serviceRevenue + revenue);
+      row.productCost = money(row.productCost + productCost);
+      row.actualProfit = money(row.serviceRevenue - row.productCost);
+      row.revenueLinked += revenue > 0 ? 1 : 0;
+      row.profitMarginPct = row.serviceRevenue > 0 ? money((row.actualProfit / row.serviceRevenue) * 100) : 0;
+      byService.set(key, row);
+
+      for (const line of lines) {
+        const actualQty = number(line.actualQty ?? line.actual_qty, 0);
+        const expectedQty = number(line.expectedQty ?? line.expected_qty, 0);
+        const maxQty = number(line.maxQty ?? line.max_qty, 0);
+        if ((maxQty > 0 && actualQty > maxQty) || (expectedQty > 0 && actualQty > expectedQty * 1.15)) {
+          const overKey = `${draft.staff_id}|${draft.service_id}|${line.productId || line.product_id}`;
+          const item = overuse.get(overKey) || {
+            staffId: draft.staff_id || "",
+            staffName: draft.staff_name || "",
+            serviceId: draft.service_id || "",
+            serviceName: draft.service_name || "",
+            productId: line.productId || line.product_id || "",
+            productName: line.productName || line.product_name || "",
+            count: 0,
+            lastUsedAt: ""
+          };
+          item.count += 1;
+          item.lastUsedAt = draft.updated_at || draft.created_at || item.lastUsedAt;
+          overuse.set(overKey, item);
+        }
+      }
+    }
+    const rows = [...byService.values()].sort((a, b) => Number(b.productCost || 0) - Number(a.productCost || 0));
+    return {
+      summary: {
+        serviceRevenue: money(rows.reduce((sum, row) => sum + number(row.serviceRevenue, 0), 0)),
+        productCost: money(rows.reduce((sum, row) => sum + number(row.productCost, 0), 0)),
+        actualProfit: money(rows.reduce((sum, row) => sum + number(row.actualProfit, 0), 0))
+      },
+      rows,
+      overuseRows: [...overuse.values()].filter((row) => row.count >= 2).sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+    };
+  }
+
   productReport(productId, query = {}, access = {}) {
     ensureBackbarSchema();
     const branchId = query.branchId || query.branch_id || access.requestedBranchId || "";
@@ -661,6 +947,157 @@ export class BackbarProductConsumptionService {
       `).run(now(), transactionId, access.userId || "", now(), container.id, access.tenantId);
     }
     return { container: mapContainer(db.prepare("SELECT * FROM backbar_product_containers WHERE id = ? AND tenant_id = ?").get(container.id, access.tenantId)), entry, alerts, deduction };
+  }
+
+  listOverrideRequests(query = {}, access = {}) {
+    ensureBackbarSchema();
+    const branchId = query.branchId || query.branch_id || access.requestedBranchId || access.branchId || "";
+    if (branchId) assertBranch(access, branchId);
+    const params = { tenant_id: access.tenantId, limit: Math.min(200, Math.max(1, number(query.limit, 100))) };
+    const filters = ["tenant_id = @tenant_id"];
+    if (branchId) {
+      filters.push("branch_id = @branch_id");
+      params.branch_id = branchId;
+    }
+    if (query.status) {
+      filters.push("status = @status");
+      params.status = String(query.status);
+    }
+    if (query.productId || query.product_id) {
+      filters.push("productId = @productId");
+      params.productId = query.productId || query.product_id;
+    }
+    const requests = db.prepare(`
+      SELECT * FROM backbar_override_requests
+      WHERE ${filters.join(" AND ")}
+      ORDER BY createdAt DESC
+      LIMIT @limit
+    `).all(params).map(mapOverrideRequest);
+    return {
+      branchId,
+      summary: {
+        total: requests.length,
+        pending: requests.filter((row) => row.status === "pending").length,
+        approved: requests.filter((row) => row.status === "approved").length,
+        rejected: requests.filter((row) => row.status === "rejected").length
+      },
+      requests
+    };
+  }
+
+  requestOverrideOpen(productId, payload = {}, access = {}) {
+    ensureBackbarSchema();
+    const branchId = payload.branchId || payload.branch_id || access.requestedBranchId || access.branchId || "";
+    if (!branchId) throw conflict("branchId is required for override request");
+    assertBranch(access, branchId);
+    const reason = String(payload.reason || "").trim();
+    if (!reason) throw conflict("Manager approval reason is required");
+    const product = loadProduct(productId, access, branchId);
+    const units = productUnits(product, payload);
+    const active = db.prepare(`
+      SELECT * FROM backbar_product_containers
+      WHERE tenant_id = ? AND branch_id = ? AND productId = ? AND status = 'open' AND balanceQty > 0
+      ORDER BY containerNo ASC
+      LIMIT 1
+    `).get(access.tenantId, branchId, productId);
+    if (!active) throw conflict("No active open container found. Next container will open automatically when needed.");
+    const pending = db.prepare(`
+      SELECT * FROM backbar_override_requests
+      WHERE tenant_id = ? AND branch_id = ? AND productId = ? AND activeContainerId = ? AND status = 'pending'
+      LIMIT 1
+    `).get(access.tenantId, branchId, productId, active.id);
+    if (pending) throw conflict("Pending manager approval already exists for this container");
+    const id = makeId("bbor");
+    const createdAt = now();
+    db.prepare(`
+      INSERT INTO backbar_override_requests (
+        id, tenant_id, branch_id, productId, productName, activeContainerId, activeContainerNo,
+        activeBalanceQty, stockUnit, measureUnit, capacityQty, reason, status, requestedBy, createdAt, updatedAt
+      ) VALUES (
+        @id, @tenant_id, @branch_id, @productId, @productName, @activeContainerId, @activeContainerNo,
+        @activeBalanceQty, @stockUnit, @measureUnit, @capacityQty, @reason, 'pending', @requestedBy, @createdAt, @updatedAt
+      )
+    `).run({
+      id,
+      tenant_id: access.tenantId,
+      branch_id: branchId,
+      productId,
+      productName: product.name || productId,
+      activeContainerId: active.id,
+      activeContainerNo: number(active.containerNo, 0),
+      activeBalanceQty: money(active.balanceQty),
+      stockUnit: units.stockUnit,
+      measureUnit: units.measureUnit,
+      capacityQty: units.capacityQty,
+      reason,
+      requestedBy: access.userId || "",
+      createdAt,
+      updatedAt: createdAt
+    });
+    const request = mapOverrideRequest(db.prepare("SELECT * FROM backbar_override_requests WHERE id = ? AND tenant_id = ?").get(id, access.tenantId));
+    const alert = this.createAlert({
+      access,
+      branchId,
+      productId,
+      containerId: active.id,
+      alertType: "manager_override_requested",
+      severity: "high",
+      title: `${product.name} next container approval needed`,
+      message: `${money(active.balanceQty)} ${active.measureUnit} still left. Reason: ${reason}`,
+      evidence: { requestId: id, activeContainerId: active.id, activeBalanceQty: active.balanceQty, reason }
+    });
+    return { request, activeContainer: mapContainer(active), alert };
+  }
+
+  decideOverrideRequest(id, payload = {}, access = {}) {
+    ensureBackbarSchema();
+    const request = db.prepare("SELECT * FROM backbar_override_requests WHERE id = ? AND tenant_id = ?").get(id, access.tenantId);
+    if (!request) throw notFound("Override request not found");
+    if (request.branch_id) assertBranch(access, request.branch_id);
+    if (request.status !== "pending") throw conflict("Override request is already decided");
+    const decision = String(payload.decision || payload.status || "").toLowerCase();
+    const approved = decision === "approve" || decision === "approved" || payload.approved === true;
+    const rejected = decision === "reject" || decision === "rejected" || payload.rejected === true;
+    if (!approved && !rejected) throw conflict("Decision must be approve or reject");
+    const decidedAt = now();
+    const decisionNote = String(payload.decisionNote || payload.note || payload.reason || "").trim();
+    if (rejected) {
+      db.prepare(`
+        UPDATE backbar_override_requests
+        SET status = 'rejected', rejectedBy = ?, rejectedAt = ?, decisionNote = ?, updatedAt = ?
+        WHERE id = ? AND tenant_id = ?
+      `).run(access.userId || "", decidedAt, decisionNote, decidedAt, id, access.tenantId);
+      const alert = this.createAlert({
+        access,
+        branchId: request.branch_id,
+        productId: request.productId,
+        containerId: request.activeContainerId,
+        alertType: "manager_override_rejected",
+        severity: "medium",
+        title: `${request.productName} override rejected`,
+        message: decisionNote || request.reason,
+        evidence: { requestId: id, reason: request.reason, decisionNote }
+      });
+      return { request: mapOverrideRequest(db.prepare("SELECT * FROM backbar_override_requests WHERE id = ? AND tenant_id = ?").get(id, access.tenantId)), alert };
+    }
+
+    const result = this.overrideOpenContainer(request.productId, {
+      branchId: request.branch_id,
+      reason: decisionNote || request.reason,
+      stockUnit: request.stockUnit,
+      packUnit: request.measureUnit,
+      packSize: request.capacityQty,
+      requestId: id
+    }, access);
+    db.prepare(`
+      UPDATE backbar_override_requests
+      SET status = 'approved', approvedBy = ?, approvedAt = ?, decisionNote = ?, updatedAt = ?
+      WHERE id = ? AND tenant_id = ?
+    `).run(access.userId || "", decidedAt, decisionNote, decidedAt, id, access.tenantId);
+    return {
+      request: mapOverrideRequest(db.prepare("SELECT * FROM backbar_override_requests WHERE id = ? AND tenant_id = ?").get(id, access.tenantId)),
+      result
+    };
   }
 
   overrideOpenContainer(productId, payload = {}, access = {}) {

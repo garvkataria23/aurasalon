@@ -14,6 +14,7 @@ interface ConsumeLine {
   minQty?: number;
   maxQty?: number;
   substitutes?: string;
+  reason?: string;
   stockUnit?: string;
   packSize?: number;
   packUnit?: string;
@@ -87,6 +88,62 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
           <article><span>Adjustments</span><strong>{{ report['summary']?.adjustmentEntries || 0 }}</strong><small>waste/spill/expired</small></article>
           <article><span>Alerts</span><strong>{{ report['summary']?.openAlerts || 0 }}</strong><small>needs review</small></article>
           <article><span>Usage cost</span><strong>{{ money(report['summary']?.usageCost || 0) }}</strong><small>client + adjustment</small></article>
+        </div>
+      </section>
+
+      <section class="owner-dashboard" *ngIf="backbarDashboard() as dashboard">
+        <div class="ledger-head">
+          <div>
+            <span class="eyebrow">Owner dashboard</span>
+            <h3>Daily / weekly product control</h3>
+          </div>
+          <div class="dashboard-actions">
+            <select [ngModel]="dashboardPeriod" (ngModelChange)="setDashboardPeriod($event)">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+            <button type="button" class="ghost" (click)="loadBackbarDashboard()">Refresh</button>
+          </div>
+        </div>
+        <div class="owner-metrics">
+          <article><span>Usage cost</span><strong>{{ money(dashboard['summary']?.usageCost || 0) }}</strong><small>{{ dashboard['period'] || 'daily' }}</small></article>
+          <article><span>Exceptions</span><strong>{{ money(dashboard['summary']?.exceptionCost || 0) }}</strong><small>waste/spill/adjust</small></article>
+          <article><span>Alerts</span><strong>{{ dashboard['summary']?.advancedAlerts || 0 }}</strong><small>risk signals</small></article>
+          <article><span>Approvals</span><strong>{{ dashboard['summary']?.pendingApprovals || 0 }}</strong><small>pending queue</small></article>
+          <article><span>Actual profit</span><strong>{{ money(dashboard['summary']?.actualProfit || 0) }}</strong><small>after product cost</small></article>
+        </div>
+        <div class="dashboard-layout">
+          <div class="dashboard-feed">
+            <h4>Advanced alerts</h4>
+            <article *ngFor="let alert of dashboardAlerts().slice(0, 8)" [class.high]="alert['severity'] === 'high'">
+              <strong>{{ alert['title'] || alert['alertType'] }}</strong>
+              <span>{{ alert['message'] || 'Review required' }}</span>
+            </article>
+            <p class="ledger-empty" *ngIf="!dashboardAlerts().length">No advanced product alert right now.</p>
+          </div>
+          <div class="approval-queue">
+            <h4>Manager approval queue</h4>
+            <article *ngFor="let request of approvalRequests().slice(0, 6)">
+              <strong>{{ request['productName'] }}</strong>
+              <span>{{ request['activeBalanceQty'] }} {{ request['measureUnit'] }} left in #{{ request['activeContainerNo'] }} · {{ request['reason'] }}</span>
+              <div>
+                <button type="button" class="ghost" (click)="decideOverrideRequest(request, 'reject')">Reject</button>
+                <button type="button" class="primary" (click)="decideOverrideRequest(request, 'approve')">Approve</button>
+              </div>
+            </article>
+            <p class="ledger-empty" *ngIf="!approvalRequests().length">No pending override approval.</p>
+          </div>
+        </div>
+        <div class="profit-table" *ngIf="dashboardServiceProfit().length">
+          <div class="profit-row head"><span>Service</span><span>Invoices</span><span>Revenue</span><span>Product cost</span><span>Actual profit</span><span>Margin</span></div>
+          <div class="profit-row" *ngFor="let row of dashboardServiceProfit().slice(0, 8)">
+            <strong>{{ row['serviceName'] }}</strong>
+            <span>{{ row['invoiceCount'] || 0 }}</span>
+            <span>{{ money(row['serviceRevenue'] || 0) }}</span>
+            <span>{{ money(row['productCost'] || 0) }}</span>
+            <span>{{ money(row['actualProfit'] || 0) }}</span>
+            <span>{{ row['profitMarginPct'] || 0 }}%</span>
+          </div>
         </div>
       </section>
 
@@ -199,7 +256,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
 
           <div class="consume-table">
             <div class="row head">
-              <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Substitutes</span><span>Cost</span>
+              <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Reason</span><span>Substitutes</span><span>Cost</span>
             </div>
             <div class="row" *ngFor="let line of draft.lineItems; let i = index">
               <span><strong>{{ line.productName || line.productId }}</strong><small>{{ line.unitCost | number:'1.2-2' }} / {{ line.unit }}<ng-container *ngIf="linePackLabel(line)"> · {{ linePackLabel(line) }}</ng-container></small></span>
@@ -214,6 +271,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
                 <input type="number" min="0" step="0.01" placeholder="Min" [ngModel]="line.minQty || 0" (ngModelChange)="updateLine(i, { minQty: $event })" [disabled]="draft.status === 'confirmed'">
                 <input type="number" min="0" step="0.01" placeholder="Max" [ngModel]="line.maxQty || 0" (ngModelChange)="updateLine(i, { maxQty: $event })" [disabled]="draft.status === 'confirmed'">
               </span>
+              <span><input [class.reason-needed]="lineNeedsReason(line)" [ngModel]="line.reason || ''" (ngModelChange)="updateLine(i, { reason: $event })" placeholder="Required if overuse" [disabled]="draft.status === 'confirmed'"></span>
               <span><input [ngModel]="line.substitutes || ''" (ngModelChange)="updateLine(i, { substitutes: $event })" placeholder="Alternate product ids/name" [disabled]="draft.status === 'confirmed'"></span>
               <span>{{ money(lineActualCost(line)) }}</span>
             </div>
@@ -258,7 +316,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
               </div>
               <div class="ledger-actions override">
                 <input [(ngModel)]="overrideReason" placeholder="Manager override reason">
-                <button type="button" class="ghost" (click)="overrideOpen(product)">Override open next</button>
+                <button type="button" class="ghost" (click)="overrideOpen(product)">Request next container</button>
               </div>
               <div class="ledger-alerts" *ngIf="ledgerAlerts(product).length">
                 <span class="mini-alert" *ngFor="let alert of ledgerAlerts(product).slice(0, 3)" [class.high]="alert['severity'] === 'high'">
@@ -367,12 +425,13 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .info-grid label { border: 1px solid #dcebea; border-radius: 14px; padding: 12px; display: grid; gap: 6px; }
     .consume-table { border: 1px solid #dcebea; border-radius: 16px; overflow: auto; }
-    .row { display: grid; grid-template-columns: 1.7fr 1.2fr .8fr 1.2fr 1.6fr .8fr; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid #edf4f3; min-width: 980px; }
+    .row { display: grid; grid-template-columns: 1.6fr 1.1fr .7fr 1.1fr 1.3fr 1.4fr .75fr; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid #edf4f3; min-width: 1120px; }
     .row:last-child { border-bottom: 0; }
     .qty-unit, .range-fields { display: grid; grid-template-columns: 1fr 86px; gap: 8px; }
     .range-fields { grid-template-columns: 1fr 1fr; }
     .backbar-ledger { border: 1px solid #dcebea; border-radius: 16px; padding: 14px; display: grid; gap: 12px; background: #f8fbfa; }
     .owner-report { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
+    .owner-dashboard { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
     .staff-audit { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
     .owner-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
     .owner-metrics article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 4px; background: #f8fbfa; }
@@ -390,6 +449,18 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .audit-feed article { border: 1px solid #dcebea; border-radius: 12px; padding: 10px; display: grid; gap: 3px; background: #f8fbfa; }
     .audit-feed article.exception { background: #fff7ed; border-color: #fed7aa; }
     .audit-feed span, .audit-feed small { color: #64748b; }
+    .dashboard-actions { display: flex; gap: 8px; align-items: center; }
+    .dashboard-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .8fr); gap: 12px; align-items: start; }
+    .dashboard-feed, .approval-queue { display: grid; gap: 8px; }
+    .dashboard-feed h4, .approval-queue h4 { margin: 4px 0; }
+    .dashboard-feed article, .approval-queue article { border: 1px solid #dcebea; border-radius: 12px; padding: 10px; display: grid; gap: 5px; background: #f8fbfa; }
+    .dashboard-feed article.high { background: #fff1f2; border-color: #fecdd3; }
+    .dashboard-feed span, .approval-queue span { color: #64748b; }
+    .approval-queue article div { display: flex; gap: 8px; flex-wrap: wrap; }
+    .profit-table { border: 1px solid #dcebea; border-radius: 14px; overflow: auto; }
+    .profit-row { min-width: 760px; display: grid; grid-template-columns: 1.5fr .7fr .9fr .9fr .9fr .7fr; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #edf4f3; }
+    .profit-row:last-child { border-bottom: 0; }
+    .profit-row.head { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; background: #f8fbfa; }
     .ledger-head, .ledger-summary, .active-container { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
     .ledger-head h3 { margin: 2px 0 0; }
     .ledger-head small, .ledger-product small, .ledger-summary span, .history-row span { color: #64748b; }
@@ -416,6 +487,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .product-results button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border: 0; border-radius: 10px; background: white; }
     .product-results button:hover { background: #e8f4f2; }
     .product-results small, .selected-stock { color: #0f766e; font-weight: 900; }
+    .reason-needed { border-color: #f97316; background: #fff7ed; }
     .alert, .success { border-radius: 14px; padding: 12px 16px; font-weight: 800; }
     .alert { background: #fee2e2; color: #991b1b; }
     .success { background: #dcfce7; color: #166534; }
@@ -423,7 +495,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     @media (max-width: 900px) {
       .module-hero, .workspace { display: grid; }
       .metric-grid, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .audit-filters, .audit-layout { grid-template-columns: 1fr; }
+      .audit-filters, .audit-layout, .dashboard-layout { grid-template-columns: 1fr; }
       .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override { grid-template-columns: 1fr 1fr; }
       .active-container { display: grid; }
       .manual-product-add { grid-template-columns: 1fr; }
@@ -448,12 +520,14 @@ export class ProductConsumeComponent {
   readonly products = signal<ProductRow[]>([]);
   readonly backbarLedger = signal<ApiRecord | null>(null);
   readonly backbarReport = signal<ApiRecord | null>(null);
+  readonly backbarDashboard = signal<ApiRecord | null>(null);
   readonly staffUsageAudit = signal<ApiRecord | null>(null);
   readonly units = RECIPE_UNITS;
   productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
   adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
   auditFilters = { branchId: '', staffId: '', startDate: '', endDate: '' };
   overrideReason = '';
+  dashboardPeriod = 'daily';
   productQuery = '';
   productPickerOpen = false;
   readonly selected = computed(() => this.drafts().find((draft) => draft.id === this.selectedId()) || null);
@@ -466,6 +540,7 @@ export class ProductConsumeComponent {
     this.auditFilters.branchId = this.api.selectedBranchId();
     this.loadProducts();
     this.loadBackbarReport();
+    this.loadBackbarDashboard();
     this.loadStaffUsageAudit();
     this.load();
   }
@@ -489,6 +564,7 @@ export class ProductConsumeComponent {
         if (!normalized.some((row) => row.id === this.selectedId())) this.selectedId.set(normalized[0]?.id || '');
         if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
         this.loadBackbarReport();
+        this.loadBackbarDashboard();
         this.loadStaffUsageAudit();
         this.loading.set(false);
       },
@@ -639,6 +715,22 @@ export class ProductConsumeComponent {
     });
   }
 
+  loadBackbarDashboard(): void {
+    this.api.list<ApiRecord>('inventory-intelligence/backbar-owner-dashboard', {
+      branchId: this.api.selectedBranchId(),
+      period: this.dashboardPeriod,
+      limit: 100
+    }).subscribe({
+      next: (dashboard) => this.backbarDashboard.set(dashboard || null),
+      error: () => this.backbarDashboard.set(null)
+    });
+  }
+
+  setDashboardPeriod(period: string): void {
+    this.dashboardPeriod = period || 'daily';
+    this.loadBackbarDashboard();
+  }
+
   loadStaffUsageAudit(): void {
     const branchId = this.auditFilters.branchId || this.api.selectedBranchId();
     this.auditFilters.branchId = branchId;
@@ -670,6 +762,7 @@ export class ProductConsumeComponent {
         this.adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
         if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
         this.loadBackbarReport();
+        this.loadBackbarDashboard();
         this.loadStaffUsageAudit();
         this.message.set('Backbar adjustment recorded.');
       },
@@ -687,7 +780,7 @@ export class ProductConsumeComponent {
       return;
     }
     this.saving.set(true);
-    this.api.post(`inventory-intelligence/backbar-products/${product['productId']}/override-open`, {
+    this.api.post(`inventory-intelligence/backbar-products/${product['productId']}/override-requests`, {
       branchId: product['branchId'] || this.api.selectedBranchId(),
       reason,
       stockUnit: product['stockUnit'],
@@ -699,11 +792,34 @@ export class ProductConsumeComponent {
         this.overrideReason = '';
         if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
         this.loadBackbarReport();
+        this.loadBackbarDashboard();
         this.loadStaffUsageAudit();
-        this.message.set('Manager override container opened.');
+        this.message.set('Manager approval request added.');
       },
       error: (err) => {
         this.error.set(err?.error?.error || err?.message || 'Override was not saved.');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  decideOverrideRequest(request: ApiRecord, decision: 'approve' | 'reject'): void {
+    if (!request?.['id']) return;
+    this.saving.set(true);
+    this.api.post(`inventory-intelligence/backbar-override-requests/${request['id']}/decision`, {
+      decision,
+      decisionNote: decision === 'approve' ? 'Approved from Product Consume owner dashboard.' : 'Rejected from Product Consume owner dashboard.'
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        if (this.selectedId()) this.loadBackbarLedger(this.selectedId());
+        this.loadBackbarReport();
+        this.loadBackbarDashboard();
+        this.loadStaffUsageAudit();
+        this.message.set(decision === 'approve' ? 'Override approved and next container opened.' : 'Override request rejected.');
+      },
+      error: (err) => {
+        this.error.set(err?.error?.error || err?.message || 'Approval decision was not saved.');
         this.saving.set(false);
       }
     });
@@ -735,6 +851,27 @@ export class ProductConsumeComponent {
 
   auditExceptions(): ApiRecord[] {
     return (this.staffUsageAudit()?.['exceptions'] || []) as ApiRecord[];
+  }
+
+  dashboardAlerts(): ApiRecord[] {
+    return (this.backbarDashboard()?.['advancedAlerts'] || []) as ApiRecord[];
+  }
+
+  approvalRequests(): ApiRecord[] {
+    return (this.backbarDashboard()?.['approvalRequests'] || []) as ApiRecord[];
+  }
+
+  dashboardServiceProfit(): ApiRecord[] {
+    return (this.backbarDashboard()?.['serviceProfit'] || []) as ApiRecord[];
+  }
+
+  lineNeedsReason(line: ConsumeLine): boolean {
+    const actualQty = Number(line.actualQty || 0);
+    const expectedQty = Number(line.expectedQty || 0);
+    const maxQty = Number(line.maxQty || 0);
+    const overMax = maxQty > 0 && actualQty > maxQty;
+    const overExpected = expectedQty > 0 && actualQty > expectedQty * 1.15;
+    return (overMax || overExpected) && !String(line.reason || '').trim();
   }
 
   containerProgress(container: ApiRecord): number {
@@ -821,6 +958,7 @@ export class ProductConsumeComponent {
           this.loadBackbarLedger(updated.id);
         }
         this.loadBackbarReport();
+        this.loadBackbarDashboard();
         this.loadStaffUsageAudit();
         this.message.set(successMessage);
         this.saving.set(false);

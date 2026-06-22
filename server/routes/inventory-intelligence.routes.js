@@ -350,6 +350,14 @@ inventoryIntelligenceRouter.get(
 );
 
 inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/backbar-owner-dashboard",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.ownerDashboard(req.query, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
   "/inventory-intelligence/backbar-products/:productId/report",
   requirePermission("read", () => "inventory"),
   asyncHandler((req, res) => {
@@ -375,6 +383,30 @@ inventoryIntelligenceRouter.post(
   requirePermission("write", () => "inventory"),
   asyncHandler((req, res) => {
     res.json(backbarProductConsumptionService.overrideOpenContainer(req.params.productId, req.body, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/backbar-override-requests",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.listOverrideRequests(req.query, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/backbar-products/:productId/override-requests",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.status(201).json(backbarProductConsumptionService.requestOverrideOpen(req.params.productId, req.body, req.access));
+  })
+);
+
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/backbar-override-requests/:id/decision",
+  requirePermission("write", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(backbarProductConsumptionService.decideOverrideRequest(req.params.id, req.body, req.access));
   })
 );
 

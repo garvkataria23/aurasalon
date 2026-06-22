@@ -24,6 +24,16 @@ const DEFAULT_RECIPE_TEMPLATES = [
   { key: "waxing", name: "Waxing recipe", category: "Waxing", items: ["wax", "strips", "pre/post wax"] }
 ];
 
+function overuseNeedsReason(line = {}) {
+  const actualQty = number(line.actualQty ?? line.actual_qty ?? line.quantity, 0);
+  const expectedQty = number(line.expectedQty ?? line.expected_qty, 0);
+  const maxQty = number(line.maxQty ?? line.max_qty, 0);
+  const reason = String(line.reason || line.overuseReason || line.overuse_reason || "").trim();
+  const overMax = maxQty > 0 && actualQty > maxQty;
+  const overExpected = expectedQty > 0 && actualQty > expectedQty * (1 + OVERUSE_TOLERANCE_PCT / 100);
+  return (overMax || overExpected) && !reason;
+}
+
 let productConsumeDraftSchemaReady = false;
 let productUnitSchemaReady = false;
 
@@ -1820,6 +1830,7 @@ export class InventoryEnterpriseService {
         minQty: number(line.minQty ?? line.min_qty, 0),
         maxQty: number(line.maxQty ?? line.max_qty, 0),
         substitutes: line.substitutes || "",
+        reason: line.reason || line.overuseReason || line.overuse_reason || "",
         stockUnit: line.stockUnit || line.stock_unit || "",
         packSize: packSizeFor(line),
         packUnit: line.packUnit || line.pack_unit || "",
@@ -1846,6 +1857,10 @@ export class InventoryEnterpriseService {
     if (draft.status === "confirmed") return this.productConsumeDraftRow(draft);
     const lines = safeArray(payload.lineItems || payload.line_items || draft.line_items_json);
     if (!lines.length) throw badRequest("At least one product line is required before confirm");
+    const missingReason = lines.find((line) => overuseNeedsReason(line));
+    if (missingReason) {
+      throw conflict(`Overuse reason required for ${missingReason.productName || missingReason.product_name || missingReason.productId || missingReason.product_id}`);
+    }
     const confirmation = db.transaction(() => {
       const backbar = backbarProductConsumptionService.applyDraftConsumption({
         draft,
