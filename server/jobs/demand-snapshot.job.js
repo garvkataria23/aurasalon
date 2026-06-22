@@ -1,4 +1,5 @@
 import { demandSignalsRepo } from "../repositories/demand-signals.repo.js";
+import { logger } from "../utils/logger.js";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
@@ -8,11 +9,11 @@ export function captureAllBranches() {
       try {
         demandSignalsRepo.captureSnapshot(scope);
       } catch (error) {
-        console.warn("[DemandSignals] Branch snapshot skipped", scope.branchId, error.message);
+        logger.warn("demand_signals_branch_skipped", { branchId: scope.branchId, error: error.message });
       }
     }
   } catch (error) {
-    console.warn("[DemandSignals] Snapshot job skipped", error.message);
+    logger.warn("demand_signals_job_skipped", { error: error.message });
   }
 }
 

@@ -15,7 +15,7 @@ function branchScopes() {
       .all()
       .filter((row) => row.tenantId && row.branchId);
   } catch (error) {
-    console.warn("[FlashSale] Scope lookup skipped", error.message);
+    logger.warn("flash_sale_scope_lookup_skipped", { error: error.message });
     return [];
   }
 }
@@ -43,7 +43,7 @@ function isBooked({ tenantId, branchId, slotDate, slotTime }) {
     `).get({ tenantId, branchId, slotDate, slotTime });
     return Number(row?.count || 0) > 0;
   } catch (error) {
-    console.warn("[FlashSale] Appointment lookup skipped", error.message);
+    logger.warn("flash_sale_appointment_lookup_skipped", { error: error.message });
     return true;
   }
 }
