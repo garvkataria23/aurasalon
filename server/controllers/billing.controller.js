@@ -2,11 +2,13 @@ import { billingService } from "../services/billing.service.js";
 import { refundService } from "../services/refund.service.js";
 import { invoiceVoidService } from "../services/invoice-void.service.js";
 import { creditNoteService } from "../services/credit-note.service.js";
+import { paymentService } from "../services/payment.service.js";
 import { realtimeService } from "../services/realtime.service.js";
 import { invoicePdfService } from "../services/invoice-pdf.service.js";
 import { invoicePrintService } from "../services/invoice-print.service.js";
 import { invoiceWhatsappService } from "../services/invoice-whatsapp.service.js";
 import { invoiceNotificationService } from "../services/invoice-notification.service.js";
+import { reputationService } from "../services/reputation/reputation.service.js";
 
 function emitInvoice(req, type, invoice) {
   const branchId = invoice?.branch_id || invoice?.branchId || "";
@@ -90,7 +92,8 @@ export const billingController = {
   },
 
   payment(req, res) {
-    const invoice = billingService.recordPayment(req.params.id, req.body, req.access);
+    const mode = req.body?.payment_mode || req.body?.paymentMode || req.body?.mode;
+    const invoice = paymentService.pay(req.params.id, mode, req.body, req.access);
     emitInvoice(req, invoice.payment_status === "paid" ? "invoice:paid" : "payment:received", invoice);
     res.status(201).json(invoice);
   },
@@ -101,6 +104,14 @@ export const billingController = {
       invoice.invoiceNotifications = invoiceNotificationService.queueForInvoice(invoice, req.access);
     } catch (error) {
       invoice.invoiceNotifications = { invoiceId: invoice.id, queued: 0, skipped: true, error: error.message };
+    }
+    try {
+      const appointmentId = invoice.appointment_id || invoice.appointmentId || "";
+      invoice.reviewRequest = appointmentId
+        ? reputationService.sendReviewRequest(appointmentId, { invoiceId: invoice.id, force: true, channel: "auto" }, req.access)
+        : { status: "skipped", reason: "missing_appointment" };
+    } catch (error) {
+      invoice.reviewRequest = { status: "skipped", reason: "review_request_failed", error: error.message };
     }
     emitInvoice(req, invoice.payment_status === "paid" ? "invoice:paid" : "invoice:finalized", invoice);
     res.json(invoice);
@@ -123,8 +134,9 @@ export const billingController = {
   },
 
   pdf(req, res) {
-    const rendered = invoicePdfService.renderPdfPlaceholder(req.params.id, req.access);
+    const rendered = invoicePdfService.renderPdf(req.params.id, req.access);
     res.setHeader("content-type", rendered.contentType);
+    res.setHeader("content-disposition", `inline; filename="${rendered.filename}"`);
     res.send(rendered.body);
   },
 

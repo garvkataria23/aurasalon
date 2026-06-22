@@ -88,6 +88,7 @@ inventoryIntelligenceRouter.get(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/product-categories",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["name"] }),
   asyncHandler((req, res) => {
     res.status(201).json(purchaseBillDraftService.createCategory(req.body, req.access));
   })
@@ -104,6 +105,7 @@ inventoryIntelligenceRouter.get(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/purchase-bill-drafts/upload",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["supplierName"] }),
   asyncHandler(async (req, res) => {
     res.status(201).json(await purchaseBillDraftService.createFromUpload(req.body, req.access));
   })
@@ -144,6 +146,7 @@ inventoryIntelligenceRouter.post(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/purchase-bill-drafts/:id/items",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["productId", "quantity"] }),
   asyncHandler((req, res) => {
     res.status(201).json(purchaseBillDraftService.addItem(req.params.id, req.body, req.access));
   })
@@ -192,6 +195,7 @@ inventoryIntelligenceRouter.get(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/purchase-orders",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["supplierId", "items"] }),
   asyncHandler((req, res) => {
     res.status(201).json(inventoryEnterpriseService.createPurchaseOrder(req.body, req.access));
   })
@@ -376,6 +380,7 @@ inventoryIntelligenceRouter.get(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/backbar-containers/:id/adjust",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["deductionQty"] }),
   asyncHandler((req, res) => {
     res.json(backbarProductConsumptionService.adjustContainer(
       req.params.id,
@@ -397,6 +402,7 @@ inventoryIntelligenceRouter.get(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/backbar-products/:productId/override-open",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["reason"] }),
   asyncHandler((req, res) => {
     res.json(backbarProductConsumptionService.overrideOpenContainer(req.params.productId, req.body, req.access));
   })
@@ -413,6 +419,7 @@ inventoryIntelligenceRouter.get(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/backbar-products/:productId/override-requests",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["reason"] }),
   asyncHandler((req, res) => {
     res.status(201).json(backbarProductConsumptionService.requestOverrideOpen(req.params.productId, req.body, req.access));
   })
@@ -421,6 +428,7 @@ inventoryIntelligenceRouter.post(
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/backbar-override-requests/:id/decision",
   requirePermission("write", () => "inventory"),
+  validateBody({ required: ["decision"] }),
   asyncHandler((req, res) => {
     res.json(backbarProductConsumptionService.decideOverrideRequest(req.params.id, req.body, req.access));
   })

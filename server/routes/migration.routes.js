@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { migrationService } from "../services/migration.service.js";
+import { validateBody } from "../validators/request-validator.js";
 
 export const migrationRouter = Router();
 const migrationResource = () => "migration";
@@ -41,6 +42,7 @@ migrationRouter.get(
 migrationRouter.post(
   "/migration/mappings",
   requirePermission("write", migrationResource),
+  validateBody({ required: ["resource", "columnMap"] }),
   asyncHandler((req, res) => {
     res.status(201).json(migrationService.saveMapping(req.body, req.access));
   })
@@ -73,6 +75,7 @@ migrationRouter.get(
 migrationRouter.post(
   "/migration/approvals",
   requirePermission("write", migrationResource),
+  validateBody({ required: ["resource", "rowCount"] }),
   asyncHandler((req, res) => {
     res.status(201).json(migrationService.submitApproval(req.body, req.access));
   })
@@ -82,6 +85,7 @@ migrationRouter.post(
 migrationRouter.post(
   "/migration/approvals/:id/decide",
   requirePermission("write", migrationResource),
+  validateBody({ required: ["decision"] }),
   asyncHandler((req, res) => {
     res.json(migrationService.decideApproval(req.params.id, req.body, req.access));
   })
@@ -91,6 +95,7 @@ migrationRouter.post(
 migrationRouter.post(
   "/migration/approvals/:id/decision",
   requirePermission("write", migrationResource),
+  validateBody({ required: ["decision"] }),
   asyncHandler((req, res) => {
     res.json(migrationService.decideApproval(req.params.id, req.body, req.access));
   })
