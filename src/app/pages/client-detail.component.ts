@@ -3700,7 +3700,7 @@ export class ClientDetailComponent implements OnInit {
       }
     }
     return [...rows.values()]
-      .map((row) => ({
+      .map((row): ApiRecord => ({
         ...row,
         qty: this.moneyValue(row['qty']),
         total: this.moneyValue(row['total'])
