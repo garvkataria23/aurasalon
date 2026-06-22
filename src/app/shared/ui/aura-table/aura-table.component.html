@@ -1,0 +1,64 @@
+<div class="aura-table">
+  <table>
+    <thead>
+      <tr>
+        <th class="aura-table__select" *ngIf="selectable">
+          <input type="checkbox" [checked]="allSelected()" (change)="toggleAll($any($event.target).checked)" />
+        </th>
+        <th
+          *ngFor="let column of columns"
+          [style.width]="column.width || null"
+          [class.is-sortable]="column.sortable"
+          [class.is-right]="column.align === 'right'"
+          [class.is-center]="column.align === 'center'"
+          (click)="onSort(column)"
+        >
+          <span>{{ column.label }}</span>
+          <span class="aura-table__sort" *ngIf="column.sortable && sortKey === column.key">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+        </th>
+        <th class="aura-table__actions"></th>
+      </tr>
+    </thead>
+
+    <tbody *ngIf="loading">
+      <tr *ngFor="let item of skeletonRows">
+        <td *ngIf="selectable"><aura-skeleton width="16px" height="16px"></aura-skeleton></td>
+        <td *ngFor="let column of columns"><aura-skeleton></aura-skeleton></td>
+        <td><aura-skeleton width="64px"></aura-skeleton></td>
+      </tr>
+    </tbody>
+
+    <tbody *ngIf="!loading && rows.length">
+      <tr *ngFor="let row of rows" (click)="rowClick.emit(row)">
+        <td class="aura-table__select" *ngIf="selectable" (click)="$event.stopPropagation()">
+          <input type="checkbox" [checked]="isSelected(row)" (change)="toggleRow(row, $any($event.target).checked)" />
+        </td>
+        <td
+          *ngFor="let column of columns"
+          [class.is-right]="column.align === 'right'"
+          [class.is-center]="column.align === 'center'"
+        >
+          <ng-container *ngIf="templateFor(column.key) as cellTemplate; else defaultCell">
+            <ng-container
+              *ngTemplateOutlet="cellTemplate; context: { $implicit: row, row: row, value: valueFor(row, column.key), column: column }"
+            ></ng-container>
+          </ng-container>
+          <ng-template #defaultCell>{{ valueFor(row, column.key) }}</ng-template>
+        </td>
+        <td class="aura-table__actions">
+          <div class="aura-table__row-actions" (click)="$event.stopPropagation()">
+            <ng-content select="[slot=row-actions]"></ng-content>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+
+    <tbody *ngIf="!loading && !rows.length">
+      <tr>
+        <td [attr.colspan]="columnSpan">
+          <aura-empty [title]="emptyMessage"></aura-empty>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

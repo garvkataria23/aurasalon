@@ -1,0 +1,24 @@
+:host {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.aura-skeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--aura-gray-100), var(--aura-gray-200), var(--aura-gray-100));
+  background-size: 200% 100%;
+  animation: aura-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes aura-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

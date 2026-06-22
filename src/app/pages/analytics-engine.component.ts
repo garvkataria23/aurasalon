@@ -1,0 +1,404 @@
+import { CommonModule, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { Component, OnInit, signal } from '@angular/core';
+import { FormsModule, ReactiveFormsModule, UntypedFormBuilder } from '@angular/forms';
+import { ApiRecord, ApiService } from '../core/api.service';
+import { StateComponent } from '../shared/ui/state/state.component';
+import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
+
+@Component({
+  selector: 'app-analytics-engine',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, StateComponent, AuraKpiCardComponent],
+  template: `
+    <section class="page-stack">
+      <div class="module-hero">
+        <div>
+          <span class="eyebrow">Advanced analytics engine</span>
+          <h2>Forecasting, productivity, retention, churn, heatmaps and branch reports</h2>
+          <p>Analytics runs calculate from persisted appointments, sales, invoices, clients, memberships, staff, inventory and WhatsApp leads.</p>
+        </div>
+        <div class="form-actions">
+          <button class="ghost-button" type="button" (click)="createSchedule()">Schedule digest</button>
+          <button class="ghost-button" type="button" (click)="runAnomalyScan()">Run anomaly scan</button>
+          <button class="ghost-button" type="button" (click)="run()">Generate snapshot</button>
+        </div>
+      </div>
+
+      <app-state [loading]="loading()" [error]="error()"></app-state>
+
+      <section class="panel" *ngIf="commandCenter() as command">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">Analytics control room</span>
+            <h2>Insights, scheduled reports, export controls and anomaly detection</h2>
+          </div>
+          <span class="badge">{{ command.exportControls.allowed ? 'Export controlled' : 'Export blocked' }}</span>
+        </div>
+        <div class="quick-grid">
+          <article class="action-card">
+            <strong>{{ command.anomalyDetection.open }}</strong>
+            <span>Open anomalies</span>
+            <small>{{ command.anomalyDetection.critical }} critical · {{ command.anomalyDetection.warning }} warning</small>
+          </article>
+          <article class="action-card">
+            <strong>{{ command.scheduledReports.length }}</strong>
+            <span>Scheduled reports</span>
+            <small>{{ command.exportControls.message }}</small>
+          </article>
+          <article class="action-card" *ngFor="let insight of command.aiInsights">
+            <strong>{{ insight.title }}</strong>
+            <span>{{ insight.recommendation }}</span>
+            <small>{{ insight.severity }}</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="form-panel">
+        <h3>Analysis scope</h3>
+        <form [formGroup]="filterForm" (ngSubmit)="run()">
+          <label class="field">
+            <span>Period start</span>
+            <input type="date" formControlName="periodStart" />
+          </label>
+          <label class="field">
+            <span>Period end</span>
+            <input type="date" formControlName="periodEnd" />
+          </label>
+          <label class="field">
+            <span>Branch</span>
+            <select formControlName="branchId">
+              <option value="">All branches</option>
+              <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit" [disabled]="loading()">Run analytics</button>
+          </div>
+        </form>
+      </section>
+
+      <ng-container *ngIf="metrics() as metrics">
+        <div class="metrics-grid">
+          <aura-kpi-card tone="teal" target="/kpi-details/analytics/14-day-forecast">
+            <span>14-day forecast</span>
+            <strong>{{ metrics.revenueForecast.projected14DayRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <small>{{ metrics.revenueForecast.trendPercent | number: '1.0-1' }}% recent trend</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="amber" target="/kpi-details/analytics/peak-hour">
+            <span>Peak hour</span>
+            <strong>{{ metrics.peakHours.topHours?.[0]?.label || 'No data' }}</strong>
+            <small>{{ metrics.peakHours.topHours?.[0]?.bookings || 0 }} bookings</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="green" target="/kpi-details/analytics/repeat-rate">
+            <span>Repeat rate</span>
+            <strong>{{ metrics.repeatCustomers.repeatRate | number: '1.0-1' }}%</strong>
+            <small>{{ metrics.repeatCustomers.repeatClients }} repeat clients</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="red" target="/kpi-details/analytics/high-churn-risk">
+            <span>High churn risk</span>
+            <strong>{{ metrics.churn.highRisk }}</strong>
+            <small>Avg risk {{ metrics.churn.averageRiskScore | number: '1.0-1' }}</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="blue" target="/kpi-details/analytics/average-ltv">
+            <span>Average LTV</span>
+            <strong>{{ metrics.lifetimeValue.avgLtv | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <small>{{ metrics.lifetimeValue.totalLtv | currency: 'INR':'symbol':'1.0-0' }} total</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="violet" target="/kpi-details/analytics/membership-revenue">
+            <span>Membership revenue</span>
+            <strong>{{ metrics.membershipPerformance.revenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <small>{{ metrics.membershipPerformance.activeCount }} active</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="slate" target="/kpi-details/analytics/funnel-paid">
+            <span>Funnel paid</span>
+            <strong>{{ funnelStage('Paid')?.conversionFromLead || 0 }}%</strong>
+            <small>From lead to paid invoice</small>
+          </aura-kpi-card>
+          <aura-kpi-card tone="rose" target="/kpi-details/analytics/branches">
+            <span>Branches</span>
+            <strong>{{ metrics.branchComparison.length }}</strong>
+            <small>{{ metrics.branchComparison[0]?.name || 'No branch data' }}</small>
+          </aura-kpi-card>
+        </div>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Executive insights</span>
+              <h2>Generated snapshot {{ snapshot()?.id }}</h2>
+            </div>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let insight of insights()">
+              <strong>{{ insight }}</strong>
+              <span>Persisted analytics insight</span>
+            </article>
+          </div>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Revenue forecast</h2></div>
+            <div class="chart-bars">
+              <div *ngFor="let point of metrics.revenueForecast.forecast14Days">
+                <span>{{ point.date | date: 'MMM d' }}</span>
+                <i [style.height.%]="forecastHeight(point.projectedRevenue)"></i>
+                <strong>{{ point.projectedRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Conversion funnel</h2></div>
+            <div class="summary-lines">
+              <div *ngFor="let stage of metrics.conversionFunnel.stages">
+                <span>{{ stage.stage }}</span>
+                <strong>{{ stage.count }} · {{ stage.conversionFromLead | number: '1.0-1' }}%</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Heatmap</span>
+              <h2>Booking and revenue intensity by day and hour</h2>
+            </div>
+          </div>
+          <div class="heatmap-grid">
+            <article *ngFor="let cell of metrics.heatmaps.strongestCells" [style.background]="heatColor(cell.intensity)">
+              <strong>{{ cell.dayLabel }} {{ cell.hour }}:00</strong>
+              <span>{{ cell.bookings }} bookings · {{ cell.revenue | currency: 'INR':'symbol':'1.0-0' }}</span>
+            </article>
+          </div>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Staff productivity scoring</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Staff</th><th>Score</th><th>Revenue</th><th>Bookings</th><th>Completion</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let person of metrics.staffProductivity">
+                    <td><strong>{{ person.name }}</strong><small>{{ person.role }}</small></td>
+                    <td>{{ person.productivityScore | number: '1.0-1' }}</td>
+                    <td>{{ person.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ person.bookings }}</td>
+                    <td>{{ person.completionRate | number: '1.0-1' }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Churn analysis</h2></div>
+            <div class="rank-list">
+              <article *ngFor="let client of metrics.churn.clients">
+                <div>
+                  <strong>{{ client.name }}</strong>
+                  <span>{{ client.risk }} risk · {{ client.inactiveDays }} inactive days</span>
+                </div>
+                <div class="right">
+                  <strong>{{ client.score }}</strong>
+                  <small>{{ client.recommendedAction }}</small>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Lifetime value</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Client</th><th>LTV</th><th>Avg ticket</th><th>Projected annual</th><th>Loyalty</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let client of metrics.lifetimeValue.topClients">
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.lifetimeValue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.avgTicket | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.projectedAnnualValue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.loyaltyPoints }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Membership performance</h2></div>
+            <div class="summary-lines">
+              <div><span>Credits sold</span><strong>{{ metrics.membershipPerformance.creditsSold }}</strong></div>
+              <div><span>Credits redeemed</span><strong>{{ metrics.membershipPerformance.creditsRedeemed }}</strong></div>
+              <div><span>Redemption rate</span><strong>{{ metrics.membershipPerformance.redemptionRate | number: '1.0-1' }}%</strong></div>
+              <div><span>Auto renewals</span><strong>{{ metrics.membershipPerformance.autoRenewCount }}</strong></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="section-title"><h2>Branch comparison</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Branch</th><th>Revenue</th><th>Sales</th><th>Bookings</th><th>Completion</th><th>Repeat</th><th>Low stock</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let branch of metrics.branchComparison">
+                  <td><strong>{{ branch.name }}</strong><small>{{ branch.city }}</small></td>
+                  <td>{{ branch.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ branch.sales }}</td>
+                  <td>{{ branch.appointments }}</td>
+                  <td>{{ branch.completionRate | number: '1.0-1' }}%</td>
+                  <td>{{ branch.repeatRate | number: '1.0-1' }}%</td>
+                  <td>{{ branch.lowStock }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </ng-container>
+
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">Persisted snapshots</span>
+            <h2>Analytics run history</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Snapshot</th><th>Period</th><th>Branch</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let item of snapshots()">
+                <td>{{ item.id }}</td>
+                <td>{{ item.periodStart }} to {{ item.periodEnd }}</td>
+                <td>{{ item.branchId || 'All branches' }}</td>
+                <td><span class="badge">{{ item.status }}</span></td>
+                <td>{{ item.createdAt | date: 'short' }}</td>
+              </tr>
+              <tr *ngIf="!snapshots().length"><td colspan="5">No analytics snapshots yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  `
+})
+export class AnalyticsEngineComponent implements OnInit {
+  readonly snapshot = signal<ApiRecord | null>(null);
+  readonly metrics = signal<ApiRecord | null>(null);
+  readonly insights = signal<string[]>([]);
+  readonly snapshots = signal<ApiRecord[]>([]);
+  readonly commandCenter = signal<ApiRecord | null>(null);
+  readonly branches = signal<ApiRecord[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
+
+  readonly filterForm = this.fb.group({
+    periodStart: [this.defaultStart()],
+    periodEnd: [new Date().toISOString().slice(0, 10)],
+    branchId: ['']
+  });
+
+  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
+
+  ngOnInit(): void {
+    this.filterForm.patchValue({ branchId: this.api.selectedBranchId() });
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    Promise.all([
+      this.api.list<ApiRecord[]>('branches').toPromise(),
+      this.api.list<ApiRecord[]>('analytics/snapshots').toPromise()
+    ])
+      .then(([branches, snapshots]) => {
+        this.branches.set(branches || []);
+        this.snapshots.set(snapshots || []);
+        this.loadCommandCenter();
+        this.run();
+      })
+      .catch((error) => {
+        this.error.set(error?.error?.error || 'Unable to load analytics engine');
+        this.loading.set(false);
+      });
+  }
+
+  run(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.api.post<ApiRecord>('analytics/run', this.filterForm.value).subscribe({
+      next: (result) => {
+        this.snapshot.set(result.snapshot);
+        this.metrics.set(result.metrics);
+        this.insights.set(result.insights || []);
+        this.loadSnapshots();
+        this.loadCommandCenter();
+        this.loading.set(false);
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to generate analytics');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  loadSnapshots(): void {
+    this.api.list<ApiRecord[]>('analytics/snapshots').subscribe({
+      next: (snapshots) => this.snapshots.set(snapshots),
+      error: () => this.snapshots.set([])
+    });
+  }
+
+  loadCommandCenter(): void {
+    this.api.list<ApiRecord>('analytics/report-command-center', this.filterForm.value).subscribe({
+      next: (result) => this.commandCenter.set(result),
+      error: () => this.commandCenter.set(null)
+    });
+  }
+
+  createSchedule(): void {
+    this.api.post<ApiRecord>('analytics/report-schedules', {
+      ...this.filterForm.value,
+      name: 'Analytics owner digest',
+      cadence: 'weekly',
+      reportKeys: ['analytics:14-day-forecast', 'analytics:high-churn-risk', 'analytics:anomalies']
+    }).subscribe({
+      next: () => this.loadCommandCenter(),
+      error: (error) => this.error.set(this.api.errorText(error))
+    });
+  }
+
+  runAnomalyScan(): void {
+    this.api.post<ApiRecord>('analytics/anomalies/run', this.filterForm.value).subscribe({
+      next: () => this.loadCommandCenter(),
+      error: (error) => this.error.set(this.api.errorText(error))
+    });
+  }
+
+  funnelStage(stage: string): ApiRecord | null {
+    return this.metrics()?.conversionFunnel?.stages?.find((item: ApiRecord) => item.stage === stage) || null;
+  }
+
+  forecastHeight(value: number): number {
+    const points = this.metrics()?.revenueForecast?.forecast14Days || [];
+    const max = Math.max(1, ...points.map((item: ApiRecord) => Number(item.projectedRevenue || 0)));
+    return Math.max(8, Math.round((Number(value || 0) / max) * 100));
+  }
+
+  heatColor(intensity: number): string {
+    const alpha = Math.min(0.9, Math.max(0.08, Number(intensity || 0) / 100));
+    return `rgba(15, 118, 110, ${alpha})`;
+  }
+
+  private defaultStart(): string {
+    const date = new Date();
+    date.setDate(date.getDate() - 89);
+    return date.toISOString().slice(0, 10);
+  }
+}

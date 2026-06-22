@@ -1,0 +1,174 @@
+<aside
+  class="enterprise-sidebar"
+  [class.is-rail]="store.isRail()"
+  [class.is-resizing]="resizing"
+  [style.width.px]="store.visualWidth()"
+  aria-label="Primary workspace navigation"
+>
+  <div class="sidebar-rail" role="navigation" aria-label="Pinned modules">
+    <button class="workspace-chip" type="button" [title]="tenantScopeLabel" (click)="store.toggleMode()">
+      <span>A</span>
+    </button>
+
+    <nav class="rail-nav">
+      <a
+        *ngFor="let item of railItems; trackBy: trackItem"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [attr.aria-label]="item.label"
+        [title]="item.label"
+        (click)="navigate(item.path)"
+      >
+        <span>{{ item.icon }}</span>
+      </a>
+    </nav>
+
+    <div class="rail-footer">
+      <button type="button" title="Theme" (click)="store.cycleTheme()">T</button>
+      <button type="button" title="Logout" (click)="logout.emit()">Q</button>
+    </div>
+  </div>
+
+  <section class="sidebar-panel" *ngIf="!store.isRail()">
+    <header class="workspace-header">
+      <button class="workspace-button" type="button" (click)="store.toggleMode()">
+        <span class="workspace-avatar">A</span>
+        <span>
+          <strong>Aurashine</strong>
+          <small>{{ tenantScopeLabel }}</small>
+        </span>
+        <i aria-hidden="true">⌄</i>
+      </button>
+      <button class="icon-action" type="button" title="Collapse sidebar" (click)="store.setMode('rail')">≡</button>
+    </header>
+
+    <div class="scope-grid">
+      <label>
+        <span>Tenant</span>
+        <select [ngModel]="selectedTenantId" (ngModelChange)="tenantChange.emit($event)">
+          <option *ngFor="let tenant of tenants" [value]="tenant.id">{{ tenant.name }}</option>
+        </select>
+      </label>
+      <label>
+        <span>Branch</span>
+        <select [ngModel]="selectedBranchId" (ngModelChange)="branchChange.emit($event)">
+          <option value="">All branches</option>
+          <option *ngFor="let branch of branches" [value]="branch.id">{{ branch.name }}</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="sidebar-search">
+      <span aria-hidden="true">⌕</span>
+      <input
+        #sidebarSearch
+        type="search"
+        placeholder="Search pages, staff, billing..."
+        [ngModel]="store.search()"
+        (ngModelChange)="store.setSearch($event)"
+        aria-label="Search navigation"
+      />
+      <kbd>/</kbd>
+    </label>
+
+    <div class="quick-strip" aria-label="Quick actions">
+      <a routerLink="/appointments" (click)="navigate('/appointments')">New booking</a>
+      <a routerLink="/pos" (click)="navigate('/pos')">Fast POS</a>
+    </div>
+
+    <nav class="sidebar-scroll" aria-label="Grouped navigation">
+      <section class="nav-section" *ngIf="favorites.length">
+        <div class="section-label">
+          <span>Favorites</span>
+          <small>{{ favorites.length }}</small>
+        </div>
+        <a
+          *ngFor="let item of favorites; trackBy: trackItem"
+          class="nav-row favorite-row"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          (click)="navigate(item.path)"
+        >
+          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-text">{{ item.label }}</span>
+          <span class="nav-meta">★</span>
+        </a>
+      </section>
+
+      <section class="nav-section" *ngIf="recents.length">
+        <div class="section-label">
+          <span>Recent</span>
+          <small>Live</small>
+        </div>
+        <a
+          *ngFor="let item of recents; trackBy: trackItem"
+          class="nav-row"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          (click)="navigate(item.path)"
+        >
+          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-text">{{ item.label }}</span>
+          <span class="nav-meta">↵</span>
+        </a>
+      </section>
+
+      <section class="nav-group" *ngFor="let group of groups; trackBy: trackGroup" [class]="'nav-group tone-' + group.accent">
+        <button class="group-header" type="button" (click)="store.toggleGroup(group.id)" [attr.aria-expanded]="store.isGroupExpanded(group.id)">
+          <span class="group-dot"></span>
+          <span>
+            <strong>{{ group.label }}</strong>
+            <small>{{ group.hint }}</small>
+          </span>
+          <i [class.open]="store.isGroupExpanded(group.id)" aria-hidden="true">›</i>
+        </button>
+
+        <div class="group-items" *ngIf="store.isGroupExpanded(group.id)">
+          <a
+            *ngFor="let item of group.items; trackBy: trackItem"
+            class="nav-row"
+            [routerLink]="item.path"
+            routerLinkActive="active"
+            (click)="navigate(item.path)"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            <span class="nav-text">{{ item.label }}</span>
+            <button class="nav-fav" type="button" [class.saved]="isFavorite(item.path)" (click)="$event.preventDefault(); $event.stopPropagation(); store.toggleFavorite(item.path)" [attr.aria-label]="'Favorite ' + item.label">★</button>
+          </a>
+        </div>
+      </section>
+    </nav>
+
+    <footer class="sidebar-footer">
+      <div class="status-card">
+        <span class="status-dot" [class.online]="realtime.connected()"></span>
+        <span>
+          <strong>{{ realtime.connected() ? 'Realtime online' : 'Offline-ready' }}</strong>
+          <small>{{ realtime.connected() ? 'Synced now' : 'Last local state saved' }}</small>
+        </span>
+      </div>
+
+      <div class="user-card">
+        <span class="user-avatar">AP</span>
+        <label>
+          <span>Role</span>
+          <select [ngModel]="userRole" (ngModelChange)="roleChange.emit($event)">
+            <option *ngFor="let role of roles" [value]="role">{{ roleLabel(role) }}</option>
+          </select>
+        </label>
+      </div>
+    </footer>
+  </section>
+
+  <div
+    class="sidebar-resizer"
+    *ngIf="!store.isRail()"
+    role="separator"
+    aria-orientation="vertical"
+    tabindex="0"
+    (pointerdown)="startResize($event)"
+    (pointermove)="resize($event)"
+    (pointerup)="endResize()"
+    (pointercancel)="endResize()"
+  ></div>
+</aside>

@@ -1,0 +1,120 @@
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { Component, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { PosHeldInvoiceDraft, PosSettingsService } from '../core/pos-settings.service';
+
+@Component({
+  selector: 'app-pos-holds',
+  standalone: true,
+  imports: [CommonModule, RouterLink, CurrencyPipe, DatePipe],
+  template: `
+    <section class="page-stack">
+      <div class="module-hero">
+        <div>
+          <span class="eyebrow">POS / held invoices</span>
+          <h2>Hold invoice register</h2>
+          <p>Saved POS drafts before final invoice save. Open any hold to return to POS and continue billing.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost-button" routerLink="/pos">Back to POS</a>
+          <button class="ghost-button" type="button" (click)="refresh()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <article class="metric-card"><span>Held invoices</span><strong>{{ holds().length }}</strong><small>Drafts waiting</small></article>
+        <article class="metric-card"><span>Total value</span><strong>{{ totalHeld() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Held invoice value</small></article>
+        <article class="metric-card"><span>Due value</span><strong>{{ totalDue() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Pending on held drafts</small></article>
+      </div>
+
+      <section class="panel">
+        <div class="table-toolbar">
+          <div>
+            <span class="eyebrow">Click invoice to resume</span>
+            <h2>Held invoice list</h2>
+          </div>
+          <button class="ghost-button" type="button" (click)="clearAll()" [disabled]="!holds().length">Clear all holds</button>
+        </div>
+
+        <div class="table-wrap" *ngIf="holds().length; else emptyState">
+          <table>
+            <thead>
+              <tr>
+                <th>Hold invoice</th>
+                <th>Client</th>
+                <th>Branch</th>
+                <th>Staff</th>
+                <th>Items</th>
+                <th class="right">Total</th>
+                <th class="right">Due</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let hold of holds()">
+                <td>
+                  <a class="table-link hold-title-link" [routerLink]="['/pos']" [queryParams]="{ holdId: hold.id }">
+                    <strong>{{ hold.title }}</strong>
+                    <small>{{ hold.id }}</small>
+                  </a>
+                </td>
+                <td>{{ hold.clientName || 'Walk-in client' }}</td>
+                <td>{{ hold.branchName || hold.branchId || 'Branch' }}</td>
+                <td>{{ hold.staffName || 'Unassigned' }}</td>
+                <td>{{ hold.items.length }}</td>
+                <td class="right">{{ hold.total | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td class="right">{{ hold.balanceDue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ hold.updatedAt | date: 'short' }}</td>
+                <td><button class="ghost-button mini" type="button" (click)="deleteHold(hold.id)">Delete</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptyState>
+          <div class="empty-state">
+            <strong>No held invoices</strong>
+            <span>Add invoice items in POS and click Hold invoice. Draft will appear here.</span>
+            <a class="primary-button fit" routerLink="/pos">Create hold invoice</a>
+          </div>
+        </ng-template>
+      </section>
+    </section>
+  `
+})
+export class PosHoldsComponent implements OnInit {
+  readonly holds = signal<PosHeldInvoiceDraft[]>([]);
+
+  constructor(private readonly settings: PosSettingsService) {}
+
+  ngOnInit(): void {
+    this.refresh();
+  }
+
+  refresh(): void {
+    this.holds.set(this.settings.loadHeldInvoices());
+  }
+
+  totalHeld(): number {
+    return this.money(this.holds().reduce((sum, hold) => sum + Number(hold.total || 0), 0));
+  }
+
+  totalDue(): number {
+    return this.money(this.holds().reduce((sum, hold) => sum + Number(hold.balanceDue || 0), 0));
+  }
+
+  deleteHold(id: string): void {
+    this.settings.deleteHeldInvoice(id);
+    this.refresh();
+  }
+
+  clearAll(): void {
+    this.settings.clearHeldInvoices();
+    this.refresh();
+  }
+
+  private money(value: number | string): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+}

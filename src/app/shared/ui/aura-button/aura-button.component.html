@@ -1,0 +1,11 @@
+<button
+  class="aura-button"
+  [class]="'aura-button aura-button--' + variant + ' aura-button--' + size"
+  [attr.type]="type"
+  [disabled]="isDisabled"
+  (click)="onClick($event)"
+>
+  <span class="aura-button__spinner" *ngIf="loading" aria-hidden="true"></span>
+  <span class="aura-button__icon" *ngIf="icon && !loading" aria-hidden="true">{{ icon }}</span>
+  <span class="aura-button__content"><ng-content></ng-content></span>
+</button>

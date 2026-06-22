@@ -1,0 +1,4294 @@
+import { CommonModule, CurrencyPipe } from '@angular/common';
+import { Component, HostListener, OnDestroy, OnInit, effect, signal } from '@angular/core';
+import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, distinctUntilChanged, forkJoin, of, Subscription } from 'rxjs';
+import { ApiRecord, ApiService } from '../core/api.service';
+import { PosActiveBillingDraft, PosHeldInvoiceDraft, PosMembershipPlan, PosPaymentMode, PosSettingsService, PosTipPreset } from '../core/pos-settings.service';
+import { AppStateService } from '../core/state/app-state.service';
+import { StateComponent } from '../shared/ui/state/state.component';
+
+type ItemDiscountType = 'amount' | 'percent';
+type ItemDiscountSource = 'none' | 'manual' | 'membership';
+
+type SaleItem = {
+  type: 'service' | 'product' | 'membership' | 'package' | 'gift_card' | 'custom';
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  gstRate: number;
+  staffId?: string;
+  staffName?: string;
+  staffSplits?: StaffSplitLine[];
+  discountPercent?: number;
+  discountType?: ItemDiscountType;
+  discountValue?: number;
+  discountSource?: ItemDiscountSource;
+  validityDays?: number;
+  serviceCredits?: ApiRecord[];
+  packageCredits?: ApiRecord[];
+  giftCode?: string;
+  expiryDate?: string;
+};
+
+type StaffSplitLine = {
+  staffId: string;
+  staffName: string;
+  percent: number;
+};
+
+type BenefitServiceMapping = {
+  lineIndex: number;
+  serviceId: string;
+  serviceName: string;
+  credits: number;
+};
+
+type TipLine = {
+  id: string;
+  staffId: string;
+  staffName: string;
+  paymentMode: string;
+  amount: number;
+  note: string;
+};
+
+type HighlightSegment = {
+  text: string;
+  match: boolean;
+};
+
+type ClientSearchIndex = {
+  haystack: string;
+  phone: string;
+  name: string;
+  email: string;
+  codes: string;
+  membershipIds: string[];
+  membershipBadge: string;
+  membershipMeta: string;
+  duplicate: boolean;
+};
+
+@Component({
+  selector: 'app-pos',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, CurrencyPipe, StateComponent],
+  template: `
+    <section class="page-stack">
+      <div class="module-hero">
+        <div>
+          <span class="eyebrow">POS / GST billing</span>
+        </div>
+        <div class="hero-actions">
+          <a class="ghost-button" routerLink="/pos/invoices">Invoices</a>
+          <a class="ghost-button" routerLink="/pos/holds">Held invoices</a>
+          <a class="ghost-button" routerLink="/pos/tips">Tip register</a>
+          <button class="ghost-button" type="button" (click)="printInvoice()" [disabled]="!invoice()">Print invoice</button>
+        </div>
+      </div>
+
+      <section class="client-crm-strip" *ngIf="selectedClient() as client">
+        <article class="client-crm-tile identity">
+          <span>Name</span>
+          <strong>{{ client.name || 'Client' }}</strong>
+          <small>{{ client.phone || client.email || client.id }}</small>
+          <div class="client-crm-actions" *ngIf="client.id">
+            <a
+              class="ghost-button mini client-crm-edit-button"
+              [routerLink]="['/clients']"
+              [queryParams]="{ edit: client.id }"
+            >
+              Edit
+            </a>
+            <a
+              class="ghost-button mini client-crm-history-button"
+              [routerLink]="['/clients', client.id]"
+            >
+              Client History
+            </a>
+          </div>
+        </article>
+        <article class="client-crm-tile">
+          <span>E-wallet Amt</span>
+          <strong>{{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Available wallet balance</small>
+        </article>
+        <article class="client-crm-tile">
+          <span>Unpaid Amt</span>
+          <strong [class.due-amount]="Number(client.unpaidBalance || 0) > 0">
+            {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}
+          </strong>
+          <small>Pending invoice balance</small>
+        </article>
+        <ng-container *ngIf="selectedClientMembership() as membership; else noClientMembershipSnapshot">
+          <article class="client-crm-tile">
+            <span>Membership assign date</span>
+            <strong>{{ membershipTakenDate(membership) }}</strong>
+            <small>{{ membership.planName || 'Active membership' }}</small>
+          </article>
+          <article class="client-crm-tile">
+            <span>Membership expire date</span>
+            <strong>{{ membershipExpiryDate(membership) }}</strong>
+            <small>{{ selectedClientMembershipStatus() }}</small>
+          </article>
+        </ng-container>
+        <ng-template #noClientMembershipSnapshot>
+          <article class="client-crm-tile muted-tile">
+            <span>Membership assign date</span>
+            <strong>-</strong>
+            <small>No active membership</small>
+          </article>
+          <article class="client-crm-tile muted-tile">
+            <span>Membership expire date</span>
+            <strong>-</strong>
+            <small>No active membership</small>
+          </article>
+        </ng-template>
+      </section>
+
+      <app-state [loading]="loading()" [error]="error()"></app-state>
+      <div class="state warning" *ngIf="dataHint()">{{ dataHint() }}</div>
+
+      <div class="pos-layout" *ngIf="!loading()">
+        <section class="panel">
+          <form [formGroup]="form" class="pos-form">
+            <div class="client-search-row pos-client-search-row">
+            <label class="field smart-search-field pos-floating-search client-search-field" style="min-width: 0;">
+              <span>Client</span>
+              <input
+                type="search"
+                [ngModel]="clientSearchText"
+                (ngModelChange)="setClientSearch($event)"
+                (focus)="clientSearchActive = true"
+                (blur)="closeClientSearchSoon()"
+                (keydown)="handleClientSearchKeydown($event)"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Search name, mobile, email, code, membership"
+              />
+              <div class="smart-search-results pos-search-results client-search-results" *ngIf="showClientResults()">
+                <div class="client-search-caption">
+                  <span>{{ debouncedClientQuery() ? 'Matching contacts' : 'Recent contacts' }}</span>
+                  <small>{{ clientSearchResults().length }} shown</small>
+                </div>
+                <article
+                  class="client-result-card"
+                  [class.active]="clientResultActive(client)"
+                  role="button"
+                  tabindex="0"
+                  *ngFor="let client of clientSearchResults()"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectClient(client)"
+                  (keydown.enter)="selectClient(client)"
+                >
+                  <span class="client-avatar">{{ clientInitial(client) }}</span>
+                  <span class="client-result-main">
+                    <strong>
+                      <ng-container *ngFor="let segment of highlightSegments(client.name || 'Client')">
+                        <mark *ngIf="segment.match; else clientNamePlain">{{ segment.text }}</mark>
+                        <ng-template #clientNamePlain>{{ segment.text }}</ng-template>
+                      </ng-container>
+                    </strong>
+                    <span>
+                      <ng-container *ngFor="let segment of highlightSegments(clientPrimaryPhone(client))">
+                        <mark *ngIf="segment.match; else clientPhonePlain">{{ segment.text }}</mark>
+                        <ng-template #clientPhonePlain>{{ segment.text }}</ng-template>
+                      </ng-container>
+                    </span>
+                    <small>{{ clientResultMeta(client) }}</small>
+                    <span class="client-badges">
+                      <span class="client-badge good" *ngIf="clientMembershipBadge(client)">{{ clientMembershipBadge(client) }}</span>
+                      <span class="client-badge wallet" *ngIf="Number(client.walletBalance || 0) > 0">Wallet {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                      <span class="client-badge due" *ngIf="Number(client.unpaidBalance || 0) > 0">Due {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                      <span class="client-badge warning" *ngIf="possibleDuplicateClient(client)">Duplicate?</span>
+                    </span>
+                  </span>
+                  <a
+                    class="client-call-button whatsapp"
+                    *ngIf="clientWhatsAppHref(client)"
+                    [href]="clientWhatsAppHref(client)"
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="WhatsApp client"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="$event.stopPropagation()"
+                  >
+                    WA
+                  </a>
+                  <a
+                    class="client-call-button"
+                    *ngIf="clientCallHref(client)"
+                    [href]="clientCallHref(client)"
+                    aria-label="Call client"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="$event.stopPropagation()"
+                  >
+                    Call
+                  </a>
+                </article>
+                <div class="client-empty-state" *ngIf="clientSearchActive && debouncedClientQuery() && !clientSearchResults().length">
+                  No contacts found
+                </div>
+              </div>
+              <small *ngIf="clientSearchPending()">Searching...</small>
+            </label>
+            <button class="ghost-button fit pos-add-client-button" type="button" *ngIf="canCreateClientFromSearch()" (click)="openClientFormFromSearch()">Add client</button>
+            <div class="client-search-actions">
+              <button class="dark-button fit" type="button" (click)="useWalkinClient()">Walkin Client</button>
+              <button class="ghost-button fit" type="button" (click)="holdInvoice()">Hold invoice</button>
+            </div>
+            </div>
+            <div class="branch-context-card">
+              <span>Header branch</span>
+              <strong>{{ currentBranchName() }}</strong>
+              <small>POS billing is locked to the top header branch.</small>
+            </div>
+            <label class="field billing-date-field">
+              <span>Invoice date</span>
+              <input type="date" formControlName="invoiceDate" [attr.max]="invoiceDateMax" />
+              <small>Select a billing date for back-dated invoices.</small>
+            </label>
+            <label class="field smart-search-field pos-floating-search staff-search-field">
+              <span>Staff</span>
+              <div class="staff-search-input-wrap">
+                <input
+                  type="search"
+                  [ngModel]="staffSearchText"
+                  (ngModelChange)="setStaffSearch($event)"
+                  (focus)="staffSearchActive = true"
+                  (blur)="closeStaffSearchSoon()"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="Search staff name, phone, role, ID 1/2"
+                />
+                <button
+                  class="staff-clear-button"
+                  *ngIf="staffSearchText"
+                  type="button"
+                  aria-label="Clear staff"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="clearStaffSelection()"
+                >
+                  x
+                </button>
+              </div>
+              <div class="smart-search-results pos-search-results staff-search-results" *ngIf="showStaffResults()">
+                <button
+                  type="button"
+                  *ngFor="let person of filteredStaff()"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectStaff(person)"
+                >
+                  <strong>{{ person.name || person.fullName || 'Staff' }}</strong>
+                  <span>{{ staffResultMeta(person) }}</span>
+                </button>
+              </div>
+              <small *ngIf="staffSearchText && staffSearchActive && !filteredStaff().length">No matching active staff found.</small>
+            </label>
+            <label class="field">
+              <span>Completed appointment</span>
+              <select formControlName="appointmentId">
+                <option value="">Walk-in / no appointment</option>
+                <option *ngFor="let appointment of billableAppointments()" [value]="appointment.id">
+                  {{ clientName(appointment.clientId) }} · {{ appointment.startAt | date: 'short' }}
+                </option>
+              </select>
+            </label>
+          </form>
+
+          <section class="form-panel pos-client-form" *ngIf="showClientForm()">
+            <div class="section-title compact-title">
+              <div>
+                <span class="eyebrow">Add client from POS</span>
+                <h2>New client details</h2>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="closeClientForm()">Close form</button>
+            </div>
+            <form [formGroup]="clientForm" (ngSubmit)="saveClientFromPos()">
+              <label class="field">
+                <span>Name</span>
+                <input formControlName="name" />
+              </label>
+              <label class="field">
+                <span>Phone</span>
+                <input formControlName="phone" />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input type="email" formControlName="email" />
+              </label>
+              <label class="field">
+                <span>Birthday</span>
+                <input type="date" formControlName="birthday" />
+              </label>
+              <label class="field">
+                <span>Anniversary</span>
+                <input type="date" formControlName="anniversary" />
+              </label>
+              <label class="field">
+                <span>Tags</span>
+                <select formControlName="tag">
+                  <option>new</option>
+                  <option>VIP</option>
+                  <option>inactive</option>
+                  <option>high spender</option>
+                  <option>pos-created</option>
+                </select>
+              </label>
+              <label class="field full">
+                <span>Notes</span>
+                <textarea formControlName="notes"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="ghost-button" type="button" (click)="closeClientForm()">Cancel</button>
+                <button class="primary-button" type="submit" [disabled]="clientForm.invalid || clientSaving()">Save client</button>
+              </div>
+            </form>
+          </section>
+
+          <div class="catalog-picker">
+            <label class="field smart-search-field">
+              <span>Add service</span>
+              <input
+                type="search"
+                [ngModel]="serviceSearchText"
+                (ngModelChange)="setServiceSearch($event)"
+                (focus)="serviceSearchActive = true"
+                (blur)="closeServiceSearchSoon()"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Type service name, e.g. cut"
+              />
+              <div class="smart-search-results service-search-results" *ngIf="showServiceResults()">
+                <button
+                  class="service-result-option"
+                  type="button"
+                  *ngFor="let service of filteredServices()"
+                  [class.selected]="isServiceSelected(service.id)"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="toggleServiceSelection(service)"
+                >
+                  <span class="multi-select-box" [class.checked]="isServiceSelected(service.id)" aria-hidden="true"></span>
+                  <span class="result-copy">
+                    <strong>{{ service.name || 'Service' }}</strong>
+                    <span>{{ service.category || 'Service' }} · ₹{{ service.price || 0 }}</span>
+                  </span>
+                  <span class="select-pill">{{ isServiceSelected(service.id) ? 'Selected' : 'Select' }}</span>
+                </button>
+                <div class="service-result-actions">
+                  <button type="button" (mousedown)="$event.preventDefault()" (click)="selectVisibleServices()">Select visible</button>
+                  <button type="button" *ngIf="selectedServiceIds.length" (mousedown)="$event.preventDefault()" (click)="clearServiceSelection()">Clear</button>
+                </div>
+              </div>
+              <small class="smart-search-hint selected" *ngIf="selectedServiceIds.length">
+                {{ selectedServiceIds.length }} service selected. Add will include all of them.
+              </small>
+              <small class="smart-search-hint" *ngIf="serviceSearchActive && serviceSearchText.trim().length > 0 && filteredServices().length > 1">
+                Multiple services matched. Select the required services.
+              </small>
+              <small class="smart-search-hint is-empty" *ngIf="serviceSearchActive && serviceSearchText.trim().length > 0 && !filteredServices().length">
+                No service found with this name.
+              </small>
+            </label>
+            <button class="ghost-button" type="button" (click)="addSelectedService()" [disabled]="!selectedServiceIds.length">
+              {{ selectedServiceIds.length ? 'Add ' + selectedServiceIds.length : 'Add' }}
+            </button>
+            <label class="field smart-search-field">
+              <span>Add product</span>
+              <input
+                type="search"
+                [ngModel]="productSearchText"
+                (ngModelChange)="setProductSearch($event)"
+                (focus)="productSearchActive = true"
+                (blur)="closeProductSearchSoon()"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Type product name, SKU, barcode"
+              />
+              <div class="smart-search-results service-search-results" *ngIf="showProductResults()">
+                <button
+                  class="service-result-option"
+                  type="button"
+                  *ngFor="let product of filteredProducts()"
+                  [class.selected]="isProductSelected(product.id)"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="toggleProductSelection(product)"
+                >
+                  <span class="multi-select-box" [class.checked]="isProductSelected(product.id)" aria-hidden="true"></span>
+                  <span class="result-copy">
+                    <strong>{{ product.name || 'Product' }}</strong>
+                    <span>{{ product.category || product.sku || 'Product' }} · ₹{{ product.price || 0 }} · {{ product.stock || 0 }} left</span>
+                  </span>
+                  <span class="select-pill">{{ isProductSelected(product.id) ? 'Selected' : 'Select' }}</span>
+                </button>
+                <div class="service-result-actions">
+                  <button type="button" (mousedown)="$event.preventDefault()" (click)="selectVisibleProducts()">Select visible</button>
+                  <button type="button" *ngIf="selectedProductIds.length" (mousedown)="$event.preventDefault()" (click)="clearProductSelection()">Clear</button>
+                </div>
+              </div>
+              <small class="smart-search-hint selected" *ngIf="selectedProductIds.length">
+                {{ selectedProductIds.length }} product selected. Add will include all of them.
+              </small>
+              <small class="smart-search-hint" *ngIf="productSearchActive && productSearchText.trim().length > 0 && filteredProducts().length > 1">
+                Multiple products matched. Select the required products.
+              </small>
+              <small class="smart-search-hint is-empty" *ngIf="productSearchActive && productSearchText.trim().length > 0 && !filteredProducts().length">
+                No product found with this name.
+              </small>
+            </label>
+            <button class="ghost-button" type="button" (click)="addSelectedProduct()" [disabled]="!selectedProductIds.length">
+              {{ selectedProductIds.length ? 'Add ' + selectedProductIds.length : 'Add' }}
+            </button>
+          </div>
+
+          <div class="benefit-lines">
+            <label class="field">
+              <span>Membership sale</span>
+              <select #membershipPlanSelect>
+                <option value="">Choose membership</option>
+                <option *ngFor="let plan of activeMembershipPlans()" [value]="plan.id">{{ plan.name }} - ₹{{ plan.price }} / {{ plan.discountPercent }}% every bill</option>
+              </select>
+            </label>
+            <button class="ghost-button" type="button" (click)="addMembershipPlan(membershipPlanSelect.value); membershipPlanSelect.value = ''">Add</button>
+
+            <label class="field">
+              <span>Package sale</span>
+              <select #packageSelect>
+                <option value="">Choose package</option>
+                <option *ngFor="let itemPackage of packages()" [value]="itemPackage.id">{{ itemPackage.name }} - ₹{{ itemPackage.price }}</option>
+              </select>
+            </label>
+            <button class="ghost-button" type="button" (click)="addPackage(packageSelect.value); packageSelect.value = ''">Add</button>
+
+            <label class="field">
+              <span>Gift card sale</span>
+              <input #giftCardAmount type="number" min="0" placeholder="Gift card amount" />
+            </label>
+            <button class="ghost-button" type="button" (click)="addGiftCard(giftCardAmount.value); giftCardAmount.value = ''">Add</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Staff</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Discount</th>
+                  <th>GST</th>
+                  <th>Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of items(); let index = index">
+                  <td>
+                    <span style="display: block; margin-bottom: 6px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase;">{{ itemCategoryTitle(item) }}</span>
+                    <span>{{ item.name }}</span>
+                  </td>
+                  <td>
+                    <div class="line-staff-box" [class.has-splits]="item.staffSplits?.length">
+                      <div class="staff-primary-row">
+                        <select class="line-staff-select" [ngModel]="item.staffId || ''" (ngModelChange)="setItemStaff(item, $event)" [ngModelOptions]="{ standalone: true }">
+                          <option value="">Unassigned</option>
+                          <option *ngFor="let person of staff()" [value]="person.id">{{ person.name }}</option>
+                        </select>
+                        <button class="ghost-button mini split-action" type="button" (click)="addStaffSplit(item)">
+                          {{ item.staffSplits?.length ? '+ Staff' : 'Split' }}
+                        </button>
+                      </div>
+                      <div class="split-lines" *ngIf="item.staffSplits?.length">
+                        <div class="split-line" *ngFor="let split of item.staffSplits; let splitIndex = index">
+                          <span class="split-number">{{ splitIndex + 1 }}</span>
+                          <select class="split-staff-select" [ngModel]="split.staffId" (ngModelChange)="setItemSplitStaff(item, splitIndex, $event)" [ngModelOptions]="{ standalone: true }">
+                            <option value="">Staff</option>
+                            <option *ngFor="let person of staff()" [value]="person.id">{{ person.name }}</option>
+                          </select>
+                          <div class="split-percent-field">
+                            <input type="number" min="0" max="100" [ngModel]="split.percent" (ngModelChange)="setItemSplitPercent(item, splitIndex, $event)" [ngModelOptions]="{ standalone: true }" />
+                            <span>%</span>
+                          </div>
+                          <button class="icon-button split-remove" type="button" title="Remove split" (click)="removeStaffSplit(item, splitIndex)">x</button>
+                        </div>
+                        <small class="split-total" [class.warning-text]="splitPercentTotal(item) !== 100">
+                          Split total {{ splitPercentTotal(item) }}%
+                        </small>
+                      </div>
+                    </div>
+                  </td>
+                  <td><input class="small-input" type="number" min="1" [(ngModel)]="item.quantity" (ngModelChange)="touchItems()" /></td>
+                  <td><input class="small-input" type="number" min="0" [(ngModel)]="item.price" (ngModelChange)="touchItems()" /></td>
+                  <td>
+                    <div class="line-discount-cell">
+                      <div class="line-discount-control">
+                        <select
+                          [ngModel]="item.discountType || 'amount'"
+                          (ngModelChange)="setItemDiscountType(item, $event)"
+                          [ngModelOptions]="{ standalone: true }"
+                        >
+                          <option value="amount">₹</option>
+                          <option value="percent">%</option>
+                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          [ngModel]="item.discountValue || 0"
+                          (ngModelChange)="setItemDiscountValue(item, $event)"
+                          [ngModelOptions]="{ standalone: true }"
+                        />
+                      </div>
+                      <small *ngIf="lineDiscountAmount(item) > 0">
+                        {{ lineDiscountSourceLabel(item) }} {{ lineDiscountAmount(item) | currency: 'INR':'symbol':'1.0-0' }}
+                      </small>
+                    </div>
+                  </td>
+                  <td>{{ item.gstRate }}%</td>
+                  <td class="line-total-cell">
+                    <strong>{{ lineTotal(item) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                    <small *ngIf="lineDiscountAmount(item) > 0">
+                      Gross {{ lineGross(item) | currency: 'INR':'symbol':'1.0-0' }}
+                    </small>
+                  </td>
+                  <td><button class="ghost-button mini" type="button" (click)="removeItem(index)">Remove</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="panel checkout-panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Invoice summary</span>
+            </div>
+          </div>
+          <div class="summary-control-grid summary-control-grid--discount">
+            <label class="field">
+              <span>Discount</span>
+              <input type="number" min="0" [(ngModel)]="discount" />
+            </label>
+            <label class="field">
+              <span>Type</span>
+              <select [(ngModel)]="discountMode">
+                <option value="amount">₹</option>
+                <option value="percent">%</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Coupon code</span>
+              <input type="text" [(ngModel)]="couponCode" (ngModelChange)="clearCoupon()" placeholder="GLOW10" />
+            </label>
+            <button class="ghost-button summary-apply-button" type="button" (click)="validateCoupon()" [disabled]="couponChecking() || !couponCode || !items().length || !form.value.branchId">
+              {{ couponChecking() ? 'Checking...' : 'Apply' }}
+            </button>
+          </div>
+          <p class="inline-hint" *ngIf="couponMessage()">{{ couponMessage() }}</p>
+          <div class="summary-control-grid summary-control-grid--membership">
+            <label class="field">
+              <span>Benefit credits to redeem</span>
+              <input type="number" min="0" [ngModel]="creditsUsed" (ngModelChange)="setRedeemableCredits($event)" />
+            </label>
+            <label class="field">
+              <span>Membership / package</span>
+              <select [ngModel]="membershipId" (ngModelChange)="selectRedeemableBenefit($event)">
+                <option value="">No redemption</option>
+                <option *ngFor="let benefit of redeemableBenefits()" [value]="benefit.membershipId || benefit.id">{{ redeemableBenefitOption(benefit) }}</option>
+              </select>
+            </label>
+            <button class="ghost-button summary-apply-button" type="button" (click)="useAllRedeemableCredits()" [disabled]="!selectedRedeemableBenefit() || !selectedRedeemableBenefitRemainingCredits()">
+              Use all
+            </button>
+          </div>
+          <p class="inline-hint" *ngIf="selectedRedeemableBenefit() as benefit">
+            Redeeming {{ redeemableBenefitTypeLabel(benefit) }} {{ benefit.planName || benefit.name || benefit.membershipId }}. {{ selectedRedeemableBenefitRemainingCredits() }} credits available before invoice save.
+          </p>
+          <section class="benefit-mapping-box" *ngIf="selectedRedeemableBenefit() as benefit">
+            <div class="benefit-mapping-box__header">
+              <div>
+                <span class="eyebrow">Service-line package mapping</span>
+                <strong>Choose service lines before save</strong>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="autoAllocateBenefitCredits()" [disabled]="!creditsUsed || !redeemableServiceLines().length">
+                Auto map
+              </button>
+            </div>
+            <div class="benefit-mapping-box__summary">
+              <span>Allocated {{ allocatedBenefitCredits() }} / {{ creditsUsed }} credits</span>
+              <span>Balance after redeem {{ benefitRemainingAfterRedeem() }} credits</span>
+            </div>
+            <p class="inline-hint" *ngIf="!redeemableServiceLines().length">
+              Add at least one service line to redeem benefit credits.
+            </p>
+            <div class="benefit-mapping-lines" *ngIf="redeemableServiceLines().length">
+              <article class="benefit-mapping-line" *ngFor="let line of redeemableServiceLines()">
+                <div>
+                  <strong>{{ line.serviceName }}</strong>
+                  <small>{{ line.staffName || 'Unassigned staff' }} · {{ line.finalAmount | currency: 'INR':'symbol':'1.0-0' }}</small>
+                </div>
+                <label class="field compact-field">
+                  <span>Credits</span>
+                  <input
+                    type="number"
+                    min="0"
+                    [max]="maxServiceLineMappedCredits(line.lineIndex)"
+                    [ngModel]="serviceLineMappedCredits(line.lineIndex)"
+                    (ngModelChange)="setServiceLineMappedCredits(line.lineIndex, $event)"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </label>
+              </article>
+            </div>
+            <p class="inline-hint warning-text" *ngIf="creditsUsed > 0 && unallocatedBenefitCredits() > 0">
+              {{ unallocatedBenefitCredits() }} credits are not mapped to service lines.
+            </p>
+            <div class="benefit-mapping-summary-list" *ngIf="selectedBenefitServiceMappings().length">
+              <div *ngFor="let mapping of selectedBenefitServiceMappings()">
+                <span>{{ benefit.planName || benefit.name || benefit.membershipId }} -> {{ mapping.serviceName }}</span>
+                <strong>{{ mapping.credits }} credits</strong>
+              </div>
+            </div>
+          </section>
+          <p class="inline-hint" *ngIf="selectedClient() && !redeemableBenefits().length">
+            This client has no redeemable membership or package credits.
+          </p>
+
+          <section class="tip-box">
+            <div class="section-title compact-title tip-box-title">
+              <span class="eyebrow">Staff tips</span>
+              <a class="ghost-button mini" routerLink="/pos/tips">Tip register</a>
+            </div>
+            <div class="tip-draft-grid">
+              <label class="field">
+                <span>Staff</span>
+                <select [(ngModel)]="tipDraft.staffId">
+                  <option value="">Use invoice staff</option>
+                  <option *ngFor="let person of staff()" [value]="person.id">{{ person.name }}</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Amount</span>
+                <input type="number" min="0" [(ngModel)]="tipDraft.amount" />
+              </label>
+              <button class="ghost-button tip-add-button" type="button" (click)="addTip()">Add tip</button>
+            </div>
+            <p class="inline-hint" *ngIf="tipMessage()">{{ tipMessage() }}</p>
+            <div class="tip-lines" *ngIf="tips().length">
+              <article *ngFor="let tip of tips(); let index = index">
+                <div>
+                  <strong>{{ tip.staffName }}</strong>
+                  <span>Invoice tip</span>
+                </div>
+                <strong>{{ tip.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <button class="ghost-button mini" type="button" (click)="removeTip(index)">Remove</button>
+              </article>
+            </div>
+          </section>
+
+          <div class="summary-lines">
+            <div><span>Subtotal</span><strong>{{ subtotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Manual discount</span><strong>{{ manualDiscountAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div *ngIf="membershipAutoDiscount > 0"><span>{{ membershipAutoDiscountLabel }}</span><strong>{{ membershipAutoDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Coupon discount</span><strong>{{ couponDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>GST</span><strong>{{ gst | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Staff tips</span><strong>{{ tipTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div *ngIf="appliedBookingAdvanceAmount() > 0"><span>Booking advance applied</span><strong>{{ appliedBookingAdvanceAmount() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div class="total"><span>Total</span><strong>{{ total | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Paid now</span><strong>{{ paidTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div [class.total]="balanceDue > 0"><span>Balance due</span><strong>{{ balanceDue | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+          </div>
+
+          <section class="unpaid-receive-box" *ngIf="bookingAdvanceInfo() as advance">
+            <div class="unpaid-receive-copy">
+              <span class="eyebrow">Booking advance</span>
+              <strong>{{ bookingAdvancePaidAmount() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small *ngIf="hasBookingAdvanceSuggestion">Advance is available. Apply it to include it in this invoice.</small>
+              <small *ngIf="appliedBookingAdvanceAmount() > 0">Advance is included. Collect remaining {{ bookingAdvanceRemainingSuggestion | currency: 'INR':'symbol':'1.0-0' }}.</small>
+              <small *ngIf="advance['status'] === 'pending'">Advance link is created; payment is still pending.</small>
+            </div>
+            <div class="client-search-actions">
+              <button class="ghost-button" type="button" *ngIf="hasBookingAdvanceSuggestion" (click)="applyBookingAdvanceSuggestion()">
+                Apply booking advance
+              </button>
+              <button class="ghost-button" type="button" *ngIf="appliedBookingAdvanceAmount() > 0" (click)="removeBookingAdvanceSuggestion()">
+                Remove advance
+              </button>
+            </div>
+          </section>
+
+          <div class="payment-header">
+            <div class="payment-title-copy">
+              <span class="eyebrow">Click to fill balance</span>
+              <h2>Payment collection</h2>
+            </div>
+            <div class="payment-actions">
+              <button
+                class="ghost-button mini wallet-action-button"
+                type="button"
+                [class.ready]="walletButtonReady"
+                [disabled]="!walletButtonReady"
+                (click)="handleWalletButton()"
+              >
+                {{ walletButtonLabel }}
+              </button>
+              <a class="ghost-button mini" routerLink="/pos/payment-modes">Manage modes</a>
+            </div>
+          </div>
+          <div class="payment-grid">
+            <label
+              class="field payment-mode-card"
+              *ngFor="let mode of activePaymentModes()"
+              [class.filled]="paymentAmount(mode.id) > 0"
+              (click)="fillPaymentDue(mode.id)"
+            >
+              <span>{{ mode.label }} <small>{{ paymentHint(mode.id) }}</small></span>
+              <input
+                type="number"
+                min="0"
+                [ngModel]="paymentAmount(mode.id)"
+                (ngModelChange)="setPaymentAmount(mode.id, $event)"
+                (focus)="fillPaymentDue(mode.id)"
+              />
+            </label>
+          </div>
+          <section class="unpaid-receive-box round-off-box" *ngIf="roundOffDueAmount > 0">
+            <div class="unpaid-receive-copy">
+              <span class="eyebrow">Balance choice</span>
+              <strong>{{ roundOffDueAmount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Keep this balance unpaid or adjust it with round off.</small>
+              <small *ngIf="roundOffPreviewLabel()">{{ roundOffPreviewLabel() }}</small>
+            </div>
+            <div class="client-search-actions round-off-actions">
+              <button class="ghost-button" type="button" (click)="keepRoundOffAsUnpaid()">
+                Keep unpaid
+              </button>
+              <button class="primary-button" type="button" (click)="applyBalanceRoundOff()" [disabled]="!canApplyRoundOff()">
+                Round off {{ roundOffDueAmount | currency: 'INR':'symbol':'1.0-0' }}
+              </button>
+            </div>
+          </section>
+          <section class="unpaid-receive-box" *ngIf="selectedClientUnpaidBalance > 0">
+            <div class="unpaid-receive-copy">
+              <span class="eyebrow">Receive old balance</span>
+              <strong>{{ selectedClientUnpaidBalance | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Clear pending dues from previous invoices before or with this bill.</small>
+            </div>
+            <label class="field">
+              <span>Amount</span>
+              <input
+                type="number"
+                min="0"
+                [max]="selectedClientUnpaidBalance"
+                name="unpaidReceiveAmount"
+                [ngModel]="unpaidReceiveAmount"
+                (ngModelChange)="setUnpaidReceiveAmount($event)"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </label>
+            <label class="field">
+              <span>Mode</span>
+              <select
+                name="unpaidReceiveMode"
+                [(ngModel)]="unpaidReceiveMode"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                <option *ngFor="let mode of activePaymentModes()" [value]="mode.id">{{ mode.label }}</option>
+              </select>
+            </label>
+            <button class="ghost-button" type="button" (click)="fillUnpaidReceiveAmount()">Fill due</button>
+            <button class="primary-button" type="button" (click)="receiveUnpaid()" [disabled]="!canReceiveUnpaid">
+              Receive unpaid
+            </button>
+          </section>
+          <p class="inline-hint" *ngIf="unpaidReceiveMessage()">{{ unpaidReceiveMessage() }}</p>
+          <p class="inline-hint" *ngIf="overPaid > 0 && !walletCreditRequested()">Extra {{ overPaid | currency: 'INR':'symbol':'1.0-0' }} received. Click Wallet to add extra amount to client wallet.</p>
+          <p class="inline-hint wallet-status" *ngIf="walletCreditRequested() && overPaid > 0">After invoice save, {{ overPaid | currency: 'INR':'symbol':'1.0-0' }} will be credited to this client's wallet.</p>
+          <p class="inline-hint" *ngIf="selectedClient() as client">Wallet balance: {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</p>
+
+          <section class="settlement-preview-bar" *ngIf="items().length">
+            <div class="settlement-preview-copy">
+              <span class="eyebrow">Final settlement preview</span>
+              <strong>Review payment split before saving</strong>
+              <small>Advance and counter collection will be saved separately on the invoice.</small>
+            </div>
+            <div class="settlement-preview-metrics">
+              <article>
+                <span>Advance adjusted</span>
+                <strong>{{ settlementPreviewAdvance | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article>
+                <span>Counter payment</span>
+                <strong>{{ settlementPreviewCounterCollected | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article [class.is-due]="settlementPreviewDueAfterSave > 0">
+                <span>Due after save</span>
+                <strong>{{ settlementPreviewDueAfterSave | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+              <article *ngIf="settlementPreviewWalletCredit > 0">
+                <span>Wallet credit</span>
+                <strong>{{ settlementPreviewWalletCredit | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+            </div>
+          </section>
+
+          <button class="primary-button full-button" type="button" (click)="checkout()" [disabled]="!canSaveCheckout">
+            {{ saving() ? 'Saving sale...' : 'Save sale and invoice' }}
+          </button>
+
+          <section class="invoice-preview" *ngIf="invoice() as invoice">
+            <span class="eyebrow">Invoice generated</span>
+            <h3>{{ invoice.invoiceNumber }}</h3>
+            <p>Status: <strong>{{ invoice.status }}</strong></p>
+            <section class="generated-settlement-card" *ngIf="generatedInvoiceSettlement() as settlement">
+              <span class="eyebrow">Settlement recap</span>
+              <div class="generated-settlement-lines">
+                <div><span>Advance adjusted</span><strong>{{ settlement.advance | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                <div><span>Counter paid</span><strong>{{ settlement.counter | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                <div [class.total]="settlement.due > 0"><span>Counter due</span><strong>{{ settlement.due | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                <div *ngIf="settlement.walletCredit > 0"><span>Wallet credit</span><strong>{{ settlement.walletCredit | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+              </div>
+              <div class="generated-benefit-card" *ngIf="generatedInvoiceBenefitRedeem() as benefitRedeem">
+                <span class="eyebrow">Redeemed benefit summary</span>
+                <div class="generated-settlement-lines">
+                  <div><span>Benefit</span><strong>{{ generatedBenefitRedeemLabel(benefitRedeem) }}</strong></div>
+                  <div><span>Credits used</span><strong>{{ generatedBenefitRedeemCredits(benefitRedeem) }}</strong></div>
+                  <div><span>Balance left</span><strong>{{ generatedBenefitRedeemBalance(benefitRedeem) }}</strong></div>
+                </div>
+                <div class="benefit-mapping-summary-list" *ngIf="generatedBenefitServiceMappings(benefitRedeem).length">
+                  <div *ngFor="let mapping of generatedBenefitServiceMappings(benefitRedeem)">
+                    <span>{{ mapping.serviceName }}</span>
+                    <strong>{{ mapping.credits }} credits</strong>
+                  </div>
+                </div>
+              </div>
+              <small class="generated-whatsapp-preview">WhatsApp summary: {{ generatedInvoiceWhatsappPreview(settlement) }}</small>
+            </section>
+            <button class="ghost-button" type="button" (click)="downloadInvoice()">Download invoice</button>
+          </section>
+        </aside>
+      </div>
+
+    </section>
+  `,
+  styles: [`
+    :host .pos-layout,
+    :host .pos-layout > .panel,
+    :host .pos-form {
+      overflow: visible;
+    }
+
+    :host .client-crm-tile.identity {
+      align-content: start;
+      gap: 7px;
+    }
+
+    :host .client-crm-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    :host .settlement-preview-bar {
+      display: grid;
+      gap: 12px;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 14px 0 16px;
+      background: linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
+    }
+
+    :host .settlement-preview-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    :host .settlement-preview-copy strong {
+      color: #0f172a;
+      font-size: 15px;
+    }
+
+    :host .settlement-preview-copy small {
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    :host .settlement-preview-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    :host .settlement-preview-metrics article {
+      border: 1px solid rgba(15, 118, 110, 0.14);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 4px;
+    }
+
+    :host .settlement-preview-metrics span {
+      color: #0f766e;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    :host .settlement-preview-metrics strong {
+      color: #0f172a;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    :host .settlement-preview-metrics article.is-due {
+      border-color: rgba(220, 38, 38, 0.22);
+      background: rgba(254, 242, 242, 0.96);
+    }
+
+    :host .settlement-preview-metrics article.is-due span {
+      color: #b91c1c;
+    }
+
+    :host .benefit-mapping-box {
+      display: grid;
+      gap: 10px;
+      margin: 12px 0;
+      padding: 12px;
+      border: 1px solid rgba(15, 118, 110, 0.14);
+      border-radius: 10px;
+      background: #f8fffd;
+    }
+
+    :host .benefit-mapping-box__header,
+    :host .benefit-mapping-box__summary,
+    :host .benefit-mapping-line,
+    :host .benefit-mapping-summary-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    :host .benefit-mapping-box__header strong {
+      display: block;
+      color: #0f172a;
+    }
+
+    :host .benefit-mapping-box__summary {
+      flex-wrap: wrap;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    :host .benefit-mapping-lines,
+    :host .benefit-mapping-summary-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    :host .benefit-mapping-line,
+    :host .benefit-mapping-summary-list div {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    :host .benefit-mapping-line small,
+    :host .benefit-mapping-summary-list span {
+      color: #64748b;
+    }
+
+    :host .compact-field {
+      min-width: 96px;
+      margin: 0;
+    }
+
+    :host .compact-field input {
+      min-width: 80px;
+    }
+
+    :host .generated-benefit-card {
+      display: grid;
+      gap: 8px;
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
+      padding-top: 10px;
+    }
+
+    :host .generated-settlement-card {
+      display: grid;
+      gap: 8px;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 10px;
+      padding: 12px;
+      margin: 12px 0;
+      background: #f8fffd;
+    }
+
+    :host .generated-settlement-lines {
+      display: grid;
+      gap: 6px;
+    }
+
+    :host .generated-settlement-lines div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    :host .generated-settlement-lines div:last-child {
+      border-bottom: 0;
+    }
+
+    :host .generated-settlement-lines span {
+      color: #475569;
+    }
+
+    :host .generated-settlement-lines strong {
+      color: #0f172a;
+    }
+
+    :host .generated-whatsapp-preview {
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 960px) {
+      :host .settlement-preview-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      :host .benefit-mapping-line,
+      :host .benefit-mapping-summary-list div {
+        align-items: start;
+        flex-direction: column;
+      }
+    }
+
+    :host .client-crm-history-button {
+      border-color: rgba(15, 143, 127, 0.26);
+      background: #e8f7f4;
+      color: #0f3f3a;
+    }
+
+    :host .pos-client-search-row {
+      position: relative;
+      z-index: 35;
+      overflow: visible;
+    }
+
+    :host .pos-floating-search {
+      position: relative;
+      z-index: 30;
+    }
+
+    :host .pos-floating-search:focus-within {
+      z-index: 120;
+    }
+
+    :host .pos-search-results {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      display: grid;
+      max-height: min(340px, 42vh);
+      overflow-y: auto;
+      padding: 8px;
+      border: 1px solid rgba(15, 118, 110, 0.22);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 26px 70px rgba(15, 23, 42, 0.2);
+      backdrop-filter: blur(12px);
+    }
+
+    :host .client-search-results {
+      width: min(100%, 780px);
+      gap: 8px;
+    }
+
+    :host .client-search-caption {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 8px 8px;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    :host .staff-search-results {
+      max-height: min(280px, 36vh);
+    }
+
+    :host .staff-search-input-wrap {
+      position: relative;
+    }
+
+    :host .staff-search-input-wrap input {
+      padding-right: 44px;
+    }
+
+    :host .staff-clear-button {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 999px;
+      color: #0f766e;
+      background: rgba(15, 118, 110, 0.1);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    :host .pos-search-results button,
+    :host .client-result-card {
+      min-height: 48px;
+      border-radius: 12px;
+    }
+
+    :host .client-result-card {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    :host .client-result-card:hover,
+    :host .client-result-card:focus-visible,
+    :host .client-result-card.active {
+      background: rgba(15, 118, 110, 0.09);
+      outline: 0;
+    }
+
+    :host .client-avatar {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      color: #f8fafc;
+      background: linear-gradient(135deg, #0f766e, #2563eb);
+      font-weight: 900;
+    }
+
+    :host .client-result-main {
+      display: grid;
+      min-width: 0;
+      gap: 2px;
+    }
+
+    :host .client-result-main strong,
+    :host .client-result-main span,
+    :host .client-result-main small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    :host .client-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    :host .client-badge {
+      width: fit-content;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: #334155;
+      background: #f1f5f9;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    :host .client-badge.good {
+      color: #047857;
+      background: #d1fae5;
+    }
+
+    :host .client-badge.wallet {
+      color: #1d4ed8;
+      background: #dbeafe;
+    }
+
+    :host .client-badge.due,
+    :host .client-badge.warning {
+      color: #b45309;
+      background: #fef3c7;
+    }
+
+    :host .client-result-main mark {
+      padding: 0 1px;
+      border-radius: 3px;
+      color: #0f172a;
+      background: #fde68a;
+    }
+
+    :host .client-call-button {
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: #0f766e;
+      background: rgba(15, 118, 110, 0.1);
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    :host .client-call-button.whatsapp {
+      color: #15803d;
+      background: #dcfce7;
+    }
+
+    :host .client-empty-state {
+      padding: 18px 12px;
+      color: #64748b;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    :host .pos-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1500;
+      background: rgba(15, 23, 42, 0.34);
+      backdrop-filter: blur(6px);
+    }
+
+    :host .pos-drawer {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1501;
+      width: min(520px, calc(100vw - 32px));
+      display: grid;
+      grid-template-rows: auto auto auto auto 1fr;
+      gap: 16px;
+      padding: 18px;
+      overflow-y: auto;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 30px 90px rgba(15, 23, 42, 0.26);
+    }
+
+    :host .drawer-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    :host .drawer-title h3 {
+      margin: 4px 0;
+      color: #0f172a;
+      font-size: 28px;
+      line-height: 1.05;
+    }
+
+    :host .drawer-title small {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    :host .inline-hint.success {
+      color: #047857;
+    }
+
+    :host .inline-hint.danger {
+      color: #b91c1c;
+    }
+
+    @media (max-width: 720px) {
+      :host .client-search-results {
+        position: fixed;
+        inset: auto 12px 12px 12px;
+        width: auto;
+        max-height: 58vh;
+        border-radius: 22px;
+      }
+
+      :host .client-result-card {
+        grid-template-columns: 40px minmax(0, 1fr) auto auto;
+      }
+
+      :host .pos-drawer {
+        inset: auto 10px 10px 10px;
+        width: auto;
+        max-height: 84vh;
+        border-radius: 22px;
+      }
+
+    }
+
+    :host .pos-search-results button:hover,
+    :host .pos-search-results button:focus-visible {
+      background: rgba(15, 118, 110, 0.09);
+      outline: 0;
+    }
+  `]
+})
+export class PosComponent implements OnInit, OnDestroy {
+  readonly clients = signal<ApiRecord[]>([]);
+  readonly staff = signal<ApiRecord[]>([]);
+  readonly services = signal<ApiRecord[]>([]);
+  readonly products = signal<ApiRecord[]>([]);
+  readonly branches = signal<ApiRecord[]>([]);
+  readonly appointments = signal<ApiRecord[]>([]);
+  readonly invoices = signal<ApiRecord[]>([]);
+  readonly memberships = signal<ApiRecord[]>([]);
+  readonly packages = signal<ApiRecord[]>([]);
+  readonly membershipPlans = signal<PosMembershipPlan[]>([]);
+  readonly membershipEligibility = signal<ApiRecord | null>(null);
+  readonly membershipSuggestion = signal<ApiRecord | null>(null);
+  readonly items = signal<SaleItem[]>([]);
+  readonly paymentModes = signal<PosPaymentMode[]>([]);
+  readonly tipPresets = signal<PosTipPreset[]>([]);
+  readonly tips = signal<TipLine[]>([]);
+  readonly invoice = signal<ApiRecord | null>(null);
+  readonly couponResult = signal<ApiRecord | null>(null);
+  readonly couponMessage = signal('');
+  readonly tipMessage = signal('');
+  readonly walletCreditRequested = signal(false);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly couponChecking = signal(false);
+  readonly error = signal('');
+  readonly dataHint = signal('');
+  readonly bookingAdvanceInfo = signal<ApiRecord | null>(null);
+  readonly bookingAdvanceLoading = signal(false);
+  readonly bookingAdvanceAppliedAmount = signal(0);
+  readonly generatedInvoiceSettlement = signal<{ advance: number; counter: number; due: number; walletCredit: number } | null>(null);
+  readonly generatedInvoiceBenefitRedeem = signal<ApiRecord | null>(null);
+  readonly showClientForm = signal(false);
+  readonly clientSaving = signal(false);
+  readonly debouncedClientQuery = signal('');
+  readonly clientSearchPending = signal(false);
+  readonly clientSearchResults = signal<ApiRecord[]>([]);
+  readonly activeClientResultIndex = signal(0);
+  discount = 0;
+  discountMode: 'amount' | 'percent' = 'amount';
+  couponCode = '';
+  creditsUsed = 0;
+  membershipId = '';
+  benefitServiceMappings: BenefitServiceMapping[] = [];
+  clientSearchText = '';
+  staffSearchText = '';
+  serviceSearchText = '';
+  productSearchText = '';
+  clientSearchActive = false;
+  staffSearchActive = false;
+  serviceSearchActive = false;
+  productSearchActive = false;
+  selectedServiceId = '';
+  selectedServiceIds: string[] = [];
+  selectedProductId = '';
+  selectedProductIds: string[] = [];
+  currentHoldId = '';
+  private pendingHoldId = '';
+  payments: Record<string, number> = {};
+  tipDraft = { staffId: '', paymentMode: 'card', amount: 0, note: '' };
+  unpaidReceiveAmount = 0;
+  unpaidReceiveMode = 'cash';
+  readonly unpaidReceiveMessage = signal('');
+  readonly Number = Number;
+  readonly invoiceDateMax = this.todayDateInput();
+
+  readonly form = this.fb.group({
+    clientId: ['', Validators.required],
+    branchId: ['', Validators.required],
+    staffId: [''],
+    appointmentId: [''],
+    invoiceDate: [this.invoiceDateMax, Validators.required]
+  });
+
+  readonly clientForm = this.fb.group({
+    name: ['', Validators.required],
+    phone: ['', Validators.required],
+    email: [''],
+    birthday: [''],
+    anniversary: [''],
+    tag: ['new'],
+    notes: ['']
+  });
+
+  private fallbackTried = false;
+  private fallbackNotice = false;
+  private activeDraftRestored = false;
+  private suppressActiveDraftPersistence = false;
+  private readonly loadFailures = new Set<string>();
+  private readonly branchSelectionSub = new Subscription();
+  private branchSyncReady = false;
+  private clientSearchTimer = 0;
+  private readonly clientSearchIndex = new Map<string, ClientSearchIndex>();
+
+  constructor(
+    private readonly api: ApiService,
+    private readonly fb: UntypedFormBuilder,
+    private readonly posSettings: PosSettingsService,
+    private readonly appState: AppStateService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router
+  ) {
+    effect(() => {
+      const branchId = this.appState.selectedBranchId();
+      this.syncHeaderBranchToForm(branchId, true);
+      if (this.branchSyncReady) this.load();
+    });
+  }
+
+  ngOnInit(): void {
+    this.pendingHoldId = this.route.snapshot.queryParamMap.get('holdId') || '';
+    this.syncHeaderBranchToForm(this.appState.selectedBranchId(), false);
+    const branchControl = this.form.get('branchId');
+    if (branchControl) {
+      this.branchSelectionSub.add(
+        branchControl.valueChanges.pipe(distinctUntilChanged()).subscribe((branchId) => {
+          this.loadStaffForBranch(String(branchId || ''));
+        })
+      );
+    }
+    const appointmentControl = this.form.get('appointmentId');
+    if (appointmentControl) {
+      this.branchSelectionSub.add(
+        appointmentControl.valueChanges.pipe(distinctUntilChanged()).subscribe((appointmentId) => {
+          this.loadBookingAdvanceSuggestion(String(appointmentId || ''));
+        })
+      );
+    }
+    this.loadPosSettings();
+    this.branchSyncReady = true;
+    this.load();
+  }
+
+  ngOnDestroy(): void {
+    window.clearTimeout(this.clientSearchTimer);
+    this.branchSelectionSub.unsubscribe();
+    this.persistActiveBillingDraft();
+  }
+
+  @HostListener('window:beforeunload')
+  persistActiveBillingDraft(): void {
+    if (this.suppressActiveDraftPersistence) {
+      return;
+    }
+    if (!this.hasActiveBillingDraftDetails()) {
+      this.posSettings.clearActiveBillingDraft();
+      return;
+    }
+    this.posSettings.saveActiveBillingDraft(this.buildActiveBillingDraft());
+  }
+
+  get subtotal(): number {
+    return this.items().reduce((sum, item) => sum + this.lineGross(item), 0);
+  }
+
+  get itemDiscountTotal(): number {
+    return this.money(this.items().reduce((sum, item) => sum + this.lineDiscountAmount(item), 0));
+  }
+
+  get itemManualDiscountTotal(): number {
+    return this.money(
+      this.items()
+        .filter((item) => item.discountSource !== 'membership')
+        .reduce((sum, item) => sum + this.lineDiscountAmount(item), 0)
+    );
+  }
+
+  get billLevelDiscount(): number {
+    const base = Math.max(0, this.subtotal - this.itemDiscountTotal);
+    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount));
+  }
+
+  get gst(): number {
+    const itemTaxableSubtotal = Math.max(0, this.subtotal - this.itemDiscountTotal);
+    const afterBillDiscountRatio = itemTaxableSubtotal
+      ? Math.max(0, itemTaxableSubtotal - this.billLevelDiscount) / itemTaxableSubtotal
+      : 0;
+    return this.money(
+      this.items().reduce((sum, item) => {
+        const taxable = this.lineTaxableSubtotal(item) * afterBillDiscountRatio;
+        return sum + taxable * (Number(item.gstRate) / 100);
+      }, 0)
+    );
+  }
+
+  get total(): number {
+    return this.money(Math.max(0, this.subtotal - this.totalDiscount) + this.gst + this.tipTotal);
+  }
+
+  get tipTotal(): number {
+    return this.money(this.tips().reduce((sum, tip) => sum + Number(tip.amount || 0), 0));
+  }
+
+  get paidTotal(): number {
+    return this.money(
+      Object.values(this.payments).reduce((sum, amount) => sum + Number(amount || 0), 0)
+      + this.appliedBookingAdvanceAmount()
+    );
+  }
+
+  get balanceDue(): number {
+    return this.money(Math.max(0, this.total - this.paidTotal));
+  }
+
+  get roundOffDueAmount(): number {
+    if (!this.items().length || this.paidTotal <= 0 || this.overPaid > 0) return 0;
+    return this.balanceDue > 0 ? this.balanceDue : 0;
+  }
+
+  get overPaid(): number {
+    return this.money(Math.max(0, this.paidTotal - this.total));
+  }
+
+  get walletBalance(): number {
+    return this.money(Number(this.selectedClient()?.walletBalance || 0));
+  }
+
+  get selectedClientUnpaidBalance(): number {
+    return this.money(Number(this.selectedClient()?.unpaidBalance || 0));
+  }
+
+  get canReceiveUnpaid(): boolean {
+    return !this.saving()
+      && !!this.form.value.clientId
+      && this.selectedClientUnpaidBalance > 0
+      && this.money(Number(this.unpaidReceiveAmount || 0)) > 0
+      && this.unpaidInvoicesForSelectedClient().length > 0;
+  }
+
+  get redeemableWalletAmount(): number {
+    return this.money(Math.min(this.balanceDue, this.walletBalance));
+  }
+
+  get walletButtonReady(): boolean {
+    return !!this.form.value.clientId && (this.overPaid > 0 || this.redeemableWalletAmount > 0);
+  }
+
+  get walletButtonLabel(): string {
+    if (!this.form.value.clientId) return 'Wallet';
+    if (this.overPaid > 0) {
+      return this.walletCreditRequested()
+        ? `Wallet +₹${this.overPaid}`
+        : `Add ₹${this.overPaid} to wallet`;
+    }
+    if (this.redeemableWalletAmount > 0) return `Redeem ₹${this.redeemableWalletAmount}`;
+    return `Wallet ₹${this.walletBalance}`;
+  }
+
+  get canSaveCheckout(): boolean {
+    return !this.saving() && !!this.items().length && !this.form.invalid && (this.overPaid <= 0 || this.walletCreditRequested());
+  }
+
+  get hasBookingAdvanceSuggestion(): boolean {
+    return this.bookingAdvancePaidAmount() > 0 && this.appliedBookingAdvanceAmount() <= 0;
+  }
+
+  get bookingAdvanceRemainingSuggestion(): number {
+    return this.money(Math.max(0, this.total - this.bookingAdvancePaidAmount()));
+  }
+
+  get settlementPreviewAdvance(): number {
+    return this.appliedBookingAdvanceAmount();
+  }
+
+  get settlementPreviewCounterCollected(): number {
+    return this.money(Object.values(this.payments).reduce((sum, amount) => sum + Number(amount || 0), 0));
+  }
+
+  get settlementPreviewDueAfterSave(): number {
+    return this.balanceDue;
+  }
+
+  get settlementPreviewWalletCredit(): number {
+    return this.walletCreditRequested() ? this.overPaid : 0;
+  }
+
+  currentSettlementPreview(): { advance: number; counter: number; due: number; walletCredit: number } {
+    return {
+      advance: this.settlementPreviewAdvance,
+      counter: this.settlementPreviewCounterCollected,
+      due: this.settlementPreviewDueAfterSave,
+      walletCredit: this.settlementPreviewWalletCredit
+    };
+  }
+
+  generatedInvoiceWhatsappPreview(settlement: { advance: number; counter: number; due: number; walletCredit: number }): string {
+    const advance = this.money(Number(settlement?.advance || 0)).toFixed(2);
+    const counter = this.money(Number(settlement?.counter || 0)).toFixed(2);
+    const due = this.money(Number(settlement?.due || 0)).toFixed(2);
+    return `Advance adjusted: INR ${advance} | Counter paid: INR ${counter} | Counter due: INR ${due}`;
+  }
+
+  get couponDiscount(): number {
+    return Number(this.couponResult()?.discountAmount || 0);
+  }
+
+  get manualDiscountAmount(): number {
+    const value = Math.max(0, Number(this.discount || 0));
+    const base = Math.max(0, this.subtotal - this.itemDiscountTotal);
+    if (this.discountMode === 'percent') {
+      return this.money((base * Math.min(value, 100)) / 100);
+    }
+    return this.money(value);
+  }
+
+  roundOffPreviewLabel(): string {
+    if (!this.canApplyRoundOff()) return '';
+    const targetDiscount = this.roundOffManualDiscountTarget();
+    const addedDiscount = this.money(Math.max(0, targetDiscount - this.manualDiscountAmount));
+    if (this.discountMode === 'percent') {
+      return `Discount auto ${this.discountPercentForManualAmount(targetDiscount)}% ho jayega. Add-on discount approx ${addedDiscount.toLocaleString('en-IN')}.`;
+    }
+    return `Discount auto ${targetDiscount.toLocaleString('en-IN')} ho jayega. Add-on discount approx ${addedDiscount.toLocaleString('en-IN')}.`;
+  }
+
+  canApplyRoundOff(): boolean {
+    return this.roundOffManualDiscountTarget() > this.manualDiscountAmount + 0.009;
+  }
+
+  keepRoundOffAsUnpaid(): void {
+    if (this.roundOffDueAmount <= 0) return;
+    this.dataHint.set(`Balance ₹${this.roundOffDueAmount.toLocaleString('en-IN')} will be saved as unpaid.`);
+  }
+
+  applyBalanceRoundOff(): void {
+    const dueAmount = this.roundOffDueAmount;
+    const targetDiscount = this.roundOffManualDiscountTarget();
+    if (dueAmount <= 0 || targetDiscount <= this.manualDiscountAmount + 0.009) {
+      this.dataHint.set('No discount space is available for round off.');
+      return;
+    }
+    if (this.discountMode === 'percent') {
+      this.discount = this.discountPercentForManualAmount(targetDiscount);
+    } else {
+      this.discount = this.money(targetDiscount);
+    }
+    this.walletCreditRequested.set(false);
+    this.dataHint.set(`Round off ₹${dueAmount.toLocaleString('en-IN')} applied. No unpaid balance remains.`);
+  }
+
+  get membershipAutoDiscount(): number {
+    return this.money(
+      this.items()
+        .filter((item) => item.discountSource === 'membership')
+        .reduce((sum, item) => sum + this.lineDiscountAmount(item), 0)
+    );
+  }
+
+  get membershipAutoDiscountLabel(): string {
+    const membership = this.activeMembershipForClient();
+    const percent = this.activeMembershipDiscountPercent();
+    return membership ? `${membership.planName} ${percent}% discount` : 'Membership discount';
+  }
+
+  get totalDiscount(): number {
+    return this.money(Math.min(this.subtotal, this.itemDiscountTotal + this.billLevelDiscount));
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    if (!this.fallbackNotice) this.dataHint.set('');
+    this.loadFailures.clear();
+
+    forkJoin({
+      clients: this.safeList('clients', { limit: 1000 }),
+      staff: this.safeList('staff-os/staff', this.staffQueryParams()),
+      services: this.safeList('services', { limit: 1000 }),
+      products: this.safeList('products', { limit: 1000 }),
+      branches: this.safeList('branches', { limit: 1000 }),
+      appointments: this.safeList('appointments', { limit: 1000 }),
+      memberships: this.safeList('memberships', { limit: 1000 }),
+      invoices: this.safeList('invoices', { limit: 1000 }),
+      walletTransactions: this.safeList('walletTransactions', { limit: 5000 }),
+      packages: this.safeList('packages', { limit: 1000 }),
+      packagesAllBranches: this.safeList('packages', { limit: 1000, includeAllBranches: true }),
+      membershipPlans: this.safeList('membership-enterprise/plans')
+    }).subscribe({
+      next: ({ clients, staff, services, products, branches, appointments, memberships, invoices, walletTransactions, packages, packagesAllBranches, membershipPlans }) => {
+        if (this.shouldSwitchToDemoTenant({ clients, staff, services, products, branches })) {
+          this.fallbackTried = true;
+          this.fallbackNotice = true;
+          this.appState.setTenant('tenant_aura');
+          this.dataHint.set('Current POS catalog is empty. Loading the default catalog.');
+          this.load();
+          return;
+        }
+        const clientsWithWallet = this.withWalletBalances(clients || [], walletTransactions || []);
+        const clientsWithBalances = this.withUnpaidBalances(clientsWithWallet, invoices || []);
+        this.invoices.set(invoices || []);
+        this.clients.set(clientsWithBalances);
+        this.applyStaffRows(staff || [], branches || []);
+        this.services.set(services || []);
+        this.products.set(products || []);
+        this.branches.set(branches || []);
+        this.appointments.set(appointments || []);
+        this.memberships.set(memberships || []);
+        this.rebuildClientSearchIndex();
+        this.refreshClientSearchResults();
+        const packageRows = packages?.length ? packages : packagesAllBranches || [];
+        this.packages.set(packageRows);
+        const livePlans = (membershipPlans || []).map((plan) => this.normalizeMembershipPlan(plan as PosMembershipPlan));
+        if (livePlans.length) {
+          this.membershipPlans.set(livePlans);
+          this.posSettings.saveMembershipPlans(livePlans);
+        }
+        this.applyDefaultBranch(branches || []);
+        this.reloadStaffIfBranchScopeChanged(staff || []);
+        this.setDataHint({ clients, staff, services, products, branches });
+        const hadPendingHold = !!this.pendingHoldId;
+        this.restorePendingHold();
+        if (!hadPendingHold) this.restoreActiveBillingDraft();
+        this.applyRouteClientSelection(clientsWithBalances);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to load POS data');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  loadPosSettings(): void {
+    this.applyPaymentModes(this.posSettings.loadPaymentModes());
+    this.tipPresets.set(this.posSettings.loadTipPresets());
+    this.membershipPlans.set(this.posSettings.loadMembershipPlans());
+    this.posSettings.loadPaymentModesRemote().subscribe((modes) => this.applyPaymentModes(modes));
+  }
+
+  private applyPaymentModes(paymentModes: PosPaymentMode[]): void {
+    const modes = paymentModes.filter((mode) => mode.active);
+    this.paymentModes.set(modes);
+    const nextPayments: Record<string, number> = {};
+    for (const mode of modes) {
+      nextPayments[mode.id] = Number(this.payments[mode.id] || 0);
+    }
+    this.payments = nextPayments;
+    this.tipDraft.paymentMode = modes[0]?.id || 'cash';
+  }
+
+  private applyRouteClientSelection(clients: ApiRecord[]): void {
+    if (this.currentHoldId) {
+      return;
+    }
+    const params = this.route.snapshot.queryParamMap;
+    const appointmentId = params.get('appointmentId') || '';
+    if (appointmentId) {
+      if (this.appointmentAlreadyBilled(appointmentId)) {
+        this.blockBilledRouteAppointment(appointmentId);
+        return;
+      }
+      this.api.list<ApiRecord>(`enterprise-scheduler/appointments/${appointmentId}/billing-status`).subscribe({
+        next: (status) => {
+          if (status?.['billed'] || status?.['billingLocked']) {
+            this.blockBilledRouteAppointment(appointmentId, String(status?.['invoiceNumber'] || ''));
+            return;
+          }
+          this.applyRouteAppointmentSelection(appointmentId, clients);
+        },
+        error: () => this.applyRouteAppointmentSelection(appointmentId, clients)
+      });
+      return;
+    }
+    if (this.form.value.clientId) {
+      return;
+    }
+    const clientId = params.get('clientId') || '';
+    const queryPhone = this.phoneDigits(params.get('q') || '');
+    if (!clientId && !queryPhone) {
+      return;
+    }
+    const target = clients.find((client) => clientId && String(client.id) === clientId)
+      || clients.find((client) => queryPhone && this.clientPhoneDigits(client) === queryPhone);
+    if (!target) {
+      return;
+    }
+
+    this.selectClient(target);
+    const receiveDue = Number(params.get('receiveDue') || 0);
+    if (receiveDue > 0) {
+      this.setUnpaidReceiveAmount(receiveDue);
+    }
+  }
+
+  private blockBilledRouteAppointment(appointmentId: string, invoiceNumber = ''): void {
+    this.items.set([]);
+    this.bookingAdvanceInfo.set(null);
+    this.bookingAdvanceLoading.set(false);
+    this.bookingAdvanceAppliedAmount.set(0);
+    this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
+    const invoiceText = invoiceNumber ? ` Invoice ${invoiceNumber} already exists.` : '';
+    this.dataHint.set(`Appointment ${appointmentId} is already billed.${invoiceText} POS will not reopen it.`);
+    void this.router.navigate(['/appointments'], { replaceUrl: true });
+  }
+
+  private applyRouteAppointmentSelection(appointmentId: string, clients: ApiRecord[]): boolean {
+    const appointment = this.appointments().find((item) => String(item.id || '') === appointmentId);
+    if (!appointment) return false;
+    if (this.appointmentAlreadyBilled(appointmentId)) {
+      this.blockBilledRouteAppointment(appointmentId);
+      return true;
+    }
+    const clientId = String(appointment.clientId || '');
+    const client = clients.find((item) => String(item.id || '') === clientId);
+    if (client) {
+      this.selectClient(client);
+    } else {
+      this.form.patchValue({ clientId }, { emitEvent: false });
+      this.clientSearchText = clientId;
+    }
+    const staffId = String(appointment.staffId || '');
+    const staff = this.staff().find((person) => String(person.id || '') === staffId);
+    if (staff) {
+      this.selectStaff(staff);
+    } else {
+      this.form.patchValue({ staffId }, { emitEvent: false });
+      this.staffSearchText = staffId;
+    }
+    this.form.patchValue({ appointmentId }, { emitEvent: false });
+    this.items.set([]);
+    const routeAppointments = this.routeAppointmentRows(appointment);
+    const explicitServiceIds = this.routeIdList(this.route.snapshot.queryParamMap.get('serviceIds') || '');
+    if (routeAppointments.length > 1 || !explicitServiceIds.length) {
+      for (const row of routeAppointments) {
+        for (const serviceId of this.appointmentServiceIds(row)) {
+          this.addService(serviceId, String(row.staffId || staffId));
+        }
+      }
+    } else {
+      for (const serviceId of explicitServiceIds) {
+        this.addService(serviceId, staffId);
+      }
+    }
+    this.serviceSearchText = '';
+    this.selectedServiceIds = [];
+    this.loadBookingAdvanceSuggestion(appointmentId);
+    this.dataHint.set(`Appointment ${appointmentId} loaded in POS with ${this.items().length} service line(s).`);
+    return true;
+  }
+
+  activePaymentModes(): PosPaymentMode[] {
+    return this.paymentModes().filter((mode) => mode.active).sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+  }
+
+  activeTipPresets(): PosTipPreset[] {
+    return this.tipPresets().filter((preset) => preset.active);
+  }
+
+  activeMembershipPlans(): PosMembershipPlan[] {
+    return this.membershipPlans().filter((plan) => plan.active);
+  }
+
+  paymentAmount(modeId: string): number {
+    return Number(this.payments[modeId] || 0);
+  }
+
+  setPaymentAmount(modeId: string, value: number | string): void {
+    const rawAmount = this.money(Number(value || 0));
+    const amount = modeId === 'wallet' ? Math.min(rawAmount, this.walletBalance) : rawAmount;
+    this.payments = { ...this.payments, [modeId]: this.money(amount) };
+    this.walletCreditRequested.set(false);
+  }
+
+  fillPaymentDue(modeId: string): void {
+    if (this.paymentAmount(modeId) > 0 || this.balanceDue <= 0) return;
+    const amount = modeId === 'wallet' ? this.redeemableWalletAmount : this.balanceDue;
+    if (amount > 0) this.setPaymentAmount(modeId, amount);
+  }
+
+  paymentHint(modeId: string): string {
+    const amount = this.paymentAmount(modeId);
+    if (amount > 0) return `₹${amount} applied`;
+    if (modeId === 'wallet' && this.walletBalance > 0) return `redeem ₹${this.redeemableWalletAmount}`;
+    if (modeId === 'wallet') return 'wallet ₹0';
+    if (this.balanceDue > 0) return `click ₹${this.balanceDue}`;
+    return 'settled';
+  }
+
+  paymentModeLabel(modeId: string): string {
+    if (modeId === 'booking_advance') return 'Booking advance';
+    return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
+  }
+
+  bookingAdvancePaidAmount(): number {
+    const info = this.bookingAdvanceInfo() || {};
+    const status = String(info['status'] || '').toLowerCase();
+    const amount = this.money(Number(info['amount'] || 0));
+    return status === 'paid' ? amount : 0;
+  }
+
+  appliedBookingAdvanceAmount(): number {
+    return this.money(Math.min(this.total, Number(this.bookingAdvanceAppliedAmount() || 0)));
+  }
+
+  applyBookingAdvanceSuggestion(): void {
+    const amount = this.bookingAdvancePaidAmount();
+    if (amount <= 0) return;
+    this.bookingAdvanceAppliedAmount.set(this.money(Math.min(this.total, amount)));
+    this.walletCreditRequested.set(false);
+    const remaining = this.money(Math.max(0, this.total - this.appliedBookingAdvanceAmount()));
+    this.dataHint.set(`Booking advance ₹${this.appliedBookingAdvanceAmount()} applied. Collect remaining ₹${remaining}.`);
+  }
+
+  removeBookingAdvanceSuggestion(): void {
+    if (this.appliedBookingAdvanceAmount() <= 0) return;
+    this.bookingAdvanceAppliedAmount.set(0);
+    this.dataHint.set('Booking advance removed. Invoice payment is back to normal collection.');
+  }
+
+  handleWalletButton(): void {
+    if (this.overPaid > 0) {
+      this.walletCreditRequested.set(true);
+      return;
+    }
+    this.redeemWalletBalance();
+  }
+
+  redeemWalletBalance(): void {
+    if (this.redeemableWalletAmount <= 0) return;
+    this.setPaymentAmount('wallet', this.redeemableWalletAmount);
+  }
+
+  addTip(): void {
+    const amount = this.money(this.tipDraft.amount);
+    const staffId = this.tipDraft.staffId || String(this.form.value.staffId || '');
+    const staffName = this.staff().find((person) => person.id === staffId)?.name || '';
+    if (!staffId || !staffName) {
+      this.tipMessage.set('Select staff before adding a tip.');
+      return;
+    }
+    if (amount <= 0) {
+      this.tipMessage.set('Tip amount must be greater than 0.');
+      return;
+    }
+    const mode = this.tipDraft.paymentMode || this.activePaymentModes()[0]?.id || 'cash';
+    this.tips.update((tips) => [
+      ...tips,
+      {
+        id: `tip_${Date.now()}_${tips.length}`,
+        staffId,
+        staffName,
+        paymentMode: mode,
+        amount,
+        note: this.tipDraft.note || ''
+      }
+    ]);
+    this.tipDraft = { staffId: '', paymentMode: mode, amount: 0, note: '' };
+    this.tipMessage.set('');
+  }
+
+  removeTip(index: number): void {
+    this.tips.update((tips) => tips.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  holdInvoice(): void {
+    if (!this.items().length) {
+      this.error.set('Add at least one service, product, membership, package or gift card before holding the invoice.');
+      return;
+    }
+    const draft = this.buildHeldInvoiceDraft();
+    this.posSettings.upsertHeldInvoice(draft);
+    this.posSettings.clearActiveBillingDraft();
+    this.dataHint.set(`Invoice held: ${draft.title}. You can resume it from Held invoices.`);
+    this.resetDraftAfterHold();
+  }
+
+  filteredClients(): ApiRecord[] {
+    return this.clientSearchResults();
+  }
+
+  clientResultActive(client: ApiRecord): boolean {
+    return this.clientSearchResults()[this.activeClientResultIndex()]?.id === client.id;
+  }
+
+  private recentClients(clients: ApiRecord[]): ApiRecord[] {
+    return [...clients]
+      .sort((a, b) => this.dateMs(b.lastVisitAt || b.lastInvoiceAt || b.updatedAt || b.createdAt) - this.dateMs(a.lastVisitAt || a.lastInvoiceAt || a.updatedAt || a.createdAt))
+      .slice(0, 20);
+  }
+
+  private refreshClientSearchResults(): void {
+    const query = this.normalizeSearch(this.debouncedClientQuery());
+    const clients = this.clients();
+    const results = !query
+      ? this.recentClients(clients)
+      : clients
+        .filter((client) => (this.clientSearchIndex.get(String(client.id || ''))?.haystack || '').includes(query))
+        .sort((a, b) => this.clientSearchScore(b, query) - this.clientSearchScore(a, query))
+        .slice(0, 25);
+    this.clientSearchResults.set(results);
+    this.activeClientResultIndex.set(Math.min(this.activeClientResultIndex(), Math.max(0, results.length - 1)));
+  }
+
+  private rebuildClientSearchIndex(): void {
+    const phoneCounts = new Map<string, number>();
+    const emailCounts = new Map<string, number>();
+    for (const client of this.clients()) {
+      const phone = this.clientPhoneDigits(client);
+      const email = this.normalizeSearch(client.email || '');
+      if (phone) phoneCounts.set(phone, (phoneCounts.get(phone) || 0) + 1);
+      if (email) emailCounts.set(email, (emailCounts.get(email) || 0) + 1);
+    }
+    this.clientSearchIndex.clear();
+    for (const client of this.clients()) {
+      const id = String(client.id || '');
+      const membershipIds = this.clientMembershipIds(client);
+      const phone = this.clientPhoneDigits(client);
+      const email = this.normalizeSearch(client.email || '');
+      const codes = this.normalizeSearch([
+        client.customerCode,
+        client.clientCode,
+        client.code,
+        client.cardNumber,
+        client.fileNo,
+        ...membershipIds
+      ].filter(Boolean).join(' '));
+      const membershipBadge = this.buildClientMembershipBadge(id);
+      this.clientSearchIndex.set(id, {
+        haystack: this.clientSearchHaystack(client, membershipIds),
+        phone,
+        name: this.normalizeSearch(client.name || ''),
+        email,
+        codes,
+        membershipIds,
+        membershipBadge,
+        membershipMeta: this.buildClientMembershipSearchSnapshot(client, id),
+        duplicate: Boolean((phone && (phoneCounts.get(phone) || 0) > 1) || (email && (emailCounts.get(email) || 0) > 1))
+      });
+    }
+  }
+
+  private clientSearchHaystack(client: ApiRecord, membershipIds = this.clientMembershipIds(client)): string {
+    return this.normalizeSearch([
+      client.name,
+      client.phone,
+      client.mobile,
+      client.whatsapp,
+      client.contact,
+      client.phoneNumber,
+      client.mobileNumber,
+      client.email,
+      client.customerCode,
+      client.clientCode,
+      client.code,
+      client.cardNumber,
+      client.fileNo,
+      client.membershipId,
+      client.membershipCode,
+      ...membershipIds
+    ].filter(Boolean).join(' '));
+  }
+
+  private clientSearchScore(client: ApiRecord, query: string): number {
+    const index = this.clientSearchIndex.get(String(client.id || ''));
+    const phone = index?.phone || this.phoneDigits(this.clientPrimaryPhone(client));
+    const queryDigits = this.phoneDigits(query);
+    const name = index?.name || this.normalizeSearch(client.name || '');
+    const email = index?.email || this.normalizeSearch(client.email || '');
+    const codes = index?.codes || '';
+    let score = 0;
+    if (queryDigits && phone === queryDigits) score += 140;
+    if (queryDigits && phone.startsWith(queryDigits)) score += 110;
+    if (name === query) score += 100;
+    if (name.startsWith(query)) score += 80;
+    if (codes.includes(query)) score += 60;
+    if (email.includes(query)) score += 40;
+    if (Number(client.unpaidBalance || 0) > 0) score += 4;
+    if (Number(client.walletBalance || 0) > 0) score += 3;
+    if (index?.membershipBadge) score += 2;
+    return score;
+  }
+
+  private clientMembershipIds(client: ApiRecord): string[] {
+    const clientId = String(client.id || '');
+    const direct = [client.membershipId, client.membershipCode].filter(Boolean).map(String);
+    const linked = this.memberships()
+      .filter((membership) => String(membership.clientId || membership.client_id || '') === clientId)
+      .flatMap((membership) => [membership.id, membership.membershipId, membership.membershipCode, membership.memberCode, membership.planId])
+      .filter(Boolean)
+      .map(String);
+    return Array.from(new Set([...direct, ...linked]));
+  }
+
+  private buildClientMembershipBadge(clientId: string): string {
+    const active = this.activeMembershipForClientId(clientId);
+    if (!active) return '';
+    const days = this.membershipDaysLeft(active);
+    if (days < 0) return 'Membership expired';
+    return days <= 30 ? `Membership ${days}d left` : 'Membership active';
+  }
+
+  private buildClientMembershipSearchSnapshot(client: ApiRecord, clientId: string): string {
+    const active = this.activeMembershipForClientId(clientId);
+    const packageCount = this.activePackageCountForClientId(clientId);
+    const walletBalance = Number(client.walletBalance || 0);
+    if (!active && !packageCount) return `Wallet ₹${walletBalance} · No active benefits`;
+    const packageLabel = packageCount ? ` · ${packageCount} package${packageCount === 1 ? '' : 's'}` : '';
+    if (!active) return `Wallet ₹${walletBalance}${packageLabel}`;
+    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits${packageLabel}`;
+  }
+
+  filteredStaff(): ApiRecord[] {
+    const query = this.normalizeSearch(this.staffSearchText);
+    const staff = this.staff();
+    if (!query) return staff.slice(0, 25);
+    return staff
+      .map((person, index) => ({ person, score: this.staffSearchScore(person, query, index) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.person)
+      .slice(0, 25);
+  }
+
+  filteredServices(): ApiRecord[] {
+    const query = this.normalizeSearch(this.serviceSearchText);
+    if (!query) return this.services().slice(0, 25);
+    return this.services()
+      .filter((service) => this.normalizeSearch(`${service.name || ''} ${service.category || ''} ${service.description || ''}`).includes(query))
+      .slice(0, 25);
+  }
+
+  filteredProducts(): ApiRecord[] {
+    const query = this.normalizeSearch(this.productSearchText);
+    if (!query) return this.products().slice(0, 25);
+    return this.products()
+      .filter((product) =>
+        this.normalizeSearch(`${product.name || ''} ${product.category || ''} ${product.brand || ''} ${product.sku || ''} ${product.barcode || ''}`).includes(query)
+      )
+      .slice(0, 25);
+  }
+
+  showClientResults(): boolean {
+    return this.clientSearchActive;
+  }
+
+  showStaffResults(): boolean {
+    return this.staffSearchActive && this.filteredStaff().length > 0;
+  }
+
+  showServiceResults(): boolean {
+    return this.serviceSearchActive && this.normalizeSearch(this.serviceSearchText).length > 0 && this.filteredServices().length > 0;
+  }
+
+  showProductResults(): boolean {
+    return this.productSearchActive && this.normalizeSearch(this.productSearchText).length > 0 && this.filteredProducts().length > 0;
+  }
+
+  canCreateClientFromSearch(): boolean {
+    const query = this.normalizeSearch(this.debouncedClientQuery());
+    return query.length >= 3 && !this.form.value.clientId && this.clientSearchResults().length === 0;
+  }
+
+  clientOption(client: ApiRecord): string {
+    return String(client.name || client.phone || client.email || client.id || 'Client');
+  }
+
+  clientInitial(client: ApiRecord): string {
+    return String(client.name || client.phone || client.email || 'C').trim().slice(0, 1).toUpperCase() || 'C';
+  }
+
+  clientPrimaryPhone(client: ApiRecord): string {
+    return String(client.phone || client.mobile || client.whatsapp || client.contact || client.phoneNumber || client.mobileNumber || '');
+  }
+
+  clientCallHref(client: ApiRecord): string {
+    const phone = this.phoneDigits(this.clientPrimaryPhone(client));
+    return phone ? `tel:${phone}` : '';
+  }
+
+  clientWhatsAppHref(client: ApiRecord): string {
+    const phone = this.phoneDigits(this.clientPrimaryPhone(client));
+    return phone ? `https://wa.me/91${phone.slice(-10)}` : '';
+  }
+
+  clientResultMeta(client: ApiRecord): string {
+    const index = this.clientSearchIndex.get(String(client.id || ''));
+    const email = client.email ? String(client.email) : '';
+    const code = client.customerCode || client.clientCode || client.code || client.cardNumber || client.fileNo || '';
+    const membership = (index?.membershipIds || []).join(', ');
+    return [email, code ? `Code ${code}` : '', membership ? `Membership ${membership}` : index?.membershipMeta || this.clientMembershipSearchSnapshot(client)]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  clientMembershipBadge(client: ApiRecord): string {
+    return this.clientSearchIndex.get(String(client.id || ''))?.membershipBadge || '';
+  }
+
+  possibleDuplicateClient(client: ApiRecord): boolean {
+    return Boolean(this.clientSearchIndex.get(String(client.id || ''))?.duplicate);
+  }
+
+  highlightSegments(value: unknown): HighlightSegment[] {
+    const text = String(value || '');
+    const query = String(this.debouncedClientQuery() || '').trim().split(/\s+/).filter(Boolean)[0] || '';
+    if (!text || !query) return [{ text, match: false }];
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const index = lowerText.indexOf(lowerQuery);
+    if (index < 0) return [{ text, match: false }];
+    return [
+      { text: text.slice(0, index), match: false },
+      { text: text.slice(index, index + query.length), match: true },
+      { text: text.slice(index + query.length), match: false }
+    ].filter((segment) => segment.text);
+  }
+
+  staffOption(person: ApiRecord): string {
+    return String(person.name || person.fullName || person.phone || person.mobile || person.id || 'Staff');
+  }
+
+  staffResultMeta(person: ApiRecord): string {
+    const role = person.role || person.designation || person.specialization || person.department || 'Staff';
+    const phone = person.phone || person.mobile || person.contact || person.phoneNumber || '';
+    const branch = person.branchName || person.branch || '';
+    const smartId = this.staffSmartIdLabel(person);
+    return [smartId, role, phone, branch].filter(Boolean).join(' · ');
+  }
+
+  private staffSmartIdLabel(person: ApiRecord): string {
+    const code = person.employeeCode || person.staffCode || person.code || person.id || '';
+    return code ? `ID ${code}` : '';
+  }
+
+  private staffSearchScore(person: ApiRecord, query: string, index: number): number {
+    const fields = this.staffSearchFields(person, index);
+    const compactQuery = query.replace(/\s+/g, '');
+    const digitQuery = this.phoneDigits(query);
+    if (fields.some((field) => field === query || field.replace(/\s+/g, '') === compactQuery)) return 120;
+    if (digitQuery && fields.some((field) => this.phoneDigits(field).includes(digitQuery))) return 110;
+    if (fields.some((field) => field.startsWith(query) || field.replace(/\s+/g, '').startsWith(compactQuery))) return 95;
+    if (fields.some((field) => field.includes(query) || field.replace(/\s+/g, '').includes(compactQuery))) return 80;
+    if (fields.some((field) => this.smartSearchDistance(field, query) <= this.smartSearchTolerance(query))) return 54;
+    return 0;
+  }
+
+  private staffSearchFields(person: ApiRecord, index: number): string[] {
+    const name = String(person.name || person.fullName || '').trim();
+    const words = name.split(/\s+/).filter(Boolean);
+    const initials = words.map((word) => word[0]).join('');
+    const numericAlias = String(index + 1);
+    return [
+      name,
+      initials,
+      person.fullName,
+      person.phone,
+      person.mobile,
+      person.contact,
+      person.phoneNumber,
+      person.role,
+      person.designation,
+      person.specialization,
+      person.department,
+      person.employeeCode,
+      person.staffCode,
+      person.code,
+      person.id,
+      numericAlias,
+      `id ${numericAlias}`,
+      `staff ${numericAlias}`,
+      `employee ${numericAlias}`
+    ].map((field) => this.normalizeSearch(field)).filter(Boolean);
+  }
+
+  private smartSearchTolerance(query: string): number {
+    if (query.length < 4) return 0;
+    if (query.length < 7) return 1;
+    return 2;
+  }
+
+  private smartSearchDistance(value: string, query: string): number {
+    const target = value.split(/\s+/).find((part) => Math.abs(part.length - query.length) <= 2) || value;
+    if (Math.abs(target.length - query.length) > 2) return 9;
+    const previous = Array.from({ length: query.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= target.length; i += 1) {
+      let diagonal = previous[0];
+      previous[0] = i;
+      for (let j = 1; j <= query.length; j += 1) {
+        const temp = previous[j];
+        previous[j] = target[i - 1] === query[j - 1]
+          ? diagonal
+          : Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + 1);
+        diagonal = temp;
+      }
+    }
+    return previous[query.length];
+  }
+
+  clientMembershipSearchSnapshot(client: ApiRecord): string {
+    const active = this.activeMembershipForClientId(String(client.id || ''));
+    const packageCount = this.activePackageCountForClientId(String(client.id || ''));
+    const walletBalance = Number(client.walletBalance || 0);
+    if (!active && !packageCount) return `Wallet ₹${walletBalance} · No active benefits`;
+    const packageLabel = packageCount ? ` · ${packageCount} package${packageCount === 1 ? '' : 's'}` : '';
+    if (!active) return `Wallet ₹${walletBalance}${packageLabel}`;
+    return `Wallet ₹${walletBalance} · ${active.planName || 'Membership'} · ${Number(active.creditsRemaining || 0)} credits${packageLabel}`;
+  }
+
+  redeemableBenefits(): ApiRecord[] {
+    const wallet = this.membershipEligibility()?.['wallet'] as ApiRecord | undefined;
+    const rows = Array.isArray(wallet?.['memberships']) ? wallet['memberships'] as ApiRecord[] : [];
+    return rows.filter((benefit) => this.redeemableBenefitRemainingCredits(benefit) > 0);
+  }
+
+  redeemableServiceLines(): Array<{ lineIndex: number; serviceId: string; serviceName: string; staffName: string; finalAmount: number }> {
+    return this.items()
+      .map((item, lineIndex) => ({ item, lineIndex }))
+      .filter(({ item }) => item.type === 'service')
+      .map(({ item, lineIndex }) => ({
+        lineIndex,
+        serviceId: String(item.id || ''),
+        serviceName: item.name || `Service ${lineIndex + 1}`,
+        staffName: item.staffName || '',
+        finalAmount: this.lineTotal(item)
+      }));
+  }
+
+  selectedRedeemableBenefit(): ApiRecord | undefined {
+    const benefitId = String(this.membershipId || '');
+    if (!benefitId) return undefined;
+    return this.redeemableBenefits().find((benefit) => String(benefit['membershipId'] || benefit['id'] || '') === benefitId);
+  }
+
+  redeemableBenefitRemainingCredits(benefit?: ApiRecord): number {
+    return Math.max(0, Number(benefit?.['serviceCredits']?.['remaining'] || benefit?.['creditsRemaining'] || 0));
+  }
+
+  redeemableBenefitTypeLabel(benefit?: ApiRecord): string {
+    return this.membershipBenefitType(benefit) === 'package' ? 'package' : 'membership';
+  }
+
+  redeemableBenefitOption(benefit: ApiRecord): string {
+    const remaining = this.redeemableBenefitRemainingCredits(benefit);
+    const expiry = benefit['expiryDate'] ? ` · exp ${String(benefit['expiryDate']).slice(0, 10)}` : '';
+    return `${this.redeemableBenefitTypeLabel(benefit)} · ${benefit['planName'] || benefit['name'] || benefit['membershipId']} · ${remaining} credits${expiry}`;
+  }
+
+  selectRedeemableBenefit(value: string): void {
+    this.membershipId = String(value || '');
+    if (!this.membershipId) {
+      this.creditsUsed = 0;
+      this.benefitServiceMappings = [];
+      return;
+    }
+    const remaining = this.selectedRedeemableBenefitRemainingCredits();
+    if (this.creditsUsed <= 0) {
+      this.creditsUsed = remaining > 0 ? 1 : 0;
+      this.autoAllocateBenefitCredits();
+      return;
+    }
+    this.creditsUsed = Math.min(this.creditsUsed, remaining);
+    this.normalizeBenefitServiceMappings();
+  }
+
+  setRedeemableCredits(value: number | string): void {
+    const requested = Math.max(0, Math.floor(Number(value || 0)));
+    const remaining = this.selectedRedeemableBenefitRemainingCredits();
+    this.creditsUsed = remaining > 0 ? Math.min(requested, remaining) : 0;
+    this.normalizeBenefitServiceMappings();
+  }
+
+  selectedRedeemableBenefitRemainingCredits(): number {
+    return this.redeemableBenefitRemainingCredits(this.selectedRedeemableBenefit());
+  }
+
+  useAllRedeemableCredits(): void {
+    this.creditsUsed = this.selectedRedeemableBenefitRemainingCredits();
+    this.autoAllocateBenefitCredits();
+  }
+
+  selectedBenefitServiceMappings(): BenefitServiceMapping[] {
+    return this.benefitServiceMappings.filter((mapping) => Number(mapping.credits || 0) > 0);
+  }
+
+  serviceLineMappedCredits(lineIndex: number): number {
+    return Number(this.benefitServiceMappings.find((mapping) => mapping.lineIndex === lineIndex)?.credits || 0);
+  }
+
+  maxServiceLineMappedCredits(lineIndex: number): number {
+    const current = this.serviceLineMappedCredits(lineIndex);
+    const others = this.selectedBenefitServiceMappings()
+      .filter((mapping) => mapping.lineIndex !== lineIndex)
+      .reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+    return Math.max(current, this.creditsUsed - others);
+  }
+
+  setServiceLineMappedCredits(lineIndex: number, value: number | string): void {
+    const requested = Math.max(0, Math.floor(Number(value || 0)));
+    const serviceLine = this.redeemableServiceLines().find((line) => line.lineIndex === lineIndex);
+    if (!serviceLine) return;
+    const next = this.selectedBenefitServiceMappings().filter((mapping) => mapping.lineIndex !== lineIndex);
+    const remaining = Math.max(0, this.creditsUsed - next.reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0));
+    const credits = Math.min(requested, remaining);
+    if (credits > 0) {
+      next.push({
+        lineIndex,
+        serviceId: serviceLine.serviceId,
+        serviceName: serviceLine.serviceName,
+        credits
+      });
+    }
+    this.benefitServiceMappings = next.sort((left, right) => left.lineIndex - right.lineIndex);
+  }
+
+  allocatedBenefitCredits(): number {
+    return this.selectedBenefitServiceMappings().reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+  }
+
+  unallocatedBenefitCredits(): number {
+    return Math.max(0, Number(this.creditsUsed || 0) - this.allocatedBenefitCredits());
+  }
+
+  benefitRemainingAfterRedeem(): number {
+    return Math.max(0, this.selectedRedeemableBenefitRemainingCredits() - Number(this.creditsUsed || 0));
+  }
+
+  autoAllocateBenefitCredits(): void {
+    const serviceLines = this.redeemableServiceLines();
+    if (!serviceLines.length || this.creditsUsed <= 0) {
+      this.benefitServiceMappings = [];
+      return;
+    }
+    const next = serviceLines.map((line) => ({
+      lineIndex: line.lineIndex,
+      serviceId: line.serviceId,
+      serviceName: line.serviceName,
+      credits: 0
+    }));
+    let remaining = Number(this.creditsUsed || 0);
+    let cursor = 0;
+    while (remaining > 0) {
+      next[cursor % next.length].credits += 1;
+      remaining -= 1;
+      cursor += 1;
+    }
+    this.benefitServiceMappings = next.filter((mapping) => mapping.credits > 0);
+  }
+
+  generatedBenefitRedeemLabel(benefitRedeem: ApiRecord): string {
+    return String(benefitRedeem['benefitName'] || benefitRedeem['planName'] || benefitRedeem['membershipName'] || benefitRedeem['membershipId'] || 'Benefit');
+  }
+
+  generatedBenefitRedeemCredits(benefitRedeem: ApiRecord): string {
+    return `${Number(benefitRedeem['creditsUsed'] || 0)} credits`;
+  }
+
+  generatedBenefitRedeemBalance(benefitRedeem: ApiRecord): string {
+    return `${Number(benefitRedeem['remainingAfterRedeem'] || 0)} credits`;
+  }
+
+  generatedBenefitServiceMappings(benefitRedeem: ApiRecord): BenefitServiceMapping[] {
+    const rows = Array.isArray(benefitRedeem['serviceLineMappings']) ? benefitRedeem['serviceLineMappings'] as BenefitServiceMapping[] : [];
+    return rows.filter((mapping) => Number(mapping.credits || 0) > 0);
+  }
+
+  private readJsonObject(value: unknown): ApiRecord | null {
+    if (!value) return null;
+    if (typeof value === 'object') return value as ApiRecord;
+    try {
+      return JSON.parse(String(value));
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizeBenefitServiceMappings(): void {
+    const validLines = new Map(this.redeemableServiceLines().map((line) => [line.lineIndex, line]));
+    if (!this.membershipId || this.creditsUsed <= 0 || !validLines.size) {
+      this.benefitServiceMappings = [];
+      return;
+    }
+    let remaining = Number(this.creditsUsed || 0);
+    const next: BenefitServiceMapping[] = [];
+    for (const mapping of this.selectedBenefitServiceMappings().sort((left, right) => left.lineIndex - right.lineIndex)) {
+      const line = validLines.get(mapping.lineIndex);
+      if (!line || remaining <= 0) continue;
+      const credits = Math.min(Math.max(0, Math.floor(Number(mapping.credits || 0))), remaining);
+      if (credits <= 0) continue;
+      next.push({
+        lineIndex: mapping.lineIndex,
+        serviceId: line.serviceId,
+        serviceName: line.serviceName,
+        credits
+      });
+      remaining -= credits;
+    }
+    this.benefitServiceMappings = next;
+  }
+
+  private invoiceClientId(invoice: ApiRecord): string {
+    return String(invoice.clientId || invoice.client_id || invoice.customerId || invoice.customer_id || '');
+  }
+
+  private phoneDigits(value: unknown): string {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  }
+
+  private clientPhoneDigits(client: ApiRecord | undefined): string {
+    if (!client) {
+      return '';
+    }
+    return this.phoneDigits(client.phone || client.mobile || client.whatsapp || client.contact || client.phoneNumber || client.mobileNumber || '');
+  }
+
+  private invoicePhoneDigits(invoice: ApiRecord): string {
+    return this.phoneDigits(
+      invoice.clientPhone ||
+        invoice.customerPhone ||
+        invoice.phone ||
+        invoice.mobile ||
+        invoice.customerMobile ||
+        invoice.clientMobile ||
+        ''
+    );
+  }
+
+  private invoiceKey(invoice: ApiRecord): string {
+    return String(invoice.id || invoice.invoiceId || invoice.invoice_id || invoice.invoiceNumber || invoice.invoice_no || invoice.createdAt || invoice.created_at || 'invoice');
+  }
+
+  private invoiceBalance(invoice: ApiRecord): number {
+    const direct = invoice.balance ?? invoice.balanceDue ?? invoice.dueAmount ?? invoice.due_amount ?? invoice.due;
+    if (direct !== undefined && direct !== null && direct !== '') {
+      return Math.max(0, this.money(Number(direct)));
+    }
+    const total = Number(invoice.grandTotal ?? invoice.grand_total ?? invoice.total ?? 0);
+    const paid = Number(invoice.paidAmount ?? invoice.paid_amount ?? invoice.paid ?? 0);
+    return Math.max(0, this.money(total - paid));
+  }
+
+  private invoiceDateMs(invoice: ApiRecord): number {
+    return this.dateMs(invoice.createdAt || invoice.created_at || invoice.date || invoice.updatedAt || invoice.updated_at);
+  }
+
+  private unpaidInvoicesForSelectedClient(): Array<ApiRecord & { __balance: number }> {
+    const clientId = String(this.form.value.clientId || '');
+    const selected = this.selectedClient();
+    if (!clientId || !selected) {
+      return [];
+    }
+    const selectedPhone = this.clientPhoneDigits(selected);
+    const matchingClientIds = new Set(
+      this.clients()
+        .filter((client) => String(client.id) === clientId || (!!selectedPhone && this.clientPhoneDigits(client) === selectedPhone))
+        .map((client) => String(client.id))
+    );
+    return this.invoices()
+      .map((invoice) => ({ ...invoice, __balance: this.invoiceBalance(invoice) }))
+      .filter((invoice) => {
+        if (invoice.__balance <= 0) {
+          return false;
+        }
+        const invoiceClientId = this.invoiceClientId(invoice);
+        if (invoiceClientId && matchingClientIds.has(invoiceClientId)) {
+          return true;
+        }
+        return !!selectedPhone && this.invoicePhoneDigits(invoice) === selectedPhone;
+      })
+      .sort((a, b) => this.invoiceDateMs(a) - this.invoiceDateMs(b));
+  }
+
+  private withUnpaidBalances(clients: ApiRecord[], invoices: ApiRecord[]): ApiRecord[] {
+    const clientsById = new Map(clients.map((client) => [String(client.id), client]));
+    const idsByPhone = new Map<string, string[]>();
+    for (const client of clients) {
+      const phone = this.clientPhoneDigits(client);
+      if (!phone) {
+        continue;
+      }
+      idsByPhone.set(phone, [...(idsByPhone.get(phone) || []), String(client.id)]);
+    }
+
+    const unpaidByClient = new Map<string, Map<string, number>>();
+    const addInvoiceBalance = (clientId: string, invoiceKey: string, balance: number) => {
+      if (!clientId || balance <= 0) {
+        return;
+      }
+      const ledger = unpaidByClient.get(clientId) || new Map<string, number>();
+      ledger.set(invoiceKey, balance);
+      unpaidByClient.set(clientId, ledger);
+    };
+
+    for (const invoice of invoices) {
+      const clientId = this.invoiceClientId(invoice);
+      const balance = this.invoiceBalance(invoice);
+      if (balance <= 0) {
+        continue;
+      }
+      const key = this.invoiceKey(invoice);
+      if (clientId) {
+        addInvoiceBalance(clientId, key, balance);
+      }
+      const invoicePhone = this.invoicePhoneDigits(invoice) || this.clientPhoneDigits(clientsById.get(clientId));
+      if (!invoicePhone) {
+        continue;
+      }
+      for (const relatedClientId of idsByPhone.get(invoicePhone) || []) {
+        addInvoiceBalance(relatedClientId, key, balance);
+      }
+    }
+    return clients.map((client) => ({
+      ...client,
+      unpaidBalance: unpaidByClient.has(String(client.id))
+        ? this.money([...(unpaidByClient.get(String(client.id)) || new Map()).values()].reduce((sum, balance) => sum + balance, 0))
+        : this.money(Number(client.unpaidBalance || 0))
+    }));
+  }
+
+  private withWalletBalances(clients: ApiRecord[], transactions: ApiRecord[]): ApiRecord[] {
+    const latestByClient = new Map<string, ApiRecord>();
+    for (const transaction of transactions) {
+      const clientId = String(transaction.clientId || transaction.client_id || '');
+      if (!clientId) continue;
+      const current = latestByClient.get(clientId);
+      const currentTime = this.dateMs(current?.createdAt || current?.created_at || current?.date || current?.updatedAt);
+      const transactionTime = this.dateMs(transaction.createdAt || transaction.created_at || transaction.date || transaction.updatedAt);
+      if (!current || transactionTime >= currentTime) {
+        latestByClient.set(clientId, transaction);
+      }
+    }
+    return clients.map((client) => {
+      const latest = latestByClient.get(String(client.id));
+      const linkedBalance = latest?.balanceAfter ?? latest?.balance_after ?? latest?.balance;
+      return {
+        ...client,
+        walletBalance: linkedBalance !== undefined && linkedBalance !== null && linkedBalance !== ''
+          ? this.money(Number(linkedBalance))
+          : this.money(Number(client.walletBalance || 0))
+      };
+    });
+  }
+
+  serviceOption(service: ApiRecord): string {
+    return `${service.name || 'Service'} - ₹${service.price || 0}`;
+  }
+
+  productOption(product: ApiRecord): string {
+    return `${product.name || 'Product'} - ₹${product.price || 0} (${product.stock || 0} left)`;
+  }
+
+  setClientSearch(value: string): void {
+    this.clientSearchText = value || '';
+    this.clientSearchActive = true;
+    this.activeClientResultIndex.set(0);
+    window.clearTimeout(this.clientSearchTimer);
+    const selected = this.clients().find((client) => this.clientOption(client) === this.clientSearchText);
+    this.form.patchValue({ clientId: selected?.id || '' }, { emitEvent: false });
+    const trimmed = this.clientSearchText.trim();
+    if (!trimmed) {
+      this.clientSearchPending.set(false);
+      this.debouncedClientQuery.set('');
+      this.refreshClientSearchResults();
+      return;
+    }
+    if (this.phoneDigits(this.clientSearchText)) {
+      this.clientSearchPending.set(false);
+      this.debouncedClientQuery.set(trimmed);
+      this.refreshClientSearchResults();
+      return;
+    }
+    this.clientSearchPending.set(true);
+    this.clientSearchTimer = window.setTimeout(() => {
+      this.debouncedClientQuery.set(this.clientSearchText.trim());
+      this.clientSearchPending.set(false);
+      this.activeClientResultIndex.set(0);
+      this.refreshClientSearchResults();
+    }, 300);
+  }
+
+  setStaffSearch(value: string): void {
+    this.staffSearchText = value || '';
+    this.staffSearchActive = true;
+    const selected = this.staff().find((person) => this.staffOption(person) === this.staffSearchText);
+    this.form.patchValue({ staffId: selected?.id || '' }, { emitEvent: false });
+  }
+
+  setServiceSearch(value: string): void {
+    this.serviceSearchText = value || '';
+    this.serviceSearchActive = true;
+  }
+
+  setProductSearch(value: string): void {
+    this.productSearchText = value || '';
+    this.productSearchActive = true;
+  }
+
+  selectClient(client: ApiRecord): void {
+    this.clientSearchText = this.clientOption(client);
+    this.clientSearchPending.set(false);
+    this.debouncedClientQuery.set(this.clientSearchText);
+    this.refreshClientSearchResults();
+    this.form.patchValue({ clientId: client.id }, { emitEvent: false });
+    this.clientSearchActive = false;
+    this.creditsUsed = 0;
+    this.membershipId = '';
+    this.benefitServiceMappings = [];
+    this.walletCreditRequested.set(false);
+    this.unpaidReceiveAmount = 0;
+    this.unpaidReceiveMode = this.activePaymentModes()[0]?.id || 'cash';
+    this.unpaidReceiveMessage.set('');
+    this.loadMembershipIntelligence(client.id);
+  }
+
+  handleClientSearchKeydown(event: KeyboardEvent): void {
+    if (!this.clientSearchActive) return;
+    const results = this.clientSearchResults();
+    if (!results.length && ['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) {
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.activeClientResultIndex.set(Math.min(results.length - 1, this.activeClientResultIndex() + 1));
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.activeClientResultIndex.set(Math.max(0, this.activeClientResultIndex() - 1));
+      return;
+    }
+    if (event.key === 'Enter' && results[this.activeClientResultIndex()]) {
+      event.preventDefault();
+      this.selectClient(results[this.activeClientResultIndex()]);
+      return;
+    }
+    if (event.key === 'Escape') {
+      this.clientSearchActive = false;
+    }
+  }
+
+  selectStaff(person: ApiRecord): void {
+    this.staffSearchText = this.staffOption(person);
+    this.form.patchValue({ staffId: person.id }, { emitEvent: false });
+    this.staffSearchActive = false;
+  }
+
+  clearStaffSelection(): void {
+    this.staffSearchText = '';
+    this.staffSearchActive = false;
+    this.form.patchValue({ staffId: '' }, { emitEvent: false });
+  }
+
+  setUnpaidReceiveAmount(value: unknown): void {
+    const max = this.selectedClientUnpaidBalance;
+    const next = Math.max(0, this.money(Number(value || 0)));
+    this.unpaidReceiveAmount = max > 0 ? this.money(Math.min(next, max)) : next;
+    this.unpaidReceiveMessage.set('');
+  }
+
+  fillUnpaidReceiveAmount(): void {
+    const invoiceBalance = this.money(this.unpaidInvoicesForSelectedClient().reduce((sum, invoice) => sum + invoice.__balance, 0));
+    this.setUnpaidReceiveAmount(invoiceBalance || this.selectedClientUnpaidBalance);
+  }
+
+  receiveUnpaid(): void {
+    const requestedAmount = this.money(Number(this.unpaidReceiveAmount || 0));
+    const invoices = this.unpaidInvoicesForSelectedClient();
+    const totalOpen = this.money(invoices.reduce((sum, invoice) => sum + invoice.__balance, 0));
+    if (!this.form.value.clientId || totalOpen <= 0) {
+      this.unpaidReceiveMessage.set('No old unpaid balance is available for this client.');
+      return;
+    }
+    if (requestedAmount <= 0) {
+      this.unpaidReceiveMessage.set('Receive amount must be greater than 0.');
+      return;
+    }
+
+    const cappedAmount = this.money(Math.min(requestedAmount, totalOpen));
+    const mode = this.unpaidReceiveMode || this.activePaymentModes()[0]?.id || 'cash';
+    let remaining = cappedAmount;
+    const requests = [];
+    for (const invoice of invoices) {
+      if (remaining <= 0) {
+        break;
+      }
+      const paymentAmount = this.money(Math.min(remaining, invoice.__balance));
+      remaining = this.money(remaining - paymentAmount);
+      requests.push(this.api.post<ApiRecord>(`invoices/${invoice.id}/payments`, {
+        mode,
+        amount: paymentAmount,
+        reference: 'POS unpaid receive',
+        remarks: 'Old unpaid balance received from POS Billing'
+      }));
+    }
+
+    if (!requests.length) {
+      this.unpaidReceiveMessage.set('No pending invoice found for receive payment.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.unpaidReceiveMessage.set('');
+    forkJoin(requests).pipe(
+      catchError((error) => {
+        this.unpaidReceiveMessage.set(error?.error?.error || error?.message || 'Unable to receive old unpaid amount');
+        return of([] as ApiRecord[]);
+      })
+    ).subscribe((result) => {
+      this.saving.set(false);
+      if (!result.length) {
+        return;
+      }
+      this.unpaidReceiveAmount = 0;
+      const cappedCopy = requestedAmount > totalOpen
+        ? ` Open balance ₹${totalOpen.toLocaleString('en-IN')} tha, isliye amount cap kiya gaya.`
+        : '';
+      this.unpaidReceiveMessage.set(`Old unpaid ₹${cappedAmount.toLocaleString('en-IN')} received.${cappedCopy}`);
+      this.load();
+    });
+  }
+
+  selectService(service: ApiRecord): void {
+    this.serviceSearchText = this.serviceOption(service);
+    this.selectedServiceId = service.id;
+    this.selectedServiceIds = service.id ? [service.id] : [];
+    this.serviceSearchActive = false;
+  }
+
+  selectProduct(product: ApiRecord): void {
+    this.productSearchText = this.productOption(product);
+    this.selectedProductId = product.id;
+    this.selectedProductIds = product.id ? [product.id] : [];
+    this.productSearchActive = false;
+  }
+
+  isServiceSelected(id: string): boolean {
+    return this.selectedServiceIds.includes(id);
+  }
+
+  isProductSelected(id: string): boolean {
+    return this.selectedProductIds.includes(id);
+  }
+
+  toggleServiceSelection(service: ApiRecord): void {
+    if (!service.id) return;
+    this.selectedServiceIds = this.isServiceSelected(service.id)
+      ? this.selectedServiceIds.filter((id) => id !== service.id)
+      : [...this.selectedServiceIds, service.id];
+    this.selectedServiceId = this.selectedServiceIds[0] || '';
+    this.serviceSearchActive = true;
+  }
+
+  toggleProductSelection(product: ApiRecord): void {
+    if (!product.id) return;
+    this.selectedProductIds = this.isProductSelected(product.id)
+      ? this.selectedProductIds.filter((id) => id !== product.id)
+      : [...this.selectedProductIds, product.id];
+    this.selectedProductId = this.selectedProductIds[0] || '';
+    this.productSearchActive = true;
+  }
+
+  selectVisibleServices(): void {
+    const next = new Set(this.selectedServiceIds);
+    this.filteredServices().forEach((service) => {
+      if (service.id) next.add(service.id);
+    });
+    this.selectedServiceIds = Array.from(next);
+    this.selectedServiceId = this.selectedServiceIds[0] || '';
+    this.serviceSearchActive = true;
+  }
+
+  selectVisibleProducts(): void {
+    const next = new Set(this.selectedProductIds);
+    this.filteredProducts().forEach((product) => {
+      if (product.id) next.add(product.id);
+    });
+    this.selectedProductIds = Array.from(next);
+    this.selectedProductId = this.selectedProductIds[0] || '';
+    this.productSearchActive = true;
+  }
+
+  clearServiceSelection(): void {
+    this.selectedServiceIds = [];
+    this.selectedServiceId = '';
+    this.serviceSearchActive = true;
+  }
+
+  clearProductSelection(): void {
+    this.selectedProductIds = [];
+    this.selectedProductId = '';
+    this.productSearchActive = true;
+  }
+
+  closeClientSearchSoon(): void {
+    window.setTimeout(() => {
+      this.clientSearchActive = false;
+    }, 120);
+  }
+
+  closeStaffSearchSoon(): void {
+    window.setTimeout(() => {
+      this.staffSearchActive = false;
+    }, 120);
+  }
+
+  closeServiceSearchSoon(): void {
+    window.setTimeout(() => {
+      this.serviceSearchActive = false;
+    }, 120);
+  }
+
+  closeProductSearchSoon(): void {
+    window.setTimeout(() => {
+      this.productSearchActive = false;
+    }, 120);
+  }
+
+  openClientFormFromSearch(): void {
+    const raw = this.clientSearchText.trim();
+    if (!raw || this.normalizeSearch(raw).length < 3) return;
+    const digits = raw.replace(/\D/g, '');
+    const looksLikePhone = digits.length > 0 && !/[a-z]/i.test(raw);
+    this.clientForm.reset({
+      name: looksLikePhone ? '' : raw,
+      phone: looksLikePhone ? digits : '',
+      email: '',
+      birthday: '',
+      anniversary: '',
+      tag: 'new',
+      notes: 'Created from POS billing.'
+    });
+    this.showClientForm.set(true);
+    this.clientSearchActive = false;
+  }
+
+  closeClientForm(): void {
+    this.showClientForm.set(false);
+  }
+
+  saveClientFromPos(): void {
+    if (this.clientForm.invalid) {
+      this.clientForm.markAllAsTouched();
+      return;
+    }
+    const branchId = this.form.value.branchId || this.appState.selectedBranchId() || 'branch_hyd';
+    const value = this.clientForm.value;
+    this.clientSaving.set(true);
+    this.api.create<ApiRecord>('clients', {
+      name: value.name,
+      phone: value.phone,
+      email: value.email,
+      birthday: value.birthday,
+      anniversary: value.anniversary,
+      branchId,
+      tags: [value.tag || 'new'],
+      notes: value.notes,
+      walletBalance: 0,
+      loyaltyPoints: 0,
+      visitCount: 0,
+      totalSpend: 0,
+      visitHistory: [],
+      purchaseHistory: [],
+      whatsappHistory: [],
+      consentForms: []
+    }).subscribe({
+      next: (client) => {
+        this.clients.update((clients) => [client, ...clients]);
+        this.selectClient(client);
+        this.showClientForm.set(false);
+        this.clientSaving.set(false);
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to save client');
+        this.clientSaving.set(false);
+      }
+    });
+  }
+
+  useWalkinClient(): void {
+    const existing = this.clients().find((client) => this.normalizeSearch(`${client.name} ${client.phone}`) === 'walk in client 0000000000' || this.normalizeSearch(client.name || '').includes('walk'));
+    if (existing) {
+      this.clientSearchText = this.clientOption(existing);
+      this.form.patchValue({ clientId: existing.id }, { emitEvent: false });
+      this.loadMembershipIntelligence(existing.id);
+      return;
+    }
+    const branchId = this.form.value.branchId || this.appState.selectedBranchId() || 'branch_hyd';
+    this.api.create<ApiRecord>('clients', {
+      name: 'Walk-in Client',
+      phone: '0000000000',
+      branchId,
+      tags: ['walk-in'],
+      visitHistory: [],
+      purchaseHistory: [],
+      whatsappHistory: [],
+      consentForms: []
+    }).subscribe({
+      next: (client) => {
+        this.clients.update((clients) => [client, ...clients]);
+        this.clientSearchText = this.clientOption(client);
+        this.form.patchValue({ clientId: client.id }, { emitEvent: false });
+        this.loadMembershipIntelligence(client.id);
+      },
+      error: (error) => this.error.set(error?.error?.error || 'Unable to create walk-in client')
+    });
+  }
+
+  billableAppointments(): ApiRecord[] {
+    const clientId = this.form.value.clientId;
+    return this.appointments().filter((appointment) =>
+      appointment.status === 'completed'
+      && !this.appointmentAlreadyBilled(String(appointment.id || ''))
+      && (!clientId || appointment.clientId === clientId)
+    );
+  }
+
+  private appointmentAlreadyBilled(appointmentId: string): boolean {
+    if (!appointmentId) return false;
+    return this.invoices().some((invoice) => {
+      const status = String(invoice.status || invoice.payment_status || '').trim().toLowerCase();
+      if (status === 'deleted') return false;
+      return String(invoice.appointmentId || invoice.appointment_id || '') === appointmentId;
+    });
+  }
+
+  private appointmentServiceIds(appointment: ApiRecord): string[] {
+    const raw = appointment.serviceIds ?? appointment.service_ids ?? appointment.serviceId ?? appointment.service_id ?? [];
+    if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+    const value = String(raw || '').trim();
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [String(parsed)].filter(Boolean);
+    } catch {
+      return value.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+
+  private routeIdList(value: string): string[] {
+    return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  private routeAppointmentRows(appointment: ApiRecord): ApiRecord[] {
+    const params = this.route.snapshot.queryParamMap;
+    const routeAppointmentIds = new Set(this.routeIdList(params.get('appointmentIds') || ''));
+    const bookingGroupId = String(params.get('bookingGroupId') || appointment.bookingGroupId || appointment.booking_group_id || '').trim();
+    const rows = this.appointments()
+      .filter((row) => routeAppointmentIds.has(String(row.id || '')) || (!!bookingGroupId && String(row.bookingGroupId || row.booking_group_id || '') === bookingGroupId))
+      .sort((a, b) => new Date(String(a.startAt || '')).getTime() - new Date(String(b.startAt || '')).getTime());
+    if (!rows.some((row) => String(row.id || '') === String(appointment.id || ''))) rows.unshift(appointment);
+    return rows.length ? rows : [appointment];
+  }
+
+  addService(id: string, staffIdOverride = ''): void {
+    const service = this.services().find((item) => item.id === id);
+    if (!service) return;
+    this.items.update((items) => [
+      ...items,
+      {
+        type: 'service',
+        id: service.id,
+        name: service.name,
+        quantity: 1,
+        price: Number(service.price),
+        gstRate: Number(service.gstRate || 18),
+        ...this.defaultItemStaff(staffIdOverride),
+        ...this.defaultItemDiscount('service')
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  addSelectedService(): void {
+    if (!this.selectedServiceIds.length) return;
+    this.selectedServiceIds.forEach((id) => this.addService(id));
+    this.serviceSearchText = '';
+    this.clearServiceSelection();
+    this.serviceSearchActive = false;
+  }
+
+  addProduct(id: string): void {
+    const product = this.products().find((item) => item.id === id);
+    if (!product) return;
+    this.items.update((items) => [
+      ...items,
+      {
+        type: 'product',
+        id: product.id,
+        name: product.name,
+        quantity: 1,
+        price: Number(product.price),
+        gstRate: Number(product.gstRate || 18),
+        ...this.defaultItemStaff(),
+        ...this.defaultItemDiscount('product')
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  addSelectedProduct(): void {
+    if (!this.selectedProductIds.length) return;
+    this.selectedProductIds.forEach((id) => this.addProduct(id));
+    this.productSearchText = '';
+    this.clearProductSelection();
+    this.productSearchActive = false;
+  }
+
+  addMembershipPlan(id: string): void {
+    const plan = this.membershipPlans().find((item) => item.id === id);
+    if (!plan) return;
+    this.items.update((items) => [
+      ...items,
+      {
+        type: 'membership',
+        id: plan.id,
+        name: plan.name,
+        quantity: 1,
+        price: Number(plan.price || 0),
+        gstRate: 18,
+        ...this.defaultItemStaff(),
+        discountPercent: Number(plan.discountPercent || 0),
+        validityDays: Number(plan.validityDays || 365),
+        serviceCredits: [
+          { type: 'bill_discount', percent: Number(plan.discountPercent || 0), planId: plan.id },
+          { type: 'product_discount', percent: Number(plan.productDiscountPercent || 0), planId: plan.id }
+        ]
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  addPackage(id: string): void {
+    const itemPackage = this.packages().find((item) => item.id === id);
+    if (!itemPackage) return;
+    this.items.update((items) => [
+      ...items,
+      {
+        type: 'package',
+        id: itemPackage.id,
+        name: itemPackage.name,
+        quantity: 1,
+        price: Number(itemPackage.price || 0),
+        gstRate: 18,
+        ...this.defaultItemStaff(),
+        validityDays: Number(itemPackage.validityDays || 90),
+        packageCredits: Array.isArray(itemPackage.packageCredits) ? itemPackage.packageCredits : []
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  addGiftCard(value: number | string): void {
+    const amount = this.money(value);
+    if (amount <= 0) return;
+    const code = `GC-${Date.now().toString().slice(-6)}`;
+    this.items.update((items) => [
+      ...items,
+      {
+        type: 'gift_card',
+        id: code,
+        name: `Gift Card ${code}`,
+        quantity: 1,
+        price: amount,
+        gstRate: 0,
+        ...this.defaultItemStaff(),
+        giftCode: code,
+        expiryDate: this.futureDate(365)
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  removeItem(index: number): void {
+    this.items.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  touchItems(): void {
+    this.items.set([...this.items()]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  setItemDiscountType(item: SaleItem, type: ItemDiscountType): void {
+    item.discountType = type === 'percent' ? 'percent' : 'amount';
+    item.discountValue = this.cleanItemDiscountValue(item, item.discountValue || 0);
+    item.discountSource = item.discountValue > 0 ? 'manual' : 'none';
+    this.touchItems();
+  }
+
+  setItemDiscountValue(item: SaleItem, value: number | string): void {
+    item.discountValue = this.cleanItemDiscountValue(item, value);
+    item.discountSource = item.discountValue > 0 ? 'manual' : 'none';
+    this.touchItems();
+  }
+
+  setItemStaff(item: SaleItem, staffId: string): void {
+    const person = this.staff().find((entry) => entry.id === staffId);
+    item.staffId = staffId || '';
+    item.staffName = person?.name || '';
+    if (item.staffSplits?.length) {
+      item.staffSplits[0] = { staffId: item.staffId || '', staffName: item.staffName || '', percent: Number(item.staffSplits[0]?.percent || 0) || 100 };
+    }
+    this.items.set([...this.items()]);
+  }
+
+  addStaffSplit(item: SaleItem): void {
+    const primary = {
+      staffId: item.staffId || '',
+      staffName: item.staffName || '',
+      percent: item.staffSplits?.length ? 0 : 50
+    };
+    const nextPercent = item.staffSplits?.length ? 0 : 50;
+    item.staffSplits = item.staffSplits?.length
+      ? [...item.staffSplits, { staffId: '', staffName: '', percent: nextPercent }]
+      : [primary, { staffId: '', staffName: '', percent: nextPercent }];
+    this.items.set([...this.items()]);
+  }
+
+  removeStaffSplit(item: SaleItem, index: number): void {
+    item.staffSplits = (item.staffSplits || []).filter((_, splitIndex) => splitIndex !== index);
+    if (item.staffSplits.length <= 1) item.staffSplits = [];
+    this.items.set([...this.items()]);
+  }
+
+  setItemSplitStaff(item: SaleItem, index: number, staffId: string): void {
+    const person = this.staff().find((entry) => entry.id === staffId);
+    const splits = [...(item.staffSplits || [])];
+    if (!splits[index]) return;
+    splits[index] = { ...splits[index], staffId: staffId || '', staffName: person?.name || '' };
+    item.staffSplits = splits;
+    if (index === 0) {
+      item.staffId = staffId || '';
+      item.staffName = person?.name || '';
+    }
+    this.items.set([...this.items()]);
+  }
+
+  setItemSplitPercent(item: SaleItem, index: number, value: number | string): void {
+    const splits = [...(item.staffSplits || [])];
+    if (!splits[index]) return;
+    splits[index] = { ...splits[index], percent: Math.max(0, Math.min(100, this.money(value))) };
+    item.staffSplits = splits;
+    this.items.set([...this.items()]);
+  }
+
+  splitPercentTotal(item: SaleItem): number {
+    return Math.round((item.staffSplits || []).reduce((sum, split) => sum + Number(split.percent || 0), 0));
+  }
+
+  lineGross(item: SaleItem): number {
+    return this.money(Number(item.price || 0) * Number(item.quantity || 1));
+  }
+
+  lineDiscountAmount(item: SaleItem): number {
+    const gross = this.lineGross(item);
+    const value = Math.max(0, Number(item.discountValue || 0));
+    const amount = item.discountType === 'percent'
+      ? (gross * Math.min(value, 100)) / 100
+      : value;
+    return this.money(Math.min(gross, amount));
+  }
+
+  lineTaxableSubtotal(item: SaleItem): number {
+    return this.money(Math.max(0, this.lineGross(item) - this.lineDiscountAmount(item)));
+  }
+
+  lineTotal(item: SaleItem): number {
+    return this.lineTaxableSubtotal(item);
+  }
+
+  lineDiscountSourceLabel(item: SaleItem): string {
+    return item.discountSource === 'membership' ? 'Membership' : 'Line discount';
+  }
+
+  itemCategoryTitle(item: SaleItem): string {
+    const titles: Record<SaleItem['type'], string> = {
+      service: 'Service',
+      product: 'Product',
+      membership: 'Membership sale',
+      package: 'Package sale',
+      gift_card: 'Gift card sale',
+      custom: 'Custom item'
+    };
+    return titles[item.type] || 'Item';
+  }
+
+  private defaultItemStaff(staffIdOverride = ''): Pick<SaleItem, 'staffId' | 'staffName'> {
+    const staffId = String(staffIdOverride || this.form.value.staffId || '');
+    const person = this.staff().find((item) => item.id === staffId);
+    return {
+      staffId,
+      staffName: person?.name || ''
+    };
+  }
+
+  private defaultItemDiscount(type: SaleItem['type']): Pick<SaleItem, 'discountType' | 'discountValue' | 'discountSource'> {
+    const percent = type === 'service'
+      ? this.activeMembershipDiscountPercent()
+      : type === 'product'
+        ? this.activeMembershipProductDiscountPercent()
+        : 0;
+    if (percent > 0) {
+      return { discountType: 'percent', discountValue: percent, discountSource: 'membership' };
+    }
+    return { discountType: 'amount', discountValue: 0, discountSource: 'none' };
+  }
+
+  private cleanItemDiscountValue(item: SaleItem, value: number | string): number {
+    const numeric = Math.max(0, Number(value || 0));
+    if (item.discountType === 'percent') return this.money(Math.min(numeric, 100));
+    return this.money(Math.min(numeric, this.lineGross(item)));
+  }
+
+  selectedClient(): ApiRecord | undefined {
+    return this.clients().find((client) => client.id === this.form.value.clientId);
+  }
+
+  selectedClientMembership(): ApiRecord | undefined {
+    const active = this.activeMembershipForClient();
+    if (active) return active;
+    const clientId = this.form.value.clientId;
+    if (!clientId) return undefined;
+    return this.memberships()
+      .filter((membership) => membership.clientId === clientId)
+      .sort((a, b) => this.dateMs(b.validityDate || b.createdAt) - this.dateMs(a.validityDate || a.createdAt))[0];
+  }
+
+  selectedClientMembershipIsExpired(): boolean {
+    const membership = this.selectedClientMembership();
+    if (!membership?.validityDate) return false;
+    return String(membership.validityDate) < new Date().toISOString().slice(0, 10);
+  }
+
+  selectedClientMembershipStatus(): string {
+    const membership = this.selectedClientMembership();
+    if (!membership) return 'No membership';
+    const days = this.membershipDaysLeft(membership);
+    if (days < 0) return `Expired ${Math.abs(days)}d ago`;
+    if (days === 0) return 'Expires today';
+    if (days < 30) return `${days}d left`;
+    return membership.status === 'active' ? 'Active' : String(membership.status || 'Active');
+  }
+
+  membershipTakenDate(membership: ApiRecord): string {
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    const sold = history.find((item) => item?.type === 'membership_sale' || item?.type === 'manual_membership_assignment');
+    return this.dateLabel(sold?.date || membership.createdAt);
+  }
+
+  membershipExpiryDate(membership: ApiRecord): string {
+    return membership.validityDate ? this.dateLabel(membership.validityDate) : 'No expiry';
+  }
+
+  private todayDateInput(): string {
+    const now = new Date();
+    const offsetMs = now.getTimezoneOffset() * 60_000;
+    return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+  }
+
+  private invoiceDateValue(): string {
+    const value = String(this.form.value.invoiceDate || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : this.todayDateInput();
+  }
+
+  private selectedInvoiceTimestamp(): string {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const millis = String(now.getMilliseconds()).padStart(3, '0');
+    const offsetMinutes = -now.getTimezoneOffset();
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const offsetHours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0');
+    const offsetRemainder = String(Math.abs(offsetMinutes) % 60).padStart(2, '0');
+    return `${this.invoiceDateValue()}T${hours}:${minutes}:${seconds}.${millis}${sign}${offsetHours}:${offsetRemainder}`;
+  }
+
+  private buildHeldInvoiceDraft(): PosHeldInvoiceDraft {
+    const now = new Date().toISOString();
+    const client = this.selectedClient();
+    const branch = this.branches().find((item) => item.id === this.form.value.branchId);
+    const staff = this.staff().find((item) => item.id === this.form.value.staffId);
+    const id = this.currentHoldId || `hold_${Date.now()}`;
+    const clientName = client?.name || this.clientSearchText || 'Walk-in client';
+    return {
+      id,
+      title: `${clientName} · ₹${this.total}`,
+      clientId: String(this.form.value.clientId || ''),
+      clientName,
+      branchId: String(this.form.value.branchId || ''),
+      branchName: branch?.name || String(this.form.value.branchId || 'Branch'),
+      staffId: String(this.form.value.staffId || ''),
+      staffName: staff?.name || 'Unassigned',
+      appointmentId: String(this.form.value.appointmentId || ''),
+      invoiceDate: this.invoiceDateValue(),
+      items: this.items(),
+      tips: this.tips(),
+      payments: { ...this.payments },
+      bookingAdvanceAppliedAmount: this.appliedBookingAdvanceAmount(),
+      discount: this.manualDiscountAmount,
+      discountMode: this.discountMode,
+      couponCode: this.couponCode,
+      creditsUsed: Number(this.creditsUsed || 0),
+      membershipId: this.membershipId,
+      benefitServiceMappings: this.selectedBenefitServiceMappings(),
+      subtotal: this.subtotal,
+      total: this.total,
+      balanceDue: this.balanceDue,
+      note: this.currentHoldId ? 'Updated held invoice from POS.' : 'Held from POS before final invoice save.',
+      createdAt: this.posSettings.getHeldInvoice(id)?.createdAt || now,
+      updatedAt: now
+    };
+  }
+
+  private buildActiveBillingDraft(): PosActiveBillingDraft {
+    const client = this.selectedClient();
+    return {
+      version: 1,
+      currentHoldId: this.currentHoldId,
+      clientId: String(this.form.value.clientId || ''),
+      clientName: client?.name || this.clientSearchText || '',
+      branchId: String(this.form.value.branchId || ''),
+      staffId: String(this.form.value.staffId || ''),
+      appointmentId: String(this.form.value.appointmentId || ''),
+      invoiceDate: this.invoiceDateValue(),
+      items: this.items(),
+      tips: this.tips(),
+      payments: { ...this.payments },
+      bookingAdvanceAppliedAmount: this.appliedBookingAdvanceAmount(),
+      discount: Number(this.discount || 0),
+      discountMode: this.discountMode === 'percent' ? 'percent' : 'amount',
+      couponCode: this.couponCode || '',
+      couponResult: this.couponResult(),
+      couponMessage: this.couponMessage(),
+      creditsUsed: Number(this.creditsUsed || 0),
+      membershipId: this.membershipId || '',
+      benefitServiceMappings: this.selectedBenefitServiceMappings(),
+      clientSearchText: this.clientSearchText || '',
+      serviceSearchText: this.serviceSearchText || '',
+      productSearchText: this.productSearchText || '',
+      selectedServiceId: this.selectedServiceId || '',
+      selectedServiceIds: [...this.selectedServiceIds],
+      selectedProductId: this.selectedProductId || '',
+      selectedProductIds: [...this.selectedProductIds],
+      tipDraft: { ...this.tipDraft },
+      unpaidReceiveAmount: Number(this.unpaidReceiveAmount || 0),
+      unpaidReceiveMode: this.unpaidReceiveMode || this.activePaymentModes()[0]?.id || 'cash',
+      walletCreditRequested: this.walletCreditRequested(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  private hasActiveBillingDraftDetails(): boolean {
+    const paymentTotal = Object.values(this.payments || {}).reduce((sum, amount) => sum + Number(amount || 0), 0);
+    const hasBillContent = !!this.currentHoldId
+      || !!this.items().length
+      || !!this.tips().length
+      || paymentTotal > 0
+      || Number(this.discount || 0) > 0
+      || !!this.couponCode.trim()
+      || Number(this.creditsUsed || 0) > 0
+      || !!this.membershipId
+      || this.selectedServiceIds.length > 0
+      || this.selectedProductIds.length > 0;
+    if (this.invoice() && !hasBillContent) {
+      return false;
+    }
+    return !!this.currentHoldId
+      || !!this.form.value.clientId
+      || !!this.items().length
+      || !!this.tips().length
+      || paymentTotal > 0
+      || Number(this.discount || 0) > 0
+      || !!this.couponCode.trim()
+      || Number(this.creditsUsed || 0) > 0
+      || !!this.membershipId
+      || !!this.clientSearchText.trim()
+      || !!this.serviceSearchText.trim()
+      || !!this.productSearchText.trim()
+      || this.selectedServiceIds.length > 0
+      || this.selectedProductIds.length > 0;
+  }
+
+  private restoreActiveBillingDraft(): void {
+    if (this.activeDraftRestored || this.pendingHoldId) {
+      return;
+    }
+    this.activeDraftRestored = true;
+    const draft = this.posSettings.loadActiveBillingDraft();
+    if (!draft) {
+      return;
+    }
+    this.currentHoldId = draft.currentHoldId || '';
+    this.form.patchValue({
+      clientId: draft.clientId || '',
+      branchId: draft.branchId || this.form.value.branchId || '',
+      staffId: draft.staffId || '',
+      appointmentId: draft.appointmentId || '',
+      invoiceDate: draft.invoiceDate || this.todayDateInput()
+    }, { emitEvent: false });
+    this.items.set((draft.items || []) as SaleItem[]);
+    this.tips.set((draft.tips || []) as TipLine[]);
+    this.payments = {
+      ...Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0])),
+      ...(draft.payments || {})
+    };
+    this.discount = Number(draft.discount || 0);
+    this.discountMode = draft.discountMode === 'percent' ? 'percent' : 'amount';
+    this.couponCode = draft.couponCode || '';
+    this.couponResult.set((draft.couponResult || null) as ApiRecord | null);
+    this.couponMessage.set(draft.couponMessage || '');
+    this.creditsUsed = Number(draft.creditsUsed || 0);
+    this.membershipId = draft.membershipId || '';
+    this.benefitServiceMappings = Array.isArray(draft.benefitServiceMappings) ? draft.benefitServiceMappings as BenefitServiceMapping[] : [];
+    this.clientSearchText = draft.clientSearchText || (draft.clientId
+      ? this.clientOption(this.clients().find((client) => client.id === draft.clientId) || { id: draft.clientId, name: draft.clientName })
+      : '');
+    this.staffSearchText = draft.staffId
+      ? this.staffOption(this.staff().find((person) => person.id === draft.staffId) || { id: draft.staffId, name: draft.staffId })
+      : '';
+    this.serviceSearchText = draft.serviceSearchText || '';
+    this.productSearchText = draft.productSearchText || '';
+    this.selectedServiceId = draft.selectedServiceId || '';
+    this.selectedServiceIds = Array.isArray(draft.selectedServiceIds) ? draft.selectedServiceIds : [];
+    this.selectedProductId = draft.selectedProductId || '';
+    this.selectedProductIds = Array.isArray(draft.selectedProductIds) ? draft.selectedProductIds : [];
+    this.tipDraft = {
+      staffId: draft.tipDraft?.staffId || '',
+      paymentMode: draft.tipDraft?.paymentMode || this.activePaymentModes()[0]?.id || 'cash',
+      amount: Number(draft.tipDraft?.amount || 0),
+      note: draft.tipDraft?.note || ''
+    };
+    this.unpaidReceiveAmount = Number(draft.unpaidReceiveAmount || 0);
+    this.unpaidReceiveMode = draft.unpaidReceiveMode || this.activePaymentModes()[0]?.id || 'cash';
+    this.walletCreditRequested.set(!!draft.walletCreditRequested);
+    this.bookingAdvanceAppliedAmount.set(this.money(Number(draft.bookingAdvanceAppliedAmount || 0)));
+    this.loadBookingAdvanceSuggestion(String(draft.appointmentId || ''), { preserveApplied: true });
+    if (draft.clientId) this.loadMembershipIntelligence(draft.clientId);
+    this.dataHint.set('Unsaved POS bill restored. Checkout, hold or clear the bill to remove this draft.');
+  }
+
+  private restorePendingHold(): void {
+    const id = this.pendingHoldId;
+    if (!id) return;
+    const draft = this.posSettings.getHeldInvoice(id);
+    this.pendingHoldId = '';
+    if (!draft) {
+      this.dataHint.set('Selected held invoice was not found. It may have been deleted or saved.');
+      return;
+    }
+    this.currentHoldId = draft.id;
+    this.form.patchValue({
+      clientId: draft.clientId || '',
+      branchId: draft.branchId || this.form.value.branchId || '',
+      staffId: draft.staffId || '',
+      appointmentId: draft.appointmentId || '',
+      invoiceDate: draft.invoiceDate || this.todayDateInput()
+    }, { emitEvent: false });
+    this.items.set((draft.items || []) as SaleItem[]);
+    this.tips.set((draft.tips || []) as TipLine[]);
+    this.payments = {
+      ...Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0])),
+      ...(draft.payments || {})
+    };
+    this.walletCreditRequested.set(false);
+    this.bookingAdvanceAppliedAmount.set(this.money(Number(draft.bookingAdvanceAppliedAmount || 0)));
+    this.discount = Number(draft.discount || 0);
+    this.discountMode = draft.discountMode === 'percent' ? 'percent' : 'amount';
+    this.couponCode = draft.couponCode || '';
+    this.creditsUsed = Number(draft.creditsUsed || 0);
+    this.membershipId = draft.membershipId || '';
+    this.benefitServiceMappings = Array.isArray(draft.benefitServiceMappings) ? draft.benefitServiceMappings as BenefitServiceMapping[] : [];
+    this.clientSearchText = draft.clientId
+      ? this.clientOption(this.clients().find((client) => client.id === draft.clientId) || { id: draft.clientId, name: draft.clientName })
+      : draft.clientName || '';
+    this.staffSearchText = draft.staffId
+      ? this.staffOption(this.staff().find((person) => person.id === draft.staffId) || { id: draft.staffId, name: draft.staffName })
+      : '';
+    this.loadBookingAdvanceSuggestion(String(draft.appointmentId || ''), { preserveApplied: true });
+    if (draft.clientId) this.loadMembershipIntelligence(draft.clientId);
+    this.dataHint.set(`Held invoice resumed: ${draft.title}`);
+  }
+
+  private resetDraftAfterHold(): void {
+    this.currentHoldId = '';
+    this.items.set([]);
+    this.tips.set([]);
+    this.payments = Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0]));
+    this.walletCreditRequested.set(false);
+    this.bookingAdvanceInfo.set(null);
+    this.bookingAdvanceLoading.set(false);
+    this.bookingAdvanceAppliedAmount.set(0);
+    this.discount = 0;
+    this.discountMode = 'amount';
+    this.couponCode = '';
+    this.creditsUsed = 0;
+    this.membershipId = '';
+    this.benefitServiceMappings = [];
+    this.clientSearchText = '';
+    this.staffSearchText = '';
+    this.serviceSearchText = '';
+    this.productSearchText = '';
+    this.selectedServiceId = '';
+    this.selectedServiceIds = [];
+    this.selectedProductId = '';
+    this.selectedProductIds = [];
+    this.staffSearchActive = false;
+    this.productSearchActive = false;
+    this.membershipEligibility.set(null);
+    this.membershipSuggestion.set(null);
+    this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
+    this.clearCoupon();
+  }
+
+  clearCoupon(): void {
+    this.couponResult.set(null);
+    this.couponMessage.set('');
+  }
+
+  validateCoupon(): void {
+    const code = this.couponCode.trim();
+    if (!code || !this.items().length) return;
+    this.couponChecking.set(true);
+    this.couponMessage.set('');
+    this.api.post<ApiRecord>('sales/coupons/validate', {
+      code,
+      branchId: this.form.value.branchId || '',
+      items: this.items(),
+      subtotal: this.subtotal
+    }).subscribe({
+      next: (result) => {
+        this.couponResult.set(result);
+        const isGiftCard = result['giftCard'] || result.coupon?.['source'] === 'gift_card';
+        this.couponMessage.set(isGiftCard
+          ? `Gift card ${result.coupon?.['code'] || code} applied: ${result.discountAmount || 0} redeemable`
+          : `Applied ${result.coupon?.['code'] || code}: ${result.discountAmount || 0} discount`);
+        this.couponChecking.set(false);
+      },
+      error: (error) => {
+        this.couponResult.set(null);
+        this.couponMessage.set(error?.error?.error || 'Coupon could not be applied');
+        this.couponChecking.set(false);
+      }
+    });
+  }
+
+  checkout(): void {
+    if (this.form.invalid || !this.items().length) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    if (this.overPaid > 0 && !this.walletCreditRequested()) {
+      this.error.set('Click Wallet to add the extra payment to the client wallet.');
+      return;
+    }
+    if (this.membershipId && this.creditsUsed > 0 && this.unallocatedBenefitCredits() > 0) {
+      this.error.set('Map selected benefit credits to service lines before saving.');
+      return;
+    }
+    const appointmentId = String(this.form.value.appointmentId || '');
+    if (appointmentId) {
+      this.saving.set(true);
+      this.error.set('');
+      this.api.list<ApiRecord>(`enterprise-scheduler/appointments/${appointmentId}/billing-status`).subscribe({
+        next: (status) => {
+          if (status?.['billed'] || status?.['billingLocked']) {
+            this.error.set('This appointment is already billed. POS is locked.');
+            this.saving.set(false);
+            this.clearPosRouteSelection(() => this.load());
+            return;
+          }
+          this.submitCheckout();
+        },
+        error: () => this.submitCheckout()
+      });
+      return;
+    }
+    this.submitCheckout();
+  }
+
+  private submitCheckout(): void {
+    this.saving.set(true);
+    this.error.set('');
+    const walletCreditAmount = this.walletCreditRequested() ? this.overPaid : 0;
+    const splitPayments = this.invoicePaymentEntries();
+    const billingDate = this.invoiceDateValue();
+    const billingTimestamp = this.selectedInvoiceTimestamp();
+    const settlementPreview = this.currentSettlementPreview();
+    const selectedBenefit = this.selectedRedeemableBenefit();
+    const serviceLineMappings = this.selectedBenefitServiceMappings();
+    this.api.post<{ sale: ApiRecord; invoice: ApiRecord; coupon?: ApiRecord | null; invoiceDocument?: ApiRecord }>('sales/checkout', {
+      ...this.form.value,
+      billingDate,
+      invoiceDate: billingDate,
+      billingTimestamp,
+      items: this.items().map((item) => ({
+        ...item,
+        lineGross: this.lineGross(item),
+        lineDiscountAmount: this.lineDiscountAmount(item),
+        lineTaxableSubtotal: this.lineTaxableSubtotal(item)
+      })),
+      discount: this.money(this.manualDiscountAmount + this.itemManualDiscountTotal),
+      discountMode: 'amount',
+      discountBreakdown: {
+        manualDiscountAmount: this.manualDiscountAmount,
+        itemDiscountTotal: this.itemDiscountTotal,
+        itemManualDiscountTotal: this.itemManualDiscountTotal,
+        membershipAutoDiscount: this.membershipAutoDiscount,
+        couponDiscount: this.couponDiscount,
+        totalDiscount: this.totalDiscount
+      },
+      couponCode: this.couponCode.trim(),
+      payments: splitPayments,
+      tips: this.tips(),
+      tipTotal: this.tipTotal,
+      membershipRedeem: {
+        ...(this.membershipId ? {
+          membershipId: this.membershipId,
+          creditsUsed: Number(this.creditsUsed || 0),
+          benefitType: this.redeemableBenefitTypeLabel(selectedBenefit),
+          benefitName: selectedBenefit?.['planName'] || selectedBenefit?.['name'] || this.membershipId,
+          remainingBeforeRedeem: this.selectedRedeemableBenefitRemainingCredits(),
+          remainingAfterRedeem: this.benefitRemainingAfterRedeem(),
+          serviceId: serviceLineMappings[0]?.serviceId || '',
+          serviceLineMappings
+        } : {}),
+        autoDiscountAmount: this.membershipAutoDiscount,
+        autoDiscountPercent: this.activeMembershipDiscountPercent(),
+        autoDiscountMembershipId: this.activeMembershipForClient()?.id || ''
+      }
+    }).subscribe({
+      next: (result) => {
+        if (walletCreditAmount > 0) {
+          this.creditOverpayToWallet(result, walletCreditAmount, settlementPreview);
+          return;
+        }
+        this.finishCheckout(result, '', settlementPreview);
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to save sale');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  private invoicePaymentEntries(): Array<{ mode: string; amount: number; reference: string; label: string }> {
+    let remaining = this.total;
+    const entries: Array<{ mode: string; amount: number; reference: string; label: string }> = [];
+    const bookingAdvanceAmount = Math.min(this.appliedBookingAdvanceAmount(), remaining);
+    const appointmentId = String(this.form.value.appointmentId || '');
+    if (bookingAdvanceAmount > 0) {
+      entries.push({
+        mode: 'booking_advance',
+        amount: bookingAdvanceAmount,
+        reference: appointmentId ? `Booking advance from appointment ${appointmentId}` : 'Booking advance adjustment',
+        label: this.paymentModeLabel('booking_advance')
+      });
+      remaining = this.money(remaining - bookingAdvanceAmount);
+    }
+    for (const [mode, rawAmount] of Object.entries(this.payments)) {
+      if (remaining <= 0) break;
+      const amount = Math.min(this.money(rawAmount), remaining);
+      if (amount <= 0) continue;
+      entries.push({
+        mode,
+        amount,
+        reference: mode === 'upi' ? 'UPI collected at counter' : '',
+        label: this.paymentModeLabel(mode)
+      });
+      remaining = this.money(remaining - amount);
+    }
+    return entries;
+  }
+
+  private creditOverpayToWallet(
+    result: { sale: ApiRecord; invoice: ApiRecord; coupon?: ApiRecord | null; invoiceDocument?: ApiRecord },
+    amount: number,
+    settlementPreview?: { advance: number; counter: number; due: number; walletCredit: number }
+  ): void {
+    const clientId = String(this.form.value.clientId || '');
+    this.api.post<{ transaction: ApiRecord; client: ApiRecord }>(`clients/${clientId}/wallet`, {
+      type: 'credit',
+      amount,
+      branchId: this.form.value.branchId || '',
+      referenceType: 'invoice_overpay',
+      referenceId: result.invoice.id,
+      notes: `Extra POS payment from invoice ${result.invoice.invoiceNumber || result.invoice.id}`,
+      billingDate: this.invoiceDateValue(),
+      createdAt: this.selectedInvoiceTimestamp()
+    }).subscribe({
+      next: (walletResult) => {
+        if (walletResult?.client) {
+          this.clients.update((clients) => clients.map((client) => client.id === walletResult.client.id ? walletResult.client : client));
+        }
+        this.finishCheckout(result, `Extra ₹${amount} added to client wallet.`, settlementPreview);
+      },
+      error: (error) => {
+        this.invoice.set(result.invoice);
+        this.error.set(`Invoice saved, but wallet credit failed: ${error?.error?.error || error?.message || 'wallet error'}`);
+        this.saving.set(false);
+      }
+    });
+  }
+
+  private finishCheckout(
+    result: { sale: ApiRecord; invoice: ApiRecord; coupon?: ApiRecord | null; invoiceDocument?: ApiRecord },
+    message = '',
+    settlementPreview?: { advance: number; counter: number; due: number; walletCredit: number }
+  ): void {
+    const benefitRedeem = this.readJsonObject(result.sale?.membershipRedeem);
+    this.invoice.set(result.invoice);
+    this.generatedInvoiceSettlement.set(settlementPreview || this.currentSettlementPreview());
+    this.generatedInvoiceBenefitRedeem.set(Number(benefitRedeem?.['creditsUsed'] || 0) > 0 ? benefitRedeem : null);
+    this.couponResult.set(result.coupon || null);
+    if (this.currentHoldId) this.posSettings.deleteHeldInvoice(this.currentHoldId);
+    this.posSettings.clearActiveBillingDraft();
+    this.currentHoldId = '';
+    this.items.set([]);
+    this.tips.set([]);
+    this.payments = Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0]));
+    this.walletCreditRequested.set(false);
+    this.bookingAdvanceInfo.set(null);
+    this.bookingAdvanceLoading.set(false);
+    this.bookingAdvanceAppliedAmount.set(0);
+    this.discount = 0;
+    this.discountMode = 'amount';
+    this.couponCode = '';
+    this.creditsUsed = 0;
+    this.membershipId = '';
+    this.benefitServiceMappings = [];
+    this.clientSearchText = '';
+    this.staffSearchText = '';
+    this.serviceSearchText = '';
+    this.productSearchText = '';
+    this.clientSearchActive = false;
+    this.selectedServiceId = '';
+    this.selectedServiceIds = [];
+    this.selectedProductId = '';
+    this.selectedProductIds = [];
+    this.staffSearchActive = false;
+    this.clientSearchResults.set([]);
+    this.membershipEligibility.set(null);
+    this.membershipSuggestion.set(null);
+    this.tipDraft = { staffId: '', paymentMode: this.activePaymentModes()[0]?.id || 'cash', amount: 0, note: '' };
+    this.unpaidReceiveAmount = 0;
+    this.unpaidReceiveMessage.set('');
+    this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
+    this.saving.set(false);
+    this.clearPosRouteSelection(() => this.load());
+    if (message) window.setTimeout(() => this.dataHint.set(message), 600);
+  }
+
+  private clearPosRouteSelection(onFinally?: () => void): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      replaceUrl: true
+    }).finally(() => onFinally?.());
+  }
+
+  printInvoice(): void {
+    window.print();
+  }
+
+  downloadInvoice(): void {
+    const invoice = this.invoice();
+    if (!invoice) return;
+    this.api.post<ApiRecord>(`invoices/${invoice.id}/document`, {}).subscribe({
+      next: (documentRecord) => {
+        const blob = new Blob([String(documentRecord.content || '')], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${invoice.invoiceNumber}.html`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (error) => this.error.set(error?.error?.error || 'Unable to download invoice')
+    });
+  }
+
+  clientName(id: string): string {
+    return this.clients().find((client) => client.id === id)?.name || 'Client';
+  }
+
+  activeMembershipForClient(): ApiRecord | undefined {
+    const walletMembership = this.membershipEligibility()?.['wallet']?.['activeMembership'];
+    if (walletMembership) return walletMembership;
+    const eligibilityMembership = this.membershipEligibility()?.activeMembership;
+    if (eligibilityMembership) return eligibilityMembership;
+    const clientId = this.form.value.clientId;
+    return this.activeMembershipForClientId(String(clientId || ''));
+  }
+
+  activeMembershipForClientId(clientId: string): ApiRecord | undefined {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.memberships()
+      .filter((membership) => membership.clientId === clientId && membership.status !== 'expired' && (!membership.validityDate || membership.validityDate >= today))
+      .sort((a, b) => this.membershipDiscountPercent(b) - this.membershipDiscountPercent(a))[0];
+  }
+
+  activePackageCountForClientId(clientId: string): number {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.memberships().filter((membership) =>
+      membership.clientId === clientId
+      && membership.status !== 'expired'
+      && (!membership.validityDate || membership.validityDate >= today)
+      && this.membershipBenefitType(membership) === 'package'
+    ).length;
+  }
+
+  activeMembershipDiscountPercent(): number {
+    const walletBenefits = this.membershipEligibility()?.['wallet']?.['planBenefits'] as ApiRecord | undefined;
+    if (walletBenefits) return Number(walletBenefits['serviceDiscountPercent'] || 0);
+    return this.membershipDiscountPercent(this.activeMembershipForClient());
+  }
+
+  activeMembershipProductDiscountPercent(): number {
+    const walletBenefits = this.membershipEligibility()?.['wallet']?.['planBenefits'] as ApiRecord | undefined;
+    if (walletBenefits) return Number(walletBenefits['productDiscountPercent'] || 0);
+    return this.membershipProductDiscountPercent(this.activeMembershipForClient());
+  }
+
+  private roundOffManualDiscountTarget(): number {
+    if (this.roundOffDueAmount <= 0) return this.manualDiscountAmount;
+    const base = this.discountableSubtotal();
+    const maxManualDiscount = this.money(Math.max(0, base - this.couponDiscount));
+    const currentManualDiscount = this.money(Math.min(this.manualDiscountAmount, maxManualDiscount));
+    if (base <= 0 || maxManualDiscount <= currentManualDiscount) return currentManualDiscount;
+
+    const targetTotal = this.paidTotal;
+    if (this.totalWithManualDiscount(maxManualDiscount) > targetTotal + 0.009) return currentManualDiscount;
+
+    let low = currentManualDiscount;
+    let high = maxManualDiscount;
+    for (let index = 0; index < 24; index += 1) {
+      const mid = (low + high) / 2;
+      if (this.totalWithManualDiscount(mid) > targetTotal) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return this.money(high);
+  }
+
+  private discountPercentForManualAmount(amount: number): number {
+    const base = this.discountableSubtotal();
+    if (base <= 0) return 0;
+    return this.money(Math.min(100, (this.money(amount) / base) * 100));
+  }
+
+  private discountableSubtotal(): number {
+    return this.money(Math.max(0, this.subtotal - this.itemDiscountTotal));
+  }
+
+  private totalWithManualDiscount(manualDiscountAmount: number): number {
+    const discountableSubtotal = this.discountableSubtotal();
+    const billDiscount = this.money(Math.min(discountableSubtotal, this.money(manualDiscountAmount) + this.couponDiscount));
+    const afterBillDiscountRatio = discountableSubtotal
+      ? Math.max(0, discountableSubtotal - billDiscount) / discountableSubtotal
+      : 0;
+    const gst = this.money(
+      this.items().reduce((sum, item) => {
+        const taxable = this.lineTaxableSubtotal(item) * afterBillDiscountRatio;
+        return sum + taxable * (Number(item.gstRate) / 100);
+      }, 0)
+    );
+    const totalDiscount = this.money(Math.min(this.subtotal, this.itemDiscountTotal + billDiscount));
+    return this.money(Math.max(0, this.subtotal - totalDiscount) + gst + this.tipTotal);
+  }
+
+  private money(value: number | string): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  private normalizeSearch(value: unknown): string {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ');
+  }
+
+  membershipDiscountPercent(membership?: ApiRecord): number {
+    const credits = Array.isArray(membership?.serviceCredits) ? membership?.serviceCredits : [];
+    const benefit = credits.find((item: ApiRecord) => item?.type === 'bill_discount');
+    return Number(benefit?.percent || 0);
+  }
+
+  membershipBenefitType(membership?: ApiRecord): 'membership' | 'package' {
+    const history = Array.isArray(membership?.redeemHistory) ? membership?.redeemHistory : [];
+    if (history.some((item: ApiRecord) => item?.type === 'package_sale' || item?.packageId)) return 'package';
+    if (String(membership?.planName || '').trim().toLowerCase().startsWith('package:')) return 'package';
+    const credits = Array.isArray(membership?.serviceCredits) ? membership?.serviceCredits : [];
+    if (credits.some((item: ApiRecord) => item?.packageId)) return 'package';
+    return 'membership';
+  }
+
+  membershipProductDiscountPercent(membership?: ApiRecord): number {
+    const credits = Array.isArray(membership?.serviceCredits) ? membership?.serviceCredits : [];
+    const benefit = credits.find((item: ApiRecord) => item?.type === 'product_discount');
+    return Number(benefit?.percent || 0);
+  }
+
+  private loadMembershipIntelligence(clientId: string): void {
+    if (!clientId) {
+      this.membershipEligibility.set(null);
+      this.membershipSuggestion.set(null);
+      this.benefitServiceMappings = [];
+      return;
+    }
+    forkJoin({
+      eligibility: this.api.list<ApiRecord>(`membership-enterprise/client/${clientId}/eligibility`).pipe(catchError(() => of(null))),
+      suggestion: this.api.list<ApiRecord>(`membership-enterprise/client/${clientId}/suggestion`).pipe(catchError(() => of(null)))
+    }).subscribe(({ eligibility, suggestion }) => {
+      this.membershipEligibility.set(eligibility);
+      this.membershipSuggestion.set(suggestion);
+      if (this.membershipId) {
+        this.selectRedeemableBenefit(this.membershipId);
+      }
+      this.normalizeBenefitServiceMappings();
+      this.applyMembershipDiscountsToEligibleItems();
+    });
+  }
+
+  private loadBookingAdvanceSuggestion(
+    appointmentId: string,
+    options: { preserveApplied?: boolean } = {}
+  ): void {
+    if (!options.preserveApplied) {
+      this.bookingAdvanceAppliedAmount.set(0);
+    }
+    if (!appointmentId) {
+      this.bookingAdvanceInfo.set(null);
+      this.bookingAdvanceLoading.set(false);
+      return;
+    }
+    this.bookingAdvanceLoading.set(true);
+    this.api.list<ApiRecord>(`booking-payments/${appointmentId}/status`).pipe(
+      catchError(() => of(null))
+    ).subscribe((result) => {
+      this.bookingAdvanceLoading.set(false);
+      const info = result && typeof result === 'object' ? result : null;
+      this.bookingAdvanceInfo.set(info);
+      const paidAmount = String(info?.['status'] || '').toLowerCase() === 'paid'
+        ? this.money(Number(info?.['amount'] || 0))
+        : 0;
+      if (options.preserveApplied) {
+        this.bookingAdvanceAppliedAmount.set(this.money(Math.min(this.total, Number(this.bookingAdvanceAppliedAmount() || 0), paidAmount)));
+      } else if (paidAmount <= 0) {
+        this.bookingAdvanceAppliedAmount.set(0);
+      }
+    });
+  }
+
+  private applyMembershipDiscountsToEligibleItems(): void {
+    const nextItems = this.items().map((item) => {
+      if (!['service', 'product'].includes(item.type)) return item;
+      if (item.discountSource === 'manual') return item;
+      return {
+        ...item,
+        ...this.defaultItemDiscount(item.type)
+      };
+    });
+    this.items.set(nextItems);
+  }
+
+  private normalizeMembershipPlan(plan: PosMembershipPlan): PosMembershipPlan {
+    return {
+      ...plan,
+      price: Number(plan.price || 0),
+      discountPercent: Number(plan.discountPercent || 0),
+      productDiscountPercent: Number(plan.productDiscountPercent || 0),
+      gstRate: Number(plan.gstRate || 18),
+      validityDays: Number(plan.validityDays || 365),
+      active: plan.active !== false && plan.status !== 'inactive',
+      status: plan.status || (plan.active === false ? 'inactive' : 'active'),
+      createdAt: plan.createdAt || new Date().toISOString()
+    };
+  }
+
+  private membershipDaysLeft(membership: ApiRecord): number {
+    if (!membership.validityDate) return 99999;
+    const expiry = this.dateMs(membership.validityDate);
+    const today = this.dateMs(new Date().toISOString().slice(0, 10));
+    if (!expiry) return 99999;
+    return Math.ceil((expiry - today) / 86400000);
+  }
+
+  private dateLabel(value: unknown): string {
+    if (!value) return '-';
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  private timeLabel(value: unknown): string {
+    if (!value) return '';
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  private dateMs(value: unknown): number {
+    const time = new Date(String(value || '')).getTime();
+    return Number.isNaN(time) ? 0 : time;
+  }
+
+  private futureDate(days: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() + Number(days || 0));
+    return date.toISOString().slice(0, 10);
+  }
+
+  private safeList(resource: string, params: ApiRecord = {}) {
+    return this.api.list<ApiRecord[]>(resource, params).pipe(
+      catchError((error) => {
+        this.loadFailures.add(resource);
+        console.warn(`POS ${resource} list failed`, error);
+        return of([]);
+      })
+    );
+  }
+
+  private staffQueryParams(branchId = this.posStaffBranchId()): ApiRecord {
+    return {
+      limit: 200,
+      status: 'active',
+      branchId
+    };
+  }
+
+  private posStaffBranchId(): string {
+    return String(this.form.value.branchId || this.appState.selectedBranchId() || '');
+  }
+
+  currentBranchName(): string {
+    const branchId = this.posStaffBranchId();
+    if (!branchId) return 'Header branch not selected';
+    return this.branches().find((branch) => branch.id === branchId)?.name || branchId;
+  }
+
+  private loadStaffForBranch(branchId: string): void {
+    this.safeList('staff-os/staff', this.staffQueryParams(branchId)).subscribe((staff) => {
+      this.applyStaffRows(staff || [], this.branches());
+      this.clearUnavailableStaffSelection();
+    });
+  }
+
+  private applyStaffRows(staff: ApiRecord[], branches: ApiRecord[]): void {
+    this.staff.set(this.activeStaff(this.normalizeStaffRows(staff || [], branches || [])));
+  }
+
+  private reloadStaffIfBranchScopeChanged(initialStaff: ApiRecord[]): void {
+    const branchId = this.posStaffBranchId();
+    if (!branchId || !initialStaff.length) return;
+    const hasDifferentBranch = initialStaff.some((person) => String(person.branchId || person.branch_id || '') !== branchId);
+    if (hasDifferentBranch) this.loadStaffForBranch(branchId);
+  }
+
+  private clearUnavailableStaffSelection(): void {
+    const selectedStaffId = String(this.form.value.staffId || '');
+    if (!selectedStaffId || this.staff().some((person) => String(person.id || '') === selectedStaffId)) return;
+    this.clearStaffSelection();
+    for (const item of this.items()) {
+      if (item.staffId === selectedStaffId) {
+        item.staffId = '';
+        item.staffName = '';
+      }
+      if (item.staffSplits?.length) {
+        item.staffSplits = item.staffSplits.filter((split) => split.staffId !== selectedStaffId);
+      }
+    }
+    this.items.set([...this.items()]);
+    if (this.tipDraft.staffId === selectedStaffId) this.tipDraft.staffId = '';
+  }
+
+  private applyDefaultBranch(branches: ApiRecord[]): void {
+    if (!branches.length || this.form.value.branchId) return;
+    const selectedBranchId = this.appState.selectedBranchId();
+    const selected = branches.find((branch) => branch.id === selectedBranchId) || branches[0];
+    if (selected?.id) {
+      this.form.patchValue({ branchId: selected.id }, { emitEvent: false });
+    }
+  }
+
+  private syncHeaderBranchToForm(branchId: string, emitEvent: boolean): void {
+    if (!branchId || this.form.get('branchId')?.value === branchId) return;
+    this.form.patchValue({ branchId }, { emitEvent });
+  }
+
+  private activeStaff(staff: ApiRecord[]): ApiRecord[] {
+    const inactiveStatuses = new Set(['archived', 'blocked', 'deleted', 'inactive', 'not active', 'suspended', 'terminated']);
+    return staff.filter((person) => {
+      if (person.active === false || person.isActive === false || person.is_active === 0 || person.archived === true) {
+        return false;
+      }
+      const status = this.normalizeSearch(person.status || person.state || person.employmentStatus || person.staffStatus || '');
+      return !status || !inactiveStatuses.has(status);
+    });
+  }
+
+  private normalizeStaffRows(staff: ApiRecord[], branches: ApiRecord[]): ApiRecord[] {
+    const branchNameById = new Map(branches.map((branch) => [String(branch.id || ''), String(branch.name || branch.branchName || '')]));
+    return staff.map((person) => {
+      const branchId = String(person.branchId || person.branch_id || '');
+      const fullName = String(person.fullName || person.full_name || person.name || '').trim();
+      const mobile = String(person.mobile || person.phone || person.contact || '').trim();
+      const designation = person.designation || person.role || person.staffCategoryName || person.department || 'Staff';
+      const displayName = fullName || String(person.employeeCode || person.id || 'Staff');
+      return {
+        ...person,
+        branchId,
+        name: displayName,
+        fullName: displayName,
+        phone: mobile,
+        mobile,
+        role: designation,
+        designation,
+        branchName: person.branchName || person.branch_name || branchNameById.get(branchId) || branchId
+      };
+    });
+  }
+
+  private shouldSwitchToDemoTenant(data: { clients: ApiRecord[]; staff: ApiRecord[]; services: ApiRecord[]; products: ApiRecord[]; branches: ApiRecord[] }): boolean {
+    if (this.fallbackTried || this.loadFailures.size) return false;
+    if (this.appState.selectedTenantId() === 'tenant_aura') return false;
+    return !data.clients.length && !data.staff.length && !data.services.length && !data.products.length && !data.branches.length;
+  }
+
+  private setDataHint(data: { clients: ApiRecord[]; staff: ApiRecord[]; services: ApiRecord[]; products: ApiRecord[]; branches: ApiRecord[] }): void {
+    if (this.loadFailures.size) {
+      this.dataHint.set(`Some POS lists could not load: ${[...this.loadFailures].join(', ')}. Baaki fields usable hain.`);
+      return;
+    }
+    const empty = Object.entries(data)
+      .filter(([, rows]) => !rows.length)
+      .map(([name]) => name);
+    if (empty.length) {
+      this.dataHint.set(`No records found for: ${empty.join(', ')}. Check selected tenant or branch data.`);
+      return;
+    }
+    if (this.fallbackNotice) {
+      this.dataHint.set('Previous tenant POS data was empty, so the default catalog was loaded.');
+      this.fallbackNotice = false;
+      return;
+    }
+    this.dataHint.set('');
+  }
+}

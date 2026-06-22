@@ -1,0 +1,26 @@
+:host {
+  display: contents;
+}
+
+.aura-toast-container {
+  position: fixed;
+  right: var(--aura-space-6);
+  bottom: var(--aura-space-6);
+  z-index: var(--aura-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--aura-space-2);
+  pointer-events: none;
+}
+
+.aura-toast-container aura-toast {
+  pointer-events: auto;
+}
+
+@media (max-width: 520px) {
+  .aura-toast-container {
+    right: var(--aura-space-3);
+    bottom: var(--aura-space-3);
+    left: var(--aura-space-3);
+  }
+}

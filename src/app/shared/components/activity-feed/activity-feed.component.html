@@ -1,0 +1,19 @@
+<div class="activity-feed">
+  <div class="activity-state" *ngIf="loading">Loading activity...</div>
+  <div class="activity-state error" *ngIf="!loading && error">{{ error }}</div>
+  <div class="activity-state" *ngIf="!loading && !error && !mergedItems().length">No live activity yet.</div>
+
+  <a
+    *ngFor="let item of mergedItems()"
+    class="activity-item"
+    [routerLink]="item.link || null"
+    [class.is-clickable]="item.link"
+  >
+    <span class="activity-icon">{{ icon(item.type) }}</span>
+    <span class="activity-copy">
+      <strong>{{ item.title }}</strong>
+      <small>{{ item.subtitle || 'System event' }}</small>
+    </span>
+    <time>{{ relativeTime(item.createdAt) }}</time>
+  </a>
+</div>
