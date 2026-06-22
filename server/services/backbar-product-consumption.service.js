@@ -1300,6 +1300,192 @@ export class BackbarProductConsumptionService {
         reasonText: reasons.join(", ") || "clean"
       };
     }).sort((a, b) => Number(a.score || 0) - Number(b.score || 0)).slice(0, 80);
+    const usageDayMap = new Map();
+    const usageWeekMap = new Map();
+    const weekStart = (value) => {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      const offset = (date.getDay() + 6) % 7;
+      date.setDate(date.getDate() - offset);
+      return date.toISOString().slice(0, 10);
+    };
+    for (const entry of entries) {
+      const day = String(entry.createdAt || "").slice(0, 10) || "undated";
+      const week = weekStart(entry.createdAt || day) || day;
+      for (const [key, map] of [[day, usageDayMap], [week, usageWeekMap]]) {
+        const row = map.get(key) || {
+          period: key,
+          entries: 0,
+          clientEntries: 0,
+          exceptionEntries: 0,
+          usageCost: 0,
+          exceptionCost: 0,
+          usedQty: 0,
+          unit: entry.unit || ""
+        };
+        row.entries += 1;
+        row.usedQty = money(row.usedQty + number(entry.usedQty, 0));
+        row.usageCost = money(row.usageCost + number(entry.productCost, 0));
+        if (entry.usageType === "client") {
+          row.clientEntries += 1;
+        } else {
+          row.exceptionEntries += 1;
+          row.exceptionCost = money(row.exceptionCost + number(entry.productCost, 0));
+        }
+        map.set(key, row);
+      }
+    }
+    const dailyTrendRows = [...usageDayMap.values()].sort((a, b) => String(b.period).localeCompare(String(a.period))).slice(0, 30);
+    const weeklyTrendRows = [...usageWeekMap.values()].sort((a, b) => String(b.period).localeCompare(String(a.period))).slice(0, 16);
+    const approvalSlaRows = approvalRows.map((request) => {
+      const createdAt = request.createdAt || "";
+      const updatedAt = request.updatedAt || "";
+      const endMs = request.status === "pending" ? Date.now() : new Date(updatedAt || createdAt).getTime();
+      const startMs = new Date(createdAt).getTime();
+      const ageHours = createdAt && !Number.isNaN(startMs) ? Math.max(0, Math.round((endMs - startMs) / 3600000)) : 0;
+      return {
+        approvalId: request.id,
+        productId: request.productId || "",
+        productName: request.productName || "Product",
+        staffId: request.staffId || "",
+        staffName: request.staffName || "Unassigned",
+        status: request.status || "pending",
+        ageHours,
+        slaStatus: request.status === "pending" && ageHours >= 24 ? "breached" : ageHours >= 12 ? "watch" : "ok",
+        reason: request.reason || "",
+        createdAt,
+        updatedAt
+      };
+    }).sort((a, b) => Number(b.ageHours || 0) - Number(a.ageHours || 0)).slice(0, 80);
+    const staffProductRiskMap = new Map();
+    for (const entry of entries) {
+      const key = `${entry.staffId || entry.staffName || "unassigned"}|${entry.productId || entry.productName || "product"}`;
+      const row = staffProductRiskMap.get(key) || {
+        staffId: entry.staffId || "",
+        staffName: entry.staffName || "Unassigned",
+        productId: entry.productId || "",
+        productName: entry.productName || "Product",
+        entries: 0,
+        exceptionEntries: 0,
+        usageCost: 0,
+        exceptionCost: 0,
+        lastUsedAt: ""
+      };
+      row.entries += 1;
+      row.usageCost = money(row.usageCost + number(entry.productCost, 0));
+      if (entry.usageType !== "client") {
+        row.exceptionEntries += 1;
+        row.exceptionCost = money(row.exceptionCost + number(entry.productCost, 0));
+      }
+      row.lastUsedAt = String(entry.createdAt || "").localeCompare(String(row.lastUsedAt || "")) > 0 ? entry.createdAt : row.lastUsedAt;
+      staffProductRiskMap.set(key, row);
+    }
+    const staffProductRiskRows = [...staffProductRiskMap.values()].map((row) => {
+      const overuseCount = varianceRows
+        .filter((item) => (item.staffId || item.staffName || "unassigned") === (row.staffId || row.staffName || "unassigned") && item.productId === row.productId)
+        .reduce((sum, item) => sum + number(item.count, 0), 0);
+      const exceptionRatio = row.usageCost > 0 ? money((row.exceptionCost / row.usageCost) * 100) : 0;
+      const riskScore = Math.min(100, Math.round(exceptionRatio + overuseCount * 12 + row.exceptionEntries * 4));
+      return {
+        ...row,
+        overuseCount,
+        exceptionRatio,
+        riskScore,
+        riskLevel: riskScore >= 60 ? "high" : riskScore >= 25 ? "medium" : "watch"
+      };
+    }).filter((row) => row.riskScore > 0).sort((a, b) => Number(b.riskScore || 0) - Number(a.riskScore || 0)).slice(0, 80);
+    const riskRank = { high: 3, medium: 2, watch: 1 };
+    const stockReconciliationRows = productRows.map((row) => {
+      const product = productById.get(row.productId) || {};
+      const productContainers = containers.filter((container) => container.productId === row.productId);
+      const openBalanceQty = money(productContainers.filter((container) => container.status !== "finished").reduce((sum, container) => sum + number(container.balanceQty, 0), 0));
+      const openCapacityQty = money(productContainers.filter((container) => container.status !== "finished").reduce((sum, container) => sum + number(container.capacityQty, 0), 0));
+      const sealedStock = number(product.stock, 0);
+      const lowStockThreshold = number(product.lowStockThreshold || product.low_stock_threshold, 0);
+      const exceptionCost = money(exceptionEntries.filter((entry) => entry.productId === row.productId).reduce((sum, entry) => sum + number(entry.productCost, 0), 0));
+      const issue = sealedStock <= lowStockThreshold ? "low sealed stock" : exceptionCost > 0 ? "exception usage" : openBalanceQty > openCapacityQty ? "open balance mismatch" : "ok";
+      return {
+        productId: row.productId,
+        productName: row.productName,
+        sealedStock,
+        lowStockThreshold,
+        openContainers: productContainers.filter((container) => container.status !== "finished").length,
+        openBalanceQty,
+        openCapacityQty,
+        measureUnit: productContainers[0]?.measureUnit || "",
+        consumedText: row.totalUsedText || "0",
+        exceptionCost,
+        issue,
+        riskLevel: issue === "ok" ? "watch" : sealedStock <= lowStockThreshold || exceptionCost >= 1000 ? "high" : "medium"
+      };
+    }).filter((row) => row.issue !== "ok" || row.openContainers > 0).sort((a, b) => number(riskRank[b.riskLevel], 0) - number(riskRank[a.riskLevel], 0) || Number(b.exceptionCost || 0) - Number(a.exceptionCost || 0)).slice(0, 80);
+    const containerLifecycleRows = containers.map((container) => {
+      const containerEntries = entries.filter((entry) => entry.containerId === container.id);
+      const clientEntryCount = containerEntries.filter((entry) => entry.usageType === "client").length;
+      const exceptionEntryCount = containerEntries.length - clientEntryCount;
+      const usedPct = container.capacityQty > 0 ? money(((container.capacityQty - container.balanceQty) / container.capacityQty) * 100) : 0;
+      const lastUsedAt = containerEntries[0]?.createdAt || "";
+      return {
+        productId: container.productId,
+        productName: container.productName,
+        containerId: container.id,
+        containerNo: container.containerNo,
+        status: container.status,
+        openDays: daysOpen(container.openedAt),
+        usedPct,
+        balanceQty: container.balanceQty,
+        measureUnit: container.measureUnit,
+        clientEntryCount,
+        exceptionEntryCount,
+        lastUsedAt,
+        riskLevel: container.status !== "finished" && daysOpen(container.openedAt) >= 21 ? "high" : exceptionEntryCount > 0 ? "medium" : "watch"
+      };
+    }).sort((a, b) => Number(b.openDays || 0) - Number(a.openDays || 0)).slice(0, 80);
+    const serviceRecipeComplianceMap = new Map();
+    for (const draft of draftRows) {
+      const key = draft.service_id || draft.service_name || "service";
+      const row = serviceRecipeComplianceMap.get(key) || {
+        serviceId: draft.service_id || "",
+        serviceName: draft.service_name || "Service",
+        invoices: new Set(),
+        recipeLines: 0,
+        overuseLines: 0,
+        missingRecipeLines: 0,
+        expectedQty: 0,
+        actualQty: 0,
+        varianceQty: 0,
+        cost: 0,
+        lastUsedAt: ""
+      };
+      row.invoices.add(draft.invoice_id || draft.id);
+      for (const line of parseLineItems(draft)) {
+        const lineProductId = line.productId || line.product_id || "";
+        if (productId && lineProductId !== productId) continue;
+        const expectedQty = number(line.expectedQty ?? line.expected_qty, 0);
+        const actualQty = number(line.actualQty ?? line.actual_qty, 0);
+        const maxQty = number(line.maxQty ?? line.max_qty, 0);
+        if (expectedQty <= 0 && maxQty <= 0) row.missingRecipeLines += 1;
+        row.recipeLines += 1;
+        row.expectedQty = money(row.expectedQty + expectedQty);
+        row.actualQty = money(row.actualQty + actualQty);
+        row.cost = money(row.cost + number(line.actualCost ?? line.actual_cost, 0));
+        if ((maxQty > 0 && actualQty > maxQty) || (expectedQty > 0 && actualQty > expectedQty * 1.15)) row.overuseLines += 1;
+      }
+      row.varianceQty = money(row.actualQty - row.expectedQty);
+      row.lastUsedAt = draft.updated_at || draft.created_at || row.lastUsedAt;
+      serviceRecipeComplianceMap.set(key, row);
+    }
+    const serviceRecipeComplianceRows = [...serviceRecipeComplianceMap.values()].map((row) => {
+      const compliantLines = Math.max(0, row.recipeLines - row.overuseLines - row.missingRecipeLines);
+      const compliancePct = row.recipeLines > 0 ? money((compliantLines / row.recipeLines) * 100) : 0;
+      return {
+        ...row,
+        invoiceCount: row.invoices.size,
+        invoices: undefined,
+        compliancePct,
+        riskLevel: compliancePct < 70 ? "high" : compliancePct < 90 ? "medium" : "watch"
+      };
+    }).filter((row) => row.recipeLines > 0).sort((a, b) => Number(a.compliancePct || 0) - Number(b.compliancePct || 0)).slice(0, 80);
     const branchRows = groupUsageRows(entries, (entry) => entry.branchId || "all", (entry) => ({
       branchId: entry.branchId || "",
       branchName: entry.branchId || "All branches"
@@ -1414,7 +1600,14 @@ export class BackbarProductConsumptionService {
         usageCategories: usageCategoryRows.length,
         containerEfficiencyRows: containerEfficiencyRows.length,
         clientProfitRows: clientProfitRows.length,
-        productControlScores: productControlScoreRows.length
+        productControlScores: productControlScoreRows.length,
+        dailyTrendRows: dailyTrendRows.length,
+        weeklyTrendRows: weeklyTrendRows.length,
+        approvalSlaBreaches: approvalSlaRows.filter((row) => row.slaStatus === "breached").length,
+        staffProductRisks: staffProductRiskRows.length,
+        stockReconciliationRows: stockReconciliationRows.length,
+        containerLifecycleRows: containerLifecycleRows.length,
+        serviceRecipeComplianceRows: serviceRecipeComplianceRows.length
       },
       productRows,
       staffRows,
@@ -1438,6 +1631,13 @@ export class BackbarProductConsumptionService {
       containerEfficiencyRows,
       clientProfitRows,
       productControlScoreRows,
+      dailyTrendRows,
+      weeklyTrendRows,
+      approvalSlaRows,
+      staffProductRiskRows,
+      stockReconciliationRows,
+      containerLifecycleRows,
+      serviceRecipeComplianceRows,
       approvals,
       alerts,
       recentEntries: entries,

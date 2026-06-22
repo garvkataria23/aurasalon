@@ -201,6 +201,13 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
           <article><span>Efficiency rows</span><strong>{{ report['summary']?.containerEfficiencyRows || 0 }}</strong><small>container ROI</small></article>
           <article><span>Control score</span><strong>{{ report['summary']?.productControlScores || 0 }}</strong><small>product risk</small></article>
         </div>
+        <div class="owner-metrics">
+          <article><span>Daily trend</span><strong>{{ report['summary']?.dailyTrendRows || 0 }}</strong><small>days measured</small></article>
+          <article><span>Weekly trend</span><strong>{{ report['summary']?.weeklyTrendRows || 0 }}</strong><small>weeks measured</small></article>
+          <article><span>SLA breach</span><strong>{{ report['summary']?.approvalSlaBreaches || 0 }}</strong><small>approval aging</small></article>
+          <article><span>Stock recon</span><strong>{{ report['summary']?.stockReconciliationRows || 0 }}</strong><small>seal/open check</small></article>
+          <article><span>Recipe compliance</span><strong>{{ report['summary']?.serviceRecipeComplianceRows || 0 }}</strong><small>service control</small></article>
+        </div>
         <div class="report-grid">
           <div class="report-table">
             <h4>Product-wise usage</h4>
@@ -399,6 +406,71 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
               <small>{{ row['reasonText'] || 'clean' }}</small>
             </div>
             <small *ngIf="!ledgerProductControlScoreRows().length">No product control score rows.</small>
+          </article>
+        </div>
+        <div class="owner-control-grid">
+          <article>
+            <h4>Daily usage trend</h4>
+            <div class="risk-row" *ngFor="let row of ledgerDailyTrendRows().slice(0, 5)" [class.high]="(row['exceptionCost'] || 0) > 0">
+              <strong>{{ row['period'] }}</strong>
+              <span>{{ row['entries'] || 0 }} entries · {{ row['usedQty'] || 0 }} {{ row['unit'] || '' }}</span>
+              <small>{{ money(row['usageCost'] || 0) }} · waste {{ money(row['exceptionCost'] || 0) }}</small>
+            </div>
+            <small *ngIf="!ledgerDailyTrendRows().length">No daily trend rows.</small>
+          </article>
+          <article>
+            <h4>Weekly usage trend</h4>
+            <div class="risk-row" *ngFor="let row of ledgerWeeklyTrendRows().slice(0, 5)" [class.high]="(row['exceptionEntries'] || 0) >= 3">
+              <strong>Week {{ row['period'] }}</strong>
+              <span>{{ row['clientEntries'] || 0 }} client · {{ row['exceptionEntries'] || 0 }} exception</span>
+              <small>{{ money(row['usageCost'] || 0) }} · qty {{ row['usedQty'] || 0 }} {{ row['unit'] || '' }}</small>
+            </div>
+            <small *ngIf="!ledgerWeeklyTrendRows().length">No weekly trend rows.</small>
+          </article>
+          <article>
+            <h4>Approval SLA aging</h4>
+            <div class="risk-row" *ngFor="let row of ledgerApprovalSlaRows().slice(0, 5)" [class.high]="row['slaStatus'] === 'breached'">
+              <strong>{{ row['productName'] || 'Product' }}</strong>
+              <span>{{ row['status'] || 'pending' }} · {{ row['ageHours'] || 0 }}h · {{ row['staffName'] || 'Unassigned' }}</span>
+              <small>{{ row['slaStatus'] || 'ok' }} · {{ row['reason'] || 'No reason' }}</small>
+            </div>
+            <small *ngIf="!ledgerApprovalSlaRows().length">No approval SLA rows.</small>
+          </article>
+          <article>
+            <h4>Staff product risk</h4>
+            <div class="risk-row" *ngFor="let row of ledgerStaffProductRiskRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['staffName'] || 'Unassigned' }}</strong>
+              <span>{{ row['productName'] || 'Product' }} · score {{ row['riskScore'] || 0 }}</span>
+              <small>{{ row['overuseCount'] || 0 }} overuse · exception {{ row['exceptionRatio'] || 0 }}%</small>
+            </div>
+            <small *ngIf="!ledgerStaffProductRiskRows().length">No staff product risk rows.</small>
+          </article>
+          <article>
+            <h4>Stock reconciliation</h4>
+            <div class="risk-row" *ngFor="let row of ledgerStockReconciliationRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] || 'Product' }}</strong>
+              <span>Sealed {{ row['sealedStock'] || 0 }} · open {{ row['openBalanceQty'] || 0 }} {{ row['measureUnit'] || '' }}</span>
+              <small>{{ row['issue'] || 'ok' }} · consumed {{ row['consumedText'] || '0' }}</small>
+            </div>
+            <small *ngIf="!ledgerStockReconciliationRows().length">No stock reconciliation rows.</small>
+          </article>
+          <article>
+            <h4>Container lifecycle</h4>
+            <div class="risk-row" *ngFor="let row of ledgerContainerLifecycleRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] }} #{{ row['containerNo'] }}</strong>
+              <span>{{ row['status'] || 'open' }} · {{ row['openDays'] || 0 }} days · {{ row['usedPct'] || 0 }}% used</span>
+              <small>{{ row['clientEntryCount'] || 0 }} client · {{ row['exceptionEntryCount'] || 0 }} exception</small>
+            </div>
+            <small *ngIf="!ledgerContainerLifecycleRows().length">No container lifecycle rows.</small>
+          </article>
+          <article>
+            <h4>Service recipe compliance</h4>
+            <div class="risk-row" *ngFor="let row of ledgerServiceRecipeComplianceRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['serviceName'] || 'Service' }}</strong>
+              <span>{{ row['compliancePct'] || 0 }}% compliant · {{ row['recipeLines'] || 0 }} lines</span>
+              <small>{{ row['overuseLines'] || 0 }} overuse · {{ row['missingRecipeLines'] || 0 }} missing recipe</small>
+            </div>
+            <small *ngIf="!ledgerServiceRecipeComplianceRows().length">No recipe compliance rows.</small>
           </article>
         </div>
         <div class="report-feed">
@@ -1258,6 +1330,34 @@ export class ProductConsumeComponent {
 
   ledgerProductControlScoreRows(): ApiRecord[] {
     return (this.controlLedgerReport()?.['productControlScoreRows'] || []) as ApiRecord[];
+  }
+
+  ledgerDailyTrendRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['dailyTrendRows'] || []) as ApiRecord[];
+  }
+
+  ledgerWeeklyTrendRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['weeklyTrendRows'] || []) as ApiRecord[];
+  }
+
+  ledgerApprovalSlaRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['approvalSlaRows'] || []) as ApiRecord[];
+  }
+
+  ledgerStaffProductRiskRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['staffProductRiskRows'] || []) as ApiRecord[];
+  }
+
+  ledgerStockReconciliationRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['stockReconciliationRows'] || []) as ApiRecord[];
+  }
+
+  ledgerContainerLifecycleRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['containerLifecycleRows'] || []) as ApiRecord[];
+  }
+
+  ledgerServiceRecipeComplianceRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['serviceRecipeComplianceRows'] || []) as ApiRecord[];
   }
 
   ledgerVarianceRows(): ApiRecord[] {
