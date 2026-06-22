@@ -1868,6 +1868,7 @@ export class InventoryEnterpriseService {
         access,
         consumeStockUnit: (stockPayload) => this.consumeProductFifo(stockPayload, access)
       });
+      const postedLines = backbar.postedLines?.length ? backbar.postedLines : lines;
       const hasBackbarUsage = backbar.allocations.length || backbar.stockDeductions.length;
       const result = !hasBackbarUsage && draft.recipe_id
         ? this.consumeServiceRecipe({
@@ -1878,7 +1879,7 @@ export class InventoryEnterpriseService {
             referenceId: draft.invoice_id,
             staffId: draft.staff_id,
             clientId: draft.client_id,
-            actualItems: lines.map((line) => ({ productId: line.productId || line.product_id, quantity: line.actualQty ?? line.actual_qty ?? line.quantity, unit: line.unit }))
+            actualItems: postedLines.map((line) => ({ productId: line.productId || line.product_id, quantity: line.actualQty ?? line.actual_qty ?? line.quantity, unit: line.unit }))
           }, access)
         : {
             status: "deducted",
@@ -1896,12 +1897,13 @@ export class InventoryEnterpriseService {
             backbar: {
               allocations: backbar.allocations,
               alerts: backbar.alerts,
-              stockDeductions: backbar.stockDeductions
+              stockDeductions: backbar.stockDeductions,
+              postedLines
             }
           };
       const updated = updateSnake("product_consume_drafts", id, access, {
-        line_items_json: toJson(lines),
-        actual_cost: money(lines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
+        line_items_json: toJson(postedLines),
+        actual_cost: money(postedLines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
         status: "confirmed",
         confirmed_usage_log_id: result.log?.id || "",
         notes: payload.notes ?? draft.notes,

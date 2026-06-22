@@ -22,6 +22,9 @@ interface ConsumeLine {
   unitCost: number;
   expectedCost: number;
   actualCost: number;
+  backbarPosted?: boolean;
+  backbarAllocations?: ApiRecord[];
+  backbarStockDeductions?: ApiRecord[];
 }
 
 interface ConsumeDraft extends ApiRecord {
@@ -666,7 +669,16 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
               <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Reason</span><span>Substitutes</span><span>Cost</span>
             </div>
             <div class="row" *ngFor="let line of draft.lineItems; let i = index">
-              <span><strong>{{ line.productName || line.productId }}</strong><small>{{ line.unitCost | number:'1.2-2' }} / {{ line.unit }}<ng-container *ngIf="linePackLabel(line)"> · {{ linePackLabel(line) }}</ng-container></small></span>
+              <span>
+                <strong>{{ line.productName || line.productId }}</strong>
+                <small>{{ line.unitCost | number:'1.2-2' }} / {{ line.unit }}<ng-container *ngIf="linePackLabel(line)"> · {{ linePackLabel(line) }}</ng-container></small>
+                <div class="line-ledger" *ngIf="line.backbarAllocations?.length">
+                  <small *ngFor="let allocation of line.backbarAllocations">
+                    {{ allocation['containerCode'] || ('Container #' + allocation['containerNo']) }} · {{ allocation['usedQty'] || 0 }} {{ allocation['unit'] || line.unit }} used · {{ allocation['balanceAfter'] || 0 }} left
+                    <ng-container *ngIf="allocation['stockDeducted']"> · stock -1 {{ allocation['stockUnit'] || line.stockUnit || 'pcs' }}</ng-container>
+                  </small>
+                </div>
+              </span>
               <span class="qty-unit">
                 <input type="number" min="0" step="0.01" [ngModel]="line.actualQty" (ngModelChange)="updateQty(i, $event)" [disabled]="draft.status === 'confirmed'">
                 <select [ngModel]="line.unit" (ngModelChange)="updateLine(i, { unit: $event })" [disabled]="draft.status === 'confirmed'">
@@ -834,6 +846,8 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .consume-table { border: 1px solid #dcebea; border-radius: 16px; overflow: auto; }
     .row { display: grid; grid-template-columns: 1.6fr 1.1fr .7fr 1.1fr 1.3fr 1.4fr .75fr; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid #edf4f3; min-width: 1120px; }
     .row:last-child { border-bottom: 0; }
+    .line-ledger { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .line-ledger small { border: 1px solid #cfe1df; border-radius: 999px; padding: 4px 8px; background: #ecfdf5; color: #0f766e; font-weight: 800; text-transform: none; }
     .qty-unit, .range-fields { display: grid; grid-template-columns: 1fr 86px; gap: 8px; }
     .range-fields { grid-template-columns: 1fr 1fr; }
     .backbar-ledger { border: 1px solid #dcebea; border-radius: 16px; padding: 14px; display: grid; gap: 12px; background: #f8fbfa; }

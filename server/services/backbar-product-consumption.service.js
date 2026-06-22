@@ -316,24 +316,44 @@ export class BackbarProductConsumptionService {
     const alerts = [];
     const stockDeductions = [];
 
-    for (const line of lines) {
+    lines.forEach((line, lineIndex) => {
       const productId = line.productId || line.product_id;
-      if (!productId) continue;
+      if (!productId) return;
       const product = loadProduct(productId, access, draft.branch_id || draft.branchId || "");
       if (!isBackbarLine(product, line)) {
         passthroughLines.push(line);
-        continue;
+        return;
       }
-      const applied = this.applyBackbarLine({ draft, line, product, access, consumeStockUnit });
+      const applied = this.applyBackbarLine({ draft, line, lineIndex, product, access, consumeStockUnit });
       allocations.push(...applied.allocations);
       alerts.push(...applied.alerts);
       stockDeductions.push(...applied.stockDeductions);
-    }
+    });
 
-    return { passthroughLines, allocations, alerts, stockDeductions };
+    const postedLines = lines.map((line, lineIndex) => {
+      const lineAllocations = allocations
+        .filter((allocation) => allocation.lineIndex === lineIndex)
+        .map(({ usage, ...allocation }) => allocation);
+      if (!lineAllocations.length) return line;
+      const stockDeductionsForLine = stockDeductions.filter((deduction) => lineAllocations.some((allocation) => allocation.containerId === deduction.containerId));
+      return {
+        ...line,
+        backbarPosted: true,
+        backbarAllocations: lineAllocations,
+        backbarStockDeductions: stockDeductionsForLine.map((deduction) => ({
+          containerId: deduction.containerId,
+          containerNo: deduction.containerNo,
+          stockUnit: deduction.stockUnit,
+          quantity: deduction.quantity,
+          transactionId: deduction.transactionId
+        }))
+      };
+    });
+
+    return { passthroughLines, allocations, alerts, stockDeductions, postedLines };
   }
 
-  applyBackbarLine({ draft = {}, line = {}, product = {}, access = {}, consumeStockUnit } = {}) {
+  applyBackbarLine({ draft = {}, line = {}, lineIndex = 0, product = {}, access = {}, consumeStockUnit } = {}) {
     const { stockUnit, measureUnit, capacityQty } = productUnits(product, line);
     const requestedQty = convertMeasureQty(line.actualQty ?? line.actual_qty ?? line.quantity, line.unit || measureUnit, measureUnit);
     const unitCost = measureUnitCost(product, line);
@@ -361,6 +381,7 @@ export class BackbarProductConsumptionService {
     while (remaining > 0) {
       const container = this.activeOrOpenContainer({ access, branchId: draft.branch_id, product, stockUnit, measureUnit, capacityQty, draftId: draft.id });
       const take = Math.min(remaining, number(container.balanceQty, 0));
+      const balanceBefore = money(number(container.balanceQty, 0));
       const balanceAfter = money(number(container.balanceQty, 0) - take);
       const usedAfter = money(number(container.usedQty, 0) + take);
       const usage = this.insertUsage({
@@ -381,7 +402,21 @@ export class BackbarProductConsumptionService {
         WHERE id = ? AND tenant_id = ?
       `).run(usedAfter, balanceAfter, access.userId || "", now(), container.id, access.tenantId);
 
-      allocations.push({ containerId: container.id, containerNo: container.containerNo, productId: product.id, usedQty: take, unit: measureUnit, balanceAfter, usage });
+      allocations.push({
+        lineIndex,
+        containerId: container.id,
+        containerNo: container.containerNo,
+        containerCode: `${container.stockUnit || stockUnit} #${container.containerNo}`,
+        productId: product.id,
+        productName: product.name || product.id,
+        usedQty: take,
+        unit: measureUnit,
+        balanceBefore,
+        balanceAfter,
+        stockUnit,
+        stockDeducted: false,
+        usage
+      });
 
       if (balanceAfter <= 0) {
         const deduction = consumeStockUnit({
@@ -401,7 +436,18 @@ export class BackbarProductConsumptionService {
           SET status = 'finished', balanceQty = 0, finishedAt = ?, stockTransactionId = ?, updatedBy = ?, updatedAt = ?
           WHERE id = ? AND tenant_id = ?
         `).run(now(), transactionId, access.userId || "", now(), container.id, access.tenantId);
-        stockDeductions.push(deduction);
+        const stockDeduction = {
+          containerId: container.id,
+          containerNo: container.containerNo,
+          productId: product.id,
+          stockUnit,
+          quantity: 1,
+          transactionId,
+          deduction
+        };
+        stockDeductions.push(stockDeduction);
+        const allocation = allocations.find((row) => row.containerId === container.id && row.usage?.id === usage.id);
+        if (allocation) allocation.stockDeducted = true;
         alerts.push(this.createAlert({
           access,
           branchId: draft.branch_id,
@@ -446,12 +492,12 @@ export class BackbarProductConsumptionService {
     `).get(access.tenantId, branchId, product.id);
     if (active) return mapContainer(active);
 
-    const openCount = db.prepare(`
+    const reservedContainerCount = db.prepare(`
       SELECT COUNT(*) AS count FROM backbar_product_containers
-      WHERE tenant_id = ? AND branch_id = ? AND productId = ? AND status = 'open'
+      WHERE tenant_id = ? AND branch_id = ? AND productId = ? AND status <> 'finished'
     `).get(access.tenantId, branchId, product.id).count;
     const currentProduct = loadProduct(product.id, access, branchId);
-    const sealedStock = number(currentProduct.stock, 0) - number(openCount, 0);
+    const sealedStock = number(currentProduct.stock, 0) - number(reservedContainerCount, 0);
     if (sealedStock <= 0) throw conflict(`${product.name} has no sealed ${stockUnit} available to open`);
 
     const nextNo = number(db.prepare(`
