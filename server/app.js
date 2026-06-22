@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import "./db.js";
+import { dataDir } from "./db.js";
 import "./migrations/add-happy-hours-to-invoices.js";
 import "./jobs/flash-sale-monitor.js";
 import "./jobs/demand-snapshot.job.js";
@@ -211,6 +211,7 @@ export function createApp() {
       }
     })
   );
+  app.use("/uploads", express.static(join(dataDir, "uploads"), { maxAge: "7d" }));
   app.use(express.json({
     limit: env.requestBodyLimit,
     verify: (req, _res, buf) => {

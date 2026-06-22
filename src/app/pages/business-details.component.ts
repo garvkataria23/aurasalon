@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, firstValueFrom } from 'rxjs';
 import { ApiService } from '../core/api.service';
 
 type BusinessNotificationProfile = {
@@ -41,6 +41,13 @@ type BusinessHour = {
 type TimeOption = {
   value: string;
   label: string;
+};
+
+type BusinessMediaUploadResponse = {
+  url: string;
+  kind: 'cover' | 'gallery';
+  mimeType: string;
+  sizeBytes: number;
 };
 
 @Component({
@@ -169,10 +176,20 @@ type TimeOption = {
         </label>
 
         <div class="public-profile-grid">
-          <label>
-            Cover photo URL
-            <input [(ngModel)]="coverImageText" placeholder="https://.../salon-cover.jpg" />
-          </label>
+          <div class="media-upload-card">
+            <div class="media-upload-header">
+              <div>
+                <strong>Cover photo</strong>
+                <span>JPG, JPEG, PNG and common photo files</span>
+              </div>
+              <input #coverPhotoInput type="file" [accept]="imageAccept" (change)="uploadCoverPhoto($event)" hidden />
+              <button class="ghost-button compact" type="button" (click)="coverPhotoInput.click()" [disabled]="coverUploading()">
+                {{ coverUploading() ? 'Uploading...' : 'Upload cover' }}
+              </button>
+            </div>
+            <img *ngIf="coverImageText" class="cover-preview" [src]="coverImageText" alt="Business cover preview" />
+            <button *ngIf="coverImageText" class="ghost-button compact remove-media-button" type="button" (click)="clearCoverPhoto()">Remove cover</button>
+          </div>
           <label>
             Website URL
             <input [(ngModel)]="websiteUrl" placeholder="https://your-salon.com" />
@@ -187,10 +204,24 @@ type TimeOption = {
           </label>
         </div>
 
-        <label>
-          Gallery photo URLs
-          <textarea rows="5" [(ngModel)]="galleryImagesText" placeholder="One image URL per line. These appear on the customer app business profile."></textarea>
-        </label>
+        <div class="gallery-upload-card">
+          <div class="media-upload-header">
+            <div>
+              <strong>Gallery photos</strong>
+              <span>Upload from gallery or file manager</span>
+            </div>
+            <input #galleryPhotoInput type="file" [accept]="imageAccept" multiple (change)="uploadGalleryPhotos($event)" hidden />
+            <button class="ghost-button compact" type="button" (click)="galleryPhotoInput.click()" [disabled]="galleryUploading()">
+              {{ galleryUploading() ? 'Uploading...' : 'Add photos' }}
+            </button>
+          </div>
+          <div *ngIf="galleryImageList().length" class="gallery-preview-grid">
+            <div *ngFor="let image of galleryImageList()" class="gallery-preview-tile">
+              <img [src]="image" alt="Business gallery preview" loading="lazy" />
+              <button class="remove-media-button" type="button" (click)="removeGalleryImage(image)">Remove</button>
+            </div>
+          </div>
+        </div>
 
         <div class="hours-editor">
           <div class="hours-copy">
@@ -469,6 +500,79 @@ type TimeOption = {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
     }
+    .media-upload-card,
+    .gallery-upload-card {
+      border: 1px solid #d6dfdd;
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfdfc;
+    }
+    .media-upload-card {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 12px;
+    }
+    .gallery-upload-card {
+      display: grid;
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .media-upload-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .media-upload-header div {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+    .media-upload-header strong {
+      color: #071524;
+      font-size: 15px;
+    }
+    .media-upload-header span {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .cover-preview {
+      width: 100%;
+      max-height: 260px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #d9e3e1;
+      background: #eef4f3;
+    }
+    .gallery-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .gallery-preview-tile {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+    .gallery-preview-tile img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #d9e3e1;
+      background: #eef4f3;
+    }
+    .remove-media-button {
+      justify-self: start;
+      border: 1px solid #f5b7b1;
+      border-radius: 8px;
+      background: #fff8f7;
+      color: #b42318;
+      padding: 8px 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
     .hours-editor {
       display: grid;
       grid-template-columns: minmax(220px, 0.36fr) minmax(520px, 1fr);
@@ -591,6 +695,7 @@ type TimeOption = {
     @media (max-width: 980px) {
       .settings-grid, .sms-command-grid, .form-grid.two, .form-grid.three, .preview-grid, .public-profile-grid, .hours-editor { grid-template-columns: 1fr; }
       .module-hero { align-items: flex-start; flex-direction: column; }
+      .media-upload-header { align-items: flex-start; flex-direction: column; }
     }
     @media (min-width: 981px) and (max-width: 1280px) {
       .sms-command-grid, .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -600,6 +705,8 @@ type TimeOption = {
 export class BusinessDetailsComponent implements OnInit {
   loading = signal(false);
   saving = signal(false);
+  coverUploading = signal(false);
+  galleryUploading = signal(false);
   error = signal('');
   saved = signal(false);
 
@@ -614,6 +721,8 @@ export class BusinessDetailsComponent implements OnInit {
   mapsUrl = '';
   showBusinessHours = true;
   businessHours: Record<string, BusinessHour> = this.defaultBusinessHours();
+  readonly imageAccept = 'image/jpeg,image/jpg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/bmp,image/tiff';
+  private readonly maxImageBytes = 5 * 1024 * 1024;
   readonly businessHourDays = [
     { key: 'sunday', label: 'Sunday' },
     { key: 'monday', label: 'Monday' },
@@ -696,6 +805,57 @@ export class BusinessDetailsComponent implements OnInit {
     return this.label(this.form.providerMode || 'queued');
   }
 
+  uploadCoverPhoto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.coverUploading.set(true);
+    this.error.set('');
+    this.saved.set(false);
+    this.uploadProfileImage(file, 'cover')
+      .then((url) => {
+        this.coverImageText = url;
+      })
+      .catch((err) => this.error.set(this.errorText(err, 'Unable to upload cover photo')))
+      .finally(() => this.coverUploading.set(false));
+  }
+
+  async uploadGalleryPhotos(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) return;
+    this.galleryUploading.set(true);
+    this.error.set('');
+    this.saved.set(false);
+    try {
+      const uploaded: string[] = [];
+      for (const file of files) {
+        uploaded.push(await this.uploadProfileImage(file, 'gallery'));
+      }
+      this.galleryImagesText = [...new Set([...this.galleryImageList(), ...uploaded])].join('\n');
+    } catch (err) {
+      this.error.set(this.errorText(err, 'Unable to upload gallery photos'));
+    } finally {
+      this.galleryUploading.set(false);
+    }
+  }
+
+  clearCoverPhoto(): void {
+    this.coverImageText = '';
+    this.saved.set(false);
+  }
+
+  removeGalleryImage(image: string): void {
+    this.galleryImagesText = this.galleryImageList().filter((item) => item !== image).join('\n');
+    this.saved.set(false);
+  }
+
+  galleryImageList(): string[] {
+    return this.lines(this.galleryImagesText);
+  }
+
   private patchForm(profile: BusinessNotificationProfile): void {
     this.form = { ...this.emptyForm(), ...profile, socialLinks: profile.socialLinks || {} };
     this.reportingEmailsText = (this.form.reportingEmails || []).join('\n');
@@ -750,6 +910,61 @@ export class BusinessDetailsComponent implements OnInit {
       ...this.businessHours[dayKey],
       open: status === 'open'
     };
+  }
+
+  private async uploadProfileImage(file: File, kind: 'cover' | 'gallery'): Promise<string> {
+    if (!this.isSupportedPhoto(file)) {
+      throw new Error('Only JPG, JPEG, PNG and common photo files are allowed');
+    }
+    if (file.size > this.maxImageBytes) {
+      throw new Error('Photo size must be 5 MB or less');
+    }
+    const dataUrl = await this.readFileAsDataUrl(file);
+    const response = await firstValueFrom(this.api.post<BusinessMediaUploadResponse>('invoice-notifications/profile/media', {
+      kind,
+      fileName: file.name,
+      mimeType: file.type || this.mimeTypeFromFileName(file.name),
+      sizeBytes: file.size,
+      dataUrl
+    }));
+    if (!response.url) throw new Error('Upload did not return an image URL');
+    return response.url;
+  }
+
+  private isSupportedPhoto(file: File): boolean {
+    return file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif|hei[cf]|bmp|tiff?)$/i.test(file.name);
+  }
+
+  private mimeTypeFromFileName(fileName: string): string {
+    const extension = String(fileName || '').toLowerCase().split('.').pop();
+    const byExtension: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      gif: 'image/gif',
+      avif: 'image/avif',
+      heic: 'image/heic',
+      heif: 'image/heif',
+      bmp: 'image/bmp',
+      tif: 'image/tiff',
+      tiff: 'image/tiff'
+    };
+    return byExtension[extension || ''] || '';
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('Unable to read selected photo'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private errorText(error: unknown, fallback: string): string {
+    const err = error as { error?: { message?: unknown; error?: unknown }; message?: unknown };
+    return String(err?.error?.message || err?.error?.error || err?.message || fallback);
   }
 
   private lines(value: string): string[] {
