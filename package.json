@@ -11,6 +11,8 @@
     "start:prod": "node server/index.js",
     "check:server": "node scripts/check-server.mjs",
     "test": "node scripts/run-tests.mjs",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "quality": "npm run check:server && npm test && npm run build",
     "seed:demo": "node scripts/seed-demo-data.mjs",
     "seed:ai-knowledge": "node scripts/seed-aurashine-ai-knowledge.mjs",
@@ -42,6 +44,7 @@
     "@angular/cli": "^20.3.15",
     "@types/three": "^0.184.1",
     "concurrently": "^9.2.1",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^2.1.9"
   }
 }
