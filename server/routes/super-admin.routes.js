@@ -56,3 +56,18 @@ superAdminRouter.post(
     res.status(201).json(superAdminService.upsertFeatureToggle(req.body, req.access));
   })
 );
+
+superAdminRouter.patch(
+  "/super-admin/feature-toggles/:id/enabled",
+  validateBody({ required: ["enabled"] }),
+  asyncHandler((req, res) => {
+    res.json(superAdminService.setFeatureToggleEnabled(req.params.id, req.body.enabled, req.access));
+  })
+);
+
+superAdminRouter.delete(
+  "/super-admin/feature-toggles/:id",
+  asyncHandler((req, res) => {
+    res.json(superAdminService.deleteFeatureToggle(req.params.id, req.access));
+  })
+);

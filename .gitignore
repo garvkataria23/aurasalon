@@ -18,9 +18,13 @@ backups/
 .codex-video-frames/
 .codex-video-review/
 .codex-zip-review/
+.codex-artifacts/
+.codex-runtime/
 codex-screenshots/
+outputs/
 .vscode/
 marketplace-v2-backup-*.zip
+happy-hours-control-tower-*.zip
 *.log
 *.err.log
 *.out.log

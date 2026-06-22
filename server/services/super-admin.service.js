@@ -234,6 +234,24 @@ export class SuperAdminService {
     return toggle;
   }
 
+  setFeatureToggleEnabled(id, enabled, access) {
+    ensureSuperAdmin(access);
+    const row = repositories.featureToggles.getById(id);
+    if (!row) throw notFound("Feature toggle not found");
+    const updated = repositories.featureToggles.update(id, { enabled: enabled ? 1 : 0, updatedAt: now() });
+    this.audit(access, "feature_toggle.enabled_changed", "feature_toggle", id, { key: row.key, enabled: !!enabled });
+    return updated;
+  }
+
+  deleteFeatureToggle(id, access) {
+    ensureSuperAdmin(access);
+    const row = repositories.featureToggles.getById(id);
+    if (!row) throw notFound("Feature toggle not found");
+    repositories.featureToggles.delete(id);
+    this.audit(access, "feature_toggle.deleted", "feature_toggle", id, { key: row.key });
+    return { ok: true, id };
+  }
+
   audit(access, action, targetType, targetId, details = {}) {
     return repositories.superAdminAudit.create({
       id: makeId("audit"),

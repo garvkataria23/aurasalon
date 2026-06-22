@@ -145,12 +145,32 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <div class="section-title"><h2>Feature toggles and plans</h2></div>
           <div class="dashboard-grid">
             <div class="activity-list">
-              <article *ngFor="let toggle of overview.featureToggles">
-                <div>
+              <article *ngFor="let toggle of overview.featureToggles" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
                   <strong>{{ toggle.name }}</strong>
-                  <span>{{ toggle.key }} · {{ toggle.scope }}</span>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ toggle.key }} · {{ toggle.scope }}</span>
+                  <span *ngIf="toggle.description" style="display:block;font-size:0.78em;color:var(--text-muted)">{{ toggle.description }}</span>
                 </div>
-                <span class="badge">{{ toggle.enabled ? 'enabled' : 'disabled' }}</span>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span class="badge" [style.background]="toggle.enabled ? 'var(--success,#16a34a)' : 'var(--muted,#6b7280)'" style="color:#fff">
+                    {{ toggle.enabled ? 'ON' : 'OFF' }}
+                  </span>
+                  <button
+                    type="button"
+                    class="ghost"
+                    style="padding:4px 10px;font-size:0.8em"
+                    [disabled]="saving()"
+                    (click)="toggleEnabled(toggle)">
+                    {{ toggle.enabled ? 'Disable' : 'Enable' }}
+                  </button>
+                  <button
+                    type="button"
+                    style="padding:4px 8px;font-size:0.8em;background:none;border:1px solid var(--danger,#dc2626);color:var(--danger,#dc2626);border-radius:4px;cursor:pointer"
+                    [disabled]="saving()"
+                    (click)="deleteToggle(toggle)">
+                    ✕
+                  </button>
+                </div>
               </article>
             </div>
             <div class="activity-list">
@@ -291,6 +311,35 @@ export class SuperAdminComponent implements OnInit {
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to save feature toggle');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  toggleEnabled(toggle: { id: string; enabled: number | boolean; name: string }): void {
+    this.saving.set(true);
+    this.api.patch(`super-admin/feature-toggles/${toggle.id}/enabled`, { enabled: !toggle.enabled }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to update toggle');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  deleteToggle(toggle: { id: string; name: string }): void {
+    if (!confirm(`Delete feature toggle "${toggle.name}"?`)) return;
+    this.saving.set(true);
+    this.api.delete('super-admin/feature-toggles', toggle.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to delete toggle');
         this.saving.set(false);
       }
     });
