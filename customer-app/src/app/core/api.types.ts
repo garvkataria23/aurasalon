@@ -72,8 +72,20 @@ export interface BusinessReview {
   dateLabel?: string;
 }
 
+export interface BusinessHour {
+  day: string;
+  label: string;
+  open: boolean;
+  opensAt: string;
+  closesAt: string;
+  display: string;
+  note?: string;
+}
+
 export interface Business {
   id: string;
+  tenantId?: string;
+  branchId?: string;
   slug: string;
   businessName: string;
   category: string;
@@ -81,6 +93,17 @@ export interface Business {
   address: string;
   area: string;
   city: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string;
+  mobileNumber?: string;
+  telephoneNumber?: string;
+  appointmentNumber?: string;
+  logoUrl?: string;
+  websiteUrl?: string;
+  instagramUrl?: string;
+  mapsUrl?: string;
   latitude?: number;
   longitude?: number;
   distanceKm?: number;
@@ -92,6 +115,7 @@ export interface Business {
   openingTime?: string;
   closingTime?: string;
   timezone?: string;
+  businessHours?: BusinessHour[];
   nextOpenAt?: string;
   nextCloseAt?: string;
   nextAvailableSlot?: string;

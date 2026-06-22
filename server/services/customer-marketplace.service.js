@@ -5,6 +5,15 @@ const DEFAULT_TIMEZONE = "Asia/Kolkata";
 const DEFAULT_OPEN = "10:00";
 const DEFAULT_CLOSE = "20:00";
 const IST_OFFSET = "+05:30";
+const WEEKDAYS = [
+  ["monday", "Monday"],
+  ["tuesday", "Tuesday"],
+  ["wednesday", "Wednesday"],
+  ["thursday", "Thursday"],
+  ["friday", "Friday"],
+  ["saturday", "Saturday"],
+  ["sunday", "Sunday"]
+];
 
 function hasColumn(table, column) {
   return columnsFor(table).includes(column);
@@ -51,6 +60,86 @@ function branchArea(branch) {
 
 function unique(values) {
   return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+}
+
+function publicProfile(row) {
+  if (!tableExists("business_notification_profiles")) return {};
+  return db.prepare(`
+    SELECT *
+    FROM business_notification_profiles
+    WHERE tenant_id = @tenantId
+      AND (branch_id = @branchId OR branch_id = '')
+    ORDER BY CASE WHEN branch_id = @branchId THEN 0 ELSE 1 END
+    LIMIT 1
+  `).get({ tenantId: row.tenantId, branchId: row.branchId }) || {};
+}
+
+function timeToMinutes(value) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function formatTime(value) {
+  const minutes = timeToMinutes(value);
+  if (minutes === null) return "";
+  return displayTime(minutes);
+}
+
+function businessHoursRows(hours = {}) {
+  return WEEKDAYS.map(([key, label]) => {
+    const day = hours?.[key] || {};
+    const open = day.open !== false;
+    const opensAt = day.opensAt || day.openingTime || DEFAULT_OPEN;
+    const closesAt = day.closesAt || day.closingTime || DEFAULT_CLOSE;
+    return {
+      day: key,
+      label,
+      open,
+      opensAt,
+      closesAt,
+      display: open ? `${formatTime(opensAt)} - ${formatTime(closesAt)}` : "Closed",
+      note: day.note || ""
+    };
+  });
+}
+
+function todayKey(timezone = DEFAULT_TIMEZONE) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: timezone }).format(new Date()).toLowerCase();
+}
+
+function currentMinutes(timezone = DEFAULT_TIMEZONE) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: timezone
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
+  return hour * 60 + minute;
+}
+
+function currentHours(hours = {}, timezone = DEFAULT_TIMEZONE) {
+  const rows = businessHoursRows(hours);
+  return rows.find((row) => row.day === todayKey(timezone)) || rows[0];
+}
+
+function isOpenNow(hours = {}, timezone = DEFAULT_TIMEZONE, onlineBookingEnabled = true) {
+  if (!Object.keys(hours || {}).length) return Number(onlineBookingEnabled ?? 1) === 1;
+  const today = currentHours(hours, timezone);
+  if (!today?.open) return false;
+  const open = timeToMinutes(today.opensAt);
+  const close = timeToMinutes(today.closesAt);
+  const now = currentMinutes(timezone);
+  if (open === null || close === null) return Number(onlineBookingEnabled ?? 1) === 1;
+  return now >= open && now < close;
+}
+
+function hoursLabel(hours = {}, timezone = DEFAULT_TIMEZONE) {
+  if (!Object.keys(hours || {}).length) return "Online booking available";
+  const today = currentHours(hours, timezone);
+  return today?.open ? `Today ${today.display}` : "Closed today";
 }
 
 function activeBusinessRows(params = {}) {
@@ -235,33 +324,57 @@ function mapBusiness(row, { includeDetails = false } = {}) {
   const categories = unique(services.map((service) => service.category));
   const theme = parseJson(row.themeConfig, {});
   const seo = parseJson(row.seoConfig, {});
+  const profile = publicProfile(row);
+  const socialLinks = parseJson(profile.social_links_json, {});
+  const businessHours = parseJson(profile.business_hours_json, {});
+  const profileGallery = Array.isArray(socialLinks.galleryImages) ? socialLinks.galleryImages : String(socialLinks.galleryImages || "").split(/[\n,;]/);
   const gallery = [
+    ...profileGallery,
     ...(Array.isArray(theme.galleryImages) ? theme.galleryImages : []),
     ...(Array.isArray(seo.galleryImages) ? seo.galleryImages : [])
   ].filter(Boolean);
   const startingPrice = services.length ? Math.min(...services.map((service) => service.pricePaise || 0).filter((price) => price > 0)) : 0;
-  const description = seo.description || theme.description || `${row.branchName} accepts online bookings in ${row.city || "your city"}.`;
+  const timezone = row.timezone || DEFAULT_TIMEZONE;
+  const businessName = profile.business_name || row.branchName;
+  const city = profile.city || row.city || "";
+  const address = profile.address || row.address || city || "";
+  const description = profile.about_us || seo.description || theme.description || `${businessName} accepts online bookings in ${city || "your city"}.`;
+  const coverImage = socialLinks.coverImage || socialLinks.coverImageUrl || theme.coverImage || seo.image || profile.logo_url || "";
   return {
     id: row.branchId,
     slug: businessSlug(row),
-    businessName: row.branchName,
+    tenantId: row.tenantId,
+    branchId: row.branchId,
+    businessName,
     category: categories[0] || "Salon & wellness",
     description,
-    address: row.address || row.city || "",
-    area: branchArea(row),
-    city: row.city || "",
+    address,
+    area: branchArea({ ...row, address, city }),
+    city,
+    state: profile.state || "",
+    postalCode: profile.postal_code || "",
+    country: profile.country || "India - IN",
+    phone: profile.appointment_number || profile.mobile_number || row.phone || "",
+    mobileNumber: profile.mobile_number || "",
+    telephoneNumber: profile.telephone_number || "",
+    appointmentNumber: profile.appointment_number || "",
+    logoUrl: profile.logo_url || "",
+    websiteUrl: socialLinks.website || "",
+    instagramUrl: socialLinks.instagram || "",
+    mapsUrl: socialLinks.mapsUrl || socialLinks.googleMaps || "",
     ratingAverage: reviewAverage(reviews),
     ratingCount: reviews.length,
     createdAt: row.createdAt,
-    isOpen: Number(row.onlineBookingEnabled ?? 1) === 1,
-    hoursLabel: theme.hoursLabel || "Online booking available",
-    openingTime: theme.openingTime || DEFAULT_OPEN,
-    closingTime: theme.closingTime || DEFAULT_CLOSE,
-    timezone: row.timezone || DEFAULT_TIMEZONE,
+    isOpen: isOpenNow(businessHours, timezone, row.onlineBookingEnabled),
+    hoursLabel: hoursLabel(businessHours, timezone) || theme.hoursLabel || "Online booking available",
+    openingTime: currentHours(businessHours, timezone)?.opensAt || theme.openingTime || DEFAULT_OPEN,
+    closingTime: currentHours(businessHours, timezone)?.closesAt || theme.closingTime || DEFAULT_CLOSE,
+    timezone,
+    businessHours: businessHoursRows(businessHours),
     nextAvailableSlot: "",
     hasOffer: false,
     coverGradient: theme.coverGradient || "linear-gradient(135deg, #12211d, #3f7b68)",
-    coverImage: theme.coverImage || seo.image || "",
+    coverImage,
     galleryImages: unique(gallery),
     popularService: services[0]?.name || "",
     startingPricePaise: startingPrice,

@@ -31,7 +31,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       @if (business()) {
       <main class="profile-page">
         <section class="cover">
-          <img [src]="business().coverImage || 'assets/icons/icon.svg'" [alt]="business().businessName + ' cover image'" />
+          <img [src]="business().coverImage || business().logoUrl || 'assets/icons/icon.svg'" [alt]="business().businessName + ' cover image'" />
           <div class="cover-overlay"></div>
           <div class="cover-actions">
             <ion-button fill="clear" shape="round" [class.saved-action]="isSaved()" [attr.aria-label]="isSaved() ? 'Remove from wishlist' : 'Save to wishlist'" (click)="toggleWishlist()">
@@ -42,7 +42,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
           <div class="cover-copy app-container">
             <span class="status-pill" [class.closed]="!business().isOpen">{{ business().isOpen ? "Open now" : "Closed now" }}</span>
             <h1>{{ business().businessName }}</h1>
-            <p>{{ business().category }}</p>
+            <p>{{ business().category }} · {{ business().hoursLabel || "Business hours available" }}</p>
           </div>
         </section>
 
@@ -56,11 +56,12 @@ import { MarketplaceService } from "../../core/marketplace.service";
               <div class="stat-grid">
                 <span><strong>{{ business().ratingAverage }}</strong> {{ business().ratingCount }} reviews</span>
                 <span><strong>{{ business().distanceKm }} km</strong> from you</span>
-                <span><strong>{{ business().nextAvailableSlot }}</strong> next slot</span>
+                <span><strong>{{ business().hoursLabel || business().nextAvailableSlot }}</strong> timing</span>
               </div>
               <div class="trust-row">
                 <span><ion-icon name="sparkles-outline"></ion-icon>{{ business().services.length }} services</span>
                 <span><ion-icon name="people-outline"></ion-icon>{{ business().staff.length }} professionals</span>
+                <span><ion-icon name="time-outline"></ion-icon>{{ business().hoursLabel || "Hours published" }}</span>
                 <span><ion-icon name="card-outline"></ion-icon>{{ paymentLabel() }}</span>
               </div>
             </section>
@@ -156,16 +157,38 @@ import { MarketplaceService } from "../../core/marketplace.service";
                 <h2>Location</h2>
                 <p><ion-icon name="location-outline"></ion-icon>{{ business().address }}</p>
                 <div class="info-actions">
-                  <ion-button size="small" fill="outline" class="secondary-button">
+                  <ion-button size="small" fill="outline" class="secondary-button" [href]="business().mapsUrl || undefined" target="_blank">
                     <ion-icon name="navigate-outline" slot="start"></ion-icon>
                     Directions
                   </ion-button>
-                  <ion-button size="small" fill="outline" class="secondary-button">
+                  <ion-button size="small" fill="outline" class="secondary-button" [href]="phoneHref()">
                     <ion-icon name="call-outline" slot="start"></ion-icon>
                     Call
                   </ion-button>
                 </div>
-                <span class="muted">Map and phone providers can connect here without changing this customer layout.</span>
+                <span class="muted">{{ business().area }}, {{ business().city }} {{ business().postalCode || "" }}</span>
+              </article>
+              <article class="premium-card info-card">
+                <h2>Hours</h2>
+                @for (day of business().businessHours; track day.day) {
+                  <p class="hours-row"><strong>{{ day.label }}</strong><span>{{ day.display }}{{ day.note ? " · " + day.note : "" }}</span></p>
+                } @empty {
+                  <p class="muted">{{ business().hoursLabel || "Business hours have not been published yet." }}</p>
+                }
+              </article>
+              <article class="premium-card info-card">
+                <h2>Contact</h2>
+                @if (business().phone || business().appointmentNumber || business().mobileNumber) {
+                  <p><ion-icon name="call-outline"></ion-icon>{{ business().appointmentNumber || business().mobileNumber || business().phone }}</p>
+                } @else {
+                  <p class="muted">Contact number will appear after the business publishes it.</p>
+                }
+                @if (business().websiteUrl) {
+                  <p><ion-icon name="navigate-outline"></ion-icon>{{ business().websiteUrl }}</p>
+                }
+                @if (business().instagramUrl) {
+                  <p><ion-icon name="sparkles-outline"></ion-icon>{{ business().instagramUrl }}</p>
+                }
               </article>
               <article class="premium-card info-card">
                 <h2>Policies</h2>
@@ -186,6 +209,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
               <div class="rail-offer">{{ business().offerText }}</div>
             }
             <div class="rail-row"><span><ion-icon name="time-outline"></ion-icon> Next slot</span><strong>{{ business().nextAvailableSlot || "Check availability" }}</strong></div>
+            <div class="rail-row"><span><ion-icon name="time-outline"></ion-icon> Hours</span><strong>{{ business().hoursLabel || "Published" }}</strong></div>
             <div class="rail-row"><span><ion-icon name="location-outline"></ion-icon> Area</span><strong>{{ business().area }}</strong></div>
             <div class="rail-row"><span><ion-icon name="card-outline"></ion-icon> Payment</span><strong>{{ paymentLabel() }}</strong></div>
             <ion-button expand="block" size="large" class="primary-gradient" [routerLink]="['/business', business().slug, 'book']">Book now</ion-button>
@@ -641,6 +665,11 @@ export class BusinessProfilePage implements OnInit {
     if (modes.includes("online") && modes.includes("pay_at_venue")) return "Online or venue";
     if (modes.includes("online")) return "Online ready";
     return "Pay at venue";
+  }
+
+  phoneHref(): string | undefined {
+    const phone = this.business()?.appointmentNumber || this.business()?.mobileNumber || this.business()?.phone || "";
+    return phone ? `tel:${phone}` : undefined;
   }
 
   isSaved(): boolean {

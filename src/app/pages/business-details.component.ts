@@ -24,10 +24,18 @@ type BusinessNotificationProfile = {
   city?: string;
   postalCode?: string;
   aboutUs?: string;
-  socialLinks?: Record<string, string>;
+  socialLinks?: Record<string, unknown>;
+  businessHours?: Record<string, BusinessHour>;
   providerMode?: string;
   invoiceClientEnabled?: boolean;
   invoiceOwnerEnabled?: boolean;
+};
+
+type BusinessHour = {
+  open: boolean;
+  opensAt: string;
+  closesAt: string;
+  note?: string;
 };
 
 @Component({
@@ -154,6 +162,49 @@ type BusinessNotificationProfile = {
           About us
           <textarea rows="4" [(ngModel)]="form.aboutUs" placeholder="Short salon description"></textarea>
         </label>
+
+        <div class="public-profile-grid">
+          <label>
+            Cover photo URL
+            <input [(ngModel)]="coverImageText" placeholder="https://.../salon-cover.jpg" />
+          </label>
+          <label>
+            Website URL
+            <input [(ngModel)]="websiteUrl" placeholder="https://your-salon.com" />
+          </label>
+          <label>
+            Instagram URL
+            <input [(ngModel)]="instagramUrl" placeholder="https://instagram.com/..." />
+          </label>
+          <label>
+            Google Maps / directions URL
+            <input [(ngModel)]="mapsUrl" placeholder="https://maps.google.com/..." />
+          </label>
+        </div>
+
+        <label>
+          Gallery photo URLs
+          <textarea rows="5" [(ngModel)]="galleryImagesText" placeholder="One image URL per line. These appear on the customer app business profile."></textarea>
+        </label>
+
+        <div class="hours-editor">
+          <div class="hours-heading">
+            <div>
+              <p class="eyebrow">Customer app timings</p>
+              <h3>Business hours</h3>
+            </div>
+            <button class="ghost-button compact" type="button" (click)="copyMondayToWeek()">Copy Monday to week</button>
+          </div>
+          <div class="hours-row" *ngFor="let day of businessHourDays">
+            <label class="open-toggle">
+              <input type="checkbox" [(ngModel)]="businessHours[day.key].open" />
+              {{ day.label }}
+            </label>
+            <input type="time" [(ngModel)]="businessHours[day.key].opensAt" [disabled]="!businessHours[day.key].open" />
+            <input type="time" [(ngModel)]="businessHours[day.key].closesAt" [disabled]="!businessHours[day.key].open" />
+            <input [(ngModel)]="businessHours[day.key].note" placeholder="Note" />
+          </div>
+        </div>
       </article>
 
       <article class="panel">
@@ -377,10 +428,53 @@ type BusinessNotificationProfile = {
       padding: 14px;
       background: #fbfdfc;
     }
+    .public-profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .hours-editor {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      border: 1px solid #d9e3e1;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fbfdfc;
+    }
+    .hours-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hours-heading h3 {
+      margin: 4px 0 0;
+    }
+    .compact {
+      padding: 8px 12px;
+      min-height: 36px;
+    }
+    .hours-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 1fr) 120px 120px minmax(160px, 1.5fr);
+      gap: 10px;
+      align-items: center;
+    }
+    .hours-row input {
+      min-width: 0;
+    }
+    .open-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
     .preview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
     @media (max-width: 980px) {
-      .settings-grid, .sms-command-grid, .form-grid.two, .form-grid.three, .preview-grid { grid-template-columns: 1fr; }
+      .settings-grid, .sms-command-grid, .form-grid.two, .form-grid.three, .preview-grid, .public-profile-grid, .hours-row { grid-template-columns: 1fr; }
       .module-hero { align-items: flex-start; flex-direction: column; }
+      .hours-heading { align-items: flex-start; flex-direction: column; }
     }
     @media (min-width: 981px) and (max-width: 1280px) {
       .sms-command-grid, .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -397,6 +491,21 @@ export class BusinessDetailsComponent implements OnInit {
   reportingEmailsText = '';
   ownerEmailsText = '';
   ownerMobilesText = '';
+  coverImageText = '';
+  galleryImagesText = '';
+  websiteUrl = '';
+  instagramUrl = '';
+  mapsUrl = '';
+  businessHours: Record<string, BusinessHour> = this.defaultBusinessHours();
+  readonly businessHourDays = [
+    { key: 'monday', label: 'Monday' },
+    { key: 'tuesday', label: 'Tuesday' },
+    { key: 'wednesday', label: 'Wednesday' },
+    { key: 'thursday', label: 'Thursday' },
+    { key: 'friday', label: 'Friday' },
+    { key: 'saturday', label: 'Saturday' },
+    { key: 'sunday', label: 'Sunday' }
+  ];
 
   constructor(private readonly api: ApiService) {}
 
@@ -423,7 +532,9 @@ export class BusinessDetailsComponent implements OnInit {
       ...this.form,
       reportingEmails: this.lines(this.reportingEmailsText),
       ownerEmails: this.lines(this.ownerEmailsText),
-      ownerMobiles: this.lines(this.ownerMobilesText)
+      ownerMobiles: this.lines(this.ownerMobilesText),
+      socialLinks: this.publicProfileLinks(),
+      businessHours: this.normalizedBusinessHours()
     };
     this.api.put<BusinessNotificationProfile>('invoice-notifications/profile', payload)
       .pipe(finalize(() => this.saving.set(false)))
@@ -472,6 +583,13 @@ export class BusinessDetailsComponent implements OnInit {
     this.reportingEmailsText = (this.form.reportingEmails || []).join('\n');
     this.ownerEmailsText = (this.form.ownerEmails || []).join('\n');
     this.ownerMobilesText = (this.form.ownerMobiles || []).join('\n');
+    const links = this.form.socialLinks || {};
+    this.coverImageText = String(links['coverImage'] || links['coverImageUrl'] || '');
+    this.galleryImagesText = Array.isArray(links['galleryImages']) ? (links['galleryImages'] as string[]).join('\n') : String(links['galleryImages'] || '');
+    this.websiteUrl = String(links['website'] || '');
+    this.instagramUrl = String(links['instagram'] || '');
+    this.mapsUrl = String(links['mapsUrl'] || links['googleMaps'] || '');
+    this.businessHours = this.mergeBusinessHours(profile.businessHours);
   }
 
   private emptyForm(): BusinessNotificationProfile {
@@ -494,10 +612,18 @@ export class BusinessDetailsComponent implements OnInit {
       postalCode: '',
       aboutUs: '',
       socialLinks: {},
+      businessHours: this.defaultBusinessHours(),
       providerMode: 'queued',
       invoiceClientEnabled: true,
       invoiceOwnerEnabled: true
     };
+  }
+
+  copyMondayToWeek(): void {
+    const monday = { ...this.businessHours['monday'] };
+    this.businessHourDays.forEach((day) => {
+      this.businessHours[day.key] = { ...monday };
+    });
   }
 
   private lines(value: string): string[] {
@@ -506,5 +632,46 @@ export class BusinessDetailsComponent implements OnInit {
 
   private label(value = ''): string {
     return String(value || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+
+  private publicProfileLinks(): Record<string, unknown> {
+    return {
+      ...(this.form.socialLinks || {}),
+      coverImage: this.coverImageText.trim(),
+      galleryImages: this.lines(this.galleryImagesText),
+      website: this.websiteUrl.trim(),
+      instagram: this.instagramUrl.trim(),
+      mapsUrl: this.mapsUrl.trim()
+    };
+  }
+
+  private defaultBusinessHours(): Record<string, BusinessHour> {
+    return {
+      monday: { open: true, opensAt: '10:00', closesAt: '20:00' },
+      tuesday: { open: true, opensAt: '10:00', closesAt: '20:00' },
+      wednesday: { open: true, opensAt: '10:00', closesAt: '20:00' },
+      thursday: { open: true, opensAt: '10:00', closesAt: '20:00' },
+      friday: { open: true, opensAt: '10:00', closesAt: '20:00' },
+      saturday: { open: true, opensAt: '10:00', closesAt: '20:00' },
+      sunday: { open: true, opensAt: '10:00', closesAt: '20:00' }
+    };
+  }
+
+  private mergeBusinessHours(value?: Record<string, BusinessHour>): Record<string, BusinessHour> {
+    const defaults = this.defaultBusinessHours();
+    this.businessHourDays.forEach((day) => {
+      const incoming = value?.[day.key];
+      defaults[day.key] = {
+        open: incoming?.open !== false,
+        opensAt: incoming?.opensAt || '10:00',
+        closesAt: incoming?.closesAt || '20:00',
+        note: incoming?.note || ''
+      };
+    });
+    return defaults;
+  }
+
+  private normalizedBusinessHours(): Record<string, BusinessHour> {
+    return this.mergeBusinessHours(this.businessHours);
   }
 }

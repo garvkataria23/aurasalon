@@ -319,7 +319,8 @@ export class MarketplaceService {
       services: business.services ?? [],
       staff: business.staff ?? [],
       reviews: business.reviews ?? [],
-      policies: business.policies ?? []
+      policies: business.policies ?? [],
+      businessHours: business.businessHours ?? []
     };
   }
 
