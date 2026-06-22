@@ -291,6 +291,53 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
             <small *ngIf="!ledgerSupplierRows().length">No supplier rows.</small>
           </article>
         </div>
+        <div class="deep-control-grid">
+          <article>
+            <h4>Batch / expiry exposure</h4>
+            <div class="risk-row" *ngFor="let row of ledgerBatchExpiryRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] }}</strong>
+              <span>{{ row['batchNumber'] }} · {{ row['quantityAvailable'] || 0 }} left</span>
+              <small>Expiry {{ row['expiryDate'] || 'not set' }} · {{ row['daysToExpiry'] || 0 }} days</small>
+            </div>
+            <small *ngIf="!ledgerBatchExpiryRows().length">No batch expiry exposure.</small>
+          </article>
+          <article>
+            <h4>Staff overuse leaderboard</h4>
+            <div class="risk-row" *ngFor="let row of ledgerStaffOveruseRows().slice(0, 5)" [class.high]="(row['overuseCount'] || 0) >= 3">
+              <strong>{{ row['staffName'] || 'Unassigned' }}</strong>
+              <span>{{ row['overuseCount'] || 0 }} overuse lines · variance {{ row['varianceQty'] || 0 }}</span>
+              <small>{{ row['reasonCount'] || 0 }} with reason · {{ money(row['cost'] || 0) }}</small>
+            </div>
+            <small *ngIf="!ledgerStaffOveruseRows().length">No staff overuse rows.</small>
+          </article>
+          <article>
+            <h4>Service margin after product</h4>
+            <div class="risk-row" *ngFor="let row of ledgerServiceMarginRows().slice(0, 5)" [class.high]="(row['marginPct'] || 0) < 35">
+              <strong>{{ row['serviceName'] || 'Service' }}</strong>
+              <span>Revenue {{ money(row['revenue'] || 0) }} · product {{ money(row['productCost'] || 0) }}</span>
+              <small>Profit {{ money(row['grossAfterProduct'] || 0) }} · {{ row['marginPct'] || 0 }}%</small>
+            </div>
+            <small *ngIf="!ledgerServiceMarginRows().length">No service margin rows.</small>
+          </article>
+          <article>
+            <h4>Slow / dead open container</h4>
+            <div class="risk-row" *ngFor="let row of ledgerSlowMovingRows().slice(0, 5)" [class.high]="(row['idleDays'] || 0) >= 21">
+              <strong>{{ row['productName'] }} #{{ row['containerNo'] }}</strong>
+              <span>{{ row['idleDays'] || 0 }} idle days · {{ row['balancePct'] || 0 }}% balance</span>
+              <small>{{ row['balanceQty'] || 0 }} {{ row['measureUnit'] }} left</small>
+            </div>
+            <small *ngIf="!ledgerSlowMovingRows().length">No slow container rows.</small>
+          </article>
+          <article>
+            <h4>Reorder from consume velocity</h4>
+            <div class="risk-row" *ngFor="let row of ledgerReorderRows().slice(0, 5)" [class.high]="row['riskLevel'] === 'high'">
+              <strong>{{ row['productName'] }}</strong>
+              <span>{{ row['dailyUsage'] || 0 }}/day · stock {{ row['stock'] || 0 }}</span>
+              <small>{{ row['daysToStockout'] || 'NA' }} days left · reorder {{ row['reorderQty'] || 0 }}</small>
+            </div>
+            <small *ngIf="!ledgerReorderRows().length">No reorder signal.</small>
+          </article>
+        </div>
         <div class="report-feed">
           <article *ngFor="let event of ledgerEvents().slice(0, 8)">
             <strong>{{ event['title'] || event['entityType'] }}</strong>
@@ -630,13 +677,16 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .report-feed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .risk-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     .next-control-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .deep-control-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
     .risk-grid > article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: #fff; }
     .next-control-grid > article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: #fff; }
+    .deep-control-grid > article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: #fff; }
     .risk-grid h4 { margin: 0; }
     .next-control-grid h4 { margin: 0; }
+    .deep-control-grid h4 { margin: 0; }
     .risk-row { border: 1px solid #edf4f3; border-radius: 10px; padding: 9px; display: grid; gap: 3px; background: #f8fbfa; }
     .risk-row.high { background: #fff1f2; border-color: #fecdd3; }
-    .risk-row span, .risk-row small, .risk-grid > article > small, .next-control-grid > article > small { color: #64748b; }
+    .risk-row span, .risk-row small, .risk-grid > article > small, .next-control-grid > article > small, .deep-control-grid > article > small { color: #64748b; }
     .ledger-head, .ledger-summary, .active-container { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
     .ledger-head h3 { margin: 2px 0 0; }
     .ledger-head small, .ledger-product small, .ledger-summary span, .history-row span { color: #64748b; }
@@ -671,7 +721,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     @media (max-width: 900px) {
       .module-hero, .workspace { display: grid; }
       .metric-grid, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .audit-filters, .audit-layout, .dashboard-layout, .report-filters, .report-grid, .report-feed, .risk-grid, .next-control-grid { grid-template-columns: 1fr; }
+      .audit-filters, .audit-layout, .dashboard-layout, .report-filters, .report-grid, .report-feed, .risk-grid, .next-control-grid, .deep-control-grid { grid-template-columns: 1fr; }
       .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override { grid-template-columns: 1fr 1fr; }
       .active-container { display: grid; }
       .manual-product-add { grid-template-columns: 1fr; }
@@ -1098,6 +1148,26 @@ export class ProductConsumeComponent {
 
   ledgerSupplierRows(): ApiRecord[] {
     return (this.controlLedgerReport()?.['supplierRows'] || []) as ApiRecord[];
+  }
+
+  ledgerBatchExpiryRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['batchExpiryRows'] || []) as ApiRecord[];
+  }
+
+  ledgerStaffOveruseRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['staffOveruseRows'] || []) as ApiRecord[];
+  }
+
+  ledgerServiceMarginRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['serviceMarginRows'] || []) as ApiRecord[];
+  }
+
+  ledgerSlowMovingRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['slowMovingRows'] || []) as ApiRecord[];
+  }
+
+  ledgerReorderRows(): ApiRecord[] {
+    return (this.controlLedgerReport()?.['reorderRows'] || []) as ApiRecord[];
   }
 
   ledgerVarianceRows(): ApiRecord[] {

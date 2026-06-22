@@ -920,11 +920,24 @@ export class BackbarProductConsumptionService {
     const draftRows = tableExists("product_consume_drafts")
       ? db.prepare(`SELECT * FROM product_consume_drafts WHERE ${draftFilters.join(" AND ")} ORDER BY updated_at DESC LIMIT @limit`).all(draftParams)
       : [];
+    const draftInvoiceIds = [...new Set(draftRows.map((draft) => draft.invoice_id).filter(Boolean))];
+    const invoiceItems = tableExists("invoice_items") && draftInvoiceIds.length
+      ? db.prepare(`SELECT * FROM invoice_items WHERE tenant_id = ? AND invoice_id IN (${placeholders(draftInvoiceIds)})`).all(access.tenantId, ...draftInvoiceIds)
+      : [];
+    const itemsByInvoice = new Map();
+    for (const item of invoiceItems) {
+      const rows = itemsByInvoice.get(item.invoice_id) || [];
+      rows.push(item);
+      itemsByInvoice.set(item.invoice_id, rows);
+    }
     const varianceMap = new Map();
+    const serviceMarginMap = new Map();
     for (const draft of draftRows) {
+      let draftProductCost = 0;
       for (const line of parseLineItems(draft)) {
         const lineProductId = line.productId || line.product_id || "";
         if (productId && lineProductId !== productId) continue;
+        draftProductCost = money(draftProductCost + number(line.actualCost ?? line.actual_cost, 0));
         const actualQty = number(line.actualQty ?? line.actual_qty, 0);
         const expectedQty = number(line.expectedQty ?? line.expected_qty, 0);
         const maxQty = number(line.maxQty ?? line.max_qty, 0);
@@ -956,8 +969,47 @@ export class BackbarProductConsumptionService {
         row.lastUsedAt = draft.updated_at || draft.created_at || row.lastUsedAt;
         varianceMap.set(key, row);
       }
+      if (draftProductCost > 0 || !productId) {
+        const marginKey = draft.service_id || draft.service_name || "service";
+        const serviceItems = (itemsByInvoice.get(draft.invoice_id) || []).filter((item) => item.item_type === "service");
+        const matched = serviceItems.find((item) => item.item_id === draft.service_id || item.appointment_service_id === draft.service_id)
+          || (serviceItems.length === 1 ? serviceItems[0] : null);
+        const revenue = money(matched?.total_amount || 0);
+        const row = serviceMarginMap.get(marginKey) || {
+          serviceId: draft.service_id || "",
+          serviceName: draft.service_name || "Service",
+          invoices: 0,
+          revenue: 0,
+          productCost: 0,
+          grossAfterProduct: 0,
+          marginPct: 0,
+          revenueLinked: 0,
+          lastUsedAt: ""
+        };
+        row.invoices += 1;
+        row.revenue = money(row.revenue + revenue);
+        row.productCost = money(row.productCost + draftProductCost);
+        row.grossAfterProduct = money(row.revenue - row.productCost);
+        row.marginPct = row.revenue > 0 ? money((row.grossAfterProduct / row.revenue) * 100) : 0;
+        if (revenue > 0) row.revenueLinked += 1;
+        row.lastUsedAt = draft.updated_at || draft.created_at || row.lastUsedAt;
+        serviceMarginMap.set(marginKey, row);
+      }
     }
     const varianceRows = [...varianceMap.values()].sort((a, b) => Number(b.varianceQty || 0) - Number(a.varianceQty || 0)).slice(0, 80);
+    const staffOveruseRows = groupUsageRows(varianceRows, (row) => row.staffId || row.staffName || "unassigned", (row) => ({
+      staffId: row.staffId || "",
+      staffName: row.staffName || "Unassigned"
+    })).map((row) => {
+      const staffVariance = varianceRows.filter((item) => (item.staffId || item.staffName || "unassigned") === (row.staffId || row.staffName || "unassigned"));
+      return {
+        ...row,
+        overuseCount: staffVariance.reduce((sum, item) => sum + number(item.count, 0), 0),
+        varianceQty: money(staffVariance.reduce((sum, item) => sum + number(item.varianceQty, 0), 0)),
+        reasonCount: staffVariance.reduce((sum, item) => sum + number(item.reasonCount, 0), 0)
+      };
+    }).sort((a, b) => Number(b.overuseCount || 0) - Number(a.overuseCount || 0)).slice(0, 50);
+    const serviceMarginRows = [...serviceMarginMap.values()].sort((a, b) => Number(a.marginPct || 0) - Number(b.marginPct || 0)).slice(0, 80);
     const containerRiskRows = containers
       .filter((container) => container.status !== "finished")
       .map((container) => {
@@ -1009,6 +1061,75 @@ export class BackbarProductConsumptionService {
         riskLevel: riskScore >= 60 ? "high" : riskScore >= 25 ? "medium" : "watch"
       };
     }).filter((row) => row.riskScore > 0).sort((a, b) => Number(b.riskScore || 0) - Number(a.riskScore || 0)).slice(0, 80);
+    const batchRows = tableExists("inventory_batches") && productIds.length
+      ? db.prepare(`
+        SELECT * FROM inventory_batches
+        WHERE tenantId = ? AND productId IN (${placeholders(productIds)})
+          ${branchId ? "AND branchId = ?" : ""}
+          AND quantityAvailable > 0
+        ORDER BY CASE WHEN expiryDate IS NULL OR expiryDate = '' THEN 1 ELSE 0 END, expiryDate ASC
+        LIMIT ${limit}
+      `).all(...(branchId ? [access.tenantId, ...productIds, branchId] : [access.tenantId, ...productIds]))
+      : [];
+    const batchExpiryRows = batchRows.map((batch) => {
+      const product = productById.get(batch.productId) || {};
+      const daysToExpiry = batch.expiryDate ? Math.ceil((new Date(batch.expiryDate).getTime() - Date.now()) / 86400000) : null;
+      const value = money(number(batch.quantityAvailable, 0) * number(batch.unitCost || product.unitCost, 0));
+      return {
+        batchId: batch.id,
+        batchNumber: batch.batchNumber || batch.id,
+        productId: batch.productId,
+        productName: product.name || batch.productId,
+        branchId: batch.branchId || "",
+        expiryDate: batch.expiryDate || "",
+        daysToExpiry,
+        quantityAvailable: money(batch.quantityAvailable),
+        value,
+        riskLevel: daysToExpiry !== null && daysToExpiry <= 15 ? "high" : daysToExpiry !== null && daysToExpiry <= 45 ? "medium" : "watch"
+      };
+    }).filter((row) => row.daysToExpiry !== null && row.daysToExpiry >= 0 && row.daysToExpiry <= 90).slice(0, 80);
+    const slowMovingRows = containers
+      .filter((container) => container.status !== "finished")
+      .map((container) => {
+        const containerEntries = entries.filter((entry) => entry.containerId === container.id);
+        const lastUsedAt = containerEntries[0]?.createdAt || "";
+        const idleDays = lastUsedAt ? daysOpen(lastUsedAt) : daysOpen(container.openedAt);
+        const balancePct = container.capacityQty > 0 ? money((container.balanceQty / container.capacityQty) * 100) : 0;
+        return {
+          productId: container.productId,
+          productName: container.productName,
+          containerId: container.id,
+          containerNo: container.containerNo,
+          idleDays,
+          balancePct,
+          balanceQty: container.balanceQty,
+          measureUnit: container.measureUnit,
+          lastUsedAt,
+          status: idleDays >= 14 && balancePct >= 25 ? "slow_moving" : "watch"
+        };
+      }).filter((row) => row.idleDays >= 7 && row.balancePct >= 10).sort((a, b) => Number(b.idleDays || 0) - Number(a.idleDays || 0)).slice(0, 80);
+    const entryDates = entries.map((entry) => String(entry.createdAt || "").slice(0, 10)).filter(Boolean).sort();
+    const measuredDays = Math.max(1, entryDates.length ? Math.ceil((new Date(entryDates[entryDates.length - 1]).getTime() - new Date(entryDates[0]).getTime()) / 86400000) + 1 : 1);
+    const reorderRows = productRows.map((row) => {
+      const product = productById.get(row.productId) || {};
+      const productEntries = entries.filter((entry) => entry.productId === row.productId);
+      const quantity = productEntries.reduce((sum, entry) => sum + number(entry.usedQty, 0), 0);
+      const dailyUsage = money(quantity / measuredDays);
+      const stock = number(product.stock, 0);
+      const lowStockThreshold = number(product.lowStockThreshold || product.low_stock_threshold, 0);
+      const daysToStockout = dailyUsage > 0 ? Math.floor(stock / dailyUsage) : null;
+      const reorderQty = dailyUsage > 0 ? Math.max(0, Math.ceil((dailyUsage * 30) - stock)) : 0;
+      return {
+        productId: row.productId,
+        productName: row.productName,
+        dailyUsage,
+        stock,
+        lowStockThreshold,
+        daysToStockout,
+        reorderQty,
+        riskLevel: daysToStockout !== null && daysToStockout <= 7 ? "high" : daysToStockout !== null && daysToStockout <= 21 ? "medium" : stock <= lowStockThreshold ? "medium" : "watch"
+      };
+    }).filter((row) => row.reorderQty > 0 || row.riskLevel !== "watch").sort((a, b) => number(a.daysToStockout, 9999) - number(b.daysToStockout, 9999)).slice(0, 80);
     const branchRows = groupUsageRows(entries, (entry) => entry.branchId || "all", (entry) => ({
       branchId: entry.branchId || "",
       branchName: entry.branchId || "All branches"
@@ -1112,7 +1233,12 @@ export class BackbarProductConsumptionService {
         leakageRisks: leakageRows.length,
         branches: branchRows.length,
         suppliers: supplierRows.length,
-        approvalHistory: approvalRows.length
+        approvalHistory: approvalRows.length,
+        batchesNearExpiry: batchExpiryRows.length,
+        staffOveruse: staffOveruseRows.length,
+        lowMarginServices: serviceMarginRows.filter((row) => number(row.marginPct, 0) < 50 || number(row.grossAfterProduct, 0) < 0).length,
+        slowMovingContainers: slowMovingRows.length,
+        reorderSignals: reorderRows.length
       },
       productRows,
       staffRows,
@@ -1125,6 +1251,11 @@ export class BackbarProductConsumptionService {
       branchRows,
       supplierRows,
       approvalRows,
+      batchExpiryRows,
+      staffOveruseRows,
+      serviceMarginRows,
+      slowMovingRows,
+      reorderRows,
       approvals,
       alerts,
       recentEntries: entries,
