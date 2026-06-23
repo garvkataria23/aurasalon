@@ -541,9 +541,18 @@ function revenueGrowthGraph(tenantRows) {
 function trialPaidFunnel(tenantRows) {
   const total = tenantRows.length;
   const trialing = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing").length;
-  const paid = tenantRows.filter((tenant) => tenant.subscriptionStatus === "active").length;
+  const paidTenants = tenantRows.filter((tenant) => tenant.subscriptionStatus === "active");
+  const paid = paidTenants.length;
   const suspended = tenantRows.filter((tenant) => tenant.subscriptionStatus === "suspended" || tenant.status === "suspended").length;
   const expiredTrial = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing" && daysUntil(tenant.trialEndsAt) !== null && daysUntil(tenant.trialEndsAt) < 0).length;
+  const conversionDays = paidTenants
+    .map((tenant) => {
+      const start = new Date(tenant.subscription?.trialStart || tenant.createdAt || tenant.subscription?.createdAt || "").getTime();
+      const converted = new Date(tenant.subscription?.currentPeriodStart || tenant.subscription?.updatedAt || tenant.updatedAt || "").getTime();
+      if (Number.isNaN(start) || Number.isNaN(converted) || converted < start) return null;
+      return Math.ceil((converted - start) / 86400000);
+    })
+    .filter((value) => value !== null);
   return {
     stages: [
       { label: "All tenants", count: total, pct: 100 },
@@ -552,9 +561,56 @@ function trialPaidFunnel(tenantRows) {
       { label: "Suspended/churn risk", count: suspended, pct: share(suspended, total) }
     ],
     conversionRate: share(paid, paid + trialing + suspended),
+    convertedTrials: paid,
+    averageConversionDays: conversionDays.length ? pct(sumRows(conversionDays, (value) => value) / conversionDays.length) : 0,
     trialLeakage: expiredTrial,
     paidMrr: money(sumRows(tenantRows.filter((tenant) => tenant.subscriptionStatus === "active"), (tenant) => tenant.monthlyRecurringRevenue)),
     trialPipelineMrr: money(sumRows(tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing"), (tenant) => tenant.monthlyRecurringRevenue))
+  };
+}
+
+function churnPrediction(tenantRows) {
+  const predictions = tenantRows.map((tenant) => {
+    const healthRisk = Math.max(0, 70 - tenant.healthScore);
+    const billingRisk = tenant.outstanding > tenant.monthlyRecurringRevenue ? 25 : tenant.outstanding > 0 ? 14 : 0;
+    const suspensionRisk = tenant.subscriptionStatus === "suspended" || tenant.status === "suspended" ? 30 : 0;
+    const adoptionRisk = (!tenant.usage.appointments || !tenant.usage.clients) ? 12 : tenant.usage.appointments < 5 ? 6 : 0;
+    const trialRisk = tenant.subscriptionStatus === "trialing" && daysUntil(tenant.trialEndsAt) !== null && daysUntil(tenant.trialEndsAt) <= 7 ? 8 : 0;
+    const churnScore = pct(Math.min(100, healthRisk + billingRisk + suspensionRisk + adoptionRisk + trialRisk));
+    const drivers = [
+      healthRisk ? "low health" : "",
+      billingRisk ? "billing exposure" : "",
+      suspensionRisk ? "suspended" : "",
+      adoptionRisk ? "low adoption" : "",
+      trialRisk ? "trial ending" : ""
+    ].filter(Boolean);
+    return {
+      id: tenant.id,
+      name: tenant.name,
+      planName: tenant.planName,
+      subscriptionStatus: tenant.subscriptionStatus,
+      churnScore,
+      probability: churnScore >= 70 ? "high" : churnScore >= 40 ? "medium" : "low",
+      mrrAtRisk: tenant.monthlyRecurringRevenue,
+      outstanding: tenant.outstanding,
+      drivers,
+      recommendedAction: drivers.includes("billing exposure")
+        ? "Run billing recovery"
+        : drivers.includes("low adoption")
+          ? "Schedule adoption rescue"
+          : drivers.includes("trial ending")
+            ? "Convert trial before expiry"
+            : "Monitor account"
+    };
+  });
+  return {
+    highRiskCount: predictions.filter((item) => item.probability === "high").length,
+    mediumRiskCount: predictions.filter((item) => item.probability === "medium").length,
+    mrrAtRisk: money(sumRows(predictions.filter((item) => item.probability !== "low"), (item) => item.mrrAtRisk)),
+    tenants: predictions
+      .filter((item) => item.churnScore > 0)
+      .sort((a, b) => b.churnScore - a.churnScore)
+      .slice(0, 10)
   };
 }
 
@@ -771,6 +827,7 @@ export class SuperAdminService {
       revenueIntelligence: revenueIntelligence(metrics, tenantRows, plans),
       revenueGrowthGraph: revenueGrowthGraph(tenantRows),
       trialPaidFunnel: trialPaidFunnel(tenantRows),
+      churnPrediction: churnPrediction(tenantRows),
       tenantRiskCommand: {
         alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
         highRiskTenants: tenantRows

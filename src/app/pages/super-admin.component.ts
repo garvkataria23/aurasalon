@@ -556,6 +556,14 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </div>
           <div class="quick-grid">
             <article class="action-card">
+              <strong>{{ funnel.convertedTrials }}</strong>
+              <span>Trials converted</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ funnel.averageConversionDays | number: '1.0-1' }}</strong>
+              <span>Average conversion days</span>
+            </article>
+            <article class="action-card">
               <strong>{{ funnel.paidMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
               <span>Paid MRR</span>
             </article>
@@ -571,6 +579,31 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                 <span [style.width.%]="stage.pct" style="display:block;height:100%;background:var(--accent,#2563eb)"></span>
               </span>
               <span style="text-align:right">{{ stage.count }} · {{ stage.pct | number: '1.0-1' }}%</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="overview.churnPrediction as churn">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Churn prediction</span>
+              <h2>{{ churn.highRiskCount }} high-risk and {{ churn.mediumRiskCount }} medium-risk tenants</h2>
+            </div>
+            <span class="badge" style="background:var(--danger,#dc2626);color:#fff">{{ churn.mrrAtRisk | currency: 'INR':'symbol':'1.0-0' }} MRR at risk</span>
+          </div>
+          <div class="activity-list">
+            <article *ngFor="let tenant of churn.tenants" style="display:grid;grid-template-columns:1fr 170px 120px;gap:12px;align-items:center">
+              <div style="min-width:0">
+                <strong>{{ tenant.name }}</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ tenant.planName }} · {{ tenant.drivers.join(' · ') || 'watch' }} · {{ tenant.recommendedAction }}</span>
+              </div>
+              <span style="display:block;height:10px;background:var(--surface-muted,#e5e7eb);border-radius:999px;overflow:hidden">
+                <span [style.width.%]="tenant.churnScore" [style.background]="churnTone(tenant.probability)" style="display:block;height:100%"></span>
+              </span>
+              <div style="text-align:right">
+                <span class="badge" [style.background]="churnTone(tenant.probability)" style="color:#fff">{{ tenant.probability }}</span>
+                <strong style="display:block">{{ tenant.churnScore | number: '1.0-1' }}%</strong>
+              </div>
             </article>
           </div>
         </section>
@@ -1305,6 +1338,12 @@ export class SuperAdminComponent implements OnInit {
   healthFlagTone(severity: string): string {
     if (severity === 'critical') return 'var(--danger,#dc2626)';
     if (severity === 'warning') return 'var(--warning,#f59e0b)';
+    return 'var(--success,#16a34a)';
+  }
+
+  churnTone(probability: string): string {
+    if (probability === 'high') return 'var(--danger,#dc2626)';
+    if (probability === 'medium') return 'var(--warning,#f59e0b)';
     return 'var(--success,#16a34a)';
   }
 
