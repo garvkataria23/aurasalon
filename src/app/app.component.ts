@@ -127,7 +127,7 @@ type ActiveNavTabGroup = {
                     <span>{{ item.label }}</span>
                     <small>{{ item.children?.length }}</small>
                   </a>
-                  <ng-container *ngIf="navQuery() || group.id !== 'staff'">
+                  <ng-container *ngIf="navQuery()">
                     <a
                       *ngFor="let child of item.children"
                       class="nav-subitem nested"
@@ -389,19 +389,35 @@ export class AppComponent {
       icon: 'INV',
       primaryPath: '/inventory',
       items: [
-        { path: '/inventory', label: 'Inventory', icon: 'I', keywords: 'stock products inventory' },
-        { path: '/inventory/purchase-bill-drafts', label: 'AI Bill Drafts', icon: 'AI', keywords: 'ai purchase bill scanner draft invoice receiving' },
-        { path: '/inventory/purchase-orders', label: 'Purchase Orders', icon: 'PO', keywords: 'purchase order po vendor' },
-        { path: '/inventory/reorder', label: 'AI Reorder', icon: 'AR', keywords: 'low stock reorder purchase prediction approval' },
-        { path: '/suppliers', label: 'Suppliers', icon: 'SP', keywords: 'supplier vendor gst purchase' },
-        { path: '/services', label: 'Services', icon: 'S', keywords: 'service menu catalog' },
-        { path: '/inventory/recipes', label: 'Service Recipes', icon: 'BOM', keywords: 'bom recipe service consumption' },
-        { path: '/inventory/fifo', label: 'FIFO Batches', icon: 'FF', keywords: 'fifo batch expiry next stock consume' },
-        { path: '/inventory/product-consume', label: 'Product Consume', icon: 'PC', keywords: 'invoice service recipe product consume stock deduction cogs' },
-        { path: '/inventory/stock-audit', label: 'Stock Audit', icon: 'SA', keywords: 'audit count stock' },
-        { path: '/inventory/financial', label: 'Inventory Finance', icon: 'IF', keywords: 'cogs cash margin dead stock financial' },
-        { path: '/inventory/reports', label: 'Inventory Reports', icon: 'IR', keywords: 'cogs margin expiry report' },
-        { path: '/inventory/scanner', label: 'Inventory Scanner', icon: 'QR', keywords: 'barcode scanner qr' }
+        {
+          path: '/inventory',
+          label: 'Stock Control',
+          icon: 'SC',
+          keywords: 'stock products inventory purchase reorder supplier audit barcode scanner',
+          children: [
+            { path: '/inventory', label: 'Inventory', icon: 'I', keywords: 'stock products inventory' },
+            { path: '/inventory/purchase-bill-drafts', label: 'AI Bill Drafts', icon: 'AI', keywords: 'ai purchase bill scanner draft invoice receiving' },
+            { path: '/inventory/purchase-orders', label: 'Purchase Orders', icon: 'PO', keywords: 'purchase order po vendor' },
+            { path: '/inventory/reorder', label: 'AI Reorder', icon: 'AR', keywords: 'low stock reorder purchase prediction approval' },
+            { path: '/suppliers', label: 'Suppliers', icon: 'SP', keywords: 'supplier vendor gst purchase' },
+            { path: '/inventory/stock-audit', label: 'Stock Audit', icon: 'SA', keywords: 'audit count stock' },
+            { path: '/inventory/scanner', label: 'Inventory Scanner', icon: 'QR', keywords: 'barcode scanner qr' }
+          ]
+        },
+        {
+          path: '/services',
+          label: 'Catalog & Usage',
+          icon: 'CU',
+          keywords: 'services recipes fifo product consume cogs margin expiry inventory reports finance',
+          children: [
+            { path: '/services', label: 'Services', icon: 'S', keywords: 'service menu catalog' },
+            { path: '/inventory/recipes', label: 'Service Recipes', icon: 'BOM', keywords: 'bom recipe service consumption' },
+            { path: '/inventory/fifo', label: 'FIFO Batches', icon: 'FF', keywords: 'fifo batch expiry next stock consume' },
+            { path: '/inventory/product-consume', label: 'Product Consume', icon: 'PC', keywords: 'invoice service recipe product consume stock deduction cogs' },
+            { path: '/inventory/financial', label: 'Inventory Finance', icon: 'IF', keywords: 'cogs cash margin dead stock financial' },
+            { path: '/inventory/reports', label: 'Inventory Reports', icon: 'IR', keywords: 'cogs margin expiry report' }
+          ]
+        }
       ]
     },
     {
@@ -524,18 +540,26 @@ export class AppComponent {
       icon: 'MK',
       primaryPath: '/marketing',
       items: [
-        { path: '/marketing', label: 'Marketing', icon: 'W', keywords: 'campaign marketing automation' },
-        { path: '/engagement', label: 'Engagement Center', icon: 'EC', keywords: 'unified inbox hyperconnect client engagement whatsapp email calls' },
-        { path: '/whatsapp', label: 'WhatsApp', icon: 'WA', keywords: 'whatsapp campaign chat' },
-        { path: '/message-logs', label: 'Messages', icon: 'ML', keywords: 'message logs communication' },
-        { path: '/reputation', label: 'Reviews', icon: 'RV', keywords: 'reviews reputation google' },
-        { path: '/growth-advisor', label: 'Growth AI', icon: 'GA', keywords: 'growth advisor ai' },
-        { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo dhanda ai growth bot reviews' },
+        {
+          path: '/marketing',
+          label: 'Growth Channels',
+          icon: 'GC',
+          keywords: 'campaign marketing engagement whatsapp messages reviews growth ai rank bot',
+          children: [
+            { path: '/marketing', label: 'Marketing', icon: 'W', keywords: 'campaign marketing automation' },
+            { path: '/engagement', label: 'Engagement Center', icon: 'EC', keywords: 'unified inbox hyperconnect client engagement whatsapp email calls' },
+            { path: '/whatsapp', label: 'WhatsApp', icon: 'WA', keywords: 'whatsapp campaign chat' },
+            { path: '/message-logs', label: 'Messages', icon: 'ML', keywords: 'message logs communication' },
+            { path: '/reputation', label: 'Reviews', icon: 'RV', keywords: 'reviews reputation google' },
+            { path: '/growth-advisor', label: 'Growth AI', icon: 'GA', keywords: 'growth advisor ai' },
+            { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo dhanda ai growth bot reviews' }
+          ]
+        },
         {
           path: '/discount-rules',
-          label: 'Offers & Discounts',
-          icon: 'OD',
-          keywords: 'discount rules happy hours coupon promotion calendar offers roi fraud approvals',
+          label: 'Offers & Automation',
+          icon: 'OA',
+          keywords: 'discount rules happy hours coupon promotion calendar offers roi fraud approvals smart forms recommendations notifications',
           children: [
             { path: '/discount-rules', label: 'Happy Hours', icon: 'HH', keywords: 'happy hours discounts offers' },
             { path: '/discount-rules/rules', label: 'Discount Rules', icon: 'DR', keywords: 'discount rules list' },
@@ -543,12 +567,12 @@ export class AppComponent {
             { path: '/discount-rules/promotion-calendar', label: 'Promotion Calendar', icon: 'PC', keywords: 'promotion calendar offers' },
             { path: '/discount-rules/coupon-engine', label: 'Coupon Engine', icon: 'CE', keywords: 'coupon engine discounts' },
             { path: '/discount-rules/approvals', label: 'Approvals', icon: 'AP', keywords: 'discount rule approvals' },
-            { path: '/discount-rules/control-tower', label: 'Control Tower', icon: 'CT', keywords: 'happy hours control tower' }
+            { path: '/discount-rules/control-tower', label: 'Control Tower', icon: 'CT', keywords: 'happy hours control tower' },
+            { path: '/smart-forms', label: 'Smart Forms', icon: 'SF', keywords: 'forms consent smart' },
+            { path: '/recommendation-engine', label: 'Recommend AI', icon: 'RE', keywords: 'recommendation upsell ai' },
+            { path: '/notification-center', label: 'Notify Center', icon: 'NC', keywords: 'notifications alerts' }
           ]
-        },
-        { path: '/smart-forms', label: 'Smart Forms', icon: 'SF', keywords: 'forms consent smart' },
-        { path: '/recommendation-engine', label: 'Recommend AI', icon: 'RE', keywords: 'recommendation upsell ai' },
-        { path: '/notification-center', label: 'Notify Center', icon: 'NC', keywords: 'notifications alerts' }
+        }
       ]
     },
     {
@@ -557,33 +581,41 @@ export class AppComponent {
       icon: 'AD',
       primaryPath: '/settings',
       items: [
-        { path: '/super-admin', label: 'Super Admin', icon: 'SA', keywords: 'tenant admin platform' },
-        { path: '/saas', label: 'SaaS', icon: 'X', keywords: 'saas onboarding tenant' },
-        { path: '/branches', label: 'Branches', icon: 'B', keywords: 'branch location' },
-        { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
-        { path: '/permissions', label: 'Permissions', icon: 'PM', keywords: 'role rbac permission' },
+        {
+          path: '/settings',
+          label: 'Tenant Setup',
+          icon: 'TS',
+          keywords: 'tenant admin saas branches settings permissions business white label quality',
+          children: [
+            { path: '/super-admin', label: 'Super Admin', icon: 'SA', keywords: 'tenant admin platform' },
+            { path: '/saas', label: 'SaaS', icon: 'X', keywords: 'saas onboarding tenant' },
+            { path: '/branches', label: 'Branches', icon: 'B', keywords: 'branch location' },
+            { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
+            { path: '/permissions', label: 'Permissions', icon: 'PM', keywords: 'role rbac permission' },
+            { path: '/business-details', label: 'Business Details', icon: 'BD', keywords: 'business profile details' },
+            { path: '/white-label', label: 'White Label', icon: 'WL', keywords: 'brand theme white label' },
+            { path: '/quality', label: 'Quality', icon: 'QA', keywords: 'quality checks qa' }
+          ]
+        },
         {
           path: '/security',
-          label: 'Security Center',
-          icon: 'SC',
-          keywords: 'security auth sessions shield alerts blocklist policy center two factor 2fa totp',
+          label: 'Security & Audit',
+          icon: 'SA',
+          keywords: 'security auth sessions shield alerts blocklist policy two factor audit compliance',
           children: [
             { path: '/security', label: 'Security', icon: 'SL', keywords: 'security auth sessions' },
             { path: '/enterprise-security-shield', label: 'Security Shield', icon: 'ES', keywords: 'enterprise security shield detect alert block audit recover' },
             { path: '/security-alerts', label: 'Security Alerts', icon: 'SA', keywords: 'security alerts intrusion threat critical warning' },
             { path: '/security-blocklist', label: 'Security Blocklist', icon: 'BL', keywords: 'security blocklist ip block active defense' },
             { path: '/security-policy-center', label: 'Policy Center', icon: 'PC', keywords: 'security policy center device trust pin export field audit' },
-            { path: '/two-factor', label: 'Two-Factor Auth', icon: '2F', keywords: 'security 2fa totp authenticator recovery code' }
+            { path: '/two-factor', label: 'Two-Factor Auth', icon: '2F', keywords: 'security 2fa totp authenticator recovery code' },
+            { path: '/audit-logs', label: 'Audit Logs', icon: 'AL', keywords: 'audit logs activity' },
+            { path: '/audit-compliance', label: 'Audit Compliance', icon: 'AC', keywords: 'audit compliance controls risk' }
           ]
         },
-        { path: '/audit-logs', label: 'Audit Logs', icon: 'AL', keywords: 'audit logs activity' },
-        { path: '/audit-compliance', label: 'Audit Compliance', icon: 'AC', keywords: 'audit compliance controls risk' },
-        { path: '/business-details', label: 'Business Details', icon: 'BD', keywords: 'business profile details' },
-        { path: '/data-migration', label: 'Data Migration', icon: 'DM', keywords: 'import migration data' },
-        { path: '/deployment', label: 'Deployment', icon: 'DP', keywords: 'deployment release' },
         {
           path: '/offline',
-          label: 'Offline Command',
+          label: 'Offline Ops',
           icon: 'OF',
           keywords: 'offline sync pos resilience command center',
           children: [
@@ -597,13 +629,11 @@ export class AppComponent {
             { path: '/offline/risk-alerts', label: 'Risk Alerts', icon: 'RA', keywords: 'offline risk alerts stale cache failed sync' }
           ]
         },
-        { path: '/white-label', label: 'White Label', icon: 'WL', keywords: 'brand theme white label' },
-        { path: '/quality', label: 'Quality', icon: 'QA', keywords: 'quality checks qa' },
         {
           path: '/developer-api',
           label: 'Developer Platform',
-          icon: 'DP',
-          keywords: 'developer api webhooks plugins marketplace localization design system prd',
+          icon: 'DV',
+          keywords: 'developer api webhooks plugins marketplace localization design system prd data migration deployment',
           children: [
             { path: '/developer-api', label: 'API Platform', icon: 'API', keywords: 'api platform developer' },
             { path: '/webhooks', label: 'Webhooks', icon: 'WH', keywords: 'webhooks api events' },
@@ -611,7 +641,9 @@ export class AppComponent {
             { path: '/app-marketplace', label: 'Marketplace', icon: 'AM', keywords: 'marketplace apps' },
             { path: '/localization', label: 'Countries', icon: 'LC', keywords: 'localization countries tax' },
             { path: '/design-system', label: 'Design System', icon: 'DS', keywords: 'design system ui' },
-            { path: '/prd', label: 'PRD', icon: 'P', keywords: 'product requirements prd' }
+            { path: '/prd', label: 'PRD', icon: 'P', keywords: 'product requirements prd' },
+            { path: '/data-migration', label: 'Data Migration', icon: 'DM', keywords: 'import migration data' },
+            { path: '/deployment', label: 'Deployment', icon: 'DP', keywords: 'deployment release' }
           ]
         }
       ]
@@ -677,7 +709,7 @@ export class AppComponent {
   });
   readonly activePageTabs = computed<ActiveNavTabGroup | null>(() => {
     const branch = this.navBranchForUrl(this.activeRoute());
-    if (!branch?.item.children?.length || branch.group.id !== 'staff') return null;
+    if (!branch?.item.children?.length) return null;
     return {
       groupLabel: branch.group.label,
       path: branch.item.path,
