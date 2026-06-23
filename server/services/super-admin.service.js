@@ -424,9 +424,21 @@ function realtimeHealthAlerts(tenantRows) {
     .slice(0, 30);
 }
 
+function lowUsageTenant(tenant) {
+  return Number(tenant.usage?.appointments || 0) < 5 && Number(tenant.usage?.clients || 0) < 10;
+}
+
+function planDaysLeft(tenant) {
+  return daysUntil(tenant.subscription?.currentPeriodEnd || tenant.trialEndsAt || "");
+}
+
 function healthFlagFor(tenant, threshold = 70) {
   if (tenant.subscriptionStatus === "suspended" || tenant.status === "suspended") {
     return { label: "Suspended", severity: "critical", threshold, reason: "Subscription suspended" };
+  }
+  const daysLeft = planDaysLeft(tenant);
+  if (lowUsageTenant(tenant) && daysLeft !== null && daysLeft >= 0 && daysLeft <= 14) {
+    return { label: "Churn Risk", severity: "critical", threshold, reason: `Low usage + plan expires in ${daysLeft} days` };
   }
   if (tenant.healthScore < 45) {
     return { label: "Critical", severity: "critical", threshold, reason: `Health below 45` };
@@ -489,6 +501,86 @@ function revenueIntelligence(metrics, tenantRows, plans) {
     expansionCandidates,
     churnRisks,
     planOpportunities
+  };
+}
+
+function revenueLeakageReport(metrics, tenantRows, featureToggles) {
+  const suspendedTenants = tenantRows.filter((tenant) => tenant.subscriptionStatus === "suspended" || tenant.status === "suspended");
+  const expiredTrialTenants = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing" && daysUntil(tenant.trialEndsAt) !== null && daysUntil(tenant.trialEndsAt) < 0);
+  const lowAdoptionTenants = tenantRows.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus) && lowUsageTenant(tenant));
+  const lowUsageExpiringTenants = tenantRows.filter((tenant) => {
+    const daysLeft = planDaysLeft(tenant);
+    return lowUsageTenant(tenant) && daysLeft !== null && daysLeft >= 0 && daysLeft <= 14;
+  });
+  const partialRollouts = featureToggles.filter((toggle) => toggle.enabled && !toggle.killSwitch && Number(toggle.rolloutPercentage || 0) > 0 && Number(toggle.rolloutPercentage || 0) < 100);
+  const outstandingBilling = money(metrics.outstanding);
+  const suspendedMrr = money(sumRows(suspendedTenants, (tenant) => tenant.monthlyRecurringRevenue));
+  const expiredTrialPipeline = money(sumRows(expiredTrialTenants, (tenant) => tenant.monthlyRecurringRevenue));
+  const lowAdoptionMrr = money(sumRows(lowAdoptionTenants, (tenant) => tenant.monthlyRecurringRevenue));
+  const partialRolloutExposure = partialRollouts.length ? money(metrics.monthlyRecurringRevenue * 0.1) : 0;
+  const lineItems = [
+    {
+      key: "outstanding",
+      label: "Outstanding billing",
+      amount: outstandingBilling,
+      severity: outstandingBilling > 0 ? "critical" : "healthy",
+      detail: `${tenantRows.filter((tenant) => tenant.outstanding > 0).length} tenants have unpaid invoices`,
+      action: "Run billing recovery"
+    },
+    {
+      key: "suspended",
+      label: "Suspended MRR",
+      amount: suspendedMrr,
+      severity: suspendedMrr > 0 ? "critical" : "healthy",
+      detail: `${suspendedTenants.length} suspended tenants still carry MRR`,
+      action: "Reactivate or close revenue"
+    },
+    {
+      key: "expired-trials",
+      label: "Expired trial pipeline",
+      amount: expiredTrialPipeline,
+      severity: expiredTrialPipeline > 0 ? "warning" : "healthy",
+      detail: `${expiredTrialTenants.length} trials are past expiry`,
+      action: "Convert or archive trials"
+    },
+    {
+      key: "low-adoption",
+      label: "Low adoption MRR",
+      amount: lowAdoptionMrr,
+      severity: lowUsageExpiringTenants.length ? "critical" : lowAdoptionMrr > 0 ? "warning" : "healthy",
+      detail: `${lowUsageExpiringTenants.length} low-usage tenants expire in 14 days`,
+      action: "Start adoption rescue"
+    },
+    {
+      key: "partial-rollout",
+      label: "Partial rollout exposure",
+      amount: partialRolloutExposure,
+      severity: partialRolloutExposure > 0 ? "warning" : "healthy",
+      detail: `${partialRollouts.length} paid features are not fully rolled out`,
+      action: "Finish rollout or disable"
+    }
+  ];
+  return {
+    totalLeakage: money(sumRows(lineItems, (item) => item.amount)),
+    outstandingBilling,
+    suspendedMrr,
+    expiredTrialPipeline,
+    lowAdoptionMrr,
+    partialRolloutExposure,
+    lowUsageExpiringCount: lowUsageExpiringTenants.length,
+    lineItems,
+    atRiskTenants: lowUsageExpiringTenants
+      .sort((a, b) => planDaysLeft(a) - planDaysLeft(b) || b.monthlyRecurringRevenue - a.monthlyRecurringRevenue)
+      .slice(0, 8)
+      .map((tenant) => ({
+        id: tenant.id,
+        name: tenant.name,
+        planName: tenant.planName,
+        daysLeft: planDaysLeft(tenant),
+        healthScore: tenant.healthScore,
+        mrrAtRisk: tenant.monthlyRecurringRevenue,
+        usage: tenant.usage
+      }))
   };
 }
 
@@ -825,6 +917,7 @@ export class SuperAdminService {
       realtimeHealthAlerts: realtimeHealthAlerts(tenantRows),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
       revenueIntelligence: revenueIntelligence(metrics, tenantRows, plans),
+      revenueLeakageReport: revenueLeakageReport(metrics, tenantRows, featureToggles),
       revenueGrowthGraph: revenueGrowthGraph(tenantRows),
       trialPaidFunnel: trialPaidFunnel(tenantRows),
       churnPrediction: churnPrediction(tenantRows),

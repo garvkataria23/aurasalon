@@ -522,6 +522,66 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </div>
         </section>
 
+        <section class="panel" *ngIf="overview.revenueLeakageReport as leakage">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Revenue leakage report</span>
+              <h2>{{ leakage.totalLeakage | currency: 'INR':'symbol':'1.0-0' }} leakage across billing, adoption and rollout gaps</h2>
+            </div>
+            <span class="badge" [style.background]="leakage.lowUsageExpiringCount ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)'" style="color:#fff">{{ leakage.lowUsageExpiringCount }} churn-risk badges</span>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ leakage.outstandingBilling | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Outstanding billing</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ leakage.suspendedMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Suspended MRR</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ leakage.expiredTrialPipeline | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Expired trial pipeline</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ leakage.lowAdoptionMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Low adoption MRR</span>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="activity-list">
+              <article *ngFor="let item of leakage.lineItems" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ item.label }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ item.detail }} · {{ item.action }}</span>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <span class="badge" [style.background]="healthFlagTone(item.severity)" style="color:#fff">{{ item.severity }}</span>
+                  <strong style="display:block">{{ item.amount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                </div>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let tenant of leakage.atRiskTenants" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ tenant.name }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ tenant.planName }} · {{ tenant.daysLeft }} days left · {{ tenant.usage.appointments }} appts · {{ tenant.usage.clients }} clients</span>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <strong>{{ tenant.mrrAtRisk | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                  <button type="button" class="link-button" (click)="openTenantDrilldown(tenant.id)">Open 360</button>
+                </div>
+              </article>
+              <article *ngIf="!leakage.atRiskTenants?.length">
+                <strong>No low-usage expiring tenants</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">No churn-risk badge triggered by usage and plan expiry.</span>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="panel" *ngIf="overview.revenueGrowthGraph as graph">
           <div class="section-title">
             <div>
