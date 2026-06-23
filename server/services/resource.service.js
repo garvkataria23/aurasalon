@@ -1,5 +1,5 @@
 import { columnsFor, db, deserialize, resources, serialize } from "../db.js";
-import { AppError, conflict, notFound } from "../utils/app-error.js";
+import { AppError, badRequest, conflict, notFound } from "../utils/app-error.js";
 import { repositoryForResource, repositories } from "../repositories/repository-registry.js";
 import { availabilityAugmentService } from "./availability-augment.service.js";
 import { appointmentActivityService, APPOINTMENT_ACTIVITY_ACTIONS } from "./appointment-activity.service.js";
@@ -160,6 +160,45 @@ export class ResourceService {
       });
     }
     return updated;
+  }
+
+  bulkUpdateServiceGst(payload, access) {
+    const gstRate = Number(payload?.gstRate);
+    if (!Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+      throw badRequest("GST rate must be between 0 and 100");
+    }
+
+    const scope = payload?.scope === "category" ? "category" : "all";
+    const branchId = String(payload?.branchId || access.branchId || "");
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+
+    const where = ["tenantId = @tenantId"];
+    const params = {
+      tenantId: access.tenantId,
+      branchId,
+      gstRate,
+      category: String(payload?.category || "").trim()
+    };
+    if (branchId) where.push("branchId = @branchId");
+    if (scope === "category") {
+      if (!params.category) throw badRequest("Category is required for category GST update");
+      if (params.category === "Uncategorized") {
+        where.push("(category IS NULL OR TRIM(category) = '')");
+      } else {
+        where.push("category = @category");
+      }
+    }
+
+    const now = new Date().toISOString();
+    const run = db.transaction(() => {
+      const result = db.prepare(`
+        UPDATE services
+        SET gstRate = @gstRate, updatedAt = @updatedAt
+        WHERE ${where.join(" AND ")}
+      `).run({ ...params, updatedAt: now });
+      return { updated: result.changes, gstRate, scope, category: scope === "category" ? params.category : "" };
+    });
+    return run();
   }
 
   delete(resource, id, access) {

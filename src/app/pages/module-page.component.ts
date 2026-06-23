@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -360,10 +360,15 @@ export class ModulePageComponent implements OnInit, OnDestroy {
     this.saving = true;
     this.error = '';
     this.actionMessage = '';
-    forkJoin(targets.map((row) => this.api.update(this.config.entity, String(row.id), { gstRate: rate }))).subscribe({
-      next: () => {
+    this.api.post<{ updated: number }>('services/bulk-gst', {
+      gstRate: rate,
+      scope,
+      category: this.activeServiceCategory,
+      branchId: this.api.selectedBranchId()
+    }).subscribe({
+      next: (result) => {
         this.saving = false;
-        this.actionMessage = `GST updated to ${rate}% for ${targets.length} service(s).`;
+        this.actionMessage = `GST updated to ${rate}% for ${result.updated || targets.length} service(s).`;
         this.load();
       },
       error: (error) => {

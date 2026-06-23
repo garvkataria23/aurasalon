@@ -41,6 +41,26 @@ resourceRouter.post(
   })
 );
 
+resourceRouter.post(
+  "/services/bulk-gst",
+  requirePermission("write", () => "services"),
+  asyncHandler((req, res) => {
+    const result = resourceService.bulkUpdateServiceGst(req.body || {}, req.access);
+    securityService.audit({
+      action: "services.gst_updated",
+      targetType: "services",
+      targetId: req.body?.scope === "category" ? req.body?.category || "category" : "all",
+      details: {
+        method: req.method,
+        body: sanitizeAuditBody(req.body || {}),
+        updated: result.updated
+      },
+      severity: "info"
+    }, req.access, req);
+    res.json(result);
+  })
+);
+
 resourceRouter.patch(
   "/:resource/:id",
   requirePermission("write"),
