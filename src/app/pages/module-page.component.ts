@@ -663,6 +663,17 @@ export class ModulePageComponent implements OnInit, OnDestroy {
     return this.rows.filter((row) => String(row[key] || '').toLowerCase() === needle).length;
   }
 
+  auditCount(term: string): number {
+    const needle = term.toLowerCase();
+    return this.rows.filter((row) => {
+      const haystack = [row.action, row.entityType, row.details, row.targetType]
+        .map((item) => typeof item === 'string' ? item : JSON.stringify(item || ''))
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(needle);
+    }).length;
+  }
+
   statusCount(status: string): number {
     const needle = status.toLowerCase();
     return this.rows.filter((row) => String(row.status || '').toLowerCase().includes(needle)).length;
@@ -685,6 +696,14 @@ export class ModulePageComponent implements OnInit, OnDestroy {
         { label: 'Email', query: 'email' }
       ];
     }
+    if (this.config?.entity === 'auditLogs') {
+      return [
+        { label: 'All audit logs', query: '' },
+        { label: 'Security', query: 'security' },
+        { label: 'Finance', query: 'finance' },
+        { label: 'Client', query: 'client' }
+      ];
+    }
     return [
       { label: 'All logs', query: '' },
       { label: 'WhatsApp', query: 'whatsapp' },
@@ -703,6 +722,15 @@ export class ModulePageComponent implements OnInit, OnDestroy {
         { label: 'Show phone records', value: 'phone' }
       ];
     }
+    if (this.config?.entity === 'auditLogs') {
+      return [
+        { label: this.config.createLabel, value: 'create' },
+        { label: 'Refresh audit logs', value: 'refresh' },
+        { label: 'Show security events', value: 'security' },
+        { label: 'Show finance events', value: 'finance' },
+        { label: 'Show warning logs', value: 'warning' }
+      ];
+    }
     return [
       { label: this.config.createLabel, value: 'create' },
       { label: 'Refresh records', value: 'refresh' },
@@ -719,6 +747,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
   zenotiSearchPlaceholder(): string {
     if (this.config?.entity === 'branches') return 'Branch, city, phone, GSTIN, status';
     if (this.config?.entity === 'notifications') return 'Channel, type, status, message';
+    if (this.config?.entity === 'auditLogs') return 'Action, entity, severity, actor, branch';
     return 'Recipient, channel, status, payload';
   }
 
@@ -731,6 +760,16 @@ export class ModulePageComponent implements OnInit, OnDestroy {
         { label: 'GSTIN ready', value: this.presentCount('gstin'), hint: 'Tax profile captured' },
         { label: 'Phone ready', value: this.presentCount('phone'), hint: 'Contact captured' },
         { label: 'Missing GSTIN', value: this.missingCount('gstin'), hint: 'Needs compliance follow-up' }
+      ];
+    }
+    if (this.config?.entity === 'auditLogs') {
+      return [
+        { label: 'Total logs', value: this.rows.length, hint: 'Audit events' },
+        { label: 'Security', value: this.auditCount('security'), hint: 'Security actions' },
+        { label: 'Finance', value: this.auditCount('finance'), hint: 'Money controls' },
+        { label: 'Client', value: this.auditCount('client'), hint: 'Client records' },
+        { label: 'Warning', value: this.statusCount('warning'), hint: 'Needs review' },
+        { label: 'Critical', value: this.statusCount('critical'), hint: 'High risk' }
       ];
     }
     return [
@@ -780,6 +819,9 @@ export class ModulePageComponent implements OnInit, OnDestroy {
     if (action === 'active') this.query = 'active';
     if (action === 'gstin') this.query = 'gstin';
     if (action === 'phone') this.query = 'phone';
+    if (action === 'security') this.query = 'security';
+    if (action === 'finance') this.query = 'finance';
+    if (action === 'warning') this.query = 'warning';
     select.selectedIndex = 0;
   }
 

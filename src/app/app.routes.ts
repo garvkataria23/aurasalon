@@ -280,6 +280,7 @@ export const routes: Routes = [
       title: 'Audit Logs',
       subtitle: 'Review tenant-scoped audit events for finance, client, booking and security actions.',
       createLabel: 'Add audit event',
+      variant: 'zenoti',
       columns: [
         { key: 'action', label: 'Action' },
         { key: 'entityType', label: 'Entity' },
