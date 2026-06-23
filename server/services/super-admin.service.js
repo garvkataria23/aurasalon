@@ -424,6 +424,74 @@ function realtimeHealthAlerts(tenantRows) {
     .slice(0, 30);
 }
 
+function healthFlagFor(tenant, threshold = 70) {
+  if (tenant.subscriptionStatus === "suspended" || tenant.status === "suspended") {
+    return { label: "Suspended", severity: "critical", threshold, reason: "Subscription suspended" };
+  }
+  if (tenant.healthScore < 45) {
+    return { label: "Critical", severity: "critical", threshold, reason: `Health below 45` };
+  }
+  if (tenant.healthScore < threshold) {
+    return { label: "Watch", severity: "warning", threshold, reason: `Health below ${threshold}` };
+  }
+  return { label: "Healthy", severity: "healthy", threshold, reason: "Above threshold" };
+}
+
+function revenueIntelligence(metrics, tenantRows, plans) {
+  const topByMrr = tenantRows.slice().sort((a, b) => b.monthlyRecurringRevenue - a.monthlyRecurringRevenue);
+  const topThreeMrr = money(sumRows(topByMrr.slice(0, 3), (tenant) => tenant.monthlyRecurringRevenue));
+  const expansionCandidates = tenantRows
+    .filter((tenant) => tenant.healthScore >= 70 && tenant.subscriptionStatus === "active")
+    .sort((a, b) => b.usage.clients + b.usage.appointments - (a.usage.clients + a.usage.appointments))
+    .slice(0, 6)
+    .map((tenant) => ({
+      id: tenant.id,
+      name: tenant.name,
+      planName: tenant.planName,
+      healthScore: tenant.healthScore,
+      signal: `${tenant.usage.clients} clients and ${tenant.usage.appointments} appointments`,
+      estimatedUpsell: money(Math.max(0, tenant.monthlyRecurringRevenue * 0.35))
+    }));
+  const churnRisks = tenantRows
+    .filter((tenant) => tenant.healthScore < 70 || tenant.outstanding > 0 || tenant.subscriptionStatus === "suspended")
+    .sort((a, b) => b.monthlyRecurringRevenue + b.outstanding - (a.monthlyRecurringRevenue + a.outstanding))
+    .slice(0, 6)
+    .map((tenant) => ({
+      id: tenant.id,
+      name: tenant.name,
+      planName: tenant.planName,
+      healthScore: tenant.healthScore,
+      mrrAtRisk: tenant.monthlyRecurringRevenue,
+      outstanding: tenant.outstanding,
+      reason: tenant.subscriptionStatus === "suspended"
+        ? "Suspended account"
+        : tenant.outstanding > 0
+          ? "Outstanding billing"
+          : "Low health score"
+    }));
+  const planOpportunities = plans.map((plan) => {
+    const tenants = tenantRows.filter((tenant) => tenant.planId === plan.id);
+    return {
+      planId: plan.id,
+      name: plan.name,
+      tenants: tenants.length,
+      mrr: money(sumRows(tenants, (tenant) => tenant.monthlyRecurringRevenue)),
+      atRisk: tenants.filter((tenant) => tenant.healthScore < 70 || tenant.outstanding > 0).length,
+      averageHealth: avg(tenants, (tenant) => tenant.healthScore)
+    };
+  }).sort((a, b) => b.mrr - a.mrr);
+  return {
+    concentrationRiskPct: share(topThreeMrr, metrics.monthlyRecurringRevenue),
+    topThreeMrr,
+    netRevenueExposure: money(metrics.outstanding + sumRows(churnRisks, (tenant) => tenant.mrrAtRisk)),
+    expansionPipeline: money(sumRows(expansionCandidates, (tenant) => tenant.estimatedUpsell)),
+    collectionPriority: money(metrics.outstanding),
+    expansionCandidates,
+    churnRisks,
+    planOpportunities
+  };
+}
+
 function tenantDrilldown(tenant, tenantInvoices, tenantUsers, auditRows) {
   const lastLoginAt = tenantUsers
     .map((user) => user.lastLoginAt || "")
@@ -607,7 +675,7 @@ export class SuperAdminService {
         healthScore: tenantHealth(tenant, usage),
         subscription: subscriptionByTenant.get(tenant.id) || null
       };
-      return { ...row, tenant360: tenant360(row), drilldown: tenantDrilldown(row, tenantInvoices, usersForTenant, auditRows) };
+      return { ...row, healthFlag: healthFlagFor(row), tenant360: tenant360(row), drilldown: tenantDrilldown(row, tenantInvoices, usersForTenant, auditRows) };
     });
     const metrics = {
       salons: tenants.length,
@@ -633,6 +701,7 @@ export class SuperAdminService {
       saasHealthEngine: saasHealthEngine(metrics, tenantRows, featureToggles),
       realtimeHealthAlerts: realtimeHealthAlerts(tenantRows),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
+      revenueIntelligence: revenueIntelligence(metrics, tenantRows, plans),
       tenantRiskCommand: {
         alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
         highRiskTenants: tenantRows

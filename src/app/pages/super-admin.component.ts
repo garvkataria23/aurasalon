@@ -463,6 +463,65 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </div>
         </section>
 
+        <section class="panel" *ngIf="overview.revenueIntelligence as intel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Tier 2 revenue intelligence</span>
+              <h2>Expansion, churn risk, collection priority and plan opportunity</h2>
+            </div>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ intel.expansionPipeline | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Estimated upsell pipeline</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ intel.netRevenueExposure | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Revenue exposure</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ intel.collectionPriority | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Collection priority</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ intel.concentrationRiskPct | number: '1.0-1' }}%</strong>
+              <span>Top 3 MRR concentration</span>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="activity-list">
+              <article *ngFor="let tenant of intel.expansionCandidates" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ tenant.name }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ tenant.planName }} · {{ tenant.signal }} · {{ tenant.healthScore | number: '1.0-1' }} health</span>
+                </div>
+                <strong>{{ tenant.estimatedUpsell | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let tenant of intel.churnRisks" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ tenant.name }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ tenant.reason }} · {{ tenant.planName }} · {{ tenant.healthScore | number: '1.0-1' }} health</span>
+                </div>
+                <strong>{{ tenant.mrrAtRisk + tenant.outstanding | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+            </div>
+          </div>
+
+          <div class="activity-list" style="margin-top:16px">
+            <article *ngFor="let plan of intel.planOpportunities" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="flex:1;min-width:0">
+                <strong>{{ plan.name }}</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ plan.tenants }} tenants · {{ plan.atRisk }} at risk · {{ plan.averageHealth | number: '1.0-1' }} avg health</span>
+              </div>
+              <strong>{{ plan.mrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            </article>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="section-title">
             <div>
@@ -520,7 +579,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th></th><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th></th></tr>
+                <tr><th></th><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th>Flag</th><th></th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let tenant of overview.tenants" style="cursor:pointer" (click)="openTenantDrilldown(tenant.id)">
@@ -534,6 +593,12 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                   <td>{{ tenant.transactionRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
                   <td>{{ tenant.usage.clients }} clients · {{ tenant.usage.appointments }} bookings</td>
                   <td>{{ tenant.healthScore | number: '1.0-1' }}</td>
+                  <td>
+                    <span class="badge" [style.background]="healthFlagTone(tenant.healthFlag?.severity)" style="color:#fff">
+                      {{ tenant.healthFlag?.label || 'Healthy' }}
+                    </span>
+                    <small style="display:block;color:var(--text-muted)">{{ tenant.healthFlag?.reason }}</small>
+                  </td>
                   <td>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); openTenantDrilldown(tenant.id)">Profile</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); selectTenant(tenant.id)">360</button>
@@ -1177,6 +1242,12 @@ export class SuperAdminComponent implements OnInit {
     if (Number(score || 0) >= 75) return 'var(--success,#16a34a)';
     if (Number(score || 0) >= 45) return 'var(--warning,#f59e0b)';
     return 'var(--danger,#dc2626)';
+  }
+
+  healthFlagTone(severity: string): string {
+    if (severity === 'critical') return 'var(--danger,#dc2626)';
+    if (severity === 'warning') return 'var(--warning,#f59e0b)';
+    return 'var(--success,#16a34a)';
   }
 
   toggleEnabled(toggle: { id: string; enabled: number | boolean; name: string }): void {
