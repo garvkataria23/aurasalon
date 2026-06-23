@@ -809,6 +809,19 @@ function quotaAlertEventKey(alert) {
   return `quota-cross:${alert.tenantId}:${alert.metric}:${now().slice(0, 10)}`;
 }
 
+function supportLinksForTenant(tenant = {}) {
+  const tenantId = encodeURIComponent(tenant.id || "");
+  const name = encodeURIComponent(tenant.name || "");
+  const email = encodeURIComponent(tenant.ownerEmail || "");
+  const domain = encodeURIComponent(tenant.primaryDomain || "");
+  const subject = encodeURIComponent(`Support for ${tenant.name || tenant.id || "tenant"}`);
+  return {
+    internal: `/support/tickets/new?tenantId=${tenantId}&name=${name}&email=${email}&source=super-admin`,
+    intercom: `https://app.intercom.com/a/inbox/search?query=${email || tenantId}`,
+    zendesk: `https://aurasalon.zendesk.com/agent/tickets/new?ticket[subject]=${subject}&ticket[requester][email]=${email}&ticket[custom_fields][tenant_id]=${tenantId}&ticket[custom_fields][domain]=${domain}`
+  };
+}
+
 function monthKey(dateValue) {
   const date = dateValue ? new Date(dateValue) : new Date();
   if (Number.isNaN(date.getTime())) return now().slice(0, 7);
@@ -1103,6 +1116,7 @@ export class SuperAdminService {
         name: tenant.name,
         slug: tenant.slug,
         ownerEmail: tenant.ownerEmail,
+        supportLinks: supportLinksForTenant(tenant),
         createdAt: tenant.createdAt || tenant.created_at || "",
         status: tenant.status,
         subscriptionStatus: tenant.subscriptionStatus,

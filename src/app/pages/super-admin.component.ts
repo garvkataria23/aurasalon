@@ -861,6 +861,8 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editTenantLimits(tenant)">Limits</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareTenantFeatureOverride(tenant)">Override</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareImpersonation(tenant)">Impersonate</button>
+                    <a class="ghost-button mini" [href]="tenant.supportLinks?.intercom" target="_blank" rel="noreferrer" (click)="$event.stopPropagation()">Intercom</a>
+                    <a class="ghost-button mini" [href]="tenant.supportLinks?.zendesk" target="_blank" rel="noreferrer" (click)="$event.stopPropagation()">Zendesk</a>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); toggleTenant(tenant)">
                       {{ tenant.subscriptionStatus === 'suspended' ? 'Reactivate' : 'Suspend' }}
                     </button>
@@ -920,6 +922,11 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                   <div>
                     <strong>Profile</strong>
                     <span>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain || 'Domain pending' }} · {{ tenant.planName }}</span>
+                    <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                      <a class="ghost-button mini" [href]="tenant.supportLinks?.internal" target="_blank" rel="noreferrer">Support ticket</a>
+                      <a class="ghost-button mini" [href]="tenant.supportLinks?.intercom" target="_blank" rel="noreferrer">Intercom</a>
+                      <a class="ghost-button mini" [href]="tenant.supportLinks?.zendesk" target="_blank" rel="noreferrer">Zendesk</a>
+                    </span>
                   </div>
                   <span class="badge">{{ tenant.subscriptionStatus }}</span>
                 </article>
