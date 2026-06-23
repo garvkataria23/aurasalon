@@ -268,7 +268,7 @@ function actionSafetyCommand(tenantRows, featureToggles) {
   return {
     pendingApprovals,
     requiredReviews,
-    timeline: auditRows.slice(0, 12).map((row) => {
+    timeline: auditRows.slice(0, 50).map((row) => {
       const details = normalizeRules(row.details);
       return {
         id: row.id,
@@ -686,6 +686,43 @@ export class SuperAdminService {
       : repositories.subscriptions.create({ id: makeId("sub"), ...subscriptionPayload }, { tenantId });
     this.audit(access, "tenant.subscription.updated", "tenant", tenantId, { planId: subscriptionPayload.planId, status: subscriptionPayload.status, reason: safety.reason, confirmation: safety.confirmation });
     return { tenant: updatedTenant, subscription, plan: plan || repositories.subscriptionPlans.getById(updatedTenant.planId) };
+  }
+
+  bulkTenantAction(payload = {}, access) {
+    ensureSuperAdmin(access);
+    const safety = requireSafetyConfirmation(payload, "bulk tenant action");
+    const tenantIds = Array.isArray(payload.tenantIds) ? [...new Set(payload.tenantIds.filter(Boolean))] : [];
+    if (!tenantIds.length) throw badRequest("tenantIds are required");
+    const action = String(payload.action || "");
+    if (!["suspend", "reactivate", "changePlan"].includes(action)) throw badRequest("Unsupported bulk action");
+    if (action === "changePlan" && !payload.planId) throw badRequest("planId is required for bulk plan change");
+    if (payload.planId && !repositories.subscriptionPlans.getById(payload.planId)) throw badRequest("Plan does not exist");
+
+    const results = tenantIds.map((tenantId) => {
+      const tenant = repositories.tenants.getById(tenantId);
+      if (!tenant) return { tenantId, status: "not_found" };
+      if (action === "changePlan") {
+        const updated = this.updateTenantSubscription(tenantId, { planId: payload.planId, reason: safety.reason, confirmation: safety.confirmation }, access);
+        return { tenantId, status: "updated", tenant: updated.tenant };
+      }
+      const updated = this.suspendTenant(tenantId, {
+        status: action === "suspend" ? "suspended" : "active",
+        reason: safety.reason,
+        confirmation: safety.confirmation
+      }, access);
+      return { tenantId, status: "updated", tenant: updated };
+    });
+    const summary = {
+      action,
+      tenantIds,
+      planId: payload.planId || "",
+      reason: safety.reason,
+      confirmation: safety.confirmation,
+      updated: results.filter((row) => row.status === "updated").length,
+      failed: results.filter((row) => row.status !== "updated").length
+    };
+    this.audit(access, "tenant.bulk_action.executed", "tenant", "bulk", summary);
+    return { summary, results };
   }
 
   requestActionApproval(payload = {}, access) {

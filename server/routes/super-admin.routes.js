@@ -35,6 +35,14 @@ superAdminRouter.patch(
 );
 
 superAdminRouter.post(
+  "/super-admin/tenants/bulk-action",
+  validateBody({ required: ["action", "tenantIds", "reason", "confirmation"] }),
+  asyncHandler((req, res) => {
+    res.status(201).json(superAdminService.bulkTenantAction(req.body, req.access));
+  })
+);
+
+superAdminRouter.post(
   "/super-admin/plans",
   validateBody({ required: ["name", "code"] }),
   asyncHandler((req, res) => {

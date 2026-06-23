@@ -208,6 +208,31 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </div>
         </section>
 
+        <section class="panel" *ngIf="overview.actionSafetyCommand as safety">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Super-admin audit log</span>
+              <h2>Who did what, when, and on which target</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Reason / Summary</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let event of safety.timeline">
+                  <td>{{ event.createdAt }}</td>
+                  <td>{{ event.actorUserId }}</td>
+                  <td>{{ event.action }}</td>
+                  <td>{{ event.targetType }} · {{ event.targetId }}</td>
+                  <td>{{ event.reason || event.summary || event.status || 'Recorded' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="panel" *ngIf="selectedTenant() as tenant">
           <div class="section-title">
             <div>
@@ -429,14 +454,45 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </section>
 
         <section class="panel">
-          <div class="section-title"><h2>All salons</h2></div>
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Bulk actions</span>
+              <h2>All salons</h2>
+            </div>
+            <span class="badge">{{ selectedTenantIds().length }} selected</span>
+          </div>
+          <form [formGroup]="bulkActionForm" (ngSubmit)="applyBulkAction()" class="dashboard-grid" style="margin-bottom:16px">
+            <label class="field">
+              <span>Bulk action</span>
+              <select formControlName="action">
+                <option value="suspend">Suspend selected</option>
+                <option value="reactivate">Reactivate selected</option>
+                <option value="changePlan">Change plan</option>
+              </select>
+            </label>
+            <label class="field" *ngIf="bulkActionForm.value.action === 'changePlan'">
+              <span>Plan</span>
+              <select formControlName="planId">
+                <option value="">Select plan</option>
+                <option *ngFor="let plan of overview.plans" [value]="plan.id">{{ plan.name }}</option>
+              </select>
+            </label>
+            <div class="form-actions">
+              <button class="ghost-button" type="button" (click)="selectAllTenants(overview.tenants)">Select all</button>
+              <button class="ghost-button" type="button" (click)="selectedTenantIds.set([])">Clear</button>
+              <button class="primary-button" type="submit" [disabled]="!selectedTenantIds().length || saving()">Apply bulk action</button>
+            </div>
+          </form>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th></th></tr>
+                <tr><th></th><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th></th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let tenant of overview.tenants" style="cursor:pointer" (click)="openTenantDrilldown(tenant.id)">
+                  <td>
+                    <input type="checkbox" [checked]="isTenantSelected(tenant.id)" (click)="$event.stopPropagation()" (change)="toggleTenantSelection(tenant.id)" />
+                  </td>
                   <td><strong>{{ tenant.name }}</strong><small>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain }}</small></td>
                   <td>{{ tenant.planName }}</td>
                   <td><span class="badge">{{ tenant.subscriptionStatus }}</span></td>
@@ -747,6 +803,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 export class SuperAdminComponent implements OnInit {
   readonly overview = signal<ApiRecord | null>(null);
   readonly selectedTenantId = signal('');
+  readonly selectedTenantIds = signal<string[]>([]);
   readonly drilldownOpen = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -775,6 +832,11 @@ export class SuperAdminComponent implements OnInit {
     priority: ['high'],
     reason: ['', Validators.required],
     confirmation: ['', Validators.required]
+  });
+
+  readonly bulkActionForm = this.fb.group({
+    action: ['suspend', Validators.required],
+    planId: ['']
   });
 
   readonly supportNoteForm = this.fb.group({
@@ -862,6 +924,21 @@ export class SuperAdminComponent implements OnInit {
     return Math.max(4, Math.round((Number(value || 0) / max) * 100));
   }
 
+  isTenantSelected(tenantId: string): boolean {
+    return this.selectedTenantIds().includes(tenantId);
+  }
+
+  toggleTenantSelection(tenantId: string): void {
+    const selected = new Set(this.selectedTenantIds());
+    if (selected.has(tenantId)) selected.delete(tenantId);
+    else selected.add(tenantId);
+    this.selectedTenantIds.set([...selected]);
+  }
+
+  selectAllTenants(tenants: ApiRecord[]): void {
+    this.selectedTenantIds.set((tenants || []).map((tenant) => tenant.id).filter(Boolean));
+  }
+
   tenantHealthRows(tenant: ApiRecord): ApiRecord[] {
     const health = tenant?.tenant360?.health || tenant?.healthBreakdown || {};
     return [
@@ -926,6 +1003,27 @@ export class SuperAdminComponent implements OnInit {
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to resolve approval');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  applyBulkAction(): void {
+    if (!this.selectedTenantIds().length) return;
+    this.saving.set(true);
+    this.api.post('super-admin/tenants/bulk-action', {
+      action: this.bulkActionForm.value.action,
+      planId: this.bulkActionForm.value.planId || '',
+      tenantIds: this.selectedTenantIds(),
+      ...this.safetyPayload()
+    }).subscribe({
+      next: () => {
+        this.selectedTenantIds.set([]);
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to apply bulk action');
         this.saving.set(false);
       }
     });
