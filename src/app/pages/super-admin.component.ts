@@ -963,19 +963,19 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
               <span class="badge" [style.background]="healthFlagTone(tenant.healthFlag?.severity)" style="color:#fff">{{ tenant.healthFlag?.label || 'Healthy' }}</span>
             </article>
           </div>
-          <div class="table-wrap">
-            <table>
+          <div class="table-wrap super-admin-tenant-wrap">
+            <table class="super-admin-tenant-table">
               <thead>
-                <tr><th></th><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th>Flag</th><th></th></tr>
+                <tr><th class="select-col"></th><th class="salon-col">Salon</th><th class="plan-col">Plan</th><th class="status-col">Status</th><th class="money-col">Billing</th><th class="money-col">Sales</th><th class="usage-col">Usage</th><th class="health-col">Health</th><th class="flag-col">Flag</th><th class="actions-col">Actions</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let tenant of overview.tenants" style="cursor:pointer" (click)="openTenantDrilldown(tenant.id)">
-                  <td>
+                  <td class="select-col">
                     <input type="checkbox" [checked]="isTenantSelected(tenant.id)" (click)="$event.stopPropagation()" (change)="toggleTenantSelection(tenant.id)" />
                   </td>
-                  <td><strong>{{ tenant.name }}</strong><small>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain }}</small></td>
-                  <td>{{ tenant.planName }}</td>
-                  <td>
+                  <td class="salon-cell"><strong>{{ tenant.name }}</strong><small>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain }}</small></td>
+                  <td class="plan-cell">{{ tenant.planName }}</td>
+                  <td class="status-cell">
                     <span class="badge">{{ tenant.subscriptionStatus }}</span>
                     <small style="display:block;color:var(--text-muted)">
                       <span class="badge" [style.background]="healthFlagTone(tenant.billingOps?.dunningSeverity)" style="color:#fff">{{ tenant.billingOps?.dunningStatus || 'Clear' }}</span>
@@ -986,22 +986,23 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     </small>
                     <small style="display:block;color:var(--text-muted)">Roles {{ tenant.rolePermissionMatrix?.summary || 'default matrix' }}</small>
                   </td>
-                  <td>{{ tenant.totalBillingAmount | currency: 'INR':'symbol':'1.0-0' }}<small>{{ tenant.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} usage</small></td>
-                  <td>{{ tenant.transactionRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
-                  <td>
+                  <td class="money-cell">{{ tenant.totalBillingAmount | currency: 'INR':'symbol':'1.0-0' }}<small>{{ tenant.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} usage</small></td>
+                  <td class="money-cell">{{ tenant.transactionRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="usage-cell">
                     {{ tenant.usage.clients }} clients · {{ tenant.usage.appointments }} bookings
                     <small style="display:block;color:var(--text-muted)">
                       {{ tenant.usage.branches }}/{{ tenant.tenantLimits?.branches }} branches · {{ tenant.usage.staff }}/{{ tenant.tenantLimits?.staff }} staff · {{ tenant.usage.clients }}/{{ tenant.tenantLimits?.clients }} clients
                     </small>
                   </td>
-                  <td>{{ tenant.healthScore | number: '1.0-1' }}</td>
-                  <td>
+                  <td class="health-cell">{{ tenant.healthScore | number: '1.0-1' }}</td>
+                  <td class="flag-cell">
                     <span class="badge" [style.background]="healthFlagTone(tenant.healthFlag?.severity)" style="color:#fff">
                       {{ tenant.healthFlag?.label || 'Healthy' }}
                     </span>
                     <small style="display:block;color:var(--text-muted)">{{ tenant.healthFlag?.reason }}</small>
                   </td>
-                  <td>
+                  <td class="actions-cell">
+                    <div class="tenant-actions">
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); openTenantDrilldown(tenant.id)">Profile</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); selectTenant(tenant.id)">360</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editTenantLimits(tenant)">Limits</button>
@@ -1016,6 +1017,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); toggleTenant(tenant)">
                       {{ tenant.subscriptionStatus === 'suspended' ? 'Reactivate' : 'Suspend' }}
                     </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -1706,7 +1708,88 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </section>
       </ng-container>
     </section>
-  `
+  `,
+  styles: [`
+    .super-admin-tenant-wrap {
+      max-width: 100%;
+    }
+
+    .super-admin-tenant-table {
+      min-width: 1320px;
+      table-layout: fixed;
+    }
+
+    .super-admin-tenant-table th,
+    .super-admin-tenant-table td {
+      vertical-align: top;
+      padding: 12px 14px;
+      white-space: normal;
+    }
+
+    .super-admin-tenant-table small,
+    .super-admin-tenant-table strong {
+      display: block;
+    }
+
+    .select-col { width: 48px; }
+    .salon-col { width: 190px; }
+    .plan-col { width: 110px; }
+    .status-col { width: 230px; }
+    .money-col { width: 110px; }
+    .usage-col { width: 220px; }
+    .health-col { width: 76px; }
+    .flag-col { width: 150px; }
+    .actions-col { width: 286px; }
+
+    .salon-cell,
+    .status-cell,
+    .usage-cell,
+    .flag-cell {
+      overflow-wrap: anywhere;
+    }
+
+    .plan-cell,
+    .money-cell,
+    .health-cell {
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .money-cell small {
+      margin-top: 4px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tenant-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .tenant-actions .ghost-button {
+      width: 100%;
+      min-width: 0;
+      padding-inline: 8px;
+      justify-content: center;
+      white-space: normal;
+      line-height: 1.12;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .super-admin-tenant-table {
+        min-width: 1180px;
+      }
+
+      .actions-col { width: 240px; }
+
+      .tenant-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  `]
 })
 export class SuperAdminComponent implements OnInit {
   readonly overview = signal<ApiRecord | null>(null);
