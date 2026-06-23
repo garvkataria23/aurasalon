@@ -4099,9 +4099,9 @@ body::before {
   top: 94px;
   z-index: 18;
   display: grid;
-  grid-template-columns: minmax(280px, max-content) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   margin: 0 0 14px;
   padding: 10px 12px;
   border: 1px solid rgba(15, 118, 110, 0.14);
@@ -4112,14 +4112,18 @@ body::before {
 }
 
 .workspace-page-tabs-head {
-  display: grid;
-  grid-template-columns: 28px minmax(0, max-content);
+  display: flex;
   align-items: center;
   gap: 9px;
   min-width: 0;
-  max-width: 420px;
-  padding-right: 10px;
-  border-right: 1px solid rgba(15, 118, 110, 0.12);
+  max-width: none;
+  padding: 0 0 8px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+}
+
+.workspace-page-tabs-head > div {
+  min-width: 0;
 }
 
 .workspace-page-tabs-head strong {
