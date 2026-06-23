@@ -89,6 +89,33 @@ function ipAllowlistForTenant(policy = {}) {
   };
 }
 
+function enterpriseSecurityForTenant(plan = {}, tenantLimits = {}, ipAllowlist = {}, sso = {}) {
+  const enterpriseTenant = String(plan?.code || "").toLowerCase() === "enterprise" || tenantLimits.supportTier === "enterprise";
+  return {
+    enterpriseTenant,
+    ipRestrictionRequired: enterpriseTenant,
+    ipRestrictionStatus: !enterpriseTenant
+      ? "not_required"
+      : ipAllowlist.enabled && ipAllowlist.entries.length && ipAllowlist.mode === "enforce"
+        ? "enforced"
+        : ipAllowlist.enabled && ipAllowlist.entries.length
+          ? "monitoring"
+          : "gap",
+    ssoStatus: sso.status || "not_configured",
+    ssoProvider: sso.provider || "saml",
+    ready: !enterpriseTenant || ((ipAllowlist.enabled && ipAllowlist.entries.length && ipAllowlist.mode === "enforce") && ["active", "enforced", "ready"].includes(sso.status || ""))
+  };
+}
+
+function latestSsoByTenant() {
+  const rows = db.prepare("SELECT * FROM security_sso_settings ORDER BY updatedAt DESC").all();
+  const byTenant = new Map();
+  for (const row of rows) {
+    if (!byTenant.has(row.tenantId)) byTenant.set(row.tenantId, row);
+  }
+  return byTenant;
+}
+
 function scopedFeatureKey(key, scope, tenantId = "", planId = "") {
   const cleanKey = String(key || "").trim();
   if (scope === "tenant" && tenantId && !cleanKey.includes("::tenant::")) return `${cleanKey}::tenant::${tenantId}`;
@@ -1129,6 +1156,7 @@ export class SuperAdminService {
       .list({ limit: 10000 })
       .filter((setting) => setting.key === TENANT_IP_ALLOWLIST_KEY)
       .map((setting) => [setting.tenantId, setting.value || {}]));
+    const ssoByTenant = latestSsoByTenant();
     const tenantRows = tenants.map((tenant) => {
       const tenantSales = sales.filter((sale) => sale.tenantId === tenant.id);
       const tenantInvoices = invoices.filter((invoice) => invoice.tenantId === tenant.id);
@@ -1147,6 +1175,9 @@ export class SuperAdminService {
       const monthlyRecurringRevenue = Number(plan?.priceMonthly || 0);
       const outstanding = money(sumRows(tenantInvoices.filter((invoice) => invoice.status !== "paid"), (invoice) => invoice.balance));
       const health = healthBreakdown(tenant, usage, outstanding, monthlyRecurringRevenue);
+      const tenantLimits = tenantLimitsFor(plan, tenantLimitByTenant.get(tenant.id), usage);
+      const ipAllowlist = ipAllowlistForTenant(ipAllowlistByTenant.get(tenant.id));
+      const sso = ssoByTenant.get(tenant.id) || null;
       const row = {
         id: tenant.id,
         name: tenant.name,
@@ -1167,8 +1198,10 @@ export class SuperAdminService {
         transactionRevenue: money(sumRows(tenantSales, (sale) => sale.total)),
         outstanding,
         usage,
-        tenantLimits: tenantLimitsFor(plan, tenantLimitByTenant.get(tenant.id), usage),
-        ipAllowlist: ipAllowlistForTenant(ipAllowlistByTenant.get(tenant.id)),
+        tenantLimits,
+        ipAllowlist,
+        sso,
+        enterpriseSecurity: enterpriseSecurityForTenant(plan, tenantLimits, ipAllowlist, sso || {}),
         healthBreakdown: health,
         healthScore: tenantHealth(tenant, usage),
         subscription: subscriptionByTenant.get(tenant.id) || null
@@ -1362,6 +1395,45 @@ export class SuperAdminService {
       reason: payload.reason || ""
     });
     return { tenantId, ipAllowlist: ipAllowlistForTenant(record.value) };
+  }
+
+  updateTenantSso(tenantId, payload = {}, access) {
+    ensureSuperAdmin(access);
+    const tenant = repositories.tenants.getById(tenantId);
+    if (!tenant) throw notFound("Tenant not found");
+    const provider = String(payload.provider || "saml").trim() || "saml";
+    const domainHint = String(payload.domainHint || tenant.primaryDomain || "").trim();
+    const enforceForRoles = String(payload.enforceForRoles || "owner,admin,superAdmin").trim();
+    const status = ["draft", "ready", "active", "enforced", "disabled"].includes(String(payload.status || "draft"))
+      ? String(payload.status || "draft")
+      : "draft";
+    const existing = db.prepare("SELECT id FROM security_sso_settings WHERE tenantId = @tenantId ORDER BY updatedAt DESC LIMIT 1").get({ tenantId });
+    const record = {
+      id: payload.id || existing?.id || makeId("sso"),
+      tenantId,
+      branchId: "",
+      provider,
+      domainHint,
+      enforceForRoles,
+      status,
+      createdAt: now(),
+      updatedAt: now()
+    };
+    db.prepare(`
+      INSERT INTO security_sso_settings
+      (id, tenantId, branchId, provider, domainHint, enforceForRoles, status, createdAt, updatedAt)
+      VALUES (@id, @tenantId, @branchId, @provider, @domainHint, @enforceForRoles, @status, @createdAt, @updatedAt)
+      ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, domainHint = excluded.domainHint,
+        enforceForRoles = excluded.enforceForRoles, status = excluded.status, updatedAt = excluded.updatedAt
+    `).run(record);
+    this.audit(access, "tenant.sso.updated", "tenant", tenantId, {
+      provider,
+      domainHint,
+      enforceForRoles,
+      status,
+      reason: payload.reason || ""
+    });
+    return { tenantId, sso: record };
   }
 
   bulkTenantAction(payload = {}, access) {

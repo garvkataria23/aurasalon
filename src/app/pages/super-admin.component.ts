@@ -840,7 +840,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                       {{ tenant.billingOps?.failedPaymentCount || 0 }} failed
                     </small>
                     <small style="display:block;color:var(--text-muted)">
-                      IP {{ tenant.ipAllowlist?.status || 'disabled' }}
+                      IP {{ tenant.enterpriseSecurity?.ipRestrictionStatus || tenant.ipAllowlist?.status || 'disabled' }} · SSO {{ tenant.enterpriseSecurity?.ssoStatus || 'not_configured' }}
                     </small>
                   </td>
                   <td>{{ tenant.totalBillingAmount | currency: 'INR':'symbol':'1.0-0' }}<small>{{ tenant.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} usage</small></td>
@@ -863,6 +863,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); selectTenant(tenant.id)">360</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editTenantLimits(tenant)">Limits</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editIpAllowlist(tenant)">IP rules</button>
+                    <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editTenantSso(tenant)">SSO</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareTenantFeatureOverride(tenant)">Override</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareImpersonation(tenant)">Impersonate</button>
                     <a class="ghost-button mini" [href]="tenant.supportLinks?.intercom" target="_blank" rel="noreferrer" (click)="$event.stopPropagation()">Intercom</a>
@@ -927,6 +928,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <strong>Profile</strong>
                     <span>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain || 'Domain pending' }} · {{ tenant.planName }}</span>
                     <span style="display:block;font-size:0.8em;color:var(--text-muted)">IP allowlist: {{ tenant.ipAllowlist?.summary || 'disabled' }} · {{ tenant.ipAllowlist?.mode || 'enforce' }}</span>
+                    <span style="display:block;font-size:0.8em;color:var(--text-muted)">Enterprise security: IP {{ tenant.enterpriseSecurity?.ipRestrictionStatus || 'not_required' }} · SSO {{ tenant.enterpriseSecurity?.ssoStatus || 'not_configured' }}</span>
                     <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
                       <a class="ghost-button mini" [href]="tenant.supportLinks?.internal" target="_blank" rel="noreferrer">Support ticket</a>
                       <a class="ghost-button mini" [href]="tenant.supportLinks?.intercom" target="_blank" rel="noreferrer">Intercom</a>
@@ -1067,6 +1069,44 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
               <label class="field full"><span>Reason</span><textarea formControlName="reason"></textarea></label>
               <div class="form-actions">
                 <button class="primary-button" type="submit" [disabled]="ipAllowlistForm.invalid || saving()">Save IP allowlist</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="form-panel">
+            <h3>SSO / SAML Management</h3>
+            <form [formGroup]="ssoForm" (ngSubmit)="saveTenantSso()">
+              <label class="field">
+                <span>Tenant</span>
+                <select formControlName="tenantId" (change)="loadSsoForm()">
+                  <option value="">Select tenant</option>
+                  <option *ngFor="let tenant of overview.tenants" [value]="tenant.id">{{ tenant.name }}</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Provider</span>
+                <select formControlName="provider">
+                  <option value="saml">SAML</option>
+                  <option value="azure-ad">Azure AD</option>
+                  <option value="okta">Okta</option>
+                  <option value="google-workspace">Google Workspace</option>
+                </select>
+              </label>
+              <label class="field"><span>Domain hint</span><input formControlName="domainHint" /></label>
+              <label class="field"><span>Enforce roles</span><input formControlName="enforceForRoles" /></label>
+              <label class="field">
+                <span>Status</span>
+                <select formControlName="status">
+                  <option value="draft">Draft</option>
+                  <option value="ready">Ready</option>
+                  <option value="active">Active</option>
+                  <option value="enforced">Enforced</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </label>
+              <label class="field full"><span>Reason</span><textarea formControlName="reason"></textarea></label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit" [disabled]="ssoForm.invalid || saving()">Save SSO</button>
               </div>
             </form>
           </section>
@@ -1399,6 +1439,15 @@ export class SuperAdminComponent implements OnInit {
     reason: ['Tenant network security policy']
   });
 
+  readonly ssoForm = this.fb.group({
+    tenantId: ['', Validators.required],
+    provider: ['saml'],
+    domainHint: [''],
+    enforceForRoles: ['owner,admin,superAdmin'],
+    status: ['draft'],
+    reason: ['Enterprise SSO/SAML configuration']
+  });
+
   readonly tenantFeatureOverrideForm = this.fb.group({
     tenantId: ['', Validators.required],
     key: ['ai.marketing', Validators.required],
@@ -1471,6 +1520,9 @@ export class SuperAdminComponent implements OnInit {
         const ipTenantId = this.ipAllowlistForm.value.tenantId || this.selectedTenantId();
         const ipTenant = (overview?.tenants || []).find((tenant: ApiRecord) => tenant.id === ipTenantId);
         if (ipTenant) this.editIpAllowlist(ipTenant);
+        const ssoTenantId = this.ssoForm.value.tenantId || this.selectedTenantId();
+        const ssoTenant = (overview?.tenants || []).find((tenant: ApiRecord) => tenant.id === ssoTenantId);
+        if (ssoTenant) this.editTenantSso(ssoTenant);
         this.loading.set(false);
       },
       error: (error) => {
@@ -1585,6 +1637,46 @@ export class SuperAdminComponent implements OnInit {
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to save IP allowlist');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  editTenantSso(tenant: ApiRecord): void {
+    this.selectedTenantId.set(tenant.id);
+    this.ssoForm.patchValue({
+      tenantId: tenant.id,
+      provider: tenant.sso?.provider || 'saml',
+      domainHint: tenant.sso?.domainHint || tenant.primaryDomain || '',
+      enforceForRoles: tenant.sso?.enforceForRoles || 'owner,admin,superAdmin',
+      status: tenant.sso?.status || 'draft',
+      reason: 'Enterprise SSO/SAML configuration'
+    });
+  }
+
+  loadSsoForm(): void {
+    const tenantId = this.ssoForm.value.tenantId || '';
+    const tenant = (this.overview()?.tenants || []).find((item: ApiRecord) => item.id === tenantId);
+    if (tenant) this.editTenantSso(tenant);
+  }
+
+  saveTenantSso(): void {
+    if (this.ssoForm.invalid) return;
+    this.saving.set(true);
+    const tenantId = this.ssoForm.value.tenantId || '';
+    this.api.patch(`super-admin/tenants/${tenantId}/sso`, {
+      provider: this.ssoForm.value.provider || 'saml',
+      domainHint: this.ssoForm.value.domainHint || '',
+      enforceForRoles: this.ssoForm.value.enforceForRoles || 'owner,admin,superAdmin',
+      status: this.ssoForm.value.status || 'draft',
+      reason: this.ssoForm.value.reason || ''
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to save SSO/SAML settings');
         this.saving.set(false);
       }
     });

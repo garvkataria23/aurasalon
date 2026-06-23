@@ -48,6 +48,13 @@ superAdminRouter.patch(
   })
 );
 
+superAdminRouter.patch(
+  "/super-admin/tenants/:id/sso",
+  asyncHandler((req, res) => {
+    res.json(superAdminService.updateTenantSso(req.params.id, req.body, req.access));
+  })
+);
+
 superAdminRouter.post(
   "/super-admin/tenants/bulk-action",
   validateBody({ required: ["action", "tenantIds", "reason", "confirmation"] }),
