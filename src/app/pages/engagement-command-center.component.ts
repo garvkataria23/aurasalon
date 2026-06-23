@@ -64,24 +64,58 @@ interface EngagementDetail extends ApiRecord {
   standalone: true,
   imports: [CommonModule, FormsModule, DatePipe, StateComponent],
   template: `
-    <section class="engagement-page">
-      <div class="module-hero engagement-hero">
+    <section class="engagement-page zenoti-engagement-page">
+      <div class="command-bar">
+        <div class="brand-block">
+          <span class="brand-mark">A</span>
+          <div>
+            <small>Enterprise command workspace</small>
+            <strong>Aurashine OS</strong>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="zenoti-button" type="button" (click)="load()" [disabled]="loading()">Refresh</button>
+          <button class="zenoti-button primary" type="button" (click)="startNewThread()">New thread</button>
+        </div>
+      </div>
+
+      <section class="zenoti-header">
+        <div class="center-line">
+          <strong>malad</strong>
+          <div class="header-actions">
+            <button class="zenoti-button" type="button" (click)="openReportsDrawer()" [disabled]="loading()">Reports</button>
+            <button class="zenoti-button" type="button" (click)="openProviderDrawer()" [disabled]="loading()">Providers</button>
+            <button class="zenoti-button" type="button" (click)="openAuditDrawer()" [disabled]="loading()">Audit ledger</button>
+          </div>
+        </div>
+        <select class="command-select" aria-label="Engagement quick action" (change)="openEngagementQuickAction($event)">
+          <option>I want to ...</option>
+          <option value="recovery">Open recovery board</option>
+          <option value="reviews">Open review center</option>
+          <option value="risk">Open risk signals</option>
+          <option value="sla">Open SLA board</option>
+          <option value="reports">Open reports</option>
+        </select>
+      </section>
+
+      <div class="zenoti-page-heading">
         <div>
-          <span class="eyebrow">Engagement Command Center</span>
-          <h2>Unified client inbox</h2>
-          <p>WhatsApp, email, calls, reviews, appointments and system alerts in one approval-safe workspace.</p>
+          <h1>Engagement Command Center</h1>
+          <p>Engagement &gt; Unified inbox, reviews, SLA, recovery and audit ledger</p>
         </div>
-        <div class="hero-actions">
-          <button class="ghost-button" type="button" (click)="openRecoveryDrawer()" [disabled]="loading()">Recovery board</button>
-          <button class="ghost-button" type="button" (click)="openReviewDrawer()" [disabled]="loading()">Review center</button>
-          <button class="ghost-button" type="button" (click)="openRiskDrawer()" [disabled]="loading()">Risk signals</button>
-          <button class="ghost-button" type="button" (click)="openSlaDrawer()" [disabled]="loading()">SLA board</button>
-          <button class="ghost-button" type="button" (click)="openReportsDrawer()" [disabled]="loading()">Reports</button>
-          <button class="ghost-button" type="button" (click)="openProviderDrawer()" [disabled]="loading()">Providers</button>
-          <button class="ghost-button" type="button" (click)="openAuditDrawer()" [disabled]="loading()">Audit ledger</button>
-          <button class="ghost-button" type="button" (click)="load()" [disabled]="loading()">Refresh</button>
-          <button class="primary-button" type="button" (click)="startNewThread()">New thread</button>
-        </div>
+        <label class="zenoti-search">
+          <span>Search engagement</span>
+          <input [(ngModel)]="query" (ngModelChange)="filterThreads()" placeholder="Client name, mobile, subject" />
+        </label>
+      </div>
+
+      <div class="zenoti-shortcuts">
+        <button type="button" class="active" (click)="openRecoveryDrawer()" [disabled]="loading()">Recovery board</button>
+        <button type="button" (click)="openReviewDrawer()" [disabled]="loading()">Review center</button>
+        <button type="button" (click)="openRiskDrawer()" [disabled]="loading()">Risk signals</button>
+        <button type="button" (click)="openSlaDrawer()" [disabled]="loading()">SLA board</button>
+        <button type="button" (click)="openReportsDrawer()" [disabled]="loading()">Reports</button>
+        <button type="button" (click)="openProviderDrawer()" [disabled]="loading()">Providers</button>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
@@ -1541,6 +1575,70 @@ interface EngagementDetail extends ApiRecord {
     .action-queue-card span:not(.badge) { font-weight: 900; color: #26364b; overflow-wrap: anywhere; }
     .action-queue-card small { color: #607083; line-height: 1.35; }
     .empty-state.compact { padding: 18px 12px; }
+    .zenoti-engagement-page { gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
+    .brand-block, .top-actions, .center-line, .header-actions, .zenoti-shortcuts { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
+    .brand-block small, .zenoti-search span { display: block; color: #8fa1b8; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .brand-block strong { display: block; color: #fff; font-size: 15px; }
+    .zenoti-button, .zenoti-shortcuts button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
+    .zenoti-button.primary, .zenoti-shortcuts .active { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-header, .zenoti-page-heading, .zenoti-shortcuts, .action-queue-strip, .engagement-shell { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
+    .center-line { justify-content: space-between; }
+    .center-line strong { font-size: 15px; }
+    .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
+    .zenoti-page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; }
+    .zenoti-page-heading h1 { margin: 0; font-size: 22px; color: #172033; }
+    .zenoti-page-heading p { margin: 6px 0 0; color: #36506d; font-size: 13px; }
+    .zenoti-search { width: min(100%, 340px); display: grid; gap: 5px; }
+    .zenoti-search input { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
+    .zenoti-shortcuts { flex-wrap: wrap; padding: 10px 16px; }
+    .zenoti-shortcuts button { padding: 7px 12px; }
+    .zenoti-engagement-page .state.info,
+    .zenoti-engagement-page .state.error { border-radius: 0; margin: 0; border-left: 0; border-right: 0; }
+    .zenoti-engagement-page .action-queue-strip { border: 0; border-radius: 0; box-shadow: none; padding: 14px 16px; }
+    .zenoti-engagement-page .action-queue-card,
+    .zenoti-engagement-page .thread-rail,
+    .zenoti-engagement-page .conversation-panel,
+    .zenoti-engagement-page .client-card,
+    .zenoti-engagement-page .timeline-item > div,
+    .zenoti-engagement-page .info-grid div,
+    .zenoti-engagement-page .mini-list article,
+    .zenoti-engagement-page .alert-list div,
+    .zenoti-engagement-page .composer,
+    .zenoti-engagement-page .attachment-placeholder,
+    .zenoti-engagement-page .drawer-section,
+    .zenoti-engagement-page .review-list-panel,
+    .zenoti-engagement-page .review-detail-panel,
+    .zenoti-engagement-page .recovery-card,
+    .zenoti-engagement-page .risk-card,
+    .zenoti-engagement-page .report-table,
+    .zenoti-engagement-page .audit-table,
+    .zenoti-engagement-page .summary-list article { border-radius: 0; box-shadow: none; }
+    .zenoti-engagement-page .engagement-shell { grid-template-columns: minmax(270px, 320px) minmax(460px, 1fr) minmax(280px, 360px); gap: 0; align-items: stretch; border-top: 1px solid #d8e1ea; }
+    .zenoti-engagement-page .thread-rail,
+    .zenoti-engagement-page .conversation-panel,
+    .zenoti-engagement-page .client-rail { max-height: calc(100vh - 260px); border: 0; border-right: 1px solid #d8e1ea; background: #fff; }
+    .zenoti-engagement-page .client-rail { border-right: 0; padding: 0; gap: 0; }
+    .zenoti-engagement-page .thread-rail { padding: 12px; gap: 12px; }
+    .zenoti-engagement-page .conversation-panel { min-height: calc(100vh - 260px); }
+    .zenoti-engagement-page .client-card { border: 0; border-bottom: 1px solid #d8e1ea; padding: 14px 16px; }
+    .zenoti-engagement-page .conversation-header { padding: 14px 16px; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-engagement-page .conversation-header h3 { font-size: 20px; }
+    .zenoti-engagement-page .timeline { background: #f8fafc; padding: 14px 16px; max-height: calc(100vh - 500px); }
+    .zenoti-engagement-page .composer { padding: 12px 16px; border-top: 1px solid #d8e1ea; }
+    .zenoti-engagement-page .channel-grid button,
+    .zenoti-engagement-page .composer-tabs button,
+    .zenoti-engagement-page .thread-card,
+    .zenoti-engagement-page .slot-list button,
+    .zenoti-engagement-page .review-row { border-radius: 0; }
+    .zenoti-engagement-page input,
+    .zenoti-engagement-page select,
+    .zenoti-engagement-page textarea { border-radius: 3px !important; }
+    .zenoti-engagement-page .primary-button,
+    .zenoti-engagement-page .ghost-button { border-radius: 3px; }
+    .zenoti-engagement-page .drawer-head { border-bottom: 1px solid #d8e1ea; }
     @media (max-width: 1280px) { .engagement-shell { grid-template-columns: 280px minmax(420px, 1fr); } .client-rail { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } .action-queue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 1040px) { .reports-toolbar, .reports-kpis, .reports-grid { grid-template-columns: 1fr; } .reports-actions { grid-column: auto; justify-content: start; } .reports-grid .wide { grid-column: auto; } }
     @media (max-width: 840px) { .engagement-shell { grid-template-columns: 1fr; } .thread-rail, .conversation-panel, .client-rail { max-height: none; } .timeline { max-height: none; } .composer-toolbar { grid-template-columns: 1fr; } .timeline-item { max-width: 100%; } .client-rail { grid-template-columns: 1fr; } .review-center-grid, .recovery-board, .recovery-kpis, .recovery-toolbar, .risk-board, .risk-kpis, .risk-toolbar, .sla-grid, .sla-kpis, .reports-toolbar, .reports-kpis, .reports-grid, .audit-toolbar, .action-queue-grid { grid-template-columns: 1fr; } .sla-row { display: grid; } .sla-row-metrics { justify-items: start; } }
@@ -2070,6 +2168,16 @@ export class EngagementCommandCenterComponent implements OnInit {
 
   closeReportsDrawer(): void {
     this.reportsDrawerOpen.set(false);
+  }
+
+  openEngagementQuickAction(event: Event): void {
+    const action = (event.target as HTMLSelectElement).value;
+    if (action === 'recovery') this.openRecoveryDrawer();
+    if (action === 'reviews') this.openReviewDrawer();
+    if (action === 'risk') this.openRiskDrawer();
+    if (action === 'sla') this.openSlaDrawer();
+    if (action === 'reports') this.openReportsDrawer();
+    (event.target as HTMLSelectElement).selectedIndex = 0;
   }
 
   loadReports(): void {
