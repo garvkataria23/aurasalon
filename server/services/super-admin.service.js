@@ -492,6 +492,72 @@ function revenueIntelligence(metrics, tenantRows, plans) {
   };
 }
 
+function monthKey(dateValue) {
+  const date = dateValue ? new Date(dateValue) : new Date();
+  if (Number.isNaN(date.getTime())) return now().slice(0, 7);
+  return date.toISOString().slice(0, 7);
+}
+
+function recentMonthKeys(count = 6) {
+  const date = new Date();
+  return Array.from({ length: count }, (_, index) => {
+    const item = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - (count - 1 - index), 1));
+    return item.toISOString().slice(0, 7);
+  });
+}
+
+function revenueGrowthGraph(tenantRows) {
+  const months = recentMonthKeys(6);
+  return months.map((month, index) => {
+    const activeInMonth = tenantRows.filter((tenant) => {
+      const createdMonth = monthKey(tenant.createdAt || tenant.subscription?.createdAt || tenant.subscription?.currentPeriodStart || "");
+      return createdMonth <= month && tenant.subscriptionStatus !== "suspended";
+    });
+    const churnedInMonth = tenantRows.filter((tenant) => {
+      const churnMonth = monthKey(tenant.subscription?.cancelAt || "");
+      return tenant.subscriptionStatus === "suspended" && churnMonth === month;
+    });
+    const trialInMonth = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing" && monthKey(tenant.createdAt || tenant.trialEndsAt || "") <= month);
+    const mrr = money(sumRows(activeInMonth, (tenant) => tenant.monthlyRecurringRevenue));
+    const previousMrr = index
+      ? money(sumRows(tenantRows.filter((tenant) => {
+          const createdMonth = monthKey(tenant.createdAt || tenant.subscription?.createdAt || tenant.subscription?.currentPeriodStart || "");
+          return createdMonth <= months[index - 1] && tenant.subscriptionStatus !== "suspended";
+        }), (tenant) => tenant.monthlyRecurringRevenue))
+      : mrr;
+    const churnedMrr = money(sumRows(churnedInMonth, (tenant) => tenant.monthlyRecurringRevenue));
+    return {
+      month,
+      mrr,
+      arr: money(mrr * 12),
+      growth: money(mrr - previousMrr),
+      churnedMrr,
+      activeTenants: activeInMonth.length,
+      trialTenants: trialInMonth.length
+    };
+  });
+}
+
+function trialPaidFunnel(tenantRows) {
+  const total = tenantRows.length;
+  const trialing = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing").length;
+  const paid = tenantRows.filter((tenant) => tenant.subscriptionStatus === "active").length;
+  const suspended = tenantRows.filter((tenant) => tenant.subscriptionStatus === "suspended" || tenant.status === "suspended").length;
+  const expiredTrial = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing" && daysUntil(tenant.trialEndsAt) !== null && daysUntil(tenant.trialEndsAt) < 0).length;
+  return {
+    stages: [
+      { label: "All tenants", count: total, pct: 100 },
+      { label: "Trialing", count: trialing, pct: share(trialing, total) },
+      { label: "Paid active", count: paid, pct: share(paid, total) },
+      { label: "Suspended/churn risk", count: suspended, pct: share(suspended, total) }
+    ],
+    conversionRate: share(paid, paid + trialing + suspended),
+    trialLeakage: expiredTrial,
+    paidMrr: money(sumRows(tenantRows.filter((tenant) => tenant.subscriptionStatus === "active"), (tenant) => tenant.monthlyRecurringRevenue)),
+    trialPipelineMrr: money(sumRows(tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing"), (tenant) => tenant.monthlyRecurringRevenue))
+  };
+}
+
 function tenantDrilldown(tenant, tenantInvoices, tenantUsers, auditRows) {
   const lastLoginAt = tenantUsers
     .map((user) => user.lastLoginAt || "")
@@ -658,6 +724,7 @@ export class SuperAdminService {
         name: tenant.name,
         slug: tenant.slug,
         ownerEmail: tenant.ownerEmail,
+        createdAt: tenant.createdAt || tenant.created_at || "",
         status: tenant.status,
         subscriptionStatus: tenant.subscriptionStatus,
         trialEndsAt: tenant.trialEndsAt,
@@ -702,6 +769,8 @@ export class SuperAdminService {
       realtimeHealthAlerts: realtimeHealthAlerts(tenantRows),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
       revenueIntelligence: revenueIntelligence(metrics, tenantRows, plans),
+      revenueGrowthGraph: revenueGrowthGraph(tenantRows),
+      trialPaidFunnel: trialPaidFunnel(tenantRows),
       tenantRiskCommand: {
         alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
         highRiskTenants: tenantRows

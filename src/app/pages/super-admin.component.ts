@@ -522,6 +522,59 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </div>
         </section>
 
+        <section class="panel" *ngIf="overview.revenueGrowthGraph as graph">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">MRR / ARR growth</span>
+              <h2>Month-wise revenue growth with churn overlay</h2>
+            </div>
+          </div>
+          <div class="activity-list">
+            <article *ngFor="let row of graph" style="display:grid;grid-template-columns:90px 1fr 160px;gap:12px;align-items:center">
+              <strong>{{ row.month }}</strong>
+              <div style="min-width:0">
+                <span style="display:block;height:10px;background:var(--surface-muted,#e5e7eb);border-radius:999px;overflow:hidden">
+                  <span [style.width.%]="revenueBarWidth(row.mrr, graph)" style="display:block;height:100%;background:var(--success,#16a34a)"></span>
+                </span>
+                <span *ngIf="row.churnedMrr" style="display:block;height:5px;background:var(--danger,#dc2626);border-radius:999px;margin-top:6px" [style.width.%]="revenueBarWidth(row.churnedMrr, graph)"></span>
+                <small style="color:var(--text-muted)">Growth {{ row.growth | currency: 'INR':'symbol':'1.0-0' }} · churn {{ row.churnedMrr | currency: 'INR':'symbol':'1.0-0' }}</small>
+              </div>
+              <div style="text-align:right">
+                <strong>{{ row.mrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <span style="display:block;font-size:0.78em;color:var(--text-muted)">{{ row.arr | currency: 'INR':'symbol':'1.0-0' }} ARR</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="overview.trialPaidFunnel as funnel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Trial to paid funnel</span>
+              <h2>{{ funnel.conversionRate | number: '1.0-1' }}% conversion with {{ funnel.trialLeakage }} expired trial leakages</h2>
+            </div>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ funnel.paidMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Paid MRR</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ funnel.trialPipelineMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Trial pipeline MRR</span>
+            </article>
+          </div>
+          <div class="activity-list">
+            <article *ngFor="let stage of funnel.stages" style="display:grid;grid-template-columns:150px 1fr 80px;gap:12px;align-items:center">
+              <strong>{{ stage.label }}</strong>
+              <span style="display:block;height:10px;background:var(--surface-muted,#e5e7eb);border-radius:999px;overflow:hidden">
+                <span [style.width.%]="stage.pct" style="display:block;height:100%;background:var(--accent,#2563eb)"></span>
+              </span>
+              <span style="text-align:right">{{ stage.count }} · {{ stage.pct | number: '1.0-1' }}%</span>
+            </article>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="section-title">
             <div>
@@ -1022,6 +1075,11 @@ export class SuperAdminComponent implements OnInit {
 
   usageBarWidth(value: number, rows: ApiRecord[] = []): number {
     const max = Math.max(1, ...rows.map((row) => Number(row.value || 0)));
+    return Math.max(4, Math.round((Number(value || 0) / max) * 100));
+  }
+
+  revenueBarWidth(value: number, rows: ApiRecord[] = []): number {
+    const max = Math.max(1, ...rows.map((row) => Math.max(Number(row.mrr || 0), Number(row.churnedMrr || 0))));
     return Math.max(4, Math.round((Number(value || 0) / max) * 100));
   }
 
