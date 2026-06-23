@@ -354,6 +354,9 @@ export const routes: Routes = [
     path: 'discount-rules/member-wallet-offers', loadComponent: () => import('./pages/discount-rules/member-wallet-offers.component').then(m => m.MemberWalletOffersComponent), title: 'Member / Wallet Offers'
   },
   {
+    path: 'discount-rules/no-show-risk-offers', loadComponent: () => import('./pages/discount-rules/no-show-risk-offers.component').then(m => m.NoShowRiskOffersComponent), title: 'No-show Risk Offers'
+  },
+  {
     path: 'discount-rules/offer-lifecycle', loadComponent: () => import('./pages/discount-rules/offer-lifecycle.component').then(m => m.OfferLifecycleComponent), title: 'Offer Lifecycle OS'
   },
   {

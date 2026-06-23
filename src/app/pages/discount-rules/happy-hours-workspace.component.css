@@ -179,6 +179,7 @@
 :host ::ng-deep .detail-body .lead-time-page,
 :host ::ng-deep .detail-body .market-aware-page,
 :host ::ng-deep .detail-body .member-wallet-page,
+:host ::ng-deep .detail-body .no-show-risk-page,
 :host ::ng-deep .detail-body .staff-aware-page,
 :host ::ng-deep .detail-body .weather-event-page {
   background: #ffffff;
