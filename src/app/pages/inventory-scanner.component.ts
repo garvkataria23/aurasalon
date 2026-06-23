@@ -23,17 +23,21 @@ type ScannerAction = 'lookup' | 'receive' | 'count' | 'waste' | 'transfer';
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>
 
-      <div class="scanner-layout">
-        <section class="panel scanner-card">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">Scan desk</span>
-              <h2>Fast scan entry</h2>
-            </div>
-            <span class="scan-status" [class.matched]="matchedProduct()">ready</span>
+      <section class="zenoti-scanner-workspace">
+        <div class="zenoti-result-bar">
+          <div>
+            <strong>{{ activeScannerCount() }}</strong><span>Results</span>
+            <small class="status-chip">Status: scanner active in this center</small>
           </div>
+          <div class="zenoti-totals">
+            <span>Products <strong>{{ products().length }}</strong></span>
+            <span>Session scans <strong>{{ scans().length }}</strong></span>
+            <span>Matched stock <strong>{{ matchedProduct()?.stock || 0 }}</strong></span>
+            <span>Workflow <strong>{{ currentWorkflowLabel() }}</strong></span>
+          </div>
+        </div>
 
-          <form [formGroup]="scannerForm" (ngSubmit)="scan()" class="scanner-form">
+        <form [formGroup]="scannerForm" (ngSubmit)="scan()" class="zenoti-scan-form">
             <label class="field">
               <span>Branch</span>
               <select formControlName="branchId">
@@ -70,54 +74,47 @@ type ScannerAction = 'lookup' | 'receive' | 'count' | 'waste' | 'transfer';
               <span>Note</span>
               <input formControlName="notes" placeholder="Shelf count, barcode receive, transfer reason" />
             </label>
-            <div class="form-actions full">
+            <div class="form-actions">
               <button class="primary-button" type="submit" [disabled]="scannerForm.invalid || saving()">Scan and match</button>
               <button class="ghost-button" type="button" (click)="applyWorkflow()" [disabled]="!matchedProduct() || saving()">Apply workflow</button>
             </div>
-          </form>
-        </section>
+        </form>
 
-        <section class="panel product-card" *ngIf="matchedProduct(); else noMatch">
-          <div class="product-head">
-            <div>
-              <span class="eyebrow">Matched product</span>
-              <h2>{{ matchedProduct()?.name }}</h2>
-              <p>{{ matchedProduct()?.sku || 'No SKU' }} · {{ matchedProduct()?.category || 'uncategorized' }}</p>
-            </div>
-            <strong>{{ matchedProduct()?.stock || 0 }} left</strong>
+        <div class="zenoti-filter-row">
+          <div class="tab-strip">
+            <button type="button" [class.active]="activeView() === 'matched'" (click)="activeView.set('matched')">Matched product</button>
+            <button type="button" [class.active]="activeView() === 'history'" (click)="activeView.set('history')">Scan history</button>
           </div>
-          <div class="product-metrics">
-            <article><span>Price</span><strong>{{ (matchedProduct()?.price || 0) | currency:'INR':'symbol':'1.0-0' }}</strong></article>
-            <article><span>Unit cost</span><strong>{{ (matchedProduct()?.unitCost || 0) | currency:'INR':'symbol':'1.0-0' }}</strong></article>
-            <article><span>Reorder</span><strong>{{ matchedProduct()?.lowStockThreshold || 0 }}</strong></article>
-            <article><span>Branch</span><strong>{{ branchName(matchedProduct()?.branchId) }}</strong></article>
-          </div>
-          <div class="workflow-grid">
+          <div class="workflow-strip">
             <button type="button" (click)="setWorkflow('lookup')">Lookup</button>
             <button type="button" (click)="setWorkflow('receive')">Receive</button>
             <button type="button" (click)="setWorkflow('count')">Count</button>
             <button type="button" (click)="setWorkflow('waste')">Waste</button>
             <button type="button" (click)="setWorkflow('transfer')">Transfer</button>
           </div>
-        </section>
-        <ng-template #noMatch>
-          <section class="panel product-card empty-match">
-            <span class="eyebrow">No product selected</span>
-            <h2>Scan a product to start</h2>
-            <p>Matched stock, price, cost, reorder level and branch will appear here from live inventory data.</p>
-          </section>
-        </ng-template>
-      </div>
-
-      <section class="panel">
-        <div class="section-title">
-          <div>
-            <span class="eyebrow">Recent scans</span>
-            <h2>Session scan history</h2>
-          </div>
-          <small>{{ scans().length }} scans</small>
         </div>
-        <div class="table-wrap">
+
+        <div class="zenoti-table-wrap" *ngIf="activeView() === 'matched'">
+          <table>
+            <thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Branch</th><th>Stock</th><th>Reorder</th><th>Price</th><th>Unit cost</th><th>Workflow</th></tr></thead>
+            <tbody>
+              <tr *ngIf="matchedProduct() as product">
+                <td><strong>{{ product.name }}</strong><small>{{ product.id }}</small></td>
+                <td>{{ product.sku || 'No SKU' }}</td>
+                <td>{{ product.category || 'Uncategorized' }}</td>
+                <td>{{ branchName(product.branchId) }}</td>
+                <td>{{ product.stock || 0 }}</td>
+                <td>{{ product.lowStockThreshold || 0 }}</td>
+                <td>{{ (product.price || 0) | currency:'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ (product.unitCost || 0) | currency:'INR':'symbol':'1.0-0' }}</td>
+                <td><span class="scanner-chip">{{ currentWorkflowLabel() }}</span></td>
+              </tr>
+              <tr *ngIf="!matchedProduct()"><td colspan="9" class="empty-cell">Scan a product to start. Matched stock, price, cost, reorder level and branch will appear here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="zenoti-table-wrap" *ngIf="activeView() === 'history'">
           <table>
             <thead><tr><th>Time</th><th>Code</th><th>Workflow</th><th>Product</th><th>Status</th><th>Result</th></tr></thead>
             <tbody>
@@ -129,40 +126,157 @@ type ScannerAction = 'lookup' | 'receive' | 'count' | 'waste' | 'transfer';
                 <td><span class="badge" [class.warn]="row.status === 'unmatched'">{{ row.status }}</span></td>
                 <td>{{ row.message || row.workflowStatus || '-' }}</td>
               </tr>
-              <tr *ngIf="!scans().length"><td colspan="6">No scans in this session.</td></tr>
+              <tr *ngIf="!scans().length"><td colspan="6" class="empty-cell">No scans in this session.</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="zenoti-footer">
+          <span>1 to {{ activeScannerCount() }} of {{ activeScannerCount() }}</span>
+          <span>{{ selectedBranchName() }}</span>
         </div>
       </section>
     </section>
   `,
   styles: [`
-    .hero-actions,
-    .section-title,
-    .product-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .scanner-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr); gap: 14px; }
-    .scanner-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .scanner-form .full, .scanner-form .code-field { grid-column: 1 / -1; }
-    .scanner-form .code-field input { min-height: 54px; font-size: 22px; font-weight: 800; letter-spacing: .02em; }
-    .scan-status { padding: 5px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; font-weight: 800; font-size: 12px; text-transform: uppercase; }
-    .scan-status.matched { background: #dcfce7; color: #166534; }
-    .product-head h2 { margin-bottom: 2px; }
-    .product-head p { margin: 0; color: var(--muted); }
-    .product-head > strong { font-size: 32px; color: #0f766e; }
-    .product-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
-    .product-metrics article { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #f8fbfa; }
-    .product-metrics span { color: var(--muted); display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; }
-    .product-metrics strong { display: block; margin-top: 4px; font-size: 18px; }
-    .workflow-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-    .workflow-grid button { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 12px 8px; font-weight: 800; cursor: pointer; }
-    .workflow-grid button:hover { border-color: #0f766e; color: #0f766e; }
-    .empty-match { display: grid; align-content: center; min-height: 280px; }
-    .empty-match p { color: var(--muted); max-width: 520px; }
-    .table-wrap { overflow: auto; }
-    table { min-width: 920px; }
+    .scanner-page { gap: 0; }
+    .zenoti-scanner-workspace {
+      background: #fff;
+      border: 1px solid #d8e1ea;
+      display: grid;
+      overflow: hidden;
+    }
+    .zenoti-result-bar,
+    .zenoti-filter-row,
+    .zenoti-footer {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+    .zenoti-result-bar,
+    .zenoti-filter-row,
+    .zenoti-scan-form { border-bottom: 1px solid #d8e1ea; }
+    .zenoti-result-bar > div,
+    .zenoti-totals,
+    .tab-strip,
+    .workflow-strip {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .zenoti-result-bar strong {
+      color: #152033;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .zenoti-result-bar span,
+    .zenoti-footer {
+      color: #50637d;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .zenoti-scan-form {
+      display: grid;
+      grid-template-columns: 180px minmax(280px, 1.4fr) 170px 120px 180px minmax(220px, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 12px 16px;
+    }
+    .zenoti-scan-form .field {
+      min-width: 0;
+    }
+    .zenoti-scan-form input,
+    .zenoti-scan-form select {
+      min-height: 34px;
+    }
+    .zenoti-scan-form .code-field input {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+    .status-chip,
+    .scanner-chip {
+      background: #eaf6ff;
+      border: 1px solid #b9d0e7;
+      border-radius: 999px;
+      color: #173f62;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .tab-strip button,
+    .workflow-strip button {
+      background: #fff;
+      border: 1px solid #b9d0e7;
+      border-radius: 3px;
+      color: #075f9e;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 8px 12px;
+    }
+    .tab-strip button.active { box-shadow: inset 0 -3px 0 #f25a1d; }
+    .zenoti-table-wrap { overflow: auto; }
+    table {
+      border-collapse: collapse;
+      min-width: 1040px;
+      width: 100%;
+    }
+    th,
+    td {
+      border-bottom: 1px solid #dfe6ee;
+      color: #243142;
+      font-size: 13px;
+      padding: 11px 14px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      background: #f5f8fb;
+      color: #5d6e84;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    td strong {
+      color: #075f9e;
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    td small {
+      color: #61738d;
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+    .empty-cell {
+      color: #61738d;
+      font-weight: 800;
+      padding: 28px 14px;
+      text-align: center;
+    }
+    .zenoti-footer {
+      border-top: 1px solid #d8e1ea;
+      justify-content: flex-end;
+    }
     @media (max-width: 980px) {
-      .scanner-layout, .scanner-form, .product-metrics { grid-template-columns: 1fr; }
-      .workflow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .zenoti-result-bar,
+      .zenoti-filter-row,
+      .zenoti-footer,
+      .zenoti-scan-form {
+        align-items: flex-start;
+        display: grid;
+        grid-template-columns: 1fr;
+      }
     }
   `]
 })
@@ -175,6 +289,7 @@ export class InventoryScannerComponent implements OnInit {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly success = signal('');
+  readonly activeView = signal<'matched' | 'history'>('matched');
   readonly selectedBranchProducts = computed(() => this.products().filter((item) => item.branchId === this.scannerForm.value.branchId));
 
   readonly scannerForm = this.fb.group({
@@ -241,6 +356,18 @@ export class InventoryScannerComponent implements OnInit {
 
   setWorkflow(action: ScannerAction): void {
     this.scannerForm.patchValue({ scanType: action });
+  }
+
+  activeScannerCount(): number {
+    return this.activeView() === 'history' ? this.scans().length : (this.matchedProduct() ? 1 : 0);
+  }
+
+  currentWorkflowLabel(): string {
+    return String(this.scannerForm.value.scanType || 'lookup');
+  }
+
+  selectedBranchName(): string {
+    return this.branchName(String(this.scannerForm.value.branchId || ''));
   }
 
   applyWorkflow(): void {
