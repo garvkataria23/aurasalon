@@ -1,36 +1,71 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
-import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-whatsapp-automation',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
   template: `
-    <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">WhatsApp automation engine</span>
-          <h2>Auto replies, reminders, broadcasts, lead qualification and human handoff</h2>
-          <p>Inbound and outbound WhatsApp activity is tenant-scoped, branch-aware and persisted as threads, messages, rules and handoffs.</p>
+    <section class="whatsapp-workspace">
+      <div class="command-bar">
+        <div class="brand-block">
+          <span class="brand-mark">A</span>
+          <div>
+            <small>Enterprise command workspace</small>
+            <strong>Aurashine OS</strong>
+          </div>
         </div>
-        <button class="ghost-button" type="button" (click)="load()">Refresh engine</button>
+        <div class="top-actions">
+          <button class="zenoti-button" type="button" (click)="load()">Refresh</button>
+          <button class="zenoti-button primary" type="button" (click)="processInbound()" [disabled]="inboundForm.invalid || saving()">Process inbound</button>
+        </div>
+      </div>
+
+      <section class="zenoti-header">
+        <div class="center-line">
+          <strong>malad</strong>
+          <div class="header-actions">
+            <button class="zenoti-button" type="button" (click)="reminders()">Reminders</button>
+            <button class="zenoti-button" type="button" (click)="paymentReminders()">Payments</button>
+            <button class="zenoti-button" type="button" (click)="campaignBroadcast()">Broadcast</button>
+          </div>
+        </div>
+        <select class="command-select" aria-label="WhatsApp quick action" (change)="runQuickAction($event)">
+          <option>I want to ...</option>
+          <option value="inbound">Process inbound</option>
+          <option value="qualify">Qualify lead</option>
+          <option value="booking">Send booking confirmation</option>
+          <option value="reminders">Queue reminders</option>
+          <option value="missed">Create missed-call follow-up</option>
+          <option value="birthday">Send birthday wishes</option>
+        </select>
+      </section>
+
+      <div class="page-heading">
+        <div>
+          <h1>WhatsApp automation engine</h1>
+          <p>WhatsApp &gt; Auto replies, reminders, broadcasts, lead qualification and human handoff</p>
+        </div>
+        <label class="search-field">
+          <span>Search threads</span>
+          <input placeholder="Phone, client, intent, handoff" />
+        </label>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <div class="metrics-grid" *ngIf="summary() as summary">
-        <aura-kpi-card tone="teal" target="/kpi-details/whatsapp/open-threads"><span>Open threads</span><strong>{{ summary.openThreads }}</strong><small>Active WhatsApp conversations</small></aura-kpi-card>
-        <aura-kpi-card tone="red" target="/kpi-details/whatsapp/human-handoffs"><span>Human handoffs</span><strong>{{ summary.activeHandoffs }}</strong><small>Needs front-desk attention</small></aura-kpi-card>
-        <aura-kpi-card tone="amber" target="/kpi-details/whatsapp/hot-leads"><span>Hot leads</span><strong>{{ summary.hotLeads }}</strong><small>Lead score 70+</small></aura-kpi-card>
-        <aura-kpi-card tone="blue" target="/kpi-details/whatsapp/auto-replies"><span>Auto replies</span><strong>{{ summary.autoRepliesToday }}</strong><small>Sent today</small></aura-kpi-card>
-        <aura-kpi-card tone="green" target="/kpi-details/whatsapp/broadcasts"><span>Broadcasts</span><strong>{{ summary.broadcastsToday }}</strong><small>Campaign messages today</small></aura-kpi-card>
-        <aura-kpi-card tone="violet" target="/kpi-details/whatsapp/outbound-queue"><span>Outbound queue</span><strong>{{ summary.pendingOutbound }}</strong><small>Queued WhatsApp messages</small></aura-kpi-card>
-        <aura-kpi-card tone="slate" target="/kpi-details/whatsapp/rules-active"><span>Rules active</span><strong>{{ summary.rulesActive }}</strong><small>Automation rules</small></aura-kpi-card>
-        <aura-kpi-card tone="rose" target="/kpi-details/whatsapp/threads-stored"><span>Threads stored</span><strong>{{ threads().length }}</strong><small>Persisted conversations</small></aura-kpi-card>
+      <div class="metric-strip" *ngIf="summary() as summary">
+        <article><span>Open threads</span><strong>{{ summary.openThreads }}</strong><small>Active WhatsApp conversations</small></article>
+        <article><span>Human handoffs</span><strong>{{ summary.activeHandoffs }}</strong><small>Needs front-desk attention</small></article>
+        <article><span>Hot leads</span><strong>{{ summary.hotLeads }}</strong><small>Lead score 70+</small></article>
+        <article><span>Auto replies</span><strong>{{ summary.autoRepliesToday }}</strong><small>Sent today</small></article>
+        <article><span>Broadcasts</span><strong>{{ summary.broadcastsToday }}</strong><small>Campaign messages today</small></article>
+        <article><span>Outbound queue</span><strong>{{ summary.pendingOutbound }}</strong><small>Queued WhatsApp messages</small></article>
+        <article><span>Rules active</span><strong>{{ summary.rulesActive }}</strong><small>Automation rules</small></article>
+        <article><span>Threads stored</span><strong>{{ threads().length }}</strong><small>Persisted conversations</small></article>
       </div>
 
       <div class="ai-layout" *ngIf="!loading()">
@@ -106,7 +141,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </section>
       </div>
 
-      <section class="panel" *ngIf="result() as result">
+      <section class="panel register-panel" *ngIf="result() as result">
         <div class="section-title">
           <div>
             <span class="eyebrow">Last workflow result</span>
@@ -168,7 +203,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </section>
       </div>
 
-      <section class="panel">
+      <section class="panel register-panel">
         <div class="section-title">
           <div>
             <span class="eyebrow">Automation rules</span>
@@ -199,7 +234,76 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </div>
       </section>
     </section>
-  `
+  `,
+  styles: [`
+    .whatsapp-workspace { display: grid; gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
+    .brand-block, .top-actions, .center-line, .header-actions, .form-actions, .chip-row { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
+    .brand-block small, .field span, .search-field span, .section-title span { display: block; color: #5f6f85; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .brand-block small { color: #8fa1b8; }
+    .brand-block strong { display: block; color: #fff; font-size: 15px; }
+    .zenoti-button, .primary-button, .ghost-button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
+    .zenoti-button.primary, .primary-button { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-header, .page-heading, .metric-strip, .ai-layout, .panel { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
+    .center-line { justify-content: space-between; }
+    .center-line strong { font-size: 15px; }
+    .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
+    .page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; }
+    .page-heading h1 { margin: 0; font-size: 22px; color: #172033; }
+    .page-heading p { margin: 6px 0 0; color: #36506d; font-size: 13px; }
+    .search-field { width: min(100%, 330px); display: grid; gap: 5px; }
+    .search-field input, .field input, .field select, .field textarea, .wa-action-form input, .wa-action-form select, .wa-action-form textarea { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
+    .metric-strip { display: grid; grid-template-columns: repeat(8, minmax(145px, 1fr)); gap: 0; overflow-x: auto; }
+    .metric-strip article { min-width: 145px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #0b8f7c; }
+    .metric-strip article:nth-child(2) { border-top-color: #bb241a; }
+    .metric-strip article:nth-child(3) { border-top-color: #bd7400; }
+    .metric-strip article:nth-child(4) { border-top-color: #2b61d1; }
+    .metric-strip article:nth-child(5) { border-top-color: #16834f; }
+    .metric-strip article:nth-child(6) { border-top-color: #7046d8; }
+    .metric-strip article:nth-child(7) { border-top-color: #0f172a; }
+    .metric-strip article:nth-child(8) { border-top-color: #d3336f; }
+    .metric-strip span, .metric-strip small, td small, .rank-list small, .activity-list small { display: block; color: #5f6f85; font-size: 12px; }
+    .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; }
+    .ai-layout, .dashboard-grid { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(520px, 1.2fr); gap: 0; border-bottom: 1px solid #d8e1ea; }
+    .form-panel, .panel { border: 0; border-right: 1px solid #d8e1ea; border-radius: 0; box-shadow: none; padding: 16px; }
+    .panel:last-child, .form-panel:last-child { border-right: 0; }
+    .form-panel h3, .section-title h2 { margin: 3px 0 12px; color: #172033; font-size: 18px; }
+    form, .wa-action-form { display: grid; gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    textarea { min-height: 78px; resize: vertical; }
+    .wa-action-form { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 12px; }
+    .quick-grid { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 10px; }
+    .action-card { text-align: left; border: 1px solid #d8e1ea; border-radius: 0; background: #fbfcfe; padding: 12px; display: grid; gap: 5px; cursor: pointer; }
+    .action-card:hover { background: #eef7fc; border-color: #9fc3dc; }
+    .rank-list, .activity-list { display: grid; gap: 0; border: 1px solid #d8e1ea; }
+    .rank-list article, .activity-list article { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid #dfe7ef; background: #fff; }
+    .rank-list article:last-child, .activity-list article:last-child { border-bottom: 0; }
+    .right { text-align: right; display: grid; gap: 4px; justify-items: end; }
+    .badge { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: #dff7ee; color: #046452; font-weight: 800; font-size: 12px; }
+    .result-json { max-height: 280px; overflow: auto; margin: 12px 0 0; padding: 12px; border: 1px solid #d8e1ea; background: #f8fafc; color: #172033; white-space: pre-wrap; }
+    .table-wrap { overflow: auto; border: 1px solid #d8e1ea; background: #fff; }
+    table { width: 100%; min-width: 860px; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #dfe7ef; text-align: left; vertical-align: middle; }
+    th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    td strong { display: block; color: #172033; }
+    tr:hover td { background: #eef7fc; }
+    app-state { display: block; }
+    @media (max-width: 1180px) {
+      .ai-layout, .dashboard-grid { grid-template-columns: 1fr; }
+      .form-panel, .panel { border-right: 0; }
+      .quick-grid { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .command-bar, .page-heading, .center-line, .rank-list article, .activity-list article { display: grid; align-items: start; }
+      .top-actions, .header-actions, .form-actions { flex-wrap: wrap; }
+      .search-field { width: 100%; }
+      .metric-strip, .wa-action-form, .quick-grid { grid-template-columns: 1fr; }
+      .right { text-align: left; justify-items: start; }
+    }
+  `]
 })
 export class WhatsAppAutomationComponent implements OnInit {
   readonly summary = signal<ApiRecord | null>(null);
@@ -315,6 +419,18 @@ export class WhatsAppAutomationComponent implements OnInit {
       campaignId: this.actionForm.value.campaignId,
       template: this.actionForm.value.template
     });
+  }
+
+  runQuickAction(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const action = select.value;
+    if (action === 'inbound') this.processInbound();
+    if (action === 'qualify') this.qualifyLead();
+    if (action === 'booking') this.bookingConfirmation();
+    if (action === 'reminders') this.reminders();
+    if (action === 'missed') this.missedCall();
+    if (action === 'birthday') this.birthdayWishes();
+    select.selectedIndex = 0;
   }
 
   openHandoff(threadId: string): void {
