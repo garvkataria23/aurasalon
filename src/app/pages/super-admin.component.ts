@@ -1082,8 +1082,25 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <strong>{{ tenant.drilldown.loginActivityMap?.riskEvents || 0 }}</strong>
                     <span>Risk events</span>
                   </article>
+                  <article class="action-card">
+                    <strong>{{ tenant.drilldown.loginActivityMap?.suspiciousLogins || 0 }}</strong>
+                    <span>Suspicious logins</span>
+                  </article>
                 </div>
                 <div class="activity-list" style="margin-top:12px">
+                  <article *ngFor="let geo of tenant.drilldown.loginActivityMap?.geoMap || []" style="display:grid;grid-template-columns:1fr 130px;gap:12px;align-items:center">
+                    <div style="min-width:0">
+                      <strong>{{ geo.label }}</strong>
+                      <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ geo.users.join(', ') || 'No user' }} · {{ geo.ipAddresses.join(', ') || 'No IP' }}</span>
+                      <span style="display:block;height:6px;background:var(--surface-muted,#e5e7eb);border-radius:999px;margin-top:8px;overflow:hidden">
+                        <span [style.width.%]="usageBarWidth(geo.value, tenant.drilldown.loginActivityMap?.geoMap || [])" [style.background]="geo.critical ? 'var(--danger,#dc2626)' : geo.suspicious ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="display:block;height:100%"></span>
+                      </span>
+                    </div>
+                    <div style="text-align:right">
+                      <span class="badge" [style.background]="geo.critical ? 'var(--danger,#dc2626)' : geo.suspicious ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="color:#fff">{{ geo.suspicious }} suspicious</span>
+                      <strong style="display:block">{{ geo.value }}</strong>
+                    </div>
+                  </article>
                   <article *ngFor="let location of tenant.drilldown.loginActivityMap?.locations || []" style="display:grid;grid-template-columns:1fr 120px;gap:12px;align-items:center">
                     <div style="min-width:0">
                       <strong>{{ location.label }}</strong>
@@ -1094,8 +1111,15 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     </div>
                     <div style="text-align:right">
                       <strong>{{ location.value }}</strong>
-                      <span style="display:block;font-size:0.78em;color:var(--text-muted)">{{ location.riskEvents }} risk</span>
+                      <span style="display:block;font-size:0.78em;color:var(--text-muted)">{{ location.riskEvents }} risk · {{ location.suspicious || 0 }} suspicious</span>
                     </div>
+                  </article>
+                  <article *ngFor="let event of tenant.drilldown.loginActivityMap?.suspiciousActivity || []" style="display:grid;grid-template-columns:1fr 100px;gap:12px;align-items:center">
+                    <div style="min-width:0">
+                      <strong>{{ event.userName }}</strong>
+                      <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ event.ipAddress || 'No IP' }} · {{ event.geo?.label || 'Unknown location' }} · {{ event.reasons.join(' · ') || 'watch' }}</span>
+                    </div>
+                    <span class="badge" [style.background]="event.level === 'critical' ? 'var(--danger,#dc2626)' : event.level === 'suspicious' ? 'var(--warning,#f59e0b)' : 'var(--accent,#2563eb)'" style="color:#fff">{{ event.level }} {{ event.score }}</span>
                   </article>
                   <article *ngIf="!(tenant.drilldown.loginActivityMap?.locations || []).length">
                     <div>

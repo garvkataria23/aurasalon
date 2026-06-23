@@ -174,6 +174,51 @@ function parseBranchIds(value) {
   return String(value || "").split(",").map((item) => item.replace(/[\[\]"]/g, "").trim()).filter(Boolean);
 }
 
+function geoBucketForIp(ipAddress = "") {
+  const ip = String(ipAddress || "").trim();
+  if (!ip) return { key: "unknown", label: "Unknown location", country: "Unknown", city: "", publicNetwork: false };
+  if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|127\.|::1|fc00:|fd00:)/i.test(ip)) {
+    return { key: "private-network", label: "Private/VPN network", country: "Private", city: "VPN/LAN", publicNetwork: false };
+  }
+  const first = Number(ip.split(".")[0]);
+  if (Number.isFinite(first)) {
+    if (first >= 1 && first <= 49) return { key: "apac-public", label: "APAC public IP", country: "APAC", city: "", publicNetwork: true };
+    if (first >= 50 && first <= 99) return { key: "amer-public", label: "Americas public IP", country: "Americas", city: "", publicNetwork: true };
+    if (first >= 100 && first <= 185) return { key: "emea-public", label: "EMEA public IP", country: "EMEA", city: "", publicNetwork: true };
+  }
+  return { key: "public-network", label: "Public network", country: "Public", city: "", publicNetwork: true };
+}
+
+function suspiciousLoginScore(row = {}) {
+  const reasons = [];
+  let score = 0;
+  const riskLevel = String(row.riskLevel || "").toLowerCase();
+  const geo = geoBucketForIp(row.ipAddress);
+  const hour = new Date(row.occurredAt || "").getHours();
+  if (row.source === "risk_event") {
+    score += riskLevel === "critical" ? 60 : riskLevel === "high" ? 45 : riskLevel === "medium" ? 30 : 18;
+    reasons.push(`${riskLevel || "risk"} event`);
+  }
+  if (riskLevel === "observed" || riskLevel === "untrusted" || riskLevel === "watch") {
+    score += 18;
+    reasons.push("untrusted device");
+  }
+  if (Number(row.failedLoginCount || 0) > 0) {
+    score += Math.min(30, Number(row.failedLoginCount || 0) * 6);
+    reasons.push(`${row.failedLoginCount} failed logins`);
+  }
+  if (geo.publicNetwork && row.source === "trusted_device" && riskLevel !== "trusted") {
+    score += 12;
+    reasons.push("public IP not trusted");
+  }
+  if (Number.isFinite(hour) && (hour < 6 || hour > 22)) {
+    score += 10;
+    reasons.push("odd-hour login");
+  }
+  const level = score >= 75 ? "critical" : score >= 50 ? "suspicious" : score >= 25 ? "watch" : "normal";
+  return { score: Math.min(100, score), level, reasons, geo };
+}
+
 function loginActivityMap(tenantUsers = [], trustedDevices = [], riskEvents = []) {
   const usersById = new Map(tenantUsers.map((user) => [user.id, user]));
   const rows = [
@@ -186,6 +231,7 @@ function loginActivityMap(tenantUsers = [], trustedDevices = [], riskEvents = []
         branchId: parseBranchIds(user.branchIds)[0] || "",
         ipAddress: "",
         riskLevel: user.failedLoginCount > 0 ? "watch" : "low",
+        failedLoginCount: Number(user.failedLoginCount || 0),
         source: "tenant_user",
         occurredAt: user.lastLoginAt
       })),
@@ -216,8 +262,10 @@ function loginActivityMap(tenantUsers = [], trustedDevices = [], riskEvents = []
       };
     })
   ].filter((row) => row.occurredAt).sort((a, b) => String(b.occurredAt).localeCompare(String(a.occurredAt)));
+  const enrichedRows = rows.map((row) => ({ ...row, ...suspiciousLoginScore(row) }));
   const locations = new Map();
-  for (const row of rows) {
+  const geoBuckets = new Map();
+  for (const row of enrichedRows) {
     const key = row.branchId || "tenant-wide";
     if (!locations.has(key)) {
       locations.set(key, {
@@ -227,6 +275,7 @@ function loginActivityMap(tenantUsers = [], trustedDevices = [], riskEvents = []
         users: new Set(),
         ipAddresses: new Set(),
         riskEvents: 0,
+        suspicious: 0,
         lastSeenAt: ""
       });
     }
@@ -235,19 +284,51 @@ function loginActivityMap(tenantUsers = [], trustedDevices = [], riskEvents = []
     if (row.userName) item.users.add(row.userName);
     if (row.ipAddress) item.ipAddresses.add(row.ipAddress);
     if (row.source === "risk_event") item.riskEvents += 1;
+    if (["critical", "suspicious"].includes(row.level)) item.suspicious += 1;
     if (!item.lastSeenAt || String(row.occurredAt).localeCompare(String(item.lastSeenAt)) > 0) item.lastSeenAt = row.occurredAt;
+    const geoKey = row.geo?.key || "unknown";
+    if (!geoBuckets.has(geoKey)) {
+      geoBuckets.set(geoKey, {
+        key: geoKey,
+        label: row.geo?.label || "Unknown location",
+        country: row.geo?.country || "Unknown",
+        city: row.geo?.city || "",
+        value: 0,
+        suspicious: 0,
+        critical: 0,
+        users: new Set(),
+        ipAddresses: new Set(),
+        lastSeenAt: ""
+      });
+    }
+    const geoItem = geoBuckets.get(geoKey);
+    geoItem.value += 1;
+    if (["critical", "suspicious"].includes(row.level)) geoItem.suspicious += 1;
+    if (row.level === "critical") geoItem.critical += 1;
+    if (row.userName) geoItem.users.add(row.userName);
+    if (row.ipAddress) geoItem.ipAddresses.add(row.ipAddress);
+    if (!geoItem.lastSeenAt || String(row.occurredAt).localeCompare(String(geoItem.lastSeenAt)) > 0) geoItem.lastSeenAt = row.occurredAt;
   }
+  const suspiciousRows = enrichedRows.filter((row) => ["critical", "suspicious", "watch"].includes(row.level));
   return {
     activeUsers: tenantUsers.filter((user) => user.lastLoginAt).length,
     trustedDevices: trustedDevices.length,
     riskEvents: riskEvents.length,
-    lastSeenAt: rows[0]?.occurredAt || "",
+    suspiciousLogins: suspiciousRows.length,
+    criticalLogins: enrichedRows.filter((row) => row.level === "critical").length,
+    lastSeenAt: enrichedRows[0]?.occurredAt || "",
     locations: [...locations.values()].map((item) => ({
       ...item,
       users: [...item.users].slice(0, 4),
       ipAddresses: [...item.ipAddresses].slice(0, 4)
     })).sort((a, b) => b.value - a.value).slice(0, 8),
-    recentActivity: rows.slice(0, 12)
+    geoMap: [...geoBuckets.values()].map((item) => ({
+      ...item,
+      users: [...item.users].slice(0, 4),
+      ipAddresses: [...item.ipAddresses].slice(0, 4)
+    })).sort((a, b) => b.critical - a.critical || b.suspicious - a.suspicious || b.value - a.value).slice(0, 8),
+    suspiciousActivity: suspiciousRows.slice(0, 8),
+    recentActivity: enrichedRows.slice(0, 12)
   };
 }
 
