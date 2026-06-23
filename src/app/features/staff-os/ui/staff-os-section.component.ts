@@ -45,7 +45,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   template: `
-    <section class="staff-os">
+    <section class="staff-os" [class.staff-list-mode]="section === 'staff-list'">
       <header class="topbar">
         <div>
           <p class="eyebrow">Staff Operating System</p>
@@ -431,49 +431,86 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
         </div>
       </section>
 
-      <section class="panel" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
-        <div class="panel-heading">
-          <h2>Staff Directory</h2>
-          <span>{{ staffDirectoryRows().length }} records</span>
-        </div>
-        <div class="table">
-          <div class="row header"><span>Name</span><span>Branch</span><span>Category</span><span>Live data</span><span>Status</span><span>Links</span><span>Action</span></div>
-          <div class="row" *ngFor="let staff of staffDirectoryRows()">
-            <span>
-              <strong>{{ staff.fullName }}</strong>
-              <small *ngIf="staff.employeeDetails?.shortName || staff.employeeCode">
-                {{ staff.employeeDetails?.shortName || 'No short name' }} · {{ staff.employeeCode || 'No code' }}
-              </small>
-            </span>
-            <span>{{ staff.branchId }}</span>
-            <span>{{ staff.staffCategoryName || staff.designation || staff.department || 'Staff' }}</span>
-            <span class="live-badges">
-              <span class="mini-badge" *ngFor="let badge of staffLiveBadges(staff)">{{ badge }}</span>
-            </span>
-            <span class="badge">{{ staff.status }}</span>
-            <span class="row-links">
-              <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
-              <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
-              <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
-              <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
-              <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
-            </span>
-            <span>
-              <button
-                type="button"
-                class="row-action"
-                [disabled]="statusChanging() === staff.id"
-                (click)="toggleStaffStatus(staff)"
-              >
-                {{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}
-              </button>
-            </span>
+      <section class="panel" [class.staff-register-panel]="section === 'staff-list'" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
+        <div class="panel-heading staff-register-heading">
+          <div>
+            <p class="eyebrow">Staff directory</p>
+            <h2>Manage employees</h2>
           </div>
+          <div class="staff-register-actions">
+            <span>{{ staffDirectoryRows().length }} records</span>
+            <button type="button" class="refresh" (click)="store.load()">Refresh</button>
+            <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
+          </div>
+        </div>
+
+        <div class="staff-register-kpis" *ngIf="section === 'staff-list'">
+          <article><span>Total staff</span><strong>{{ staffDirectoryRows().length }}</strong><small>employee master records</small></article>
+          <article><span>Active</span><strong>{{ activeStaffForAttendance().length }}</strong><small>attendance ready</small></article>
+          <article><span>Inactive</span><strong>{{ inactiveStaffCount() }}</strong><small>paused / archived</small></article>
+          <article><span>Login linked</span><strong>{{ loginLinkedCount() }}</strong><small>staff app access</small></article>
+        </div>
+
+        <div class="staff-register-scroll">
+          <table class="staff-register-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Branch</th>
+                <th>Category</th>
+                <th>Live data</th>
+                <th>Status</th>
+                <th>Links</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let staff of staffDirectoryRows()">
+                <td>
+                  <strong>{{ staff.fullName }}</strong>
+                  <small *ngIf="staff.employeeDetails?.shortName || staff.employeeCode">
+                    {{ staff.employeeDetails?.shortName || 'No short name' }} · {{ staff.employeeCode || 'No code' }}
+                  </small>
+                </td>
+                <td>{{ staff.branchId }}</td>
+                <td>{{ staff.staffCategoryName || staff.designation || staff.department || 'Staff' }}</td>
+                <td>
+                  <span class="live-badges">
+                    <span class="mini-badge" *ngFor="let badge of staffLiveBadges(staff)">{{ badge }}</span>
+                  </span>
+                </td>
+                <td><span class="badge">{{ staff.status }}</span></td>
+                <td>
+                  <span class="row-links">
+                    <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
+                    <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
+                    <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
+                    <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
+                    <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="row-action"
+                    [disabled]="statusChanging() === staff.id"
+                    (click)="toggleStaffStatus(staff)"
+                  >
+                    {{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <div *ngIf="!staffDirectoryRows().length && !store.loading()" class="empty action-empty">
             <strong>No staff records found.</strong>
             <span>Add staff first to unlock attendance, payroll and commission reports.</span>
             <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
           </div>
+        </div>
+        <div class="staff-register-footer" *ngIf="section === 'staff-list'">
+          <span>{{ staffDirectoryRows().length ? 1 : 0 }} to {{ staffDirectoryRows().length }} of {{ staffDirectoryRows().length }}</span>
+          <span>Page 1 of 1</span>
         </div>
         <div class="state error" *ngIf="staffActionError()">{{ staffActionError() }}</div>
       </section>
@@ -1892,6 +1929,43 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
     .panel-heading, .row, .split { display: grid; align-items: center; gap: 12px; }
     .panel-heading { grid-template-columns: 1fr auto; color: #40544c; }
     .panel-heading span { color: #60766d; display: block; margin-top: 4px; }
+    .staff-list-mode { gap: 10px; }
+    .staff-list-mode .topbar,
+    .staff-list-mode .staff-shell-nav,
+    .staff-list-mode .staff-control-room,
+    .staff-list-mode .metrics,
+    .staff-list-mode .staff-register-panel { border-radius: 0; box-shadow: none; }
+    .staff-list-mode .topbar { background: #fff; border: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-list-mode .refresh,
+    .staff-list-mode .primary,
+    .staff-list-mode .row-action { border-radius: 3px; min-height: 32px; padding: 7px 11px; }
+    .staff-list-mode .primary { background: #0b72b5; border-color: #0b72b5; }
+    .staff-list-mode .staff-shell-nav { background: #fff; border-color: #d8e1ea; padding: 7px; }
+    .staff-list-mode .staff-shell-nav a { border-radius: 3px; min-height: 44px; }
+    .staff-list-mode .staff-control-room { border-color: #d8e1ea; padding: 12px 16px; }
+    .staff-list-mode .control-card { border-radius: 3px; min-height: 76px; padding: 10px 12px; }
+    .staff-list-mode .control-card strong { font-size: 22px; }
+    .staff-list-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-list-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
+    .staff-list-mode .metric:last-child { border-right: 0; }
+    .staff-register-panel { overflow: hidden; padding: 0; }
+    .staff-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-register-actions { align-items: center; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .staff-register-actions > span { color: #5b6b81; font-weight: 900; margin: 0 8px 0 0; }
+    .staff-register-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
+    .staff-register-kpis article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; padding: 10px 16px; }
+    .staff-register-kpis article:last-child { border-right: 0; }
+    .staff-register-kpis span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .staff-register-kpis strong { color: #111827; font-size: 22px; line-height: 1; }
+    .staff-register-kpis small { color: #64748b; }
+    .staff-register-scroll { max-width: 100%; overflow: auto; }
+    .staff-register-table { border-collapse: collapse; min-width: 1160px; width: 100%; }
+    .staff-register-table th,
+    .staff-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    .staff-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .staff-register-table tbody tr:hover { background: #eef7fc; }
+    .staff-register-table td small { color: #60766d; display: block; font-size: 12px; margin-top: 3px; }
+    .staff-register-footer { color: #64748b; display: flex; gap: 12px; justify-content: flex-end; padding: 8px 16px; border-top: 1px solid #d8e1ea; font-size: 12px; }
     .staff-workspace-panel { background: #fbfdff; }
     .workspace-heading { align-items: end; }
     .staff-workspace-shell { align-items: start; display: grid; gap: 14px; grid-template-columns: 300px minmax(0, 1fr); min-width: 0; }
