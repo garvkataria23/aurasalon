@@ -232,6 +232,7 @@ export const routes: Routes = [
       title: 'Multi-Branch Operations',
       subtitle: 'Manage salon locations, GSTIN, contact details and operational status.',
       createLabel: 'Add branch',
+      variant: 'zenoti',
       columns: [
         { key: 'name', label: 'Branch' },
         { key: 'city', label: 'City' },

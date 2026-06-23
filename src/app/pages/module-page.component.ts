@@ -55,19 +55,12 @@ type PageConfig = {
           <div class="center-line">
             <strong>malad</strong>
             <div class="header-actions">
-              <button class="zenoti-button" type="button" (click)="query = ''">All logs</button>
-              <button class="zenoti-button" type="button" (click)="query = 'whatsapp'">WhatsApp</button>
-              <button class="zenoti-button" type="button" (click)="query = 'sms'">SMS</button>
-              <button class="zenoti-button" type="button" (click)="query = 'email'">Email</button>
+              <button class="zenoti-button" type="button" *ngFor="let filter of zenotiHeaderFilters()" (click)="query = filter.query">{{ filter.label }}</button>
             </div>
           </div>
           <select class="command-select" aria-label="Module quick action" (change)="runZenotiAction($event)">
             <option>I want to ...</option>
-            <option value="create">{{ config.createLabel }}</option>
-            <option value="refresh">Refresh records</option>
-            <option value="failed">Show failed messages</option>
-            <option value="whatsapp">Show WhatsApp logs</option>
-            <option value="queueOrOutbound">{{ zenotiFifthMetricLabel() }}</option>
+            <option *ngFor="let action of zenotiQuickActions()" [value]="action.value">{{ action.label }}</option>
           </select>
         </section>
 
@@ -77,18 +70,13 @@ type PageConfig = {
             <p>{{ config.subtitle }}</p>
           </div>
           <label class="zenoti-search">
-            <span>Search logs</span>
-            <input [(ngModel)]="query" placeholder="Recipient, channel, status, payload" />
+            <span>{{ zenotiSearchLabel() }}</span>
+            <input [(ngModel)]="query" [placeholder]="zenotiSearchPlaceholder()" />
           </label>
         </div>
 
         <div class="zenoti-metric-strip">
-          <article><span>Total records</span><strong>{{ rows.length }}</strong><small>{{ config.entity }}</small></article>
-          <article><span>WhatsApp</span><strong>{{ countBy('channel', 'whatsapp') }}</strong><small>Chat messages</small></article>
-          <article><span>SMS</span><strong>{{ countBy('channel', 'sms') }}</strong><small>Text messages</small></article>
-          <article><span>Email</span><strong>{{ countBy('channel', 'email') }}</strong><small>Email logs</small></article>
-          <article><span>{{ zenotiFifthMetricLabel() }}</span><strong>{{ zenotiFifthMetricValue() }}</strong><small>{{ zenotiFifthMetricHint() }}</small></article>
-          <article><span>Failed</span><strong>{{ statusCount('failed') }}</strong><small>Needs review</small></article>
+          <article *ngFor="let metric of zenotiMetrics()"><span>{{ metric.label }}</span><strong>{{ metric.value }}</strong><small>{{ metric.hint }}</small></article>
         </div>
       </ng-container>
 
@@ -680,6 +668,93 @@ export class ModulePageComponent implements OnInit, OnDestroy {
     return this.rows.filter((row) => String(row.status || '').toLowerCase().includes(needle)).length;
   }
 
+  zenotiHeaderFilters(): Array<{ label: string; query: string }> {
+    if (this.config?.entity === 'branches') {
+      return [
+        { label: 'All branches', query: '' },
+        { label: 'Active', query: 'active' },
+        { label: 'GSTIN', query: 'gstin' },
+        { label: 'Phone', query: 'phone' }
+      ];
+    }
+    if (this.config?.entity === 'notifications') {
+      return [
+        { label: 'All notifications', query: '' },
+        { label: 'WhatsApp', query: 'whatsapp' },
+        { label: 'SMS', query: 'sms' },
+        { label: 'Email', query: 'email' }
+      ];
+    }
+    return [
+      { label: 'All logs', query: '' },
+      { label: 'WhatsApp', query: 'whatsapp' },
+      { label: 'SMS', query: 'sms' },
+      { label: 'Email', query: 'email' }
+    ];
+  }
+
+  zenotiQuickActions(): Array<{ label: string; value: string }> {
+    if (this.config?.entity === 'branches') {
+      return [
+        { label: this.config.createLabel, value: 'create' },
+        { label: 'Refresh branches', value: 'refresh' },
+        { label: 'Show active branches', value: 'active' },
+        { label: 'Show GSTIN records', value: 'gstin' },
+        { label: 'Show phone records', value: 'phone' }
+      ];
+    }
+    return [
+      { label: this.config.createLabel, value: 'create' },
+      { label: 'Refresh records', value: 'refresh' },
+      { label: 'Show failed messages', value: 'failed' },
+      { label: 'Show WhatsApp logs', value: 'whatsapp' },
+      { label: this.zenotiFifthMetricLabel(), value: 'queueOrOutbound' }
+    ];
+  }
+
+  zenotiSearchLabel(): string {
+    return this.config?.entity === 'branches' ? 'Search branches' : 'Search logs';
+  }
+
+  zenotiSearchPlaceholder(): string {
+    if (this.config?.entity === 'branches') return 'Branch, city, phone, GSTIN, status';
+    if (this.config?.entity === 'notifications') return 'Channel, type, status, message';
+    return 'Recipient, channel, status, payload';
+  }
+
+  zenotiMetrics(): Array<{ label: string; value: string | number; hint: string }> {
+    if (this.config?.entity === 'branches') {
+      return [
+        { label: 'Total branches', value: this.rows.length, hint: 'Salon locations' },
+        { label: 'Active', value: this.statusCount('active'), hint: 'Operating centers' },
+        { label: 'Cities', value: this.uniqueCount('city'), hint: 'Location spread' },
+        { label: 'GSTIN ready', value: this.presentCount('gstin'), hint: 'Tax profile captured' },
+        { label: 'Phone ready', value: this.presentCount('phone'), hint: 'Contact captured' },
+        { label: 'Missing GSTIN', value: this.missingCount('gstin'), hint: 'Needs compliance follow-up' }
+      ];
+    }
+    return [
+      { label: 'Total records', value: this.rows.length, hint: this.config.entity },
+      { label: 'WhatsApp', value: this.countBy('channel', 'whatsapp'), hint: 'Chat messages' },
+      { label: 'SMS', value: this.countBy('channel', 'sms'), hint: 'Text messages' },
+      { label: 'Email', value: this.countBy('channel', 'email'), hint: 'Email logs' },
+      { label: this.zenotiFifthMetricLabel(), value: this.zenotiFifthMetricValue(), hint: this.zenotiFifthMetricHint() },
+      { label: 'Failed', value: this.statusCount('failed'), hint: 'Needs review' }
+    ];
+  }
+
+  uniqueCount(key: string): number {
+    return new Set(this.rows.map((row) => String(row[key] || '').trim()).filter(Boolean)).size;
+  }
+
+  presentCount(key: string): number {
+    return this.rows.filter((row) => String(row[key] || '').trim()).length;
+  }
+
+  missingCount(key: string): number {
+    return this.rows.filter((row) => !String(row[key] || '').trim()).length;
+  }
+
   zenotiFifthMetricLabel(): string {
     return this.config?.entity === 'notifications' ? 'Queued' : 'Outbound';
   }
@@ -702,6 +777,9 @@ export class ModulePageComponent implements OnInit, OnDestroy {
     if (action === 'failed') this.query = 'failed';
     if (action === 'whatsapp') this.query = 'whatsapp';
     if (action === 'queueOrOutbound') this.query = this.config?.entity === 'notifications' ? 'queued' : 'outbound';
+    if (action === 'active') this.query = 'active';
+    if (action === 'gstin') this.query = 'gstin';
+    if (action === 'phone') this.query = 'phone';
     select.selectedIndex = 0;
   }
 
