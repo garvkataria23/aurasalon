@@ -4,25 +4,24 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-reports',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, FormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, FormsModule, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-enterprise-page">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Inventory / Reports</span>
-          <h2>COGS, margin, dead stock, expiry and supplier spend</h2>
-          <p>Financial inventory brain with report snapshots and supplier WhatsApp ordering queue.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory</a>
+      <app-inventory-zenoti-chrome
+        title="COGS, margin, dead stock and supplier spend"
+        breadcrumb="Inventory > Reports"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="primary-button" type="button" (click)="snapshot()" [disabled]="saving()">Create snapshot</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

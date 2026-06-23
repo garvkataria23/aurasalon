@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type RecipeTab = 'recipes' | 'planner' | 'intelligence' | 'usage' | 'alerts';
@@ -29,24 +30,20 @@ const DEFAULT_MODIFIERS = [
 @Component({
   selector: 'app-inventory-recipes',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-enterprise-page recipes-page">
-      <div class="module-hero recipe-command-hero">
-        <div class="hero-copy">
-          <span class="eyebrow">Inventory / Recipes</span>
-          <h2>Service Recipes</h2>
-          <div class="hero-signal-row">
-            <span>{{ branchRecipeStatus() }}</span>
-            <span>{{ approvedRecipes().length }} approved BOMs</span>
-            <span>{{ highAlertCount() }} high-risk alerts</span>
-          </div>
+      <app-inventory-zenoti-chrome
+        title="Service Recipes"
+        breadcrumb="Inventory > Recipes"
+        (refresh)="load()"
+      >
+        <div zenoti-actions class="hero-signal-row">
+          <span>{{ branchRecipeStatus() }}</span>
+          <span>{{ approvedRecipes().length }} approved BOMs</span>
+          <span>{{ highAlertCount() }} high-risk alerts</span>
         </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory</a>
-          <a class="ghost-button" routerLink="/inventory/stock-audit">Stock audit</a>
-        </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

@@ -3,26 +3,20 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-fifo',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack fifo-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / Batch + Expiry + FIFO</span>
-          <h2>Next stock to consume</h2>
-          <p>Expiry-first batch control, supplier trail and cash at risk are separated from the main inventory dashboard.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory home</a>
-          <a class="ghost-button" routerLink="/inventory/purchase-orders">Receive stock</a>
-          <a class="primary-button" routerLink="/inventory/stock-audit">Audit stock</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        title="Next stock to consume"
+        breadcrumb="Inventory > Batch + Expiry + FIFO"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 

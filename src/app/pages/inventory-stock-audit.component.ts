@@ -4,25 +4,24 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-stock-audit',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-enterprise-page">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Inventory / Audit</span>
-          <h2>Stock audit, leakage detection and branch transfer approval</h2>
-          <p>Expected stock vs actual stock variance, theft/leakage signals, and transfer recommendations before new purchase.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory</a>
+      <app-inventory-zenoti-chrome
+        title="Stock audit and leakage detection"
+        breadcrumb="Inventory > Audit"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="primary-button" type="button" (click)="runLeakageScan()" [disabled]="saving()">Run leakage scan</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

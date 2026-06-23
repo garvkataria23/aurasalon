@@ -4,165 +4,170 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
-import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
 
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, RouterLink, StateComponent, AuraKpiCardComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, RouterLink, StateComponent],
   template: `
-    <section class="page-stack inventory-shell">
-      <div class="module-hero inventory-hero">
-        <div>
-          <span class="eyebrow">Products and inventory</span>
-          <h2>Retail stock, professional stock, purchase entry and auto deduction</h2>
-          <p>Product sales and completed services create inventory transactions automatically.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory/reports">Inventory report</a>
-          <a class="ghost-button" routerLink="/inventory/purchase-bill-drafts">AI bill drafts</a>
-          <a class="ghost-button" routerLink="/inventory/purchase-orders">Purchase orders</a>
-          <a class="ghost-button" routerLink="/inventory/recipes">Service recipes</a>
-          <a class="ghost-button" routerLink="/inventory/stock-audit">Stock audit</a>
-          <a class="ghost-button" routerLink="/inventory/scanner">Scanner</a>
-          <button class="ghost-button" type="button" (click)="runReorder()">Generate reorder</button>
-          <button class="primary-button" type="button" (click)="activeDesk.set('product'); showProductForm.set(true)">Add product</button>
-        </div>
-      </div>
-
-      <app-state [loading]="loading()" [error]="error()"></app-state>
-
-      <section class="inventory-command-board" *ngIf="commandMetrics() as metrics">
-        <article class="command-metric teal">
-          <span>Live stock value</span>
-          <strong>{{ metrics.stockValue | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>{{ metrics.products }} active products</small>
-        </article>
-        <article class="command-metric amber">
-          <span>Low stock</span>
-          <strong>{{ metrics.lowStock }}</strong>
-          <small>{{ metrics.branchShortage }} branch shortage signals</small>
-        </article>
-        <article class="command-metric red">
-          <span>Expiry + dead stock</span>
-          <strong>{{ metrics.expiryRisk + metrics.deadStock }}</strong>
-          <small>{{ metrics.expiryRisk }} expiry · {{ metrics.deadStock }} dead stock</small>
-        </article>
-        <article class="command-metric blue">
-          <span>Purchase spend</span>
-          <strong>{{ metrics.purchaseSpend | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>{{ metrics.supplierPending }} supplier pending drafts</small>
-        </article>
-        <article class="command-metric purple">
-          <span>Wastage</span>
-          <strong>{{ metrics.wasteCost | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>FIFO and expiry control</small>
-        </article>
-        <article class="command-metric black">
-          <span>Margin leakage</span>
-          <strong>{{ metrics.marginLeakage | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>Loss from waste or weak margin</small>
-        </article>
-      </section>
-
-      <section class="panel inventory-module-launcher">
-        <div class="section-title">
-          <div>
-            <span class="eyebrow">Separated inventory workspaces</span>
-            <h2>Open each command area on its own page</h2>
+    <section class="page-stack inventory-shell zenoti-inventory-shell">
+      <section class="zenoti-product-page">
+        <div class="zenoti-center-bar">
+          <strong>{{ selectedBranchName() }}</strong>
+          <div class="zenoti-center-actions">
+            <a class="zenoti-mini-button" routerLink="/inventory/current-stock">Current Stock</a>
+            <a class="zenoti-mini-button" routerLink="/inventory/procurement">Manage Procurement</a>
+            <button class="zenoti-mini-button" type="button" (click)="load()">Refresh</button>
+            <select class="zenoti-action-select" [(ngModel)]="quickAction" (ngModelChange)="runQuickAction($event)">
+              <option value="">I want to ...</option>
+              <option value="product">Add Product</option>
+              <option value="stock">Add Stock Movement</option>
+              <option value="batch">Receive Batch</option>
+              <option value="supplier">Add Vendor</option>
+              <option value="waste">Record Waste</option>
+              <option value="reorder">Generate Reorder</option>
+            </select>
           </div>
-          <small>No more squeezed cards in one long dashboard.</small>
         </div>
-        <div class="inventory-module-grid">
-          <a class="inventory-module-card teal" routerLink="/inventory/reorder">
-            <span>AI reorder autopilot</span>
-            <strong>Approval-safe purchase plan</strong>
-            <small>{{ autopilotSuggestions().length }} live suggestion(s)</small>
-          </a>
-          <a class="inventory-module-card blue" routerLink="/inventory/product-360">
-            <span>Product 360</span>
-            <strong>{{ selectedProduct().name || 'Product intelligence' }}</strong>
-            <small>Stock, margin, batches and usage</small>
-          </a>
-          <a class="inventory-module-card amber" routerLink="/inventory/supplier-360">
-            <span>Supplier 360</span>
-            <strong>{{ selectedSupplier().name || 'Supplier intelligence' }}</strong>
-            <small>GSTIN, purchase, risk and WhatsApp PO</small>
-          </a>
-          <a class="inventory-module-card green" routerLink="/inventory/recipes">
-            <span>Service Recipe / BOM</span>
-            <strong>Professional stock usage</strong>
-            <small>{{ unmappedRecipeCount() }} service(s) need setup</small>
-          </a>
-          <a class="inventory-module-card violet" routerLink="/inventory/fifo">
-            <span>Batch + expiry + FIFO</span>
-            <strong>Next stock to consume</strong>
-            <small>{{ fifoBatches().length }} active batch(es)</small>
-          </a>
-          <a class="inventory-module-card red" routerLink="/inventory/stock-audit">
-            <span>Audit + leakage detection</span>
-            <strong>Expected vs actual risk</strong>
-            <small>{{ stockAuditRows().length }} risk signal(s)</small>
-          </a>
-          <a class="inventory-module-card slate" routerLink="/inventory/stock-audit" [queryParams]="{ focus: 'transfer' }">
-            <span>Branch transfer optimizer</span>
-            <strong>Move stock before buying</strong>
-            <small>{{ transferRecommendations().length }} transfer idea(s)</small>
-          </a>
-          <a class="inventory-module-card black" routerLink="/inventory/financial">
-            <span>Financial brain</span>
-            <strong>COGS, cash and margin</strong>
-            <small>{{ financialBrain().cashLocked | currency: 'INR':'symbol':'1.0-0' }} cash locked</small>
-          </a>
-          <a class="inventory-module-card orange" routerLink="/inventory/scanner">
-            <span>Scanner + digital twin</span>
-            <strong>Barcode, WhatsApp and scenarios</strong>
-            <small>{{ digitalTwin().stockouts }} projected stockout(s)</small>
-          </a>
-          <a class="inventory-module-card teal" routerLink="/pos">
-            <span>Inventory-to-POS intelligence</span>
-            <strong>Retail upsell hints for checkout</strong>
-            <small>{{ posUpsellHints().length }} retail hint(s)</small>
-          </a>
+
+        <app-state [loading]="loading()" [error]="error()"></app-state>
+
+        <div class="zenoti-page-heading">
+          <div>
+            <h1>Manage products</h1>
+            <p><a routerLink="/inventory">Inventory</a> &gt; Manage Products</p>
+          </div>
+          <label class="zenoti-search">
+            <span>Search products</span>
+            <input [(ngModel)]="query" placeholder="Search products" />
+          </label>
+        </div>
+
+        <div class="zenoti-filter-grid">
+          <label>
+            <span>Categories</span>
+            <select [(ngModel)]="productCategoryFilter">
+              <option value="">All categories</option>
+              <option *ngFor="let category of productCategories()" [value]="category">{{ category }}</option>
+            </select>
+          </label>
+          <label>
+            <span>Brands</span>
+            <select [(ngModel)]="productBrandFilter">
+              <option value="">All brands</option>
+              <option *ngFor="let brand of productBrands()" [value]="brand">{{ brand }}</option>
+            </select>
+          </label>
+          <label>
+            <span>Vendors</span>
+            <select [(ngModel)]="productVendorFilter">
+              <option value="">All vendors</option>
+              <option *ngFor="let vendor of productVendors()" [value]="vendor">{{ vendor }}</option>
+            </select>
+          </label>
+          <label>
+            <span>Status</span>
+            <select [(ngModel)]="productStatusFilter">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="">All status</option>
+            </select>
+          </label>
+          <label>
+            <span>Product type</span>
+            <select [(ngModel)]="productTypeFilter">
+              <option value="">All types</option>
+              <option *ngFor="let type of productTypes()" [value]="type">{{ type }}</option>
+            </select>
+          </label>
+          <button class="zenoti-filter-button" type="button" (click)="resetInventoryFilters()">Filters</button>
+        </div>
+
+        <div class="zenoti-results-line">
+          <div>
+            <strong>{{ filteredProducts().length }}</strong>
+            <span>Results</span>
+            <em>Status: {{ productStatusLabel() }}</em>
+          </div>
+          <div class="zenoti-grid-actions">
+            <a class="zenoti-mini-button" routerLink="/inventory/reports">Reports</a>
+            <a class="zenoti-mini-button" routerLink="/inventory/purchase-orders">Purchase Orders</a>
+            <button class="zenoti-mini-button" type="button" (click)="activeDesk.set('product'); showProductForm.set(true)">Add Product</button>
+          </div>
+        </div>
+
+        <div class="zenoti-table-shell">
+          <table class="zenoti-products-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Brand</th>
+                <th>Category</th>
+                <th>Subcategory</th>
+                <th>Business unit</th>
+                <th>Type</th>
+                <th>Sale price</th>
+                <th>MRP</th>
+                <th>Amount</th>
+                <th>Vendor</th>
+                <th>In use</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let product of filteredProducts()" (click)="selectInventoryProduct(product)" [class.active]="selectedProductId() === product.id">
+                <td>{{ productCode(product) }}</td>
+                <td><button class="zenoti-link-button" type="button">{{ product.name }}</button><small>{{ product.sku || product.id }}</small></td>
+                <td>{{ productBrand(product) }}</td>
+                <td>{{ product.category || '-' }}</td>
+                <td>{{ product.subcategory || product.subCategory || '-' }}</td>
+                <td>{{ productBusinessUnit(product) }}</td>
+                <td>{{ productType(product) }}</td>
+                <td>{{ product.price | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ productMrp(product) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ productAmount(product) }}</td>
+                <td>{{ productVendorName(product) }}</td>
+                <td>{{ productInUse(product) }}</td>
+                <td><span class="zenoti-status-pill" [class.inactive]="productStatus(product) !== 'Active'">{{ productStatus(product) }}</span></td>
+                <td><button class="zenoti-row-action" type="button" (click)="selectInventoryProduct(product); activeDesk.set('product'); showProductForm.set(true); $event.stopPropagation()">Edit</button></td>
+              </tr>
+              <tr *ngIf="!filteredProducts().length">
+                <td colspan="14" class="empty-cell">No products match these filters.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="zenoti-table-footer">
+          <span>1 to {{ filteredProducts().length }} of {{ filteredProducts().length }}</span>
+          <span>Page 1 of 1</span>
+        </div>
+
+        <div class="zenoti-shortcuts">
+          <a routerLink="/inventory/reorder">Reorder plan</a>
+          <a routerLink="/inventory/product-360">Product 360</a>
+          <a routerLink="/inventory/supplier-360">Supplier 360</a>
+          <a routerLink="/inventory/recipes">Service Recipes</a>
+          <a routerLink="/inventory/fifo">FIFO Batches</a>
+          <a routerLink="/inventory/stock-audit">Stock Audit</a>
+          <a routerLink="/inventory/scanner">Scanner</a>
+          <a routerLink="/inventory/product-consume">Product Consume</a>
         </div>
       </section>
 
-      <ng-container *ngIf="intelligence() as intelligence">
-        <div class="metrics-grid inventory-kpis">
-          <aura-kpi-card tone="teal" target="/kpi-details/inventory/stock-value">
-            <span>Stock value</span>
-            <strong>{{ intelligence.metrics.stockValue | currency: 'INR':'symbol':'1.0-0' }}</strong>
-            <small>{{ intelligence.metrics.products }} products · click for value report</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="amber" target="/kpi-details/inventory/reorder-suggestions">
-            <span>Reorder suggestions</span>
-            <strong>{{ intelligence.metrics.reorderCount }}</strong>
-            <small>Open purchase prediction</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="red" target="/kpi-details/inventory/expiring-soon">
-            <span>Expiring soon</span>
-            <strong>{{ intelligence.metrics.expiringSoon }}</strong>
-            <small>Open batch expiry alerts</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="blue" target="/kpi-details/inventory/waste-cost">
-            <span>Waste cost</span>
-            <strong>{{ intelligence.metrics.wasteCost | currency: 'INR':'symbol':'1.0-0' }}</strong>
-            <small>Open waste analysis</small>
-          </aura-kpi-card>
-        </div>
-      </ng-container>
-
-      <section class="panel operations-panel">
+      <section class="panel operations-panel" *ngIf="activeDesk()">
         <div class="section-title">
           <div>
-            <span class="eyebrow">Inventory operations</span>
-            <h2>Single compact work desk</h2>
+            <span class="eyebrow">Inventory &gt; Manage Products</span>
+            <h2>{{ deskTitle() }}</h2>
           </div>
           <div class="section-actions">
-            <small>Choose one task instead of scrolling through every form.</small>
-            <button class="ghost-button" *ngIf="activeDesk()" type="button" (click)="activeDesk.set('')">Close desk</button>
+            <small>{{ selectedProduct()?.name || 'New inventory entry' }}</small>
+            <button class="ghost-button" type="button" (click)="activeDesk.set(''); quickAction = ''">Back To Search</button>
           </div>
         </div>
         <div class="desk-tabs">
@@ -173,32 +178,7 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
           <button type="button" [class.active]="activeDesk() === 'waste'" (click)="activeDesk.set('waste')">Waste / expiry</button>
         </div>
 
-        <ng-template #closedDesk>
-          <div class="desk-closed">
-            <button type="button" (click)="activeDesk.set('stock')">
-              <strong>Stock movement</strong>
-              <span>Purchase, adjustment or expiry write-off.</span>
-            </button>
-            <button type="button" (click)="activeDesk.set('product'); showProductForm.set(true)">
-              <strong>Product setup</strong>
-              <span>Create retail or professional stock item.</span>
-            </button>
-            <button type="button" (click)="activeDesk.set('batch')">
-              <strong>Receive batch</strong>
-              <span>Batch, supplier and expiry entry.</span>
-            </button>
-            <button type="button" (click)="activeDesk.set('supplier')">
-              <strong>Supplier</strong>
-              <span>Vendor details and GST metadata.</span>
-            </button>
-            <button type="button" (click)="activeDesk.set('waste')">
-              <strong>Waste / expiry</strong>
-              <span>Track salon loss without scrolling.</span>
-            </button>
-          </div>
-        </ng-template>
-
-        <div class="desk-body" *ngIf="activeDesk(); else closedDesk" [ngSwitch]="activeDesk()">
+        <div class="desk-body" [ngSwitch]="activeDesk()">
           <form *ngSwitchCase="'stock'" [formGroup]="adjustForm" (ngSubmit)="adjustStock()" class="compact-form">
             <label class="field">
               <span>Product</span>
@@ -235,7 +215,7 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
             <label class="field"><span>Category</span><input formControlName="category" /></label>
             <label class="field">
               <span>Unit</span>
-              <select formControlName="unit">
+              <select formControlName="unit" (change)="syncProductPackDefaults()">
                 <option value="ml">ml</option>
                 <option value="gm">gm</option>
                 <option value="g">g</option>
@@ -253,18 +233,13 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
               </select>
             </label>
             <label class="field">
-              <span>Pack size</span>
-              <input type="number" min="0" step="0.01" formControlName="packSize" placeholder="1000" />
+              <span>{{ productPackSizeLabel() }}</span>
+              <input type="number" min="0" step="0.01" formControlName="packSize" [placeholder]="productPackSizePlaceholder()" />
             </label>
             <label class="field">
               <span>Consume unit</span>
               <select formControlName="packUnit">
-                <option value="ml">ml</option>
-                <option value="gm">gm</option>
-                <option value="g">g</option>
-                <option value="kg">kg</option>
-                <option value="l">l</option>
-                <option value="pcs">pcs</option>
+                <option *ngFor="let unit of productPackUnitOptions()" [value]="unit">{{ unit }}</option>
               </select>
             </label>
             <div class="bulk-preview">
@@ -383,60 +358,6 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
         </div>
       </section>
 
-      <div class="inventory-data-grid">
-        <section class="panel product-panel">
-          <div class="table-toolbar">
-            <label class="search-field"><span>Search products</span><input [(ngModel)]="query" /></label>
-            <button class="ghost-button" type="button" (click)="load()">Refresh</button>
-          </div>
-          <div class="table-wrap product-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Type</th>
-                  <th>Supplier</th>
-                  <th>Branch</th>
-                  <th>Stock</th>
-                  <th>Price</th>
-                  <th>Expiry</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let product of filteredProducts()">
-                  <td><strong>{{ product.name }}</strong><small>{{ product.sku }}</small></td>
-                  <td><span class="badge">{{ product.usageType }}</span></td>
-                  <td>{{ product.supplier }}</td>
-                  <td>{{ product.branchId }}</td>
-                  <td>{{ product.stock }}</td>
-                  <td>{{ product.price | currency: 'INR':'symbol':'1.0-0' }}</td>
-                  <td>{{ product.expiryDate | date: 'mediumDate' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="panel side-summary">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">Live inventory feed</span>
-              <h2>Recent movements</h2>
-            </div>
-            <a class="ghost-button" routerLink="/kpi-details/inventory/waste-cost">Open report</a>
-          </div>
-          <div class="activity-list compact-feed">
-            <article *ngFor="let transaction of transactions().slice(0, 6)">
-              <strong>{{ productName(transaction.productId) }} · {{ transaction.type }}</strong>
-              <span>{{ transaction.quantity }} units · {{ transaction.reason }} · {{ transaction.createdAt | date: 'short' }}</span>
-            </article>
-            <article *ngIf="!transactions().length">
-              <strong>No movements yet</strong>
-              <span>Stock activity will appear after purchase, POS or adjustment.</span>
-            </article>
-          </div>
-        </section>
-      </div>
     </section>
   `,
   styles: [`
@@ -738,20 +659,6 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
       padding-bottom: 10px;
     }
 
-    :host ::ng-deep .inventory-kpis aura-kpi-card .metric-card {
-      min-height: 72px;
-      padding: 10px 12px;
-      gap: 3px;
-    }
-
-    :host ::ng-deep .inventory-kpis aura-kpi-card .metric-card strong {
-      font-size: 1.25rem;
-    }
-
-    :host ::ng-deep .inventory-kpis aura-kpi-card .metric-card small {
-      font-size: 0.72rem;
-    }
-
     .desk-tabs {
       display: flex;
       gap: 8px;
@@ -935,6 +842,407 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
         grid-template-columns: 1fr;
       }
     }
+
+    .zenoti-inventory-shell {
+      gap: 10px;
+      color: #20242a;
+    }
+
+    .zenoti-product-page {
+      overflow: hidden;
+      border: 1px solid #d7dee6;
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: none;
+    }
+
+    .zenoti-center-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 50px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e3e8ee;
+      background: #fff;
+    }
+
+    .zenoti-center-bar strong {
+      font-size: 1.02rem;
+      font-weight: 800;
+    }
+
+    .zenoti-center-actions,
+    .zenoti-grid-actions,
+    .zenoti-shortcuts,
+    .section-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .zenoti-mini-button,
+    .zenoti-filter-button,
+    .zenoti-row-action {
+      min-height: 30px;
+      padding: 6px 11px;
+      border: 1px solid #c6d6e5;
+      border-radius: 4px;
+      background: #fff;
+      color: #17699f;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .zenoti-filter-button {
+      align-self: end;
+      color: #17699f;
+      background: #f8fbfd;
+    }
+
+    .zenoti-action-select {
+      min-width: 152px;
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 1px solid #cbd6e2;
+      border-radius: 4px;
+      background: #fff;
+      color: #1f2933;
+      font-weight: 700;
+    }
+
+    .zenoti-page-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px;
+      border-bottom: 1px solid #e3e8ee;
+      background: #fff;
+    }
+
+    .zenoti-page-heading h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .zenoti-page-heading p {
+      margin: 8px 0 0;
+      color: #526173;
+      font-size: 0.82rem;
+    }
+
+    .zenoti-page-heading a {
+      color: #17699f;
+      text-decoration: none;
+    }
+
+    .zenoti-search {
+      width: min(280px, 100%);
+      align-self: center;
+    }
+
+    .zenoti-search span,
+    .zenoti-filter-grid span,
+    .compact-form .field span {
+      display: block;
+      margin-bottom: 3px;
+      color: #697789;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .zenoti-search input,
+    .zenoti-filter-grid select,
+    .compact-form input,
+    .compact-form select,
+    .compact-form textarea {
+      width: 100%;
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 1px solid #cfd8e3;
+      border-radius: 4px;
+      background: #fff;
+      color: #1f2933;
+      font-size: 0.86rem;
+    }
+
+    .zenoti-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
+      gap: 8px;
+      padding: 12px 14px 8px;
+      background: #fbfcfe;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .zenoti-results-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 8px 14px;
+      border-bottom: 1px solid #e3e8ee;
+      background: #fff;
+    }
+
+    .zenoti-results-line strong,
+    .zenoti-results-line span {
+      font-size: 0.84rem;
+    }
+
+    .zenoti-results-line em {
+      display: inline-flex;
+      margin-left: 8px;
+      padding: 4px 10px;
+      border: 1px solid #b8d9ea;
+      border-radius: 999px;
+      background: #eef8fc;
+      color: #27485c;
+      font-style: normal;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .zenoti-table-shell {
+      max-height: 560px;
+      overflow: auto;
+      border-bottom: 1px solid #d7dee6;
+    }
+
+    .zenoti-products-table {
+      width: 100%;
+      min-width: 1380px;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .zenoti-products-table th,
+    .zenoti-products-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e7ebef;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .zenoti-products-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f4f7fa;
+      color: #566273;
+      font-size: 0.74rem;
+      font-weight: 900;
+      text-transform: none;
+    }
+
+    .zenoti-products-table tr:hover td,
+    .zenoti-products-table tr.active td {
+      background: #f5fbff;
+    }
+
+    .zenoti-products-table small {
+      display: block;
+      max-width: 260px;
+      overflow: hidden;
+      color: #64748b;
+      text-overflow: ellipsis;
+    }
+
+    .zenoti-link-button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #17699f;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .zenoti-status-pill {
+      display: inline-flex;
+      min-width: 58px;
+      justify-content: center;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: #dff7e7;
+      color: #0b7a3d;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .zenoti-status-pill.inactive {
+      background: #f2f4f7;
+      color: #667085;
+    }
+
+    .zenoti-table-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 18px;
+      padding: 9px 14px;
+      color: #667085;
+      font-size: 0.78rem;
+      background: #fff;
+    }
+
+    .zenoti-shortcuts {
+      justify-content: flex-start;
+      padding: 10px 14px 14px;
+      background: #fff;
+    }
+
+    .zenoti-shortcuts a {
+      padding: 6px 10px;
+      border: 1px solid #d2dbe5;
+      border-radius: 4px;
+      color: #17699f;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .operations-panel {
+      padding: 0 18px 18px;
+      border: 1px solid #d7dee6;
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: none;
+    }
+
+    .operations-panel .section-title {
+      align-items: center;
+      margin: 0;
+      padding: 14px 0 12px;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .operations-panel .section-title h2 {
+      margin: 4px 0 0;
+      font-size: 1.18rem;
+    }
+
+    .desk-tabs {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      padding-top: 14px;
+      border-bottom: 1px solid #cfd8e3;
+    }
+
+    .desk-tabs button {
+      min-height: 32px;
+      padding: 6px 11px;
+      border: 1px solid #cfd8e3;
+      border-bottom: 0;
+      border-radius: 0;
+      background: #f7f9fc;
+      color: #344054;
+      font-weight: 800;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .desk-tabs button.active {
+      background: #fff;
+      color: #101828;
+    }
+
+    .desk-body {
+      padding-top: 0;
+    }
+
+    .compact-form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid #cfd8e3;
+      border-top: 0;
+      align-items: end;
+    }
+
+    .compact-form .full,
+    .compact-form .form-actions {
+      grid-column: span 2;
+    }
+
+    .compact-form .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .bulk-preview {
+      min-height: 52px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      padding: 8px 10px;
+      border: 1px solid #cfd8e3;
+      border-radius: 4px;
+      background: #f8fafc;
+    }
+
+    .bulk-preview span {
+      color: #697789;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .bulk-preview strong {
+      color: #1f2933;
+      font-size: 0.84rem;
+      line-height: 1.25;
+    }
+
+    .empty-cell {
+      padding: 28px 12px;
+      color: #667085;
+      text-align: center;
+    }
+
+    @media (max-width: 1180px) {
+      .zenoti-center-bar,
+      .zenoti-page-heading,
+      .zenoti-results-line {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .zenoti-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .zenoti-filter-button {
+        width: fit-content;
+      }
+
+      .compact-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .zenoti-center-actions,
+      .zenoti-grid-actions,
+      .section-actions {
+        justify-content: flex-start;
+      }
+
+      .zenoti-filter-grid,
+      .compact-form,
+      .compact-form .full,
+      .compact-form .form-actions {
+        grid-template-columns: 1fr;
+        grid-column: span 1;
+      }
+    }
   `]
 })
 export class InventoryComponent implements OnInit {
@@ -960,6 +1268,12 @@ export class InventoryComponent implements OnInit {
   scannerCode = '';
   whatIfDemandPct = 20;
   query = '';
+  quickAction = '';
+  productCategoryFilter = '';
+  productBrandFilter = '';
+  productVendorFilter = '';
+  productStatusFilter = 'active';
+  productTypeFilter = '';
 
   readonly commandMetrics = computed(() => {
     const products = this.products();
@@ -1013,7 +1327,7 @@ export class InventoryComponent implements OnInit {
     sku: ['', Validators.required],
     category: [''],
     unit: ['pcs'],
-    packSize: [0],
+    packSize: [''],
     packUnit: ['pcs'],
     usageType: ['retail'],
     supplier: [''],
@@ -1106,7 +1420,11 @@ export class InventoryComponent implements OnInit {
   saveProduct(): void {
     if (this.productForm.invalid) return;
     this.saving.set(true);
-    this.api.create('products', this.productForm.value).subscribe({
+    const payload = {
+      ...this.productForm.value,
+      packSize: Math.max(0, Number(this.productForm.value.packSize || 0))
+    };
+    this.api.create('products', payload).subscribe({
       next: () => {
         this.saving.set(false);
         this.showProductForm.set(false);
@@ -1123,10 +1441,66 @@ export class InventoryComponent implements OnInit {
     const unit = String(this.productForm.value.unit || 'pcs').trim() || 'pcs';
     const packUnit = String(this.productForm.value.packUnit || unit).trim() || unit;
     const packSize = Number(this.productForm.value.packSize || 0);
-    if (packSize > 0 && unit.toLowerCase() !== packUnit.toLowerCase()) {
+    if (packSize > 0) {
       return `1 ${unit} = ${packSize} ${packUnit}`;
     }
-    return 'Set like 1 bottle = 1000 ml or 1 tube = 60 gm';
+    return this.productPackSizePlaceholder();
+  }
+
+  productPackSizeLabel(): string {
+    const unit = this.productUnitValue();
+    const packUnit = String(this.productForm.value.packUnit || this.defaultPackUnit(unit)).trim() || this.defaultPackUnit(unit);
+    if (unit === 'ml') return 'Bottle ml';
+    if (unit === 'gm' || unit === 'g') return 'Pack grams';
+    if (unit === 'kg') return 'Pack kg';
+    if (unit === 'l') return 'Bottle liter';
+    if (['tube', 'bottle', 'jar', 'can', 'tin', 'pack', 'box'].includes(unit)) return `${this.titleCase(unit)} size (${packUnit})`;
+    return 'Pack size';
+  }
+
+  productPackSizePlaceholder(): string {
+    const unit = this.productUnitValue();
+    const packUnit = String(this.productForm.value.packUnit || this.defaultPackUnit(unit)).trim() || this.defaultPackUnit(unit);
+    if (unit === 'ml') return 'e.g. 400 ml';
+    if (unit === 'gm' || unit === 'g') return 'e.g. 100 gm';
+    if (unit === 'kg') return 'e.g. 1 kg';
+    if (unit === 'l') return 'e.g. 1 l';
+    if (unit === 'tube') return `e.g. 60 ${packUnit}`;
+    if (unit === 'bottle') return `e.g. 400 ${packUnit}`;
+    if (unit === 'jar') return `e.g. 250 ${packUnit}`;
+    return `e.g. 1 ${packUnit}`;
+  }
+
+  productPackUnitOptions(): string[] {
+    const unit = this.productUnitValue();
+    if (unit === 'ml' || unit === 'l' || ['bottle', 'can'].includes(unit)) return ['ml', 'l'];
+    if (unit === 'gm' || unit === 'g' || unit === 'kg' || ['tube', 'jar', 'tin'].includes(unit)) return ['gm', 'g', 'kg', 'ml'];
+    if (unit === 'pcs' || unit === 'nos') return ['pcs', 'nos'];
+    return ['pcs', 'ml', 'gm', 'g', 'kg', 'l'];
+  }
+
+  syncProductPackDefaults(): void {
+    const unit = this.productUnitValue();
+    const options = this.productPackUnitOptions();
+    const currentPackUnit = String(this.productForm.value.packUnit || '').toLowerCase();
+    const patch: Record<string, string | number> = {};
+    if (!options.includes(currentPackUnit)) patch['packUnit'] = this.defaultPackUnit(unit);
+    if (!Number(this.productForm.value.packSize || 0)) patch['packSize'] = '';
+    if (Object.keys(patch).length) this.productForm.patchValue(patch, { emitEvent: false });
+  }
+
+  private productUnitValue(): string {
+    return String(this.productForm.value.unit || 'pcs').toLowerCase().trim() || 'pcs';
+  }
+
+  private defaultPackUnit(unit: string): string {
+    if (unit === 'ml' || unit === 'l' || ['bottle', 'can'].includes(unit)) return 'ml';
+    if (unit === 'gm' || unit === 'g' || unit === 'kg' || ['tube', 'jar', 'tin'].includes(unit)) return 'gm';
+    return 'pcs';
+  }
+
+  private titleCase(value: string): string {
+    return value ? value[0].toUpperCase() + value.slice(1) : value;
   }
 
   adjustStock(): void {
@@ -1205,7 +1579,133 @@ export class InventoryComponent implements OnInit {
   }
 
   filteredProducts(): ApiRecord[] {
-    return this.products().filter((product) => JSON.stringify(product).toLowerCase().includes(this.query.toLowerCase()));
+    const query = this.query.trim().toLowerCase();
+    return this.products().filter((product) => {
+      const status = this.productStatus(product).toLowerCase();
+      const type = this.productType(product);
+      const vendor = this.productVendorName(product);
+      const brand = this.productBrand(product);
+      const text = JSON.stringify(product).toLowerCase();
+      return (!query || text.includes(query) || vendor.toLowerCase().includes(query))
+        && (!this.productCategoryFilter || String(product.category || '').toLowerCase() === this.productCategoryFilter.toLowerCase())
+        && (!this.productBrandFilter || brand.toLowerCase() === this.productBrandFilter.toLowerCase())
+        && (!this.productVendorFilter || vendor.toLowerCase() === this.productVendorFilter.toLowerCase())
+        && (!this.productStatusFilter || status === this.productStatusFilter.toLowerCase())
+        && (!this.productTypeFilter || type.toLowerCase() === this.productTypeFilter.toLowerCase());
+    });
+  }
+
+  productCategories(): string[] {
+    return this.uniqueProductOptions((product) => product.category);
+  }
+
+  productBrands(): string[] {
+    return this.uniqueProductOptions((product) => this.productBrand(product));
+  }
+
+  productVendors(): string[] {
+    return this.uniqueProductOptions((product) => this.productVendorName(product));
+  }
+
+  productTypes(): string[] {
+    return this.uniqueProductOptions((product) => this.productType(product));
+  }
+
+  productStatusLabel(): string {
+    if (!this.productStatusFilter) return 'All';
+    return this.productStatusFilter === 'active' ? 'Active in this center' : 'Inactive';
+  }
+
+  productCode(product: ApiRecord): string {
+    return String(product.code || product.productCode || product.sku || product.id || '-');
+  }
+
+  productBrand(product: ApiRecord): string {
+    return String(product.brand || product.brandName || '-').trim() || '-';
+  }
+
+  productBusinessUnit(product: ApiRecord): string {
+    return String(product.businessUnit || product.businessUnitName || product.category || '-').trim() || '-';
+  }
+
+  productType(product: ApiRecord): string {
+    const value = String(product.usageType || product.type || '').toLowerCase();
+    if (value === 'both') return 'Both';
+    if (value.includes('consumable') || value.includes('professional')) return 'Consumable';
+    if (value.includes('retail')) return 'Retail';
+    return value ? value[0].toUpperCase() + value.slice(1) : 'Retail';
+  }
+
+  productMrp(product: ApiRecord): number {
+    return Number(product.mrp || product.maxRetailPrice || product.price || 0);
+  }
+
+  productAmount(product: ApiRecord): string {
+    const stock = Number(product.stock || 0);
+    const unit = String(product.unit || product.packUnit || 'units');
+    return `${stock} ${unit}`;
+  }
+
+  productVendorName(product: ApiRecord): string {
+    return String(product.supplier || product.vendor || product.vendorName || this.supplierName(product.id) || '-').trim() || '-';
+  }
+
+  productInUse(product: ApiRecord): string {
+    return this.productSaleUsage(product.id) + this.productServiceUsage(product.id) > 0 || Number(product.stock || 0) > 0 ? 'Yes' : 'No';
+  }
+
+  productStatus(product: ApiRecord): string {
+    const raw = String(product.status || '').toLowerCase();
+    if (raw && !['active', 'enabled', 'true'].includes(raw)) return 'Inactive';
+    if (product.active === false || product.isActive === false) return 'Inactive';
+    return 'Active';
+  }
+
+  selectedBranchName(): string {
+    return this.branchName(this.api.selectedBranchId());
+  }
+
+  deskTitle(): string {
+    const titles: Record<InventoryDesk, string> = {
+      '': 'Inventory action',
+      stock: 'Stock Movement',
+      product: 'Edit Product',
+      supplier: 'Edit Vendor',
+      batch: 'Receive Batch',
+      waste: 'Waste / Expiry'
+    };
+    return titles[this.activeDesk()];
+  }
+
+  selectInventoryProduct(product: ApiRecord): void {
+    this.selectedProductId.set(product.id);
+  }
+
+  resetInventoryFilters(): void {
+    this.query = '';
+    this.productCategoryFilter = '';
+    this.productBrandFilter = '';
+    this.productVendorFilter = '';
+    this.productStatusFilter = 'active';
+    this.productTypeFilter = '';
+  }
+
+  runQuickAction(action: string): void {
+    if (!action) return;
+    if (action === 'reorder') {
+      this.runReorder();
+      this.quickAction = '';
+      return;
+    }
+    this.activeDesk.set(action as InventoryDesk);
+    if (action === 'product') this.showProductForm.set(true);
+  }
+
+  private uniqueProductOptions(resolve: (product: ApiRecord) => unknown): string[] {
+    return Array.from(new Set(this.products()
+      .map((product) => String(resolve(product) || '').trim())
+      .filter((value) => value && value !== '-')))
+      .sort((a, b) => a.localeCompare(b));
   }
 
   lowStock(): ApiRecord[] {

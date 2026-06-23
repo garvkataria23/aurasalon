@@ -3,26 +3,26 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-purchase-order-detail',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack po-detail-page">
-      <div class="module-hero compact-hero no-print">
-        <div>
-          <span class="eyebrow">Inventory / Purchase orders / Detail</span>
-          <h2>{{ po()?.poNumber || 'Purchase order' }}</h2>
-          <p>Supplier, items, approvals, GRN receiving, WhatsApp history, bill matching and stock impact in one PO file.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory/purchase-orders">Back to Purchase Command Center</a>
+      <app-inventory-zenoti-chrome
+        class="no-print"
+        [title]="po()?.poNumber || 'Purchase order'"
+        breadcrumb="Inventory > Purchase orders > Detail"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="ghost-button" type="button" (click)="printPo()" [disabled]="!po()">Print / PDF</button>
           <button class="primary-button" type="button" (click)="queueWhatsApp()" [disabled]="!canSend() || saving()">WhatsApp PO</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success no-print" *ngIf="success()">{{ success() }}</div>

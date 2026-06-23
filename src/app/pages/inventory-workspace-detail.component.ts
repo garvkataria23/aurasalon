@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
@@ -11,23 +12,14 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
 @Component({
   selector: 'app-inventory-workspace-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-detail-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">{{ eyebrow() }}</span>
-          <h2>{{ pageTitle() }}</h2>
-          <p>{{ pageSubtitle() }}</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Back to products</a>
-          <button class="ghost-button" type="button" (click)="load()">Refresh</button>
-          <a class="primary-button" *ngIf="workspace() === 'procurement'" routerLink="/inventory/purchase-orders">Purchase orders</a>
-          <a class="primary-button" *ngIf="workspace() === 'vendors'" routerLink="/suppliers">Supplier register</a>
-          <a class="primary-button" *ngIf="workspace() === 'stock'" routerLink="/inventory/reports">Save View</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        [title]="pageTitle()"
+        [breadcrumb]="eyebrow()"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 

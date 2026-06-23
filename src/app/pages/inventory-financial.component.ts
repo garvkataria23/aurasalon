@@ -3,26 +3,24 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-financial',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack financial-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / Financial Brain</span>
-          <h2>COGS, cash and margin</h2>
-          <p>Inventory finance, cash locked, dead stock, purchase spend and margin leakage live on this page only.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory home</a>
-          <a class="ghost-button" routerLink="/inventory/reports">Reports</a>
+      <app-inventory-zenoti-chrome
+        title="COGS, cash and margin"
+        breadcrumb="Inventory > Financial Brain"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="primary-button" type="button" (click)="snapshot()" [disabled]="saving()">Create snapshot</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

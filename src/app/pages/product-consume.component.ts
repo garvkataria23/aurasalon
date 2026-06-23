@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 
 interface ConsumeLine {
   productId: string;
@@ -55,20 +56,14 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
 @Component({
   selector: 'app-product-consume',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, InventoryZenotiChromeComponent],
   template: `
     <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Inventory - service usage</span>
-          <h1>Product Consume</h1>
-          <p>Auto drafts come from POS invoices. Check quantity, then confirm to reduce stock.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost" routerLink="/inventory/recipes">Service Recipes</a>
-          <button type="button" class="primary" (click)="load()">Refresh</button>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        title="Product Consume"
+        breadcrumb="Inventory > Service Usage"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <div class="metric-grid">
         <article><span>Draft pending</span><strong>{{ draftCount() }}</strong><small>review before stock minus</small></article>

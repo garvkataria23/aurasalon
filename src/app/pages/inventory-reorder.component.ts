@@ -3,26 +3,24 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-reorder',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack separated-inventory-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / AI Reorder Autopilot</span>
-          <h2>Approval-safe purchase plan</h2>
-          <p>Low stock, predicted stockout and supplier-ready purchase suggestions live on this page only.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory home</a>
-          <a class="ghost-button" routerLink="/inventory/purchase-orders">Purchase orders</a>
+      <app-inventory-zenoti-chrome
+        title="Approval-safe purchase plan"
+        breadcrumb="Inventory > AI Reorder Autopilot"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="primary-button" type="button" (click)="runReorder()" [disabled]="saving()">Generate PO draft</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

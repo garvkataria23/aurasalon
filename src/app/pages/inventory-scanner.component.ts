@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type ScannerAction = 'lookup' | 'receive' | 'count' | 'waste' | 'transfer';
@@ -11,20 +12,14 @@ type ScannerAction = 'lookup' | 'receive' | 'count' | 'waste' | 'transfer';
 @Component({
   selector: 'app-inventory-scanner',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ReactiveFormsModule, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-enterprise-page scanner-page">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Inventory / Scanner</span>
-          <h2>Barcode and QR stock workflow</h2>
-          <p>Scan product once, then lookup, receive, count, waste, or raise transfer request without leaving inventory.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory</a>
-          <a class="ghost-button" routerLink="/inventory/stock-audit">Stock audit</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        title="Barcode and QR stock workflow"
+        breadcrumb="Inventory > Scanner"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

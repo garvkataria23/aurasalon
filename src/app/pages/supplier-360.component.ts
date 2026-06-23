@@ -3,25 +3,20 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-supplier-360',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, DecimalPipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, DecimalPipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack supplier-360-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / Supplier 360</span>
-          <h2>{{ supplier()?.name || 'Supplier details' }}</h2>
-          <p>Full supplier profile with linked products, PO, GRN, price, payment, GSTIN, mapping and WhatsApp ordering history.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/suppliers">Back to suppliers</a>
-          <a class="primary-button" routerLink="/inventory/purchase-orders">Open purchase orders</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        [title]="supplier()?.name || 'Supplier details'"
+        breadcrumb="Inventory > Supplier 360"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 

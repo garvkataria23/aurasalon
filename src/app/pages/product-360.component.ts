@@ -3,25 +3,20 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-product-360',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, DecimalPipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, DecimalPipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack product-360-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / Product 360</span>
-          <h2>{{ product()?.name || 'Product intelligence' }}</h2>
-          <p>Current stock, branch stock, batch expiry, purchase history, POS sale history, service usage, margin and reorder risk in one place.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Back to inventory</a>
-          <a class="primary-button" routerLink="/inventory/purchase-orders">Create PO draft</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        [title]="product()?.name || 'Product intelligence'"
+        breadcrumb="Inventory > Product 360"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
