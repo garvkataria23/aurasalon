@@ -1158,29 +1158,60 @@ function churnPrediction(tenantRows) {
       adoptionRisk ? "low adoption" : "",
       trialRisk ? "trial ending" : ""
     ].filter(Boolean);
+    const probability = churnScore >= 70 ? "high" : churnScore >= 40 ? "medium" : "low";
+    const recommendedAction = drivers.includes("billing exposure")
+      ? "Run billing recovery"
+      : drivers.includes("low adoption")
+        ? "Schedule adoption rescue"
+        : drivers.includes("trial ending")
+          ? "Convert trial before expiry"
+          : "Monitor account";
+    const dueInDays = probability === "high" ? 1 : probability === "medium" ? 3 : 7;
     return {
       id: tenant.id,
       name: tenant.name,
       planName: tenant.planName,
       subscriptionStatus: tenant.subscriptionStatus,
       churnScore,
-      probability: churnScore >= 70 ? "high" : churnScore >= 40 ? "medium" : "low",
+      probability,
       mrrAtRisk: tenant.monthlyRecurringRevenue,
       outstanding: tenant.outstanding,
       drivers,
-      recommendedAction: drivers.includes("billing exposure")
-        ? "Run billing recovery"
+      recommendedAction,
+      dueInDays,
+      ownerQueue: probability === "high" ? "customer_success_urgent" : probability === "medium" ? "customer_success_watch" : "account_monitoring",
+      playbook: drivers.includes("billing exposure")
+        ? ["Retry billing", "Open support ticket", "Confirm payment method"]
         : drivers.includes("low adoption")
-          ? "Schedule adoption rescue"
+          ? ["Book onboarding call", "Review usage blockers", "Send adoption checklist"]
           : drivers.includes("trial ending")
-            ? "Convert trial before expiry"
-            : "Monitor account"
+            ? ["Call decision maker", "Offer plan fit review", "Confirm conversion date"]
+            : ["Monitor next login", "Review next billing cycle"],
+      confidence: Math.min(95, Math.max(35, Math.round(churnScore + drivers.length * 8)))
     };
   });
+  const atRisk = predictions.filter((item) => item.probability !== "low");
   return {
     highRiskCount: predictions.filter((item) => item.probability === "high").length,
     mediumRiskCount: predictions.filter((item) => item.probability === "medium").length,
-    mrrAtRisk: money(sumRows(predictions.filter((item) => item.probability !== "low"), (item) => item.mrrAtRisk)),
+    mrrAtRisk: money(sumRows(atRisk, (item) => item.mrrAtRisk)),
+    urgentActions: atRisk
+      .sort((a, b) => a.dueInDays - b.dueInDays || b.churnScore - a.churnScore)
+      .slice(0, 6)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        probability: item.probability,
+        recommendedAction: item.recommendedAction,
+        dueInDays: item.dueInDays,
+        ownerQueue: item.ownerQueue,
+        mrrAtRisk: item.mrrAtRisk
+      })),
+    riskMix: {
+      highMrr: money(sumRows(predictions.filter((item) => item.probability === "high"), (item) => item.mrrAtRisk)),
+      mediumMrr: money(sumRows(predictions.filter((item) => item.probability === "medium"), (item) => item.mrrAtRisk)),
+      lowMrr: money(sumRows(predictions.filter((item) => item.probability === "low"), (item) => item.mrrAtRisk))
+    },
     tenants: predictions
       .filter((item) => item.churnScore > 0)
       .sort((a, b) => b.churnScore - a.churnScore)

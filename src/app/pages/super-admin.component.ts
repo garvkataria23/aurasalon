@@ -780,11 +780,36 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             </div>
             <span class="badge" style="background:var(--danger,#dc2626);color:#fff">{{ churn.mrrAtRisk | currency: 'INR':'symbol':'1.0-0' }} MRR at risk</span>
           </div>
+          <div class="quick-grid" *ngIf="churn.riskMix">
+            <article class="action-card">
+              <strong>{{ churn.riskMix.highMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>High-risk MRR</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ churn.riskMix.mediumMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Medium-risk MRR</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ churn.urgentActions?.length || 0 }}</strong>
+              <span>Retention actions due</span>
+            </article>
+          </div>
+          <div class="activity-list" *ngIf="churn.urgentActions?.length" style="margin-bottom:16px">
+            <article *ngFor="let action of churn.urgentActions" style="display:grid;grid-template-columns:1fr 150px 120px;gap:12px;align-items:center">
+              <div style="min-width:0">
+                <strong>{{ action.name }}</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ action.recommendedAction }} · {{ action.ownerQueue }}</span>
+              </div>
+              <span class="badge" [style.background]="churnTone(action.probability)" style="color:#fff">{{ action.dueInDays }}d SLA</span>
+              <strong style="text-align:right">{{ action.mrrAtRisk | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            </article>
+          </div>
           <div class="activity-list">
             <article *ngFor="let tenant of churn.tenants" style="display:grid;grid-template-columns:1fr 170px 120px;gap:12px;align-items:center">
               <div style="min-width:0">
                 <strong>{{ tenant.name }}</strong>
                 <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ tenant.planName }} · {{ tenant.drivers.join(' · ') || 'watch' }} · {{ tenant.recommendedAction }}</span>
+                <span style="display:block;font-size:0.78em;color:var(--text-muted)">Playbook: {{ tenant.playbook?.join(' · ') || 'Monitor' }} · confidence {{ tenant.confidence || 0 }}%</span>
               </div>
               <span style="display:block;height:10px;background:var(--surface-muted,#e5e7eb);border-radius:999px;overflow:hidden">
                 <span [style.width.%]="tenant.churnScore" [style.background]="churnTone(tenant.probability)" style="display:block;height:100%"></span>
