@@ -9,19 +9,62 @@ import { StateComponent } from '../shared/ui/state/state.component';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, StateComponent],
   template: `
-    <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Level 23 · Permission matrix</span>
-          <h2>Detailed role access for owner, manager, receptionist, staff, accountant, inventory manager and custom roles</h2>
-          <p>Role definitions and grants are persisted in the tenant database and enforced by the API middleware.</p>
+    <section class="permissions-workspace">
+      <div class="command-bar">
+        <div class="brand-block">
+          <span class="brand-mark">A</span>
+          <div>
+            <small>Enterprise command workspace</small>
+            <strong>Aurashine OS</strong>
+          </div>
         </div>
-        <button class="ghost-button" type="button" (click)="load()">Refresh</button>
+        <div class="top-actions">
+          <button class="zenoti-button" type="button" (click)="load()">Refresh</button>
+          <button class="zenoti-button primary" type="button" (click)="saveRole()" [disabled]="roleForm.invalid || saving()">Save role</button>
+        </div>
+      </div>
+
+      <section class="zenoti-header">
+        <div class="center-line">
+          <strong>malad</strong>
+          <div class="header-actions">
+            <button class="zenoti-button" type="button" (click)="load()">Role library</button>
+            <button class="zenoti-button" type="button">Access matrix</button>
+            <button class="zenoti-button" type="button">Audit ready</button>
+          </div>
+        </div>
+        <select class="command-select" aria-label="Permission quick action" (change)="runQuickAction($event)">
+          <option>I want to ...</option>
+          <option value="refresh">Refresh matrix</option>
+          <option value="save">Save custom role</option>
+          <option value="owner">Use owner role key</option>
+          <option value="manager">Use manager role key</option>
+        </select>
+      </section>
+
+      <div class="page-heading">
+        <div>
+          <h1>Permission matrix</h1>
+          <p>Security &gt; Detailed role access for owner, manager, receptionist, staff, accountant and custom roles</p>
+        </div>
+        <label class="search-field">
+          <span>Visible resources</span>
+          <input [value]="(matrix()?.resources?.length || 0) + ' resources in matrix'" readonly />
+        </label>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <div class="dashboard-grid">
+      <div class="metric-strip">
+        <article><span>Roles</span><strong>{{ roles().length }}</strong><small>System and custom roles</small></article>
+        <article><span>Resources</span><strong>{{ matrix()?.resources?.length || 0 }}</strong><small>Access surfaces</small></article>
+        <article><span>Visible columns</span><strong>{{ visibleResources().length }}</strong><small>Current matrix view</small></article>
+        <article><span>System roles</span><strong>{{ systemRoleCount() }}</strong><small>Protected defaults</small></article>
+        <article><span>Custom roles</span><strong>{{ customRoleCount() }}</strong><small>Tenant configured</small></article>
+        <article><span>Static grants</span><strong>{{ staticGrantCount() }}</strong><small>Role-level grants</small></article>
+      </div>
+
+      <div class="dashboard-grid workdesk">
         <section class="form-panel">
           <h3>Create or update custom role</h3>
           <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
@@ -80,7 +123,69 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       <pre class="result-json" *ngIf="result()">{{ result() | json }}</pre>
     </section>
-  `
+  `,
+  styles: [`
+    .permissions-workspace { display: grid; gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
+    .brand-block, .top-actions, .center-line, .header-actions, .form-actions { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
+    .brand-block small, .field span, .search-field span, .section-title span { display: block; color: #5f6f85; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .brand-block small { color: #8fa1b8; }
+    .brand-block strong { display: block; color: #fff; font-size: 15px; }
+    .zenoti-button, .primary-button, .ghost-button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
+    .zenoti-button.primary, .primary-button { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-header, .page-heading, .metric-strip, .panel, .form-panel { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
+    .center-line { justify-content: space-between; }
+    .center-line strong { font-size: 15px; }
+    .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
+    .page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; }
+    .page-heading h1 { margin: 0; font-size: 22px; color: #172033; }
+    .page-heading p { margin: 6px 0 0; color: #36506d; font-size: 13px; }
+    .search-field { width: min(100%, 330px); display: grid; gap: 5px; }
+    .search-field input, .field input { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
+    .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(145px, 1fr)); gap: 0; overflow-x: auto; }
+    .metric-strip article { min-width: 145px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #0b8f7c; }
+    .metric-strip article:nth-child(2) { border-top-color: #2b61d1; }
+    .metric-strip article:nth-child(3) { border-top-color: #bd7400; }
+    .metric-strip article:nth-child(4) { border-top-color: #16834f; }
+    .metric-strip article:nth-child(5) { border-top-color: #7046d8; }
+    .metric-strip article:nth-child(6) { border-top-color: #bb241a; }
+    .metric-strip span, .metric-strip small, .rank-list span { display: block; color: #5f6f85; font-size: 12px; }
+    .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(360px, .85fr) minmax(520px, 1.15fr); gap: 0; border-bottom: 1px solid #d8e1ea; }
+    .form-panel, .panel { border-radius: 0; box-shadow: none; border-left: 0; border-right: 0; border-top: 0; padding: 16px; }
+    .dashboard-grid .form-panel { border-right: 1px solid #d8e1ea; }
+    .form-panel h3, .section-title h2 { margin: 3px 0 12px; color: #172033; font-size: 18px; }
+    form { display: grid; grid-template-columns: repeat(2, minmax(170px, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field.full, .form-actions { grid-column: 1 / -1; }
+    .form-actions { justify-content: flex-end; }
+    .rank-list { display: grid; gap: 0; border: 1px solid #d8e1ea; background: #fff; }
+    .rank-list article { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid #dfe7ef; }
+    .rank-list article:last-child { border-bottom: 0; }
+    .badge { display: inline-flex; width: max-content; padding: 4px 9px; border-radius: 999px; background: #dff7ee; color: #046452; font-weight: 800; font-size: 12px; }
+    .badge.success { background: #e7f0ff; color: #2855a7; }
+    .muted { color: #94a3b8; }
+    .table-wrap { overflow: auto; border: 1px solid #d8e1ea; background: #fff; }
+    table { width: 100%; min-width: 980px; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #dfe7ef; text-align: left; vertical-align: middle; }
+    th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    tr:hover td { background: #eef7fc; }
+    .result-json { max-height: 260px; overflow: auto; margin: 0; padding: 12px 16px; border-top: 1px solid #d8e1ea; background: #f8fafc; color: #172033; white-space: pre-wrap; }
+    app-state { display: block; }
+    @media (max-width: 1050px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .dashboard-grid .form-panel { border-right: 0; }
+      .metric-strip { grid-template-columns: repeat(2, minmax(145px, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .command-bar, .page-heading, .center-line, .rank-list article { display: grid; align-items: start; }
+      .top-actions, .header-actions, .form-actions { flex-wrap: wrap; }
+      .search-field { width: 100%; }
+      .metric-strip, form { grid-template-columns: 1fr; }
+    }
+  `]
 })
 export class PermissionMatrixComponent implements OnInit {
   readonly matrix = signal<ApiRecord | null>(null);
@@ -145,5 +250,27 @@ export class PermissionMatrixComponent implements OnInit {
         this.saving.set(false);
       }
     });
+  }
+
+  systemRoleCount(): number {
+    return this.roles().filter((role: ApiRecord) => !!role.isSystem).length;
+  }
+
+  customRoleCount(): number {
+    return this.roles().filter((role: ApiRecord) => !role.isSystem).length;
+  }
+
+  staticGrantCount(): number {
+    return this.roles().reduce((total: number, role: ApiRecord) => total + Number(role.staticGrants?.length || 0), 0);
+  }
+
+  runQuickAction(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const action = select.value;
+    if (action === 'refresh') this.load();
+    if (action === 'save') this.saveRole();
+    if (action === 'owner') this.roleForm.patchValue({ role: 'owner', name: 'Owner' });
+    if (action === 'manager') this.roleForm.patchValue({ role: 'manager', name: 'Manager' });
+    select.selectedIndex = 0;
   }
 }
