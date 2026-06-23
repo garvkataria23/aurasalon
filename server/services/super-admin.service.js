@@ -32,6 +32,109 @@ function tenantHealth(tenant, rows) {
   return pct((activityScore + subscriptionScore) / 2);
 }
 
+function daysUntil(dateValue) {
+  if (!dateValue) return null;
+  const target = new Date(dateValue).getTime();
+  if (Number.isNaN(target)) return null;
+  return Math.ceil((target - Date.now()) / 86400000);
+}
+
+function healthBreakdown(tenant, usage, outstanding, monthlyRecurringRevenue) {
+  const subscriptionScore = tenant.subscriptionStatus === "suspended" || tenant.status === "suspended"
+    ? 5
+    : tenant.subscriptionStatus === "trialing"
+      ? 72
+      : 95;
+  const usageScore = Math.min(100, usage.appointments * 5 + usage.sales * 8 + usage.clients * 2);
+  const billingScore = outstanding <= 0
+    ? 100
+    : Math.max(20, 100 - share(outstanding, Math.max(monthlyRecurringRevenue, 1)));
+  const readinessScore = pct((Number(Boolean(tenant.primaryDomain)) * 35) + Math.min(35, usage.branches * 12) + Math.min(30, usage.staff * 2));
+  return {
+    subscriptionScore: pct(subscriptionScore),
+    usageScore: pct(usageScore),
+    billingScore: pct(billingScore),
+    readinessScore,
+    overall: pct((subscriptionScore + usageScore + billingScore + readinessScore) / 4)
+  };
+}
+
+function tenantRiskAlerts(tenant) {
+  const alerts = [];
+  const trialDaysLeft = daysUntil(tenant.trialEndsAt);
+  if (tenant.subscriptionStatus === "suspended" || tenant.status === "suspended") {
+    alerts.push({ severity: "high", type: "subscription", title: "Tenant suspended", message: "Reactivate only after billing and owner approval checks are clear." });
+  }
+  if (tenant.outstanding > 0) {
+    alerts.push({
+      severity: tenant.outstanding > tenant.monthlyRecurringRevenue ? "high" : "medium",
+      type: "billing",
+      title: "Outstanding billing",
+      message: `Collect INR ${tenant.outstanding} before extending plan access.`
+    });
+  }
+  if (trialDaysLeft !== null && trialDaysLeft >= 0 && trialDaysLeft <= 7) {
+    alerts.push({ severity: "medium", type: "trial", title: "Trial ending soon", message: `${trialDaysLeft} days left to convert this tenant.` });
+  }
+  if (tenant.healthScore < 45) {
+    alerts.push({ severity: "high", type: "health", title: "Low health score", message: "Usage, billing and setup health need immediate review." });
+  } else if (tenant.healthScore < 70) {
+    alerts.push({ severity: "medium", type: "health", title: "Health score watch", message: "Monitor adoption before this tenant becomes a churn risk." });
+  }
+  if (!tenant.primaryDomain) {
+    alerts.push({ severity: "low", type: "readiness", title: "Domain not configured", message: "White-label readiness is incomplete for this salon." });
+  }
+  if (!tenant.usage.appointments || !tenant.usage.clients) {
+    alerts.push({ severity: "medium", type: "adoption", title: "Low platform adoption", message: "Client or appointment activity is missing." });
+  }
+  return alerts;
+}
+
+function tenantActions(tenant) {
+  const actions = [];
+  if (tenant.outstanding > 0) actions.push("Collect outstanding billing balance");
+  if (tenant.subscriptionStatus === "trialing") actions.push("Schedule trial conversion follow-up");
+  if (tenant.subscriptionStatus === "suspended") actions.push("Review suspension reason before reactivation");
+  if (!tenant.primaryDomain) actions.push("Complete domain and white-label setup");
+  if (tenant.healthScore < 70) actions.push("Run adoption review for branches, staff and booking usage");
+  return actions.length ? actions : ["Tenant is healthy; continue normal account monitoring"];
+}
+
+function tenant360(tenant) {
+  const alerts = tenantRiskAlerts(tenant);
+  return {
+    profile: {
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      ownerEmail: tenant.ownerEmail,
+      primaryDomain: tenant.primaryDomain,
+      status: tenant.status,
+      subscriptionStatus: tenant.subscriptionStatus,
+      planName: tenant.planName,
+      trialEndsAt: tenant.trialEndsAt,
+      trialDaysLeft: daysUntil(tenant.trialEndsAt)
+    },
+    billing: {
+      monthlyRecurringRevenue: tenant.monthlyRecurringRevenue,
+      meteredUsageRevenue: tenant.meteredUsageRevenue,
+      totalBillingAmount: tenant.totalBillingAmount,
+      transactionRevenue: tenant.transactionRevenue,
+      outstanding: tenant.outstanding
+    },
+    usage: tenant.usage,
+    health: tenant.healthBreakdown,
+    alerts,
+    alertSummary: {
+      total: alerts.length,
+      high: alerts.filter((alert) => alert.severity === "high").length,
+      medium: alerts.filter((alert) => alert.severity === "medium").length,
+      low: alerts.filter((alert) => alert.severity === "low").length
+    },
+    recommendedActions: tenantActions(tenant)
+  };
+}
+
 function revenueCommand(metrics, tenants, plans) {
   const activeTenants = tenants.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus));
   const planMix = plans.map((plan) => {
@@ -120,7 +223,10 @@ export class SuperAdminService {
         sales: tenantSales.length,
         campaigns: count("campaigns", tenant.id)
       };
-      return {
+      const monthlyRecurringRevenue = Number(plan?.priceMonthly || 0);
+      const outstanding = money(sumRows(tenantInvoices.filter((invoice) => invoice.status !== "paid"), (invoice) => invoice.balance));
+      const health = healthBreakdown(tenant, usage, outstanding, monthlyRecurringRevenue);
+      const row = {
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
@@ -131,16 +237,18 @@ export class SuperAdminService {
         primaryDomain: tenant.primaryDomain,
         planName: plan?.name || tenant.planId,
         planId: tenant.planId,
-        monthlyRecurringRevenue: Number(plan?.priceMonthly || 0),
+        monthlyRecurringRevenue,
         meteredUsageRevenue: Number(billingPreview.usageAmount || 0),
         billingPreview,
         totalBillingAmount: Number(billingPreview.totalAmount || 0),
         transactionRevenue: money(sumRows(tenantSales, (sale) => sale.total)),
-        outstanding: money(sumRows(tenantInvoices.filter((invoice) => invoice.status !== "paid"), (invoice) => invoice.balance)),
+        outstanding,
         usage,
+        healthBreakdown: health,
         healthScore: tenantHealth(tenant, usage),
         subscription: subscriptionByTenant.get(tenant.id) || null
       };
+      return { ...row, tenant360: tenant360(row) };
     });
     const metrics = {
       salons: tenants.length,
@@ -160,6 +268,20 @@ export class SuperAdminService {
       plans,
       featureToggles: repositories.featureToggles.list({ limit: 10000 }),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
+      tenantRiskCommand: {
+        alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
+        highRiskTenants: tenantRows
+          .filter((tenant) => tenant.tenant360.alertSummary.high || tenant.healthScore < 45)
+          .sort((a, b) => b.tenant360.alertSummary.high - a.tenant360.alertSummary.high || a.healthScore - b.healthScore)
+          .slice(0, 8)
+          .map((tenant) => ({
+            id: tenant.id,
+            name: tenant.name,
+            healthScore: tenant.healthScore,
+            alerts: tenant.tenant360.alertSummary,
+            topAlert: tenant.tenant360.alerts[0] || null
+          }))
+      },
       insights: this.insights(metrics, tenantRows)
     };
   }

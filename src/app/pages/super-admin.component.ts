@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -31,6 +31,135 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <aura-kpi-card tone="amber" target="/kpi-details/super-admin/trials"><span>Trials</span><strong>{{ overview.metrics.trialSalons }}</strong><small>Trial system</small></aura-kpi-card>
           <aura-kpi-card tone="violet" target="/kpi-details/super-admin/health"><span>Health</span><strong>{{ overview.metrics.averageHealth | number: '1.0-1' }}</strong><small>Average score</small></aura-kpi-card>
         </div>
+
+        <section class="panel" *ngIf="selectedTenant() as tenant">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Tenant 360</span>
+              <h2>{{ tenant.name }} account health, billing risk and adoption</h2>
+            </div>
+            <label class="field" style="max-width:280px;margin:0">
+              <span>Selected salon</span>
+              <select [ngModel]="selectedTenantId()" (ngModelChange)="selectTenant($event)">
+                <option *ngFor="let item of overview.tenants" [value]="item.id">{{ item.name }}</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ tenant.healthScore | number: '1.0-1' }}</strong>
+              <span>Overall account health</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ tenant.tenant360.alertSummary.high }}</strong>
+              <span>High-risk alerts</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ tenant.outstanding | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Outstanding billing exposure</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ tenant.monthlyRecurringRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Monthly recurring revenue</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ tenant.usage.clients }}</strong>
+              <span>Clients using the tenant</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ tenant.usage.appointments }}</strong>
+              <span>Appointment adoption</span>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="activity-list">
+              <article>
+                <div>
+                  <strong>Account profile</strong>
+                  <span>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain || 'Domain pending' }}</span>
+                </div>
+                <span class="badge">{{ tenant.subscriptionStatus }}</span>
+              </article>
+              <article>
+                <div>
+                  <strong>{{ tenant.planName }}</strong>
+                  <span>{{ tenant.status }} · trial ends {{ tenant.trialEndsAt || 'not set' }}</span>
+                </div>
+                <span class="badge">{{ tenant.tenant360.profile.trialDaysLeft ?? 'NA' }} days</span>
+              </article>
+              <article>
+                <div>
+                  <strong>Billing mix</strong>
+                  <span>{{ tenant.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} usage · {{ tenant.transactionRevenue | currency: 'INR':'symbol':'1.0-0' }} tenant sales</span>
+                </div>
+                <strong>{{ tenant.totalBillingAmount | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let score of tenantHealthRows(tenant)" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ score.label }}</strong>
+                  <span style="display:block;height:6px;background:var(--surface-muted,#e5e7eb);border-radius:999px;margin-top:8px;overflow:hidden">
+                    <span [style.width.%]="score.value" style="display:block;height:100%;background:var(--accent,#2563eb)"></span>
+                  </span>
+                </div>
+                <strong>{{ score.value | number: '1.0-1' }}</strong>
+              </article>
+            </div>
+          </div>
+
+          <div class="dashboard-grid" style="margin-top:16px">
+            <div class="activity-list">
+              <article *ngFor="let alert of tenant.tenant360.alerts" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ alert.title }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ alert.message }}</span>
+                </div>
+                <span class="badge" [style.background]="alert.severity === 'high' ? 'var(--danger,#dc2626)' : alert.severity === 'medium' ? 'var(--warning,#f59e0b)' : 'var(--muted,#6b7280)'" style="color:#fff">{{ alert.severity }}</span>
+              </article>
+              <article *ngIf="!tenant.tenant360.alerts.length">
+                <div>
+                  <strong>No open risk alerts</strong>
+                  <span>Tenant is clear for normal monitoring.</span>
+                </div>
+                <span class="badge">healthy</span>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let action of tenant.tenant360.recommendedActions">
+                <div>
+                  <strong>{{ action }}</strong>
+                  <span>Recommended super-admin follow-up</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="overview.tenantRiskCommand as riskCommand">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Risk alerts</span>
+              <h2>{{ riskCommand.alertCount }} tenant alerts across the SaaS base</h2>
+            </div>
+          </div>
+          <div class="activity-list">
+            <article *ngFor="let risk of riskCommand.highRiskTenants" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="flex:1;min-width:0">
+                <strong>{{ risk.name }}</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ risk.topAlert?.title || 'Health review' }} · {{ risk.healthScore | number: '1.0-1' }} health</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                <span class="badge" style="background:var(--danger,#dc2626);color:#fff">{{ risk.alerts.high }} high</span>
+                <button class="ghost-button mini" type="button" (click)="selectTenant(risk.id)">Open 360</button>
+              </div>
+            </article>
+          </div>
+        </section>
 
         <section class="panel" *ngIf="overview.revenueCommand as revenue">
           <div class="section-title">
@@ -140,6 +269,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                   <td>{{ tenant.usage.clients }} clients · {{ tenant.usage.appointments }} bookings</td>
                   <td>{{ tenant.healthScore | number: '1.0-1' }}</td>
                   <td>
+                    <button class="ghost-button mini" type="button" (click)="selectTenant(tenant.id)">360</button>
                     <button class="ghost-button mini" type="button" (click)="toggleTenant(tenant)">
                       {{ tenant.subscriptionStatus === 'suspended' ? 'Reactivate' : 'Suspend' }}
                     </button>
@@ -266,9 +396,15 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 })
 export class SuperAdminComponent implements OnInit {
   readonly overview = signal<ApiRecord | null>(null);
+  readonly selectedTenantId = signal('');
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
+  readonly selectedTenant = computed(() => {
+    const overview = this.overview();
+    if (!overview?.tenants?.length) return null;
+    return overview.tenants.find((tenant: ApiRecord) => tenant.id === this.selectedTenantId()) || overview.tenants[0];
+  });
 
   readonly subscriptionForm = this.fb.group({
     tenantId: ['', Validators.required],
@@ -304,6 +440,7 @@ export class SuperAdminComponent implements OnInit {
     this.api.list<ApiRecord>('super-admin/overview').subscribe({
       next: (overview) => {
         this.overview.set(overview);
+        if (!this.selectedTenantId() && overview?.tenants?.length) this.selectedTenantId.set(overview.tenants[0].id);
         this.loading.set(false);
       },
       error: (error) => {
@@ -333,6 +470,20 @@ export class SuperAdminComponent implements OnInit {
       next: () => this.load(),
       error: (error) => this.error.set(error?.error?.error || 'Unable to update tenant status')
     });
+  }
+
+  selectTenant(tenantId: string): void {
+    this.selectedTenantId.set(tenantId);
+  }
+
+  tenantHealthRows(tenant: ApiRecord): ApiRecord[] {
+    const health = tenant?.tenant360?.health || tenant?.healthBreakdown || {};
+    return [
+      { label: 'Subscription', value: Number(health.subscriptionScore || 0) },
+      { label: 'Usage adoption', value: Number(health.usageScore || 0) },
+      { label: 'Billing hygiene', value: Number(health.billingScore || 0) },
+      { label: 'Setup readiness', value: Number(health.readinessScore || 0) }
+    ];
   }
 
   updateSubscription(): void {
