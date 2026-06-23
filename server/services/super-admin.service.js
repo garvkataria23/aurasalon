@@ -1086,6 +1086,32 @@ function revenueGrowthGraph(tenantRows) {
   });
 }
 
+function revenueGrowthSummary(graph = []) {
+  const latest = graph[graph.length - 1] || {};
+  const previous = graph[graph.length - 2] || {};
+  const bestGrowthMonth = graph
+    .slice()
+    .sort((a, b) => Number(b.growth || 0) - Number(a.growth || 0))[0] || {};
+  const highestChurnMonth = graph
+    .slice()
+    .sort((a, b) => Number(b.churnedMrr || 0) - Number(a.churnedMrr || 0))[0] || {};
+  const netGrowth = money(Number(latest.mrr || 0) - Number(previous.mrr || latest.mrr || 0));
+  const totalChurnedMrr = money(sumRows(graph, (row) => row.churnedMrr));
+  return {
+    latestMonth: latest.month || "",
+    latestMrr: money(latest.mrr || 0),
+    latestArr: money(latest.arr || 0),
+    netGrowth,
+    momentum: netGrowth >= 0 ? "growing" : "contracting",
+    churnRate: latest.mrr ? share(latest.churnedMrr, latest.mrr) : 0,
+    totalChurnedMrr,
+    bestGrowthMonth: bestGrowthMonth.month || "",
+    bestGrowthAmount: money(bestGrowthMonth.growth || 0),
+    highestChurnMonth: highestChurnMonth.month || "",
+    highestChurnAmount: money(highestChurnMonth.churnedMrr || 0)
+  };
+}
+
 function trialPaidFunnel(tenantRows) {
   const total = tenantRows.length;
   const trialing = tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing").length;
@@ -1427,6 +1453,7 @@ export class SuperAdminService {
     };
     const featureToggles = repositories.featureToggles.list({ limit: 10000 })
       .map((toggle) => enrichFeatureToggle(toggle, tenantRows, plans));
+    const revenueGraph = revenueGrowthGraph(tenantRows);
     return {
       metrics,
       tenants: tenantRows.sort((a, b) => b.monthlyRecurringRevenue - a.monthlyRecurringRevenue),
@@ -1442,7 +1469,8 @@ export class SuperAdminService {
       revenueLeakageReport: revenueLeakageReport(metrics, tenantRows, featureToggles),
       billingOperationsReport: billingOperationsReport(tenantRows),
       usageQuotaBillingAlerts: usageQuotaBillingAlerts(tenantRows),
-      revenueGrowthGraph: revenueGrowthGraph(tenantRows),
+      revenueGrowthGraph: revenueGraph,
+      revenueGrowthSummary: revenueGrowthSummary(revenueGraph),
       trialPaidFunnel: trialPaidFunnel(tenantRows),
       churnPrediction: churnPrediction(tenantRows),
       tenantRiskCommand: {

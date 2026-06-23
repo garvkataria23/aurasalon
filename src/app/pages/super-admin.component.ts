@@ -700,6 +700,24 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
               <h2>Month-wise revenue growth with churn overlay</h2>
             </div>
           </div>
+          <div class="quick-grid" *ngIf="overview.revenueGrowthSummary as summary">
+            <article class="action-card">
+              <strong>{{ summary.latestMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>{{ summary.latestMonth }} MRR · {{ summary.momentum }}</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ summary.latestArr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Current ARR run-rate</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ summary.netGrowth | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>Net MRR growth vs previous month</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ summary.totalChurnedMrr | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <span>6-month churn overlay</span>
+            </article>
+          </div>
           <div class="activity-list">
             <article *ngFor="let row of graph" style="display:grid;grid-template-columns:90px 1fr 160px;gap:12px;align-items:center">
               <strong>{{ row.month }}</strong>
