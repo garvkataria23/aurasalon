@@ -1,60 +1,93 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
-import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-saas-onboarding',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent, AuraKpiCardComponent],
+  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent],
   template: `
-    <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">SaaS control plane</span>
-          <h2>Tenant onboarding, subscriptions, usage limits and custom domains</h2>
-          <p>New salons receive isolated tenant data, their own trial subscription, first branch, owner user and optional domain mapping.</p>
+    <section class="saas-workspace">
+      <div class="command-bar">
+        <div class="brand-block">
+          <span class="brand-mark">A</span>
+          <div>
+            <small>Enterprise command workspace</small>
+            <strong>Aurashine OS</strong>
+          </div>
         </div>
-        <button class="ghost-button" type="button" (click)="load()">Refresh SaaS context</button>
+        <div class="top-actions">
+          <button class="zenoti-button" type="button" (click)="load()">Refresh</button>
+          <button class="zenoti-button primary" type="button" (click)="onboard()" [disabled]="onboardingForm.invalid || saving()">Create tenant</button>
+        </div>
+      </div>
+
+      <section class="zenoti-header">
+        <div class="center-line">
+          <strong>malad</strong>
+          <div class="header-actions">
+            <button class="zenoti-button" type="button" (click)="load()">Tenant health</button>
+            <button class="zenoti-button" type="button">Billing</button>
+            <button class="zenoti-button" type="button">Domains</button>
+          </div>
+        </div>
+        <select class="command-select" aria-label="SaaS quick action" (change)="runQuickAction($event)">
+          <option>I want to ...</option>
+          <option value="refresh">Refresh SaaS context</option>
+          <option value="tenant">Create tenant from form</option>
+          <option value="domain">Add domain mapping</option>
+          <option value="starter">Switch to first plan</option>
+        </select>
+      </section>
+
+      <div class="page-heading">
+        <div>
+          <h1>SaaS control plane</h1>
+          <p>SaaS &gt; Tenant onboarding, subscriptions, usage limits and custom domains</p>
+        </div>
+        <label class="search-field">
+          <span>Current tenant</span>
+          <input [value]="context()?.tenant?.name || 'Tenant context loading'" readonly />
+        </label>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <ng-container *ngIf="context() as context">
-        <div class="metrics-grid">
-          <aura-kpi-card tone="teal" target="/kpi-details/saas-onboarding/current-tenant">
+        <div class="metric-strip">
+          <article>
             <span>Current tenant</span>
-            <strong>{{ context.tenant?.name }}</strong>
+            <strong>{{ context.tenant?.name || '-' }}</strong>
             <small>{{ context.tenant?.subscriptionStatus }} · {{ context.tenant?.slug }}</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="amber" target="/kpi-details/saas-onboarding/trial-ends">
+          </article>
+          <article>
             <span>Trial ends</span>
             <strong>{{ context.tenant?.trialEndsAt | date: 'mediumDate' }}</strong>
             <small>{{ context.plan?.name }} plan</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="blue" target="/kpi-details/saas-onboarding/primary-domain">
+          </article>
+          <article>
             <span>Primary domain</span>
             <strong>{{ context.tenant?.primaryDomain || 'Not mapped' }}</strong>
             <small>{{ context.domains?.length || 0 }} domain records</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="green" target="/kpi-details/saas-onboarding/role-scope">
+          </article>
+          <article>
             <span>Role scope</span>
             <strong>{{ context.access?.role }}</strong>
             <small>{{ context.access?.branchId || 'All permitted branches' }}</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="violet" target="/kpi-details/saas-onboarding/billing-preview">
+          </article>
+          <article>
             <span>Billing preview</span>
             <strong>{{ (context.billingPreview?.totalAmount || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>{{ (context.billingPreview?.baseAmount || 0) | currency: 'INR':'symbol':'1.0-0' }} base + {{ (context.billingPreview?.usageAmount || 0) | currency: 'INR':'symbol':'1.0-0' }} usage</small>
-          </aura-kpi-card>
-          <aura-kpi-card tone="red" target="/kpi-details/saas-onboarding/tenant-health">
+          </article>
+          <article>
             <span>Tenant health</span>
             <strong>{{ context.tenantHealth?.score || 0 }}%</strong>
             <small>{{ context.tenantHealth?.status || 'Not checked' }}</small>
-          </aura-kpi-card>
+          </article>
         </div>
 
         <section class="panel">
@@ -156,7 +189,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </section>
       </ng-container>
 
-      <div class="dashboard-grid">
+      <div class="dashboard-grid workdesk">
         <section class="form-panel">
           <h3>Onboard a salon tenant</h3>
           <form [formGroup]="onboardingForm" (ngSubmit)="onboard()">
@@ -217,7 +250,66 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </div>
       </section>
     </section>
-  `
+  `,
+  styles: [`
+    .saas-workspace { display: grid; gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
+    .brand-block, .top-actions, .center-line, .header-actions, .form-actions, .check-line { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
+    .brand-block small, .field span, .search-field span, .section-title span { display: block; color: #5f6f85; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .brand-block small { color: #8fa1b8; }
+    .brand-block strong { display: block; color: #fff; font-size: 15px; }
+    .zenoti-button, .primary-button, .ghost-button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
+    .zenoti-button.primary, .primary-button { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-header, .page-heading, .metric-strip, .panel, .form-panel { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
+    .center-line { justify-content: space-between; }
+    .center-line strong { font-size: 15px; }
+    .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
+    .page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; }
+    .page-heading h1 { margin: 0; font-size: 22px; color: #172033; }
+    .page-heading p { margin: 6px 0 0; color: #36506d; font-size: 13px; }
+    .search-field { width: min(100%, 350px); display: grid; gap: 5px; }
+    .search-field input, .field input, .field select { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
+    .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(155px, 1fr)); gap: 0; overflow-x: auto; }
+    .metric-strip article { min-width: 155px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #0b8f7c; }
+    .metric-strip article:nth-child(2) { border-top-color: #bd7400; }
+    .metric-strip article:nth-child(3) { border-top-color: #2b61d1; }
+    .metric-strip article:nth-child(4) { border-top-color: #16834f; }
+    .metric-strip article:nth-child(5) { border-top-color: #7046d8; }
+    .metric-strip article:nth-child(6) { border-top-color: #bb241a; }
+    .metric-strip span, .metric-strip small, .action-card small, .activity-list span { display: block; color: #5f6f85; font-size: 12px; }
+    .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; overflow-wrap: anywhere; }
+    .panel, .form-panel { border-radius: 0; box-shadow: none; border-left: 0; border-right: 0; border-top: 0; padding: 16px; }
+    .section-title { display: flex; justify-content: space-between; gap: 12px; align-items: end; margin-bottom: 12px; }
+    .section-title h2, .form-panel h3 { margin: 3px 0 0; color: #172033; font-size: 18px; }
+    .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .action-card { border: 1px solid #d8e1ea; border-radius: 0; background: #fbfcfe; padding: 12px; display: grid; gap: 6px; }
+    .activity-list { display: grid; gap: 0; border: 1px solid #d8e1ea; background: #fff; }
+    .activity-list article { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border-bottom: 1px solid #dfe7ef; }
+    .activity-list article:last-child { border-bottom: 0; }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(420px, 1.2fr) minmax(320px, .8fr); gap: 0; border-bottom: 1px solid #d8e1ea; }
+    .dashboard-grid .form-panel:first-child { border-right: 1px solid #d8e1ea; }
+    form { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field.full, .form-actions { grid-column: 1 / -1; }
+    .form-actions { justify-content: flex-end; }
+    .badge { display: inline-flex; width: max-content; padding: 4px 9px; border-radius: 999px; background: #dff7ee; color: #046452; font-weight: 800; font-size: 12px; }
+    .stage-track { height: 7px; border-radius: 999px; background: #e5edf3; overflow: hidden; }
+    .stage-track span { display: block; height: 100%; background: #0b8f7c; }
+    app-state { display: block; }
+    @media (max-width: 1050px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .dashboard-grid .form-panel:first-child { border-right: 0; }
+      .metric-strip { grid-template-columns: repeat(2, minmax(155px, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .command-bar, .page-heading, .center-line, .section-title, .activity-list article { display: grid; align-items: start; }
+      .top-actions, .header-actions, .form-actions { flex-wrap: wrap; }
+      .search-field { width: 100%; }
+      .metric-strip, form { grid-template-columns: 1fr; }
+    }
+  `]
 })
 export class SaasOnboardingComponent implements OnInit {
   readonly context = signal<ApiRecord | null>(null);
@@ -315,6 +407,16 @@ export class SaasOnboardingComponent implements OnInit {
       next: () => this.load(),
       error: (error) => this.error.set(error?.error?.error || 'Unable to switch plan')
     });
+  }
+
+  runQuickAction(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const action = select.value;
+    if (action === 'refresh') this.load();
+    if (action === 'tenant') this.onboard();
+    if (action === 'domain') this.addDomain();
+    if (action === 'starter' && this.plans()[0]?.id) this.switchPlan(String(this.plans()[0].id));
+    select.selectedIndex = 0;
   }
 
   usageRows(usage: ApiRecord = {}): Array<{ label: string; used: number; limit: number | null; percent: number }> {
