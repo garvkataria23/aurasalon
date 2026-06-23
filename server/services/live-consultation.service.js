@@ -1,4 +1,5 @@
 const DEFAULT_GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const MAX_BUSINESSES = 12;
 const MAX_PHOTOS = 5;
 const MAX_BASE64_PHOTO_BYTES = 4 * 1024 * 1024;
@@ -6,16 +7,16 @@ const MAX_BASE64_PHOTO_BYTES = 4 * 1024 * 1024;
 export async function createLiveConsultation(payload = {}) {
   const request = sanitizeConsultationRequest(payload);
   const local = buildLocalConsultation(request);
-  const groq = await maybeRunGroqConsultation(request, local).catch((error) => ({
+  const ai = await maybeRunAiConsultation(request, local).catch((error) => ({
     ...local,
     mode: "local",
     provider: "local_rules",
-    providerWarning: error?.message || "Groq consultation unavailable"
+    providerWarning: error?.message || "AI consultation unavailable"
   }));
   return {
     consultationId: `consult_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
-    ...groq
+    ...ai
   };
 }
 
@@ -124,7 +125,62 @@ async function maybeRunGroqConsultation(request, fallback) {
   const data = await response.json();
   const text = data?.choices?.[0]?.message?.content || "";
   const parsed = JSON.parse(text);
-  return normalizeAiConsultation(parsed, fallback);
+  return normalizeAiConsultation(parsed, fallback, "groq");
+}
+
+async function maybeRunAiConsultation(request, fallback) {
+  const provider = selectedAiProvider();
+  if (provider === "gemini") return maybeRunGeminiConsultation(request, fallback);
+  if (provider === "local") return fallback;
+  return maybeRunGroqConsultation(request, fallback);
+}
+
+async function maybeRunGeminiConsultation(request, fallback) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "";
+  if (!apiKey) return fallback;
+
+  const prompt = buildConsultationPrompt(request);
+  const parts = [{ text: prompt }, ...request.photos.map(geminiImagePart).filter(Boolean)];
+  const model = encodeURIComponent(process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL);
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        temperature: 0.35,
+        maxOutputTokens: 1400,
+        responseMimeType: "application/json"
+      },
+      systemInstruction: {
+        parts: [{ text: "You are Aura Shine Live Consultation AI for salons, spas, barbers, nail studios and skin clinics. Return only valid JSON." }]
+      }
+    })
+  });
+  if (!response.ok) throw new Error(`Gemini returned ${response.status}`);
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("\n") || "";
+  const parsed = JSON.parse(text);
+  return normalizeAiConsultation(parsed, fallback, "gemini");
+}
+
+function selectedAiProvider() {
+  const requested = cleanText(process.env.AI_CONSULTATION_PROVIDER || process.env.LIVE_CONSULTATION_PROVIDER, 40).toLowerCase();
+  if (requested === "gemini" || requested === "groq" || requested === "local") return requested;
+  if (process.env.GROQ_API_KEY) return "groq";
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY) return "gemini";
+  return "local";
+}
+
+function geminiImagePart(photo) {
+  const match = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(photo.dataUrl || "");
+  if (!match) return null;
+  return {
+    inlineData: {
+      mimeType: match[1],
+      data: match[2]
+    }
+  };
 }
 
 function buildConsultationPrompt(request) {
@@ -148,10 +204,10 @@ function buildConsultationPrompt(request) {
   ].join("\n");
 }
 
-function normalizeAiConsultation(parsed, fallback) {
+function normalizeAiConsultation(parsed, fallback, provider) {
   return {
-    mode: "groq",
-    provider: "groq",
+    mode: provider,
+    provider,
     answer: cleanText(parsed.answer, 1200) || fallback.answer,
     actionPlan: arrayOfText(parsed.actionPlan, 6, 180).length ? arrayOfText(parsed.actionPlan, 6, 180) : fallback.actionPlan,
     recommendedSalons: normalizeSalonRecommendations(parsed.recommendedSalons, fallback.recommendedSalons),
