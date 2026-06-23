@@ -210,6 +210,86 @@ function featureFlagCommand(featureToggles) {
   };
 }
 
+function requireSafetyConfirmation(payload = {}, action = "action") {
+  const reason = String(payload.reason || "").trim();
+  const confirmation = String(payload.confirmation || "").trim();
+  if (reason.length < 8) throw badRequest(`Safety reason is required for ${action}`);
+  if (confirmation !== "CONFIRM") throw badRequest(`Type CONFIRM to approve ${action}`);
+  return { reason, confirmation };
+}
+
+function actionSafetyCommand(tenantRows, featureToggles) {
+  const auditRows = repositories.superAdminAudit.list({ limit: 200 }).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  const resolvedIds = new Set(
+    auditRows
+      .filter((row) => row.action === "super_admin.action_approval.resolved")
+      .map((row) => normalizeRules(row.details).requestId)
+      .filter(Boolean)
+  );
+  const pendingApprovals = auditRows
+    .filter((row) => row.action === "super_admin.action_approval.requested" && !resolvedIds.has(row.id))
+    .map((row) => {
+      const details = normalizeRules(row.details);
+      return {
+        id: row.id,
+        action: details.action || row.action,
+        targetType: row.targetType,
+        targetId: row.targetId,
+        reason: details.reason || "",
+        priority: details.priority || "medium",
+        requestedBy: row.actorUserId,
+        createdAt: row.createdAt
+      };
+    });
+  const requiredReviews = [
+    ...tenantRows
+      .filter((tenant) => tenant.subscriptionStatus === "suspended" || tenant.status === "suspended")
+      .slice(0, 6)
+      .map((tenant) => ({
+        targetType: "tenant",
+        targetId: tenant.id,
+        name: tenant.name,
+        action: "reactivation.review",
+        severity: "high",
+        reason: "Tenant is suspended; require reason and confirmation before reactivation."
+      })),
+    ...featureToggles
+      .filter((toggle) => toggle.killSwitch)
+      .slice(0, 6)
+      .map((toggle) => ({
+        targetType: "feature_toggle",
+        targetId: toggle.id,
+        name: toggle.name,
+        action: "kill_switch.review",
+        severity: "high",
+        reason: "Kill switch is armed; review before enabling or rollout changes."
+      }))
+  ];
+  return {
+    pendingApprovals,
+    requiredReviews,
+    timeline: auditRows.slice(0, 12).map((row) => {
+      const details = normalizeRules(row.details);
+      return {
+        id: row.id,
+        action: row.action,
+        targetType: row.targetType,
+        targetId: row.targetId,
+        actorUserId: row.actorUserId,
+        createdAt: row.createdAt,
+        reason: details.reason || "",
+        status: details.status || "",
+        summary: details.key || details.action || details.status || details.reason || ""
+      };
+    }),
+    stats: {
+      pending: pendingApprovals.length,
+      requiredReviews: requiredReviews.length,
+      recentActions: auditRows.length
+    }
+  };
+}
+
 function revenueCommand(metrics, tenants, plans) {
   const activeTenants = tenants.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus));
   const planMix = plans.map((plan) => {
@@ -345,6 +425,7 @@ export class SuperAdminService {
       plans,
       featureToggles,
       featureFlagCommand: featureFlagCommand(featureToggles),
+      actionSafetyCommand: actionSafetyCommand(tenantRows, featureToggles),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
       tenantRiskCommand: {
         alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
@@ -403,6 +484,7 @@ export class SuperAdminService {
 
   suspendTenant(tenantId, payload = {}, access) {
     ensureSuperAdmin(access);
+    const safety = requireSafetyConfirmation(payload, "tenant suspension/reactivation");
     const tenant = repositories.tenants.getById(tenantId);
     if (!tenant) throw notFound("Tenant not found");
     const status = payload.status || "suspended";
@@ -417,12 +499,13 @@ export class SuperAdminService {
         cancelAt: status === "suspended" ? now() : ""
       }, { tenantId });
     }
-    this.audit(access, status === "suspended" ? "tenant.suspended" : "tenant.reactivated", "tenant", tenantId, { reason: payload.reason || "" });
+    this.audit(access, status === "suspended" ? "tenant.suspended" : "tenant.reactivated", "tenant", tenantId, { reason: safety.reason, confirmation: safety.confirmation });
     return updatedTenant;
   }
 
   updateTenantSubscription(tenantId, payload = {}, access) {
     ensureSuperAdmin(access);
+    const safety = requireSafetyConfirmation(payload, "subscription update");
     if (!payload.planId && !payload.status) throw badRequest("planId or status is required");
     const tenant = repositories.tenants.getById(tenantId);
     if (!tenant) throw notFound("Tenant not found");
@@ -443,8 +526,38 @@ export class SuperAdminService {
     const subscription = existing
       ? repositories.subscriptions.update(existing.id, subscriptionPayload, { tenantId })
       : repositories.subscriptions.create({ id: makeId("sub"), ...subscriptionPayload }, { tenantId });
-    this.audit(access, "tenant.subscription.updated", "tenant", tenantId, { planId: subscriptionPayload.planId, status: subscriptionPayload.status });
+    this.audit(access, "tenant.subscription.updated", "tenant", tenantId, { planId: subscriptionPayload.planId, status: subscriptionPayload.status, reason: safety.reason, confirmation: safety.confirmation });
     return { tenant: updatedTenant, subscription, plan: plan || repositories.subscriptionPlans.getById(updatedTenant.planId) };
+  }
+
+  requestActionApproval(payload = {}, access) {
+    ensureSuperAdmin(access);
+    const safety = requireSafetyConfirmation(payload, "approval request");
+    if (!payload.action || !payload.targetType || !payload.targetId) throw badRequest("action, targetType and targetId are required");
+    return this.audit(access, "super_admin.action_approval.requested", payload.targetType, payload.targetId, {
+      action: payload.action,
+      reason: safety.reason,
+      confirmation: safety.confirmation,
+      priority: payload.priority || "medium",
+      status: "pending",
+      requestedAt: now()
+    });
+  }
+
+  resolveActionApproval(requestId, payload = {}, access) {
+    ensureSuperAdmin(access);
+    const safety = requireSafetyConfirmation(payload, "approval resolution");
+    const request = repositories.superAdminAudit.getById(requestId);
+    if (!request || request.action !== "super_admin.action_approval.requested") throw notFound("Approval request not found");
+    const status = ["approved", "rejected"].includes(payload.status) ? payload.status : "";
+    if (!status) throw badRequest("status must be approved or rejected");
+    return this.audit(access, "super_admin.action_approval.resolved", request.targetType, request.targetId, {
+      requestId,
+      status,
+      reason: safety.reason,
+      confirmation: safety.confirmation,
+      resolvedAt: now()
+    });
   }
 
   createPlan(payload = {}, access) {

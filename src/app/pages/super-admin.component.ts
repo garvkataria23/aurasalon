@@ -32,6 +32,108 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <aura-kpi-card tone="violet" target="/kpi-details/super-admin/health"><span>Health</span><strong>{{ overview.metrics.averageHealth | number: '1.0-1' }}</strong><small>Average score</small></aura-kpi-card>
         </div>
 
+        <section class="panel" *ngIf="overview.actionSafetyCommand as safety">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Action safety</span>
+              <h2>Dangerous actions require reason, confirmation and audit trail</h2>
+            </div>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ safety.stats.pending }}</strong>
+              <span>Pending approvals</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ safety.stats.requiredReviews }}</strong>
+              <span>Required safety reviews</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ safety.stats.recentActions }}</strong>
+              <span>Recent audit actions</span>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="form-panel">
+              <h3>Safety confirmation</h3>
+              <form [formGroup]="safetyForm">
+                <label class="field full"><span>Reason</span><textarea formControlName="reason"></textarea></label>
+                <label class="field"><span>Type CONFIRM</span><input formControlName="confirmation" /></label>
+              </form>
+            </section>
+
+            <section class="form-panel">
+              <h3>Approval request</h3>
+              <form [formGroup]="approvalForm" (ngSubmit)="requestApproval()">
+                <label class="field">
+                  <span>Action</span>
+                  <select formControlName="action">
+                    <option value="tenant.suspension">Tenant suspension</option>
+                    <option value="tenant.reactivation">Tenant reactivation</option>
+                    <option value="subscription.plan_change">Subscription plan change</option>
+                    <option value="feature.kill_switch">Feature kill switch</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Target type</span>
+                  <select formControlName="targetType">
+                    <option value="tenant">Tenant</option>
+                    <option value="feature_toggle">Feature toggle</option>
+                    <option value="subscription_plan">Subscription plan</option>
+                  </select>
+                </label>
+                <label class="field"><span>Target ID</span><input formControlName="targetId" /></label>
+                <label class="field">
+                  <span>Priority</span>
+                  <select formControlName="priority">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </label>
+                <label class="field full"><span>Approval reason</span><textarea formControlName="reason"></textarea></label>
+                <label class="field"><span>Type CONFIRM</span><input formControlName="confirmation" /></label>
+                <div class="form-actions">
+                  <button class="primary-button" type="submit" [disabled]="approvalForm.invalid || saving()">Request approval</button>
+                </div>
+              </form>
+            </section>
+          </div>
+
+          <div class="dashboard-grid" style="margin-top:16px">
+            <div class="activity-list">
+              <article *ngFor="let approval of safety.pendingApprovals" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ approval.action }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ approval.targetType }} · {{ approval.targetId }} · {{ approval.reason }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span class="badge">{{ approval.priority }}</span>
+                  <button class="ghost-button mini" type="button" [disabled]="saving()" (click)="resolveApproval(approval.id, 'approved')">Approve</button>
+                  <button class="ghost-button mini" type="button" [disabled]="saving()" (click)="resolveApproval(approval.id, 'rejected')">Reject</button>
+                </div>
+              </article>
+              <article *ngIf="!safety.pendingApprovals.length">
+                <div>
+                  <strong>No pending approvals</strong>
+                  <span>New dangerous requests will appear here.</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let event of safety.timeline">
+                <div>
+                  <strong>{{ event.action }}</strong>
+                  <span>{{ event.targetType }} · {{ event.targetId }} · {{ event.reason || event.summary || event.status }}</span>
+                </div>
+                <small>{{ event.createdAt }}</small>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="panel" *ngIf="selectedTenant() as tenant">
           <div class="section-title">
             <div>
@@ -461,6 +563,20 @@ export class SuperAdminComponent implements OnInit {
     status: ['']
   });
 
+  readonly safetyForm = this.fb.group({
+    reason: ['', Validators.required],
+    confirmation: ['', Validators.required]
+  });
+
+  readonly approvalForm = this.fb.group({
+    action: ['tenant.suspension', Validators.required],
+    targetType: ['tenant', Validators.required],
+    targetId: ['', Validators.required],
+    priority: ['high'],
+    reason: ['', Validators.required],
+    confirmation: ['', Validators.required]
+  });
+
   readonly planForm = this.fb.group({
     name: ['', Validators.required],
     code: ['', Validators.required],
@@ -521,7 +637,8 @@ export class SuperAdminComponent implements OnInit {
 
   toggleTenant(tenant: ApiRecord): void {
     const status = tenant.subscriptionStatus === 'suspended' ? 'active' : 'suspended';
-    this.api.patch(`super-admin/tenants/${tenant.id}/suspension`, { status, reason: 'Super admin console action' }).subscribe({
+    const safety = this.safetyPayload();
+    this.api.patch(`super-admin/tenants/${tenant.id}/suspension`, { status, ...safety }).subscribe({
       next: () => this.load(),
       error: (error) => this.error.set(error?.error?.error || 'Unable to update tenant status')
     });
@@ -547,7 +664,8 @@ export class SuperAdminComponent implements OnInit {
     const tenantId = this.subscriptionForm.value.tenantId;
     this.api.patch(`super-admin/tenants/${tenantId}/subscription`, {
       planId: this.subscriptionForm.value.planId,
-      status: this.subscriptionForm.value.status
+      status: this.subscriptionForm.value.status,
+      ...this.safetyPayload()
     }).subscribe({
       next: () => {
         this.saving.set(false);
@@ -555,6 +673,45 @@ export class SuperAdminComponent implements OnInit {
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to update subscription');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  safetyPayload(): ApiRecord {
+    return {
+      reason: this.safetyForm.value.reason || '',
+      confirmation: this.safetyForm.value.confirmation || ''
+    };
+  }
+
+  requestApproval(): void {
+    if (this.approvalForm.invalid) return;
+    this.saving.set(true);
+    this.api.post('super-admin/action-approvals', this.approvalForm.value).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to request approval');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  resolveApproval(id: string, status: 'approved' | 'rejected'): void {
+    this.saving.set(true);
+    this.api.post(`super-admin/action-approvals/${id}/resolve`, {
+      status,
+      ...this.safetyPayload()
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to resolve approval');
         this.saving.set(false);
       }
     });

@@ -65,6 +65,22 @@ superAdminRouter.patch(
   })
 );
 
+superAdminRouter.post(
+  "/super-admin/action-approvals",
+  validateBody({ required: ["action", "targetType", "targetId", "reason", "confirmation"] }),
+  asyncHandler((req, res) => {
+    res.status(201).json(superAdminService.requestActionApproval(req.body, req.access));
+  })
+);
+
+superAdminRouter.post(
+  "/super-admin/action-approvals/:id/resolve",
+  validateBody({ required: ["status", "reason", "confirmation"] }),
+  asyncHandler((req, res) => {
+    res.status(201).json(superAdminService.resolveActionApproval(req.params.id, req.body, req.access));
+  })
+);
+
 superAdminRouter.delete(
   "/super-admin/feature-toggles/:id",
   asyncHandler((req, res) => {
