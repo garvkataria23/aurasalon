@@ -13,6 +13,24 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     <section class="page-stack">
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
+      <div class="renewal-backdrop" *ngIf="renewalPopupOpen() && renewalNotice() as renewal">
+        <section class="renewal-modal" role="dialog" aria-modal="true" aria-labelledby="renewal-title">
+          <button class="renewal-close" type="button" aria-label="Close renewal notice" (click)="dismissRenewalNotice()">×</button>
+          <span class="eyebrow">Subscription renewal</span>
+          <h2 id="renewal-title">{{ renewal.title }}</h2>
+          <p>{{ renewal.message }}</p>
+          <div class="renewal-facts">
+            <span><strong>{{ renewal.daysLeftLabel }}</strong><small>Remaining</small></span>
+            <span><strong>{{ renewal.endDateLabel }}</strong><small>Plan end</small></span>
+            <span><strong>{{ renewal.planName }}</strong><small>Current plan</small></span>
+          </div>
+          <div class="renewal-actions">
+            <a class="primary-button" routerLink="/saas" (click)="dismissRenewalNotice()">Renew / manage plan</a>
+            <button class="ghost-button" type="button" (click)="dismissRenewalNotice()">Remind me later</button>
+          </div>
+        </section>
+      </div>
+
       <div class="metrics-grid" *ngIf="report() as data">
         <aura-kpi-card tone="teal" target="/kpi-details/dashboard/revenue-today">
           <span>Revenue today</span>
@@ -178,6 +196,80 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       padding: 14px;
     }
 
+    .renewal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgb(15 23 42 / 0.42);
+    }
+
+    .renewal-modal {
+      width: min(100%, 520px);
+      position: relative;
+      display: grid;
+      gap: 14px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 24px 80px rgb(15 23 42 / 0.24);
+    }
+
+    .renewal-modal h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .renewal-modal p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .renewal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .renewal-facts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .renewal-facts span {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .renewal-facts small {
+      color: var(--muted);
+    }
+
+    .renewal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .header-link-row {
       display: inline-flex;
       gap: 8px;
@@ -267,11 +359,17 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       .dashboard-hub-grid {
         grid-template-columns: 1fr;
       }
+
+      .renewal-facts {
+        grid-template-columns: 1fr;
+      }
     }
   `]
 })
 export class DashboardComponent implements OnInit {
   readonly report = signal<ApiRecord | null>(null);
+  readonly renewalNotice = signal<ApiRecord | null>(null);
+  readonly renewalPopupOpen = signal(false);
   readonly loading = signal(true);
   readonly error = signal('');
 
@@ -279,6 +377,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadRenewalNotice();
   }
 
   load(): void {
@@ -311,6 +410,66 @@ export class DashboardComponent implements OnInit {
       clientRetention: Number(report['clientRetention'] || 0),
       quickActions: this.safeRows(report['quickActions'])
     };
+  }
+
+  private loadRenewalNotice(): void {
+    this.api.list<ApiRecord>('saas/context').subscribe({
+      next: (context) => {
+        const notice = this.buildRenewalNotice(context);
+        this.renewalNotice.set(notice);
+        this.renewalPopupOpen.set(Boolean(notice && !this.isRenewalNoticeDismissed(notice)));
+      },
+      error: () => this.renewalNotice.set(null)
+    });
+  }
+
+  dismissRenewalNotice(): void {
+    const notice = this.renewalNotice();
+    if (notice?.dismissKey) sessionStorage.setItem(notice.dismissKey, '1');
+    this.renewalPopupOpen.set(false);
+  }
+
+  private buildRenewalNotice(context: ApiRecord = {}): ApiRecord | null {
+    const tenant = context['tenant'] || {};
+    const subscription = context['subscription'] || {};
+    const plan = context['plan'] || {};
+    const endDate = subscription.currentPeriodEnd || subscription.trialEndsAt || tenant.trialEndsAt;
+    if (!endDate) return null;
+    const daysLeft = this.daysUntil(endDate);
+    if (!Number.isFinite(daysLeft)) return null;
+    if (daysLeft > 30) return null;
+    const expired = daysLeft < 0;
+    const tenantId = tenant.id || subscription.tenantId || 'tenant';
+    const endDateKey = String(endDate).slice(0, 10);
+    return {
+      tenantId,
+      planName: plan.name || subscription.planName || tenant.planName || 'Current plan',
+      endDate,
+      endDateLabel: this.dateLabel(endDate),
+      daysLeft,
+      daysLeftLabel: expired ? 'Expired' : `${daysLeft} days`,
+      dismissKey: `renewal-notice:${tenantId}:${endDateKey}`,
+      title: expired ? 'Your subscription has expired' : `Your subscription ends in ${daysLeft} days`,
+      message: expired
+        ? 'Renew the plan to keep billing, booking, reports and premium modules active for this salon.'
+        : 'Please renew before the plan end date to avoid service interruption for bookings, POS and reports.'
+    };
+  }
+
+  private isRenewalNoticeDismissed(notice: ApiRecord): boolean {
+    return Boolean(notice['dismissKey'] && sessionStorage.getItem(notice['dismissKey']));
+  }
+
+  private daysUntil(value: string): number {
+    const today = new Date();
+    const current = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const targetDate = new Date(value);
+    const target = Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    return Math.ceil((target - current) / 86_400_000);
+  }
+
+  private dateLabel(value: string): string {
+    return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   private safeRows(value: unknown): ApiRecord[] {
