@@ -193,6 +193,7 @@ export const routes: Routes = [
       title: 'Message Logs',
       subtitle: 'Track SMS, email and WhatsApp messages with delivery status and provider payloads.',
       createLabel: 'Add message log',
+      variant: 'zenoti',
       columns: [
         { key: 'channel', label: 'Channel' },
         { key: 'recipient', label: 'Recipient' },
