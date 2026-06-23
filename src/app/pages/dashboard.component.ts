@@ -13,23 +13,25 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     <section class="page-stack">
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <div class="renewal-backdrop" *ngIf="renewalPopupOpen() && renewalNotice() as renewal">
-        <section class="renewal-modal" role="dialog" aria-modal="true" aria-labelledby="renewal-title">
-          <button class="renewal-close" type="button" aria-label="Close renewal notice" (click)="dismissRenewalNotice()">×</button>
-          <span class="eyebrow">Subscription renewal</span>
-          <h2 id="renewal-title">{{ renewal.title }}</h2>
-          <p>{{ renewal.message }}</p>
-          <div class="renewal-facts">
-            <span><strong>{{ renewal.daysLeftLabel }}</strong><small>Remaining</small></span>
-            <span><strong>{{ renewal.endDateLabel }}</strong><small>Plan end</small></span>
-            <span><strong>{{ renewal.planName }}</strong><small>Current plan</small></span>
-          </div>
-          <div class="renewal-actions">
-            <a class="primary-button" routerLink="/saas" (click)="dismissRenewalNotice()">Renew / manage plan</a>
-            <button class="ghost-button" type="button" (click)="dismissRenewalNotice()">Remind me later</button>
-          </div>
-        </section>
-      </div>
+      <ng-container *ngIf="renewalPopupOpen()">
+        <div class="renewal-backdrop" *ngIf="renewalNotice() as renewal">
+          <section class="renewal-modal" role="dialog" aria-modal="true" aria-labelledby="renewal-title">
+            <button class="renewal-close" type="button" aria-label="Close renewal notice" (click)="dismissRenewalNotice()">&times;</button>
+            <span class="eyebrow">Subscription renewal</span>
+            <h2 id="renewal-title">{{ renewal.title }}</h2>
+            <p>{{ renewal.message }}</p>
+            <div class="renewal-facts">
+              <span><strong>{{ renewal.daysLeftLabel }}</strong><small>Remaining</small></span>
+              <span><strong>{{ renewal.endDateLabel }}</strong><small>Plan end</small></span>
+              <span><strong>{{ renewal.planName }}</strong><small>Current plan</small></span>
+            </div>
+            <div class="renewal-actions">
+              <a class="primary-button" routerLink="/saas" (click)="dismissRenewalNotice()">Renew / manage plan</a>
+              <button class="ghost-button" type="button" (click)="dismissRenewalNotice()">Remind me later</button>
+            </div>
+          </section>
+        </div>
+      </ng-container>
 
       <div class="metrics-grid" *ngIf="report() as data">
         <aura-kpi-card tone="teal" target="/kpi-details/dashboard/revenue-today">
@@ -425,7 +427,7 @@ export class DashboardComponent implements OnInit {
 
   dismissRenewalNotice(): void {
     const notice = this.renewalNotice();
-    if (notice?.dismissKey) sessionStorage.setItem(notice.dismissKey, '1');
+    if (notice?.['dismissKey']) sessionStorage.setItem(notice['dismissKey'], '1');
     this.renewalPopupOpen.set(false);
   }
 
