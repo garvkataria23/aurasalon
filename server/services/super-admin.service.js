@@ -2,6 +2,7 @@ import { db } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { tenantService } from "./tenant.service.js";
 import { realtimeService } from "./realtime.service.js";
+import { authService } from "./auth.service.js";
 import { badRequest, forbidden, notFound } from "../utils/app-error.js";
 
 const now = () => new Date().toISOString();
@@ -1222,6 +1223,58 @@ export class SuperAdminService {
       note,
       visibility: payload.visibility || "internal"
     });
+  }
+
+  impersonateTenant(tenantId, payload = {}, access) {
+    ensureSuperAdmin(access);
+    const tenant = repositories.tenants.getById(tenantId);
+    if (!tenant) throw notFound("Tenant not found");
+    const reason = String(payload.reason || "").trim();
+    const confirmation = String(payload.confirmation || "").trim();
+    if (reason.length < 5) throw badRequest("Impersonation reason is required");
+    if (confirmation !== "IMPERSONATE") throw badRequest("Type IMPERSONATE to start tenant impersonation");
+    const users = repositories.tenantUsers.list({ limit: 10000 }, { tenantId });
+    const owner = users.find((user) => ["owner", "admin"].includes(String(user.role || "").toLowerCase()) && (!user.status || user.status === "active"))
+      || users.find((user) => !user.status || user.status === "active");
+    const branch = db.prepare("SELECT id FROM branches WHERE tenantId = ? ORDER BY createdAt ASC LIMIT 1").get(tenantId);
+    const impersonatedUser = owner || {
+      id: `impersonation_${tenant.id}`,
+      name: "Super Admin Impersonation",
+      email: tenant.ownerEmail || "support@aurasalon.local",
+      loginId: "super-admin-impersonation",
+      role: "owner",
+      staffId: "",
+      branchIds: branch?.id ? [branch.id] : []
+    };
+    const session = authService.issueTokenPair({
+      tenant,
+      user: {
+        ...impersonatedUser,
+        role: owner?.role || "owner",
+        branchIds: Array.isArray(impersonatedUser.branchIds) ? impersonatedUser.branchIds : branch?.id ? [branch.id] : []
+      },
+      branchId: payload.branchId || branch?.id || "",
+      deviceId: `impersonation:${access.userId || "super-admin"}`
+    });
+    const expiresAt = new Date(Date.now() + Number(session.expiresIn || 0) * 1000).toISOString();
+    const audit = this.audit(access, "tenant.impersonation.started", "tenant", tenantId, {
+      reason,
+      confirmation,
+      impersonatedUserId: impersonatedUser.id,
+      impersonatedRole: session.user.role,
+      expiresAt,
+      restrictions: ["refunds", "staff_payroll", "password_change", "destructive_delete"]
+    });
+    return {
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      session,
+      launchUrl: payload.returnPath || "/",
+      expiresAt,
+      auditId: audit.id,
+      banner: `Impersonating ${tenant.name} for support debugging`,
+      restrictions: ["Refunds require approval", "Payroll and password changes remain protected", "All actions are audit logged"]
+    };
   }
 
   createPlan(payload = {}, access) {

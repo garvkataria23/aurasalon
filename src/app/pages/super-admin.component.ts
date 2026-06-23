@@ -2,6 +2,8 @@ import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { AuthSessionService } from '../core/auth-session.service';
+import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
@@ -801,6 +803,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                   <td>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); openTenantDrilldown(tenant.id)">Profile</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); selectTenant(tenant.id)">360</button>
+                    <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareImpersonation(tenant)">Impersonate</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); toggleTenant(tenant)">
                       {{ tenant.subscriptionStatus === 'suspended' ? 'Reactivate' : 'Suspend' }}
                     </button>
@@ -937,6 +940,26 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
         <div class="dashboard-grid">
           <section class="form-panel">
+            <h3>Impersonate tenant</h3>
+            <form [formGroup]="impersonationForm" (ngSubmit)="startImpersonation()">
+              <label class="field">
+                <span>Tenant</span>
+                <select formControlName="tenantId">
+                  <option value="">Select tenant</option>
+                  <option *ngFor="let tenant of overview.tenants" [value]="tenant.id">{{ tenant.name }}</option>
+                </select>
+              </label>
+              <label class="field"><span>Open path</span><input formControlName="returnPath" /></label>
+              <label class="field full"><span>Debug reason</span><textarea formControlName="reason"></textarea></label>
+              <label class="field"><span>Confirmation</span><input formControlName="confirmation" placeholder="Type IMPERSONATE" /></label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit" [disabled]="impersonationForm.invalid || saving()">Start impersonation</button>
+              </div>
+            </form>
+            <small style="display:block;color:var(--text-muted);margin-top:8px">Creates an audited tenant session for support debugging.</small>
+          </section>
+
+          <section class="form-panel">
             <h3>Subscription management</h3>
             <form [formGroup]="subscriptionForm" (ngSubmit)="updateSubscription()">
               <label class="field">
@@ -969,15 +992,28 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </section>
 
           <section class="form-panel">
-            <h3>Plan management</h3>
+            <h3>Custom Plan Builder</h3>
             <form [formGroup]="planForm" (ngSubmit)="createPlan()">
               <label class="field"><span>Name</span><input formControlName="name" /></label>
               <label class="field"><span>Code</span><input formControlName="code" /></label>
               <label class="field"><span>Monthly price</span><input type="number" formControlName="priceMonthly" /></label>
               <label class="field"><span>Trial days</span><input type="number" formControlName="trialDays" /></label>
+              <label class="field"><span>Branches</span><input type="number" formControlName="branches" /></label>
+              <label class="field"><span>Staff</span><input type="number" formControlName="staff" /></label>
+              <label class="field"><span>Clients</span><input type="number" formControlName="clients" /></label>
+              <label class="field"><span>Monthly appointments</span><input type="number" formControlName="monthlyAppointments" /></label>
+              <label class="field"><span>Campaigns</span><input type="number" formControlName="campaigns" /></label>
+              <label class="field">
+                <span>Support tier</span>
+                <select formControlName="supportTier">
+                  <option value="standard">Standard</option>
+                  <option value="priority">Priority</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </label>
               <label class="field full"><span>Features</span><textarea formControlName="featuresText"></textarea></label>
               <div class="form-actions">
-                <button class="primary-button" type="submit" [disabled]="planForm.invalid || saving()">Create plan</button>
+                <button class="primary-button" type="submit" [disabled]="planForm.invalid || saving()">Create custom plan</button>
               </div>
             </form>
           </section>
@@ -1088,6 +1124,10 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                 <div>
                   <strong>{{ plan.name }}</strong>
                   <span>{{ plan.priceMonthly | currency: 'INR':'symbol':'1.0-0' }}/mo · {{ plan.trialDays }} trial days</span>
+                  <span style="display:block;font-size:0.78em;color:var(--text-muted)">
+                    {{ plan.limits?.branches || 0 }} branches · {{ plan.limits?.staff || 0 }} staff · {{ plan.limits?.clients || 0 }} clients · {{ plan.limits?.supportTier || 'standard' }}
+                  </span>
+                  <span *ngIf="plan.features?.length" style="display:block;font-size:0.78em;color:var(--text-muted)">{{ plan.features.join(' · ') }}</span>
                 </div>
                 <span class="badge">{{ plan.status }}</span>
               </article>
@@ -1143,11 +1183,24 @@ export class SuperAdminComponent implements OnInit {
     note: ['', Validators.required]
   });
 
+  readonly impersonationForm = this.fb.group({
+    tenantId: ['', Validators.required],
+    returnPath: ['/'],
+    reason: ['Support debugging', Validators.required],
+    confirmation: ['', Validators.required]
+  });
+
   readonly planForm = this.fb.group({
     name: ['', Validators.required],
     code: ['', Validators.required],
     priceMonthly: [9999],
     trialDays: [14],
+    branches: [3],
+    staff: [25],
+    clients: [5000],
+    monthlyAppointments: [8000],
+    campaigns: [50],
+    supportTier: ['standard'],
     featuresText: ['Advanced CRM, Marketing automation, Analytics']
   });
 
@@ -1165,7 +1218,12 @@ export class SuperAdminComponent implements OnInit {
     description: ['Enable AI campaign generation and retargeting workflows.']
   });
 
-  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly fb: UntypedFormBuilder,
+    private readonly authSession: AuthSessionService,
+    private readonly appState: AppStateService
+  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -1217,6 +1275,47 @@ export class SuperAdminComponent implements OnInit {
   openTenantDrilldown(tenantId: string): void {
     this.selectedTenantId.set(tenantId);
     this.drilldownOpen.set(true);
+  }
+
+  prepareImpersonation(tenant: ApiRecord): void {
+    this.impersonationForm.patchValue({ tenantId: tenant.id });
+    if (this.impersonationForm.value.confirmation === 'IMPERSONATE') {
+      this.startImpersonation();
+      return;
+    }
+    this.error.set(`Type IMPERSONATE in the impersonation form to debug ${tenant.name}.`);
+  }
+
+  startImpersonation(): void {
+    if (this.impersonationForm.invalid) return;
+    this.saving.set(true);
+    this.error.set('');
+    const tenantId = this.impersonationForm.value.tenantId || '';
+    this.api.post<ApiRecord>(`super-admin/tenants/${tenantId}/impersonation`, {
+      reason: this.impersonationForm.value.reason || '',
+      confirmation: this.impersonationForm.value.confirmation || '',
+      returnPath: this.impersonationForm.value.returnPath || '/'
+    }).subscribe({
+      next: (result) => {
+        const currentSession = localStorage.getItem('aura.authSession') || '';
+        if (currentSession) localStorage.setItem('aura.superAdminSessionBackup', currentSession);
+        localStorage.setItem('aura.impersonationContext', JSON.stringify({
+          tenantId: result.tenantId,
+          tenantName: result.tenantName,
+          auditId: result.auditId,
+          expiresAt: result.expiresAt,
+          startedAt: new Date().toISOString()
+        }));
+        this.authSession.setSession(result.session);
+        this.appState.setTenant(result.tenantId);
+        this.appState.setRole(result.session?.user?.role || 'owner');
+        window.location.assign(result.launchUrl || '/');
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to start impersonation');
+        this.saving.set(false);
+      }
+    });
   }
 
   usageBarWidth(value: number, rows: ApiRecord[] = []): number {
@@ -1376,7 +1475,14 @@ export class SuperAdminComponent implements OnInit {
       priceMonthly: this.planForm.value.priceMonthly,
       trialDays: this.planForm.value.trialDays,
       features,
-      limits: { branches: 3, staff: 25, clients: 5000, monthlyAppointments: 8000, campaigns: 50 }
+      limits: {
+        branches: Number(this.planForm.value.branches || 0),
+        staff: Number(this.planForm.value.staff || 0),
+        clients: Number(this.planForm.value.clients || 0),
+        monthlyAppointments: Number(this.planForm.value.monthlyAppointments || 0),
+        campaigns: Number(this.planForm.value.campaigns || 0),
+        supportTier: this.planForm.value.supportTier || 'standard'
+      }
     }).subscribe({
       next: () => {
         this.saving.set(false);

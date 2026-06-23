@@ -50,6 +50,14 @@ superAdminRouter.post(
 );
 
 superAdminRouter.post(
+  "/super-admin/tenants/:id/impersonation",
+  validateBody({ required: ["reason", "confirmation"] }),
+  asyncHandler((req, res) => {
+    res.status(201).json(superAdminService.impersonateTenant(req.params.id, req.body, req.access));
+  })
+);
+
+superAdminRouter.post(
   "/super-admin/plans",
   validateBody({ required: ["name", "code"] }),
   asyncHandler((req, res) => {
