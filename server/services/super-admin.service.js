@@ -64,6 +64,10 @@ function scopedFeatureKey(key, scope, tenantId = "", planId = "") {
   return cleanKey;
 }
 
+function baseFeatureKey(toggle = {}) {
+  return normalizeRules(toggle.rules).baseKey || String(toggle.key || "").split("::tenant::")[0].split("::plan::")[0];
+}
+
 function tenantHealth(tenant, rows) {
   const overdue = tenant.subscriptionStatus === "suspended" || tenant.status === "suspended";
   const activityScore = Math.min(100, rows.appointments * 5 + rows.sales * 8 + rows.clients * 2);
@@ -214,6 +218,7 @@ function enrichFeatureToggle(toggle, tenants, plans) {
           : "enabled";
   return {
     ...toggle,
+    baseKey: baseFeatureKey({ ...toggle, rules }),
     rules: { ...rules, rolloutPercentage, expiresAt, killSwitch },
     rolloutPercentage,
     expiresAt,
@@ -706,6 +711,97 @@ function billingOperationsReport(tenantRows) {
   };
 }
 
+function tenantFeatureOverrideMatrix(featureToggles, tenantRows) {
+  const globalsByKey = new Map(featureToggles
+    .filter((toggle) => toggle.scope === "global")
+    .map((toggle) => [baseFeatureKey(toggle), toggle]));
+  const overrides = featureToggles
+    .filter((toggle) => toggle.scope === "tenant")
+    .map((override) => {
+      const key = baseFeatureKey(override);
+      const global = globalsByKey.get(key) || null;
+      const tenant = tenantRows.find((row) => row.id === override.tenantId);
+      const globalEnabled = Boolean(global?.enabled) && !global?.killSwitch && !global?.isExpired;
+      const tenantEnabled = Boolean(override.enabled) && !override.killSwitch && !override.isExpired;
+      return {
+        id: override.id,
+        key,
+        name: override.name,
+        tenantId: override.tenantId,
+        tenantName: tenant?.name || override.tenantId,
+        globalToggleId: global?.id || "",
+        globalEnabled,
+        tenantEnabled,
+        effectiveEnabled: tenantEnabled,
+        precedence: tenantEnabled === globalEnabled ? "same" : tenantEnabled ? "tenant_on" : "tenant_off",
+        rolloutPercentage: override.rolloutPercentage,
+        statusLabel: override.statusLabel,
+        targetSummary: override.targetSummary
+      };
+    });
+  return {
+    overrideCount: overrides.length,
+    tenantOnOverGlobalOff: overrides.filter((item) => item.precedence === "tenant_on").length,
+    tenantOffOverGlobalOn: overrides.filter((item) => item.precedence === "tenant_off").length,
+    overrides: overrides
+      .sort((a, b) => a.tenantName.localeCompare(b.tenantName) || a.key.localeCompare(b.key))
+      .slice(0, 20),
+    globalFeatures: featureToggles
+      .filter((toggle) => toggle.scope === "global")
+      .map((toggle) => ({
+        id: toggle.id,
+        key: baseFeatureKey(toggle),
+        name: toggle.name,
+        enabled: Boolean(toggle.enabled) && !toggle.killSwitch && !toggle.isExpired,
+        statusLabel: toggle.statusLabel
+      }))
+  };
+}
+
+function usageQuotaBillingAlerts(tenantRows) {
+  const quotaAlerts = tenantRows.flatMap((tenant) => {
+    const limits = tenant.tenantLimits || {};
+    return ["branches", "staff", "clients"].map((metric) => {
+      const used = Number(tenant.usage?.[metric] || 0);
+      const limit = Number(limits[metric] || 0);
+      const usagePct = share(used, Math.max(1, limit));
+      if (usagePct < 80) return null;
+      return {
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        metric,
+        used,
+        limit,
+        usagePct,
+        severity: usagePct >= 100 ? "critical" : usagePct >= 90 ? "warning" : "watch",
+        action: usagePct >= 100 ? "Block or upsell quota" : "Send quota warning"
+      };
+    }).filter(Boolean);
+  });
+  const billingAlerts = tenantRows
+    .filter((tenant) => tenant.billingOps?.dunningStatus !== "Clear" || tenant.outstanding > 0)
+    .map((tenant) => ({
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      outstanding: tenant.outstanding,
+      dunningStatus: tenant.billingOps?.dunningStatus || "Clear",
+      failedPayments: tenant.billingOps?.failedPaymentCount || 0,
+      severity: tenant.billingOps?.dunningSeverity || (tenant.outstanding > 0 ? "warning" : "healthy"),
+      action: tenant.billingOps?.nextAction || "Send billing alert"
+    }));
+  return {
+    quotaAlertCount: quotaAlerts.length,
+    billingAlertCount: billingAlerts.length,
+    overLimitCount: quotaAlerts.filter((alert) => alert.severity === "critical").length,
+    quotaAlerts: quotaAlerts
+      .sort((a, b) => b.usagePct - a.usagePct)
+      .slice(0, 20),
+    billingAlerts: billingAlerts
+      .sort((a, b) => b.outstanding - a.outstanding || b.failedPayments - a.failedPayments)
+      .slice(0, 20)
+  };
+}
+
 function monthKey(dateValue) {
   const date = dateValue ? new Date(dateValue) : new Date();
   if (Number.isNaN(date.getTime())) return now().slice(0, 7);
@@ -1042,6 +1138,7 @@ export class SuperAdminService {
       plans,
       featureToggles,
       featureFlagCommand: featureFlagCommand(featureToggles),
+      tenantFeatureOverrides: tenantFeatureOverrideMatrix(featureToggles, tenantRows),
       actionSafetyCommand: actionSafetyCommand(tenantRows, featureToggles),
       saasHealthEngine: saasHealthEngine(metrics, tenantRows, featureToggles),
       realtimeHealthAlerts: realtimeHealthAlerts(tenantRows),
@@ -1049,6 +1146,7 @@ export class SuperAdminService {
       revenueIntelligence: revenueIntelligence(metrics, tenantRows, plans),
       revenueLeakageReport: revenueLeakageReport(metrics, tenantRows, featureToggles),
       billingOperationsReport: billingOperationsReport(tenantRows),
+      usageQuotaBillingAlerts: usageQuotaBillingAlerts(tenantRows),
       revenueGrowthGraph: revenueGrowthGraph(tenantRows),
       trialPaidFunnel: trialPaidFunnel(tenantRows),
       churnPrediction: churnPrediction(tenantRows),

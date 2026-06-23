@@ -631,6 +631,51 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           </div>
         </section>
 
+        <section class="panel" *ngIf="overview.usageQuotaBillingAlerts as quota">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Usage quotas & billing alerts</span>
+              <h2>{{ quota.quotaAlertCount }} quota alerts and {{ quota.billingAlertCount }} billing alerts</h2>
+            </div>
+            <span class="badge" [style.background]="quota.overLimitCount ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)'" style="color:#fff">{{ quota.overLimitCount }} over limit</span>
+          </div>
+          <div class="dashboard-grid">
+            <div class="activity-list">
+              <article *ngFor="let alert of quota.quotaAlerts" style="display:grid;grid-template-columns:1fr 120px 110px;gap:12px;align-items:center">
+                <div style="min-width:0">
+                  <strong>{{ alert.tenantName }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ alert.metric }} · {{ alert.used }}/{{ alert.limit }} · {{ alert.action }}</span>
+                </div>
+                <span style="display:block;height:10px;background:var(--surface-muted,#e5e7eb);border-radius:999px;overflow:hidden">
+                  <span [style.width.%]="alert.usagePct > 100 ? 100 : alert.usagePct" [style.background]="healthFlagTone(alert.severity)" style="display:block;height:100%"></span>
+                </span>
+                <span class="badge" [style.background]="healthFlagTone(alert.severity)" style="color:#fff">{{ alert.usagePct | number: '1.0-1' }}%</span>
+              </article>
+              <article *ngIf="!quota.quotaAlerts?.length">
+                <strong>No quota alerts</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">All tenants are below quota warning threshold.</span>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let alert of quota.billingAlerts" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ alert.tenantName }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ alert.dunningStatus }} · {{ alert.failedPayments }} failed payments · {{ alert.action }}</span>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <span class="badge" [style.background]="healthFlagTone(alert.severity)" style="color:#fff">{{ alert.severity }}</span>
+                  <strong style="display:block">{{ alert.outstanding | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                </div>
+              </article>
+              <article *ngIf="!quota.billingAlerts?.length">
+                <strong>No billing alerts</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">No active dunning or outstanding billing alerts.</span>
+              </article>
+            </div>
+          </div>
+        </section>
+
         <section class="panel" *ngIf="overview.revenueGrowthGraph as graph">
           <div class="section-title">
             <div>
@@ -993,7 +1038,14 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                   <option *ngFor="let tenant of overview.tenants" [value]="tenant.id">{{ tenant.name }}</option>
                 </select>
               </label>
-              <label class="field"><span>Feature key</span><input formControlName="key" /></label>
+              <label class="field">
+                <span>Global feature</span>
+                <select formControlName="key" (change)="selectTenantOverrideFeature(overview.tenantFeatureOverrides?.globalFeatures || [])">
+                  <option value="">Select feature</option>
+                  <option *ngFor="let feature of overview.tenantFeatureOverrides?.globalFeatures || []" [value]="feature.key">{{ feature.name }} · global {{ feature.enabled ? 'ON' : 'OFF' }}</option>
+                </select>
+              </label>
+              <label class="field"><span>Feature key</span><input [value]="tenantFeatureOverrideForm.value.key || ''" readonly /></label>
               <label class="field"><span>Feature name</span><input formControlName="name" /></label>
               <label class="field">
                 <span>Rollout %: {{ tenantFeatureOverrideForm.value.rolloutPercentage }}</span>
@@ -1141,6 +1193,41 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             <label class="field full"><span>Description</span><textarea formControlName="description"></textarea></label>
             <div class="form-actions"><button class="primary-button" type="submit" [disabled]="toggleForm.invalid || saving()">Save toggle</button></div>
           </form>
+        </section>
+
+        <section class="panel" *ngIf="overview.tenantFeatureOverrides as overrides">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Tenant override precedence</span>
+              <h2>Tenant-specific ON/OFF wins over global toggle</h2>
+            </div>
+            <span class="badge">{{ overrides.overrideCount }} overrides</span>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ overrides.tenantOnOverGlobalOff }}</strong>
+              <span>Tenant ON over global OFF</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ overrides.tenantOffOverGlobalOn }}</strong>
+              <span>Tenant OFF over global ON</span>
+            </article>
+          </div>
+          <div class="activity-list">
+            <article *ngFor="let item of overrides.overrides" style="display:grid;grid-template-columns:1fr 140px 140px 110px;gap:12px;align-items:center">
+              <div style="min-width:0">
+                <strong>{{ item.tenantName }}</strong>
+                <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ item.name }} · {{ item.key }} · {{ item.rolloutPercentage }}% rollout</span>
+              </div>
+              <span class="badge" [style.background]="item.globalEnabled ? 'var(--success,#16a34a)' : 'var(--muted,#6b7280)'" style="color:#fff">Global {{ item.globalEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="badge" [style.background]="item.tenantEnabled ? 'var(--success,#16a34a)' : 'var(--danger,#dc2626)'" style="color:#fff">Tenant {{ item.tenantEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="badge">{{ item.precedence }}</span>
+            </article>
+            <article *ngIf="!overrides.overrides?.length">
+              <strong>No tenant overrides yet</strong>
+              <span style="display:block;font-size:0.8em;color:var(--text-muted)">Use Per-Tenant Feature Override to set tenant-specific ON/OFF above global flags.</span>
+            </article>
+          </div>
         </section>
 
         <section class="panel">
@@ -1415,6 +1502,16 @@ export class SuperAdminComponent implements OnInit {
     this.selectedTenantId.set(tenant.id);
     this.tenantFeatureOverrideForm.patchValue({ tenantId: tenant.id });
     this.toggleForm.patchValue({ scope: 'tenant', tenantId: tenant.id });
+  }
+
+  selectTenantOverrideFeature(features: ApiRecord[] = []): void {
+    const selected = features.find((feature) => feature.key === this.tenantFeatureOverrideForm.value.key);
+    if (!selected) return;
+    this.tenantFeatureOverrideForm.patchValue({
+      key: selected.key,
+      name: selected.name || selected.key,
+      enabled: Boolean(selected.enabled)
+    });
   }
 
   saveTenantFeatureOverride(): void {
@@ -1727,7 +1824,7 @@ export class SuperAdminComponent implements OnInit {
 
   healthFlagTone(severity: string): string {
     if (severity === 'critical') return 'var(--danger,#dc2626)';
-    if (severity === 'warning') return 'var(--warning,#f59e0b)';
+    if (severity === 'warning' || severity === 'watch') return 'var(--warning,#f59e0b)';
     return 'var(--success,#16a34a)';
   }
 
