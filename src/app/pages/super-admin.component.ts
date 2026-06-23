@@ -32,6 +32,80 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <aura-kpi-card tone="violet" target="/kpi-details/super-admin/health"><span>Health</span><strong>{{ overview.metrics.averageHealth | number: '1.0-1' }}</strong><small>Average score</small></aura-kpi-card>
         </div>
 
+        <section class="panel" *ngIf="overview.saasHealthEngine as health">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">SaaS health engine</span>
+              <h2>Platform health, tenant segments and recovery playbooks</h2>
+            </div>
+            <span class="badge" [style.background]="healthTone(health.platformScore)" style="color:#fff">Grade {{ health.grade }}</span>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card">
+              <strong>{{ health.platformScore | number: '1.0-1' }}</strong>
+              <span>Platform health score</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ health.segments.healthy }}</strong>
+              <span>Healthy tenants</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ health.segments.watch }}</strong>
+              <span>Watch tenants</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ health.segments.critical }}</strong>
+              <span>Critical tenants</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ health.segments.trialing }}</strong>
+              <span>Trialing tenants</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ health.segments.suspended }}</strong>
+              <span>Suspended tenants</span>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="activity-list">
+              <article *ngFor="let signal of health.signals" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ signal.label }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ signal.detail }}</span>
+                  <span style="display:block;height:6px;background:var(--surface-muted,#e5e7eb);border-radius:999px;margin-top:8px;overflow:hidden">
+                    <span [style.width.%]="signal.score" [style.background]="healthTone(signal.score)" style="display:block;height:100%"></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span class="badge" [style.background]="signal.status === 'critical' ? 'var(--danger,#dc2626)' : signal.status === 'watch' ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="color:#fff">{{ signal.status }}</span>
+                  <strong>{{ signal.score | number: '1.0-1' }}</strong>
+                </div>
+              </article>
+            </div>
+
+            <div class="activity-list">
+              <article *ngFor="let tenant of health.watchlist" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <div style="flex:1;min-width:0">
+                  <strong>{{ tenant.name }}</strong>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ tenant.planName }} · {{ tenant.subscriptionStatus }} · {{ tenant.nextAction }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span class="badge" [style.background]="healthTone(tenant.healthScore)" style="color:#fff">{{ tenant.healthScore | number: '1.0-1' }}</span>
+                  <button class="ghost-button mini" type="button" (click)="selectTenant(tenant.id)">Open 360</button>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="quick-grid" style="margin-top:16px">
+            <article class="action-card" *ngFor="let playbook of health.playbooks">
+              <strong>{{ playbook.title }}</strong>
+              <span>{{ playbook.detail }}</span>
+            </article>
+          </div>
+        </section>
+
         <section class="panel" *ngIf="overview.actionSafetyCommand as safety">
           <div class="section-title">
             <div>
@@ -791,6 +865,12 @@ export class SuperAdminComponent implements OnInit {
     if (toggle.statusLabel === 'partial') return 'var(--accent,#2563eb)';
     if (toggle.statusLabel === 'enabled') return 'var(--success,#16a34a)';
     return 'var(--muted,#6b7280)';
+  }
+
+  healthTone(score: number): string {
+    if (Number(score || 0) >= 75) return 'var(--success,#16a34a)';
+    if (Number(score || 0) >= 45) return 'var(--warning,#f59e0b)';
+    return 'var(--danger,#dc2626)';
   }
 
   toggleEnabled(toggle: { id: string; enabled: number | boolean; name: string }): void {

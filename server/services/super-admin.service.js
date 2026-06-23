@@ -290,6 +290,93 @@ function actionSafetyCommand(tenantRows, featureToggles) {
   };
 }
 
+function avg(items, selector) {
+  return items.length ? pct(sumRows(items, selector) / items.length) : 0;
+}
+
+function saasHealthEngine(metrics, tenantRows, featureToggles) {
+  const activeTenants = tenantRows.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus));
+  const criticalTenants = tenantRows.filter((tenant) => tenant.healthScore < 45 || tenant.tenant360.alertSummary.high > 0);
+  const watchTenants = tenantRows.filter((tenant) => tenant.healthScore >= 45 && tenant.healthScore < 75 && tenant.tenant360.alertSummary.high === 0);
+  const healthyTenants = tenantRows.filter((tenant) => tenant.healthScore >= 75 && tenant.tenant360.alertSummary.high === 0);
+  const billingQuality = share(metrics.monthlyRecurringRevenue, metrics.monthlyRecurringRevenue + metrics.outstanding);
+  const adoptionScore = avg(activeTenants, (tenant) => tenant.healthBreakdown.usageScore);
+  const setupReadiness = avg(activeTenants, (tenant) => tenant.healthBreakdown.readinessScore);
+  const subscriptionHealth = avg(activeTenants, (tenant) => tenant.healthBreakdown.subscriptionScore);
+  const riskPenalty = tenantRows.length ? Math.min(35, (criticalTenants.length / tenantRows.length) * 35) : 0;
+  const killSwitchPenalty = Math.min(15, featureToggles.filter((toggle) => toggle.killSwitch).length * 5);
+  const platformScore = pct(Math.max(0, (
+    avg(activeTenants, (tenant) => tenant.healthScore) * 0.3
+    + billingQuality * 0.25
+    + adoptionScore * 0.2
+    + setupReadiness * 0.15
+    + subscriptionHealth * 0.1
+  ) - riskPenalty - killSwitchPenalty));
+  const signals = [
+    {
+      key: "billing",
+      label: "Billing health",
+      score: billingQuality,
+      status: billingQuality >= 80 ? "healthy" : billingQuality >= 60 ? "watch" : "critical",
+      detail: `INR ${metrics.outstanding} outstanding across tenants`
+    },
+    {
+      key: "adoption",
+      label: "Adoption health",
+      score: adoptionScore,
+      status: adoptionScore >= 75 ? "healthy" : adoptionScore >= 45 ? "watch" : "critical",
+      detail: "Client, appointment, campaign and sales usage"
+    },
+    {
+      key: "setup",
+      label: "Setup readiness",
+      score: setupReadiness,
+      status: setupReadiness >= 75 ? "healthy" : setupReadiness >= 45 ? "watch" : "critical",
+      detail: "Branches, staff and primary domain readiness"
+    },
+    {
+      key: "control",
+      label: "Control health",
+      score: pct(Math.max(0, 100 - riskPenalty - killSwitchPenalty)),
+      status: criticalTenants.length || killSwitchPenalty ? "watch" : "healthy",
+      detail: `${criticalTenants.length} critical tenants and ${featureToggles.filter((toggle) => toggle.killSwitch).length} kill switches`
+    }
+  ];
+  const watchlist = tenantRows
+    .slice()
+    .sort((a, b) => a.healthScore - b.healthScore || b.outstanding - a.outstanding)
+    .slice(0, 8)
+    .map((tenant) => ({
+      id: tenant.id,
+      name: tenant.name,
+      planName: tenant.planName,
+      healthScore: tenant.healthScore,
+      subscriptionStatus: tenant.subscriptionStatus,
+      outstanding: tenant.outstanding,
+      topAlert: tenant.tenant360.alerts[0] || null,
+      nextAction: tenant.tenant360.recommendedActions[0] || "Monitor account"
+    }));
+  const playbooks = [];
+  if (metrics.outstanding > 0) playbooks.push({ title: "Billing recovery", detail: "Prioritize tenants with outstanding invoices before plan expansion." });
+  if (watchTenants.length || criticalTenants.length) playbooks.push({ title: "Adoption rescue", detail: "Review low-usage tenants through Tenant 360 and schedule onboarding help." });
+  if (featureToggles.some((toggle) => toggle.killSwitch)) playbooks.push({ title: "Kill-switch review", detail: "Resolve armed kill switches before widening feature rollout." });
+  if (!playbooks.length) playbooks.push({ title: "Scale monitoring", detail: "SaaS base is stable; continue weekly health review." });
+  return {
+    platformScore,
+    grade: platformScore >= 85 ? "A" : platformScore >= 70 ? "B" : platformScore >= 55 ? "C" : "D",
+    segments: {
+      healthy: healthyTenants.length,
+      watch: watchTenants.length,
+      critical: criticalTenants.length,
+      suspended: tenantRows.filter((tenant) => tenant.subscriptionStatus === "suspended" || tenant.status === "suspended").length,
+      trialing: tenantRows.filter((tenant) => tenant.subscriptionStatus === "trialing").length
+    },
+    signals,
+    watchlist,
+    playbooks
+  };
+}
+
 function revenueCommand(metrics, tenants, plans) {
   const activeTenants = tenants.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus));
   const planMix = plans.map((plan) => {
@@ -426,6 +513,7 @@ export class SuperAdminService {
       featureToggles,
       featureFlagCommand: featureFlagCommand(featureToggles),
       actionSafetyCommand: actionSafetyCommand(tenantRows, featureToggles),
+      saasHealthEngine: saasHealthEngine(metrics, tenantRows, featureToggles),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
       tenantRiskCommand: {
         alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
