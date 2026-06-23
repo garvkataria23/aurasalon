@@ -15,29 +15,63 @@ type ShieldLayer = {
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Enterprise Security Shield</span>
-          <h2>Detect, alert, block, audit and recover from suspicious activity</h2>
-          <p>Layered protection for browser headers, admin login, threat detection, active defense, device trust, PIN re-auth, export control, field audit, risk scoring, approvals, SSO readiness, subscription guard and access-device control.</p>
+    <section class="shield-workspace">
+      <div class="command-bar">
+        <div class="brand-block">
+          <span class="brand-mark">A</span>
+          <div>
+            <small>ENTERPRISE COMMAND WORKSPACE</small>
+            <strong>Aurashine OS</strong>
+          </div>
         </div>
-        <a class="primary-button" routerLink="/security-alerts">Open alerts</a>
+        <div class="command-actions">
+          <a class="zenoti-button" routerLink="/security">Back</a>
+          <a class="zenoti-button primary" routerLink="/security-alerts">Open alerts</a>
+        </div>
       </div>
 
-      <div class="metrics-grid">
-        <article class="metric-card"><span>Protection model</span><strong>28</strong><small>Security layers</small></article>
-        <article class="metric-card"><span>Response mode</span><strong>Auto</strong><small>Alert + block</small></article>
-        <article class="metric-card"><span>Audit trail</span><strong>On</strong><small>Existing security logs</small></article>
-        <article class="metric-card"><span>Recovery</span><strong>Ready</strong><small>Backup/security controls</small></article>
+      <div class="zenoti-header">
+        <strong>malad</strong>
+        <div class="header-actions">
+          <a class="zenoti-button" routerLink="/security-policy-center">Policy Center</a>
+          <a class="zenoti-button" routerLink="/security-blocklist">Blocklist</a>
+          <a class="zenoti-button" routerLink="/security-alerts">Alerts</a>
+        </div>
+        <select aria-label="Security shield quick actions">
+          <option>I want to ...</option>
+          <option>Review active defense</option>
+          <option>Open policy center</option>
+          <option>Check device trust</option>
+          <option>Review audit evidence</option>
+        </select>
+      </div>
+
+      <div class="page-heading">
+        <div>
+          <h1>Enterprise Security Shield</h1>
+          <span>Detect, alert, block, audit and recover from suspicious activity across login, devices, exports, payments and admin actions</span>
+        </div>
+        <a class="primary-button" routerLink="/security-policy-center">Manage policies</a>
+      </div>
+
+      <div class="metric-strip">
+        <article><span>Protection model</span><strong>{{ layers.length }}</strong><small>Security layers</small></article>
+        <article><span>Active layers</span><strong>{{ activeLayerCount }}</strong><small>Currently enforced</small></article>
+        <article><span>Response mode</span><strong>Auto</strong><small>Alert + block</small></article>
+        <article><span>Audit trail</span><strong>On</strong><small>Existing security logs</small></article>
+        <article><span>Recovery</span><strong>Ready</strong><small>Backup controls</small></article>
+        <article><span>Policy center</span><strong>Live</strong><small>Owner/admin control</small></article>
       </div>
 
       <section class="panel">
-        <div class="section-title"><h2>Security layers</h2></div>
-        <div class="quick-grid">
+        <div class="section-title"><h2>Security layers</h2><span>{{ layers.length }} controls</span></div>
+        <div class="layer-grid">
           <article class="action-card" *ngFor="let layer of layers">
-            <small>{{ layer.level }}</small>
-            <strong>{{ layer.title }}</strong>
+            <div>
+              <small>{{ layer.level }}</small>
+              <strong>{{ layer.title }}</strong>
+            </div>
+            <em>{{ layer.status }}</em>
             <span>{{ layer.detail }}</span>
             <a *ngIf="layer.target" [routerLink]="layer.target">Open</a>
           </article>
@@ -45,8 +79,8 @@ type ShieldLayer = {
       </section>
 
       <section class="panel">
-        <div class="section-title"><h2>Operational posture</h2></div>
-        <div class="quick-grid">
+        <div class="section-title"><h2>Operational posture</h2><span>Branch scope active</span></div>
+        <div class="workdesk">
           <article class="action-card">
             <strong>Secure Foundation</strong>
             <span>CSP, HSTS, cross-origin protections and API rate limiting are layered into middleware.</span>
@@ -62,7 +96,53 @@ type ShieldLayer = {
         </div>
       </section>
     </section>
-  `
+  `,
+  styles: [`
+    .shield-workspace { background: #fff; color: #111827; min-height: 100vh; }
+    .command-bar { background: #111827; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.16); }
+    .brand-block, .command-actions, .header-actions, .page-heading, .section-title { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #635bff; font-weight: 900; }
+    .brand-block small { display: block; color: #94a3b8; font-size: 10px; font-weight: 800; letter-spacing: 0; }
+    .brand-block strong { display: block; font-size: 16px; }
+    .zenoti-button, .primary-button { border: 1px solid #bfdbfe; background: #fff; color: #075985; border-radius: 4px; padding: 8px 13px; font-weight: 800; cursor: pointer; text-decoration: none; }
+    .zenoti-button.primary, .primary-button { background: #0f8f7f; border-color: #0f8f7f; color: #fff; }
+    .zenoti-header { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 26px 16px 12px; border-bottom: 1px solid #d7e2ea; }
+    .zenoti-header select { grid-column: 2; width: min(620px, 100%); border: 1px solid #bfdbfe; border-radius: 4px; padding: 9px 12px; font-weight: 800; background: #fff; }
+    .page-heading { justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #d7e2ea; }
+    .page-heading h1 { margin: 0 0 4px; font-size: 24px; }
+    .page-heading span, .section-title span, small { color: #64748b; }
+    .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); border-bottom: 1px solid #d7e2ea; background: #f8fafc; }
+    .metric-strip article { padding: 14px 16px; border-right: 1px solid #d7e2ea; border-top: 4px solid #0f8f7f; min-height: 86px; }
+    .metric-strip article:nth-child(2) { border-top-color: #2563eb; }
+    .metric-strip article:nth-child(3) { border-top-color: #b7791f; }
+    .metric-strip article:nth-child(4) { border-top-color: #15803d; }
+    .metric-strip article:nth-child(5) { border-top-color: #7c3aed; }
+    .metric-strip article:nth-child(6) { border-top-color: #b91c1c; }
+    .metric-strip span { display: block; color: #64748b; font-size: 12px; font-weight: 900; }
+    .metric-strip strong { display: block; margin-top: 6px; font-size: 25px; }
+    .panel { margin: 16px; background: #fff; border: 1px solid #d7e2ea; border-radius: 4px; padding: 14px; }
+    .section-title { justify-content: space-between; margin-bottom: 12px; }
+    .section-title h2 { margin: 0; font-size: 16px; }
+    .layer-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .workdesk { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .action-card { border: 1px solid #d7e2ea; border-radius: 4px; padding: 12px; min-height: 112px; display: grid; gap: 8px; align-content: start; }
+    .action-card strong, .action-card span { display: block; }
+    .action-card span { color: #64748b; font-size: 12px; }
+    .action-card em { justify-self: start; border-radius: 999px; background: #dcfce7; color: #166534; padding: 4px 8px; font-size: 11px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+    .action-card a { color: #075985; font-weight: 900; text-decoration: none; }
+    @media (max-width: 1180px) {
+      .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .layer-grid { grid-template-columns: repeat(2, 1fr); }
+      .workdesk { grid-template-columns: 1fr; }
+      .zenoti-header { grid-template-columns: 1fr; }
+      .zenoti-header select { grid-column: auto; }
+    }
+    @media (max-width: 720px) {
+      .command-bar, .page-heading { align-items: stretch; flex-direction: column; }
+      .metric-strip, .layer-grid { grid-template-columns: 1fr; }
+      .header-actions { flex-wrap: wrap; }
+    }
+  `]
 })
 export class EnterpriseSecurityShieldComponent {
   readonly layers: ShieldLayer[] = [
@@ -95,4 +175,8 @@ export class EnterpriseSecurityShieldComponent {
     { level: 'Level 27', title: 'Fraud Warning Center', status: 'active', detail: 'Client-visible OTP, password, payment-link and phishing warnings.', target: '/security-policy-center' },
     { level: 'Level 28', title: 'Responsible Disclosure', status: 'active', detail: 'Security issue reports are captured in a professional review queue.', target: '/security-policy-center' }
   ];
+
+  get activeLayerCount(): number {
+    return this.layers.filter((layer) => layer.status === 'active').length;
+  }
 }
