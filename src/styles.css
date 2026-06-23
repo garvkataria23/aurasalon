@@ -4099,7 +4099,7 @@ body::before {
   top: 94px;
   z-index: 18;
   display: grid;
-  grid-template-columns: minmax(180px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, max-content) minmax(0, 1fr);
   align-items: stretch;
   gap: 10px;
   margin: 0 0 14px;
@@ -4113,10 +4113,11 @@ body::before {
 
 .workspace-page-tabs-head {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, max-content);
   align-items: center;
   gap: 9px;
   min-width: 0;
+  max-width: 420px;
   padding-right: 10px;
   border-right: 1px solid rgba(15, 118, 110, 0.12);
 }
@@ -4124,12 +4125,13 @@ body::before {
 .workspace-page-tabs-head strong {
   display: block;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   color: #10201a;
   font-size: 0.95rem;
   font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: normal;
 }
 
 .workspace-page-tabs-nav {
