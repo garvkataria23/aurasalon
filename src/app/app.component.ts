@@ -428,16 +428,24 @@ export class AppComponent {
         },
         {
           path: '/staff-os/attendance-dashboard',
-          label: 'Attendance & Leave',
-          icon: 'AL',
-          keywords: 'attendance roster shift face punch leave heatmap present absent late',
+          label: 'Attendance & Shifts',
+          icon: 'AS',
+          keywords: 'attendance roster shift face punch present absent late',
           children: [
             { path: '/staff-os/attendance-dashboard', label: 'Attendance', icon: 'AT', keywords: 'attendance dashboard biometric present absent late' },
             { path: '/staff-os/face-punch', label: 'Face Punch', icon: 'FP', keywords: 'face punch camera attendance check in checkout' },
             { path: '/staff-os/attendance-master', label: 'Attendance Master', icon: 'AM', keywords: 'attendance master absent present holiday day count paid unpaid' },
             { path: '/staff-os/attendance-category', label: 'Attendance Category', icon: 'AC', keywords: 'attendance category late mark overtime shift slabs' },
             { path: '/staff-os/shift-master', label: 'Shift Master', icon: 'SM', keywords: 'shift master start time end time weekly off holiday leave' },
-            { path: '/staff-os/roster-calendar', label: 'Roster Calendar', icon: 'RC', keywords: 'roster schedule shift calendar availability' },
+            { path: '/staff-os/roster-calendar', label: 'Roster Calendar', icon: 'RC', keywords: 'roster schedule shift calendar availability' }
+          ]
+        },
+        {
+          path: '/staff-os/leave-management',
+          label: 'Leave & Heatmaps',
+          icon: 'LH',
+          keywords: 'leave heatmap calendar roster attendance coverage demand',
+          children: [
             { path: '/staff-os/leave-management', label: 'Leave Management', icon: 'LM', keywords: 'leave request approval balance calendar' },
             { path: '/staff-os/leave-master', label: 'Leave Master', icon: 'LV', keywords: 'leave master casual paid sick quota monthly yearly' },
             { path: '/staff-os/heatmaps/roster', label: 'Roster Heatmap', icon: 'RH', keywords: 'roster heatmap coverage demand' },
@@ -447,9 +455,9 @@ export class AppComponent {
         },
         {
           path: '/staff-os/payroll-dashboard',
-          label: 'Payroll & Incentives',
-          icon: 'PI',
-          keywords: 'payroll salary commission incentives target fines allowance deduction payout rules',
+          label: 'Payroll',
+          icon: 'PY',
+          keywords: 'payroll salary fines allowance deduction payout rules payroll cost heatmap',
           children: [
             { path: '/staff-os/payroll-dashboard', label: 'Payroll Dashboard', icon: 'PD', keywords: 'payroll export salary payout statutory' },
             { path: '/staff-os/payroll-rules', label: 'Payroll Rules', icon: 'PR', keywords: 'payroll rules overtime week off salary formula' },
@@ -458,6 +466,15 @@ export class AppComponent {
             { path: '/staff-os/salary-workspace', label: 'Salary Workspace', icon: 'SW', keywords: 'salary workspace staff salary setup' },
             { path: '/staff-os/fines-penalties', label: 'Fines / Penalty', icon: 'FN', keywords: 'fine penalty master payroll flexi' },
             { path: '/staff-os/allowance-deduction', label: 'Allowance / Deduction', icon: 'AD', keywords: 'allowance deduction payroll master flexi' },
+            { path: '/staff-os/heatmaps/payroll-cost', label: 'Payroll Cost Heatmap', icon: 'PH', keywords: 'payroll cost heatmap salary overtime' }
+          ]
+        },
+        {
+          path: '/staff-os/commission-dashboard',
+          label: 'Incentives',
+          icon: 'IN',
+          keywords: 'commission incentives target service product membership branch admin all transaction payout rules',
+          children: [
             { path: '/staff-os/commission-dashboard', label: 'Commission Dashboard', icon: 'CD', keywords: 'commission rules payout incentive' },
             { path: '/commissions', label: 'Commission Rules', icon: 'CR', keywords: 'commission policies rules payroll calculations' },
             { path: '/staff-os/target-incentives/service', label: 'Service Incentives', icon: 'SI', keywords: 'service target incentive slabs flexi commission' },
@@ -465,8 +482,7 @@ export class AppComponent {
             { path: '/staff-os/target-incentives/membership', label: 'Membership Incentives', icon: 'MI', keywords: 'membership target incentive sales' },
             { path: '/staff-os/target-incentives/branch-admin', label: 'Branch Incentives', icon: 'BI', keywords: 'branch admin target incentive' },
             { path: '/staff-os/target-incentives/admin', label: 'Admin Incentives', icon: 'AI', keywords: 'admin target incentive master' },
-            { path: '/staff-os/target-incentives/all-transaction', label: 'All Transaction Incentives', icon: 'TI', keywords: 'all transaction target incentive' },
-            { path: '/staff-os/heatmaps/payroll-cost', label: 'Payroll Cost Heatmap', icon: 'PH', keywords: 'payroll cost heatmap salary overtime' }
+            { path: '/staff-os/target-incentives/all-transaction', label: 'All Transaction Incentives', icon: 'TI', keywords: 'all transaction target incentive' }
           ]
         },
         {
