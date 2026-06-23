@@ -81,6 +81,14 @@ superAdminRouter.post(
   })
 );
 
+superAdminRouter.post(
+  "/super-admin/tenants/:id/support-notes",
+  validateBody({ required: ["note"] }),
+  asyncHandler((req, res) => {
+    res.status(201).json(superAdminService.addSupportNote(req.params.id, req.body, req.access));
+  })
+);
+
 superAdminRouter.delete(
   "/super-admin/feature-toggles/:id",
   asyncHandler((req, res) => {

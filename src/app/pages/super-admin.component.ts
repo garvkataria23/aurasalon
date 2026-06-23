@@ -436,7 +436,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                 <tr><th>Salon</th><th>Plan</th><th>Status</th><th>Billing</th><th>Sales</th><th>Usage</th><th>Health</th><th></th></tr>
               </thead>
               <tbody>
-                <tr *ngFor="let tenant of overview.tenants">
+                <tr *ngFor="let tenant of overview.tenants" style="cursor:pointer" (click)="openTenantDrilldown(tenant.id)">
                   <td><strong>{{ tenant.name }}</strong><small>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain }}</small></td>
                   <td>{{ tenant.planName }}</td>
                   <td><span class="badge">{{ tenant.subscriptionStatus }}</span></td>
@@ -445,14 +445,139 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                   <td>{{ tenant.usage.clients }} clients · {{ tenant.usage.appointments }} bookings</td>
                   <td>{{ tenant.healthScore | number: '1.0-1' }}</td>
                   <td>
-                    <button class="ghost-button mini" type="button" (click)="selectTenant(tenant.id)">360</button>
-                    <button class="ghost-button mini" type="button" (click)="toggleTenant(tenant)">
+                    <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); openTenantDrilldown(tenant.id)">Profile</button>
+                    <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); selectTenant(tenant.id)">360</button>
+                    <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); toggleTenant(tenant)">
                       {{ tenant.subscriptionStatus === 'suspended' ? 'Reactivate' : 'Suspend' }}
                     </button>
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section
+          *ngIf="drilldownOpen() && selectedTenant() as tenant"
+          style="position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.52);display:flex;justify-content:flex-end"
+          (click)="drilldownOpen.set(false)">
+          <div
+            class="panel"
+            style="width:min(100%,1040px);height:100%;overflow:auto;border-radius:0;margin:0;background:var(--surface,#fff)"
+            (click)="$event.stopPropagation()">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Tenant drill-down</span>
+                <h2>{{ tenant.name }} full profile, usage, invoices and audit log</h2>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="drilldownOpen.set(false)">Close</button>
+            </div>
+
+            <div class="quick-grid">
+              <article class="action-card">
+                <strong>{{ tenant.healthScore | number: '1.0-1' }}</strong>
+                <span>Health score</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ tenant.drilldown.staffCount }}</strong>
+                <span>Staff count</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ tenant.drilldown.tenantUserCount }}</strong>
+                <span>Tenant users</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ tenant.drilldown.invoiceSummary.total }}</strong>
+                <span>Invoices</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ tenant.drilldown.invoiceSummary.outstanding | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                <span>Outstanding</span>
+              </article>
+              <article class="action-card">
+                <strong>{{ tenant.drilldown.lastLoginAt || 'No login' }}</strong>
+                <span>Last login</span>
+              </article>
+            </div>
+
+            <div class="dashboard-grid">
+              <div class="activity-list">
+                <article>
+                  <div>
+                    <strong>Profile</strong>
+                    <span>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain || 'Domain pending' }} · {{ tenant.planName }}</span>
+                  </div>
+                  <span class="badge">{{ tenant.subscriptionStatus }}</span>
+                </article>
+                <article *ngFor="let item of tenant.drilldown.usageGraph">
+                  <div style="flex:1;min-width:0">
+                    <strong>{{ item.label }}</strong>
+                    <span style="display:block;height:6px;background:var(--surface-muted,#e5e7eb);border-radius:999px;margin-top:8px;overflow:hidden">
+                      <span [style.width.%]="usageBarWidth(item.value, tenant.drilldown.usageGraph)" style="display:block;height:100%;background:var(--accent,#2563eb)"></span>
+                    </span>
+                  </div>
+                  <strong>{{ item.value }}</strong>
+                </article>
+              </div>
+
+              <div class="activity-list">
+                <article *ngFor="let invoice of tenant.drilldown.recentInvoices">
+                  <div>
+                    <strong>{{ invoice.invoiceNumber }}</strong>
+                    <span>{{ invoice.createdAt || 'No date' }} · paid {{ invoice.paid | currency: 'INR':'symbol':'1.0-0' }} · due {{ invoice.balance | currency: 'INR':'symbol':'1.0-0' }}</span>
+                  </div>
+                  <span class="badge">{{ invoice.status }}</span>
+                </article>
+                <article *ngIf="!tenant.drilldown.recentInvoices.length">
+                  <div>
+                    <strong>No invoices found</strong>
+                    <span>Billing history will appear after invoices are created.</span>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <div class="dashboard-grid" style="margin-top:16px">
+              <section class="form-panel">
+                <h3>Support notes</h3>
+                <form [formGroup]="supportNoteForm" (ngSubmit)="saveSupportNote(tenant.id)">
+                  <label class="field full"><span>Internal note</span><textarea formControlName="note"></textarea></label>
+                  <div class="form-actions">
+                    <button class="primary-button" type="submit" [disabled]="supportNoteForm.invalid || saving()">Add note</button>
+                  </div>
+                </form>
+                <div class="activity-list" style="margin-top:12px">
+                  <article *ngFor="let note of tenant.drilldown.supportNotes">
+                    <div>
+                      <strong>{{ note.note }}</strong>
+                      <span>{{ note.author }} · {{ note.createdAt }}</span>
+                    </div>
+                  </article>
+                  <article *ngIf="!tenant.drilldown.supportNotes.length">
+                    <div>
+                      <strong>No support notes</strong>
+                      <span>Internal notes added here are stored in audit history.</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <div class="activity-list">
+                <article *ngFor="let event of tenant.drilldown.auditLog">
+                  <div>
+                    <strong>{{ event.action }}</strong>
+                    <span>{{ event.actorUserId }} · {{ event.summary || 'No details' }}</span>
+                  </div>
+                  <small>{{ event.createdAt }}</small>
+                </article>
+                <article *ngIf="!tenant.drilldown.auditLog.length">
+                  <div>
+                    <strong>No audit events</strong>
+                    <span>Super-admin actions for this tenant will appear here.</span>
+                  </div>
+                </article>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -622,6 +747,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 export class SuperAdminComponent implements OnInit {
   readonly overview = signal<ApiRecord | null>(null);
   readonly selectedTenantId = signal('');
+  readonly drilldownOpen = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
@@ -649,6 +775,10 @@ export class SuperAdminComponent implements OnInit {
     priority: ['high'],
     reason: ['', Validators.required],
     confirmation: ['', Validators.required]
+  });
+
+  readonly supportNoteForm = this.fb.group({
+    note: ['', Validators.required]
   });
 
   readonly planForm = this.fb.group({
@@ -722,6 +852,16 @@ export class SuperAdminComponent implements OnInit {
     this.selectedTenantId.set(tenantId);
   }
 
+  openTenantDrilldown(tenantId: string): void {
+    this.selectedTenantId.set(tenantId);
+    this.drilldownOpen.set(true);
+  }
+
+  usageBarWidth(value: number, rows: ApiRecord[] = []): number {
+    const max = Math.max(1, ...rows.map((row) => Number(row.value || 0)));
+    return Math.max(4, Math.round((Number(value || 0) / max) * 100));
+  }
+
   tenantHealthRows(tenant: ApiRecord): ApiRecord[] {
     const health = tenant?.tenant360?.health || tenant?.healthBreakdown || {};
     return [
@@ -786,6 +926,22 @@ export class SuperAdminComponent implements OnInit {
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to resolve approval');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  saveSupportNote(tenantId: string): void {
+    if (this.supportNoteForm.invalid) return;
+    this.saving.set(true);
+    this.api.post(`super-admin/tenants/${tenantId}/support-notes`, this.supportNoteForm.value).subscribe({
+      next: () => {
+        this.supportNoteForm.reset({ note: '' });
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to add support note');
         this.saving.set(false);
       }
     });

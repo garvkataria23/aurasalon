@@ -377,6 +377,73 @@ function saasHealthEngine(metrics, tenantRows, featureToggles) {
   };
 }
 
+function tenantDrilldown(tenant, tenantInvoices, tenantUsers, auditRows) {
+  const lastLoginAt = tenantUsers
+    .map((user) => user.lastLoginAt || "")
+    .filter(Boolean)
+    .sort()
+    .pop() || "";
+  const supportNotes = auditRows
+    .filter((row) => row.targetType === "tenant" && row.targetId === tenant.id && row.action === "tenant.support_note.added")
+    .slice(0, 8)
+    .map((row) => {
+      const details = normalizeRules(row.details);
+      return {
+        id: row.id,
+        note: details.note || details.reason || "",
+        author: row.actorUserId,
+        createdAt: row.createdAt
+      };
+    });
+  const auditLog = auditRows
+    .filter((row) => row.targetType === "tenant" && row.targetId === tenant.id)
+    .slice(0, 12)
+    .map((row) => {
+      const details = normalizeRules(row.details);
+      return {
+        id: row.id,
+        action: row.action,
+        actorUserId: row.actorUserId,
+        createdAt: row.createdAt,
+        summary: details.note || details.reason || details.status || details.planId || details.key || ""
+      };
+    });
+  return {
+    usageGraph: [
+      { label: "Branches", value: tenant.usage.branches },
+      { label: "Staff", value: tenant.usage.staff },
+      { label: "Clients", value: tenant.usage.clients },
+      { label: "Appointments", value: tenant.usage.appointments },
+      { label: "Sales", value: tenant.usage.sales },
+      { label: "Campaigns", value: tenant.usage.campaigns }
+    ],
+    invoiceSummary: {
+      total: tenantInvoices.length,
+      paid: tenantInvoices.filter((invoice) => invoice.status === "paid").length,
+      unpaid: tenantInvoices.filter((invoice) => invoice.status !== "paid").length,
+      outstanding: tenant.outstanding
+    },
+    recentInvoices: tenantInvoices
+      .slice()
+      .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
+      .slice(0, 8)
+      .map((invoice) => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber || invoice.invoice_no || invoice.id,
+        status: invoice.status || invoice.payment_status || "",
+        total: Number(invoice.total || invoice.grand_total || 0),
+        paid: Number(invoice.paid || invoice.paid_amount || 0),
+        balance: Number(invoice.balance || invoice.due_amount || 0),
+        createdAt: invoice.createdAt || invoice.created_at || ""
+      })),
+    staffCount: tenant.usage.staff,
+    tenantUserCount: tenantUsers.length,
+    lastLoginAt,
+    supportNotes,
+    auditLog
+  };
+}
+
 function revenueCommand(metrics, tenants, plans) {
   const activeTenants = tenants.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus));
   const planMix = plans.map((plan) => {
@@ -450,11 +517,14 @@ export class SuperAdminService {
     const subscriptions = repositories.subscriptions.list({ limit: 10000 });
     const sales = repositories.sales.list({ limit: 100000 });
     const invoices = repositories.invoices.list({ limit: 100000 });
+    const tenantUsers = repositories.tenantUsers.list({ limit: 100000 });
+    const auditRows = repositories.superAdminAudit.list({ limit: 1000 }).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
     const planById = new Map(plans.map((plan) => [plan.id, plan]));
     const subscriptionByTenant = new Map(subscriptions.map((sub) => [sub.tenantId, sub]));
     const tenantRows = tenants.map((tenant) => {
       const tenantSales = sales.filter((sale) => sale.tenantId === tenant.id);
       const tenantInvoices = invoices.filter((invoice) => invoice.tenantId === tenant.id);
+      const usersForTenant = tenantUsers.filter((user) => user.tenantId === tenant.id);
       const plan = planById.get(tenant.planId);
       const billingPreview = tenantService.billingPreview(tenant.id);
       const usage = {
@@ -490,7 +560,7 @@ export class SuperAdminService {
         healthScore: tenantHealth(tenant, usage),
         subscription: subscriptionByTenant.get(tenant.id) || null
       };
-      return { ...row, tenant360: tenant360(row) };
+      return { ...row, tenant360: tenant360(row), drilldown: tenantDrilldown(row, tenantInvoices, usersForTenant, auditRows) };
     });
     const metrics = {
       salons: tenants.length,
@@ -645,6 +715,18 @@ export class SuperAdminService {
       reason: safety.reason,
       confirmation: safety.confirmation,
       resolvedAt: now()
+    });
+  }
+
+  addSupportNote(tenantId, payload = {}, access) {
+    ensureSuperAdmin(access);
+    const tenant = repositories.tenants.getById(tenantId);
+    if (!tenant) throw notFound("Tenant not found");
+    const note = String(payload.note || "").trim();
+    if (note.length < 3) throw badRequest("Support note is required");
+    return this.audit(access, "tenant.support_note.added", "tenant", tenantId, {
+      note,
+      visibility: payload.visibility || "internal"
     });
   }
 
