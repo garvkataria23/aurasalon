@@ -49,6 +49,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
       class="staff-os"
       [class.staff-list-mode]="section === 'staff-list' || section === 'staff-profile'"
       [class.staff-attendance-mode]="section === 'attendance-dashboard'"
+      [class.staff-roster-mode]="section === 'roster-calendar'"
     >
       <header class="topbar">
         <div>
@@ -1667,12 +1668,27 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
         </div>
       </section>
 
-      <section class="panel" *ngIf="section === 'roster-calendar'">
-        <div class="panel-heading">
-          <h2>Roster And Attendance</h2>
-          <span>{{ store.schedules().length }} shifts</span>
+      <section class="panel roster-register-panel" *ngIf="section === 'roster-calendar'">
+        <div class="panel-heading roster-register-heading">
+          <div>
+            <p class="eyebrow">Roster register</p>
+            <h2>Roster And Attendance</h2>
+          </div>
+          <div class="staff-register-actions">
+            <span>{{ store.schedules().length }} shifts</span>
+            <a class="refresh" routerLink="/staff-os/shift-master" [queryParams]="staffContextParams()">Shift Master</a>
+            <button type="button" class="refresh" (click)="store.load()">Refresh</button>
+          </div>
         </div>
-        <form class="staff-form camera-form task-create-form" [formGroup]="rosterForm" (ngSubmit)="assignRosterShift()">
+
+        <div class="roster-kpi-strip">
+          <article><span>Roster shifts</span><strong>{{ store.schedules().length }}</strong><small>live schedule rows</small></article>
+          <article><span>Available staff</span><strong>{{ activeStaffForRoster().length }}</strong><small>not hidden from roster</small></article>
+          <article><span>Shift templates</span><strong>{{ rosterShiftOptions().length }}</strong><small>branch setup</small></article>
+          <article><span>Today attendance</span><strong>{{ attendanceRows().length }}</strong><small>{{ attendanceDate() }}</small></article>
+        </div>
+
+        <form class="staff-form camera-form task-create-form roster-assign-form" [formGroup]="rosterForm" (ngSubmit)="assignRosterShift()">
           <label class="field">
             <span>Branch</span>
             <select formControlName="branchId">
@@ -1707,22 +1723,39 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
             <span class="error-message" *ngIf="rosterError()">{{ rosterError() }}</span>
           </div>
         </form>
-        <div class="heatmap" aria-label="Roster heatmap">
+        <div class="heatmap roster-heatmap" aria-label="Roster heatmap">
           <span *ngFor="let cell of heatmapCells; let index = index" [style.opacity]="opacity(index)"></span>
         </div>
-        <div class="table compact">
-          <div class="row header"><span>Date</span><span>Staff</span><span>Timing</span><span>Status</span></div>
-          <div class="row" *ngFor="let shift of store.schedules()">
-            <span>{{ shift.scheduleDate }}</span>
-            <span>{{ shift.staffId }}</span>
-            <span>{{ shift.startTime }} - {{ shift.endTime }}</span>
-            <span class="badge">{{ shift.status }}</span>
-          </div>
+        <div class="roster-register-scroll">
+          <table class="roster-register-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Staff</th>
+                <th>Timing</th>
+                <th>Branch</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let shift of store.schedules()">
+                <td>{{ shift.scheduleDate }}</td>
+                <td>{{ staffNameById(shift.staffId) }}</td>
+                <td>{{ shift.startTime }} - {{ shift.endTime }}</td>
+                <td>{{ shift.branchId }}</td>
+                <td><span class="badge">{{ shift.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
           <div *ngIf="!store.schedules().length && !store.loading()" class="empty action-empty">
             <strong>No roster data for the selected branch.</strong>
             <span>Create shift master or roster entries to see staff availability.</span>
             <a class="refresh" routerLink="/staff-os/shift-master" [queryParams]="staffContextParams()">Create shift setup</a>
           </div>
+        </div>
+        <div class="staff-register-footer">
+          <span>{{ store.schedules().length ? 1 : 0 }} to {{ store.schedules().length }} of {{ store.schedules().length }}</span>
+          <span>Page 1 of 1</span>
         </div>
       </section>
 
@@ -2103,6 +2136,40 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
     .attendance-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
     .attendance-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
     .attendance-register-table tbody tr:hover { background: #eef7fc; }
+    .staff-roster-mode { gap: 10px; }
+    .staff-roster-mode .topbar,
+    .staff-roster-mode .staff-shell-nav,
+    .staff-roster-mode .staff-control-room,
+    .staff-roster-mode .metrics,
+    .staff-roster-mode .roster-register-panel { border-radius: 0; box-shadow: none; }
+    .staff-roster-mode .topbar { background: #fff; border: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-roster-mode .refresh,
+    .staff-roster-mode .primary,
+    .staff-roster-mode .row-action { border-radius: 3px; min-height: 32px; padding: 7px 11px; }
+    .staff-roster-mode .primary { background: #0b72b5; border-color: #0b72b5; }
+    .staff-roster-mode .staff-shell-nav { background: #fff; border-color: #d8e1ea; padding: 7px; }
+    .staff-roster-mode .staff-shell-nav a { border-radius: 3px; min-height: 44px; }
+    .staff-roster-mode .staff-control-room { border-color: #d8e1ea; padding: 12px 16px; }
+    .staff-roster-mode .control-card { border-radius: 3px; min-height: 76px; padding: 10px 12px; }
+    .staff-roster-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-roster-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
+    .staff-roster-mode .metric:last-child { border-right: 0; }
+    .roster-register-panel { border-color: #d8e1ea; overflow: hidden; padding: 0; }
+    .roster-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .roster-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
+    .roster-kpi-strip article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; padding: 10px 16px; }
+    .roster-kpi-strip article:last-child { border-right: 0; }
+    .roster-kpi-strip span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .roster-kpi-strip strong { color: #111827; font-size: 22px; line-height: 1; }
+    .roster-kpi-strip small { color: #64748b; }
+    .roster-assign-form.staff-form { border-bottom: 1px solid #d8e1ea; margin: 0; padding: 13px 16px; }
+    .roster-heatmap { border-bottom: 1px solid #d8e1ea; padding: 10px 16px; }
+    .roster-register-scroll { max-width: 100%; overflow: auto; }
+    .roster-register-table { border-collapse: collapse; min-width: 940px; width: 100%; }
+    .roster-register-table th,
+    .roster-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    .roster-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .roster-register-table tbody tr:hover { background: #eef7fc; }
     .attendance-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
     .attendance-controls input { width: 170px; min-height: 38px; }
     .attendance-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
@@ -2258,7 +2325,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
     .live-panel-links a { border: 1px solid #cbd8d2; border-radius: 4px; color: #0f6eb3; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
-    @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-attendance-mode .attendance-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-attendance-mode .attendance-stats article:nth-child(2n) { border-right: 0; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision { grid-column: 1 / -1; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
+    @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-attendance-mode .attendance-stats, .roster-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-attendance-mode .attendance-stats article:nth-child(2n), .roster-kpi-strip article:nth-child(2n) { border-right: 0; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision { grid-column: 1 / -1; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
     @media (max-width: 640px) {
       .staff-os { gap: 12px; padding: 0; }
       .drawer-shell { padding: 0; }
@@ -2278,6 +2345,8 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
       .metrics, .task-grid, .split, .attendance-stats, .staff-category-rail, .workspace-kpi-grid, .attendance-workspace, .attendance-wide, .camera-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: 1fr; }
       .staff-attendance-mode .attendance-stats { grid-template-columns: 1fr; }
       .staff-attendance-mode .attendance-stats article { border-right: 0; }
+      .roster-kpi-strip { grid-template-columns: 1fr; }
+      .roster-kpi-strip article { border-right: 0; }
       .metrics { gap: 9px; }
       .metric, .panel, .state { border-radius: 8px; }
       .panel { padding: 13px; }
