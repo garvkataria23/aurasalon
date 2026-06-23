@@ -8,6 +8,9 @@ import { AuthSessionService } from './core/auth-session.service';
 import { I18nService, LocalePreference } from './core/i18n.service';
 import { AppStateService, UserRole } from './core/state/app-state.service';
 import { AutoNameCaseDirective } from './shared/directives/auto-name-case.directive';
+import { CommandPaletteComponent } from './shared/ui/command-palette/command-palette.component';
+import { HeaderActionsComponent } from './shared/ui/header-actions/header-actions.component';
+import { WorkspaceSwitcherComponent } from './shared/ui/workspace-switcher/workspace-switcher.component';
 
 type NavItem = {
   path: string;
@@ -28,7 +31,7 @@ type NavGroup = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, RouterLinkActive, RouterOutlet, CommandPaletteComponent, HeaderActionsComponent, WorkspaceSwitcherComponent],
   hostDirectives: [AutoNameCaseDirective],
   template: `
     <ng-container *ngIf="!session.isAuthenticated() && !isPortal(); else authenticatedApp">
@@ -172,57 +175,27 @@ type NavGroup = {
           </div>
           <div class="topbar-actions">
             <button
-              class="ghost-button back-button"
+              class="command-trigger"
               type="button"
-              (click)="goBack()"
-              [attr.aria-label]="backButtonLabel()"
-              [title]="backButtonLabel()"
-            >
-              <span aria-hidden="true">&larr;</span>
-              <span>Back</span>
+              (click)="openCommandBar()"
+              aria-label="Open command bar"
+              title="Search & quick actions">
+              <span class="command-trigger-icon" aria-hidden="true">⌕</span>
+              <span class="command-trigger-label">Search or jump to…</span>
+              <kbd class="command-trigger-kbd">⌘K</kbd>
             </button>
-            <label class="select-label country-scope">
-              <span>{{ i18n.t('shell.country', 'Country') }}</span>
-              <select [ngModel]="i18n.countryCode()" (ngModelChange)="selectCountry($event)">
-                <option *ngFor="let country of i18n.countries" [value]="country.code">{{ country.label }}</option>
-              </select>
-            </label>
-            <label class="select-label language-scope">
-              <span>{{ i18n.t('shell.language', 'Language') }}</span>
-              <select [ngModel]="i18n.languageCode()" (ngModelChange)="selectLanguage($event)">
-                <option *ngFor="let language of i18n.languages" [value]="language.code">{{ language.label }}</option>
-              </select>
-            </label>
-            <label class="select-label tenant-scope">
-              <span>{{ i18n.t('shell.tenant', 'Tenant') }}</span>
-              <select [ngModel]="state.selectedTenantId()" (ngModelChange)="selectTenant($event)">
-                <option *ngFor="let tenant of tenants()" [value]="tenant.id">{{ tenant.name || tenant.id }}</option>
-              </select>
-            </label>
-            <label class="select-label branch-scope">
-              <span>{{ i18n.t('shell.branch', 'Branch') }}</span>
-              <select [ngModel]="state.selectedBranchId()" (ngModelChange)="selectBranch($event)">
-                <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name || branch.id }}</option>
-              </select>
-            </label>
-            <label class="select-label role-scope">
-              <span>{{ i18n.t('shell.role', 'Role') }}</span>
-              <select [ngModel]="state.userRole()" (ngModelChange)="selectRole($event)">
-                <option value="owner">Owner</option>
-                <option value="superAdmin">Super admin</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="receptionist">Receptionist</option>
-                <option value="frontDesk">Front desk</option>
-                <option value="staff">Staff</option>
-                <option value="accountant">Accountant</option>
-                <option value="inventoryManager">Inventory manager</option>
-                <option value="analyst">Analyst</option>
-                <option value="customMarketingLead">Custom marketing lead</option>
-              </select>
-            </label>
+            <aura-workspace-switcher
+              [tenants]="tenants()"
+              [branches]="branches()"
+              (tenantChange)="selectTenant($event)"
+              (branchChange)="selectBranch($event)"
+              (roleChange)="selectRole($any($event))"
+              (countryChange)="selectCountry($event)"
+              (languageChange)="selectLanguage($event)">
+            </aura-workspace-switcher>
             <a class="dark-button" routerLink="/pos">{{ i18n.t('shell.fastPos', 'Fast POS') }}</a>
-            <button class="ghost-button" type="button" (click)="logout()">{{ i18n.t('shell.logout', 'Logout') }}</button>
+            <span class="topbar-divider" aria-hidden="true"></span>
+            <aura-header-actions></aura-header-actions>
           </div>
         </header>
         <div class="state error" *ngIf="globalError()">
@@ -232,6 +205,15 @@ type NavGroup = {
 
         <router-outlet></router-outlet>
       </main>
+      <aura-command-palette></aura-command-palette>
+      <a class="ai-fab" routerLink="/ai" aria-label="Ask Aura AI assistant" title="Ask Aura AI">
+        <svg class="ai-fab-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path fill="currentColor" d="M5 3h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H10l-4.6 3.45A1 1 0 0 1 4 19.6V17a3 3 0 0 1-1-2.24V6a3 3 0 0 1 3-3z"/>
+          <circle cx="8.5" cy="10" r="1.25" fill="#7c3aed"/>
+          <circle cx="12" cy="10" r="1.25" fill="#7c3aed"/>
+          <circle cx="15.5" cy="10" r="1.25" fill="#7c3aed"/>
+        </svg>
+      </a>
     </div>
     </ng-template>
     </ng-template>
@@ -608,6 +590,10 @@ export class AppComponent {
 
   logout(): void {
     this.session.logout();
+  }
+
+  openCommandBar(): void {
+    window.dispatchEvent(new Event('aura:command-palette:open'));
   }
 
   goBack(): void {
