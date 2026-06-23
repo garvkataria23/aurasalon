@@ -47,7 +47,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
   template: `
     <section
       class="staff-os"
-      [class.staff-list-mode]="section === 'staff-list' || section === 'staff-profile'"
+      [class.staff-list-mode]="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'"
       [class.staff-attendance-mode]="section === 'attendance-dashboard'"
       [class.staff-roster-mode]="section === 'roster-calendar'"
       [class.staff-payroll-mode]="section === 'payroll-dashboard'"
@@ -437,11 +437,11 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
         </div>
       </section>
 
-      <section class="panel" [class.staff-register-panel]="section === 'staff-list' || section === 'staff-profile'" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
+      <section class="panel" [class.staff-register-panel]="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
         <div class="panel-heading staff-register-heading">
           <div>
-            <p class="eyebrow">{{ section === 'staff-profile' ? 'Staff profile register' : 'Staff directory' }}</p>
-            <h2>{{ section === 'staff-profile' ? 'Employee profiles' : 'Manage employees' }}</h2>
+            <p class="eyebrow">{{ section === 'training-center' ? 'Training register' : section === 'staff-profile' ? 'Staff profile register' : 'Staff directory' }}</p>
+            <h2>{{ section === 'training-center' ? 'Training Center' : section === 'staff-profile' ? 'Employee profiles' : 'Manage employees' }}</h2>
           </div>
           <div class="staff-register-actions">
             <span>{{ staffDirectoryRows().length }} records</span>
@@ -450,7 +450,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
           </div>
         </div>
 
-        <div class="staff-register-kpis" *ngIf="section === 'staff-list' || section === 'staff-profile'">
+        <div class="staff-register-kpis" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
           <article><span>Total staff</span><strong>{{ staffDirectoryRows().length }}</strong><small>employee master records</small></article>
           <article><span>Active</span><strong>{{ activeStaffForAttendance().length }}</strong><small>attendance ready</small></article>
           <article><span>Inactive</span><strong>{{ inactiveStaffCount() }}</strong><small>paused / archived</small></article>
@@ -514,7 +514,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
             <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
           </div>
         </div>
-        <div class="staff-register-footer" *ngIf="section === 'staff-list' || section === 'staff-profile'">
+        <div class="staff-register-footer" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
           <span>{{ staffDirectoryRows().length ? 1 : 0 }} to {{ staffDirectoryRows().length }} of {{ staffDirectoryRows().length }}</span>
           <span>Page 1 of 1</span>
         </div>
