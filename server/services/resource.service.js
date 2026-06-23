@@ -169,6 +169,7 @@ export class ResourceService {
     }
 
     const scope = payload?.scope === "category" ? "category" : "all";
+    const serviceColumns = columnsFor("services");
     const branchId = String(payload?.branchId || access.branchId || "");
     if (branchId) tenantService.assertBranchAccess(access, branchId);
 
@@ -179,7 +180,18 @@ export class ResourceService {
       gstRate,
       category: String(payload?.category || "").trim()
     };
-    if (branchId) where.push("branchId = @branchId");
+    if (branchId && serviceColumns.includes("branchId")) where.push("branchId = @branchId");
+    const serviceIds = Array.isArray(payload?.serviceIds)
+      ? payload.serviceIds.map((id) => String(id || "").trim()).filter(Boolean)
+      : [];
+    if (serviceIds.length) {
+      const idParams = serviceIds.map((id, index) => {
+        const key = `id${index}`;
+        params[key] = id;
+        return `@${key}`;
+      });
+      where.push(`id IN (${idParams.join(", ")})`);
+    }
     if (scope === "category") {
       if (!params.category) throw badRequest("Category is required for category GST update");
       if (params.category === "Uncategorized") {

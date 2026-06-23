@@ -73,7 +73,7 @@ type PageConfig = {
               <input type="number" min="0" max="28" step="0.1" [(ngModel)]="bulkGstRate" />
             </label>
             <button class="ghost-button" type="button" (click)="applyGstToServices('category')" [disabled]="saving || !activeServiceCategory">Update category GST</button>
-            <button class="primary-button" type="button" (click)="applyGstToServices('all')" [disabled]="saving">Update all services GST</button>
+            <button class="primary-button" type="button" (click)="applyGstToServices('all')" [disabled]="saving">Update filtered GST</button>
           </div>
           <button class="ghost-button" type="button" (click)="load()">Refresh</button>
         </div>
@@ -99,6 +99,23 @@ type PageConfig = {
                 <span>{{ category.name }}</span>
                 <strong>{{ category.count }}</strong>
               </button>
+              <div class="rate-filter-block">
+                <div class="section-title compact">
+                  <div>
+                    <span class="eyebrow">GST Rates</span>
+                    <h3>Rate groups</h3>
+                  </div>
+                  <span class="badge">{{ gstRateSummaries().length }}</span>
+                </div>
+                <button type="button" [class.active]="!activeGstRate" (click)="selectGstRate('')">
+                  <span>All GST rates</span>
+                  <strong>{{ categoryScopedRows().length }}</strong>
+                </button>
+                <button type="button" *ngFor="let rate of gstRateSummaries()" [class.active]="activeGstRate === rate.value" (click)="selectGstRate(rate.value)">
+                  <span>{{ rate.label }}</span>
+                  <strong>{{ rate.count }}</strong>
+                </button>
+              </div>
             </aside>
 
             <main class="service-list-panel">
@@ -217,6 +234,14 @@ type PageConfig = {
       background: #ecfdf5;
     }
 
+    .rate-filter-block {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px solid #d9e3ec;
+    }
+
     .service-category-panel span {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -276,6 +301,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
   sortKey = '';
   sortDir: 'asc' | 'desc' = 'asc';
   activeServiceCategory = '';
+  activeGstRate = '';
   bulkGstRate = 18;
   actionMessage = '';
   form: UntypedFormGroup = this.fb.group({});
@@ -323,18 +349,39 @@ export class ModulePageComponent implements OnInit, OnDestroy {
 
   serviceRows(): ApiRecord[] {
     const term = this.query.toLowerCase();
-    const rows = this.rows.filter((row) => {
-      const categoryMatch = !this.activeServiceCategory || this.serviceCategoryName(row) === this.activeServiceCategory;
+    const rows = this.categoryScopedRows().filter((row) => {
+      const rateMatch = !this.activeGstRate || this.serviceGstValue(row) === this.activeGstRate;
       const searchMatch = !term || JSON.stringify(row).toLowerCase().includes(term);
-      return categoryMatch && searchMatch;
+      return rateMatch && searchMatch;
     });
     return this.sortedRows(rows);
   }
 
+  categoryScopedRows(): ApiRecord[] {
+    return this.rows.filter((row) => !this.activeServiceCategory || this.serviceCategoryName(row) === this.activeServiceCategory);
+  }
+
+  gstRateSummaries(): Array<{ value: string; label: string; count: number }> {
+    const map = new Map<string, number>();
+    for (const row of this.categoryScopedRows()) {
+      const value = this.serviceGstValue(row);
+      map.set(value, (map.get(value) || 0) + 1);
+    }
+    return [...map.entries()]
+      .map(([value, count]) => ({ value, label: this.formatGstRate(value), count }))
+      .sort((a, b) => Number(a.value) - Number(b.value));
+  }
+
   selectServiceCategory(category: string): void {
     this.activeServiceCategory = category;
+    this.activeGstRate = '';
     const first = this.rows.find((row) => !category || this.serviceCategoryName(row) === category);
     if (first?.gstRate !== undefined) this.bulkGstRate = Number(first.gstRate || 0);
+  }
+
+  selectGstRate(rate: string): void {
+    this.activeGstRate = rate;
+    if (rate) this.bulkGstRate = Number(rate);
   }
 
   serviceGstSummary(): string {
@@ -349,13 +396,13 @@ export class ModulePageComponent implements OnInit, OnDestroy {
       this.error = 'GST rate must be a valid positive number';
       return;
     }
-    const targets = (scope === 'all' ? this.rows : this.rows.filter((row) => this.serviceCategoryName(row) === this.activeServiceCategory))
+    const targets = (scope === 'all' ? this.serviceRows() : this.rows.filter((row) => this.serviceCategoryName(row) === this.activeServiceCategory))
       .filter((row) => row.id);
     if (!targets.length) {
       this.actionMessage = 'No service found for GST update.';
       return;
     }
-    const label = scope === 'all' ? 'all services' : this.activeServiceCategory;
+    const label = scope === 'all' ? 'filtered service(s)' : this.activeServiceCategory;
     if (!window.confirm(`Update GST to ${rate}% for ${targets.length} ${label}?`)) return;
     this.saving = true;
     this.error = '';
@@ -364,6 +411,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
       gstRate: rate,
       scope,
       category: this.activeServiceCategory,
+      serviceIds: targets.map((row) => String(row.id)),
       branchId: this.api.selectedBranchId()
     }).subscribe({
       next: (result) => {
@@ -389,6 +437,16 @@ export class ModulePageComponent implements OnInit, OnDestroy {
 
   private serviceCategoryName(row: ApiRecord): string {
     return String(row.category || row.serviceCategory || row.service_category || 'Uncategorized').trim() || 'Uncategorized';
+  }
+
+  private serviceGstValue(row: ApiRecord): string {
+    const rate = Number(row.gstRate ?? 0);
+    return Number.isFinite(rate) ? String(rate) : '0';
+  }
+
+  private formatGstRate(value: unknown): string {
+    const rate = Number(value ?? 0);
+    return Number.isFinite(rate) ? `${rate}%` : '0%';
   }
 
   load(): void {
@@ -462,6 +520,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
 
   value(row: ApiRecord, column: ColumnConfig): string {
     const cell = row[column.key];
+    if (this.isServicesPage() && column.key === 'gstRate') return this.formatGstRate(cell);
     if (column.type === 'currency') return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(cell || 0));
     if (column.type === 'date' && cell) return new Intl.DateTimeFormat('en-IN').format(new Date(cell));
     if (column.type === 'json') return JSON.stringify(cell);
