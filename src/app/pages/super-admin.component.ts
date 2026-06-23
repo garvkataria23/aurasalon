@@ -329,7 +329,25 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </div>
 
         <section class="form-panel">
-          <h3>Feature toggles</h3>
+          <h3>Advanced feature flags</h3>
+          <div class="quick-grid" *ngIf="overview.featureFlagCommand as flags">
+            <article class="action-card">
+              <strong>{{ flags.total }}</strong>
+              <span>Total flags</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ flags.partialRollouts }}</strong>
+              <span>Partial rollouts</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ flags.killSwitches }}</strong>
+              <span>Kill switches armed</span>
+            </article>
+            <article class="action-card">
+              <strong>{{ flags.expired }}</strong>
+              <span>Expired flags</span>
+            </article>
+          </div>
           <form [formGroup]="toggleForm" (ngSubmit)="saveToggle()">
             <label class="field"><span>Key</span><input formControlName="key" /></label>
             <label class="field"><span>Name</span><input formControlName="name" /></label>
@@ -341,31 +359,62 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                 <option value="plan">Plan</option>
               </select>
             </label>
+            <label class="field" *ngIf="toggleForm.value.scope === 'tenant'">
+              <span>Tenant target</span>
+              <select formControlName="tenantId">
+                <option value="">Select tenant</option>
+                <option *ngFor="let tenant of overview.tenants" [value]="tenant.id">{{ tenant.name }}</option>
+              </select>
+            </label>
+            <label class="field" *ngIf="toggleForm.value.scope === 'plan'">
+              <span>Plan target</span>
+              <select formControlName="planId">
+                <option value="">Select plan</option>
+                <option *ngFor="let plan of overview.plans" [value]="plan.id">{{ plan.name }}</option>
+              </select>
+            </label>
+            <label class="field"><span>Rollout %</span><input type="number" min="0" max="100" formControlName="rolloutPercentage" /></label>
+            <label class="field"><span>Expires on</span><input type="date" formControlName="expiresAt" /></label>
+            <label class="field"><span>Dependency key</span><input formControlName="dependencyKey" /></label>
             <label class="field check-line"><input type="checkbox" formControlName="enabled" /><span>Enabled</span></label>
+            <label class="field check-line"><input type="checkbox" formControlName="killSwitch" /><span>Kill switch</span></label>
             <label class="field full"><span>Description</span><textarea formControlName="description"></textarea></label>
             <div class="form-actions"><button class="primary-button" type="submit" [disabled]="toggleForm.invalid || saving()">Save toggle</button></div>
           </form>
         </section>
 
         <section class="panel">
-          <div class="section-title"><h2>Feature toggles and plans</h2></div>
+          <div class="section-title"><h2>Feature flags and plans</h2></div>
           <div class="dashboard-grid">
             <div class="activity-list">
               <article *ngFor="let toggle of overview.featureToggles" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div style="flex:1;min-width:0">
                   <strong>{{ toggle.name }}</strong>
-                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ toggle.key }} · {{ toggle.scope }}</span>
+                  <span style="display:block;font-size:0.8em;color:var(--text-muted)">
+                    {{ toggle.key }} · {{ toggle.targetSummary }} · {{ toggle.rolloutPercentage }}% rollout
+                  </span>
+                  <span *ngIf="toggle.guardrails?.length" style="display:block;font-size:0.78em;color:var(--text-muted)">
+                    {{ toggle.guardrails.join(' · ') }}
+                  </span>
                   <span *ngIf="toggle.description" style="display:block;font-size:0.78em;color:var(--text-muted)">{{ toggle.description }}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-                  <span class="badge" [style.background]="toggle.enabled ? 'var(--success,#16a34a)' : 'var(--muted,#6b7280)'" style="color:#fff">
-                    {{ toggle.enabled ? 'ON' : 'OFF' }}
+                  <span class="badge" [style.background]="featureFlagTone(toggle)" style="color:#fff">
+                    {{ toggle.statusLabel }}
                   </span>
                   <button
                     type="button"
                     class="ghost"
                     style="padding:4px 10px;font-size:0.8em"
                     [disabled]="saving()"
+                    (click)="editToggle(toggle)">
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="ghost"
+                    style="padding:4px 10px;font-size:0.8em"
+                    [disabled]="saving() || toggle.killSwitch"
                     (click)="toggleEnabled(toggle)">
                     {{ toggle.enabled ? 'Disable' : 'Enable' }}
                   </button>
@@ -424,7 +473,13 @@ export class SuperAdminComponent implements OnInit {
     key: ['ai.marketing', Validators.required],
     name: ['Marketing automation', Validators.required],
     scope: ['global'],
+    tenantId: [''],
+    planId: [''],
+    rolloutPercentage: [100],
+    expiresAt: [''],
+    dependencyKey: [''],
     enabled: [true],
+    killSwitch: [false],
     description: ['Enable AI campaign generation and retargeting workflows.']
   });
 
@@ -531,7 +586,21 @@ export class SuperAdminComponent implements OnInit {
   saveToggle(): void {
     if (this.toggleForm.invalid) return;
     this.saving.set(true);
-    this.api.post('super-admin/feature-toggles', { ...this.toggleForm.value, rules: {} }).subscribe({
+    const formValue = this.toggleForm.value;
+    const rolloutPercentage = Math.max(0, Math.min(100, Number(formValue.rolloutPercentage || 0)));
+    const payload = {
+      ...formValue,
+      tenantId: formValue.scope === 'tenant' ? formValue.tenantId : '',
+      planId: formValue.scope === 'plan' ? formValue.planId : '',
+      rolloutPercentage,
+      rules: {
+        rolloutPercentage,
+        expiresAt: formValue.expiresAt || '',
+        killSwitch: Boolean(formValue.killSwitch),
+        dependencyKey: formValue.dependencyKey || ''
+      }
+    };
+    this.api.post('super-admin/feature-toggles', payload).subscribe({
       next: () => {
         this.saving.set(false);
         this.load();
@@ -541,6 +610,30 @@ export class SuperAdminComponent implements OnInit {
         this.saving.set(false);
       }
     });
+  }
+
+  editToggle(toggle: ApiRecord): void {
+    this.toggleForm.patchValue({
+      key: toggle.key || '',
+      name: toggle.name || '',
+      scope: toggle.scope || 'global',
+      tenantId: toggle.tenantId || '',
+      planId: toggle.planId || '',
+      rolloutPercentage: toggle.rolloutPercentage ?? toggle.rules?.rolloutPercentage ?? 100,
+      expiresAt: toggle.expiresAt || toggle.rules?.expiresAt || '',
+      dependencyKey: toggle.dependencyKey || toggle.rules?.dependencyKey || '',
+      enabled: Boolean(toggle.enabled),
+      killSwitch: Boolean(toggle.killSwitch || toggle.rules?.killSwitch),
+      description: toggle.description || ''
+    });
+  }
+
+  featureFlagTone(toggle: ApiRecord): string {
+    if (toggle.statusLabel === 'killed') return 'var(--danger,#dc2626)';
+    if (toggle.statusLabel === 'expired') return 'var(--warning,#f59e0b)';
+    if (toggle.statusLabel === 'partial') return 'var(--accent,#2563eb)';
+    if (toggle.statusLabel === 'enabled') return 'var(--success,#16a34a)';
+    return 'var(--muted,#6b7280)';
   }
 
   toggleEnabled(toggle: { id: string; enabled: number | boolean; name: string }): void {

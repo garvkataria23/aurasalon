@@ -135,6 +135,81 @@ function tenant360(tenant) {
   };
 }
 
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, Math.round(Number(value ?? 100))));
+}
+
+function normalizeRules(rules = {}) {
+  if (typeof rules === "string") {
+    try {
+      return JSON.parse(rules || "{}");
+    } catch {
+      return {};
+    }
+  }
+  return rules && typeof rules === "object" ? rules : {};
+}
+
+function enrichFeatureToggle(toggle, tenants, plans) {
+  const rules = normalizeRules(toggle.rules);
+  const rolloutPercentage = clampPercent(rules.rolloutPercentage);
+  const expiresAt = rules.expiresAt || "";
+  const killSwitch = Boolean(rules.killSwitch);
+  const isExpired = expiresAt ? String(expiresAt).slice(0, 10) < now().slice(0, 10) : false;
+  const targetTenant = toggle.tenantId ? tenants.find((tenant) => tenant.id === toggle.tenantId) : null;
+  const targetPlan = toggle.planId ? plans.find((plan) => plan.id === toggle.planId) : null;
+  const targetSummary = targetTenant?.name || targetPlan?.name || (toggle.scope === "global" ? "All tenants" : toggle.scope);
+  const guardrails = [];
+  if (killSwitch) guardrails.push("Kill switch armed");
+  if (isExpired) guardrails.push("Expired");
+  if (rolloutPercentage < 100) guardrails.push(`${rolloutPercentage}% rollout`);
+  if (rules.dependencyKey) guardrails.push(`Depends on ${rules.dependencyKey}`);
+  const statusLabel = killSwitch
+    ? "killed"
+    : !toggle.enabled
+      ? "disabled"
+      : isExpired
+        ? "expired"
+        : rolloutPercentage < 100
+          ? "partial"
+          : "enabled";
+  return {
+    ...toggle,
+    rules: { ...rules, rolloutPercentage, expiresAt, killSwitch },
+    rolloutPercentage,
+    expiresAt,
+    killSwitch,
+    dependencyKey: rules.dependencyKey || "",
+    targetSummary,
+    isExpired,
+    statusLabel,
+    guardrails
+  };
+}
+
+function featureFlagCommand(featureToggles) {
+  return {
+    total: featureToggles.length,
+    enabled: featureToggles.filter((toggle) => toggle.statusLabel === "enabled" || toggle.statusLabel === "partial").length,
+    partialRollouts: featureToggles.filter((toggle) => toggle.rolloutPercentage < 100 && !toggle.killSwitch).length,
+    killSwitches: featureToggles.filter((toggle) => toggle.killSwitch).length,
+    expired: featureToggles.filter((toggle) => toggle.isExpired).length,
+    tenantScoped: featureToggles.filter((toggle) => toggle.scope === "tenant").length,
+    planScoped: featureToggles.filter((toggle) => toggle.scope === "plan").length,
+    attention: featureToggles
+      .filter((toggle) => toggle.killSwitch || toggle.isExpired || !toggle.enabled)
+      .slice(0, 6)
+      .map((toggle) => ({
+        id: toggle.id,
+        key: toggle.key,
+        name: toggle.name,
+        statusLabel: toggle.statusLabel,
+        targetSummary: toggle.targetSummary,
+        guardrails: toggle.guardrails
+      }))
+  };
+}
+
 function revenueCommand(metrics, tenants, plans) {
   const activeTenants = tenants.filter((tenant) => ["active", "trialing"].includes(tenant.subscriptionStatus));
   const planMix = plans.map((plan) => {
@@ -262,11 +337,14 @@ export class SuperAdminService {
       outstanding: money(sumRows(tenantRows, (tenant) => tenant.outstanding)),
       averageHealth: tenantRows.length ? pct(sumRows(tenantRows, (tenant) => tenant.healthScore) / tenantRows.length) : 0
     };
+    const featureToggles = repositories.featureToggles.list({ limit: 10000 })
+      .map((toggle) => enrichFeatureToggle(toggle, tenantRows, plans));
     return {
       metrics,
       tenants: tenantRows.sort((a, b) => b.monthlyRecurringRevenue - a.monthlyRecurringRevenue),
       plans,
-      featureToggles: repositories.featureToggles.list({ limit: 10000 }),
+      featureToggles,
+      featureFlagCommand: featureFlagCommand(featureToggles),
       revenueCommand: revenueCommand(metrics, tenantRows, plans),
       tenantRiskCommand: {
         alertCount: sumRows(tenantRows, (tenant) => tenant.tenant360.alertSummary.total),
@@ -408,21 +486,42 @@ export class SuperAdminService {
   upsertFeatureToggle(payload = {}, access) {
     ensureSuperAdmin(access);
     if (!payload.key || !payload.name) throw badRequest("key and name are required");
+    const scope = payload.scope || "global";
+    if (scope === "tenant" && !payload.tenantId) throw badRequest("tenantId is required for tenant-scoped flags");
+    if (scope === "plan" && !payload.planId) throw badRequest("planId is required for plan-scoped flags");
+    if (payload.tenantId && !repositories.tenants.getById(payload.tenantId)) throw badRequest("Tenant target does not exist");
+    if (payload.planId && !repositories.subscriptionPlans.getById(payload.planId)) throw badRequest("Plan target does not exist");
     const existing = repositories.featureToggles.list({ limit: 10000 }).find((toggle) => toggle.key === payload.key);
+    const rules = {
+      ...normalizeRules(payload.rules),
+      rolloutPercentage: clampPercent(payload.rolloutPercentage ?? normalizeRules(payload.rules).rolloutPercentage),
+      expiresAt: payload.expiresAt || normalizeRules(payload.rules).expiresAt || "",
+      killSwitch: Boolean(payload.killSwitch ?? normalizeRules(payload.rules).killSwitch),
+      dependencyKey: payload.dependencyKey || normalizeRules(payload.rules).dependencyKey || "",
+      updatedBy: access.userId || "system",
+      updatedAt: now()
+    };
     const record = {
       key: payload.key,
       name: payload.name,
       description: payload.description || "",
-      scope: payload.scope || "global",
-      tenantId: payload.tenantId || "",
-      planId: payload.planId || "",
-      enabled: payload.enabled ? 1 : 0,
-      rules: payload.rules || {}
+      scope,
+      tenantId: scope === "tenant" ? payload.tenantId || "" : "",
+      planId: scope === "plan" ? payload.planId || "" : "",
+      enabled: rules.killSwitch ? 0 : payload.enabled ? 1 : 0,
+      rules
     };
     const toggle = existing
       ? repositories.featureToggles.update(existing.id, record)
       : repositories.featureToggles.create({ id: makeId("ft"), ...record });
-    this.audit(access, existing ? "feature_toggle.updated" : "feature_toggle.created", "feature_toggle", toggle.id, { key: toggle.key, enabled: toggle.enabled });
+    this.audit(access, existing ? "feature_toggle.updated" : "feature_toggle.created", "feature_toggle", toggle.id, {
+      key: toggle.key,
+      enabled: toggle.enabled,
+      scope: record.scope,
+      tenantId: record.tenantId,
+      planId: record.planId,
+      rules
+    });
     return toggle;
   }
 
