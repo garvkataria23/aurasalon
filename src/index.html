@@ -13,6 +13,18 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+          const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+          if (isLocalDev) {
+            navigator.serviceWorker.getRegistrations()
+              .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+              .catch(() => undefined);
+            if ('caches' in window) {
+              caches.keys()
+                .then((keys) => keys.forEach((key) => caches.delete(key)))
+                .catch(() => undefined);
+            }
+            return;
+          }
           navigator.serviceWorker.register('/offline-sw.js').catch(() => undefined);
         });
       }
