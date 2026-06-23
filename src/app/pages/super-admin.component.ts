@@ -840,7 +840,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                       {{ tenant.billingOps?.failedPaymentCount || 0 }} failed
                     </small>
                     <small style="display:block;color:var(--text-muted)">
-                      IP {{ tenant.enterpriseSecurity?.ipRestrictionStatus || tenant.ipAllowlist?.status || 'disabled' }} · SSO {{ tenant.enterpriseSecurity?.ssoStatus || 'not_configured' }}
+                      IP {{ tenant.enterpriseSecurity?.ipRestrictionStatus || tenant.ipAllowlist?.status || 'disabled' }} · SSO {{ tenant.enterpriseSecurity?.ssoStatus || 'not_configured' }} · Export {{ tenant.enterpriseSecurity?.dataExportStatus || tenant.dataExportControls?.status || 'open' }}
                     </small>
                   </td>
                   <td>{{ tenant.totalBillingAmount | currency: 'INR':'symbol':'1.0-0' }}<small>{{ tenant.meteredUsageRevenue | currency: 'INR':'symbol':'1.0-0' }} usage</small></td>
@@ -864,6 +864,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editTenantLimits(tenant)">Limits</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editIpAllowlist(tenant)">IP rules</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editTenantSso(tenant)">SSO</button>
+                    <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); editDataExportControls(tenant)">Export</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareTenantFeatureOverride(tenant)">Override</button>
                     <button class="ghost-button mini" type="button" (click)="$event.stopPropagation(); prepareImpersonation(tenant)">Impersonate</button>
                     <a class="ghost-button mini" [href]="tenant.supportLinks?.intercom" target="_blank" rel="noreferrer" (click)="$event.stopPropagation()">Intercom</a>
@@ -928,7 +929,8 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
                     <strong>Profile</strong>
                     <span>{{ tenant.ownerEmail }} · {{ tenant.primaryDomain || 'Domain pending' }} · {{ tenant.planName }}</span>
                     <span style="display:block;font-size:0.8em;color:var(--text-muted)">IP allowlist: {{ tenant.ipAllowlist?.summary || 'disabled' }} · {{ tenant.ipAllowlist?.mode || 'enforce' }}</span>
-                    <span style="display:block;font-size:0.8em;color:var(--text-muted)">Enterprise security: IP {{ tenant.enterpriseSecurity?.ipRestrictionStatus || 'not_required' }} · SSO {{ tenant.enterpriseSecurity?.ssoStatus || 'not_configured' }}</span>
+                    <span style="display:block;font-size:0.8em;color:var(--text-muted)">Enterprise security: IP {{ tenant.enterpriseSecurity?.ipRestrictionStatus || 'not_required' }} · SSO {{ tenant.enterpriseSecurity?.ssoStatus || 'not_configured' }} · Export {{ tenant.enterpriseSecurity?.dataExportStatus || 'not_required' }}</span>
+                    <span style="display:block;font-size:0.8em;color:var(--text-muted)">Data export: {{ tenant.dataExportControls?.summary || 'default controls' }}</span>
                     <span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
                       <a class="ghost-button mini" [href]="tenant.supportLinks?.internal" target="_blank" rel="noreferrer">Support ticket</a>
                       <a class="ghost-button mini" [href]="tenant.supportLinks?.intercom" target="_blank" rel="noreferrer">Intercom</a>
@@ -1107,6 +1109,30 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
               <label class="field full"><span>Reason</span><textarea formControlName="reason"></textarea></label>
               <div class="form-actions">
                 <button class="primary-button" type="submit" [disabled]="ssoForm.invalid || saving()">Save SSO</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="form-panel">
+            <h3>Data Export Controls</h3>
+            <form [formGroup]="dataExportControlsForm" (ngSubmit)="saveDataExportControls()">
+              <label class="field">
+                <span>Tenant</span>
+                <select formControlName="tenantId" (change)="loadDataExportControlsForm()">
+                  <option value="">Select tenant</option>
+                  <option *ngFor="let tenant of overview.tenants" [value]="tenant.id">{{ tenant.name }}</option>
+                </select>
+              </label>
+              <label class="field"><span>Allowed formats</span><input formControlName="formatsText" /></label>
+              <label class="field"><span>Max rows</span><input type="number" min="100" formControlName="maxRows" /></label>
+              <label class="field"><span>Retention days</span><input type="number" min="1" formControlName="retentionDays" /></label>
+              <label class="field check-line"><input type="checkbox" formControlName="enabled" /><span>Exports enabled</span></label>
+              <label class="field check-line"><input type="checkbox" formControlName="approvalRequired" /><span>Require approval</span></label>
+              <label class="field check-line"><input type="checkbox" formControlName="piiMasking" /><span>PII masking</span></label>
+              <label class="field check-line"><input type="checkbox" formControlName="watermark" /><span>Watermark files</span></label>
+              <label class="field full"><span>Reason</span><textarea formControlName="reason"></textarea></label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit" [disabled]="dataExportControlsForm.invalid || saving()">Save export controls</button>
               </div>
             </form>
           </section>
@@ -1448,6 +1474,18 @@ export class SuperAdminComponent implements OnInit {
     reason: ['Enterprise SSO/SAML configuration']
   });
 
+  readonly dataExportControlsForm = this.fb.group({
+    tenantId: ['', Validators.required],
+    enabled: [true],
+    approvalRequired: [true],
+    piiMasking: [true],
+    watermark: [true],
+    formatsText: ['csv,xlsx,pdf'],
+    maxRows: [50000],
+    retentionDays: [30],
+    reason: ['Enterprise data export controls']
+  });
+
   readonly tenantFeatureOverrideForm = this.fb.group({
     tenantId: ['', Validators.required],
     key: ['ai.marketing', Validators.required],
@@ -1523,6 +1561,9 @@ export class SuperAdminComponent implements OnInit {
         const ssoTenantId = this.ssoForm.value.tenantId || this.selectedTenantId();
         const ssoTenant = (overview?.tenants || []).find((tenant: ApiRecord) => tenant.id === ssoTenantId);
         if (ssoTenant) this.editTenantSso(ssoTenant);
+        const exportTenantId = this.dataExportControlsForm.value.tenantId || this.selectedTenantId();
+        const exportTenant = (overview?.tenants || []).find((tenant: ApiRecord) => tenant.id === exportTenantId);
+        if (exportTenant) this.editDataExportControls(exportTenant);
         this.loading.set(false);
       },
       error: (error) => {
@@ -1677,6 +1718,52 @@ export class SuperAdminComponent implements OnInit {
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to save SSO/SAML settings');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  editDataExportControls(tenant: ApiRecord): void {
+    this.selectedTenantId.set(tenant.id);
+    this.dataExportControlsForm.patchValue({
+      tenantId: tenant.id,
+      enabled: tenant.dataExportControls?.enabled !== false,
+      approvalRequired: tenant.dataExportControls?.approvalRequired !== false,
+      piiMasking: tenant.dataExportControls?.piiMasking !== false,
+      watermark: Boolean(tenant.dataExportControls?.watermark),
+      formatsText: (tenant.dataExportControls?.allowedFormats || ['csv', 'xlsx', 'pdf']).join(','),
+      maxRows: Number(tenant.dataExportControls?.maxRows || 50000),
+      retentionDays: Number(tenant.dataExportControls?.retentionDays || 30),
+      reason: 'Enterprise data export controls'
+    });
+  }
+
+  loadDataExportControlsForm(): void {
+    const tenantId = this.dataExportControlsForm.value.tenantId || '';
+    const tenant = (this.overview()?.tenants || []).find((item: ApiRecord) => item.id === tenantId);
+    if (tenant) this.editDataExportControls(tenant);
+  }
+
+  saveDataExportControls(): void {
+    if (this.dataExportControlsForm.invalid) return;
+    this.saving.set(true);
+    const tenantId = this.dataExportControlsForm.value.tenantId || '';
+    this.api.patch(`super-admin/tenants/${tenantId}/data-export-controls`, {
+      enabled: Boolean(this.dataExportControlsForm.value.enabled),
+      approvalRequired: Boolean(this.dataExportControlsForm.value.approvalRequired),
+      piiMasking: Boolean(this.dataExportControlsForm.value.piiMasking),
+      watermark: Boolean(this.dataExportControlsForm.value.watermark),
+      formatsText: this.dataExportControlsForm.value.formatsText || '',
+      maxRows: this.dataExportControlsForm.value.maxRows,
+      retentionDays: this.dataExportControlsForm.value.retentionDays,
+      reason: this.dataExportControlsForm.value.reason || ''
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || 'Unable to save data export controls');
         this.saving.set(false);
       }
     });

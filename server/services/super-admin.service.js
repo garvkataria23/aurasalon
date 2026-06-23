@@ -11,6 +11,7 @@ const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const pct = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const TENANT_LIMITS_KEY = "superAdminTenantLimits";
 const TENANT_IP_ALLOWLIST_KEY = "superAdminIpAllowlist";
+const TENANT_DATA_EXPORT_CONTROLS_KEY = "superAdminDataExportControls";
 
 function ensureSuperAdmin(access = {}) {
   if (access.role !== "superAdmin") throw forbidden("Super admin access is required");
@@ -89,8 +90,46 @@ function ipAllowlistForTenant(policy = {}) {
   };
 }
 
-function enterpriseSecurityForTenant(plan = {}, tenantLimits = {}, ipAllowlist = {}, sso = {}) {
+function parseDataExportControls(value = {}) {
+  const source = value && typeof value === "object" ? value : {};
+  const allowedFormats = Array.isArray(source.allowedFormats)
+    ? source.allowedFormats
+    : String(source.formatsText || source.allowedFormatsText || "csv,xlsx,pdf").split(/\r?\n|,/);
+  const maxRows = Math.max(100, Math.min(1000000, Math.round(Number(source.maxRows || 50000))));
+  const retentionDays = Math.max(1, Math.min(365, Math.round(Number(source.retentionDays || 30))));
+  return {
+    enabled: source.enabled !== false,
+    approvalRequired: source.approvalRequired !== false,
+    piiMasking: source.piiMasking !== false,
+    watermark: Boolean(source.watermark),
+    allowedFormats: allowedFormats
+      .map((format) => String(format || "").trim().toLowerCase())
+      .filter(Boolean)
+      .filter((format, index, formats) => formats.indexOf(format) === index)
+      .slice(0, 10),
+    maxRows,
+    retentionDays,
+    reason: source.reason || "",
+    updatedBy: source.updatedBy || "",
+    updatedAt: source.updatedAt || ""
+  };
+}
+
+function dataExportControlsForTenant(policy = {}) {
+  const parsed = parseDataExportControls(policy);
+  const restricted = parsed.enabled && parsed.approvalRequired && parsed.piiMasking;
+  return {
+    ...parsed,
+    status: !parsed.enabled ? "disabled" : restricted ? "restricted" : "open",
+    summary: !parsed.enabled
+      ? "Exports disabled"
+      : `${parsed.allowedFormats.join(", ") || "no formats"} · ${parsed.maxRows} rows · ${parsed.retentionDays}d retention`
+  };
+}
+
+function enterpriseSecurityForTenant(plan = {}, tenantLimits = {}, ipAllowlist = {}, sso = {}, dataExportControls = {}) {
   const enterpriseTenant = String(plan?.code || "").toLowerCase() === "enterprise" || tenantLimits.supportTier === "enterprise";
+  const dataExportLocked = dataExportControls.enabled && dataExportControls.approvalRequired && dataExportControls.piiMasking;
   return {
     enterpriseTenant,
     ipRestrictionRequired: enterpriseTenant,
@@ -103,7 +142,8 @@ function enterpriseSecurityForTenant(plan = {}, tenantLimits = {}, ipAllowlist =
           : "gap",
     ssoStatus: sso.status || "not_configured",
     ssoProvider: sso.provider || "saml",
-    ready: !enterpriseTenant || ((ipAllowlist.enabled && ipAllowlist.entries.length && ipAllowlist.mode === "enforce") && ["active", "enforced", "ready"].includes(sso.status || ""))
+    dataExportStatus: !enterpriseTenant ? "not_required" : dataExportLocked ? "restricted" : "gap",
+    ready: !enterpriseTenant || ((ipAllowlist.enabled && ipAllowlist.entries.length && ipAllowlist.mode === "enforce") && ["active", "enforced", "ready"].includes(sso.status || "") && dataExportLocked)
   };
 }
 
@@ -1156,6 +1196,10 @@ export class SuperAdminService {
       .list({ limit: 10000 })
       .filter((setting) => setting.key === TENANT_IP_ALLOWLIST_KEY)
       .map((setting) => [setting.tenantId, setting.value || {}]));
+    const dataExportControlsByTenant = new Map(repositories.settings
+      .list({ limit: 10000 })
+      .filter((setting) => setting.key === TENANT_DATA_EXPORT_CONTROLS_KEY)
+      .map((setting) => [setting.tenantId, setting.value || {}]));
     const ssoByTenant = latestSsoByTenant();
     const tenantRows = tenants.map((tenant) => {
       const tenantSales = sales.filter((sale) => sale.tenantId === tenant.id);
@@ -1177,6 +1221,7 @@ export class SuperAdminService {
       const health = healthBreakdown(tenant, usage, outstanding, monthlyRecurringRevenue);
       const tenantLimits = tenantLimitsFor(plan, tenantLimitByTenant.get(tenant.id), usage);
       const ipAllowlist = ipAllowlistForTenant(ipAllowlistByTenant.get(tenant.id));
+      const dataExportControls = dataExportControlsForTenant(dataExportControlsByTenant.get(tenant.id));
       const sso = ssoByTenant.get(tenant.id) || null;
       const row = {
         id: tenant.id,
@@ -1200,8 +1245,9 @@ export class SuperAdminService {
         usage,
         tenantLimits,
         ipAllowlist,
+        dataExportControls,
         sso,
-        enterpriseSecurity: enterpriseSecurityForTenant(plan, tenantLimits, ipAllowlist, sso || {}),
+        enterpriseSecurity: enterpriseSecurityForTenant(plan, tenantLimits, ipAllowlist, sso || {}, dataExportControls),
         healthBreakdown: health,
         healthScore: tenantHealth(tenant, usage),
         subscription: subscriptionByTenant.get(tenant.id) || null
@@ -1434,6 +1480,36 @@ export class SuperAdminService {
       reason: payload.reason || ""
     });
     return { tenantId, sso: record };
+  }
+
+  updateTenantDataExportControls(tenantId, payload = {}, access) {
+    ensureSuperAdmin(access);
+    const tenant = repositories.tenants.getById(tenantId);
+    if (!tenant) throw notFound("Tenant not found");
+    const current = repositories.settings.list({ limit: 10000 }, { tenantId })
+      .find((setting) => setting.key === TENANT_DATA_EXPORT_CONTROLS_KEY);
+    const policy = parseDataExportControls({
+      ...current?.value,
+      ...payload,
+      allowedFormats: Array.isArray(payload.allowedFormats)
+        ? payload.allowedFormats
+        : String(payload.formatsText || "").split(/\r?\n|,/),
+      updatedBy: access.userId || "super-admin",
+      updatedAt: now()
+    });
+    const record = current
+      ? repositories.settings.update(current.id, { value: policy, scope: "tenant" }, { tenantId })
+      : repositories.settings.create({ id: makeId("set"), key: TENANT_DATA_EXPORT_CONTROLS_KEY, value: policy, scope: "tenant" }, { tenantId });
+    this.audit(access, "tenant.data_export_controls.updated", "tenant", tenantId, {
+      enabled: policy.enabled,
+      approvalRequired: policy.approvalRequired,
+      piiMasking: policy.piiMasking,
+      allowedFormats: policy.allowedFormats,
+      maxRows: policy.maxRows,
+      retentionDays: policy.retentionDays,
+      reason: payload.reason || ""
+    });
+    return { tenantId, dataExportControls: dataExportControlsForTenant(record.value) };
   }
 
   bulkTenantAction(payload = {}, access) {

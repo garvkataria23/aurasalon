@@ -55,6 +55,13 @@ superAdminRouter.patch(
   })
 );
 
+superAdminRouter.patch(
+  "/super-admin/tenants/:id/data-export-controls",
+  asyncHandler((req, res) => {
+    res.json(superAdminService.updateTenantDataExportControls(req.params.id, req.body, req.access));
+  })
+);
+
 superAdminRouter.post(
   "/super-admin/tenants/bulk-action",
   validateBody({ required: ["action", "tenantIds", "reason", "confirmation"] }),
