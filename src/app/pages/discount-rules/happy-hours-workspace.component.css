@@ -174,7 +174,8 @@
 :host ::ng-deep .detail-body .client-return-page,
 :host ::ng-deep .detail-body .branch-leaderboard-page,
 :host ::ng-deep .detail-body .inventory-aware-page,
-:host ::ng-deep .detail-body .staff-aware-page {
+:host ::ng-deep .detail-body .staff-aware-page,
+:host ::ng-deep .detail-body .weather-event-page {
   background: #ffffff;
   min-height: 0;
   padding: 18px;

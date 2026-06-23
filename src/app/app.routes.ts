@@ -336,6 +336,9 @@ export const routes: Routes = [
     path: 'discount-rules/inventory-aware-offers', loadComponent: () => import('./pages/discount-rules/inventory-aware-offers.component').then(m => m.InventoryAwareOffersComponent), title: 'Inventory-Aware Offers'
   },
   {
+    path: 'discount-rules/weather-event-offers', loadComponent: () => import('./pages/discount-rules/weather-event-offers.component').then(m => m.WeatherEventOffersComponent), title: 'Weather/Event-Aware Offers'
+  },
+  {
     path: 'discount-rules/offer-lifecycle', loadComponent: () => import('./pages/discount-rules/offer-lifecycle.component').then(m => m.OfferLifecycleComponent), title: 'Offer Lifecycle OS'
   },
   {

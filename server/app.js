@@ -128,6 +128,7 @@ import { happyHoursOfferHealthRouter } from "./routes/happy-hours-offer-health.r
 import { happyHoursRoiScoreRouter } from "./routes/happy-hours-roi-score.routes.js";
 import { happyHoursRouter } from "./routes/happy-hours.routes.js";
 import { happyHoursStaffAwareRouter } from "./routes/happy-hours-staff-aware.routes.js";
+import { happyHoursWeatherEventRouter } from "./routes/happy-hours-weather-event.routes.js";
 import { invoiceLedgerRouter } from "./routes/invoice-ledger.routes.js";
 import { invoiceNotificationRouter } from "./routes/invoice-notification.routes.js";
 import { inventoryIntelligenceRouter } from "./routes/inventory-intelligence.routes.js";
@@ -313,6 +314,7 @@ export function createApp() {
   app.use("/api/v1/happy-hours-offer-health", happyHoursOfferHealthRouter);
   app.use("/api/v1/happy-hours-roi-score", happyHoursRoiScoreRouter);
   app.use("/api/v1/happy-hours-staff-aware", happyHoursStaffAwareRouter);
+  app.use("/api/v1/happy-hours-weather-event", happyHoursWeatherEventRouter);
   app.use("/api/v1", discountApprovalRouter);
   app.use("/api/v1/pricing", pricingIncrementalityRouter);
   app.use("/api/v1/pricing", pricingMarketRouter);
@@ -428,6 +430,7 @@ export function createApp() {
   app.use("/api/happy-hours-offer-health", happyHoursOfferHealthRouter);
   app.use("/api/happy-hours-roi-score", happyHoursRoiScoreRouter);
   app.use("/api/happy-hours-staff-aware", happyHoursStaffAwareRouter);
+  app.use("/api/happy-hours-weather-event", happyHoursWeatherEventRouter);
   app.use("/api/happy-hours-campaign-audiences", happyHoursCampaignAudiencesRouter);
   app.use("/api/demand-signals", demandSignalsRouter);
   app.use("/api/org-hierarchy", orgHierarchyRouter);
