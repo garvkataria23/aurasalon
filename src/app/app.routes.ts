@@ -342,6 +342,9 @@ export const routes: Routes = [
     path: 'discount-rules/market-aware-offers', loadComponent: () => import('./pages/discount-rules/market-aware-offers.component').then(m => m.MarketAwareOffersComponent), title: 'Market-Aware Offers'
   },
   {
+    path: 'discount-rules/channel-aware-offers', loadComponent: () => import('./pages/discount-rules/channel-aware-offers.component').then(m => m.ChannelAwareOffersComponent), title: 'Channel-Aware Offers'
+  },
+  {
     path: 'discount-rules/offer-lifecycle', loadComponent: () => import('./pages/discount-rules/offer-lifecycle.component').then(m => m.OfferLifecycleComponent), title: 'Offer Lifecycle OS'
   },
   {

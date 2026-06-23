@@ -1,0 +1,159 @@
+<section class="page-stack channel-aware-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">Happy Hours Intelligence</span>
+      <h2>Channel/Source-Aware Offers</h2>
+      <p>Walk-in, online booking, WhatsApp, referral aur aggregator channels ke fee/conversion ke hisaab se discount cap.</p>
+    </div>
+    <button class="primary-button" type="button" (click)="load()" [disabled]="loading()">
+      {{ loading() ? 'Checking...' : 'Evaluate' }}
+    </button>
+  </div>
+
+  <p class="error-text" *ngIf="error()">{{ error() }}</p>
+
+  <section class="panel toolbar">
+    <label class="field">
+      <span>Source channel</span>
+      <select [(ngModel)]="filters.sourceChannel" name="sourceChannel">
+        <option *ngFor="let channel of channelOptions" [value]="channel">{{ label(channel) }}</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Campaign channel</span>
+      <select [(ngModel)]="filters.campaignChannel" name="campaignChannel">
+        <option *ngFor="let channel of channelOptions" [value]="channel">{{ label(channel) }}</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Service category</span>
+      <input type="text" [(ngModel)]="filters.serviceCategory" name="serviceCategory" />
+    </label>
+    <label class="field">
+      <span>Date</span>
+      <input type="date" [(ngModel)]="filters.signalDate" name="signalDate" />
+    </label>
+    <label class="field">
+      <span>Hour</span>
+      <input type="number" min="0" max="23" [(ngModel)]="filters.hourSlot" name="hourSlot" placeholder="Auto" />
+    </label>
+    <label class="field">
+      <span>Service price paise</span>
+      <input type="number" min="0" step="100" [(ngModel)]="filters.servicePricePaise" name="servicePricePaise" />
+    </label>
+    <label class="field">
+      <span>Base discount %</span>
+      <input type="number" min="0" max="100" [(ngModel)]="filters.baseDiscountPercent" name="baseDiscountPercent" />
+    </label>
+    <label class="field">
+      <span>Channel fee %</span>
+      <input type="number" min="0" max="50" [(ngModel)]="filters.channelFeePercent" name="channelFeePercent" placeholder="Auto" />
+    </label>
+    <label class="field">
+      <span>Conversion %</span>
+      <input type="number" min="0" max="100" [(ngModel)]="filters.conversionRatePercent" name="conversionRatePercent" />
+    </label>
+    <label class="field">
+      <span>Lookback days</span>
+      <input type="number" min="7" max="365" [(ngModel)]="filters.lookbackDays" name="lookbackDays" />
+    </label>
+    <button class="primary-button" type="button" (click)="load()" [disabled]="loading()">Run</button>
+    <button class="ghost-button" type="button" (click)="saveSuggestion()" [disabled]="saving()">
+      {{ saving() ? 'Saving...' : 'Save suggestion' }}
+    </button>
+  </section>
+
+  <section class="metric-grid">
+    <article class="metric-card">
+      <span>Suggested discount</span>
+      <strong>{{ best().suggestedDiscountPercent || 0 }}%</strong>
+      <small>{{ formatMoney(best().expectedDiscountPaise) }} expected discount</small>
+    </article>
+    <article class="metric-card" [class.warning]="best().channelRisk === 'high_fee_channel'">
+      <span>Channel risk</span>
+      <strong>{{ label(best().channelRisk || 'unknown') }}</strong>
+      <small>{{ pct(best().channelFeePercent) }} channel fee</small>
+    </article>
+    <article class="metric-card">
+      <span>Net after fee</span>
+      <strong>{{ formatMoney(best().expectedNetRevenuePaise) }}</strong>
+      <small>{{ label(best().campaignAngle || 'collect_channel_data') }}</small>
+    </article>
+    <article class="metric-card">
+      <span>Channel history</span>
+      <strong>{{ best().historicalBookingCount || 0 }}</strong>
+      <small>{{ formatMoney(best().historicalRevenuePaise) }} revenue</small>
+    </article>
+  </section>
+
+  <section class="insight-grid">
+    <div class="panel">
+      <div class="section-title">
+        <h2>Recommended move</h2>
+        <span class="status-pill">{{ evaluation()?.status || 'collecting' }}</span>
+      </div>
+      <div class="recommendation">
+        <strong>{{ label(best().campaignAngle || 'collect_channel_data') }}</strong>
+        <span>{{ label(best().sourceChannel || filters.sourceChannel) }} | occupancy {{ occupancy(best().occupancyRate) }}</span>
+      </div>
+      <ul class="reason-list">
+        <li *ngFor="let reason of best().reasons || []">{{ reason }}</li>
+        <li *ngIf="!(best().reasons || []).length">Channel data collect hone ke baad suggestion strong hoga.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">
+        <h2>Saved suggestions</h2>
+        <span class="muted-text">{{ suggestions().length }} rows</span>
+      </div>
+      <div class="compact-list">
+        <article *ngFor="let row of suggestions()">
+          <div>
+            <strong>{{ label(row.sourceChannel) }} | {{ row.suggestedDiscountPercent }}%</strong>
+            <small>{{ label(row.channelRisk) }} | net {{ formatMoney(row.expectedNetRevenuePaise) }} | {{ label(row.status) }}</small>
+          </div>
+          <div class="row-actions">
+            <button type="button" (click)="updateStatus(row, 'approved')">Approve</button>
+            <button type="button" (click)="updateStatus(row, 'paused')">Pause</button>
+          </div>
+        </article>
+        <p class="muted-text" *ngIf="!suggestions().length">No saved channel-aware suggestions yet.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title">
+      <h2>Scenario comparison</h2>
+      <span class="muted-text">{{ rows().length }} rows</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Channel</th>
+            <th>Risk</th>
+            <th>Discount</th>
+            <th>Net revenue</th>
+            <th>History</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows()">
+            <td>{{ label(row.mode) }}</td>
+            <td>{{ label(row.sourceChannel) }}</td>
+            <td>{{ label(row.channelRisk) }}</td>
+            <td>{{ row.suggestedDiscountPercent || 0 }}%</td>
+            <td>{{ formatMoney(row.expectedNetRevenuePaise) }}</td>
+            <td>{{ row.historicalBookingCount || 0 }} bookings</td>
+          </tr>
+          <tr *ngIf="!loading() && !rows().length">
+            <td colspan="6">No channel-aware scenarios yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

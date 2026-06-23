@@ -118,6 +118,7 @@ import { happyHoursCampaignAudiencesRouter } from "./routes/happy-hours-campaign
 import { happyHoursCampaignLinksRouter } from "./routes/happy-hours-campaign-links.routes.js";
 import { happyHoursAutoSunsetRouter } from "./routes/happy-hours-auto-sunset.routes.js";
 import { happyHoursBranchLeaderboardRouter } from "./routes/happy-hours-branch-leaderboard.routes.js";
+import { happyHoursChannelAwareRouter } from "./routes/happy-hours-channel-aware.routes.js";
 import { happyHoursClientReturnTrackerRouter } from "./routes/happy-hours-client-return-tracker.routes.js";
 import { happyHoursControlTowerRouter, happyHoursPublicOffersRouter } from "./routes/happy-hours-control-tower.routes.js";
 import { happyHoursElasticityRouter } from "./routes/happy-hours-elasticity.routes.js";
@@ -306,6 +307,7 @@ export function createApp() {
   app.use("/api/v1/happy-hours-campaign-links", happyHoursCampaignLinksRouter);
   app.use("/api/v1/happy-hours-auto-sunset", happyHoursAutoSunsetRouter);
   app.use("/api/v1/happy-hours-branch-leaderboard", happyHoursBranchLeaderboardRouter);
+  app.use("/api/v1/happy-hours-channel-aware", happyHoursChannelAwareRouter);
   app.use("/api/v1/happy-hours-client-returns", happyHoursClientReturnTrackerRouter);
   app.use("/api/v1/happy-hours-control-tower", happyHoursControlTowerRouter);
   app.use("/api/v1/happy-hours-elasticity", happyHoursElasticityRouter);
@@ -423,6 +425,7 @@ export function createApp() {
   app.use("/api/yield", yieldRouter);
   app.use("/api/happy-hours-auto-sunset", happyHoursAutoSunsetRouter);
   app.use("/api/happy-hours-branch-leaderboard", happyHoursBranchLeaderboardRouter);
+  app.use("/api/happy-hours-channel-aware", happyHoursChannelAwareRouter);
   app.use("/api/happy-hours-client-returns", happyHoursClientReturnTrackerRouter);
   app.use("/api/happy-hours-control-tower", happyHoursControlTowerRouter);
   app.use("/api/happy-hours-elasticity", happyHoursElasticityRouter);
