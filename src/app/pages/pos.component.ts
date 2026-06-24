@@ -179,71 +179,70 @@ type PackageRedeemRow = {
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Search name, mobile, email, code, membership"
               />
-              <div class="smart-search-results pos-search-results client-search-results" *ngIf="showClientResults()">
-                <div class="client-search-caption">
-                  <span>{{ debouncedClientQuery() ? 'Matching contacts' : 'Recent contacts' }}</span>
-                  <small>{{ clientSearchResults().length }} shown</small>
-                </div>
-                <article
-                  class="client-result-card"
-                  [class.active]="clientResultActive(client)"
-                  role="button"
-                  tabindex="0"
-                  *ngFor="let client of clientSearchResults()"
-                  (mousedown)="selectClientFromResult($event, client)"
-                  (keydown.enter)="selectClient(client)"
-                >
-                  <span class="client-avatar">{{ clientInitial(client) }}</span>
-                  <span class="client-result-main">
-                    <strong>
-                      <ng-container *ngFor="let segment of highlightSegments(client.name || 'Client')">
-                        <mark *ngIf="segment.match; else clientNamePlain">{{ segment.text }}</mark>
-                        <ng-template #clientNamePlain>{{ segment.text }}</ng-template>
-                      </ng-container>
-                    </strong>
-                    <span>
-                      <ng-container *ngFor="let segment of highlightSegments(clientPrimaryPhone(client))">
-                        <mark *ngIf="segment.match; else clientPhonePlain">{{ segment.text }}</mark>
-                        <ng-template #clientPhonePlain>{{ segment.text }}</ng-template>
-                      </ng-container>
-                    </span>
-                    <small>{{ clientResultMeta(client) }}</small>
-                    <span class="client-badges">
-                      <span class="client-badge good" *ngIf="clientMembershipBadge(client)">{{ clientMembershipBadge(client) }}</span>
-                      <span class="client-badge wallet" *ngIf="Number(client.walletBalance || 0) > 0">Wallet {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
-                      <span class="client-badge due" *ngIf="Number(client.unpaidBalance || 0) > 0">Due {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
-                      <span class="client-badge warning" *ngIf="possibleDuplicateClient(client)">Duplicate?</span>
-                    </span>
-                  </span>
-                  <a
-                    class="client-call-button whatsapp"
-                    *ngIf="clientWhatsAppHref(client)"
-                    [href]="clientWhatsAppHref(client)"
-                    target="_blank"
-                    rel="noopener"
-                    aria-label="WhatsApp client"
-                    (mousedown)="$event.preventDefault(); $event.stopPropagation()"
-                    (click)="$event.stopPropagation()"
-                  >
-                    WA
-                  </a>
-                  <a
-                    class="client-call-button"
-                    *ngIf="clientCallHref(client)"
-                    [href]="clientCallHref(client)"
-                    aria-label="Call client"
-                    (mousedown)="$event.preventDefault(); $event.stopPropagation()"
-                    (click)="$event.stopPropagation()"
-                  >
-                    Call
-                  </a>
-                </article>
-                <div class="client-empty-state" *ngIf="clientSearchActive && debouncedClientQuery() && !clientSearchResults().length">
-                  No contacts found
-                </div>
-              </div>
               <small *ngIf="clientSearchPending()">Searching...</small>
             </label>
+            <div class="smart-search-results pos-search-results client-search-results" *ngIf="showClientResults()">
+              <div class="client-search-caption">
+                <span>{{ debouncedClientQuery() ? 'Matching contacts' : 'Recent contacts' }}</span>
+                <small>{{ clientSearchResults().length }} shown</small>
+              </div>
+              <button
+                class="client-result-card"
+                [class.active]="clientResultActive(client)"
+                type="button"
+                *ngFor="let client of clientSearchResults()"
+                (mousedown)="selectClientFromResult($event, client)"
+                (click)="selectClient(client)"
+              >
+                <span class="client-avatar">{{ clientInitial(client) }}</span>
+                <span class="client-result-main">
+                  <strong>
+                    <ng-container *ngFor="let segment of highlightSegments(client.name || 'Client')">
+                      <mark *ngIf="segment.match; else clientNamePlain">{{ segment.text }}</mark>
+                      <ng-template #clientNamePlain>{{ segment.text }}</ng-template>
+                    </ng-container>
+                  </strong>
+                  <span>
+                    <ng-container *ngFor="let segment of highlightSegments(clientPrimaryPhone(client))">
+                      <mark *ngIf="segment.match; else clientPhonePlain">{{ segment.text }}</mark>
+                      <ng-template #clientPhonePlain>{{ segment.text }}</ng-template>
+                    </ng-container>
+                  </span>
+                  <small>{{ clientResultMeta(client) }}</small>
+                  <span class="client-badges">
+                    <span class="client-badge good" *ngIf="clientMembershipBadge(client)">{{ clientMembershipBadge(client) }}</span>
+                    <span class="client-badge wallet" *ngIf="Number(client.walletBalance || 0) > 0">Wallet {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                    <span class="client-badge due" *ngIf="Number(client.unpaidBalance || 0) > 0">Due {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                    <span class="client-badge warning" *ngIf="possibleDuplicateClient(client)">Duplicate?</span>
+                  </span>
+                </span>
+                <a
+                  class="client-call-button whatsapp"
+                  *ngIf="clientWhatsAppHref(client)"
+                  [href]="clientWhatsAppHref(client)"
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="WhatsApp client"
+                  (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+                  (click)="$event.stopPropagation()"
+                >
+                  WA
+                </a>
+                <a
+                  class="client-call-button"
+                  *ngIf="clientCallHref(client)"
+                  [href]="clientCallHref(client)"
+                  aria-label="Call client"
+                  (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+                  (click)="$event.stopPropagation()"
+                >
+                  Call
+                </a>
+              </button>
+              <div class="client-empty-state" *ngIf="clientSearchActive && debouncedClientQuery() && !clientSearchResults().length">
+                No contacts found
+              </div>
+            </div>
             <button class="ghost-button fit pos-add-client-button" type="button" *ngIf="canCreateClientFromSearch()" (click)="openClientFormFromSearch()">Add client</button>
             <div class="client-search-actions">
               <button class="dark-button fit" type="button" (click)="useWalkinClient()">Walkin Client</button>
