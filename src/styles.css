@@ -912,8 +912,7 @@ h3 {
   gap: 18px;
 }
 
-.split-layout,
-.pos-layout {
+.split-layout {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   gap: 18px;
@@ -921,7 +920,10 @@ h3 {
 }
 
 .pos-layout {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+  align-items: stretch;
 }
 
 .client-crm-strip {
