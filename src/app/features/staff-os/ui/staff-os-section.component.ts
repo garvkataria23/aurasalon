@@ -17,6 +17,8 @@ type StaffWorkspaceKey = 'overview' | 'directory' | 'attendance' | 'salary' | 'c
 type StaffWorkspaceCategory = { key: StaffWorkspaceKey; label: string; source: string };
 type EmployeeLiveCard = { label: string; value: string | number; hint: string; tone: string };
 type EmployeeCatalogCard = { label: string; value: string | number };
+type AttendanceDashboardCard = { label: string; value: string | number; hint: string; tone: string };
+type AttendanceExceptionItem = { title: unknown; meta: unknown; staff: string; impact: unknown; status: unknown; tone: string };
 type IncentiveRuleType = 'service_category' | 'service' | 'product' | 'membership' | 'package';
 type IncentiveCalcMode = 'percent' | 'fixed';
 type IncentiveOption = { id: string; name: string; meta?: string };
@@ -1277,6 +1279,10 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
             <span>Physical entry, biometric devices, camera punch and payroll attendance</span>
           </div>
           <div class="attendance-controls">
+            <select [ngModel]="attendanceBranchId()" (ngModelChange)="setAttendanceBranch($event)" aria-label="Attendance branch">
+              <option value="">Select branch</option>
+              <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+            </select>
             <input type="date" [value]="attendanceDate()" (change)="setAttendanceDate($any($event.target).value)" />
             <button type="button" class="refresh" (click)="refreshAttendanceCenter()">Refresh</button>
             <button type="button" class="primary" [disabled]="queueProcessing()" (click)="processBiometricQueue()">
@@ -1294,8 +1300,61 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
           <article><span>Suspicious</span><strong>{{ attendanceSummary()['suspiciousEvents'] || 0 }}</strong><small>review required</small></article>
           <article><span>Payroll</span><strong>{{ attendanceSummary()['payrollPreviewRows'] || 0 }}</strong><small>{{ attendanceSummary()['ownerAlerts'] || 0 }} owner alerts</small></article>
         </div>
+        <div class="attendance-live-strip">
+          <article>
+            <span>Branch</span>
+            <strong>{{ attendanceBranchLabel() }}</strong>
+            <small>{{ activeStaffForAttendance().length }} active staff</small>
+          </article>
+          <article>
+            <span>Coverage</span>
+            <strong>{{ attendanceCoveragePct() }}%</strong>
+            <small>{{ uniqueAttendanceStaffCount() }} of {{ activeStaffForAttendance().length }} punched</small>
+          </article>
+          <article>
+            <span>Open risks</span>
+            <strong>{{ openAttendanceRiskCount() }}</strong>
+            <small>{{ payrollHoldCount() }} payroll hold</small>
+          </article>
+          <article>
+            <span>Last sync</span>
+            <strong>{{ attendanceLastSyncLabel() }}</strong>
+            <small>{{ gatewayStatusLabel() }}</small>
+          </article>
+        </div>
         <div class="state error" *ngIf="attendanceError()">{{ attendanceError() }}</div>
         <div class="state success" *ngIf="attendanceMessage()">{{ attendanceMessage() }}</div>
+      </section>
+
+      <section class="attendance-ops-grid" *ngIf="section === 'attendance-dashboard'">
+        <article class="attendance-op-card" *ngFor="let card of attendanceOpsCards()" [ngClass]="card.tone">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.value }}</strong>
+          <small>{{ card.hint }}</small>
+        </article>
+      </section>
+
+      <section class="panel attendance-exception-panel" *ngIf="section === 'attendance-dashboard'">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Owner queue</p>
+            <h2>Attendance Exceptions</h2>
+          </div>
+          <div class="attendance-controls">
+            <button type="button" class="refresh" [disabled]="fraudScanning()" (click)="runFraudScan()">{{ fraudScanning() ? 'Checking...' : 'Run risk check' }}</button>
+            <button type="button" class="primary" [disabled]="payrollPreviewForm.invalid || payrollPreviewSaving()" (click)="generatePayrollPreview()">{{ payrollPreviewSaving() ? 'Generating...' : 'Generate payroll preview' }}</button>
+          </div>
+        </div>
+        <div class="table compact exception-table">
+          <div class="row header"><span>Signal</span><span>Staff</span><span>Impact</span><span>Status</span></div>
+          <div class="row" *ngFor="let item of attendanceExceptionRows()">
+            <span><strong>{{ item['title'] }}</strong><small>{{ item['meta'] }}</small></span>
+            <span>{{ item['staff'] }}</span>
+            <span>{{ item['impact'] }}</span>
+            <span><span class="badge" [ngClass]="item['tone']">{{ item['status'] }}</span></span>
+          </div>
+          <div *ngIf="!attendanceExceptionRows().length && !store.loading()" class="empty action-empty"><strong>No attendance exceptions.</strong><span>{{ attendanceDate() }} looks clean for payroll preview.</span></div>
+        </div>
       </section>
 
       <section class="attendance-workspace" *ngIf="section === 'attendance-dashboard'">
@@ -2196,6 +2255,29 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
     .staff-attendance-mode .attendance-stats { gap: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .staff-attendance-mode .attendance-stats article { border: 0; border-right: 1px solid #e5edf4; border-bottom: 1px solid #e5edf4; border-radius: 0; min-height: 64px; padding: 10px 16px; }
     .staff-attendance-mode .attendance-stats article:nth-child(4n) { border-right: 0; }
+    .attendance-live-strip { border-top: 1px solid #d8e1ea; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .attendance-live-strip article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; min-width: 0; padding: 10px 16px; }
+    .attendance-live-strip article:last-child { border-right: 0; }
+    .attendance-live-strip span,
+    .attendance-op-card span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .attendance-live-strip strong,
+    .attendance-op-card strong { color: #111827; font-size: 20px; line-height: 1.1; overflow-wrap: anywhere; }
+    .attendance-live-strip small,
+    .attendance-op-card small { color: #64748b; }
+    .attendance-ops-grid { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .attendance-op-card { background: #fff; border: 1px solid #d8e1ea; display: grid; gap: 4px; min-height: 78px; min-width: 0; padding: 11px 12px; }
+    .attendance-op-card.green { border-left: 3px solid #0f766e; }
+    .attendance-op-card.blue { border-left: 3px solid #0b72b5; }
+    .attendance-op-card.amber { border-left: 3px solid #d97706; }
+    .attendance-op-card.bad { border-left: 3px solid #dc2626; }
+    .attendance-exception-panel { border-color: #d8e1ea; padding: 0; overflow: hidden; }
+    .attendance-exception-panel .panel-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .exception-table { padding: 0; }
+    .exception-table .row { grid-template-columns: minmax(0, 1.4fr) minmax(0, .8fr) minmax(0, .75fr) minmax(0, .6fr); min-height: 42px; padding: 8px 16px; }
+    .exception-table .row.header { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .badge.bad { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+    .badge.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .badge.good { background: #ecfdf5; border-color: #bbf7d0; color: #047857; }
     .staff-attendance-mode .attendance-workspace { gap: 10px; }
     .staff-attendance-mode .attendance-workspace .panel { border-color: #d8e1ea; padding: 13px; }
     .staff-attendance-mode .attendance-register-panel { border-color: #d8e1ea; overflow: hidden; padding: 0; }
@@ -2277,7 +2359,8 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
     .payroll-risk-strip article { border: 1px solid #dfe7ef; display: grid; gap: 4px; padding: 9px 10px; }
     .payroll-risk-strip span { color: #64748b; font-size: 12px; }
     .attendance-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-    .attendance-controls input { width: 170px; min-height: 38px; }
+    .attendance-controls input,
+    .attendance-controls select { width: 170px; min-height: 38px; }
     .attendance-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
     .attendance-stats article { border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 4px; min-height: 78px; padding: 12px; }
     .attendance-stats span { color: #60766d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
@@ -2431,14 +2514,14 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
     .live-panel-links a { border: 1px solid #cbd8d2; border-radius: 4px; color: #0f6eb3; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
-    @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-attendance-mode .attendance-stats, .roster-kpi-strip, .payroll-kpi-strip, .payroll-risk-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-attendance-mode .attendance-stats article:nth-child(2n), .roster-kpi-strip article:nth-child(2n), .payroll-kpi-strip article:nth-child(2n) { border-right: 0; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision { grid-column: 1 / -1; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
+    @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-attendance-mode .attendance-stats, .attendance-live-strip, .attendance-ops-grid, .roster-kpi-strip, .payroll-kpi-strip, .payroll-risk-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-attendance-mode .attendance-stats article:nth-child(2n), .attendance-live-strip article:nth-child(2n), .roster-kpi-strip article:nth-child(2n), .payroll-kpi-strip article:nth-child(2n) { border-right: 0; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision { grid-column: 1 / -1; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
     @media (max-width: 640px) {
       .staff-os { gap: 12px; padding: 0; }
       .drawer-shell { padding: 0; }
       .topbar { align-items: start; flex-direction: column; }
       .panel-heading { grid-template-columns: 1fr; align-items: start; }
       .topbar-actions, .attendance-controls, .drawer-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
-      .topbar-actions .refresh, .topbar-actions .primary, .attendance-controls .refresh, .attendance-controls .primary, .attendance-controls input, .drawer-actions .refresh, .drawer-actions .primary { width: 100%; }
+      .topbar-actions .refresh, .topbar-actions .primary, .attendance-controls .refresh, .attendance-controls .primary, .attendance-controls input, .attendance-controls select, .drawer-actions .refresh, .drawer-actions .primary { width: 100%; }
       .staff-shell-nav { margin: 0; padding: 8px; scroll-snap-type: x proximity; }
       .staff-shell-nav a { flex: 0 0 178px; scroll-snap-align: start; }
       .staff-control-room { padding: 13px; }
@@ -2449,8 +2532,9 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
       .control-card { min-height: 86px; padding: 11px; }
       .control-card strong { font-size: 22px; }
       .metrics, .task-grid, .split, .attendance-stats, .staff-category-rail, .workspace-kpi-grid, .attendance-workspace, .attendance-wide, .camera-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: 1fr; }
-      .staff-attendance-mode .attendance-stats { grid-template-columns: 1fr; }
-      .staff-attendance-mode .attendance-stats article { border-right: 0; }
+      .staff-attendance-mode .attendance-stats, .attendance-live-strip, .attendance-ops-grid { grid-template-columns: 1fr; }
+      .staff-attendance-mode .attendance-stats article, .attendance-live-strip article { border-right: 0; }
+      .exception-table .row { grid-template-columns: 1fr; }
       .roster-kpi-strip { grid-template-columns: 1fr; }
       .roster-kpi-strip article { border-right: 0; }
       .payroll-kpi-strip, .payroll-risk-strip { grid-template-columns: 1fr; }
@@ -2805,16 +2889,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     effect(() => {
       const branchId = this.defaultBranchId(this.branchOptions());
       if (!branchId) return;
-      if (!this.manualAttendanceForm.get('branchId')?.value) this.manualAttendanceForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.cameraForm.get('branchId')?.value) this.cameraForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.deviceForm.get('branchId')?.value) this.deviceForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.gatewayForm.get('branchId')?.value) this.gatewayForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.mappingForm.get('branchId')?.value) this.mappingForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.consentForm.get('branchId')?.value) this.consentForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.payrollPreviewForm.get('branchId')?.value) this.payrollPreviewForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.taskForm.get('branchId')?.value) this.taskForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.rosterForm.get('branchId')?.value) this.rosterForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.leaveForm.get('branchId')?.value) this.leaveForm.patchValue({ branchId }, { emitEvent: false });
+      if (!this.manualAttendanceForm.get('branchId')?.value) this.patchAttendanceBranch(branchId);
     });
     effect(() => {
       const leaveType = this.leaveTypeOptions()[0]?.code || '';
@@ -2825,6 +2900,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.applyAttendanceRouteContext();
     this.store.load();
     if (this.section === 'workspace' || this.section === 'attendance-dashboard') {
       this.refreshAttendanceCenter();
@@ -3054,6 +3130,13 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   setAttendanceDate(value: string): void {
     if (!value) return;
     this.attendanceDate.set(value);
+    this.payrollPreviewForm.patchValue({ periodStart: value, periodEnd: value }, { emitEvent: false });
+    this.refreshAttendanceCenter();
+  }
+
+  setAttendanceBranch(value: string): void {
+    const branchId = String(value || this.defaultBranchId(this.branchOptions()) || '');
+    this.patchAttendanceBranch(branchId);
     this.refreshAttendanceCenter();
   }
 
@@ -3070,6 +3153,99 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   attendanceRows(): ApiRecord[] {
     const centerRows = this.store.biometricCenter()?.['attendance'];
     return Array.isArray(centerRows) ? centerRows : this.store.attendance();
+  }
+
+  attendanceBranchLabel(): string {
+    const branchId = this.attendanceBranchId();
+    const branch = this.branchOptions().find((item) => item.id === branchId);
+    return branch?.name || branchId || 'No branch';
+  }
+
+  uniqueAttendanceStaffCount(): number {
+    const staffIds = new Set(
+      this.attendanceRows()
+        .map((row) => String(row['staffId'] || row['staff_id'] || '').trim())
+        .filter(Boolean)
+    );
+    return staffIds.size;
+  }
+
+  attendanceCoveragePct(): number {
+    const activeCount = this.activeStaffForAttendance().length;
+    if (!activeCount) return 0;
+    return Math.min(100, Math.round((this.uniqueAttendanceStaffCount() / activeCount) * 100));
+  }
+
+  openAttendanceRiskCount(): number {
+    return this.store.attendanceRisks().filter((risk) => {
+      const status = String(risk['status'] || '').toLowerCase();
+      return !status || !['closed', 'resolved', 'cleared'].includes(status);
+    }).length;
+  }
+
+  payrollHoldCount(): number {
+    return this.store.attendancePayrollPreview().filter((row) => row['incentiveHold'] || String(row['status'] || '').toLowerCase() === 'hold').length;
+  }
+
+  gatewayStatusLabel(): string {
+    const summary = this.attendanceSummary();
+    const gateways = Number(summary['gateways'] || this.gatewayRows().length || 0);
+    const online = Number(summary['onlineGateways'] || this.gatewayRows().filter((row) => String(row['healthStatus'] || '').toLowerCase() === 'online').length || 0);
+    return gateways ? `${online}/${gateways} gateway online` : 'No gateway';
+  }
+
+  attendanceLastSyncLabel(): string {
+    const timestamps = [
+      ...this.attendanceRows().flatMap((row) => [row['clockInAt'], row['clockOutAt'], row['capturedAt'], row['createdAt'], row['updatedAt']]),
+      ...this.gatewayRows().map((row) => row['lastSeenAt'])
+    ]
+      .map((value) => value ? new Date(String(value)).getTime() : 0)
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (!timestamps.length) return 'Not synced';
+    return this.timeOnly(new Date(Math.max(...timestamps)).toISOString());
+  }
+
+  attendanceOpsCards(): AttendanceDashboardCard[] {
+    const summary = this.attendanceSummary();
+    return [
+      { label: 'Manual log', value: this.attendanceRows().filter((row) => String(row['source'] || '').includes('manual')).length, hint: 'physical entries', tone: 'blue' },
+      { label: 'Camera proof', value: summary['cameraCaptures'] || 0, hint: 'verified captures', tone: 'green' },
+      { label: 'Device queue', value: summary['queuedEvents'] || 0, hint: `${summary['failedEvents'] || 0} failed`, tone: Number(summary['failedEvents'] || 0) ? 'bad' : 'amber' },
+      { label: 'Mappings', value: this.store.biometricMappings().length, hint: `${this.pendingMappingCount()} pending`, tone: this.pendingMappingCount() ? 'amber' : 'green' },
+      { label: 'Consent', value: summary['consentGranted'] || this.store.biometricConsents().length, hint: `${summary['consentPending'] || this.pendingConsentCount()} pending`, tone: this.pendingConsentCount() ? 'amber' : 'green' },
+      { label: 'Payroll draft', value: this.store.attendancePayrollPreview().length, hint: `${this.payrollHoldCount()} hold`, tone: this.payrollHoldCount() ? 'bad' : 'blue' }
+    ];
+  }
+
+  attendanceExceptionRows(): AttendanceExceptionItem[] {
+    const riskRows = this.store.attendanceRisks().slice(0, 8).map((risk) => ({
+      title: risk['riskType'] || 'Attendance risk',
+      meta: risk['reason'] || 'Needs owner review',
+      staff: this.displayStaffName(risk),
+      impact: risk['severity'] || risk['riskScore'] || 'review',
+      status: risk['status'] || 'open',
+      tone: String(risk['severity'] || '').toLowerCase() === 'high' ? 'bad' : 'warn'
+    }));
+    const payrollRows = this.store.attendancePayrollPreview()
+      .filter((row) => row['incentiveHold'] || Number(row['lateCount'] || 0) || Number(row['absentDays'] || 0))
+      .slice(0, 6)
+      .map((row) => ({
+        title: row['incentiveHold'] ? 'Payroll hold' : 'Payroll adjustment',
+        meta: `${row['presentDays'] || 0} present · ${row['lateCount'] || 0} late · ${row['absentDays'] || 0} absent`,
+        staff: this.displayStaffName(row),
+        impact: `₹${Number(row['netPreview'] || 0).toLocaleString('en-IN')}`,
+        status: row['incentiveHold'] ? 'hold' : 'draft',
+        tone: row['incentiveHold'] ? 'bad' : 'warn'
+      }));
+    const alertRows = this.store.ownerAlerts().slice(0, 4).map((alert) => ({
+      title: alert['title'] || alert['alertType'] || 'Owner alert',
+      meta: alert['message'] || alert['description'] || 'Attendance action',
+      staff: this.displayStaffName(alert),
+      impact: alert['severity'] || 'owner',
+      status: alert['status'] || 'open',
+      tone: 'warn'
+    }));
+    return [...riskRows, ...payrollRows, ...alertRows].slice(0, 12);
   }
 
   activeStaffForAttendance(): StaffOsStaff[] {
@@ -3664,6 +3840,14 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  pendingMappingCount(): number {
+    return this.store.biometricMappings().filter((mapping) => String(mapping['status'] || '').toLowerCase() !== 'approved').length;
+  }
+
+  pendingConsentCount(): number {
+    return this.store.biometricConsents().filter((consent) => String(consent['consentStatus'] || '').toLowerCase() !== 'granted').length;
+  }
+
   openAddStaff(): void {
     const branchId = this.staffForm.get('branchId')?.value || this.defaultBranchId(this.branchOptions());
     this.addStaffError.set('');
@@ -3672,7 +3856,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.addStaffOpen.set(true);
   }
 
-  private attendanceBranchId(): string {
+  attendanceBranchId(): string {
     return String(
       this.manualAttendanceForm.get('branchId')?.value
       || this.cameraForm.get('branchId')?.value
@@ -3686,6 +3870,40 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       || this.branchOptions()[0]?.id
       || ''
     );
+  }
+
+  private applyAttendanceRouteContext(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const date = params.get('date') || params.get('businessDate') || '';
+    const branchId = params.get('branchId') || '';
+    const staffId = params.get('staffId') || '';
+    if (date) {
+      this.attendanceDate.set(date);
+      this.payrollPreviewForm.patchValue({ periodStart: date, periodEnd: date }, { emitEvent: false });
+    }
+    if (branchId) this.patchAttendanceBranch(branchId);
+    if (staffId) {
+      this.manualAttendanceForm.patchValue({ staffId }, { emitEvent: false });
+      this.cameraForm.patchValue({ staffId }, { emitEvent: false });
+      this.mappingForm.patchValue({ staffId }, { emitEvent: false });
+      this.consentForm.patchValue({ staffId }, { emitEvent: false });
+      this.taskForm.patchValue({ staffId }, { emitEvent: false });
+      this.rosterForm.patchValue({ staffId }, { emitEvent: false });
+      this.leaveForm.patchValue({ staffId }, { emitEvent: false });
+    }
+  }
+
+  private patchAttendanceBranch(branchId: string): void {
+    this.manualAttendanceForm.patchValue({ branchId }, { emitEvent: false });
+    this.cameraForm.patchValue({ branchId }, { emitEvent: false });
+    this.deviceForm.patchValue({ branchId }, { emitEvent: false });
+    this.gatewayForm.patchValue({ branchId }, { emitEvent: false });
+    this.mappingForm.patchValue({ branchId }, { emitEvent: false });
+    this.consentForm.patchValue({ branchId }, { emitEvent: false });
+    this.payrollPreviewForm.patchValue({ branchId }, { emitEvent: false });
+    this.taskForm.patchValue({ branchId }, { emitEvent: false });
+    this.rosterForm.patchValue({ branchId }, { emitEvent: false });
+    this.leaveForm.patchValue({ branchId }, { emitEvent: false });
   }
 
   private attendanceTimestamp(date: string, value: unknown): string {
