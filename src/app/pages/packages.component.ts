@@ -10,12 +10,23 @@ type PackageForm = {
   id: string;
   name: string;
   description: string;
-  serviceId: string;
   paidSessions: number;
   freeSessions: number;
   price: number;
+  costPrice: number;
   validityDays: number;
+  validityUnit: 'Days' | 'Month' | 'Year';
   status: string;
+  showMobileApp: boolean;
+  showOnlineBooking: boolean;
+  serviceRows: PackageServiceRow[];
+};
+
+type PackageServiceRow = {
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  unitPrice: number;
 };
 
 type RedemptionLine = {
@@ -45,87 +56,94 @@ type RedemptionLine = {
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <p class="state success" *ngIf="message()">{{ message() }}</p>
 
-      <section class="package-builder" *ngIf="showForm()">
-        <div class="section-title compact">
-          <div>
-            <span class="eyebrow">Package formula</span>
-            <h3>Pay {{ form.paidSessions || 0 }}, get {{ totalSessions() }} service credit(s)</h3>
+      <div class="package-drawer-shell" *ngIf="showForm()">
+        <button class="drawer-scrim" type="button" (click)="resetForm()" aria-label="Close package drawer"></button>
+        <aside class="package-drawer">
+          <div class="drawer-title">
+            <button class="icon-button" type="button" (click)="resetForm()">×</button>
+            <h2>{{ form.id ? 'Update Package' : 'Add New Package' }}</h2>
           </div>
-          <span class="badge">{{ form.freeSessions || 0 }} free</span>
-        </div>
+          <p class="drawer-help">Generate diverse packages by including names, offer prices, and the number of services and sessions associated with each package.</p>
 
-        <div class="builder-grid">
-          <label class="field">
-            <span>Service</span>
-            <select [(ngModel)]="form.serviceId" (ngModelChange)="onServiceChange($event)">
-              <option value="">Choose service</option>
-              <option *ngFor="let service of services()" [value]="recordId(service)">
-                {{ serviceName(service) }} - {{ servicePrice(service) | currency: 'INR':'symbol':'1.0-0' }}
-              </option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Package name</span>
-            <input [(ngModel)]="form.name" placeholder="Root Touch Up 3+1" />
-          </label>
-          <label class="field">
-            <span>Paid sessions</span>
-            <input type="number" min="1" [(ngModel)]="form.paidSessions" (ngModelChange)="recalculatePrice()" />
-          </label>
-          <label class="field">
-            <span>Free sessions</span>
-            <input type="number" min="0" [(ngModel)]="form.freeSessions" (ngModelChange)="recalculatePrice()" />
-          </label>
-          <label class="field">
-            <span>Total customer credits</span>
-            <input [value]="totalSessions()" readonly />
-          </label>
-          <label class="field">
-            <span>Package price</span>
-            <input type="number" min="0" [(ngModel)]="form.price" />
-          </label>
-          <label class="field">
-            <span>Validity days</span>
-            <input type="number" min="1" [(ngModel)]="form.validityDays" />
-          </label>
-          <label class="field">
-            <span>Status</span>
-            <select [(ngModel)]="form.status">
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </label>
-          <label class="field span-2">
-            <span>Description</span>
-            <input [(ngModel)]="form.description" placeholder="Client pays 3 Root Touch Up sessions and gets 4 credits." />
-          </label>
-        </div>
+          <input class="drawer-input" [(ngModel)]="form.name" placeholder="Package Name" />
+          <select class="drawer-input" [ngModel]="serviceToAdd" (ngModelChange)="addServiceLine($event)">
+            <option value="">Select Service</option>
+            <option *ngFor="let service of services()" [value]="recordId(service)">
+              {{ serviceName(service) }} (Price: {{ servicePrice(service) | currency: 'INR':'symbol':'1.0-0' }})
+            </option>
+          </select>
 
-        <div class="formula-preview">
-          <article>
-            <span>Service price</span>
-            <strong>{{ selectedServicePrice() | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          </article>
-          <article>
-            <span>Customer pays</span>
-            <strong>{{ form.paidSessions || 0 }} session(s)</strong>
-          </article>
-          <article>
-            <span>Customer gets</span>
-            <strong>{{ totalSessions() }} redemption(s)</strong>
-          </article>
-          <article>
-            <span>Balance flow</span>
-            <strong>{{ balancePreview() }}</strong>
-          </article>
-        </div>
+          <div class="package-service-table" *ngIf="form.serviceRows.length">
+            <div class="service-table-head">
+              <span>Service Name</span>
+              <span>Qty</span>
+              <span>Price</span>
+              <span>Status</span>
+              <span>Delete</span>
+            </div>
+            <div class="service-table-row" *ngFor="let row of form.serviceRows; let index = index">
+              <strong>{{ row.serviceName }}</strong>
+              <div class="qty-stepper">
+                <button type="button" (click)="changeServiceQty(index, -1)">−</button>
+                <input type="number" min="1" [(ngModel)]="row.quantity" (ngModelChange)="syncPackageTotals()" />
+                <button type="button" (click)="changeServiceQty(index, 1)">+</button>
+              </div>
+              <label class="money-input"><span>₹</span><input type="number" min="0" [(ngModel)]="row.unitPrice" (ngModelChange)="syncPackageTotals()" /></label>
+              <span class="badge">Active</span>
+              <button class="delete-button" type="button" (click)="removeServiceLine(index)">Delete</button>
+            </div>
+          </div>
 
-        <div class="form-actions">
-          <button class="ghost-button" type="button" (click)="resetForm()">Cancel</button>
-          <button class="primary-button" type="button" (click)="savePackage()" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save package' }}</button>
-        </div>
-      </section>
+          <div class="drawer-grid">
+            <label class="field">
+              <span>Paid sessions</span>
+              <input type="number" min="1" [(ngModel)]="form.paidSessions" (ngModelChange)="applyFormulaToRows()" />
+            </label>
+            <label class="field">
+              <span>Free sessions</span>
+              <input type="number" min="0" [(ngModel)]="form.freeSessions" (ngModelChange)="applyFormulaToRows()" />
+            </label>
+            <label class="field">
+              <span>Cost Price (₹)</span>
+              <input type="number" min="0" [(ngModel)]="form.costPrice" />
+            </label>
+            <label class="field">
+              <span>Special Price (₹)</span>
+              <input type="number" min="0" [(ngModel)]="form.price" />
+            </label>
+            <label class="field">
+              <span>Number of days</span>
+              <input type="number" min="1" [(ngModel)]="form.validityDays" />
+            </label>
+            <label class="field">
+              <span>Validity</span>
+              <select [(ngModel)]="form.validityUnit">
+                <option value="Days">Days</option>
+                <option value="Month">Month</option>
+                <option value="Year">Year</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="preset-row">
+            <button class="ghost-button mini" type="button" (click)="applyPackageFormula(3, 1)">3+1</button>
+            <button class="ghost-button mini" type="button" (click)="applyPackageFormula(4, 1)">4+1</button>
+            <button class="ghost-button mini" type="button" (click)="applyPackageFormula(5, 2)">5+2</button>
+            <span>{{ totalSessions() }} credit(s) per selected service</span>
+          </div>
+
+          <div class="show-box">
+            <strong>Show in</strong>
+            <label><span>Customize Mobile APP</span><input type="checkbox" [(ngModel)]="form.showMobileApp" /></label>
+            <label><span>Online Booking Page</span><input type="checkbox" [(ngModel)]="form.showOnlineBooking" /></label>
+          </div>
+
+          <div class="form-actions">
+            <button class="ghost-button" type="button" (click)="resetForm()">Cancel</button>
+            <button class="primary-button" type="button" (click)="savePackage()" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save' }}</button>
+          </div>
+        </aside>
+      </div>
 
       <section class="package-metrics">
         <article>
@@ -171,6 +189,7 @@ type RedemptionLine = {
                   <th>Sold</th>
                   <th>Active clients</th>
                   <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,9 +204,10 @@ type RedemptionLine = {
                   <td>{{ packageMembers(item).length }}</td>
                   <td>{{ activeMembers(item).length }}</td>
                   <td><span class="badge">{{ item.status || 'active' }}</span></td>
+                  <td><button class="ghost-button mini" type="button" (click)="editPackage(item); $event.stopPropagation()">Edit</button></td>
                 </tr>
                 <tr *ngIf="!filteredPackages().length">
-                  <td colspan="7">No package found. Add Root Touch Up 3+1 package from the form above.</td>
+                  <td colspan="8">No package found. Add Root Touch Up 3+1 package from the drawer.</td>
                 </tr>
               </tbody>
             </table>
@@ -270,6 +290,173 @@ type RedemptionLine = {
       background: #fff;
       padding: 18px;
       box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+    }
+
+    .package-drawer-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .drawer-scrim {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      background: rgba(15, 23, 42, 0.62);
+    }
+
+    .package-drawer {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 540px);
+      min-height: 100vh;
+      overflow: auto;
+      padding: 22px;
+      background: #fff;
+      box-shadow: -24px 0 60px rgba(15, 23, 42, 0.22);
+    }
+
+    .drawer-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .drawer-title h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .icon-button,
+    .delete-button {
+      border: 0;
+      background: transparent;
+      color: #111827;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .icon-button {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .drawer-help {
+      margin: 0 0 14px;
+      padding: 12px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .drawer-input {
+      margin-bottom: 10px;
+    }
+
+    .package-service-table {
+      margin: 16px 0;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 12px 0;
+    }
+
+    .service-table-head,
+    .service-table-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) 76px 104px 72px 56px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .service-table-head {
+      color: #111827;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .service-table-row {
+      padding: 10px 0;
+      font-size: 13px;
+    }
+
+    .qty-stepper,
+    .money-input {
+      display: flex;
+      align-items: center;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      overflow: hidden;
+      min-height: 34px;
+    }
+
+    .qty-stepper button {
+      width: 28px;
+      height: 34px;
+      border: 0;
+      background: #1f2937;
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .qty-stepper input,
+    .money-input input {
+      min-height: 34px;
+      border: 0;
+      border-radius: 0;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .money-input span {
+      padding: 0 8px;
+      color: #64748b;
+      border-right: 1px solid #d1d5db;
+    }
+
+    .drawer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 12px 0;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .show-box {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+    }
+
+    .show-box label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #334155;
+      font-weight: 800;
+    }
+
+    .show-box input {
+      width: auto;
+      min-height: auto;
     }
 
     .builder-grid {
@@ -538,6 +725,7 @@ export class PackagesComponent implements OnInit {
   readonly selectedPackageId = signal('');
   readonly query = signal('');
   form: PackageForm = this.defaultForm();
+  serviceToAdd = '';
 
   readonly filteredPackages = computed(() => {
     const term = this.query().trim().toLowerCase();
@@ -582,38 +770,85 @@ export class PackagesComponent implements OnInit {
   }
 
   toggleForm(): void {
-    this.showForm.update((value) => !value);
+    if (this.showForm()) {
+      this.resetForm();
+      return;
+    }
+    this.form = this.defaultForm();
+    this.serviceToAdd = '';
+    this.showForm.set(true);
   }
 
   resetForm(): void {
     this.form = this.defaultForm();
+    this.serviceToAdd = '';
     this.showForm.set(false);
     this.error.set('');
   }
 
-  onServiceChange(serviceId: string): void {
+  addServiceLine(serviceId: string): void {
     const service = this.serviceById(serviceId);
+    this.serviceToAdd = '';
     if (!service) return;
-    const name = this.serviceName(service);
-    this.form.name = `${name} ${this.form.paidSessions}+${this.form.freeSessions}`;
-    this.form.description = `Client pays ${this.form.paidSessions} ${name} session(s) and gets ${this.totalSessions()} credits.`;
-    this.recalculatePrice();
+    const existing = this.form.serviceRows.find((row) => row.serviceId === serviceId);
+    if (existing) {
+      existing.quantity = this.totalSessions() || existing.quantity || 1;
+      this.syncPackageTotals();
+      return;
+    }
+    this.form.serviceRows = [
+      ...this.form.serviceRows,
+      {
+        serviceId,
+        serviceName: this.serviceName(service),
+        quantity: Math.max(1, this.totalSessions() || 1),
+        unitPrice: this.servicePrice(service)
+      }
+    ];
+    if (!this.form.name.trim()) this.form.name = `${this.serviceName(service)} ${this.form.paidSessions}+${this.form.freeSessions}`;
+    this.syncPackageTotals();
   }
 
-  recalculatePrice(): void {
-    const price = this.selectedServicePrice();
-    this.form.price = Math.max(0, price * Math.max(0, Number(this.form.paidSessions) || 0));
-    const service = this.serviceById(this.form.serviceId);
-    if (service) {
-      const name = this.serviceName(service);
-      this.form.name = `${name} ${this.form.paidSessions || 0}+${this.form.freeSessions || 0}`;
-      this.form.description = `Client pays ${this.form.paidSessions || 0} ${name} session(s) and gets ${this.totalSessions()} credits.`;
+  changeServiceQty(index: number, delta: number): void {
+    const row = this.form.serviceRows[index];
+    if (!row) return;
+    row.quantity = Math.max(1, Number(row.quantity || 1) + delta);
+    this.syncPackageTotals();
+  }
+
+  removeServiceLine(index: number): void {
+    this.form.serviceRows = this.form.serviceRows.filter((_, rowIndex) => rowIndex !== index);
+    this.syncPackageTotals();
+  }
+
+  applyPackageFormula(paidSessions: number, freeSessions: number): void {
+    this.form.paidSessions = paidSessions;
+    this.form.freeSessions = freeSessions;
+    this.applyFormulaToRows();
+  }
+
+  applyFormulaToRows(): void {
+    const total = this.totalSessions();
+    this.form.serviceRows = this.form.serviceRows.map((row) => ({ ...row, quantity: Math.max(1, total || row.quantity || 1) }));
+    if (this.form.serviceRows.length === 1) {
+      this.form.name = `${this.form.serviceRows[0].serviceName} ${this.form.paidSessions || 0}+${this.form.freeSessions || 0}`;
     }
+    this.syncPackageTotals();
+  }
+
+  syncPackageTotals(): void {
+    const paidSessions = Math.max(1, Number(this.form.paidSessions) || 1);
+    const costPrice = this.form.serviceRows.reduce((sum, row) => sum + (Math.max(1, Number(row.quantity || 1)) * Math.max(0, Number(row.unitPrice || 0))), 0);
+    const specialPrice = this.form.serviceRows.reduce((sum, row) => sum + (paidSessions * Math.max(0, Number(row.unitPrice || 0))), 0);
+    this.form.costPrice = costPrice;
+    this.form.price = specialPrice;
+    this.form.description = this.form.serviceRows.length
+      ? `Client pays ${paidSessions} session(s) and gets ${this.totalSessions()} credit(s) for ${this.form.serviceRows.map((row) => row.serviceName).join(', ')}.`
+      : '';
   }
 
   savePackage(): void {
-    const service = this.serviceById(this.form.serviceId);
-    if (!service) {
+    if (!this.form.serviceRows.length) {
       this.error.set('Package banane ke liye service select karo.');
       return;
     }
@@ -621,39 +856,45 @@ export class PackagesComponent implements OnInit {
     const freeSessions = Math.max(0, Number(this.form.freeSessions) || 0);
     const totalSessions = paidSessions + freeSessions;
     const packageId = this.form.id || `pkg_${Date.now()}`;
-    const serviceName = this.serviceName(service);
+    const serviceIds = this.form.serviceRows.map((row) => row.serviceId);
+    const packageCredits = this.form.serviceRows.map((row) => ({
+      packageId,
+      serviceId: row.serviceId,
+      serviceName: row.serviceName,
+      credits: Math.max(1, Number(row.quantity) || totalSessions),
+      quantity: Math.max(1, Number(row.quantity) || totalSessions),
+      remaining: Math.max(1, Number(row.quantity) || totalSessions),
+      paidSessions,
+      freeSessions,
+      unitPrice: Math.max(0, Number(row.unitPrice) || 0),
+      packagePrice: Math.max(0, Number(this.form.price) || 0)
+    }));
     const payload: ApiRecord = {
       id: packageId,
-      name: this.form.name.trim() || `${serviceName} ${paidSessions}+${freeSessions}`,
-      description: this.form.description.trim() || `Pay ${paidSessions}, get ${totalSessions} ${serviceName} credits.`,
+      name: this.form.name.trim() || `${this.form.serviceRows[0].serviceName} ${paidSessions}+${freeSessions}`,
+      description: this.form.description.trim() || `Pay ${paidSessions}, get ${totalSessions} credit(s).`,
       price: Math.max(0, Number(this.form.price) || 0),
-      validityDays: Math.max(1, Number(this.form.validityDays) || 90),
-      serviceIds: [this.recordId(service)],
-      packageCredits: [{
-        packageId,
-        serviceId: this.recordId(service),
-        serviceName,
-        credits: totalSessions,
-        quantity: totalSessions,
-        remaining: totalSessions,
-        paidSessions,
-        freeSessions,
-        unitPrice: this.servicePrice(service),
-        packagePrice: Math.max(0, Number(this.form.price) || 0)
-      }],
+      costPrice: Math.max(0, Number(this.form.costPrice) || 0),
+      validityDays: this.normalizedValidityDays(),
+      serviceIds,
+      packageCredits,
       rules: {
         type: 'pay_x_get_y',
-        serviceId: this.recordId(service),
-        serviceName,
+        serviceIds,
+        serviceName: this.form.serviceRows.map((row) => row.serviceName).join(', '),
         paidSessions,
         freeSessions,
-        totalSessions
+        totalSessions,
+        validityUnit: this.form.validityUnit,
+        showMobileApp: this.form.showMobileApp,
+        showOnlineBooking: this.form.showOnlineBooking
       },
       status: this.form.status || 'active'
     };
     this.saving.set(true);
     this.error.set('');
-    this.api.create<ApiRecord>('packages', payload).subscribe({
+    const request = this.form.id ? this.api.update<ApiRecord>('packages', packageId, payload) : this.api.create<ApiRecord>('packages', payload);
+    request.subscribe({
       next: (created) => {
         this.message.set(`${this.packageName(created)} package save ho gaya. Ab POS me sell karke client ke naam active package banega.`);
         this.saving.set(false);
@@ -666,6 +907,35 @@ export class PackagesComponent implements OnInit {
         this.saving.set(false);
       }
     });
+  }
+
+  editPackage(item: ApiRecord): void {
+    const credits = this.packageServiceCredits(item);
+    const rules = this.objectValue(item.rules);
+    const rows = credits.length ? credits.map((credit) => ({
+      serviceId: String(credit.serviceId || ''),
+      serviceName: String(credit.serviceName || this.serviceName(this.serviceById(String(credit.serviceId || ''))) || 'Package service'),
+      quantity: this.moneyValue(credit.credits ?? credit.quantity ?? 1) || 1,
+      unitPrice: this.moneyValue(credit.unitPrice ?? 0)
+    })) : [];
+    const paidSessions = this.moneyValue(rules.paidSessions ?? credits[0]?.paidSessions ?? 3) || 3;
+    const freeSessions = this.moneyValue(rules.freeSessions ?? credits[0]?.freeSessions ?? 1);
+    this.form = {
+      id: this.recordId(item),
+      name: this.packageName(item),
+      description: String(item.description || ''),
+      paidSessions,
+      freeSessions,
+      price: this.moneyValue(item.price || 0),
+      costPrice: this.moneyValue(item.costPrice || item.cost_price || 0),
+      validityDays: this.moneyValue(item.validityDays || 90),
+      validityUnit: String(rules.validityUnit || 'Days') as PackageForm['validityUnit'],
+      status: String(item.status || 'active'),
+      showMobileApp: Boolean(rules.showMobileApp),
+      showOnlineBooking: rules.showOnlineBooking !== false,
+      serviceRows: rows
+    };
+    this.showForm.set(true);
   }
 
   selectPackage(item: ApiRecord): void {
@@ -687,7 +957,7 @@ export class PackagesComponent implements OnInit {
   }
 
   selectedServicePrice(): number {
-    return this.servicePrice(this.serviceById(this.form.serviceId));
+    return this.form.serviceRows[0]?.unitPrice || 0;
   }
 
   activePackageCount(): number {
@@ -739,8 +1009,9 @@ export class PackagesComponent implements OnInit {
     const paid = this.moneyValue(rules.paidSessions ?? this.firstPackageCredit(pkg).paidSessions);
     const free = this.moneyValue(rules.freeSessions ?? this.firstPackageCredit(pkg).freeSessions);
     const total = this.packageTotalCredits(pkg);
-    const serviceName = String(rules.serviceName || this.firstPackageCredit(pkg).serviceName || this.serviceName(this.serviceById(this.packageServiceIds(pkg)[0])) || 'service');
-    if (paid || free) return `${serviceName}: pay ${paid}, get ${total}`;
+    const serviceNames = this.packageServiceCredits(pkg).map((credit) => String(credit.serviceName || this.serviceName(this.serviceById(String(credit.serviceId || ''))) || '')).filter(Boolean);
+    const serviceName = String(rules.serviceName || serviceNames.join(', ') || this.firstPackageCredit(pkg).serviceName || this.serviceName(this.serviceById(this.packageServiceIds(pkg)[0])) || 'service');
+    if (paid || free) return `${serviceName}: pay ${paid}, get ${paid + free || total}`;
     return `${serviceName}: ${total || 0} credit(s)`;
   }
 
@@ -928,17 +1199,28 @@ export class PackagesComponent implements OnInit {
     return {};
   }
 
+  private normalizedValidityDays(): number {
+    const value = Math.max(1, Number(this.form.validityDays) || 1);
+    if (this.form.validityUnit === 'Year') return value * 365;
+    if (this.form.validityUnit === 'Month') return value * 30;
+    return value;
+  }
+
   private defaultForm(): PackageForm {
     return {
       id: '',
       name: '',
       description: '',
-      serviceId: '',
       paidSessions: 3,
       freeSessions: 1,
       price: 0,
+      costPrice: 0,
       validityDays: 90,
-      status: 'active'
+      validityUnit: 'Days',
+      status: 'active',
+      showMobileApp: false,
+      showOnlineBooking: true,
+      serviceRows: []
     };
   }
 }
