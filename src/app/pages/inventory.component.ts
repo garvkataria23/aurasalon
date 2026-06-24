@@ -537,7 +537,7 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
     .inventory-module-card {
       min-height: 132px;
       display: grid;
-      align-content: space-between;
+      align-content: start;
       gap: 10px;
       padding: 16px;
       border: 1px solid var(--line);
@@ -585,7 +585,7 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
       gap: 12px;
-      align-items: start;
+      align-items: stretch;
     }
 
     .lower-grid {

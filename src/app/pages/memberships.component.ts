@@ -1445,7 +1445,7 @@ type PlanLifecycleDialog = {
     }
 
     .compact-workbench {
-      align-items: start;
+      align-items: stretch;
       grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.25fr);
     }
 

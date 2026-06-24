@@ -213,6 +213,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
     .dashboard-hub-card {
       min-height: 118px;
+      height: 100%;
       display: grid;
       align-content: start;
       gap: 6px;

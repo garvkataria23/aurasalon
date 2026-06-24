@@ -384,7 +384,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       display: grid;
       grid-template-columns: minmax(0, 1.4fr) minmax(300px, .8fr);
       gap: 12px;
-      align-items: start;
+      align-items: stretch;
     }
 
     .ledger-side {

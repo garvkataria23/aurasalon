@@ -573,7 +573,7 @@ type AiTool = {
       display: grid;
       grid-template-columns: minmax(320px, .85fr) minmax(480px, 1.35fr) minmax(300px, .8fr);
       gap: 16px;
-      align-items: start;
+      align-items: stretch;
     }
 
     .panel {
@@ -585,6 +585,7 @@ type AiTool = {
     .governance-panel {
       position: sticky;
       top: 18px;
+      align-self: start;
     }
 
     .ai-search {

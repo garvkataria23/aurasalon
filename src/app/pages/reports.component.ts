@@ -261,6 +261,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       display: grid;
       gap: 8px;
       min-height: 112px;
+      height: 100%;
       padding: 16px;
       text-decoration: none;
     }

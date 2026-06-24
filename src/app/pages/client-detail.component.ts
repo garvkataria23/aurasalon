@@ -1462,7 +1462,7 @@ type ClientPersonalDetailsForm = {
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
       gap: 14px;
-      align-items: start;
+      align-items: stretch;
     }
 
     .notes-editor-grid {

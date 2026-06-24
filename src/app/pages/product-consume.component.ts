@@ -992,7 +992,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .report-filters { display: grid; grid-template-columns: .9fr 1.4fr .9fr .9fr .7fr .7fr auto auto; gap: 10px; align-items: end; }
     .report-filters label { display: grid; gap: 6px; }
     .report-filters span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-    .report-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .8fr); gap: 12px; align-items: start; }
+    .report-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .8fr); gap: 12px; align-items: stretch; }
     .report-table { border: 1px solid #dcebea; border-radius: 14px; overflow: auto; }
     .report-table h4 { margin: 0; padding: 10px 12px; border-bottom: 1px solid #edf4f3; }
     .report-row { min-width: 820px; display: grid; grid-template-columns: 1.5fr 1fr .8fr .7fr 1fr; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #edf4f3; }

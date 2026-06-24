@@ -681,7 +681,7 @@ type LargeMigrationJob = {
     .control-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
     .control-strip article { padding: 14px; display: grid; gap: 4px; min-width: 0; }
     .control-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .workspace-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(260px, .65fr); gap: 14px; align-items: start; }
+    .workspace-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(260px, .65fr); gap: 14px; align-items: stretch; }
     .grid { display: grid; gap: 14px; }
     .grid.two { grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }

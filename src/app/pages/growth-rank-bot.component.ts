@@ -1182,7 +1182,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .report-summary-band .score-report { background: linear-gradient(135deg, #fff7ed, #eff6ff); border-color: #fed7aa; }
     .report-summary-band .score-report strong { color: #f05a28; font-size: 2rem; }
     .report-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1rem; }
-    .report-card { background: var(--soft); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: .85rem; padding: 1rem; align-content: start; }
+    .report-card { background: var(--soft); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: .85rem; padding: 1rem; }
     .report-card.wide { grid-column: 1 / -1; }
     .report-card header { align-items: center; display: flex; gap: .75rem; justify-content: space-between; }
     .report-card h4 { color: var(--ink); font-family: var(--font-display); font-size: 1rem; font-weight: 850; margin: 0; }

@@ -997,8 +997,8 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
     .workspace-head { align-items: flex-start; gap: 12px; }
     .sync-strip { display: flex; gap: 8px; flex-wrap: wrap; min-height: 30px; }
     .sync-strip span { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; color: var(--muted); background: var(--soft); font-size: 12px; font-weight: 800; }
-    .workspace-shell { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 14px; align-items: start; }
-    .category-rail { display: grid; gap: 8px; position: sticky; top: 12px; }
+    .workspace-shell { display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 14px; align-items: stretch; }
+    .category-rail { display: grid; gap: 8px; position: sticky; top: 12px; align-self: start; }
     .category-tile { min-height: 82px; width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); padding: 12px; display: grid; gap: 4px; text-align: left; align-content: center; border-left: 4px solid var(--line); }
     .category-tile:hover, .category-tile.active { background: var(--soft); border-color: #b7c8df; }
     .category-tile.active { box-shadow: 0 10px 24px rgba(16, 32, 56, .08); }
