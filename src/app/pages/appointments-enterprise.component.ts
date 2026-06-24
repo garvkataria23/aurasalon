@@ -18,11 +18,23 @@ type SchedulerActionMenu = {
 type StaffLane = {
   id: string;
   name: string;
+  fullName?: string;
   shortName?: string;
   role?: string;
+  designation?: string;
+  specialization?: string;
+  department?: string;
   status?: string;
   avatar?: string;
   phone?: string;
+  mobile?: string;
+  contact?: string;
+  phoneNumber?: string;
+  employeeCode?: string;
+  staffCode?: string;
+  code?: string;
+  branchName?: string;
+  branch?: string;
 };
 
 type BookingLineDraft = {
@@ -515,29 +527,42 @@ const STATUS_TONES: Record<string, string> = {
             <label class="search-select staff-field-wide">
               <span>Staff</span>
               <div class="smart-picker">
-                <input
-                  class="picker-search"
-                  type="search"
-                  [value]="lineStaffSearchValue(line)"
-                  (input)="setLineSearch('staff', line.id, $any($event.target).value)"
-                  (focus)="setLineSearchActive('staff', line.id, true)"
-                  (blur)="closeLineSearchSoon('staff', line.id)"
-                  placeholder="Search staff"
-                  autocomplete="off"
-                />
+                <div class="line-staff-input-wrap">
+                  <input
+                    class="picker-search"
+                    type="search"
+                    [value]="lineStaffSearchValue(line)"
+                    (input)="setLineSearch('staff', line.id, $any($event.target).value)"
+                    (focus)="setLineSearchActive('staff', line.id, true)"
+                    (blur)="closeLineSearchSoon('staff', line.id)"
+                    placeholder="Search staff name, phone, role, ID 1/2"
+                    autocomplete="off"
+                  />
+                  <button
+                    class="line-staff-clear-button"
+                    *ngIf="lineStaffSearchValue(line)"
+                    type="button"
+                    aria-label="Clear staff"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="clearLineStaffSelection(line)"
+                  >
+                    x
+                  </button>
+                </div>
                 <div class="smart-search-results" *ngIf="showLineStaffResults(line)">
                   <button
+                    class="line-staff-result"
                     type="button"
                     *ngFor="let person of filteredStaff(line); trackBy: trackStaff"
                     (mousedown)="$event.preventDefault()"
                     (click)="selectLineStaff(line, person)"
                   >
-                    <strong>{{ person.name || 'Staff' }}</strong>
-                    <span>{{ person.role || person.status || person.id }}</span>
+                    <strong>{{ person.name || person.fullName || 'Staff' }}</strong>
+                    <span>{{ staffResultMeta(person) }}</span>
                   </button>
                 </div>
               </div>
-              <small class="picker-empty" *ngIf="showLineStaffEmpty(line)">No staff match.</small>
+              <small class="picker-empty" *ngIf="showLineStaffEmpty(line)">No matching active staff found.</small>
             </label>
             <label class="start-field-wide"><span>Start</span><input type="datetime-local" [value]="line.startAt" (change)="updateLine(line.id, 'startAt', $any($event.target).value)" /></label>
             <label class="duration-field-compact"><span>Duration</span><input type="number" min="15" step="15" [value]="line.durationMinutes" (change)="updateLine(line.id, 'durationMinutes', $any($event.target).value)" /></label>
@@ -990,6 +1015,11 @@ const STATUS_TONES: Record<string, string> = {
     .service-field-wide .smart-search-results .service-result-actions button { display: inline-flex; grid-template-columns: none; }
     .picker-search { min-height: 38px; border-radius: 10px; border: 1px solid #cfe0dc; background: #f8fffd; padding: 9px 10px; font-weight: 800; color: #172033; }
     .picker-search:focus { border-color: #0f8f7f; outline: 3px solid rgba(15,143,127,.14); background: #fff; }
+    .line-staff-input-wrap { position: relative; }
+    .line-staff-input-wrap .picker-search { width: 100%; padding-right: 38px; }
+    .line-staff-clear-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 999px; background: #dff7ef; color: #0f766e; cursor: pointer; font-weight: 900; line-height: 1; }
+    .line-staff-clear-button:hover { background: #baf3de; }
+    .smart-search-results .line-staff-result { grid-template-columns: minmax(0, 1fr); }
     .picker-meta, .picker-empty { font-size: 11px; font-weight: 800; text-transform: none; color: #64748b; }
     .picker-meta.selected { color: #059669; }
     .picker-empty { color: #b45309; }
@@ -1603,6 +1633,12 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.setLineSearchActive('staff', line.id, false);
   }
 
+  clearLineStaffSelection(line: BookingLineDraft): void {
+    this.updateLine(line.id, 'staffId', '');
+    this.setLineSearch('staff', line.id, '');
+    this.setLineSearchActive('staff', line.id, false);
+  }
+
   refreshPreviousServices(): void {
     this.loadClientServiceHistory(this.selectedBookingClientId(), true);
   }
@@ -1659,7 +1695,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   showLineStaffResults(line: BookingLineDraft): boolean {
-    return this.lineSearchActive(this.staffSearchActiveByLine(), line.id) && this.lineSearch(this.staffSearchByLine(), line.id).trim().length > 0 && this.filteredStaff(line).length > 0;
+    return this.lineSearchActive(this.staffSearchActiveByLine(), line.id) && this.filteredStaff(line).length > 0;
   }
 
   showLineServiceEmpty(line: BookingLineDraft): boolean {
@@ -1740,19 +1776,43 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return records
       .map((person, index) => ({ person, score: this.smartSearchScore([
         person.name,
+        person.fullName,
         this.initials(person.name),
         person.shortName,
         person.role,
+        person.designation,
+        person.specialization,
+        person.department,
         person.status,
         person.phone,
+        person.mobile,
+        person.contact,
+        person.phoneNumber,
+        person.employeeCode,
+        person.staffCode,
+        person.code,
         person.id,
         String(index + 1),
         `id ${index + 1}`,
-        `staff ${index + 1}`
+        `staff ${index + 1}`,
+        `employee ${index + 1}`
       ], needle) }))
       .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((entry) => entry.person);
+  }
+
+  staffResultMeta(person: StaffLane): string {
+    const role = person.role || person.designation || person.specialization || person.department || 'Staff';
+    const phone = person.phone || person.mobile || person.contact || person.phoneNumber || '';
+    const branch = person.branchName || person.branch || '';
+    const smartId = this.staffSmartIdLabel(person);
+    return [smartId, role, phone, branch].filter(Boolean).join(' · ');
+  }
+
+  private staffSmartIdLabel(person: StaffLane): string {
+    const code = person.employeeCode || person.staffCode || person.code || person.id || '';
+    return code ? `ID ${code}` : '';
   }
 
   private smartFilterApiRecords(records: ApiRecord[], query: string, fields: (record: ApiRecord, index: number) => unknown[]): ApiRecord[] {
