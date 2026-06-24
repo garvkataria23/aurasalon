@@ -1012,10 +1012,20 @@ type ClientPersonalDetailsForm = {
             <article class="package-history-card" *ngFor="let row of clientPackageHistoryRows(); trackBy: trackHistoryRow">
               <div class="package-history-head">
                 <div>
-                  <span class="eyebrow">Package purchased</span>
+                  <span class="eyebrow">{{ packageHistoryEyebrow(row) }}</span>
                   <h3>{{ row.name }}</h3>
                 </div>
-                <span class="badge">{{ row.status }}</span>
+                <div class="package-history-actions">
+                  <span class="badge">{{ row.status }}</span>
+                  <a
+                    class="ghost-button fit"
+                    *ngIf="row.status === 'Active'"
+                    routerLink="/pos"
+                    [queryParams]="{ clientId: client.id }"
+                  >
+                    Redeem package
+                  </a>
+                </div>
               </div>
               <div class="info-grid package-metrics">
                 <div><span>Purchase date</span><strong>{{ row.purchaseDate }}</strong></div>
@@ -2212,6 +2222,14 @@ type ClientPersonalDetailsForm = {
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 12px;
+    }
+
+    .package-history-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .package-history-head h3 {
@@ -3437,20 +3455,25 @@ export class ClientDetailComponent implements OnInit {
   }
 
   clientPackageHistoryRows(): ClientPackageRow[] {
+    const membershipRows = this.memberships()
+      .filter((item) => this.membershipBelongsToClient(item) && this.membershipBenefitType(item) === 'package')
+      .map((item, index) => this.packageHistoryRow(item, undefined, `membership-package-${item.id || index}`));
+    const membershipKnown = new Set(membershipRows.map((row) => this.packageHistoryKey(row)));
     const saleRows = this.clientSales().flatMap((sale) => this.saleItems(sale)
       .filter((item) => this.itemKind(item) === 'package')
-      .map((item, index) => this.packageHistoryRow(item, sale, `sale-${sale.id || sale.invoiceId || index}-${index}`)));
-    const known = new Set(saleRows.map((row) => row.id || row.name.toLowerCase()));
+      .map((item, index) => this.packageHistoryRow(item, sale, `sale-${sale.id || sale.invoiceId || index}-${index}`)))
+      .filter((row) => !membershipKnown.has(this.packageHistoryKey(row)));
+    const known = new Set([...membershipRows, ...saleRows].map((row) => this.packageHistoryKey(row)));
     const linkedRows = this.packages()
       .filter((item) => this.packageBelongsToClient(item))
       .map((item, index) => this.packageHistoryRow(item, undefined, `package-${item.id || index}`))
-      .filter((row) => !known.has(row.id) && !known.has(row.name.toLowerCase()));
-    return [...saleRows, ...linkedRows];
+      .filter((row) => !known.has(this.packageHistoryKey(row)));
+    return [...membershipRows, ...saleRows, ...linkedRows];
   }
 
   private packageHistoryRow(item: ApiRecord, sale: ApiRecord | undefined, fallbackId: string): ClientPackageRow {
-    const totalSessions = this.packageSessionValue(item, ['totalSessions', 'sessionCount', 'sessions', 'credits', 'quantity', 'qty']);
-    const usedSessions = this.packageSessionValue(item, ['usedSessions', 'redeemedSessions', 'consumedSessions', 'used']);
+    const totalSessions = this.packageTotalSessions(item);
+    const usedSessions = this.packageUsedSessions(item, totalSessions);
     const balanceSessions = this.packageBalanceSessions(item, totalSessions, usedSessions);
     const purchaseDate = this.dateLabel(sale?.createdAt || sale?.date || item.purchaseDate || item.startDate || item.createdAt || item.date);
     const expiryDate = this.dateLabel(item.expiryDate || item.expiresAt || item.validTill || item.validityDate || sale?.expiryDate);
@@ -3468,6 +3491,31 @@ export class ClientDetailComponent implements OnInit {
     };
   }
 
+  packageHistoryEyebrow(row: ClientPackageRow): string {
+    if (row.status === 'Active') return 'Active package';
+    if (row.status === 'Expired') return 'Expired package';
+    if (row.status === 'Fully Used') return 'Package fully used';
+    return 'Package purchased';
+  }
+
+  private packageHistoryKey(row: ClientPackageRow): string {
+    return `${row.name.toLowerCase()}|${row.purchaseDate}|${row.expiryDate}|${row.totalSessions}|${row.balanceSessions}`;
+  }
+
+  private packageTotalSessions(item: ApiRecord): number {
+    const direct = this.packageSessionValue(item, ['totalSessions', 'sessionCount', 'sessions', 'credits', 'planCredits', 'plan_credits', 'quantity', 'qty']);
+    if (direct > 0) return direct;
+    const credits = this.packageServiceCredits(item);
+    return credits.reduce((sum, credit) => sum + this.moneyValue(credit.credits ?? credit.quantity ?? credit.total ?? credit.remaining ?? credit.creditsRemaining ?? 0), 0);
+  }
+
+  private packageUsedSessions(item: ApiRecord, totalSessions: number): number {
+    const direct = this.packageSessionValue(item, ['usedSessions', 'redeemedSessions', 'consumedSessions', 'used']);
+    if (direct > 0) return direct;
+    const balance = this.packageBalanceSessions(item, totalSessions, 0);
+    return Math.max(0, totalSessions - balance);
+  }
+
   private packageSessionValue(item: ApiRecord, keys: string[]): number {
     for (const key of keys) {
       const value = Number(item[key]);
@@ -3477,18 +3525,39 @@ export class ClientDetailComponent implements OnInit {
   }
 
   private packageBalanceSessions(item: ApiRecord, totalSessions: number, usedSessions: number): number {
-    const direct = this.packageSessionValue(item, ['balanceSessions', 'remainingSessions', 'remaining', 'balance']);
+    const direct = this.packageSessionValue(item, ['balanceSessions', 'remainingSessions', 'remaining', 'balance', 'creditsRemaining', 'credits_remaining']);
     if (direct > 0) return direct;
+    const credits = this.packageServiceCredits(item);
+    if (credits.length) {
+      return credits.reduce((sum, credit) => sum + this.moneyValue(credit.remaining ?? credit.creditsRemaining ?? credit.credits_remaining ?? credit.credits ?? credit.quantity ?? 0), 0);
+    }
     return Math.max(totalSessions - usedSessions, 0);
   }
 
   private packageStatusLabel(item: ApiRecord, balanceSessions: number, expiryDate: string, sale?: ApiRecord): string {
-    const explicit = String(item.status || item.packageStatus || sale?.status || '').trim();
-    if (explicit) return this.titleText(explicit);
+    const explicit = String(item.status || item.packageStatus || '').trim().toLowerCase();
+    if (['expired', 'cancelled', 'inactive'].includes(explicit)) return 'Expired';
     const expiry = Date.parse(expiryDate);
     if (Number.isFinite(expiry) && expiry < Date.now()) return 'Expired';
-    if (balanceSessions === 0 && this.packageSessionValue(item, ['totalSessions', 'sessionCount', 'sessions', 'credits']) > 0) return 'Fully Used';
+    if (balanceSessions > 0) return 'Active';
+    if (balanceSessions === 0 && this.packageTotalSessions(item) > 0) return 'Fully Used';
+    if (explicit && !['completed', 'paid', 'sold'].includes(explicit)) return this.titleText(explicit);
     return 'Active';
+  }
+
+  private packageServiceCredits(item: ApiRecord): ApiRecord[] {
+    return [
+      ...this.readRecordList(item.serviceCredits || item.service_credits),
+      ...this.readRecordList(item.packageCredits || item.package_credits)
+    ];
+  }
+
+  private membershipBenefitType(item: ApiRecord): 'membership' | 'package' {
+    const history = this.readRecordList(item.redeemHistory || item.redemptionHistory);
+    if (history.some((entry) => String(entry.type || '').includes('package') || entry.packageId)) return 'package';
+    if (String(item.planName || item.name || '').trim().toLowerCase().startsWith('package:')) return 'package';
+    if (this.packageServiceCredits(item).some((credit) => credit.packageId || credit.package_id)) return 'package';
+    return 'membership';
   }
 
   private packageRedemptionHistory(item: ApiRecord, sale?: ApiRecord): ClientPackageRedemption[] {

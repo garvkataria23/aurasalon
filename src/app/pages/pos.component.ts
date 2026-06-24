@@ -45,6 +45,14 @@ type BenefitServiceMapping = {
   credits: number;
 };
 
+type RedeemableServiceLine = {
+  lineIndex: number;
+  serviceId: string;
+  serviceName: string;
+  staffName: string;
+  finalAmount: number;
+};
+
 type TipLine = {
   id: string;
   staffId: string;
@@ -1646,6 +1654,12 @@ export class PosComponent implements OnInit, OnDestroy {
   private readonly branchSelectionSub = new Subscription();
   private branchSyncReady = false;
   private clientSearchTimer = 0;
+  private redeemableBenefitsCacheKey = '';
+  private redeemableBenefitsCache: ApiRecord[] = [];
+  private redeemableServiceLinesCacheKey = '';
+  private redeemableServiceLinesCache: RedeemableServiceLine[] = [];
+  private selectedBenefitMappingsCacheKey = '';
+  private selectedBenefitMappingsCache: BenefitServiceMapping[] = [];
   private readonly clientSearchIndex = new Map<string, ClientSearchIndex>();
   private readonly selectedClientId = signal('');
   readonly selectedClientPackageRecords = computed<ApiRecord[]>(() => {
@@ -2674,9 +2688,14 @@ export class PosComponent implements OnInit, OnDestroy {
     const wallet = this.membershipEligibility()?.['wallet'] as ApiRecord | undefined;
     const rows = Array.isArray(wallet?.['memberships']) ? wallet['memberships'] as ApiRecord[] : [];
     const clientId = String(this.form.value.clientId || '');
-    const localPackages: ApiRecord[] = this.clientPackageRecords(clientId)
-      .filter((membership) => this.packageStatus(membership) === 'active')
-      .map((membership) => ({
+    const activePackages = this.clientPackageRecords(clientId).filter((membership) => this.packageStatus(membership) === 'active');
+    const cacheKey = [
+      clientId,
+      rows.map((benefit) => this.benefitCachePart(benefit)).join(';'),
+      activePackages.map((benefit) => this.benefitCachePart(benefit)).join(';')
+    ].join('|');
+    if (cacheKey === this.redeemableBenefitsCacheKey) return this.redeemableBenefitsCache;
+    const localPackages: ApiRecord[] = activePackages.map((membership) => ({
         ...membership,
         membershipId: membership.id,
         entitlementType: 'package',
@@ -2688,20 +2707,36 @@ export class PosComponent implements OnInit, OnDestroy {
       if (!id || this.redeemableBenefitRemainingCredits(benefit) <= 0) continue;
       byId.set(id, { ...benefit, membershipId: id });
     }
-    return [...byId.values()];
+    this.redeemableBenefitsCacheKey = cacheKey;
+    this.redeemableBenefitsCache = [...byId.values()];
+    return this.redeemableBenefitsCache;
   }
 
-  redeemableServiceLines(): Array<{ lineIndex: number; serviceId: string; serviceName: string; staffName: string; finalAmount: number }> {
-    return this.items()
-      .map((item, lineIndex) => ({ item, lineIndex }))
-      .filter(({ item }) => item.type === 'service')
-      .map(({ item, lineIndex }) => ({
+  redeemableServiceLines(): RedeemableServiceLine[] {
+    const serviceItems = this.items().map((item, lineIndex) => ({ item, lineIndex })).filter(({ item }) => item.type === 'service');
+    const cacheKey = serviceItems
+      .map(({ item, lineIndex }) => `${lineIndex}:${item.id}:${item.name}:${item.staffName}:${item.quantity}:${item.price}:${item.discountValue}:${this.lineTotal(item)}`)
+      .join('|');
+    if (cacheKey === this.redeemableServiceLinesCacheKey) return this.redeemableServiceLinesCache;
+    this.redeemableServiceLinesCacheKey = cacheKey;
+    this.redeemableServiceLinesCache = serviceItems.map(({ item, lineIndex }) => ({
         lineIndex,
         serviceId: String(item.id || ''),
         serviceName: item.name || `Service ${lineIndex + 1}`,
         staffName: item.staffName || '',
         finalAmount: this.lineTotal(item)
       }));
+    return this.redeemableServiceLinesCache;
+  }
+
+  private benefitCachePart(benefit: ApiRecord): string {
+    return [
+      benefit['membershipId'] || benefit['id'] || '',
+      benefit['planName'] || benefit['name'] || '',
+      benefit['expiryDate'] || benefit['validityDate'] || '',
+      benefit['status'] || '',
+      this.redeemableBenefitRemainingCredits(benefit)
+    ].join(':');
   }
 
   selectedRedeemableBenefit(): ApiRecord | undefined {
@@ -2711,7 +2746,15 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   redeemableBenefitRemainingCredits(benefit?: ApiRecord): number {
-    return Math.max(0, Number(benefit?.['serviceCredits']?.['remaining'] || benefit?.['creditsRemaining'] || 0));
+    const serviceCredits = benefit?.['serviceCredits'];
+    if (Array.isArray(serviceCredits)) {
+      return Math.max(0, serviceCredits.reduce((sum, credit: ApiRecord) =>
+        sum + Number(credit.remaining ?? credit.creditsRemaining ?? credit.credits_remaining ?? credit.credits ?? credit.quantity ?? 0), 0));
+    }
+    if (serviceCredits && typeof serviceCredits === 'object') {
+      return Math.max(0, Number((serviceCredits as ApiRecord)['remaining'] || (serviceCredits as ApiRecord)['creditsRemaining'] || 0));
+    }
+    return Math.max(0, Number(benefit?.['creditsRemaining'] ?? benefit?.['credits_remaining'] ?? 0));
   }
 
   redeemableBenefitTypeLabel(benefit?: ApiRecord): string {
@@ -2758,7 +2801,13 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   selectedBenefitServiceMappings(): BenefitServiceMapping[] {
-    return this.benefitServiceMappings.filter((mapping) => Number(mapping.credits || 0) > 0);
+    const cacheKey = this.benefitServiceMappings
+      .map((mapping) => `${mapping.lineIndex}:${mapping.serviceId}:${mapping.serviceName}:${mapping.credits}`)
+      .join('|');
+    if (cacheKey === this.selectedBenefitMappingsCacheKey) return this.selectedBenefitMappingsCache;
+    this.selectedBenefitMappingsCacheKey = cacheKey;
+    this.selectedBenefitMappingsCache = this.benefitServiceMappings.filter((mapping) => Number(mapping.credits || 0) > 0);
+    return this.selectedBenefitMappingsCache;
   }
 
   serviceLineMappedCredits(lineIndex: number): number {
