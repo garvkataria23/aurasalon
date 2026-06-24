@@ -1161,7 +1161,12 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return map;
   });
   readonly pageAppointmentCount = computed(() =>
-    Array.from(this.appointmentCardsByStaff().values()).reduce((total, cards) => total + cards.length, 0)
+    new Set(
+      Array.from(this.appointmentCardsByStaff().values())
+        .flat()
+        .map((card) => this.appointmentBookingCountKey(card.appointment))
+        .filter(Boolean)
+    ).size
   );
 
   readonly shiftBlocksByStaff = computed(() => this.groupBlocks((this.context()?.schedules || []).map((row) => this.shiftBlock(row))));
@@ -2885,6 +2890,12 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private bookingGroupIdOf(appointment: ApiRecord): string {
     return String(appointment.bookingGroupId || appointment.booking_group_id || '').trim();
+  }
+
+  private appointmentBookingCountKey(appointment: ApiRecord): string {
+    const bookingGroupId = this.bookingGroupIdOf(appointment);
+    if (bookingGroupId) return `group:${bookingGroupId}`;
+    return `appointment:${String(appointment.id || '')}`;
   }
 
   private appointmentGroupRows(appointment: ApiRecord, sourceRows: ApiRecord[] = []): ApiRecord[] {
