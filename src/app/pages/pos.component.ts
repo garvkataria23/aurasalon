@@ -869,8 +869,23 @@ type ClientSearchIndex = {
     </section>
   `,
   styles: [`
-    :host .pos-layout,
-    :host .pos-layout > .panel,
+    :host .pos-layout > .panel {
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+    }
+
+    :host .pos-layout > .panel > .table-wrap {
+      flex: 1 1 auto;
+      min-height: 80px;
+    }
+
+    :host .pos-layout > .checkout-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     :host .pos-form {
       overflow: visible;
     }
