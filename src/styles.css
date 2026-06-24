@@ -5077,6 +5077,26 @@ body {
   background: #10B981;
 }
 
+.app-shell > .enterprise-sidebar .brand-mark,
+.app-shell > .enterprise-sidebar .nav-icon,
+.app-shell > .enterprise-sidebar .nav-count {
+  color: #0C1A2B;
+  background: #FFFFFF;
+  box-shadow: none;
+}
+
+.app-shell > .enterprise-sidebar .sidebar-toggle:hover,
+.app-shell > .enterprise-sidebar .nav-favorite:hover,
+.app-shell > .enterprise-sidebar .nav-favorite.active,
+.app-shell > .enterprise-sidebar .nav-section-trigger:hover,
+.app-shell > .enterprise-sidebar .nav-section.active-section > .nav-section-trigger,
+.app-shell > .enterprise-sidebar .nav-subitem:hover,
+.app-shell > .enterprise-sidebar .nav-subitem.active,
+.app-shell > .enterprise-sidebar .nav-subgroup-title:hover,
+.app-shell > .enterprise-sidebar .nav-subgroup-title.active {
+  box-shadow: inset 3px 0 0 #FFFFFF;
+}
+
 :where(.module-hero, .panel, .form-panel, .metric-card, .metric, .dashboard-hub-card, .action-card, .quick-card, .control-card, .card, .table-wrap) {
   border-color: #DEE8E2;
   box-shadow:
