@@ -1,14 +1,14 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-security-policy-center',
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, DatePipe, FormsModule, StateComponent],
   template: `
     <section class="policy-workspace">
       <app-state [loading]="loading()" [error]="error()"></app-state>

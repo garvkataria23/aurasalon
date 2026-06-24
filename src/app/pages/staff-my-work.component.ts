@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { AuthSessionService } from '../core/auth-session.service';
@@ -21,7 +21,7 @@ type StaffSelfDashboard = {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="staff-workspace">
       <section class="page-title">
