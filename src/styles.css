@@ -5006,7 +5006,7 @@ body {
 .app-shell > .enterprise-sidebar {
   color: #002D0B;
   border-right-color: rgba(0, 45, 11, 0.16);
-  background: #A0BCB2;
+  background: #FFFFFF;
   box-shadow: 14px 0 36px rgba(0, 45, 11, 0.1);
 }
 
@@ -5062,7 +5062,7 @@ body {
 
 .app-shell > .enterprise-sidebar .nav-icon,
 .app-shell > .enterprise-sidebar .nav-count {
-  color: #A0BCB2;
+  color: #FFFFFF;
   background: #002D0B;
 }
 
