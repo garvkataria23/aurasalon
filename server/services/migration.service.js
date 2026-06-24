@@ -2974,26 +2974,33 @@ function directChunk(id, access) {
 }
 
 function replaceStagingRows(jobId, chunkId, chunkNumber, preview, access, duplicateDecisions = {}) {
-  db.prepare("DELETE FROM migration_staging_rows WHERE tenantId = @tenantId AND jobId = @jobId AND chunkId = @chunkId").run({ tenantId: access.tenantId, jobId, chunkId });
-  for (const row of preview.allRows || preview.rows || []) {
-    insertDirectRow("migration_staging_rows", {
-      tenantId: access.tenantId,
-      jobId,
-      chunkId,
-      chunkNumber,
-      resource: row.resource,
-      sourceSheet: row.sourceSheet,
-      sourceRowNumber: row.sourceRowNumber,
-      sourceExternalId: row.sourceExternalId,
-      status: row.status,
-      duplicateKey: row.duplicate || /duplicate|already/i.test(String(row.message || "")) ? duplicateKeyFor(row) : "",
-      duplicateDecision: duplicateDecisionFor(row, duplicateDecisions),
-      payload: row.payload,
-      raw: row.raw,
-      errors: row.errors || [],
-      warnings: row.warnings || []
-    });
-  }
+  const rows = (preview.allRows || preview.rows || []).map((row) => directBindData({
+    id: makeId("migrow"),
+    tenantId: access.tenantId,
+    jobId,
+    chunkId,
+    chunkNumber,
+    resource: row.resource,
+    sourceSheet: row.sourceSheet,
+    sourceRowNumber: row.sourceRowNumber,
+    sourceExternalId: row.sourceExternalId,
+    status: row.status,
+    duplicateKey: row.duplicate || /duplicate|already/i.test(String(row.message || "")) ? duplicateKeyFor(row) : "",
+    duplicateDecision: duplicateDecisionFor(row, duplicateDecisions),
+    payload: row.payload,
+    raw: row.raw,
+    errors: row.errors || [],
+    warnings: row.warnings || [],
+    createdAt: now(),
+    updatedAt: now()
+  }));
+  const columns = ["id", "tenantId", "jobId", "chunkId", "chunkNumber", "resource", "sourceSheet", "sourceRowNumber", "sourceExternalId", "status", "duplicateKey", "duplicateDecision", "payload", "raw", "errors", "warnings", "createdAt", "updatedAt"];
+  const insert = db.prepare(`INSERT INTO migration_staging_rows (${columns.join(", ")}) VALUES (${columns.map((column) => `@${column}`).join(", ")})`);
+  const replaceTx = db.transaction(() => {
+    db.prepare("DELETE FROM migration_staging_rows WHERE tenantId = @tenantId AND jobId = @jobId AND chunkId = @chunkId").run({ tenantId: access.tenantId, jobId, chunkId });
+    for (const row of rows) insert.run(row);
+  });
+  replaceTx();
 }
 
 function recomputeLargeJobTotals(jobId, access) {
