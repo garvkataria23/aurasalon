@@ -46,7 +46,8 @@ type MembershipEnterpriseReport = {
   exportRows?: ApiRecord[];
 };
 
-type MembershipDeskTab = 'overview' | 'plans' | 'active' | 'audit' | 'commission' | 'risk' | 'reports' | 'reminders' | 'autoRenew' | 'giftcards';
+type MembershipDeskTab = 'overview' | 'plans' | 'active' | 'audit' | 'commission' | 'risk' | 'reports' | 'reminders' | 'autoRenew';
+type PlanWorkspaceView = 'plans' | 'packages' | 'giftcards';
 type MembershipReportTab = 'actionQueue' | 'activeMembers' | 'expiringSoon' | 'renewalRevenue' | 'cancelledMemberships' | 'staffWiseSales' | 'planWiseProfitability' | 'creditLiability' | 'autoRenewFailedPayments' | 'upgradeDowngrade' | 'discountLeakage';
 type LifecycleAction = 'renew' | 'upgrade' | 'downgrade' | 'cancel';
 type PlanLifecycleDialog = {
@@ -65,7 +66,7 @@ type PlanLifecycleDialog = {
       <div class="module-hero membership-hero membership-action-bar">
         <div class="hero-actions membership-quick-actions">
           <a class="ghost-button" routerLink="/pos">Sell in POS</a>
-          <a class="ghost-button" routerLink="/packages">Packages</a>
+          <button class="ghost-button" type="button" (click)="openPlanWorkspace('packages')">Packages</button>
           <button class="ghost-button" type="button" (click)="generateReminders()">Generate reminders</button>
         </div>
       </div>
@@ -100,9 +101,6 @@ type PlanLifecycleDialog = {
         </button>
         <button type="button" [class.active]="activeTab() === 'autoRenew'" (click)="setTab('autoRenew')">
           Auto-renew <span>{{ autoRenewQueue().length }}</span>
-        </button>
-        <button type="button" [class.active]="activeTab() === 'giftcards'" (click)="setTab('giftcards')">
-          Gift cards <span>{{ giftCards().length }}</span>
         </button>
         <button class="refresh-tab" type="button" (click)="load()">Refresh</button>
       </nav>
@@ -181,16 +179,33 @@ type PlanLifecycleDialog = {
       </section>
 
       <section class="plan-reference-layout" *ngIf="activeTab() === 'plans'">
-        <button class="floating-add" type="button" (click)="openPlanDrawer()" aria-label="Add membership plan">+</button>
+        <button class="floating-add" type="button" *ngIf="planWorkspaceView() === 'plans'" (click)="openPlanDrawer()" aria-label="Add membership plan">+</button>
         <header class="plans-title">
           <h1>Plans</h1>
           <p>
-            Create discount cards and prepaid value-credit plans for POS sale. Membership plan history stays connected with
-            clients, invoices and redemption.
+            Membership plans, service packages and gift cards ek hi page se manage karo. Neeche card click karne par uski live information open hogi.
           </p>
         </header>
 
-        <div class="list-controls">
+        <div class="plan-switch-grid" aria-label="Plan workspace selector">
+          <button type="button" [class.active]="planWorkspaceView() === 'plans'" (click)="planWorkspaceView.set('plans')">
+            <span>Membership plans</span>
+            <strong>{{ membershipPlans().length }}</strong>
+            <small>Discount aur prepaid credit plans</small>
+          </button>
+          <button type="button" [class.active]="planWorkspaceView() === 'packages'" (click)="planWorkspaceView.set('packages')">
+            <span>Service packages</span>
+            <strong>{{ packageRecords().length }}</strong>
+            <small>3+1, 4+1 package definitions</small>
+          </button>
+          <button type="button" [class.active]="planWorkspaceView() === 'giftcards'" (click)="planWorkspaceView.set('giftcards')">
+            <span>Gift cards</span>
+            <strong>{{ giftCards().length }}</strong>
+            <small>Balance aur expiry ledger</small>
+          </button>
+        </div>
+
+        <div class="list-controls" *ngIf="planWorkspaceView() === 'plans'">
           <label class="show-control">
             <span>Show</span>
             <select [ngModel]="planShowLimit()" (ngModelChange)="planShowLimit.set(numberValue($event))">
@@ -205,7 +220,7 @@ type PlanLifecycleDialog = {
           </label>
         </div>
 
-        <div class="plan-table-wrap">
+        <div class="plan-table-wrap" *ngIf="planWorkspaceView() === 'plans'">
           <table class="plan-table">
             <thead>
               <tr>
@@ -248,7 +263,7 @@ type PlanLifecycleDialog = {
           </table>
         </div>
 
-        <footer class="list-footer">
+        <footer class="list-footer" *ngIf="planWorkspaceView() === 'plans'">
           <span>Showing 1 to {{ visibleMembershipPlans().length }} of {{ filteredMembershipPlans().length }} Entries</span>
           <div class="pager">
             <button type="button" disabled>Previous</button>
@@ -256,6 +271,72 @@ type PlanLifecycleDialog = {
             <button type="button" disabled>Next</button>
           </div>
         </footer>
+
+        <div class="plan-table-wrap" *ngIf="planWorkspaceView() === 'packages'">
+          <table class="plan-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Sold</th>
+                <th>Credits</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of packageRecords()" (click)="selectPackage(item)" [class.active-row]="packageRecordId(selectedPackage()) === packageRecordId(item)">
+                <td>
+                  <div class="plan-name-cell">
+                    <span class="plan-avatar">{{ packageInitial(item) }}</span>
+                    <div>
+                      <strong>{{ packageName(item) }}</strong>
+                      <small>{{ packageRuleText(item) }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ packagePrice(item) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ packageSoldCount(item) }}</td>
+                <td>{{ packageTotalCredits(item) }}</td>
+                <td><span class="status-pill">{{ packageStatus(item) }}</span></td>
+              </tr>
+              <tr *ngIf="!packageRecords().length">
+                <td class="empty-row" colspan="5">No package found. Packages button se service package banao.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="package-detail-card" *ngIf="selectedPackage() as pkg">
+            <div>
+              <span class="eyebrow">Selected package</span>
+              <h3>{{ packageName(pkg) }}</h3>
+              <p>{{ packageRuleText(pkg) }}</p>
+            </div>
+            <div class="mini-stats">
+              <article><span>Price</span><strong>{{ packagePrice(pkg) | currency: 'INR':'symbol':'1.0-0' }}</strong></article>
+              <article><span>Credits</span><strong>{{ packageTotalCredits(pkg) }}</strong></article>
+              <article><span>Sold</span><strong>{{ packageSoldCount(pkg) }}</strong></article>
+            </div>
+            <a class="ghost-button mini" routerLink="/packages">Open package manager</a>
+          </div>
+        </div>
+
+        <div class="giftcard-workspace" *ngIf="planWorkspaceView() === 'giftcards'">
+          <form class="form-panel inline-form" [formGroup]="giftForm" (ngSubmit)="saveGiftCard()">
+            <label class="field"><span>Code</span><input formControlName="code" /></label>
+            <label class="field"><span>Initial value</span><input type="number" formControlName="initialValue" /></label>
+            <label class="field"><span>Expiry</span><input type="date" formControlName="expiryDate" /></label>
+            <button class="primary-button" type="submit" [disabled]="giftForm.invalid || saving()">Create gift card</button>
+          </form>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let card of giftCards()">
+              <strong>{{ card.code }}</strong>
+              <span>{{ card.balance | currency: 'INR':'symbol':'1.0-0' }} balance · expires {{ card.expiryDate }}</span>
+            </article>
+            <article class="action-card" *ngIf="!giftCards().length">
+              <strong>No gift card yet.</strong>
+              <span>Create gift card from this same page.</span>
+            </article>
+          </div>
+        </div>
       </section>
 
       <div class="plan-drawer-shell" *ngIf="showPlanDrawer()">
@@ -838,22 +919,6 @@ type PlanLifecycleDialog = {
         </div>
       </section>
 
-      <section class="panel" *ngIf="activeTab() === 'giftcards'">
-        <div class="section-title"><h2>Gift cards</h2></div>
-        <form class="form-panel inline-form" [formGroup]="giftForm" (ngSubmit)="saveGiftCard()">
-          <label class="field"><span>Code</span><input formControlName="code" /></label>
-          <label class="field"><span>Initial value</span><input type="number" formControlName="initialValue" /></label>
-          <label class="field"><span>Expiry</span><input type="date" formControlName="expiryDate" /></label>
-          <button class="primary-button" type="submit" [disabled]="giftForm.invalid || saving()">Create gift card</button>
-        </form>
-        <div class="quick-grid">
-          <article class="action-card" *ngFor="let card of giftCards()">
-            <strong>{{ card.code }}</strong>
-            <span>{{ card.balance | currency: 'INR':'symbol':'1.0-0' }} balance · expires {{ card.expiryDate }}</span>
-          </article>
-        </div>
-      </section>
-
       <div class="modal-backdrop" *ngIf="renewalMembership() as renewal" (click)="closeRenewalDialog()">
         <section class="renewal-modal" role="dialog" aria-modal="true" aria-labelledby="renewalTitle" (click)="$event.stopPropagation()">
           <div class="section-title compact-title">
@@ -1303,6 +1368,97 @@ type PlanLifecycleDialog = {
       color: #4b5563;
       font-size: 14px;
       line-height: 1.5;
+    }
+
+    .plan-switch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 26px 0 6px;
+    }
+
+    .plan-switch-grid button {
+      display: grid;
+      gap: 5px;
+      min-height: 98px;
+      border: 1px solid #d7ebe7;
+      border-radius: 8px;
+      background: #fff;
+      color: #0f172a;
+      padding: 14px 16px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .plan-switch-grid button.active {
+      border-color: #0f766e;
+      background: #ecfdf5;
+      box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
+    }
+
+    .plan-switch-grid span,
+    .plan-switch-grid small {
+      color: #64748b;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .plan-switch-grid strong {
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .plan-table tr.active-row td {
+      background: #ecfdf5;
+    }
+
+    .package-detail-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.7fr) auto;
+      gap: 16px;
+      align-items: center;
+      margin-top: 16px;
+      border: 1px solid #d7ebe7;
+      border-radius: 8px;
+      background: #f8fdfb;
+      padding: 16px;
+    }
+
+    .package-detail-card h3,
+    .package-detail-card p {
+      margin: 0;
+    }
+
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mini-stats article {
+      border: 1px solid #d7ebe7;
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .mini-stats span {
+      display: block;
+      color: #64748b;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .mini-stats strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.05rem;
+    }
+
+    .giftcard-workspace {
+      display: grid;
+      gap: 16px;
+      margin-top: 20px;
     }
 
     .floating-add {
@@ -2056,6 +2212,9 @@ type PlanLifecycleDialog = {
       .membership-stats,
       .member-count-strip,
       .membership-overview-grid,
+      .plan-switch-grid,
+      .package-detail-card,
+      .mini-stats,
       .compact-workbench,
       .report-filter-grid,
       .report-grid,
@@ -2083,6 +2242,7 @@ type PlanLifecycleDialog = {
 })
 export class MembershipsComponent implements OnInit, OnDestroy {
   readonly membershipPlans = signal<PosMembershipPlan[]>([]);
+  readonly packageRecords = signal<ApiRecord[]>([]);
   readonly memberships = signal<ApiRecord[]>([]);
   readonly clients = signal<ApiRecord[]>([]);
   readonly staffMembers = signal<ApiRecord[]>([]);
@@ -2106,10 +2266,12 @@ export class MembershipsComponent implements OnInit, OnDestroy {
   readonly message = signal('');
   readonly activeTab = signal<MembershipDeskTab>('overview');
   readonly activeReportTab = signal<MembershipReportTab>('actionQueue');
+  readonly planWorkspaceView = signal<PlanWorkspaceView>('plans');
   readonly showPlanDrawer = signal(false);
   readonly planQuery = signal('');
   readonly planShowLimit = signal(10);
   readonly openPlanActionId = signal('');
+  readonly selectedPackageId = signal('');
   readonly renewalMembership = signal<ApiRecord | null>(null);
   readonly lifecycleDialog = signal<PlanLifecycleDialog | null>(null);
   readonly prorationLoading = signal(false);
@@ -2232,6 +2394,7 @@ export class MembershipsComponent implements OnInit, OnDestroy {
     this.error.set('');
     forkJoin({
       plans: this.safeList<PosMembershipPlan[]>('membership-enterprise/plans'),
+      packages: this.safeList<ApiRecord[]>('packages', { limit: 1000, includeAllBranches: true }),
       memberships: this.safeList<ApiRecord[]>('memberships', { limit: 1000 }),
       clients: this.safeList<ApiRecord[]>('clients', { limit: 1000 }),
       staff: this.quietList<ApiRecord[]>('staff', { limit: 1000 }),
@@ -2243,12 +2406,15 @@ export class MembershipsComponent implements OnInit, OnDestroy {
       commission: this.safeList<MembershipCommissionReport>('membership-enterprise/reports/commission'),
       risk: this.safeList<MembershipRiskReport>('membership-enterprise/reports/risk'),
       enterpriseReport: this.safeList<MembershipEnterpriseReport>('membership-enterprise/reports/enterprise', this.reportFilterParams())
-    }).subscribe(({ plans, memberships, clients, staff, giftCards, ledger, reminders, autoRenew, report, commission, risk, enterpriseReport }) => {
+    }).subscribe(({ plans, packages, memberships, clients, staff, giftCards, ledger, reminders, autoRenew, report, commission, risk, enterpriseReport }) => {
       const livePlans = (plans || []).map((plan) => this.normalizePlan(plan));
       if (livePlans.length) {
         this.membershipPlans.set(livePlans);
         this.posSettings.saveMembershipPlans(livePlans);
       }
+      const livePackages = Array.isArray(packages) ? packages : [];
+      this.packageRecords.set(livePackages);
+      if (!this.selectedPackageId() && livePackages.length) this.selectedPackageId.set(String(livePackages[0].id || livePackages[0]['packageId'] || ''));
       this.memberships.set(memberships || []);
       this.clients.set(clients || []);
       this.staffMembers.set(staff || []);
@@ -2273,6 +2439,12 @@ export class MembershipsComponent implements OnInit, OnDestroy {
     } else {
       this.stopReportLiveRefresh();
     }
+  }
+
+  openPlanWorkspace(view: PlanWorkspaceView): void {
+    this.activeTab.set('plans');
+    this.planWorkspaceView.set(view);
+    this.stopReportLiveRefresh();
   }
 
   setReportTab(tab: MembershipReportTab): void {
@@ -3509,6 +3681,104 @@ export class MembershipsComponent implements OnInit, OnDestroy {
       const planName = String(membership['planName'] || membership['name'] || '').toLowerCase();
       return planId === plan.id || (!!planName && planName === String(plan.name || '').toLowerCase());
     }).length;
+  }
+
+  packageRecordId(item: ApiRecord | null | undefined): string {
+    return String(item?.id || item?.['packageId'] || '');
+  }
+
+  packageName(item: ApiRecord): string {
+    return String(item['name'] || item['packageName'] || 'Package');
+  }
+
+  packageInitial(item: ApiRecord): string {
+    return this.packageName(item).trim().charAt(0).toUpperCase() || 'P';
+  }
+
+  packagePrice(item: ApiRecord): number {
+    return this.numberValue(item['price'] ?? item['sellingPrice'] ?? item['specialPrice'] ?? 0);
+  }
+
+  packageStatus(item: ApiRecord): string {
+    return String(item['status'] || 'Active');
+  }
+
+  packageRuleText(item: ApiRecord): string {
+    const rules = this.packageObject(item['rules']);
+    const firstCredit = this.packageServiceCredits(item)[0] || {};
+    const paid = this.numberValue(rules['paidSessions'] ?? firstCredit['paidSessions'] ?? 0);
+    const free = this.numberValue(rules['freeSessions'] ?? firstCredit['freeSessions'] ?? 0);
+    const serviceName = String(rules['serviceName'] || firstCredit['serviceName'] || 'service');
+    const total = paid + free || this.packageTotalCredits(item);
+    return total ? `${serviceName}: pay ${paid || total}, get ${total}` : `${serviceName}: ${this.packageTotalCredits(item)} credit(s)`;
+  }
+
+  packageTotalCredits(item: ApiRecord): number {
+    const credits = this.packageServiceCredits(item);
+    if (credits.length) return credits.reduce((sum, credit) => sum + this.numberValue(credit['credits'] ?? credit['quantity'] ?? credit['total'] ?? 0), 0);
+    const rules = this.packageObject(item['rules']);
+    return this.numberValue(rules['totalSessions'] || rules['credits'] || 0);
+  }
+
+  packageSoldCount(item: ApiRecord): number {
+    return this.packageMembers(item).length;
+  }
+
+  selectPackage(item: ApiRecord): void {
+    this.selectedPackageId.set(this.packageRecordId(item));
+  }
+
+  selectedPackage(): ApiRecord | null {
+    const selectedId = this.selectedPackageId();
+    return this.packageRecords().find((item) => this.packageRecordId(item) === selectedId) || this.packageRecords()[0] || null;
+  }
+
+  packageMembers(item: ApiRecord): ApiRecord[] {
+    return this.memberships().filter((membership) => this.isPackageMembership(membership) && this.packageMatchesMembership(item, membership));
+  }
+
+  private packageMatchesMembership(item: ApiRecord, membership: ApiRecord): boolean {
+    const packageId = this.packageRecordId(item);
+    const packageName = this.packageName(item).toLowerCase();
+    const memberName = String(membership['planName'] || membership['name'] || '').replace(/^Package:\s*/i, '').trim().toLowerCase();
+    if (String(membership['packageId'] || membership['package_id'] || '') === packageId) return true;
+    if (memberName && memberName === packageName) return true;
+    return this.packageServiceCredits(membership).some((credit) => String(credit['packageId'] || '') === packageId);
+  }
+
+  private isPackageMembership(membership: ApiRecord): boolean {
+    const planName = String(membership['planName'] || membership['name'] || '').trim().toLowerCase();
+    if (planName.startsWith('package:')) return true;
+    return this.packageServiceCredits(membership).some((credit) => credit['packageId'] || credit['serviceId']);
+  }
+
+  private packageServiceCredits(item: ApiRecord): ApiRecord[] {
+    return [
+      ...this.packageReadList(item['serviceCredits'] || item['service_credits']),
+      ...this.packageReadList(item['packageCredits'] || item['package_credits'])
+    ];
+  }
+
+  private packageReadList(value: unknown): ApiRecord[] {
+    if (Array.isArray(value)) return value.filter((item): item is ApiRecord => !!item && typeof item === 'object' && !Array.isArray(item));
+    if (typeof value !== 'string') return [];
+    try {
+      const parsed = JSON.parse(value || '[]');
+      return Array.isArray(parsed) ? parsed.filter((item): item is ApiRecord => !!item && typeof item === 'object' && !Array.isArray(item)) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private packageObject(value: unknown): ApiRecord {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value as ApiRecord;
+    if (typeof value !== 'string') return {};
+    try {
+      const parsed = JSON.parse(value || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as ApiRecord : {};
+    } catch {
+      return {};
+    }
   }
 
   numberValue(value: unknown): number {
