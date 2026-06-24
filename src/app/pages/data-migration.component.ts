@@ -78,7 +78,7 @@ type LargeMigrationJob = {
   warningRows?: number;
   chunkSize?: number;
   resumeToken?: string;
-  chunks?: Array<{ id: string; chunkNumber: number; status: string; totalRows: number; importedRows?: number; errorRows?: number; warningRows?: number }>;
+  chunks?: Array<{ id: string; chunkNumber: number; status: string; totalRows: number; importedRows?: number; skippedRows?: number; errorRows?: number; warningRows?: number; checksum?: string; completedAt?: string; failureReason?: string }>;
   reconciliations?: LargeReconciliationSnapshot[];
 };
 
@@ -1634,6 +1634,18 @@ export class DataMigrationComponent implements OnInit {
         resumeToken: job.resumeToken || ''
       },
       chunks: job.chunks || [],
+      chunkManifest: (job.chunks || []).map((chunk) => ({
+        chunkNumber: chunk.chunkNumber,
+        status: chunk.status,
+        totalRows: chunk.totalRows || 0,
+        importedRows: chunk.importedRows || 0,
+        skippedRows: chunk.skippedRows || 0,
+        errorRows: chunk.errorRows || 0,
+        warningRows: chunk.warningRows || 0,
+        checksum: chunk.checksum || '',
+        completedAt: chunk.completedAt || '',
+        failureReason: chunk.failureReason || ''
+      })),
       reconciliation: snapshot,
       handover: {
         status: snapshot.status,

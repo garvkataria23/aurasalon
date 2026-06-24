@@ -2824,6 +2824,13 @@ function createLargeJobReconciliation(jobId, payload = {}, access) {
      WHERE tenantId = @tenantId AND jobId = @jobId
      GROUP BY status
   `).all({ tenantId: access.tenantId, jobId });
+  const chunkManifest = db.prepare(`
+    SELECT chunkNumber, sourceSheet, rowStart, rowEnd, status, totalRows, processedRows,
+           importedRows, skippedRows, errorRows, warningRows, checksum, completedAt, failureReason
+      FROM migration_file_chunks
+     WHERE tenantId = @tenantId AND jobId = @jobId
+     ORDER BY chunkNumber ASC
+  `).all({ tenantId: access.tenantId, jobId }).map(deserializeDirectRow);
   const staged = db.prepare(`
     SELECT resource, status, COUNT(*) AS rows
       FROM migration_staging_rows
@@ -2857,6 +2864,7 @@ function createLargeJobReconciliation(jobId, payload = {}, access) {
       skippedRows: Number(job.skippedRows || 0)
     },
     chunks: rowsByKey(chunks, "status"),
+    chunkManifest: chunkManifest.map(chunkProofLine),
     staged: rowsByPair(staged, "resource", "status"),
     importedTargetIds: Number(idMap.reduce((sum, row) => sum + Number(row.rows || 0), 0))
   };
@@ -2881,6 +2889,24 @@ function createLargeJobReconciliation(jobId, payload = {}, access) {
   return snapshot;
 }
 
+function chunkProofLine(chunk) {
+  return {
+    chunkNumber: Number(chunk.chunkNumber || 0),
+    sourceSheet: chunk.sourceSheet || "",
+    rowStart: Number(chunk.rowStart || 0),
+    rowEnd: Number(chunk.rowEnd || 0),
+    status: chunk.status || "unknown",
+    totalRows: Number(chunk.totalRows || 0),
+    processedRows: Number(chunk.processedRows || 0),
+    importedRows: Number(chunk.importedRows || 0),
+    skippedRows: Number(chunk.skippedRows || 0),
+    errorRows: Number(chunk.errorRows || 0),
+    warningRows: Number(chunk.warningRows || 0),
+    checksum: chunk.checksum || "",
+    completedAt: chunk.completedAt || "",
+    failureReason: chunk.failureReason || ""
+  };
+}
 function rowsByKey(rows, key) {
   return Object.fromEntries(rows.map((row) => [cleanText(row[key] || "unknown"), Number(row.rows || row.chunks || 0)]));
 }
