@@ -4410,11 +4410,12 @@ export class PosComponent implements OnInit, OnDestroy {
   packageRedeemQty(row: PackageRedeemRow): number {
     const current = this.packageRedeemQuantities[row.id];
     if (current !== undefined) return Math.min(Math.max(0, Number(current || 0)), row.pendingQty);
-    return row.status === 'active' && row.pendingQty > 0 ? 1 : 0;
+    return 0;
   }
 
   setPackageRedeemQty(row: PackageRedeemRow, value: number | string): void {
     this.packageRedeemQuantities[row.id] = Math.min(row.pendingQty, Math.max(0, Math.floor(Number(value || 0))));
+    if (this.error().includes('Package service')) this.error.set('');
   }
 
   packageRedeemStaff(row: PackageRedeemRow): string {
@@ -4429,13 +4430,14 @@ export class PosComponent implements OnInit, OnDestroy {
     const credits = this.packageRedeemQty(row);
     if (row.status === 'expired' || credits <= 0) return;
     const staffId = this.packageRedeemStaff(row);
-    let lineIndex = this.items().findIndex((item) => item.type === 'service' && String(item.id || '') === row.serviceId);
-    if (lineIndex < 0 && row.serviceId) {
-      this.addService(row.serviceId, staffId);
-      lineIndex = this.items().findIndex((item) => item.type === 'service' && String(item.id || '') === row.serviceId);
+    const lineId = this.packageRedeemLineId(row);
+    let lineIndex = this.items().findIndex((item) => item.type === 'service' && String(item.id || '') === lineId);
+    if (lineIndex < 0) {
+      this.addPackageRedeemServiceLine(row, staffId, credits);
+      lineIndex = this.items().findIndex((item) => item.type === 'service' && String(item.id || '') === lineId);
     }
     if (lineIndex < 0) {
-      this.error.set('Package service is not available in POS service master.');
+      this.error.set('Package redeem service line could not be prepared.');
       return;
     }
     const line = this.redeemableServiceLines().find((item) => item.lineIndex === lineIndex);
@@ -4443,11 +4445,37 @@ export class PosComponent implements OnInit, OnDestroy {
     this.creditsUsed = credits;
     this.benefitServiceMappings = [{
       lineIndex,
-      serviceId: row.serviceId,
+      serviceId: lineId,
       serviceName: line?.serviceName || row.serviceName,
       credits
     }];
+    this.error.set('');
     this.dataHint.set(`${row.packageName} package redeem selected: ${credits} credit(s) for ${row.serviceName}.`);
+  }
+
+  private addPackageRedeemServiceLine(row: PackageRedeemRow, staffId: string, credits: number): void {
+    const service = this.services().find((item) => String(item.id || '') === row.serviceId);
+    this.items.update((items) => [
+      ...items,
+      {
+        type: 'service',
+        id: this.packageRedeemLineId(row),
+        name: service?.name || row.serviceName || 'Package service',
+        quantity: Math.max(1, credits),
+        price: 0,
+        gstRate: Number(service?.gstRate || 0),
+        ...this.defaultItemStaff(staffId),
+        discountType: 'amount',
+        discountValue: 0,
+        discountSource: 'none'
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  private packageRedeemLineId(row: PackageRedeemRow): string {
+    return row.serviceId || `package-redeem:${row.id}`;
   }
 
   private packageStatus(membership: ApiRecord): 'active' | 'expired' {
