@@ -12,7 +12,7 @@ type ItemDiscountType = 'amount' | 'percent';
 type ItemDiscountSource = 'none' | 'manual' | 'membership';
 
 type SaleItem = {
-  type: 'service' | 'product' | 'membership' | 'package' | 'gift_card' | 'custom';
+  type: 'service' | 'product' | 'membership' | 'package' | 'gift_card' | 'package_redeem' | 'custom';
   id: string;
   name: string;
   quantity: number;
@@ -2713,9 +2713,11 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   redeemableServiceLines(): RedeemableServiceLine[] {
-    const serviceItems = this.items().map((item, lineIndex) => ({ item, lineIndex })).filter(({ item }) => item.type === 'service');
+    const serviceItems = this.items()
+      .map((item, lineIndex) => ({ item, lineIndex }))
+      .filter(({ item }) => item.type === 'service' || item.type === 'package_redeem');
     const cacheKey = serviceItems
-      .map(({ item, lineIndex }) => `${lineIndex}:${item.id}:${item.name}:${item.staffName}:${item.quantity}:${item.price}:${item.discountValue}:${this.lineTotal(item)}`)
+      .map(({ item, lineIndex }) => `${lineIndex}:${item.type}:${item.id}:${item.name}:${item.staffName}:${item.quantity}:${item.price}:${item.discountValue}:${this.lineTotal(item)}`)
       .join('|');
     if (cacheKey === this.redeemableServiceLinesCacheKey) return this.redeemableServiceLinesCache;
     this.redeemableServiceLinesCacheKey = cacheKey;
@@ -3759,6 +3761,7 @@ export class PosComponent implements OnInit, OnDestroy {
       membership: 'Membership sale',
       package: 'Package sale',
       gift_card: 'Gift card sale',
+      package_redeem: 'Package redeem',
       custom: 'Custom item'
     };
     return titles[item.type] || 'Item';
@@ -4339,9 +4342,6 @@ export class PosComponent implements OnInit, OnDestroy {
     this.unpaidReceiveMessage.set('');
     this.selectedClientId.set('');
     this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
-    this.invoice.set(null);
-    this.generatedInvoiceSettlement.set(null);
-    this.generatedInvoiceBenefitRedeem.set(null);
     this.saving.set(false);
     this.clearPosRouteSelection(() => {
       this.load();
@@ -4480,10 +4480,10 @@ export class PosComponent implements OnInit, OnDestroy {
     if (row.status === 'expired' || credits <= 0) return;
     const staffId = this.packageRedeemStaff(row);
     const lineId = this.packageRedeemLineId(row);
-    let lineIndex = this.items().findIndex((item) => item.type === 'service' && String(item.id || '') === lineId);
+    let lineIndex = this.items().findIndex((item) => this.isPackageRedeemLine(item, lineId));
     if (lineIndex < 0) {
       this.addPackageRedeemServiceLine(row, staffId, credits);
-      lineIndex = this.items().findIndex((item) => item.type === 'service' && String(item.id || '') === lineId);
+      lineIndex = this.items().findIndex((item) => this.isPackageRedeemLine(item, lineId));
     }
     if (lineIndex < 0) {
       this.error.set('Package redeem service line could not be prepared.');
@@ -4504,10 +4504,11 @@ export class PosComponent implements OnInit, OnDestroy {
 
   private addPackageRedeemServiceLine(row: PackageRedeemRow, staffId: string, credits: number): void {
     const service = this.services().find((item) => String(item.id || '') === row.serviceId);
+    const type: SaleItem['type'] = service ? 'service' : 'package_redeem';
     this.items.update((items) => [
       ...items,
       {
-        type: 'service',
+        type,
         id: this.packageRedeemLineId(row),
         name: service?.name || row.serviceName || 'Package service',
         quantity: Math.max(1, credits),
@@ -4525,6 +4526,10 @@ export class PosComponent implements OnInit, OnDestroy {
 
   private packageRedeemLineId(row: PackageRedeemRow): string {
     return row.serviceId || `package-redeem:${row.id}`;
+  }
+
+  private isPackageRedeemLine(item: SaleItem, lineId: string): boolean {
+    return (item.type === 'service' || item.type === 'package_redeem') && String(item.id || '') === lineId;
   }
 
   private packageStatus(membership: ApiRecord): 'active' | 'expired' {
