@@ -223,7 +223,7 @@ type MigrationRecoveryReport = {
             <article><span>Job ID</span><strong>{{ largeJob()?.id || '-' }}</strong><small>{{ largeJob()?.resumeToken || 'Create a staged job from analyzed data' }}</small></article>
             <article><span>Rows</span><strong>{{ largeJob()?.totalRows || summary()?.totalRows || 0 }}</strong><small>{{ largeJob()?.processedRows || 0 }} processed</small></article>
             <article><span>Imported</span><strong>{{ largeJob()?.importedRows || 0 }}</strong><small>{{ largeJob()?.skippedRows || 0 }} skipped</small></article>
-            <article><span>Worker progress</span><strong>{{ largeJobProgress() }}%</strong><small>{{ largeJobChunks().length }} chunks tracked · {{ csvStagedRows() }} staged rows</small></article>
+            <article><span>Worker progress</span><strong>{{ largeJobProgress() }}%</strong><small>{{ largeReadyChunks() }}/{{ largeJobChunks().length }} chunks ready · {{ csvStagedRows() }} staged rows</small></article>
           </div>
           <div class="worker-settings">
             <label>
@@ -233,6 +233,10 @@ type MigrationRecoveryReport = {
             <label>
               <span>Chunks per tick</span>
               <input type="number" min="1" max="100" [ngModel]="largeMaxChunks()" (ngModelChange)="largeMaxChunks.set(numberInput($event, 5))" />
+            </label>
+            <label class="toggle-field">
+              <span>Allow partial import</span>
+              <input type="checkbox" [ngModel]="allowPartialLargeImport()" (ngModelChange)="allowPartialLargeImport.set($event)" />
             </label>
           </div>
           <div class="action-row">
@@ -247,6 +251,7 @@ type MigrationRecoveryReport = {
             <button class="ghost-button" type="button" [disabled]="!largeJob() || hasCriticalErrors() || !importApprovalReady() || loading()" (click)="resumeLargeMigrationJob()">Resume now</button>
           </div>
           <p class="muted" *ngIf="!importApprovalReady()">Owner approval required before queued import writes into live modules.</p>
+          <p class="migration-warning" *ngIf="largePendingChunks()">{{ largePendingChunks() }} chunk(s) still need analysis. Queue/resume is blocked unless partial import is enabled.</p>
           <div class="chunk-list" *ngIf="largeJobChunks().length">
             <article *ngFor="let chunk of largeJobChunks()" [class.done]="chunk.status === 'imported'" [class.danger]="chunk.status === 'failed' || chunk.status === 'imported_with_errors'">
               <strong>Chunk {{ chunk.chunkNumber }}</strong>
@@ -755,6 +760,9 @@ type MigrationRecoveryReport = {
     textarea { resize: vertical; font-family: inherit; text-transform: none; }
     .file-drop { grid-column: 1 / -1; border: 1px dashed #93c5fd; border-radius: 8px; padding: 12px; background: #f8fbff; }
     .file-drop small, .muted { color: #64748b; text-transform: none; font-weight: 700; }
+    .migration-warning { margin: 10px 0 0; border: 1px solid #f59e0b; border-radius: 8px; background: #fffbeb; color: #92400e; padding: 10px 12px; font-weight: 900; }
+    .toggle-field { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+    .toggle-field input { width: 20px; min-height: 20px; padding: 0; }
     .action-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
     button { min-height: 40px; border: 1px solid #cfe0dc; border-radius: 8px; padding: 0 14px; font-weight: 900; cursor: pointer; background: #ffffff; color: #172033; }
     button:disabled { opacity: .55; cursor: not-allowed; }
@@ -938,6 +946,7 @@ export class DataMigrationComponent implements OnInit {
   largeJob = signal<LargeMigrationJob | null>(null);
   largeChunkSize = signal(5000);
   largeMaxChunks = signal(5);
+  allowPartialLargeImport = signal(false);
   lastWorkerResult = signal<any | null>(null);
   csvStagedRows = signal(0);
   csvStagedChunks = signal(0);
@@ -962,6 +971,8 @@ export class DataMigrationComponent implements OnInit {
   recoveryNextActions = computed(() => this.selectedJobRecovery()?.nextActions || []);
   reconciliationLines = computed<ReconciliationLine[]>(() => this.reconciliationResult()?.lines || []);
   largeJobChunks = computed(() => this.largeJob()?.chunks || []);
+  largeReadyChunks = computed(() => this.largeJobChunks().filter((chunk) => ['analyzed', 'analyzed_with_errors', 'failed'].includes(chunk.status)).length);
+  largePendingChunks = computed(() => this.largeJobChunks().filter((chunk) => !['analyzed', 'analyzed_with_errors', 'failed', 'imported', 'imported_with_errors', 'rolled_back', 'cancelled'].includes(chunk.status)).length);
   latestLargeReconciliation = computed(() => this.largeJob()?.reconciliations?.[0] || null);
   largeReconciliationDifferences = computed(() => this.latestLargeReconciliation()?.differences || []);
   completionChecklist = computed(() => this.onboarding()?.completionChecklist || [
@@ -1477,7 +1488,8 @@ export class DataMigrationComponent implements OnInit {
       const queued = await firstValueFrom(this.api.post<LargeMigrationJob>(`migration/large-jobs/${job.id}/queue`, {
         maxChunks: this.largeMaxChunks(),
         stopOnError: true,
-        migrationMode: true
+        migrationMode: true,
+        allowPartialImport: this.allowPartialLargeImport()
       }));
       this.largeJob.set(queued);
       this.message.set('Large migration queued. Worker will process staged chunks.');
@@ -1494,7 +1506,8 @@ export class DataMigrationComponent implements OnInit {
       this.error.set('');
       const result = await firstValueFrom(this.api.post<any>('migration/large-jobs/worker/tick', {
         maxJobs: 1,
-        maxChunks: this.largeMaxChunks()
+        maxChunks: this.largeMaxChunks(),
+        allowPartialImport: this.allowPartialLargeImport()
       }));
       this.lastWorkerResult.set(result);
       await this.refreshLargeJob();
@@ -1568,7 +1581,8 @@ export class DataMigrationComponent implements OnInit {
       const result = await firstValueFrom(this.api.post<any>(`migration/large-jobs/${job.id}/resume`, {
         maxChunks: this.largeMaxChunks(),
         stopOnError: true,
-        migrationMode: true
+        migrationMode: true,
+        allowPartialImport: this.allowPartialLargeImport()
       }));
       this.lastWorkerResult.set(result);
       this.largeJob.set(result.job || this.largeJob());
