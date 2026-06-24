@@ -39,10 +39,17 @@ type KpiTone = string | string[] | Set<string> | { [klass: string]: unknown } | 
       cursor: pointer;
       text-decoration: none;
       color: inherit;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--brand-600, #4f46e5);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.45), 0 10px 24px rgba(79, 70, 229, 0.16);
     }
 
     .metric-card:focus-visible {
-      outline: 3px solid rgba(59, 130, 246, 0.55);
+      outline: 3px solid rgba(99, 102, 241, 0.55);
       outline-offset: 3px;
     }
 

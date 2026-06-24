@@ -55,11 +55,6 @@ type PanelId = 'notifications' | 'profile' | null;
           aria-label="Profile menu"
           title="Profile">
           <span class="hdr-avatar">{{ initials() }}</span>
-          <span class="hdr-profile-meta">
-            <strong>{{ displayName() }}</strong>
-            <small>{{ roleLabel() }}</small>
-          </span>
-          <span class="hdr-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="hdr-menu hdr-menu-profile" *ngIf="panel() === 'profile'">
           <div class="hdr-profile-card">

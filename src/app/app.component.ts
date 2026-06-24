@@ -165,25 +165,9 @@ type NavGroup = {
       <main class="workspace" id="main-content">
         <header class="topbar">
           <div class="topbar-brand-title">
-            <span class="eyebrow">{{ i18n.t('shell.workspace', 'Enterprise command workspace') }}</span>
             <h1>Aurashine OS</h1>
-            <div class="topbar-signal-row" aria-label="Current workspace context">
-              <span>{{ activePageLabel() }}</span>
-              <span>{{ state.tenantScopeLabel() }}</span>
-              <span>{{ state.userRole() }}</span>
-            </div>
           </div>
           <div class="topbar-actions">
-            <button
-              class="command-trigger"
-              type="button"
-              (click)="openCommandBar()"
-              aria-label="Open command bar"
-              title="Search & quick actions">
-              <span class="command-trigger-icon" aria-hidden="true">⌕</span>
-              <span class="command-trigger-label">Search or jump to…</span>
-              <kbd class="command-trigger-kbd">⌘K</kbd>
-            </button>
             <aura-workspace-switcher
               [tenants]="tenants()"
               [branches]="branches()"

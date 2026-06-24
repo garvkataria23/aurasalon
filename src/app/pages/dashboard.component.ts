@@ -39,12 +39,21 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
           <strong>{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }}</strong>
           <small>Open invoice balance</small>
         </aura-kpi-card>
+        <aura-kpi-card tone="violet" target="/clients">
+          <span>New clients</span>
+          <strong>{{ data.newClients }}</strong>
+          <small>Acquired this month</small>
+        </aura-kpi-card>
+        <aura-kpi-card tone="rose" target="/customer-360">
+          <span>Client retention</span>
+          <strong>{{ data.clientRetention }}%</strong>
+          <small>Repeat vs new mix</small>
+        </aura-kpi-card>
       </div>
 
       <section class="panel dashboard-command-panel" *ngIf="report() as data">
         <div class="section-title compact-title">
           <div>
-            <span class="eyebrow">Command center</span>
             <h2>Open detailed pages from here</h2>
           </div>
           <div class="header-link-row">
@@ -88,6 +97,12 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
             <strong>Workflow</strong>
             <small>Requested → confirmed → arrived → completed → billed</small>
             <b>Open workflow</b>
+          </a>
+          <a class="dashboard-hub-card" routerLink="/memberships">
+            <span class="eyebrow">Memberships</span>
+            <strong>{{ data.membershipRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <small>Plans, renewals and prepaid balance</small>
+            <b>Open memberships</b>
           </a>
         </div>
       </section>
@@ -171,11 +186,11 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
   `,
   styles: [`
     :host ::ng-deep .metrics-grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(7, minmax(0, 1fr));
     }
 
     .dashboard-command-panel {
-      padding: 14px;
+      padding: 8px 14px 12px;
     }
 
     .header-link-row {
@@ -185,14 +200,14 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     }
 
     .compact-title {
-      margin-bottom: 10px;
-      padding-bottom: 10px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
       border-bottom: 1px solid var(--line);
     }
 
     .dashboard-hub-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(150px, 1fr));
+      grid-template-columns: repeat(7, minmax(138px, 1fr));
       gap: 10px;
     }
 
@@ -206,11 +221,15 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       border-radius: 8px;
       background: #fff;
       overflow: hidden;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
     }
 
     .dashboard-hub-card:hover,
     .dashboard-hub-card:focus-visible {
-      background: var(--surface-2);
+      border-color: var(--brand-600, #4f46e5);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4), 0 10px 24px rgba(79, 70, 229, 0.16);
+      transform: translateY(-2px);
+      background: #fff;
       outline: 0;
     }
 
@@ -228,7 +247,30 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     }
 
     .dashboard-summary-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .dashboard-summary-grid > .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dashboard-summary-grid > .panel > .section-title {
+      flex: 0 0 auto;
+    }
+
+    .dashboard-summary-grid .quick-grid,
+    .dashboard-summary-grid .summary-tile,
+    .dashboard-summary-grid .timeline {
+      flex: 1 1 auto;
+    }
+
+    .dashboard-summary-grid .summary-tile {
+      align-content: center;
     }
 
     .summary-tile {
