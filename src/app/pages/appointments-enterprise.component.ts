@@ -194,6 +194,7 @@ const STATUS_TONES: Record<string, string> = {
 
         <section class="summary-strip">
           <article><span>Booked</span><strong>{{ pageAppointmentCount() }}</strong><small>on page</small></article>
+          <article class="pending-summary-card"><span>Pending</span><strong>{{ pendingAppointmentCount() }}</strong><small>live open</small></article>
           <article><span>Arrived</span><strong>{{ summaryValue('arrived') }}</strong><small>front desk</small></article>
           <article><span>In service</span><strong>{{ summaryValue('inService') }}</strong><small>chair busy</small></article>
           <article><span>Completed</span><strong>{{ summaryValue('completed') }}</strong><small>ready to bill</small></article>
@@ -841,9 +842,11 @@ const STATUS_TONES: Record<string, string> = {
     .month-strip span, .month-strip small { display: block; font-size: 11px; }
     label { display: grid; gap: 6px; color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     input, select, textarea { width: 100%; min-height: 42px; border: 1px solid #d5e2df; border-radius: 10px; padding: 9px 11px; font: inherit; background: white; color: #172033; }
-    .summary-strip { display: grid; grid-template-columns: repeat(6, minmax(120px, 220px)); justify-content: start; gap: 12px; min-height: 54px; padding: 8px 12px; border-radius: 16px; }
+    .summary-strip { display: grid; grid-template-columns: repeat(7, minmax(116px, 1fr)); justify-content: start; gap: 12px; min-height: 54px; padding: 8px 12px; border-radius: 16px; }
     .summary-strip article, .summary-strip button, .pulse-grid div { border: 1px solid #d8e7e3; border-radius: 12px; padding: 8px 12px; background: linear-gradient(135deg, #ffffff, #f5fbfa); }
     .summary-strip button { cursor: pointer; text-align: left; font: inherit; color: #172033; }
+    .summary-strip .pending-summary-card { border-color: #facc15; background: linear-gradient(135deg, #fffbeb, #ffffff); }
+    .summary-strip .pending-summary-card strong { color: #b45309; }
     .summary-strip .waitlist-summary-action { border-color: #5eead4; background: linear-gradient(135deg, #ecfdf5, #ffffff); box-shadow: inset 0 0 0 1px rgba(15, 143, 127, 0.12); }
     .summary-strip .waitlist-summary-action small { color: #0f766e; font-weight: 900; }
     .summary-strip span, .pulse-grid span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; display: block; }
@@ -1225,6 +1228,17 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
         .filter(Boolean)
     ).size
   );
+  readonly pendingAppointmentCount = computed(() => {
+    const pending = new Set<string>();
+    for (const cards of this.appointmentCardsByStaff().values()) {
+      for (const card of cards) {
+        if (!this.isPendingAppointment(card.appointment)) continue;
+        const key = this.appointmentBookingCountKey(card.appointment);
+        if (key) pending.add(key);
+      }
+    }
+    return pending.size;
+  });
   readonly totalSelectedBookingServiceCount = computed(() =>
     Object.values(this.selectedServiceIdsByLine()).reduce((total, ids) => total + ids.length, 0)
   );
@@ -2733,6 +2747,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private normalizedAppointmentStatus(value: unknown): string {
     return String(value || '').trim().toLowerCase().replace(/_/g, '-');
+  }
+
+  private isPendingAppointment(appointment: ApiRecord): boolean {
+    const status = this.normalizedAppointmentStatus(appointment.status || 'booked');
+    return !['completed', 'billed', 'paid', 'cancelled', 'canceled', 'no-show', 'deleted'].includes(status);
   }
 
   private appointmentKey(appointment: ApiRecord): string {
