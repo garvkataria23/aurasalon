@@ -7,6 +7,8 @@ import "./migrations/add-happy-hours-to-invoices.js";
 import "./jobs/flash-sale-monitor.js";
 import "./jobs/demand-snapshot.job.js";
 import "./jobs/offer-auto-sunset.job.js";
+import "./jobs/migration-large-import.worker.js";
+import "./jobs/daily-report-email.job.js";
 import { env } from "./config/env.js";
 import { initializeDatabaseRuntime } from "./utils/db-init.js";
 import { ensureAppointmentSystemSchema } from "./services/appointment-schema.service.js";
@@ -37,6 +39,7 @@ import { ensureTwoFactorSchema } from "./services/two-factor-schema.service.js";
 import { ensureSecurityAlertsSchema } from "./services/security-alerts-schema.service.js";
 import { ensureSecurityBlocklistSchema } from "./services/security-blocklist-schema.service.js";
 import { ensureSecurityAdvancedSchema } from "./services/security-advanced-schema.service.js";
+import { ensureMigrationStagingSchema } from "./services/migration-staging-schema.service.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import { authenticateJwt } from "./middleware/auth.js";
 import { mobileApiContext } from "./middleware/mobile-response.js";
@@ -198,6 +201,7 @@ export function createApp() {
   ensureSecurityAlertsSchema();
   ensureSecurityBlocklistSchema();
   ensureSecurityAdvancedSchema();
+  ensureMigrationStagingSchema();
   const app = express();
   app.disable("x-powered-by");
   app.set("etag", false);
@@ -368,6 +372,21 @@ export function createApp() {
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, service: "Aura Salon CRM/POS API", timestamp: new Date().toISOString() });
   });
+  app.get("/", (_req, res) => {
+    res.json({
+      ok: true,
+      service: "Aura Salon CRM/POS API",
+      message: "API server is running. Open the Angular apps from their dev-server ports.",
+      links: {
+        health: "/api/health",
+        versions: "/api/versions",
+        app: "http://127.0.0.1:4300",
+        customerApp: "http://127.0.0.1:4310"
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
+
 
   const legacyApiAuth = env.nodeEnv === "production" ? authenticateJwt() : (_req, _res, next) => next();
   app.use("/api", calendarPublicRouter);
