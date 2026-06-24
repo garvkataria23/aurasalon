@@ -426,6 +426,23 @@ export const migrationService = {
     return largeMigrationJob(jobId, access);
   },
 
+  stageLargeJobCsvChunk(jobId, chunkNumber, payload, access) {
+    const rows = parseCsvChunkRows(payload);
+    if (!rows.length) throw badRequest("CSV chunk has no data rows.");
+    this.registerLargeJobChunk(jobId, {
+      chunkNumber,
+      totalRows: rows.length,
+      rowStart: integer(payload.rowStart, 0),
+      rowEnd: integer(payload.rowEnd, integer(payload.rowStart, 0) + rows.length - 1),
+      sourceSheet: cleanText(payload.sourceSheet || "csv"),
+      checksum: cleanText(payload.checksum || "")
+    }, access);
+    return this.analyzeLargeJobChunk(jobId, chunkNumber, {
+      ...payload,
+      rows,
+      sourceSheet: cleanText(payload.sourceSheet || "csv")
+    }, access);
+  },
   analyzeLargeJobChunk(jobId, chunkNumber, payload, access) {
     const job = requireLargeMigrationJob(jobId, access);
     const chunk = requireLargeMigrationChunk(jobId, chunkNumber, access);
@@ -903,6 +920,55 @@ function previewPayload(payload, access, { persist, dryRun, jobId = "" }) {
   return response;
 }
 
+function parseCsvChunkRows(payload = {}) {
+  const csvText = String(payload.csvText || "").replace(/^\uFEFF/, "");
+  const header = Array.isArray(payload.header) ? payload.header.map((item) => cleanText(item)) : [];
+  const records = csvRecords(csvText);
+  const headers = header.length ? header : (records.shift() || []).map((item, index) => cleanText(item) || `column${index + 1}`);
+  if (!headers.length) return [];
+  return records
+    .filter((record) => record.some((value) => cleanText(value)))
+    .map((record) => Object.fromEntries(headers.map((name, index) => [name || `column${index + 1}`, record[index] ?? ""])));
+}
+
+function csvRecords(text = "") {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        field += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+    if (char === '"') quoted = true;
+    else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+  if (field || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
 function parsePayload(payload = {}) {
   if (Array.isArray(payload.rows)) {
     return {
@@ -2993,6 +3059,7 @@ function withBusyRetry(fn, attempts = 12) {
 function sleepSync(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
+
 
 
 

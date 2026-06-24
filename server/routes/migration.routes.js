@@ -159,6 +159,12 @@ migrationRouter.post(
 );
 
 migrationRouter.post(
+  "/migration/large-jobs/:id/chunks/:chunkNumber/stage-csv",
+  requirePermission("write", migrationResource),
+  asyncHandler((req, res) => {
+    res.status(201).json(migrationService.stageLargeJobCsvChunk(req.params.id, req.params.chunkNumber, req.body || {}, req.access));
+  })
+);migrationRouter.post(
   "/migration/large-jobs/:id/chunks/:chunkNumber/analyze",
   requirePermission("write", migrationResource),
   asyncHandler((req, res) => {
@@ -297,5 +303,6 @@ migrationRouter.post(
     res.json(migrationService.rollbackLast(req.access, req.body || {}));
   })
 );
+
 
 

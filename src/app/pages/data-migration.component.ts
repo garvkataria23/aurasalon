@@ -1315,47 +1315,55 @@ export class DataMigrationComponent implements OnInit {
     try {
       this.loading.set(true);
       this.error.set('');
-      this.message.set('Reading CSV and staging chunks...');
-      const text = await file.text();
-      const rows = this.parseCsvRows(text);
-      if (!rows.length) {
-        this.error.set('CSV has no data rows to stage.');
-        return;
-      }
+      this.message.set('Streaming CSV chunks to backend parser...');
       const chunkSize = Math.max(100, this.largeChunkSize());
+      const mapping = Object.fromEntries(this.mappingDraft().filter((row) => row.sourceColumn).map((row) => [row.sourceColumn, row.targetField]));
+      const estimatedRows = await this.estimateCsvRows(file);
       const job = await firstValueFrom(this.api.post<LargeMigrationJob>('migration/large-jobs', {
         sourceSoftware: this.sourceSoftware,
         resource: this.resource || 'auto',
         fileName: this.fileName(),
         fileSizeBytes: this.fileSize(),
-        totalRows: rows.length,
+        totalRows: estimatedRows,
         chunkSize,
-        mapping: Object.fromEntries(this.mappingDraft().filter((row) => row.sourceColumn).map((row) => [row.sourceColumn, row.targetField]))
+        mapping
       }));
       let latest: LargeMigrationJob = job;
-      for (let index = 0; index < rows.length; index += chunkSize) {
-        const chunkNumber = Math.floor(index / chunkSize) + 1;
-        const chunkRows = rows.slice(index, index + chunkSize);
-        await firstValueFrom(this.api.post<LargeMigrationJob>(`migration/large-jobs/${job.id}/chunks`, {
-          chunkNumber,
-          totalRows: chunkRows.length,
-          rowStart: index + 1,
-          rowEnd: index + chunkRows.length,
-          sourceSheet: 'csv'
-        }));
-        const analyzed = await firstValueFrom(this.api.post<any>(`migration/large-jobs/${job.id}/chunks/${chunkNumber}/analyze`, {
-          rows: chunkRows,
-          duplicateDecisions: this.duplicateDecisions()
-        }));
-        latest = analyzed.job || latest;
-        this.largeJob.set(latest);
-        this.csvStagedRows.set(Math.min(rows.length, index + chunkRows.length));
+      let header: string[] = [];
+      let chunkRecords: string[] = [];
+      let chunkNumber = 1;
+      let stagedRows = 0;
+      for await (const line of this.csvLineIterator(file)) {
+        if (!header.length) {
+          header = this.parseCsvRecords(line).shift() || [];
+          continue;
+        }
+        if (!line.trim()) continue;
+        chunkRecords.push(line);
+        if (chunkRecords.length >= chunkSize) {
+          latest = await this.stageCsvTextChunk(job.id, chunkNumber, header, chunkRecords, stagedRows + 1);
+          stagedRows += chunkRecords.length;
+          this.largeJob.set(latest);
+          this.csvStagedRows.set(stagedRows);
+          this.csvStagedChunks.set(chunkNumber);
+          this.migrationProgress.set(estimatedRows ? Math.round((stagedRows / estimatedRows) * 65) : Math.min(65, chunkNumber * 5));
+          chunkNumber++;
+          chunkRecords = [];
+        }
+      }
+      if (!header.length) {
+        this.error.set('CSV header row is missing.');
+        return;
+      }
+      if (chunkRecords.length) {
+        latest = await this.stageCsvTextChunk(job.id, chunkNumber, header, chunkRecords, stagedRows + 1);
+        stagedRows += chunkRecords.length;
         this.csvStagedChunks.set(chunkNumber);
-        this.migrationProgress.set(Math.round((this.csvStagedRows() / rows.length) * 65));
       }
       this.largeJob.set(latest);
+      this.csvStagedRows.set(stagedRows);
       this.summary.set({
-        totalRows: rows.length,
+        totalRows: stagedRows,
         validRows: Number(latest.validRows || 0),
         warningRows: Number(latest.warningRows || 0),
         errorRows: Number(latest.errorRows || 0),
@@ -1363,15 +1371,53 @@ export class DataMigrationComponent implements OnInit {
         affectedRecords: Number(latest.validRows || 0) + Number(latest.warningRows || 0),
         byEntity: {}
       });
-      this.previewRows.set(rows.slice(0, 500));
-      this.message.set(`${rows.length} CSV rows staged across ${this.csvStagedChunks()} chunk(s). Submit approval, then queue worker.`);
+      this.previewRows.set([]);
+      this.message.set(`${stagedRows} CSV rows streamed across ${this.csvStagedChunks()} chunk(s). Submit approval, then queue worker.`);
     } catch (err: any) {
-      this.error.set(this.api.errorText(err, 'Unable to stage CSV chunks.'));
+      this.error.set(this.api.errorText(err, 'Unable to stream CSV chunks.'));
     } finally {
       this.loading.set(false);
     }
   }
 
+  private async stageCsvTextChunk(jobId: string, chunkNumber: number, header: string[], records: string[], rowStart: number): Promise<LargeMigrationJob> {
+    const csvText = records.join('\n');
+    const analyzed = await firstValueFrom(this.api.post<any>(`migration/large-jobs/${jobId}/chunks/${chunkNumber}/stage-csv`, {
+      header,
+      csvText,
+      rowStart,
+      rowEnd: rowStart + records.length - 1,
+      sourceSheet: 'csv',
+      duplicateDecisions: this.duplicateDecisions()
+    }));
+    return analyzed.job || this.largeJob() || { id: jobId, status: 'draft' };
+  }
+
+  private async estimateCsvRows(file: File): Promise<number> {
+    let rows = 0;
+    for await (const line of this.csvLineIterator(file)) {
+      if (rows === 0 || line.trim()) rows++;
+    }
+    return Math.max(0, rows - 1);
+  }
+
+  private async *csvLineIterator(file: File): AsyncGenerator<string> {
+    const reader = file.stream().pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() || '';
+        for (const line of lines) yield line;
+      }
+      if (buffer) yield buffer;
+    } finally {
+      reader.releaseLock();
+    }
+  }
   private isCsvFile(file: File | null): file is File {
     return Boolean(file && (file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv'));
   }
@@ -2104,6 +2150,7 @@ export class DataMigrationComponent implements OnInit {
     return `${row.sourceSheet || 'sheet'}:${row.sourceRowNumber || row.targetId || row.sourceExternalId || 'row'}`;
   }
 }
+
 
 
 
