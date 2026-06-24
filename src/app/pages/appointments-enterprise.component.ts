@@ -67,6 +67,11 @@ type AppointmentActivityLine = {
   body: string;
 };
 
+type AppointmentActionOption = {
+  value: string;
+  label: string;
+};
+
 type SchedulerContext = {
   branchId: string;
   date: string;
@@ -666,18 +671,8 @@ const STATUS_TONES: Record<string, string> = {
                 <h4>Appointment Date</h4>
                 <div class="bill-status-row">
                   <strong>{{ appointment.startAt | date: 'dd-MM-yyyy' }}</strong>
-                  <select [value]="appointment.status || 'booked'" (change)="handleAppointmentAction(appointment, $any($event.target).value)">
-                    <option value="confirmed">Confirmed</option>
-                    <option value="booked">Not Confirmed</option>
-                    <option value="arrived">Arrived</option>
-                    <option value="in-service">Start</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancel</option>
-                    <option value="no-show">Not Came</option>
-                    <option value="edit">Edit Booking</option>
-                    <option value="reschedule">Reschedule Booking</option>
-                    <option value="add-payment">Add Payment</option>
-                    <option value="add-tip">Add Tip</option>
+                  <select [value]="appointmentActionValue(appointment)" (change)="handleAppointmentAction(appointment, $any($event.target).value)">
+                    <option *ngFor="let action of appointmentActionOptions(appointment); trackBy: trackActionOption" [value]="action.value">{{ action.label }}</option>
                   </select>
                 </div>
               </article>
@@ -707,7 +702,7 @@ const STATUS_TONES: Record<string, string> = {
                 </div>
               </article>
               <div class="drawer-actions wrap">
-                <button class="ghost-button" type="button" (click)="openEditAppointment(appointment)">Edit Booking</button>
+                <button class="ghost-button" type="button" *ngIf="!isCompletedAppointment(appointment)" (click)="openEditAppointment(appointment)">Edit Booking</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'client')">SMS client</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'staff')">SMS staff</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'owner')">SMS owner</button>
@@ -979,6 +974,24 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly state = inject(AppStateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly appointmentActions: AppointmentActionOption[] = [
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'booked', label: 'Not Confirmed' },
+    { value: 'arrived', label: 'Arrived' },
+    { value: 'in-service', label: 'Start' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancel' },
+    { value: 'no-show', label: 'Not Came' },
+    { value: 'edit', label: 'Edit Booking' },
+    { value: 'reschedule', label: 'Reschedule Booking' },
+    { value: 'add-payment', label: 'Add Payment' },
+    { value: 'add-tip', label: 'Add Tip' }
+  ];
+  private readonly completedAppointmentActions: AppointmentActionOption[] = [
+    { value: 'completed', label: 'Completed' },
+    { value: 'add-payment', label: 'Add Payment' }
+  ];
+  private readonly completedAllowedActions = new Set(this.completedAppointmentActions.map((action) => action.value));
   readonly rowHeight = ROW_HEIGHT;
   readonly statusOptions = STATUS_OPTIONS;
   readonly context = signal<SchedulerContext | null>(null);
@@ -1971,6 +1984,13 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   async handleAppointmentAction(appointment: ApiRecord, action: string): Promise<void> {
     if (!action) return;
+    if (this.isCompletedAppointment(appointment)) {
+      if (action === 'completed') return;
+      if (!this.completedAllowedActions.has(action)) {
+        this.showNotice('Completed booking me ye action available nahi hai.');
+        return;
+      }
+    }
     if (action === 'edit' || action === 'reschedule') {
       this.openEditAppointment(appointment);
       return;
@@ -2092,6 +2112,21 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   appointmentBillingLabel(appointment: ApiRecord): string {
     if (this.appointmentBillingLocked(appointment)) return 'Already billed';
     return this.label(String(appointment.status || 'booked'));
+  }
+
+  appointmentActionOptions(appointment: ApiRecord): AppointmentActionOption[] {
+    return this.isCompletedAppointment(appointment) ? this.completedAppointmentActions : this.appointmentActions;
+  }
+
+  appointmentActionValue(appointment: ApiRecord): string {
+    const status = this.normalizedAppointmentStatus(appointment.status);
+    if (this.isCompletedAppointment(appointment) && !this.completedAllowedActions.has(status)) return 'completed';
+    return status || 'booked';
+  }
+
+  isCompletedAppointment(appointment: ApiRecord): boolean {
+    const status = this.normalizedAppointmentStatus(appointment.status);
+    return status === 'completed' || status === 'billed' || status === 'paid' || this.appointmentBillingLocked(appointment);
   }
 
   cellCount(staffId: string, minute: number): number {
@@ -2414,6 +2449,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   trackBillLine(_: number, line: AppointmentBillLine): string { return line.id; }
   trackActivityLine(_: number, line: AppointmentActivityLine): string { return line.id; }
   trackClientServiceHistory(_: number, line: ClientServiceHistoryRow): string { return line.id; }
+  trackActionOption(_: number, action: AppointmentActionOption): string { return action.value; }
 
   formatShortDate(value: string): string {
     const date = new Date(value);
@@ -2423,6 +2459,10 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private blankLine(staffId: string, startAt: string): BookingLineDraft {
     return { id: `line_${Math.random().toString(16).slice(2)}`, serviceId: '', staffId, startAt, durationMinutes: 30, chair: '', room: '' };
+  }
+
+  private normalizedAppointmentStatus(value: unknown): string {
+    return String(value || '').trim().toLowerCase().replace(/_/g, '-');
   }
 
   private dateInput(date: Date): string {
