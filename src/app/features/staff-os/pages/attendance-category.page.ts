@@ -218,7 +218,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
     .state { color: #61746c; padding: 14px; }
     .error { color: #a52828; border-color: #e7b1b1; }
     .warn { color: #8a5a00; border-color: #f0d79b; background: #fffaf0; }
-    .rule-shell { display: grid; grid-template-columns: minmax(300px, .75fr) minmax(520px, 1.25fr); gap: 16px; align-items: start; }
+    .rule-shell { display: grid; grid-template-columns: minmax(300px, .75fr) minmax(520px, 1.25fr); gap: 16px; }
     .list-panel, .editor-panel { display: grid; gap: 14px; padding: 16px; }
     .filters { display: grid; grid-template-columns: 1fr; gap: 10px; }
     .filters label, .field { display: grid; gap: 6px; color: #34483f; font-size: 13px; font-weight: 850; }

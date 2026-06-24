@@ -1913,8 +1913,8 @@ type StaffPhotoUploadResponse = { url?: string };
     .panel-heading span { color: #60766d; display: block; margin-top: 4px; }
     .staff-workspace-panel { background: #fbfdff; }
     .workspace-heading { align-items: end; }
-    .staff-workspace-shell { align-items: start; display: grid; gap: 14px; grid-template-columns: 300px minmax(0, 1fr); min-width: 0; }
-    .staff-category-rail { display: grid; gap: 8px; position: sticky; top: 12px; }
+    .staff-workspace-shell { display: grid; gap: 14px; grid-template-columns: 300px minmax(0, 1fr); min-width: 0; }
+    .staff-category-rail { display: grid; gap: 8px; position: sticky; top: 12px; align-self: start; }
     .staff-category-tile { align-content: center; background: #fff; border: 1px solid #d9e5de; border-left: 4px solid #0f766e; border-radius: 8px; color: #10201a; cursor: pointer; display: grid; gap: 4px; min-height: 82px; padding: 12px; text-align: left; width: 100%; }
     .staff-category-tile:hover, .staff-category-tile.active { background: #f4faf8; border-color: #b7d7cf; }
     .staff-category-tile.active { box-shadow: 0 10px 24px rgba(16, 32, 56, .08); }

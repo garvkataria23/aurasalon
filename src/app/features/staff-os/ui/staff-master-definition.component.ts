@@ -278,7 +278,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
     .metric-grid strong { font-size: 24px; }
     .state, .empty { padding: 14px; color: #60766d; }
     .state.error { border-color: #e6b4a6; color: #a33720; background: #fff8f6; }
-    .master-shell { display: grid; grid-template-columns: minmax(320px, .78fr) minmax(520px, 1.22fr); gap: 16px; align-items: start; }
+    .master-shell { display: grid; grid-template-columns: minmax(320px, .78fr) minmax(520px, 1.22fr); gap: 16px; }
     .list-panel, .editor-panel { display: grid; gap: 14px; padding: 16px; }
     .compact-filter, .search-box, .field { display: grid; gap: 6px; color: #34483f; font-size: 13px; font-weight: 850; }
     .compact-filter { min-width: 180px; }
