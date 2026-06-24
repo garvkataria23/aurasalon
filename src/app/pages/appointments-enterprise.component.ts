@@ -467,7 +467,9 @@ const STATUS_TONES: Record<string, string> = {
 
           <div class="service-line-head">
             <strong>Services</strong>
-            <button class="ghost-button mini" type="button" (click)="addServiceLine()">Add service</button>
+            <button class="ghost-button mini" type="button" (click)="addServiceLine()">
+              {{ totalSelectedBookingServiceCount() ? 'Add ' + totalSelectedBookingServiceCount() + ' service' : 'Add service' }}
+            </button>
           </div>
           <div class="service-line" *ngFor="let line of bookingLines(); trackBy: trackLine">
             <label class="search-select service-field-wide">
@@ -487,14 +489,27 @@ const STATUS_TONES: Record<string, string> = {
                   <button
                     type="button"
                     *ngFor="let service of filteredServices(line); trackBy: trackApiRecord"
+                    [class.selected]="isLineServiceSelected(line, service.id)"
                     (mousedown)="$event.preventDefault()"
-                    (click)="selectLineService(line, service)"
+                    (click)="toggleLineServiceSelection(line, service)"
                   >
-                    <strong>{{ service.name || 'Service' }}</strong>
-                    <span>{{ service.category || 'Service' }} · {{ service.durationMinutes || 30 }}m</span>
+                    <span class="multi-select-box" [class.checked]="isLineServiceSelected(line, service.id)" aria-hidden="true"></span>
+                    <span class="result-copy">
+                      <strong>{{ service.name || 'Service' }}</strong>
+                      <span>{{ service.category || 'Service' }} · {{ service.durationMinutes || 30 }}m</span>
+                    </span>
+                    <span class="select-pill">{{ isLineServiceSelected(line, service.id) ? 'Selected' : 'Select' }}</span>
                   </button>
+                  <div class="service-result-actions">
+                    <button type="button" (mousedown)="$event.preventDefault()" (click)="selectVisibleLineServices(line)">Select visible</button>
+                    <button type="button" *ngIf="selectedLineServiceIds(line).length" (mousedown)="$event.preventDefault()" (click)="clearLineServiceSelection(line.id)">Clear</button>
+                  </div>
                 </div>
               </div>
+              <small class="picker-meta selected" *ngIf="selectedLineServiceIds(line).length">
+                {{ selectedLineServiceIds(line).length }} service selected. Add will include all of them.
+              </small>
+              <small class="picker-meta" *ngIf="showLineServiceMultiHint(line)">Multiple services matched. Select the required services.</small>
               <small class="picker-empty" *ngIf="showLineServiceEmpty(line)">No service match.</small>
             </label>
             <label class="search-select staff-field-wide">
@@ -960,12 +975,23 @@ const STATUS_TONES: Record<string, string> = {
     .smart-picker { position: relative; min-width: 0; }
     .smart-search-results { position: absolute; z-index: 95; top: calc(100% + 6px); left: 0; right: 0; display: grid; max-height: 260px; overflow: auto; border: 1px solid #cfe0dc; border-radius: 12px; background: #ffffff; box-shadow: 0 18px 36px rgba(15,23,42,.18); padding: 6px; }
     .smart-search-results button { width: 100%; border: 0; border-radius: 10px; background: transparent; padding: 9px 10px; text-align: left; display: grid; gap: 2px; color: #172033; cursor: pointer; }
-    .smart-search-results button:hover { background: #e8f7f4; }
+    .smart-search-results button:hover, .smart-search-results button.selected { background: #e8f7f4; }
+    .smart-search-results button.selected { color: #0f766e; }
     .smart-search-results strong { font-size: 13px; }
     .smart-search-results span { font-size: 12px; color: #64748b; text-transform: none; }
+    .smart-search-results .multi-select-box { width: 18px; height: 18px; border: 1px solid #cfe0dc; border-radius: 5px; background: #fff; align-self: center; }
+    .smart-search-results .multi-select-box.checked { border-color: #10b981; background: #d1fae5; box-shadow: inset 0 0 0 4px #fff; }
+    .smart-search-results .result-copy { display: grid; gap: 2px; min-width: 0; }
+    .smart-search-results .select-pill { align-self: center; justify-self: end; border: 1px solid #bbf7d0; border-radius: 999px; background: #f0fdf4; color: #059669; font-size: 11px; font-weight: 900; padding: 5px 9px; }
+    .smart-search-results .service-result-actions { display: flex; gap: 8px; padding: 6px; }
+    .smart-search-results .service-result-actions button { width: auto; border: 1px solid #cfe0dc; border-radius: 999px; padding: 6px 10px; font-weight: 900; }
+    .smart-search-results .service-result-actions button:hover { background: #ecfdf5; }
+    .service-field-wide .smart-search-results button { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
+    .service-field-wide .smart-search-results .service-result-actions button { display: inline-flex; grid-template-columns: none; }
     .picker-search { min-height: 38px; border-radius: 10px; border: 1px solid #cfe0dc; background: #f8fffd; padding: 9px 10px; font-weight: 800; color: #172033; }
     .picker-search:focus { border-color: #0f8f7f; outline: 3px solid rgba(15,143,127,.14); background: #fff; }
     .picker-meta, .picker-empty { font-size: 11px; font-weight: 800; text-transform: none; color: #64748b; }
+    .picker-meta.selected { color: #059669; }
     .picker-empty { color: #b45309; }
     .inline-form-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; }
     .inline-hint { margin: 0; border-radius: 10px; padding: 10px 12px; font-weight: 900; }
@@ -1058,6 +1084,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly staffSearchByLine = signal<Record<string, string>>({});
   readonly serviceSearchActiveByLine = signal<Record<string, boolean>>({});
   readonly staffSearchActiveByLine = signal<Record<string, boolean>>({});
+  readonly selectedServiceIdsByLine = signal<Record<string, string[]>>({});
   readonly editingAppointmentId = signal('');
   readonly appointmentDetailTab = signal<'booking' | 'activity'>('booking');
 
@@ -1167,6 +1194,9 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
         .map((card) => this.appointmentBookingCountKey(card.appointment))
         .filter(Boolean)
     ).size
+  );
+  readonly totalSelectedBookingServiceCount = computed(() =>
+    Object.values(this.selectedServiceIdsByLine()).reduce((total, ids) => total + ids.length, 0)
   );
 
   readonly shiftBlocksByStaff = computed(() => this.groupBlocks((this.context()?.schedules || []).map((row) => this.shiftBlock(row))));
@@ -1343,6 +1373,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.staffSearchByLine.set({});
     this.serviceSearchActiveByLine.set({});
     this.staffSearchActiveByLine.set({});
+    this.selectedServiceIdsByLine.set({});
     this.bookingLines.set([this.blankLine(staff.id, slot.input)]);
     this.drawer.set('booking');
   }
@@ -1361,6 +1392,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.staffSearchByLine.set({});
     this.serviceSearchActiveByLine.set({});
     this.staffSearchActiveByLine.set({});
+    this.selectedServiceIdsByLine.set({});
     this.bookingForm.reset({
       clientId: appointment.clientId || '',
       status: appointment.status || 'booked',
@@ -1424,10 +1456,48 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   addServiceLine(): void {
+    if (this.totalSelectedBookingServiceCount()) {
+      this.addSelectedLineServices();
+      return;
+    }
     const lines = this.bookingLines();
     const last = lines.at(-1);
     const nextStart = last ? this.addLocalMinutes(last.startAt, Number(last.durationMinutes || 30)) : this.localDateTime(10 * 60);
     this.bookingLines.set([...lines, this.blankLine(last?.staffId || this.visibleStaff()[0]?.id || '', nextStart)]);
+  }
+
+  private addSelectedLineServices(): void {
+    const selectedByLine = this.selectedServiceIdsByLine();
+    let lines = [...this.bookingLines()];
+    const nextServiceSearch: Record<string, string> = { ...this.serviceSearchByLine() };
+    const lineIds = lines.map((line) => line.id);
+
+    for (const lineId of lineIds) {
+      const serviceIds = Array.from(new Set(selectedByLine[lineId] || [])).filter(Boolean);
+      if (!serviceIds.length) continue;
+      const lineIndex = lines.findIndex((line) => line.id === lineId);
+      if (lineIndex < 0) continue;
+      const baseLine = lines[lineIndex];
+      const builtLines: BookingLineDraft[] = [];
+      let startAt = baseLine.startAt;
+      for (let index = 0; index < serviceIds.length; index += 1) {
+        const serviceId = serviceIds[index];
+        const service = (this.serviceById().get(serviceId) || { id: serviceId }) as ApiRecord;
+        const durationMinutes = Number(service.durationMinutes || baseLine.durationMinutes || 30);
+        const nextLine = index === 0
+          ? { ...baseLine, serviceId, durationMinutes }
+          : { ...this.blankLine(baseLine.staffId, startAt), serviceId, durationMinutes, chair: baseLine.chair, room: baseLine.room };
+        builtLines.push(nextLine);
+        nextServiceSearch[nextLine.id] = this.bookingServiceOption(service);
+        startAt = this.addLocalMinutes(nextLine.startAt, durationMinutes);
+      }
+      lines = [...lines.slice(0, lineIndex), ...builtLines, ...lines.slice(lineIndex + 1)];
+    }
+
+    this.bookingLines.set(lines);
+    this.serviceSearchByLine.set(nextServiceSearch);
+    this.serviceSearchActiveByLine.set({});
+    this.selectedServiceIdsByLine.set({});
   }
 
   removeServiceLine(idValue: string): void {
@@ -1485,6 +1555,46 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.updateLine(line.id, 'serviceId', String(service.id || ''));
     this.setLineSearch('service', line.id, this.bookingServiceOption(service));
     this.setLineSearchActive('service', line.id, false);
+  }
+
+  selectedLineServiceIds(line: BookingLineDraft): string[] {
+    return this.selectedServiceIdsByLine()[line.id] || [];
+  }
+
+  isLineServiceSelected(line: BookingLineDraft, serviceId: unknown): boolean {
+    return this.selectedLineServiceIds(line).includes(String(serviceId || ''));
+  }
+
+  toggleLineServiceSelection(line: BookingLineDraft, service: ApiRecord): void {
+    const serviceId = String(service.id || '');
+    if (!serviceId) return;
+    this.selectedServiceIdsByLine.update((current) => {
+      const selected = current[line.id] || [];
+      const nextSelected = selected.includes(serviceId)
+        ? selected.filter((id) => id !== serviceId)
+        : [...selected, serviceId];
+      return { ...current, [line.id]: nextSelected };
+    });
+    this.setLineSearchActive('service', line.id, true);
+  }
+
+  selectVisibleLineServices(line: BookingLineDraft): void {
+    const next = new Set(this.selectedLineServiceIds(line));
+    for (const service of this.filteredServices(line)) {
+      const serviceId = String(service.id || '');
+      if (serviceId) next.add(serviceId);
+    }
+    this.selectedServiceIdsByLine.update((current) => ({ ...current, [line.id]: Array.from(next) }));
+    this.setLineSearchActive('service', line.id, true);
+  }
+
+  clearLineServiceSelection(lineId: string): void {
+    this.selectedServiceIdsByLine.update((current) => {
+      const next = { ...current };
+      delete next[lineId];
+      return next;
+    });
+    this.setLineSearchActive('service', lineId, true);
   }
 
   selectLineStaff(line: BookingLineDraft, person: StaffLane): void {
@@ -1556,6 +1666,13 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return this.lineSearchActive(this.serviceSearchActiveByLine(), line.id) && this.lineSearch(this.serviceSearchByLine(), line.id).trim().length > 0 && !this.filteredServices(line).length;
   }
 
+  showLineServiceMultiHint(line: BookingLineDraft): boolean {
+    return this.lineSearchActive(this.serviceSearchActiveByLine(), line.id)
+      && this.lineSearch(this.serviceSearchByLine(), line.id).trim().length > 0
+      && this.filteredServices(line).length > 1
+      && !this.selectedLineServiceIds(line).length;
+  }
+
   showLineStaffEmpty(line: BookingLineDraft): boolean {
     return this.lineSearchActive(this.staffSearchActiveByLine(), line.id) && this.lineSearch(this.staffSearchByLine(), line.id).trim().length > 0 && !this.filteredStaff(line).length;
   }
@@ -1600,6 +1717,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       return next;
     });
     this.staffSearchActiveByLine.update((current) => {
+      const next = { ...current };
+      delete next[lineId];
+      return next;
+    });
+    this.selectedServiceIdsByLine.update((current) => {
       const next = { ...current };
       delete next[lineId];
       return next;
