@@ -857,9 +857,10 @@ export class SalonOperationsService {
     const membershipDiscount = membershipBenefit.amount;
     const hasSubmittedLinePricing = items.some(hasLinePricing);
     const manualBillDiscount = money(Number(discountBreakdown?.manualDiscountAmount ?? discount ?? 0));
+    const membershipRedeemAdjustment = money(Number(membershipRedeem?.invoiceAdjustmentAmount || 0));
     const billDiscount = hasSubmittedLinePricing
-      ? manualBillDiscount + couponDiscount
-      : Number(discount || 0) + membershipDiscount + couponDiscount;
+      ? manualBillDiscount + couponDiscount + membershipRedeemAdjustment
+      : Number(discount || 0) + membershipDiscount + couponDiscount + membershipRedeemAdjustment;
     const totals = calculateInvoice(items, billDiscount, tipTotal);
     const sale = repositories.sales.create({
       id: makeId("sale"),

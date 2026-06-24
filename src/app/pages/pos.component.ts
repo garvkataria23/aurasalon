@@ -778,6 +778,7 @@ type PackageClientNotice = {
             <div><span>Subtotal</span><strong>{{ subtotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Manual discount</span><strong>{{ manualDiscountAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div *ngIf="membershipAutoDiscount > 0"><span>{{ membershipAutoDiscountLabel }}</span><strong>{{ membershipAutoDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div *ngIf="prepaidMembershipRedeemDiscount > 0"><span>Membership credit redeem</span><strong>{{ prepaidMembershipRedeemDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Coupon discount</span><strong>{{ couponDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>GST</span><strong>{{ gst | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Staff tips</span><strong>{{ tipTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
@@ -1767,7 +1768,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
   get billLevelDiscount(): number {
     const base = Math.max(0, this.subtotal - this.itemDiscountTotal);
-    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount));
+    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount + this.prepaidMembershipRedeemDiscount));
   }
 
   get gst(): number {
@@ -1950,6 +1951,23 @@ export class PosComponent implements OnInit, OnDestroy {
     const membership = this.activeMembershipForClient();
     const percent = this.activeMembershipDiscountPercent();
     return membership ? `${membership.planName} ${percent}% discount` : 'Membership discount';
+  }
+
+  get prepaidMembershipRedeemDiscount(): number {
+    const benefit = this.selectedRedeemableBenefit();
+    if (!benefit || this.redeemableBenefitTypeLabel(benefit) !== 'membership' || Number(this.creditsUsed || 0) <= 0) return 0;
+    const mappedLines = this.selectedBenefitServiceMappings();
+    const taxableMappedTotal = mappedLines.length
+      ? mappedLines.reduce((sum, mapping) => {
+          const item = this.items()[mapping.lineIndex];
+          return item ? sum + this.lineTaxableSubtotal(item) : sum;
+        }, 0)
+      : this.redeemableServiceLines().reduce((sum, line) => {
+          const item = this.items()[line.lineIndex];
+          return item ? sum + this.lineTaxableSubtotal(item) : sum;
+        }, 0);
+    const baseAfterManual = Math.max(0, this.subtotal - this.itemDiscountTotal - this.manualDiscountAmount - this.couponDiscount);
+    return this.money(Math.min(Math.max(0, Number(this.creditsUsed || 0)), taxableMappedTotal, baseAfterManual));
   }
 
   get totalDiscount(): number {
@@ -4201,6 +4219,7 @@ export class PosComponent implements OnInit, OnDestroy {
         itemDiscountTotal: this.itemDiscountTotal,
         itemManualDiscountTotal: this.itemManualDiscountTotal,
         membershipAutoDiscount: this.membershipAutoDiscount,
+        prepaidMembershipRedeemDiscount: this.prepaidMembershipRedeemDiscount,
         couponDiscount: this.couponDiscount,
         totalDiscount: this.totalDiscount
       },
@@ -4216,6 +4235,7 @@ export class PosComponent implements OnInit, OnDestroy {
           benefitName: selectedBenefit?.['planName'] || selectedBenefit?.['name'] || this.membershipId,
           remainingBeforeRedeem: this.selectedRedeemableBenefitRemainingCredits(),
           remainingAfterRedeem: this.benefitRemainingAfterRedeem(),
+          invoiceAdjustmentAmount: this.prepaidMembershipRedeemDiscount,
           serviceId: serviceLineMappings[0]?.serviceId || '',
           serviceLineMappings
         } : {}),
