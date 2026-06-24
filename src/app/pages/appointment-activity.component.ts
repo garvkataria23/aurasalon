@@ -502,7 +502,9 @@ interface AppointmentRegisterRow {
   styles: [`
     .appointment-activity-page {
       display: grid;
-      gap: 18px;
+      gap: 12px;
+      color: var(--ink);
+      background: var(--bg);
     }
 
     .module-hero,
@@ -513,7 +515,7 @@ interface AppointmentRegisterRow {
       border: 1px solid var(--line);
       border-radius: var(--radius-md);
       background: var(--surface);
-      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
     }
 
     .module-hero,
@@ -526,7 +528,11 @@ interface AppointmentRegisterRow {
     }
 
     .module-hero {
-      padding: 20px 22px;
+      padding: 16px 18px;
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .module-hero h2,
@@ -534,6 +540,11 @@ interface AppointmentRegisterRow {
     .detail-drawer h3 {
       margin: 0;
       color: var(--ink);
+    }
+
+    .module-hero h2 {
+      font-size: 1.35rem;
+      line-height: 1.18;
     }
 
     .module-hero p,
@@ -552,10 +563,19 @@ interface AppointmentRegisterRow {
       flex-wrap: wrap;
     }
 
+    .hero-actions .ghost-button,
+    .hero-actions .primary-button,
+    .action-row .ghost-button {
+      min-height: 34px;
+      border-radius: 6px;
+      padding: 0 12px;
+      box-shadow: none;
+    }
+
     .metric-grid {
       display: grid;
       grid-template-columns: repeat(6, minmax(150px, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .metric-card,
@@ -565,12 +585,13 @@ interface AppointmentRegisterRow {
     .change-list article {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fff;
-      padding: 14px;
+      background: var(--surface);
+      padding: 12px;
     }
 
     .metric-card {
-      border-top: 4px solid var(--teal);
+      min-height: 94px;
+      border-top: 3px solid var(--teal);
     }
 
     .metric-card.red { border-top-color: var(--danger); }
@@ -592,9 +613,9 @@ interface AppointmentRegisterRow {
 
     .metric-card strong {
       display: block;
-      margin: 8px 0 4px;
+      margin: 6px 0 3px;
       color: var(--ink);
-      font-size: 1.5rem;
+      font-size: 1.35rem;
     }
 
     .filter-panel,
@@ -602,17 +623,17 @@ interface AppointmentRegisterRow {
     .report-panel,
     .client-reliability-panel,
     .detail-drawer {
-      padding: 18px;
+      padding: 14px;
     }
 
     .activity-title {
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     .filter-grid {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .span-2 {
@@ -626,10 +647,10 @@ interface AppointmentRegisterRow {
 
     input,
     select {
-      min-height: 38px;
+      min-height: 34px;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
+      border-radius: 6px;
+      background: var(--surface);
       padding: 0 10px;
       color: var(--ink);
     }
@@ -649,10 +670,10 @@ interface AppointmentRegisterRow {
 
     .suggestion-row span,
     .risk-reasons span {
-      border: 1px solid #cfe3df;
+      border: 1px solid var(--success-border, #A7F3D0);
       border-radius: 999px;
-      background: #f1fbf8;
-      color: #0f766e;
+      background: var(--success-bg, #ECFDF5);
+      color: var(--success-text, #065F46);
       padding: 6px 10px;
       font-weight: 800;
       font-size: 0.82rem;
@@ -660,6 +681,9 @@ interface AppointmentRegisterRow {
 
     .table-wrap {
       overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
     }
 
     table {
@@ -671,7 +695,7 @@ interface AppointmentRegisterRow {
     th,
     td {
       border-bottom: 1px solid var(--line);
-      padding: 12px 10px;
+      padding: 9px 10px;
       text-align: left;
       vertical-align: top;
     }
@@ -680,6 +704,10 @@ interface AppointmentRegisterRow {
       color: var(--muted);
       font-size: 0.75rem;
       text-transform: uppercase;
+      background: var(--surface-2);
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     td strong,
@@ -688,7 +716,7 @@ interface AppointmentRegisterRow {
     }
 
     tr.selected {
-      background: #f8fbff;
+      background: var(--surface-2);
     }
 
     .badge,
@@ -705,14 +733,14 @@ interface AppointmentRegisterRow {
 
     .problem-pill {
       margin: 2px 4px 2px 0;
-      background: #fff0ec;
-      color: #b42318;
+      background: var(--danger-bg, #FEF2F2);
+      color: var(--danger-text, #991B1B);
     }
 
     .badge.booking,
     .risk-pill.low {
-      background: #e7f7f2;
-      color: #0f766e;
+      background: var(--success-bg, #ECFDF5);
+      color: var(--success-text, #065F46);
     }
 
     .badge.change,
@@ -724,8 +752,8 @@ interface AppointmentRegisterRow {
     .badge.cancellation,
     .risk-pill.high,
     .risk-pill.critical {
-      background: #fff0ec;
-      color: #b42318;
+      background: var(--danger-bg, #FEF2F2);
+      color: var(--danger-text, #991B1B);
     }
 
     .badge.service,
