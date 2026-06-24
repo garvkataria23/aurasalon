@@ -314,7 +314,7 @@ type RedemptionLine = {
     .packages-main {
       position: relative;
       min-width: 0;
-      padding: 2px 6px 0;
+      padding: 2px 24px 0 6px;
     }
 
     .packages-title h1 {
@@ -430,8 +430,13 @@ type RedemptionLine = {
     }
 
     .salonist-table .action-col {
-      width: 90px;
-      text-align: center;
+      width: 128px;
+      text-align: right;
+    }
+
+    .salonist-table th:last-child,
+    .salonist-table td:last-child {
+      padding-right: 32px;
     }
 
     .salonist-table input[type="checkbox"] {
@@ -504,7 +509,7 @@ type RedemptionLine = {
 
     .action-cell {
       position: relative;
-      justify-content: center;
+      justify-content: flex-end;
     }
 
     .dots-button {
@@ -523,7 +528,7 @@ type RedemptionLine = {
     .action-menu {
       position: absolute;
       top: 34px;
-      right: 10px;
+      right: 32px;
       z-index: 5;
       min-width: 150px;
       border: 1px solid #e5e7eb;
