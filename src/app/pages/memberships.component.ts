@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Observable, catchError, forkJoin, of } from 'rxjs';
@@ -621,39 +621,39 @@ type PlanLifecycleDialog = {
         </div>
 
         <section class="report-filter-grid">
-          <label class="field"><span>From date</span><input type="date" [(ngModel)]="reportFilters.fromDate" /></label>
-          <label class="field"><span>To date</span><input type="date" [(ngModel)]="reportFilters.toDate" /></label>
+          <label class="field"><span>From date</span><input type="date" [(ngModel)]="reportFilters.fromDate" (ngModelChange)="onReportFilterChanged()" /></label>
+          <label class="field"><span>To date</span><input type="date" [(ngModel)]="reportFilters.toDate" (ngModelChange)="onReportFilterChanged()" /></label>
           <label class="field">
             <span>Branch</span>
-            <select [(ngModel)]="reportFilters.branchId">
+            <select [(ngModel)]="reportFilters.branchId" (ngModelChange)="onReportFilterChanged()">
               <option value="">All branches</option>
               <option *ngFor="let branch of branchOptions()" [value]="branch">{{ branch }}</option>
             </select>
           </label>
           <label class="field">
             <span>Plan</span>
-            <select [(ngModel)]="reportFilters.planId">
+            <select [(ngModel)]="reportFilters.planId" (ngModelChange)="onReportFilterChanged()">
               <option value="">All plans</option>
               <option *ngFor="let plan of membershipPlans()" [value]="plan.id">{{ plan.name }}</option>
             </select>
           </label>
           <label class="field">
             <span>Staff</span>
-            <select [(ngModel)]="reportFilters.staffId">
+            <select [(ngModel)]="reportFilters.staffId" (ngModelChange)="onReportFilterChanged()">
               <option value="">All staff</option>
               <option *ngFor="let staff of staffMembers()" [value]="staff.id || staff['staffId']">{{ staffOption(staff) }}</option>
             </select>
           </label>
           <label class="field">
             <span>Client</span>
-            <select [(ngModel)]="reportFilters.clientId">
+            <select [(ngModel)]="reportFilters.clientId" (ngModelChange)="onReportFilterChanged()">
               <option value="">All clients</option>
               <option *ngFor="let client of clients()" [value]="client.id">{{ client.name || client['fullName'] || client.id }}</option>
             </select>
           </label>
           <label class="field">
             <span>Status</span>
-            <select [(ngModel)]="reportFilters.status">
+            <select [(ngModel)]="reportFilters.status" (ngModelChange)="onReportFilterChanged()">
               <option value="">All statuses</option>
               <option value="active">Active</option>
               <option value="cancelled">Cancelled</option>
@@ -662,7 +662,7 @@ type PlanLifecycleDialog = {
           </label>
           <label class="field">
             <span>Payment mode</span>
-            <select [(ngModel)]="reportFilters.paymentMode">
+            <select [(ngModel)]="reportFilters.paymentMode" (ngModelChange)="onReportFilterChanged()">
               <option value="">All modes</option>
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>
@@ -674,7 +674,7 @@ type PlanLifecycleDialog = {
           </label>
           <label class="field">
             <span>Risk level</span>
-            <select [(ngModel)]="reportFilters.riskLevel">
+            <select [(ngModel)]="reportFilters.riskLevel" (ngModelChange)="onReportFilterChanged()">
               <option value="all">All risks</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
@@ -685,12 +685,12 @@ type PlanLifecycleDialog = {
         </section>
 
         <section class="member-count-strip compact-count-strip">
-          <article><span>Active members</span><strong>{{ reportMetric('activeMembers') }}</strong><small>Live active ledger</small></article>
-          <article><span>Expiring soon</span><strong>{{ reportMetric('expiringSoon') }}</strong><small>30-day renewal queue</small></article>
-          <article><span>Renewal revenue</span><strong>{{ reportMetric('renewalRevenue') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Filtered renewals</small></article>
-          <article><span>Credit liability</span><strong>{{ reportMetric('creditLiability') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Unused credit value</small></article>
-          <article><span>Discount leakage</span><strong>{{ reportMetric('discountLeakage') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Membership discount audit</small></article>
-          <article><span>Action queue</span><strong>{{ reportMetric('actionQueue') }}</strong><small>Renewal, wallet and plan tasks</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('activeMembers')" (keydown.enter)="setReportTab('activeMembers')"><span>Active members</span><strong>{{ reportMetric('activeMembers') }}</strong><small>Live active ledger</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('expiringSoon')" (keydown.enter)="setReportTab('expiringSoon')"><span>Expiring soon</span><strong>{{ reportMetric('expiringSoon') }}</strong><small>30-day renewal queue</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('renewalRevenue')" (keydown.enter)="setReportTab('renewalRevenue')"><span>Renewal revenue</span><strong>{{ reportMetric('renewalRevenue') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Filtered renewals</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('creditLiability')" (keydown.enter)="setReportTab('creditLiability')"><span>Credit liability</span><strong>{{ reportMetric('creditLiability') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Unused credit value</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('discountLeakage')" (keydown.enter)="setReportTab('discountLeakage')"><span>Discount leakage</span><strong>{{ reportMetric('discountLeakage') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Membership discount audit</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('actionQueue')" (keydown.enter)="setReportTab('actionQueue')"><span>Action queue</span><strong>{{ reportMetric('actionQueue') }}</strong><small>Renewal, wallet and plan tasks</small></article>
         </section>
 
         <nav class="report-section-tabs" aria-label="Membership report sections">
@@ -1342,6 +1342,19 @@ type PlanLifecycleDialog = {
       border-radius: 12px;
       background: #f8fbfb;
       border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .compact-count-strip article {
+      cursor: pointer;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .compact-count-strip article:hover,
+    .compact-count-strip article:focus-visible {
+      border-color: rgba(13, 148, 136, 0.42);
+      box-shadow: 0 10px 22px rgba(13, 148, 136, 0.12);
+      outline: none;
+      transform: translateY(-1px);
     }
 
     .member-count-strip span,
@@ -2219,7 +2232,7 @@ type PlanLifecycleDialog = {
     }
   `]
 })
-export class MembershipsComponent implements OnInit {
+export class MembershipsComponent implements OnInit, OnDestroy {
   readonly membershipPlans = signal<PosMembershipPlan[]>([]);
   readonly memberships = signal<ApiRecord[]>([]);
   readonly clients = signal<ApiRecord[]>([]);
@@ -2270,6 +2283,9 @@ export class MembershipsComponent implements OnInit {
     paymentMode: '',
     riskLevel: 'all'
   };
+  private reportRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private enterpriseReportLoading = false;
+  private enterpriseReportRefreshQueued = false;
 
   readonly planForm = this.fb.group({
     id: [''],
@@ -2358,6 +2374,10 @@ export class MembershipsComponent implements OnInit {
     this.load();
   }
 
+  ngOnDestroy(): void {
+    this.stopReportLiveRefresh();
+  }
+
   load(): void {
     this.loading.set(true);
     this.error.set('');
@@ -2401,10 +2421,17 @@ export class MembershipsComponent implements OnInit {
 
   setTab(tab: MembershipDeskTab): void {
     this.activeTab.set(tab);
+    if (tab === 'reports') {
+      this.loadEnterpriseReports({ silent: true });
+      this.startReportLiveRefresh();
+    } else {
+      this.stopReportLiveRefresh();
+    }
   }
 
   setReportTab(tab: MembershipReportTab): void {
     this.activeReportTab.set(tab);
+    if (this.activeTab() === 'reports') this.loadEnterpriseReports({ silent: true });
   }
 
   openPlanDrawer(): void {
@@ -3149,8 +3176,30 @@ export class MembershipsComponent implements OnInit {
     };
   }
 
-  loadEnterpriseReports(): void {
-    this.saving.set(true);
+  onReportFilterChanged(): void {
+    if (this.activeTab() === 'reports') this.loadEnterpriseReports({ silent: true });
+  }
+
+  startReportLiveRefresh(): void {
+    if (this.reportRefreshTimer) return;
+    this.reportRefreshTimer = setInterval(() => {
+      if (this.activeTab() === 'reports') this.loadEnterpriseReports({ silent: true });
+    }, 30000);
+  }
+
+  stopReportLiveRefresh(): void {
+    if (!this.reportRefreshTimer) return;
+    clearInterval(this.reportRefreshTimer);
+    this.reportRefreshTimer = null;
+  }
+
+  loadEnterpriseReports(options: { silent?: boolean } = {}): void {
+    if (this.enterpriseReportLoading) {
+      this.enterpriseReportRefreshQueued = true;
+      return;
+    }
+    this.enterpriseReportLoading = true;
+    if (!options.silent) this.saving.set(true);
     this.error.set('');
     this.api.list<MembershipEnterpriseReport>('membership-enterprise/reports/enterprise', this.reportFilterParams()).pipe(
       catchError((error) => {
@@ -3159,8 +3208,13 @@ export class MembershipsComponent implements OnInit {
       })
     ).subscribe((report) => {
       this.enterpriseReport.set(report || {});
-      this.saving.set(false);
-      if (report?.generatedAt) this.message.set('Membership reports refreshed.');
+      this.enterpriseReportLoading = false;
+      if (!options.silent) this.saving.set(false);
+      if (report?.generatedAt && !options.silent) this.message.set('Membership reports refreshed.');
+      if (this.enterpriseReportRefreshQueued) {
+        this.enterpriseReportRefreshQueued = false;
+        this.loadEnterpriseReports({ silent: true });
+      }
     });
   }
 
