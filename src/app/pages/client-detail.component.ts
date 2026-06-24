@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
@@ -125,6 +125,8 @@ type ClientPersonalDetailsForm = {
   tagsText: string;
   communicationPreference: string;
 };
+
+type ClientNoteFocus = 'frontDesk' | 'internal' | 'followUp';
 
 @Component({
   selector: 'app-client-detail',
@@ -284,7 +286,7 @@ type ClientPersonalDetailsForm = {
               <a class="primary-button smart-action-primary" [routerLink]="['/appointments']" [queryParams]="{ clientId: client.id }">Book Again</a>
               <a class="ghost-button" [routerLink]="['/pos']" [queryParams]="{ clientId: client.id }">Create Invoice</a>
               <a class="ghost-button" [routerLink]="['/pos/invoices']" [queryParams]="{ clientId: client.id, due: 1 }">Receive Due</a>
-              <button class="ghost-button" type="button" (click)="selectHistoryTab('notes')">Add Note</button>
+              <button class="ghost-button" type="button" (click)="selectHistoryTab('notes', 'frontDesk')">Add Note</button>
               <button class="ghost-button" type="button" (click)="selectHistoryTab('treatments')">Add Consultation</button>
               <a class="ghost-button" [href]="whatsAppLink(client)" target="_blank" rel="noopener">WhatsApp Client</a>
               <button class="ghost-button" type="button" (click)="printHistory()">Print Client History</button>
@@ -1170,7 +1172,7 @@ type ClientPersonalDetailsForm = {
           </ng-template>
         </section>
 
-        <section class="panel" [hidden]="activeHistoryTab() !== 'notes'">
+        <section class="panel notes-page-panel" #notesPanel [hidden]="activeHistoryTab() !== 'notes'">
           <div class="section-title">
             <div>
               <span class="eyebrow">Client notes</span>
@@ -1178,20 +1180,25 @@ type ClientPersonalDetailsForm = {
             </div>
             <button class="primary-button" type="button" (click)="saveNotes()" [disabled]="notesSaving()">Save note</button>
           </div>
+          <div class="notes-page-actions" aria-label="Note sections">
+            <button type="button" (click)="focusNoteField('frontDesk')">Front desk notes</button>
+            <button type="button" (click)="focusNoteField('internal')">Internal notes</button>
+            <button type="button" (click)="focusNoteField('followUp')">Follow-up notes</button>
+          </div>
           <div class="state success" *ngIf="notesMessage()">{{ notesMessage() }}</div>
           <div class="notes-tab-layout">
             <div class="notes-editor-grid">
               <label class="note-field">
                 <span>Front desk notes</span>
-                <textarea class="notes-box" [(ngModel)]="frontDeskNotes" placeholder="Arrival preference, billing reminders, comfort cues"></textarea>
+                <textarea #frontDeskNotesBox class="notes-box" [(ngModel)]="frontDeskNotes" placeholder="Arrival preference, billing reminders, comfort cues"></textarea>
               </label>
               <label class="note-field">
                 <span>Internal notes</span>
-                <textarea class="notes-box" [(ngModel)]="internalNotes" placeholder="Staff-only service context, risk flags, operational notes"></textarea>
+                <textarea #internalNotesBox class="notes-box" [(ngModel)]="internalNotes" placeholder="Staff-only service context, risk flags, operational notes"></textarea>
               </label>
               <label class="note-field">
                 <span>Follow-up notes</span>
-                <textarea class="notes-box" [(ngModel)]="followUpNotes" placeholder="Next call, reactivation, due reminder, product follow-up"></textarea>
+                <textarea #followUpNotesBox class="notes-box" [(ngModel)]="followUpNotes" placeholder="Next call, reactivation, due reminder, product follow-up"></textarea>
               </label>
             </div>
 
@@ -1581,6 +1588,35 @@ type ClientPersonalDetailsForm = {
     .notes-editor-grid {
       display: grid;
       gap: 12px;
+    }
+
+    .notes-page-panel {
+      scroll-margin-top: 90px;
+    }
+
+    .notes-page-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
+    .notes-page-actions button {
+      border: 1px solid #cfe0dc;
+      border-radius: 999px;
+      background: #f8fffd;
+      color: #0f766e;
+      cursor: pointer;
+      font-weight: 900;
+      min-height: 36px;
+      padding: 8px 12px;
+    }
+
+    .notes-page-actions button:hover,
+    .notes-page-actions button:focus-visible {
+      background: #0f766e;
+      color: #fff;
+      outline: none;
     }
 
     .note-field {
@@ -2700,6 +2736,10 @@ export class ClientDetailComponent implements OnInit {
   readonly personalMessage = signal('');
   readonly profileDetailsEditing = signal(false);
   readonly activeHistoryTab = signal('overview');
+  @ViewChild('notesPanel') private notesPanel?: ElementRef<HTMLElement>;
+  @ViewChild('frontDeskNotesBox') private frontDeskNotesBox?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('internalNotesBox') private internalNotesBox?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('followUpNotesBox') private followUpNotesBox?: ElementRef<HTMLTextAreaElement>;
   readonly appointmentStatusOptions = ['booked', 'completed', 'cancelled', 'rescheduled', 'no-show'];
   readonly historyTabs = [
     { id: 'overview', label: 'Overview' },
@@ -2748,11 +2788,25 @@ export class ClientDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const requestedTab = this.route.snapshot.queryParamMap.get('tab') || '';
+    if (this.isHistoryTab(requestedTab)) this.activeHistoryTab.set(requestedTab);
     this.load();
   }
 
-  selectHistoryTab(tabId: string): void {
+  selectHistoryTab(tabId: string, noteFocus?: ClientNoteFocus): void {
+    if (!this.isHistoryTab(tabId)) return;
     this.activeHistoryTab.set(tabId);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tabId === 'overview' ? null : tabId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+    if (tabId === 'notes') this.openNotesPage(noteFocus);
+  }
+
+  focusNoteField(target: ClientNoteFocus): void {
+    this.selectHistoryTab('notes', target);
   }
 
   startProfileDetailsEdit(client: ApiRecord): void {
@@ -2868,6 +2922,7 @@ export class ClientDetailComponent implements OnInit {
         this.personalMessage.set('');
         this.loadFamily(client.id);
         this.loading.set(false);
+        if (this.activeHistoryTab() === 'notes') this.openNotesPage();
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load client profile');
@@ -2878,6 +2933,26 @@ export class ClientDetailComponent implements OnInit {
 
   private safeList(resource: string, params: ApiRecord = {}) {
     return this.api.list<ApiRecord[]>(resource, params).pipe(catchError(() => of([] as ApiRecord[])));
+  }
+
+  private isHistoryTab(tabId: string): boolean {
+    return this.historyTabs.some((tab) => tab.id === tabId);
+  }
+
+  private openNotesPage(noteFocus: ClientNoteFocus = 'frontDesk'): void {
+    window.setTimeout(() => {
+      this.notesPanel?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      this.noteFieldElement(noteFocus)?.focus();
+    });
+  }
+
+  private noteFieldElement(noteFocus: ClientNoteFocus): HTMLTextAreaElement | undefined {
+    const fields: Record<ClientNoteFocus, ElementRef<HTMLTextAreaElement> | undefined> = {
+      frontDesk: this.frontDeskNotesBox,
+      internal: this.internalNotesBox,
+      followUp: this.followUpNotesBox
+    };
+    return fields[noteFocus]?.nativeElement;
   }
 
   trackApiRecord(_: number, item: ApiRecord): string {
