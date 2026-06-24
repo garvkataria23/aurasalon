@@ -229,40 +229,195 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     </section>
   `,
   styles: [`
+    :host {
+      display: block;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .page-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .module-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .module-hero h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1.35rem;
+      line-height: 1.18;
+    }
+
+    .module-hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
     .hero-actions,
     .report-filter-panel {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .hero-actions {
       justify-content: flex-end;
     }
+
+    .hero-actions .ghost-button,
+    .report-filter-panel .primary-button,
+    .section-title .ghost-button {
+      min-height: 34px;
+      border-radius: 6px;
+      padding: 0 12px;
+      box-shadow: none;
+    }
+
+    .panel,
+    .report-filter-panel {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
+    }
+
     .report-filter-panel {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
       align-items: end;
     }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field span,
+    .branch-context-card span {
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    input {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: var(--surface);
+      padding: 0 10px;
+    }
+
+    .branch-context-card {
+      display: grid;
+      gap: 4px;
+      min-height: 58px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .branch-context-card strong {
+      color: var(--ink);
+    }
+
+    .branch-context-card small {
+      color: var(--muted);
+    }
+
+    .metrics-grid,
+    .dashboard-grid,
+    .quick-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .metrics-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .quick-grid {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    aura-kpi-card {
+      min-width: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border: 1px solid var(--success-border, #A7F3D0);
+      border-radius: 999px;
+      color: var(--success-text, #065F46);
+      background: var(--success-bg, #ECFDF5);
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
     .connected-report-panel {
       display: grid;
-      gap: 16px;
+      gap: 10px;
     }
     .report-link-grid {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .report-link-card {
-      background: #fff;
-      border: 1px solid var(--border);
+      background: var(--surface);
+      border: 1px solid var(--line);
       border-radius: 8px;
       color: inherit;
       display: grid;
-      gap: 8px;
-      min-height: 112px;
-      padding: 16px;
+      gap: 6px;
+      min-height: 94px;
+      padding: 12px;
       text-decoration: none;
+      border-top: 3px solid var(--color-primary);
+      box-shadow: none;
+    }
+    .report-link-card:hover {
+      border-color: var(--color-primary-strong);
+      background: var(--color-primary-soft);
     }
     .report-link-card span,
     .report-link-card small {
@@ -272,7 +427,53 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       text-transform: uppercase;
     }
     .report-link-card strong {
-      font-size: 20px;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+    .action-card {
+      display: grid;
+      gap: 6px;
+      min-height: 94px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--color-primary);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: none;
+    }
+    .action-card strong {
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+    .action-card span,
+    .action-card small {
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .summary-lines {
+      display: grid;
+      gap: 8px;
+    }
+    .summary-lines div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .summary-lines div.total {
+      border-color: var(--success-border, #A7F3D0);
+      background: var(--success-bg, #ECFDF5);
+    }
+    .summary-lines span {
+      color: var(--muted);
+    }
+    .summary-lines strong {
+      color: var(--ink);
     }
     .status-grid {
       display: grid;
@@ -280,10 +481,11 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     .status-grid article {
-      background: #f8fffc;
-      border: 1px solid #cce9df;
+      background: var(--surface);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 14px;
+      padding: 12px;
+      border-top: 3px solid var(--color-primary);
     }
     .status-grid span {
       color: var(--muted);
@@ -294,14 +496,68 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     }
     .status-grid strong {
       display: block;
-      font-size: 24px;
+      color: var(--ink);
+      font-size: 1.35rem;
       margin-top: 6px;
     }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--muted);
+      background: var(--surface-2);
+      font-size: 0.75rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    td small {
+      color: var(--muted);
+    }
+    td .ghost-button {
+      min-height: 30px;
+      border-radius: 6px;
+      padding: 0 10px;
+      box-shadow: none;
+    }
+    td strong,
+    td small {
+      display: block;
+    }
     @media (max-width: 760px) {
+      .module-hero,
+      .section-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
       .report-filter-panel,
       .report-link-grid,
-      .status-grid {
+      .status-grid,
+      .metrics-grid,
+      .dashboard-grid {
         grid-template-columns: 1fr;
+      }
+
+      .hero-actions {
+        justify-content: flex-start;
       }
     }
   `]
