@@ -46,7 +46,7 @@ type MembershipEnterpriseReport = {
   exportRows?: ApiRecord[];
 };
 
-type MembershipDeskTab = 'overview' | 'plans' | 'sell' | 'active' | 'audit' | 'commission' | 'risk' | 'reports' | 'selfService' | 'reminders' | 'autoRenew' | 'giftcards';
+type MembershipDeskTab = 'overview' | 'plans' | 'active' | 'audit' | 'commission' | 'risk' | 'reports' | 'selfService' | 'reminders' | 'autoRenew' | 'giftcards';
 type LifecycleAction = 'renew' | 'upgrade' | 'downgrade' | 'cancel';
 type PlanLifecycleDialog = {
   action: Exclude<LifecycleAction, 'renew'>;
@@ -78,9 +78,6 @@ type PlanLifecycleDialog = {
         </button>
         <button type="button" [class.active]="activeTab() === 'plans'" (click)="setTab('plans')">
           Plans <span>{{ membershipPlans().length }}</span>
-        </button>
-        <button type="button" [class.active]="activeTab() === 'sell'" (click)="setTab('sell')">
-          Sell
         </button>
         <button type="button" [class.active]="activeTab() === 'active'" (click)="setTab('active')">
           All members <span>{{ memberships().length }}</span>
@@ -166,7 +163,7 @@ type PlanLifecycleDialog = {
             <p>Manage expiring plans, POS eligibility and renewal WhatsApp queue in one place.</p>
           </div>
           <div class="overview-actions">
-            <button class="primary-button" type="button" (click)="setTab('sell')">Sell membership</button>
+            <a class="primary-button" routerLink="/pos">Sell membership in POS</a>
             <button class="ghost-button" type="button" (click)="setTab('reminders')">Open reminders</button>
           </div>
         </article>
@@ -310,116 +307,6 @@ type PlanLifecycleDialog = {
             <button class="primary-button" type="submit" [disabled]="planForm.invalid || saving()">{{ editingPlanId() ? 'Save changes' : 'Save plan' }}</button>
           </form>
         </aside>
-      </div>
-
-      <div class="two-grid compact-workbench" *ngIf="activeTab() === 'sell'">
-        <section class="form-panel sticky-panel">
-          <div class="section-title compact-title">
-            <div>
-              <span class="eyebrow">Client membership ledger</span>
-              <h2>Sell membership to client</h2>
-            </div>
-          </div>
-          <form [formGroup]="membershipForm" (ngSubmit)="sellMembership()">
-            <label class="field">
-              <span>Client</span>
-              <select formControlName="clientId" (change)="loadClientEligibility(membershipForm.value.clientId || '')">
-                <option value="">Select client</option>
-                <option *ngFor="let client of clients()" [value]="client.id">{{ clientWalletOption(client) }}</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Membership plan</span>
-              <select formControlName="planId">
-                <option value="">Select plan</option>
-                <option *ngFor="let plan of activeMembershipPlans()" [value]="plan.id">{{ plan.name }} · {{ plan.price | currency: 'INR':'symbol':'1.0-0' }} · {{ plan.discountPercent }}%</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Sale staff</span>
-              <select formControlName="staffId">
-                <option value="">Counter / system</option>
-                <option *ngFor="let staff of staffMembers()" [value]="staff.id">{{ staffOption(staff) }}</option>
-              </select>
-            </label>
-            <label class="field"><span>Paid amount</span><input type="number" formControlName="paidAmount" /></label>
-            <label class="field"><span>Membership taken date</span><input type="date" formControlName="takenDate" /></label>
-            <label class="field"><span>Manual expiry date</span><input type="date" formControlName="validityDate" /></label>
-            <label class="field"><span>Credits</span><input type="number" formControlName="planCredits" /></label>
-            <label class="field check-line"><input type="checkbox" formControlName="autoRenew" /><span>Auto-renewal flag</span></label>
-            <label class="field full"><span>Note</span><textarea formControlName="note"></textarea></label>
-            <button class="primary-button" type="submit" [disabled]="membershipForm.invalid || saving()">Sell membership</button>
-          </form>
-
-          <div class="action-card" *ngIf="eligibility() as eligibilityState">
-            <strong>POS eligibility</strong>
-            <span>{{ eligibilityState.explanation || 'No eligibility loaded' }}</span>
-            <span *ngIf="eligibilityState.recommendations?.length">Suggestion: {{ eligibilityState.recommendations.join(' ') }}</span>
-          </div>
-        </section>
-
-        <section class="panel compact-panel">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">Selected client only</span>
-              <h2>Client membership preview</h2>
-            </div>
-          </div>
-
-          <ng-container *ngIf="selectedClient() as client; else selectClientPreview">
-            <article class="action-card selected-client-card">
-              <strong>{{ client.name || client.fullName || client.id }}</strong>
-              <span>{{ client.phone || client.email || 'No phone/email saved' }}</span>
-              <span>{{ selectedClientBenefitsLabel() }}</span>
-            </article>
-
-            <article class="action-card wallet-panel" *ngIf="membershipWallet() as wallet">
-              <strong>Membership Wallet</strong>
-              <span>{{ wallet.activePlanName || 'No active benefits' }}</span>
-              <div class="wallet-snapshot-grid">
-                <div><span>Wallet balance</span><b>{{ wallet.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</b></div>
-                <div><span>Service credits</span><b>{{ wallet.serviceCredits?.remaining || 0 }} left / {{ wallet.serviceCredits?.used || 0 }} used</b></div>
-                <div><span>Active packages</span><b>{{ wallet.packageSummary?.activeCount || 0 }}</b></div>
-                <div><span>Package credits</span><b>{{ wallet.packageSummary?.creditsRemaining || 0 }}</b></div>
-                <div><span>Product discount</span><b>{{ wallet.productDiscount || wallet.productDiscountPercent || 0 }}%</b></div>
-                <div><span>Expiry</span><b>{{ wallet.expiryDate || '-' }}</b></div>
-                <div><span>Auto-renew</span><b>{{ wallet.autoRenew ? 'On' : 'Off' }}</b></div>
-                <div><span>Family sharing</span><b>{{ wallet.familySharing?.status || 'not_shared' }}</b></div>
-              </div>
-              <span>{{ wallet.walletConnection?.source || 'wallet balance' }} · {{ wallet.planBenefits?.serviceDiscountPercent || 0 }}% service benefit · {{ packageNamesLabel(wallet) }}</span>
-            </article>
-
-            <div class="mini-membership-list" *ngIf="selectedClientMemberships().length; else noClientMemberships">
-              <article *ngFor="let membership of selectedClientMemberships()">
-                <div>
-                  <strong>{{ membership.planName }} <small>({{ membershipBenefitTypeLabel(membership) }})</small></strong>
-                  <span>{{ membershipDaysLeftLabel(membership) }} · {{ membership.creditsRemaining || 0 }} credits left</span>
-                </div>
-                <b>{{ membershipDiscount(membership) }}%</b>
-              </article>
-            </div>
-
-            <ng-template #noClientMemberships>
-              <div class="empty-panel compact-empty">
-                <strong>No active membership or package for this client.</strong>
-                <span>This client's live benefit record updates after selling.</span>
-              </div>
-            </ng-template>
-          </ng-container>
-
-          <ng-template #selectClientPreview>
-            <div class="empty-panel compact-empty">
-              <strong>Select client to preview membership.</strong>
-              <span>All members list ab sirf All members tab me dikhegi.</span>
-            </div>
-          </ng-template>
-
-          <article class="action-card selected-client-card" *ngIf="selectedPlan() as plan">
-            <strong>{{ plan.name }}</strong>
-            <span>{{ plan.price | currency: 'INR':'symbol':'1.0-0' }} · {{ plan.discountPercent }}% service · {{ plan.productDiscountPercent || 0 }}% product</span>
-            <span>{{ plan.validityDays }} days validity</span>
-          </article>
-        </section>
       </div>
 
       <section class="panel" *ngIf="activeTab() === 'active'">
