@@ -1867,6 +1867,8 @@ export class PosComponent implements OnInit, OnDestroy {
       this.staffSearchText = staffId;
     }
     this.form.patchValue({ appointmentId }, { emitEvent: false });
+    this.resetCounterPayments();
+    this.tips.set([]);
     this.items.set([]);
     const routeAppointments = this.routeAppointmentRows(appointment);
     const explicitServiceIds = this.routeIdList(this.route.snapshot.queryParamMap.get('serviceIds') || '');
@@ -1929,6 +1931,11 @@ export class PosComponent implements OnInit, OnDestroy {
   paymentModeLabel(modeId: string): string {
     if (modeId === 'booking_advance') return 'Booking advance';
     return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
+  }
+
+  private resetCounterPayments(): void {
+    this.payments = Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0]));
+    this.walletCreditRequested.set(false);
   }
 
   bookingAdvancePaidAmount(): number {
