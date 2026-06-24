@@ -285,7 +285,349 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </div>
       </section>
     </section>
-  `
+  `,
+  styles: [`
+    :host {
+      display: block;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .page-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .module-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .module-hero h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1.35rem;
+      line-height: 1.18;
+    }
+
+    .module-hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .form-actions .ghost-button,
+    .form-actions .primary-button {
+      min-height: 34px;
+      border-radius: 6px;
+      padding: 0 12px;
+      box-shadow: none;
+    }
+
+    .panel,
+    .form-panel {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .section-title h2,
+    .form-panel h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border: 1px solid var(--success-border, #A7F3D0);
+      border-radius: 999px;
+      color: var(--success-text, #065F46);
+      background: var(--success-bg, #ECFDF5);
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    .quick-grid,
+    .metrics-grid,
+    .dashboard-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quick-grid {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .metrics-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    aura-kpi-card {
+      min-width: 0;
+    }
+
+    .action-card,
+    .summary-lines div,
+    .rank-list article,
+    .heatmap-grid article {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .action-card {
+      display: grid;
+      gap: 6px;
+      min-height: 94px;
+      padding: 12px;
+      border-top: 3px solid var(--color-primary);
+    }
+
+    .action-card strong {
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .action-card span,
+    .action-card small {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .form-panel form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    input,
+    select {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: var(--surface);
+      padding: 0 10px;
+    }
+
+    .chart-bars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+      gap: 8px;
+      align-items: end;
+      min-height: 220px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .chart-bars div {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 6px;
+      align-items: end;
+      height: 190px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-align: center;
+    }
+
+    .chart-bars i {
+      width: 100%;
+      min-height: 8px;
+      border-radius: 6px 6px 0 0;
+      background: linear-gradient(180deg, var(--color-primary), var(--color-primary-strong));
+    }
+
+    .chart-bars strong {
+      color: var(--ink);
+      font-size: 0.74rem;
+    }
+
+    .summary-lines {
+      display: grid;
+      gap: 8px;
+    }
+
+    .summary-lines div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+    }
+
+    .summary-lines span,
+    .rank-list span,
+    .rank-list small {
+      color: var(--muted);
+    }
+
+    .summary-lines strong,
+    .rank-list strong {
+      color: var(--ink);
+    }
+
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+    }
+
+    .heatmap-grid article {
+      min-height: 76px;
+      padding: 12px;
+      color: var(--ink);
+    }
+
+    .heatmap-grid strong,
+    .heatmap-grid span {
+      display: block;
+    }
+
+    .heatmap-grid span {
+      margin-top: 5px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--muted);
+      background: var(--surface-2);
+      font-size: 0.75rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    td strong,
+    td small {
+      display: block;
+    }
+
+    td small {
+      color: var(--muted);
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rank-list article {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .rank-list .right {
+      text-align: right;
+    }
+
+    @media (max-width: 1180px) {
+      .metrics-grid,
+      .dashboard-grid,
+      .form-panel form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .module-hero,
+      .section-title,
+      .rank-list article {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .metrics-grid,
+      .dashboard-grid,
+      .form-panel form {
+        grid-template-columns: 1fr;
+      }
+
+      .form-actions {
+        justify-content: flex-start;
+      }
+    }
+  `]
 })
 export class AnalyticsEngineComponent implements OnInit {
   readonly snapshot = signal<ApiRecord | null>(null);
