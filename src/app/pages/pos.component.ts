@@ -191,7 +191,7 @@ type PackageRedeemRow = {
                 [class.active]="clientResultActive(client)"
                 type="button"
                 *ngFor="let client of clientSearchResults()"
-                (mousedown)="selectClientFromResult($event, client)"
+                (pointerdown)="selectClientFromResult($event, client)"
                 (click)="selectClient(client)"
               >
                 <span class="client-avatar">{{ clientInitial(client) }}</span>
@@ -3010,7 +3010,11 @@ export class PosComponent implements OnInit, OnDestroy {
     this.activeClientResultIndex.set(0);
     window.clearTimeout(this.clientSearchTimer);
     const selected = this.clients().find((client) => this.clientOption(client) === this.clientSearchText);
-    this.form.patchValue({ clientId: selected?.id || '' }, { emitEvent: false });
+    if (selected) {
+      this.selectClient(selected);
+      return;
+    }
+    this.form.patchValue({ clientId: '' }, { emitEvent: false });
     const trimmed = this.clientSearchText.trim();
     if (!trimmed) {
       this.clientSearchPending.set(false);
@@ -3060,6 +3064,8 @@ export class PosComponent implements OnInit, OnDestroy {
     this.creditsUsed = 0;
     this.membershipId = '';
     this.benefitServiceMappings = [];
+    this.packageRedeemQuantities = {};
+    this.packageRedeemStaffIds = {};
     this.walletCreditRequested.set(false);
     this.unpaidReceiveAmount = 0;
     this.unpaidReceiveMode = this.activePaymentModes()[0]?.id || 'cash';
@@ -3067,8 +3073,9 @@ export class PosComponent implements OnInit, OnDestroy {
     this.loadMembershipIntelligence(client.id);
   }
 
-  selectClientFromResult(event: MouseEvent, client: ApiRecord): void {
+  selectClientFromResult(event: Event, client: ApiRecord): void {
     event.preventDefault();
+    event.stopPropagation();
     this.selectClient(client);
   }
 
@@ -3253,8 +3260,28 @@ export class PosComponent implements OnInit, OnDestroy {
 
   closeClientSearchSoon(): void {
     window.setTimeout(() => {
+      this.selectBestClientSearchMatch();
       this.clientSearchActive = false;
     }, 120);
+  }
+
+  private selectBestClientSearchMatch(): void {
+    if (this.form.value.clientId) return;
+    const query = this.debouncedClientQuery() || this.clientSearchText.trim();
+    const candidate = this.clientSearchResults()[this.activeClientResultIndex()] || this.clientSearchResults()[0];
+    if (!candidate || !this.shouldAutoSelectClient(candidate, query)) return;
+    this.selectClient(candidate);
+  }
+
+  private shouldAutoSelectClient(client: ApiRecord, query: string): boolean {
+    const digits = this.phoneDigits(query);
+    if (digits.length >= 4) {
+      return this.clientPhoneDigits(client).includes(digits);
+    }
+    const compactQuery = this.compactSearch(query);
+    if (compactQuery.length < 3) return false;
+    const name = this.compactSearch(client.name || '');
+    return name.startsWith(compactQuery) || this.normalizeSearch(client.name || '').startsWith(this.normalizeSearch(query));
   }
 
   closeStaffSearchSoon(): void {
