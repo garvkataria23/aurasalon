@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-inventory-zenoti-chrome',
@@ -8,20 +8,6 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
   imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
     <section class="inventory-zenoti-chrome">
-      <div class="zenoti-topline">
-        <strong>{{ center }}</strong>
-        <div class="zenoti-actions">
-          <a routerLink="/inventory/current-stock">Current Stock</a>
-          <a routerLink="/inventory/procurement">Manage Procurement</a>
-          <button type="button" (click)="refresh.emit()">Refresh</button>
-        </div>
-      </div>
-
-      <select class="zenoti-command" aria-label="Inventory quick action" (change)="openQuickAction($event)">
-        <option value="">I want to ...</option>
-        <option *ngFor="let link of quickLinks" [value]="link.href">{{ link.label }}</option>
-      </select>
-
       <div class="zenoti-heading">
         <div>
           <h1>{{ title }}</h1>
@@ -146,17 +132,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 export class InventoryZenotiChromeComponent {
   @Input() title = 'Manage products';
   @Input() breadcrumb = 'Inventory > Manage Products';
-  @Input() center = 'malad';
   @Output() refresh = new EventEmitter<void>();
-
-  readonly quickLinks = [
-    { label: 'Add product', href: '/inventory' },
-    { label: 'Create purchase order', href: '/inventory/purchase-orders' },
-    { label: 'Open reorder plan', href: '/inventory/reorder' },
-    { label: 'Setup service recipe', href: '/inventory/recipes' },
-    { label: 'Consume product', href: '/inventory/product-consume' },
-    { label: 'Run stock audit', href: '/inventory/stock-audit' },
-  ];
 
   readonly shortcutLinks = [
     { label: 'Reorder plan', href: '/inventory/reorder' },
@@ -168,13 +144,4 @@ export class InventoryZenotiChromeComponent {
     { label: 'Scanner', href: '/inventory/scanner' },
     { label: 'Product Consume', href: '/inventory/product-consume' },
   ];
-
-  constructor(private readonly router: Router) {}
-
-  openQuickAction(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    if (!select.value) return;
-    this.router.navigateByUrl(select.value);
-    select.value = '';
-  }
 }

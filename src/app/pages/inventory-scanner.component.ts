@@ -133,7 +133,6 @@ type ScannerAction = 'lookup' | 'receive' | 'count' | 'waste' | 'transfer';
 
         <div class="zenoti-footer">
           <span>1 to {{ activeScannerCount() }} of {{ activeScannerCount() }}</span>
-          <span>{{ selectedBranchName() }}</span>
         </div>
       </section>
     </section>

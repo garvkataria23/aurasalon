@@ -14,24 +14,6 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
   template: `
     <section class="page-stack inventory-shell zenoti-inventory-shell">
       <section class="zenoti-product-page">
-        <div class="zenoti-center-bar">
-          <strong>{{ selectedBranchName() }}</strong>
-          <div class="zenoti-center-actions">
-            <a class="zenoti-mini-button" routerLink="/inventory/current-stock">Current Stock</a>
-            <a class="zenoti-mini-button" routerLink="/inventory/procurement">Manage Procurement</a>
-            <button class="zenoti-mini-button" type="button" (click)="load()">Refresh</button>
-            <select class="zenoti-action-select" [(ngModel)]="quickAction" (ngModelChange)="runQuickAction($event)">
-              <option value="">I want to ...</option>
-              <option value="product">Add Product</option>
-              <option value="stock">Add Stock Movement</option>
-              <option value="batch">Receive Batch</option>
-              <option value="supplier">Add Vendor</option>
-              <option value="waste">Record Waste</option>
-              <option value="reorder">Generate Reorder</option>
-            </select>
-          </div>
-        </div>
-
         <app-state [loading]="loading()" [error]="error()"></app-state>
 
         <div class="zenoti-page-heading">

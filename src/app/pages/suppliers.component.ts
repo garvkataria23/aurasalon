@@ -1,7 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -64,20 +64,6 @@ interface SupplierCommandRow {
   template: `
     <section class="page-stack suppliers-page">
       <section class="zenoti-supplier-header">
-        <div class="zenoti-topline">
-          <strong>{{ selectedCenterName() }}</strong>
-          <div class="zenoti-actions">
-            <a routerLink="/inventory">Back to inventory</a>
-            <a routerLink="/inventory/purchase-orders">Purchase orders</a>
-            <button type="button" (click)="load()">Refresh</button>
-          </div>
-        </div>
-        <select class="zenoti-command" aria-label="Supplier quick action" (change)="openSupplierAction($event)">
-          <option value="">I want to ...</option>
-          <option value="add">Add supplier</option>
-          <option value="po">Create purchase order</option>
-          <option value="inventory">Back to inventory</option>
-        </select>
         <div class="zenoti-heading">
           <div>
             <h1>Supplier command register</h1>
@@ -207,7 +193,6 @@ interface SupplierCommandRow {
         </div>
         <div class="zenoti-footer">
           <span>1 to {{ filteredSupplierRows().length }} of {{ filteredSupplierRows().length }}</span>
-          <span>{{ selectedCenterName() }}</span>
         </div>
       </section>
 
@@ -869,7 +854,7 @@ export class SuppliersComponent implements OnInit {
     leadTimeDays: [0]
   });
 
-  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder, private readonly router: Router) {}
+  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
 
   ngOnInit(): void {
     this.load();
@@ -980,19 +965,6 @@ export class SuppliersComponent implements OnInit {
 
   filterCount(filter: SupplierFilter): number {
     return this.supplierRows().filter((row) => this.matchesFilter(row, filter)).length;
-  }
-
-  selectedCenterName(): string {
-    return String(this.api.selectedBranchId() || 'malad');
-  }
-
-  openSupplierAction(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const value = select.value;
-    if (value === 'add') this.showForm.set(true);
-    if (value === 'po') this.router.navigateByUrl('/inventory/purchase-orders');
-    if (value === 'inventory') this.router.navigateByUrl('/inventory');
-    select.value = '';
   }
 
   buildWhatsAppDraft(row: SupplierCommandRow): void {
