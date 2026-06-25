@@ -189,7 +189,9 @@ type BrandPreset = {
       --studio-accent: var(--brand-accent);
       display: grid;
       gap: 18px;
+      padding: 16px 20px;
       color: var(--studio-text);
+      -webkit-font-smoothing: antialiased;
     }
 
     .studio-hero,
@@ -209,16 +211,29 @@ type BrandPreset = {
       justify-content: space-between;
       gap: 18px;
       overflow: hidden;
-      padding: 24px;
+      padding: 28px 32px;
+      position: relative;
       background:
-        linear-gradient(135deg, color-mix(in srgb, var(--studio-primary) 12%, white), var(--studio-surface) 54%, color-mix(in srgb, var(--studio-accent) 12%, white)),
+        linear-gradient(135deg, color-mix(in srgb, var(--studio-primary) 12%, white), var(--studio-surface) 54%, color-mix(in srgb, var(--studio-accent) 10%, white)),
         var(--studio-surface);
+    }
+    .studio-hero::after {
+      content: '';
+      position: absolute;
+      top: -60%;
+      right: -10%;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--studio-primary) 6%, transparent) 0%, transparent 70%);
+      pointer-events: none;
     }
 
     .studio-hero h1 {
       margin: 4px 0 8px;
       font-size: clamp(1.8rem, 3vw, 3rem);
-      letter-spacing: 0;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
     }
 
     .studio-hero p {
@@ -226,6 +241,8 @@ type BrandPreset = {
       margin: 0;
       color: var(--studio-muted);
       font-weight: 700;
+      font-size: 14px;
+      line-height: 1.5;
     }
 
     .hero-actions,
@@ -242,15 +259,17 @@ type BrandPreset = {
       min-height: 40px;
       border: 1px solid var(--studio-border);
       border-radius: calc(var(--brand-radius) - 4px);
-      padding: 0 16px;
+      padding: 0 18px;
       font-weight: 900;
       cursor: pointer;
+      transition: all .2s ease;
     }
 
     .studio-button.primary {
       border-color: var(--studio-primary);
       background: var(--studio-primary);
       color: var(--studio-button-text);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--studio-primary) 30%, transparent);
     }
 
     .studio-button.ghost {
@@ -258,14 +277,23 @@ type BrandPreset = {
       color: var(--studio-text);
     }
 
-    .studio-button:hover,
+    .studio-button:hover {
+      border-color: var(--studio-hover);
+      transform: translateY(-1px);
+    }
+    .studio-button.primary:hover {
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--studio-primary) 40%, transparent);
+    }
+    .studio-button:active { transform: scale(.97); }
+
     .preset-card:hover,
     .preview-card:hover,
     .preview-kpis article:hover,
     .mini-table div:hover {
       border-color: var(--studio-hover);
       background: var(--studio-card-hover);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
     }
 
     .preset-rail {
@@ -279,12 +307,17 @@ type BrandPreset = {
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 12px 16px;
+      padding: 14px 20px;
       border: 1px solid var(--studio-hover);
       border-radius: var(--brand-radius);
       background: var(--studio-card-hover);
       color: var(--studio-text);
       font-weight: 800;
+      animation: bannerIn .3s ease;
+    }
+    @keyframes bannerIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .save-banner span {
@@ -294,16 +327,30 @@ type BrandPreset = {
 
     .preset-card {
       display: grid;
-      gap: 4px;
-      min-height: 82px;
-      padding: 14px 16px;
+      gap: 6px;
+      min-height: 96px;
+      padding: 16px 18px;
       text-align: left;
       cursor: pointer;
+      position: relative;
+      transition: all .2s ease;
     }
+    .preset-card::before {
+      content: '';
+      width: 100%;
+      height: 4px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--studio-primary), var(--studio-accent));
+      opacity: .6;
+      transition: opacity .2s;
+    }
+    .preset-card:hover::before { opacity: 1; }
+    .preset-card:active { transform: scale(.97); }
 
     .preset-card span {
       color: var(--studio-muted);
       font-weight: 700;
+      font-size: 13px;
     }
 
     .studio-grid {
@@ -320,75 +367,100 @@ type BrandPreset = {
 
     .token-editor {
       display: grid;
-      gap: 9px;
-      padding: 13px 0;
+      gap: 10px;
+      padding: 14px 0;
       border-bottom: 1px solid color-mix(in srgb, var(--studio-border) 74%, transparent);
+      transition: background .15s;
     }
+    .token-editor:first-of-type { padding-top: 0; }
 
     .token-editor label,
     .advanced-controls label {
       display: grid;
-      gap: 4px;
+      gap: 3px;
     }
 
     .token-editor label span,
     .advanced-controls label span {
       font-weight: 900;
+      font-size: 13px;
     }
 
     .token-editor label small {
       color: var(--studio-muted);
       font-weight: 700;
+      font-size: 12px;
     }
 
+    .color-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
     .color-row input[type="color"] {
-      width: 52px;
-      height: 42px;
-      border: 1px solid var(--studio-border);
-      border-radius: 12px;
+      width: 48px;
+      height: 40px;
+      border: 2px solid var(--studio-border);
+      border-radius: 10px;
       background: var(--studio-surface);
+      cursor: pointer;
+      padding: 2px;
+      transition: border-color .15s;
     }
+    .color-row input[type="color"]:hover { border-color: var(--studio-hover); }
 
     .color-row input[type="text"],
     .field input,
     .field select,
     .field textarea {
       width: 100%;
-      min-height: 42px;
+      min-height: 40px;
       border: 1px solid var(--studio-border);
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 0 12px;
       background: var(--studio-surface);
       color: var(--studio-text);
       font-weight: 800;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .color-row input[type="text"]:focus,
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--studio-hover);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--studio-hover) 15%, transparent);
+      outline: none;
     }
 
     .advanced-controls {
       display: grid;
       gap: 14px;
       margin-top: 16px;
-      padding-top: 16px;
+      padding-top: 18px;
+      border-top: 2px solid color-mix(in srgb, var(--studio-border) 50%, transparent);
     }
 
     .advanced-controls input[type="range"] {
       accent-color: var(--studio-primary);
+      width: 100%;
+    }
+    .advanced-controls b {
+      color: var(--studio-primary);
+      font-size: 14px;
     }
 
     .preview-shell {
       display: grid;
       grid-template-columns: var(--brand-sidebar-width) minmax(0, 1fr);
       overflow: hidden;
-      min-height: 600px;
+      min-height: 560px;
       border: 1px solid var(--studio-border);
       border-radius: var(--brand-radius);
       background: var(--studio-bg);
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.07);
     }
 
     .preview-sidebar {
       display: grid;
       align-content: start;
-      gap: 8px;
-      padding: 20px;
+      gap: 6px;
+      padding: 24px 20px;
       background: var(--studio-sidebar);
       color: var(--studio-sidebar-text);
     }
@@ -396,44 +468,49 @@ type BrandPreset = {
     .brand-mark {
       display: grid;
       place-items: center;
-      width: 54px;
-      height: 54px;
-      border-radius: 16px;
-      background: var(--studio-accent);
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--studio-accent), var(--studio-primary));
       color: #ffffff;
       font-weight: 950;
+      font-size: 18px;
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--studio-accent) 30%, transparent);
     }
 
-    .preview-sidebar span {
-      color: color-mix(in srgb, var(--studio-sidebar-text) 70%, transparent);
+    .preview-sidebar > strong {
+      margin-top: 4px;
+      font-size: 16px;
+    }
+    .preview-sidebar > span {
+      color: color-mix(in srgb, var(--studio-sidebar-text) 60%, transparent);
       font-weight: 700;
+      font-size: 12px;
     }
 
     .preview-sidebar nav {
       display: grid;
-      gap: 8px;
-      margin-top: 18px;
+      gap: 6px;
+      margin-top: 20px;
     }
 
     .preview-sidebar a {
-      border: 1px solid color-mix(in srgb, var(--studio-sidebar-text) 12%, transparent);
-      border-radius: 12px;
-      padding: 11px 12px;
+      border: 1px solid color-mix(in srgb, var(--studio-sidebar-text) 10%, transparent);
+      border-radius: 10px;
+      padding: 10px 12px;
       color: var(--studio-sidebar-text);
       font-weight: 850;
+      font-size: 13px;
+      transition: all .15s;
+      cursor: default;
     }
-
-    .preview-sidebar a.active,
-    .preview-sidebar a:hover {
-      border-color: var(--studio-hover);
-    }
-
-    .preview-sidebar a:hover {
-      background: var(--studio-sidebar-hover);
-    }
-
     .preview-sidebar a.active {
       background: var(--studio-sidebar-active);
+      border-color: var(--studio-hover);
+    }
+    .preview-sidebar a:hover:not(.active) {
+      background: var(--studio-sidebar-hover);
+      border-color: color-mix(in srgb, var(--studio-sidebar-text) 20%, transparent);
     }
 
     .preview-workspace {
@@ -442,6 +519,14 @@ type BrandPreset = {
       align-content: start;
       padding: 20px;
     }
+
+    .preview-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .preview-topbar h2 { margin: 0; font-size: 18px; }
 
     .preview-kpis {
       display: grid;
@@ -454,14 +539,19 @@ type BrandPreset = {
       border: 1px solid var(--studio-border);
       border-radius: var(--brand-radius);
       background: var(--studio-surface);
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+      transition: all .2s ease;
     }
 
     .preview-kpis article {
       display: grid;
-      gap: 6px;
-      padding: 14px;
+      gap: 4px;
+      padding: 16px;
+      border-top: 3px solid var(--studio-primary);
     }
+    .preview-kpis article:nth-child(2) { border-top-color: var(--studio-accent); }
+    .preview-kpis article:nth-child(3) { border-top-color: var(--studio-success); }
+    .preview-kpis article:nth-child(4) { border-top-color: var(--studio-warning); }
 
     .preview-kpis span,
     .eyebrow {
@@ -473,12 +563,14 @@ type BrandPreset = {
     }
 
     .preview-kpis strong {
-      font-size: 1.35rem;
+      font-size: 1.45rem;
+      letter-spacing: -0.01em;
     }
 
     .preview-kpis small {
       color: var(--studio-primary);
       font-weight: 900;
+      font-size: 12px;
     }
 
     .preview-content {
@@ -490,88 +582,95 @@ type BrandPreset = {
     .preview-card {
       display: grid;
       gap: 14px;
-      padding: 16px;
+      padding: 18px;
     }
 
     .preview-card h3,
-    .preview-topbar h2,
     .section-title h2 {
       margin: 2px 0 0;
       letter-spacing: 0;
+      font-size: 16px;
     }
+    .section-title h2 { font-size: 18px; }
 
     .mini-table {
       display: grid;
-      gap: 8px;
+      gap: 6px;
     }
 
     .mini-table div {
       display: grid;
       grid-template-columns: 1fr 1fr auto;
       gap: 10px;
-      padding: 12px;
+      padding: 11px 14px;
       border: 1px solid var(--studio-border);
-      border-radius: 12px;
+      border-radius: 10px;
       background: var(--studio-surface);
+      align-items: center;
+      transition: all .15s;
+    }
+    .mini-table div:first-child {
+      background: color-mix(in srgb, var(--studio-border) 30%, transparent);
+      font-size: 12px;
     }
 
-    .mini-table b {
-      color: var(--studio-primary);
-    }
-
-    .mini-table div:hover {
-      background: var(--studio-table-hover);
-    }
+    .mini-table b { color: var(--studio-primary); }
+    .mini-table div:hover { background: var(--studio-table-hover); }
 
     .status {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 26px;
+      min-height: 24px;
       border-radius: 999px;
       padding: 0 10px;
       color: #ffffff;
-      font-size: 0.74rem;
+      font-size: 0.72rem;
+      font-weight: 800;
     }
-
-    .status.success {
-      background: var(--studio-success);
-    }
-
-    .status.warning {
-      background: var(--studio-warning);
-    }
-
-    .status.danger {
-      background: var(--studio-danger);
-    }
+    .status.success { background: var(--studio-success); }
+    .status.warning { background: var(--studio-warning); }
+    .status.danger { background: var(--studio-danger); }
 
     .field {
       display: grid;
-      gap: 6px;
+      gap: 5px;
       font-weight: 900;
     }
-
+    .field span { font-size: 12px; }
     .field textarea {
-      min-height: 92px;
-      padding-top: 10px;
+      min-height: 80px;
+      padding: 10px 12px;
     }
 
     .css-export {
       margin-top: 16px;
-      padding: 16px;
+      padding: 18px;
+      position: relative;
+    }
+    .css-export::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--studio-primary), var(--studio-accent));
+      border-radius: var(--brand-radius) var(--brand-radius) 0 0;
     }
 
     .css-export pre {
       overflow: auto;
       margin: 0;
-      padding: 16px;
+      padding: 20px;
       border: 1px solid var(--studio-border);
-      border-radius: 14px;
+      border-radius: 12px;
       background: #0f172a;
       color: #d1fae5;
       font-size: 0.82rem;
-      line-height: 1.6;
+      line-height: 1.7;
+      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      counter-reset: line;
     }
 
     @media (max-width: 1200px) {
@@ -587,12 +686,14 @@ type BrandPreset = {
     }
 
     @media (max-width: 760px) {
+      .brand-studio { padding: 10px 12px; gap: 14px; }
       .studio-hero,
       .preview-topbar,
       .section-title {
         align-items: stretch;
         flex-direction: column;
       }
+      .studio-hero { padding: 20px; }
 
       .hero-actions,
       .preset-rail,
@@ -604,6 +705,9 @@ type BrandPreset = {
       .preview-sidebar {
         min-height: auto;
       }
+      .control-panel,
+      .preview-panel { padding: 14px; }
+      .studio-hero h1 { font-size: 1.5rem; }
     }
   `]
 })
