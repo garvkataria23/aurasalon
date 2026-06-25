@@ -1660,6 +1660,7 @@ export class PosComponent implements OnInit, OnDestroy {
   private readonly branchSelectionSub = new Subscription();
   private branchSyncReady = false;
   private clientSearchTimer = 0;
+  private clientSearchRequestId = 0;
   private redeemableBenefitsCacheKey = '';
   private redeemableBenefitsCache: ApiRecord[] = [];
   private redeemableServiceLinesCacheKey = '';
@@ -2326,6 +2327,28 @@ export class PosComponent implements OnInit, OnDestroy {
     this.activeClientResultIndex.set(Math.min(this.activeClientResultIndex(), Math.max(0, results.length - 1)));
   }
 
+  private refreshRemoteClientSearchResults(rawQuery: string): void {
+    const query = this.normalizeSearch(rawQuery);
+    const queryDigits = this.phoneDigits(rawQuery);
+    if (query.length < 2 && queryDigits.length < 2) return;
+    const requestId = ++this.clientSearchRequestId;
+    this.api.list<ApiRecord[]>('clients', { limit: 50, q: rawQuery.trim(), includeAllBranches: true }).pipe(
+      catchError(() => of([] as ApiRecord[]))
+    ).subscribe((rows) => {
+      if (requestId !== this.clientSearchRequestId) return;
+      const remoteRows = rows || [];
+      if (!remoteRows.length) return;
+      const existing = this.clients();
+      const existingIds = new Set(existing.map((client) => String(client.id || '')));
+      const additions = remoteRows.filter((client) => !existingIds.has(String(client.id || '')));
+      if (additions.length) {
+        this.clients.set(this.withUnpaidBalances([...existing, ...additions], this.invoices()));
+        this.rebuildClientSearchIndex();
+      }
+      this.refreshClientSearchResults();
+    });
+  }
+
   private rebuildClientSearchIndex(): void {
     const phoneCounts = new Map<string, number>();
     const emailCounts = new Map<string, number>();
@@ -2403,6 +2426,7 @@ export class PosComponent implements OnInit, OnDestroy {
     if (compactQuery && compactName.startsWith(compactQuery)) score += 75;
     if (compactQuery && initials.startsWith(compactQuery)) score += 70;
     if (compactQuery && this.isWalkInAliasMatch(client, compactQuery)) score += 95;
+    if (compactQuery && this.smartSearchMatch(name, compactQuery)) score += 55;
     if (codes.includes(query)) score += 60;
     if (email.includes(query)) score += 40;
     if (Number(client.unpaidBalance || 0) > 0) score += 4;
@@ -2424,7 +2448,9 @@ export class PosComponent implements OnInit, OnDestroy {
     const compactHaystack = this.compactSearch(haystack);
     return compactHaystack.includes(compactQuery)
       || this.compactSearch(this.clientNameInitials(client)).startsWith(compactQuery)
-      || this.isWalkInAliasMatch(client, compactQuery);
+      || this.isWalkInAliasMatch(client, compactQuery)
+      || this.smartSearchMatch(haystack, compactQuery)
+      || this.smartSearchMatch(client.name || '', compactQuery);
   }
 
   private clientNameInitials(client: ApiRecord): string {
@@ -2448,6 +2474,19 @@ export class PosComponent implements OnInit, OnDestroy {
       counts.set(letter, next);
       return true;
     });
+  }
+
+  private smartSearchMatch(value: unknown, query: string): boolean {
+    const normalizedValue = this.normalizeSearch(value);
+    const normalizedQuery = this.normalizeSearch(query);
+    const compactValue = this.compactSearch(normalizedValue);
+    const compactQuery = this.compactSearch(normalizedQuery);
+    if (!compactQuery) return true;
+    if (normalizedValue.includes(normalizedQuery) || compactValue.includes(compactQuery)) return true;
+    const queryTokens = normalizedQuery.split(' ').filter(Boolean);
+    if (queryTokens.length > 1 && queryTokens.every((token) => compactValue.includes(this.compactSearch(token)))) return true;
+    if (compactQuery.length >= 3 && this.searchLettersExistInName(normalizedValue, compactQuery)) return true;
+    return false;
   }
 
   private isWalkInAliasMatch(client: ApiRecord, compactQuery: string): boolean {
@@ -2501,7 +2540,7 @@ export class PosComponent implements OnInit, OnDestroy {
     const query = this.normalizeSearch(this.serviceSearchText);
     if (!query) return this.services().slice(0, 25);
     return this.services()
-      .filter((service) => this.normalizeSearch(`${service.name || ''} ${service.category || ''} ${service.description || ''}`).includes(query))
+      .filter((service) => this.smartSearchMatch(`${service.name || ''} ${service.category || ''} ${service.description || ''} ${service.code || ''}`, query))
       .slice(0, 25);
   }
 
@@ -3127,6 +3166,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.form.patchValue({ clientId: '' }, { emitEvent: false });
     const trimmed = this.clientSearchText.trim();
     if (!trimmed) {
+      this.clientSearchRequestId++;
       this.clientSearchPending.set(false);
       this.debouncedClientQuery.set('');
       this.refreshClientSearchResults();
@@ -3136,6 +3176,7 @@ export class PosComponent implements OnInit, OnDestroy {
       this.clientSearchPending.set(false);
       this.debouncedClientQuery.set(trimmed);
       this.refreshClientSearchResults();
+      this.refreshRemoteClientSearchResults(trimmed);
       return;
     }
     this.clientSearchPending.set(true);
@@ -3144,6 +3185,7 @@ export class PosComponent implements OnInit, OnDestroy {
       this.clientSearchPending.set(false);
       this.activeClientResultIndex.set(0);
       this.refreshClientSearchResults();
+      this.refreshRemoteClientSearchResults(this.clientSearchText.trim());
     }, 300);
   }
 
@@ -3167,6 +3209,7 @@ export class PosComponent implements OnInit, OnDestroy {
   selectClient(client: ApiRecord): void {
     const clientId = String(client.id || '');
     this.clientSearchText = this.clientOption(client);
+    this.clientSearchRequestId++;
     this.clientSearchPending.set(false);
     this.debouncedClientQuery.set('');
     this.clientSearchResults.set([client]);
