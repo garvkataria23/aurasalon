@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, firstValueFrom, of } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../core/api.service';
 
 type Section = { code: string; name: string; accountSubType: string; balance: number };
@@ -190,7 +190,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
 
       <div class="controls">
         <div class="dates">
-          <label><span>As of</span><input type="date" [ngModel]="asOfDate()" (ngModelChange)="asOfDate.set($event); load()" /></label>
+          <label><span>As of</span><input type="date" [ngModel]="asOfDate()" (ngModelChange)="onDateChange($event)" /></label>
           <div class="presets">
             <button type="button" (click)="preset('today')">Today</button>
             <button type="button" (click)="preset('month')">Month end</button>
@@ -208,7 +208,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
       <p class="banner ok" *ngIf="message()">{{ message() }}</p>
 
       <nav class="tabs">
-        <button *ngFor="let t of tabs" type="button" [class.active]="tab() === t.key" (click)="tab.set(t.key)">{{ t.label }}</button>
+        <button *ngFor="let t of tabs" type="button" [class.active]="tab() === t.key" (click)="selectTab(t.key)">{{ t.label }}</button>
       </nav>
 
       <div class="loading" *ngIf="loading()">Loading the latest figures…</div>
@@ -269,7 +269,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
                 <button *ngFor="let c of financeWorkspaceCategories" type="button" class="category-tile"
                   [class.active]="financeWorkspaceCategory() === c.key"
                   [attr.data-state]="financeCategoryState(c.key)"
-                  (click)="financeWorkspaceCategory.set(c.key)">
+                  (click)="selectFinanceCategory(c.key)">
                   <span>{{ c.label }}</span>
                   <strong>{{ financeCategoryValue(c.key) }}</strong>
                   <small>{{ financeCategoryNote(c.key) }}</small>
@@ -282,6 +282,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
                     <span class="kicker">Selected category</span>
                     <h2>{{ active.label }}</h2>
                     <p class="muted small">{{ active.source }}</p>
+                    <p class="source-error" *ngIf="financeCategoryError(active.key)">{{ financeCategoryError(active.key) }}</p>
                   </div>
                   <span class="pill" [class.bad]="financeCategoryState(active.key) === 'bad'">{{ financeCategoryStatus(active.key) }}</span>
                 </header>
@@ -1010,6 +1011,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
     .category-tile small { color: var(--muted); font-size: 11px; line-height: 1.3; }
     .workspace-detail { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fbfdff; display: grid; gap: 14px; }
     .detail-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+    .source-error { margin: 6px 0 0; color: var(--bad); font-size: 12px; font-weight: 800; }
     .detail-head h2 { margin: 3px 0; font-size: 20px; }
     .detail-body { display: grid; gap: 14px; min-width: 0; }
     .balance-columns { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
@@ -1144,6 +1146,7 @@ export class BalanceSheetComponent implements OnInit {
   busy = signal(false);
   error = signal('');
   message = signal('');
+  sourceErrors = signal<Record<string, string>>({});
 
   sheet = signal<BalanceSheet | null>(null);
   trial = signal<TrialBalance | null>(null);
@@ -1458,8 +1461,7 @@ export class BalanceSheetComponent implements OnInit {
     }
     if (node.type === 'ledger') {
       this.ledgerAccount.set(node.id);
-      this.tab.set('ledger');
-      this.loadLedger();
+      this.selectTab('ledger');
     }
   }
 
@@ -1485,7 +1487,7 @@ export class BalanceSheetComponent implements OnInit {
   }
 
   constructor(private readonly api: ApiService) {}
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void { void this.load(); }
 
   fmt(v: number | null | undefined): string {
     const n = Number(v || 0);
@@ -1494,7 +1496,20 @@ export class BalanceSheetComponent implements OnInit {
   selectedFinanceCategory(): { key: FinanceWorkspaceCategoryKey; label: string; source: string } {
     return this.financeWorkspaceCategories.find((item) => item.key === this.financeWorkspaceCategory()) || this.financeWorkspaceCategories[0];
   }
+  selectTab(key: string): void {
+    this.tab.set(key);
+    void this.loadTabData(key);
+  }
+  selectFinanceCategory(key: FinanceWorkspaceCategoryKey): void {
+    this.financeWorkspaceCategory.set(key);
+    void this.loadFinanceCategory(key);
+  }
+  onDateChange(value: string): void {
+    this.asOfDate.set(value);
+    void this.load();
+  }
   financeCategoryValue(key: FinanceWorkspaceCategoryKey): string {
+    if (this.financeCategoryError(key)) return 'Live error';
     const f = this.financeOs();
     const s = this.sheet();
     const d = this.dailyOps();
@@ -1515,6 +1530,8 @@ export class BalanceSheetComponent implements OnInit {
     }
   }
   financeCategoryNote(key: FinanceWorkspaceCategoryKey): string {
+    const sourceError = this.financeCategoryError(key);
+    if (sourceError) return sourceError;
     const f = this.financeOs();
     const s = this.sheet();
     const d = this.dailyOps();
@@ -1534,12 +1551,14 @@ export class BalanceSheetComponent implements OnInit {
     }
   }
   financeCategoryStatus(key: FinanceWorkspaceCategoryKey): string {
+    if (this.financeCategoryError(key)) return 'Unable to load live data';
     const state = this.financeCategoryState(key);
     if (state === 'bad') return 'Needs check';
     if (state === 'warn') return 'Pending';
     return 'Live';
   }
   financeCategoryState(key: FinanceWorkspaceCategoryKey): 'ok' | 'warn' | 'bad' {
+    if (this.financeCategoryError(key)) return 'bad';
     const f = this.financeOs();
     const s = this.sheet();
     const d = this.dailyOps();
@@ -1557,6 +1576,12 @@ export class BalanceSheetComponent implements OnInit {
       case 'alerts': return (f?.journalSuggestions || []).some((item) => item.severity === 'critical') ? 'bad' : ((f?.journalSuggestions || []).some((item) => item.severity !== 'ok') ? 'warn' : 'ok');
       default: return 'ok';
     }
+  }
+  financeCategoryError(key: FinanceWorkspaceCategoryKey): string {
+    const errors = this.sourceErrors();
+    if (key === 'main') return errors['core'] || '';
+    if (key === 'invoices' || key === 'staff') return errors['dailyOps'] || errors['financeOs'] || '';
+    return errors['financeOs'] || '';
   }
   pct(part: number, whole: number): number { return whole ? Math.min(100, Math.round((part / whole) * 100)) : 0; }
   doneCount(rows: Array<{ done: boolean }>): number { return rows.filter((row) => row.done).length; }
@@ -1581,40 +1606,170 @@ export class BalanceSheetComponent implements OnInit {
     if (kind === 'today') this.asOfDate.set(now.toISOString().slice(0, 10));
     if (kind === 'month') this.asOfDate.set(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10));
     if (kind === 'fy') { const y = now.getMonth() >= 3 ? now.getFullYear() + 1 : now.getFullYear(); this.asOfDate.set(`${y}-03-31`); }
-    this.load();
+    void this.load();
   }
 
   async load(): Promise<void> {
     try {
-      this.loading.set(true); this.error.set('');
-      const p = { asOfDate: this.asOfDate() };
-      const [sheet, trial, hardening, controls, pnl, deferred, assets, costs, dailyOps, financeOs] = await Promise.all([
-        firstValueFrom(this.api.list<BalanceSheet>('balance-sheet/live', p)),
-        firstValueFrom(this.api.list<TrialBalance>('balance-sheet/trial-balance', p)),
-        firstValueFrom(this.api.list<HardeningStatus>('balance-sheet/hardening', {})),
-        firstValueFrom(this.api.list<FinanceControls>('balance-sheet/controls', p)),
-        firstValueFrom(this.api.list<CostCenterPnl>('balance-sheet/dimensional-pnl', { toDate: this.asOfDate() })),
-        firstValueFrom(this.api.list<DeferredList>('balance-sheet/deferred/schedules', {})),
-        firstValueFrom(this.api.list<AssetRegister>('balance-sheet/assets', {})),
-        firstValueFrom(this.api.list<CostStructure>('balance-sheet/cost-structure', { toDate: this.asOfDate(), avgTicketPaise: this.avgTicket() * 100 }).pipe(catchError(() => of(this.emptyCostStructure())))),
-        firstValueFrom(this.api.list<DailyOperations>('balance-sheet/daily-operations', p).pipe(catchError(() => of(this.emptyDailyOperations())))),
-        firstValueFrom(this.api.list<FinanceOs>('balance-sheet/finance-os', p).pipe(catchError(() => of(this.emptyFinanceOs()))))
+      this.loading.set(true);
+      this.error.set('');
+      await Promise.all([
+        this.loadCoreData(),
+        this.loadHardeningData(),
+        this.loadCostCenterData(),
+        this.loadDeferredData(),
+        this.loadAssetData(),
+        this.loadCostData(),
+        this.loadDailyOpsData(),
+        this.loadFinanceOsData()
       ]);
-      this.sheet.set(sheet); this.trial.set(trial); this.hardening.set(hardening); this.financeControls.set(controls);
-      this.pnl.set(pnl); this.deferred.set(deferred); this.assets.set(assets);
-      this.costs.set(costs); this.dailyOps.set(dailyOps); this.financeOs.set(this.normalizeFinanceOs(financeOs));
     } catch (e: any) {
       this.error.set(this.api.errorText(e, 'Could not load the balance sheet. Check your connection and try Refresh.'));
     } finally { this.loading.set(false); }
   }
 
-  async loadLedger(): Promise<void> {
+  private async loadTabData(key: string): Promise<void> {
+    if (this.loading()) return;
     try {
       this.loading.set(true);
+      this.error.set('');
+      switch (key) {
+        case 'overview':
+          await Promise.all([this.loadCoreData(), this.loadDailyOpsData(), this.loadFinanceOsData(), this.loadCostData()]);
+          break;
+        case 'trial':
+        case 'working':
+        case 'drilldown':
+        case 'analytics':
+        case 'ai':
+        case 'forecast':
+        case 'cashflow':
+          await Promise.all([this.loadCoreData(), this.loadCostData()]);
+          break;
+        case 'ledger':
+          if (this.ledgerAccount()) await this.loadLedger(false);
+          break;
+        case 'manual':
+        case 'ledgerMaster':
+          await this.loadCoreData();
+          break;
+        case 'centers':
+          await this.loadCostCenterData();
+          break;
+        case 'deferred':
+          await this.loadDeferredData();
+          break;
+        case 'assets':
+          await this.loadAssetData();
+          break;
+        case 'costs':
+        case 'simulator':
+          await this.loadCostData();
+          break;
+        case 'hardening':
+          await Promise.all([this.loadHardeningData(), this.loadCoreData()]);
+          break;
+        default:
+          await this.loadCoreData();
+      }
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private async loadFinanceCategory(key: FinanceWorkspaceCategoryKey): Promise<void> {
+    if (this.loading()) return;
+    try {
+      this.loading.set(true);
+      this.error.set('');
+      if (key === 'main') {
+        await this.loadCoreData();
+        return;
+      }
+      if (key === 'invoices' || key === 'staff') {
+        await Promise.all([this.loadDailyOpsData(), this.loadFinanceOsData()]);
+        return;
+      }
+      await this.loadFinanceOsData();
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private async loadCoreData(): Promise<void> {
+    const p = { asOfDate: this.asOfDate() };
+    const [sheetOk, trialOk, controlsOk] = await Promise.all([
+      this.loadSource('core', 'live balance sheet', firstValueFrom(this.api.list<BalanceSheet>('balance-sheet/live', p)), (v) => this.sheet.set(v)),
+      this.loadSource('trial', 'trial balance', firstValueFrom(this.api.list<TrialBalance>('balance-sheet/trial-balance', p)), (v) => this.trial.set(v)),
+      this.loadSource('controls', 'finance controls', firstValueFrom(this.api.list<FinanceControls>('balance-sheet/controls', p)), (v) => this.financeControls.set(v))
+    ]);
+    if (!sheetOk && !trialOk && !controlsOk) this.error.set('Unable to load Balance Sheet live data. Check backend and click Refresh.');
+  }
+
+  private loadHardeningData(): Promise<boolean> {
+    return this.loadSource('hardening', 'hardening status', firstValueFrom(this.api.list<HardeningStatus>('balance-sheet/hardening', { asOfDate: this.asOfDate() })), (v) => this.hardening.set(v));
+  }
+
+  private loadCostCenterData(): Promise<boolean> {
+    return this.loadSource('costCenters', 'cost centers', firstValueFrom(this.api.list<CostCenterPnl>('balance-sheet/dimensional-pnl', { toDate: this.asOfDate() })), (v) => this.pnl.set(v));
+  }
+
+  private loadDeferredData(): Promise<boolean> {
+    return this.loadSource('deferred', 'deferred revenue', firstValueFrom(this.api.list<DeferredList>('balance-sheet/deferred/schedules', { asOfDate: this.asOfDate() })), (v) => this.deferred.set(v));
+  }
+
+  private loadAssetData(): Promise<boolean> {
+    return this.loadSource('assets', 'fixed assets', firstValueFrom(this.api.list<AssetRegister>('balance-sheet/assets', { asOfDate: this.asOfDate() })), (v) => this.assets.set(v));
+  }
+
+  private loadCostData(): Promise<boolean> {
+    return this.loadSource('costs', 'cost structure', firstValueFrom(this.api.list<CostStructure>('balance-sheet/cost-structure', { toDate: this.asOfDate(), avgTicketPaise: this.avgTicket() * 100 })), (v) => this.costs.set(v), () => this.emptyCostStructure());
+  }
+
+  private loadDailyOpsData(): Promise<boolean> {
+    return this.loadSource('dailyOps', 'daily operations', firstValueFrom(this.api.list<DailyOperations>('balance-sheet/daily-operations', { asOfDate: this.asOfDate() })), (v) => this.dailyOps.set(v), () => this.emptyDailyOperations());
+  }
+
+  private loadFinanceOsData(): Promise<boolean> {
+    return this.loadSource('financeOs', 'finance workspace', firstValueFrom(this.api.list<FinanceOs>('balance-sheet/finance-os', { asOfDate: this.asOfDate(), avgTicketPaise: this.avgTicket() * 100 })), (v) => this.financeOs.set(this.normalizeFinanceOs(v)), () => this.emptyFinanceOs());
+  }
+
+  private async loadSource<T>(key: string, label: string, request: Promise<T>, apply: (value: T) => void, fallback?: () => T): Promise<boolean> {
+    try {
+      const value = await request;
+      apply(value);
+      this.sourceErrors.update((errors) => {
+        if (!errors[key]) return errors;
+        const next = { ...errors };
+        delete next[key];
+        return next;
+      });
+      return true;
+    } catch (e: any) {
+      const message = this.api.errorText(e, `Unable to load ${label}.`);
+      this.sourceErrors.update((errors) => ({ ...errors, [key]: message }));
+      if (fallback) apply(fallback());
+      return false;
+    }
+  }
+
+  async loadLedger(showSpinner = true): Promise<void> {
+    try {
+      if (showSpinner) this.loading.set(true);
       const res = await firstValueFrom(this.api.list<any>('balance-sheet/ledger', { accountId: this.ledgerAccount(), toDate: this.asOfDate() }));
       this.ledgerRows.set(res?.rows || []);
-    } catch (e: any) { this.error.set(this.api.errorText(e, 'Could not load ledger entries.')); }
-    finally { this.loading.set(false); }
+      this.sourceErrors.update((errors) => {
+        if (!errors['ledger']) return errors;
+        const next = { ...errors };
+        delete next['ledger'];
+        return next;
+      });
+    } catch (e: any) {
+      const message = this.api.errorText(e, 'Could not load ledger entries.');
+      this.error.set(message);
+      this.sourceErrors.update((errors) => ({ ...errors, ledger: message }));
+    }
+    finally { if (showSpinner) this.loading.set(false); }
   }
 
   private emptyCostStructure(): CostStructure {
