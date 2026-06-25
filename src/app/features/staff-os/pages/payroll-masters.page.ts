@@ -694,32 +694,37 @@ export class AllowanceDeductionPage {}
     </section>
   `,
   styles: [`
-    .payroll-page { color: #10201a; display: grid; gap: 18px; padding: 24px; }
+    .payroll-page { color: var(--ink); display: grid; gap: 18px; padding: 24px; }
     .topbar, .topbar-actions, .actions { align-items: flex-start; display: flex; gap: 12px; justify-content: space-between; }
     .topbar-actions, .actions { align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-    .eyebrow { color: #547066; font-size: 12px; font-weight: 850; letter-spacing: .08em; margin: 0 0 5px; text-transform: uppercase; }
+    .eyebrow { color: var(--muted); font-size: 12px; font-weight: 850; letter-spacing: .08em; margin: 0 0 5px; text-transform: uppercase; }
     h1 { font-size: 30px; letter-spacing: 0; margin: 0; }
     .structure-shell { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
-    .side, .structure, .block, .state { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; }
+    .side, .structure, .block, .state { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
     .side, .structure, .block, .state { padding: 16px; }
-    .structure { display: grid; gap: 14px; }
+    .structure { display: grid; gap: 14px; box-shadow: var(--elev-1); }
+    .side { box-shadow: var(--elev-1); }
     .summary { display: grid; gap: 10px; margin-top: 14px; }
-    .summary article { background: #f8fbf9; border: 1px solid #edf2ef; border-radius: 8px; padding: 12px; }
-    .summary span { color: #60766d; font-size: 12px; font-weight: 850; text-transform: uppercase; }
+    .summary article { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+    .summary span { color: var(--muted); font-size: 12px; font-weight: 850; text-transform: uppercase; }
     .summary strong { display: block; font-size: 20px; margin-top: 4px; }
-    .block { display: grid; gap: 12px; }
+    .block { display: grid; gap: 12px; border-radius: 10px; box-shadow: var(--elev-1); }
     .check-row, .field-grid { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    label { color: #34483f; display: grid; font-size: 13px; font-weight: 850; gap: 6px; }
-    label.check { align-items: center; display: inline-flex; }
-    input, select, textarea { border: 1px solid #cbd8d2; border-radius: 8px; color: #10201a; font: inherit; padding: 10px 11px; width: 100%; }
+    label { color: var(--ink); display: grid; font-size: 13px; font-weight: 850; gap: 6px; }
+    label.check { align-items: center; display: inline-flex; gap: 8px; }
+    input, select, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; padding: 10px 11px; width: 100%; transition: border-color 0.12s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); box-shadow: var(--ring-brand); }
     input[type='checkbox'] { height: 18px; padding: 0; width: 18px; }
-    .refresh, .primary { border: 1px solid #cbd8d2; border-radius: 6px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 12px; text-decoration: none; }
-    .refresh { background: #fff; color: #34483f; }
-    .primary { background: #0f766e; border-color: #0f766e; color: #fff; }
-    .state { color: #61746c; }
-    .error { color: #a52828; border-color: #e7b1b1; }
-    .actions { border-top: 1px solid #edf2ef; padding-top: 12px; }
+    .refresh, .primary { border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 14px; text-decoration: none; transition: background 0.12s, border-color 0.12s; }
+    .refresh { background: var(--surface); color: var(--ink); }
+    .refresh:hover { border-color: var(--muted); }
+    .primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+    .primary:hover { opacity: 0.88; }
+    .primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .state { color: var(--muted); }
+    .error { color: var(--red); border-color: #e7b1b1; background: #fff8f8; }
+    .actions { border-top: 1px solid var(--surface-2); padding-top: 12px; }
     @media (max-width: 980px) { .structure-shell, .check-row, .field-grid { grid-template-columns: 1fr; } }
     @media (max-width: 640px) { .payroll-page { padding: 16px; } .topbar { display: grid; } }
   `]

@@ -130,7 +130,7 @@ type ActiveNavTabGroup = {
                     <span>{{ item.label }}</span>
                     <small>{{ item.children?.length }}</small>
                   </a>
-                  <ng-container *ngIf="navQuery()">
+                  <ng-container *ngIf="navQuery() || isGroupExpanded(group) || isGroupActive(group)">
                     <a
                       *ngFor="let child of item.children"
                       class="nav-subitem nested"
@@ -1002,10 +1002,19 @@ export class AppComponent {
   }
 
   private navBranchForUrl(url: string): { group: NavGroup; item: NavItem } | null {
+    const cleanUrl = this.routePath(url);
     for (const group of this.navGroups) {
       for (const item of group.items) {
         if (!item.children?.length) continue;
-        if (this.isRouteActive(url, item.path) || item.children.some((child) => this.isRouteActive(url, child.path))) {
+        if (item.children.some((child) => cleanUrl === child.path)) {
+          return { group, item };
+        }
+      }
+    }
+    for (const group of this.navGroups) {
+      for (const item of group.items) {
+        if (!item.children?.length) continue;
+        if (cleanUrl === item.path || cleanUrl.startsWith(`${item.path}/`)) {
           return { group, item };
         }
       }

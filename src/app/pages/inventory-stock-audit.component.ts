@@ -27,7 +27,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>
 
-      <div class="enterprise-grid two">
+      <div class="audit-panels two">
         <section class="panel">
           <div class="section-title"><div><span class="eyebrow">Stock count</span><h2>Actual quantity entry</h2></div></div>
           <form [formGroup]="countForm" (ngSubmit)="createCount()" class="audit-form">
@@ -46,55 +46,78 @@ import { StateComponent } from '../shared/ui/state/state.component';
             <label class="field"><span>Target branch</span><select formControlName="targetBranchId"><option value="">Target</option><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
             <label class="field"><span>Product</span><select formControlName="sourceProductId"><option value="">Product</option><option *ngFor="let product of products()" [value]="product.id">{{ product.name }}</option></select></label>
             <label class="field"><span>Quantity</span><input type="number" formControlName="quantity" /></label>
-            <label class="field full"><span>Reason</span><input formControlName="reason" /></label>
+            <label class="field full"><span>Reason</span><input formControlName="reason" placeholder="Transfer recommended before purchase" /></label>
             <div class="form-actions full"><button class="primary-button" type="submit" [disabled]="transferForm.invalid || saving()">Request transfer approval</button></div>
           </form>
         </section>
       </div>
 
-      <div class="enterprise-grid three">
+      <div class="audit-panels three">
         <section class="panel">
           <div class="section-title"><div><span class="eyebrow">Counts</span><h2>Variance register</h2></div></div>
-          <article class="audit-row" *ngFor="let count of counts()">
-            <div><strong>{{ count.countNumber }}</strong><span>{{ count.status }} · variance {{ count.totalVarianceValue | currency:'INR':'symbol':'1.0-0' }}</span></div>
-            <button class="ghost-button mini" type="button" (click)="submitCount(count)" [disabled]="count.status === 'submitted' || saving()">Submit</button>
-          </article>
+          <div class="audit-list">
+            <article class="audit-row" *ngFor="let count of counts()">
+              <div class="audit-row-info">
+                <strong class="audit-row-title">{{ count.countNumber }}</strong>
+                <span class="audit-row-meta">{{ count.status }} · variance {{ count.totalVarianceValue | currency:'INR':'symbol':'1.0-0' }}</span>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="submitCount(count)" [disabled]="count.status === 'submitted' || saving()">Submit</button>
+            </article>
+          </div>
           <p class="muted" *ngIf="!counts().length">No stock counts yet.</p>
         </section>
 
         <section class="panel">
           <div class="section-title"><div><span class="eyebrow">Leakage</span><h2>Theft / waste findings</h2></div></div>
-          <article class="audit-row danger" *ngFor="let finding of leakage()">
-            <div><strong>{{ finding.findingType }}</strong><span>{{ productName(finding.productId) }} · loss {{ finding.estimatedLoss | currency:'INR':'symbol':'1.0-0' }}</span></div>
-            <span class="badge">{{ finding.severity }}</span>
-          </article>
+          <div class="audit-list">
+            <article class="audit-row danger" *ngFor="let finding of leakage()">
+              <div class="audit-row-info">
+                <strong class="audit-row-title">{{ finding.findingType }}</strong>
+                <span class="audit-row-meta">{{ productName(finding.productId) }} · loss {{ finding.estimatedLoss | currency:'INR':'symbol':'1.0-0' }}</span>
+              </div>
+              <span class="badge severity-{{ finding.severity }}">{{ finding.severity }}</span>
+            </article>
+          </div>
           <p class="muted" *ngIf="!leakage().length">No leakage findings right now.</p>
         </section>
 
         <section class="panel">
           <div class="section-title"><div><span class="eyebrow">Optimizer</span><h2>Transfer recommendations</h2></div></div>
-          <article class="audit-row" *ngFor="let item of recommendations()">
-            <div><strong>{{ item.productName }}</strong><span>{{ branchName(item.sourceBranchId) }} → {{ branchName(item.targetBranchId) }} · {{ item.quantity }} units</span></div>
-            <button class="ghost-button mini" type="button" (click)="useTransfer(item)">Use</button>
-          </article>
+          <div class="audit-list">
+            <article class="audit-row" *ngFor="let item of recommendations()">
+              <div class="audit-row-info">
+                <strong class="audit-row-title">{{ item.productName }}</strong>
+                <span class="audit-row-meta">{{ branchName(item.sourceBranchId) }} → {{ branchName(item.targetBranchId) }} · {{ item.quantity }} units</span>
+              </div>
+              <button class="ghost-button mini" type="button" (click)="useTransfer(item)">Use</button>
+            </article>
+          </div>
           <p class="muted" *ngIf="!recommendations().length">No branch transfer recommendation.</p>
         </section>
       </div>
     </section>
   `,
   styles: [`
-    .hero-actions, .section-title, .audit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .enterprise-grid { display: grid; gap: 14px; }
-    .enterprise-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .enterprise-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .audit-panels { display: grid; gap: 14px; }
+    .audit-panels.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .audit-panels.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .audit-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .audit-form.transfer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .audit-form .full { grid-column: 1 / -1; }
-    .audit-row { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 8px; background: #fff; }
-    .audit-row.danger { border-color: rgba(185, 28, 28, .25); background: #fff7f7; }
-    .audit-row span, .muted { color: var(--muted); }
-    .audit-row strong, .audit-row span { display: block; }
-    @media (max-width: 1100px) { .enterprise-grid.two, .enterprise-grid.three { grid-template-columns: 1fr; } .audit-form { grid-template-columns: 1fr; } }
+    .audit-form .field.full { grid-column: 1 / -1; }
+    .audit-list { display: grid; gap: 6px; }
+    .audit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); transition: box-shadow 0.15s; }
+    .audit-row:hover { box-shadow: var(--elev-1); }
+    .audit-row.danger { border-color: rgba(185, 28, 28, 0.18); background: #fff8f8; }
+    .audit-row.danger:hover { border-color: rgba(185, 28, 28, 0.35); }
+    .audit-row-info { display: grid; gap: 2px; }
+    .audit-row-title { font-size: 0.92rem; font-weight: 650; color: var(--ink); }
+    .audit-row-meta { font-size: 0.78rem; color: var(--muted); }
+    .badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+    .badge.severity-high { background: rgba(185, 28, 28, 0.1); color: var(--red); }
+    .badge.severity-medium { background: rgba(217, 119, 6, 0.1); color: var(--amber); }
+    .badge.severity-low { background: rgba(5, 150, 105, 0.1); color: var(--green); }
+    .muted { color: var(--muted); }
+    @media (max-width: 1100px) { .audit-panels.two, .audit-panels.three { grid-template-columns: 1fr; } .audit-form { grid-template-columns: 1fr; } }
   `]
 })
 export class InventoryStockAuditComponent implements OnInit {
