@@ -246,7 +246,6 @@ type BrandPreset = {
     }
 
     .hero-actions,
-    .color-row,
     .preview-topbar,
     .section-title {
       display: flex;
@@ -367,45 +366,95 @@ type BrandPreset = {
 
     .token-editor {
       display: grid;
-      gap: 10px;
-      padding: 14px 0;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 7px 0;
       border-bottom: 1px solid color-mix(in srgb, var(--studio-border) 74%, transparent);
-      transition: background .15s;
+      align-items: center;
     }
     .token-editor:first-of-type { padding-top: 0; }
+    .token-editor:last-of-type { border-bottom: 0; padding-bottom: 0; }
 
-    .token-editor label,
-    .advanced-controls label {
-      display: grid;
-      gap: 3px;
+    .token-editor label {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 8px;
     }
-
-    .token-editor label span,
-    .advanced-controls label span {
+    .token-editor label span {
       font-weight: 900;
-      font-size: 13px;
-    }
-
-    .token-editor label small {
-      color: var(--studio-muted);
-      font-weight: 700;
       font-size: 12px;
     }
+    .token-editor label small {
+      color: var(--studio-muted);
+      font-weight: 600;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
 
-    .color-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    .color-row { display: flex; gap: 6px; align-items: center; }
     .color-row input[type="color"] {
-      width: 48px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border: 2px solid var(--studio-border);
-      border-radius: 10px;
+      border-radius: 8px;
       background: var(--studio-surface);
       cursor: pointer;
-      padding: 2px;
+      padding: 1px;
       transition: border-color .15s;
+      flex-shrink: 0;
     }
     .color-row input[type="color"]:hover { border-color: var(--studio-hover); }
 
-    .color-row input[type="text"],
+    .color-row input[type="text"] {
+      width: 110px;
+      min-height: 36px;
+      border: 1px solid var(--studio-border);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: var(--studio-surface);
+      color: var(--studio-text);
+      font-weight: 800;
+      font-size: 13px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .color-row input[type="text"]:focus {
+      border-color: var(--studio-hover);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--studio-hover) 15%, transparent);
+      outline: none;
+    }
+
+    .advanced-controls {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--studio-border);
+    }
+    .advanced-controls label {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .advanced-controls label span {
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .advanced-controls input[type="range"] {
+      accent-color: var(--studio-primary);
+      width: 100%;
+    }
+    .advanced-controls b {
+      color: var(--studio-primary);
+      font-size: 13px;
+      min-width: 36px;
+      text-align: right;
+    }
+
     .field input,
     .field select,
     .field textarea {
@@ -419,30 +468,12 @@ type BrandPreset = {
       font-weight: 800;
       transition: border-color .15s, box-shadow .15s;
     }
-    .color-row input[type="text"]:focus,
     .field input:focus,
     .field select:focus,
     .field textarea:focus {
       border-color: var(--studio-hover);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--studio-hover) 15%, transparent);
       outline: none;
-    }
-
-    .advanced-controls {
-      display: grid;
-      gap: 14px;
-      margin-top: 16px;
-      padding-top: 18px;
-      border-top: 2px solid color-mix(in srgb, var(--studio-border) 50%, transparent);
-    }
-
-    .advanced-controls input[type="range"] {
-      accent-color: var(--studio-primary);
-      width: 100%;
-    }
-    .advanced-controls b {
-      color: var(--studio-primary);
-      font-size: 14px;
     }
 
     .preview-shell {
