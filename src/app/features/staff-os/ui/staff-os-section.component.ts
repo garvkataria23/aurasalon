@@ -54,7 +54,7 @@ type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
       [class.staff-roster-mode]="section === 'roster-calendar'"
       [class.staff-payroll-mode]="section === 'payroll-dashboard'"
     >
-      <header class="topbar">
+      <header class="topbar" *ngIf="section !== 'staff-profile'">
         <div>
           <p class="eyebrow">Staff Operating System</p>
           <h1>{{ title }}</h1>
