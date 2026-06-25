@@ -251,8 +251,9 @@ type BrandPreset = {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
+    .control-panel .section-title { margin-bottom: 2px; }
 
     .studio-button {
       min-height: 40px;
@@ -354,104 +355,112 @@ type BrandPreset = {
 
     .studio-grid {
       display: grid;
-      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
       gap: 18px;
       align-items: start;
     }
 
-    .control-panel,
-    .preview-panel {
-      padding: 18px;
-    }
+    .control-panel { padding: 14px; }
+    .preview-panel { padding: 18px; }
 
     .token-editor {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      padding: 7px 0;
-      border-bottom: 1px solid color-mix(in srgb, var(--studio-border) 74%, transparent);
+      display: flex;
+      gap: 6px;
+      padding: 5px 0;
       align-items: center;
+      border-bottom: 1px solid color-mix(in srgb, var(--studio-border) 42%, transparent);
     }
     .token-editor:first-of-type { padding-top: 0; }
     .token-editor:last-of-type { border-bottom: 0; padding-bottom: 0; }
 
     .token-editor label {
+      flex: 1;
       display: flex;
-      flex-wrap: wrap;
       align-items: baseline;
-      gap: 4px 8px;
+      gap: 4px;
+      min-width: 0;
+      cursor: pointer;
+      order: 1;
     }
     .token-editor label span {
-      font-weight: 900;
-      font-size: 12px;
+      font-weight: 800;
+      font-size: 11px;
+      white-space: nowrap;
     }
     .token-editor label small {
       color: var(--studio-muted);
-      font-weight: 600;
-      font-size: 11px;
-      white-space: nowrap;
+      font-weight: 500;
+      font-size: 10px;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 180px;
+      white-space: nowrap;
     }
 
-    .color-row { display: flex; gap: 6px; align-items: center; }
+    .color-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      order: 0;
+    }
     .color-row input[type="color"] {
-      width: 36px;
-      height: 36px;
+      width: 28px;
+      height: 28px;
       border: 2px solid var(--studio-border);
-      border-radius: 8px;
+      border-radius: 6px;
       background: var(--studio-surface);
       cursor: pointer;
       padding: 1px;
       transition: border-color .15s;
-      flex-shrink: 0;
     }
     .color-row input[type="color"]:hover { border-color: var(--studio-hover); }
+    .color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-row input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 
     .color-row input[type="text"] {
-      width: 110px;
-      min-height: 36px;
+      width: 78px;
+      min-height: 28px;
       border: 1px solid var(--studio-border);
-      border-radius: 8px;
-      padding: 0 10px;
+      border-radius: 6px;
+      padding: 0 6px;
       background: var(--studio-surface);
       color: var(--studio-text);
-      font-weight: 800;
-      font-size: 13px;
+      font-weight: 700;
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
       transition: border-color .15s, box-shadow .15s;
+      text-align: center;
     }
     .color-row input[type="text"]:focus {
       border-color: var(--studio-hover);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--studio-hover) 15%, transparent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--studio-hover) 15%, transparent);
       outline: none;
     }
 
     .advanced-controls {
       display: grid;
-      gap: 12px;
-      margin-top: 12px;
-      padding-top: 14px;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1px solid var(--studio-border);
     }
     .advanced-controls label {
-      display: grid;
-      grid-template-columns: 1fr auto;
+      display: flex;
       gap: 8px;
       align-items: center;
     }
     .advanced-controls label span {
       font-weight: 900;
-      font-size: 12px;
+      font-size: 11px;
+      min-width: 86px;
     }
     .advanced-controls input[type="range"] {
       accent-color: var(--studio-primary);
-      width: 100%;
+      flex: 1;
     }
     .advanced-controls b {
       color: var(--studio-primary);
-      font-size: 13px;
-      min-width: 36px;
+      font-size: 12px;
+      min-width: 32px;
       text-align: right;
     }
 
