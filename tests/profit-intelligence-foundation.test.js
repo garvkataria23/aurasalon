@@ -189,6 +189,31 @@ test("Profit Intelligence exposes AI Pricing Autopilot", () => {
   }
 });
 
+test("Profit Intelligence exposes Recipe Variance and Wastage Radar", () => {
+  for (const field of [
+    "recipeVariance",
+    "productConsumeVarianceDrafts",
+    "serviceRecipeExpectedCostMap",
+    "expectedCostPaise",
+    "actualCostPaise",
+    "variancePaise",
+    "varianceBps",
+    "severity",
+    "recommendation"
+  ]) {
+    assert.ok(service.includes(field) || page.includes(field), `${field} should be part of Recipe Variance`);
+  }
+  assert.match(service, /product_consume_drafts[\s\S]*expected_cost[\s\S]*actual_cost/, "recipe variance should compare product consume expected and actual cost");
+  assert.match(service, /service_recipes/, "recipe variance should use approved service recipe fallback");
+  assert.match(service, /line_items_json/, "recipe variance should detect product-level overuse from line items");
+  for (const label of ["Wastage Radar", "Recipe variance & product overuse", "Expected", "Actual", "Variance", "No recipe variance signals yet."]) {
+    assert.ok(page.includes(label), `${label} should be visible for Wastage Radar`);
+  }
+  for (const klass of ["severity-green", "severity-amber", "severity-red"]) {
+    assert.ok(page.includes(klass), `${klass} status should be styled`);
+  }
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");

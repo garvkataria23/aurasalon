@@ -239,6 +239,37 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="wastage-grid" *ngIf="summary()?.recipeVariance as variance">
+        <article class="table-panel wastage-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Wastage Radar</p>
+              <h2>Recipe variance & product overuse</h2>
+            </div>
+            <span>{{ variance.sourceHealth?.drafts || 0 }} consume drafts</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Status</th><th>Signal</th><th>Service</th><th>Branch</th><th>Staff</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of variance.rows || []">
+                  <td><strong class="severity-pill" [ngClass]="'severity-' + (row.severity || 'green')">{{ row.severity }}</strong></td>
+                  <td><strong>{{ row.dimension }}</strong><span>{{ row.productName || row.draftCount + ' drafts' }}</span></td>
+                  <td>{{ row.serviceName || row.serviceId || '-' }}</td>
+                  <td>{{ row.branchId || '-' }}</td>
+                  <td>{{ row.staffName || row.staffId || '-' }}</td>
+                  <td>{{ paise(row.expectedCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.actualCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.variancePaise) | currency: 'INR':'symbol':'1.0-0' }}</strong><span>{{ percent(row.varianceBps) }}</span></td>
+                  <td><span>{{ row.recommendation }}</span></td>
+                </tr>
+                <tr *ngIf="!(variance.rows || []).length"><td colspan="9" class="empty-cell">No recipe variance signals yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <section class="enterprise-grid" *ngIf="summary()?.enterpriseAnalytics as analytics">
         <article class="panel analytics-card">
           <header>
@@ -596,6 +627,13 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .pricing-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #fff; border-bottom: 1px solid #d9e1ea; }
     .pricing-panel { border-top: 3px solid #0f8a7d; }
     .pricing-panel table { min-width: 1040px; }
+    .wastage-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
+    .wastage-panel { border-top: 3px solid #9a3412; }
+    .wastage-panel table { min-width: 1080px; }
+    .severity-pill { display: inline-flex; min-width: 58px; justify-content: center; border-radius: 3px; padding: 4px 7px; font-size: 11px; text-transform: uppercase; }
+    .severity-green { color: #166534; background: #dcfce7; border: 1px solid #86efac; }
+    .severity-amber { color: #92400e; background: #fef3c7; border: 1px solid #fbbf24; }
+    .severity-red { color: #991b1b; background: #fee2e2; border: 1px solid #fca5a5; }
     .enterprise-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 10px; padding: 12px 14px; background: #f6f8fb; border-bottom: 1px solid #d9e1ea; }
     .analytics-card { border-top: 3px solid #0f8a7d; }
     .analytics-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

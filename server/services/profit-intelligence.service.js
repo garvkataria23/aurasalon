@@ -290,6 +290,7 @@ export class ProfitIntelligenceService {
       ceoKpis: this.ceoKpis(params, metrics, profitBreakdown, expenseTotals.breakdown),
       profitDigitalTwin: this.profitDigitalTwin(query, metrics),
       pricingAutopilot: this.pricingAutopilot(query, profitBreakdown),
+      recipeVariance: this.recipeVariance(params),
       enterpriseAnalytics: this.enterpriseAnalytics(params, metrics, invoices, expenseRows, profitBreakdown),
       revenueBreakdown: breakdown,
       expenseBreakdown: expenseTotals.breakdown,
@@ -356,6 +357,91 @@ export class ProfitIntelligenceService {
     if (demandRisk === "low") return `${service.serviceName || "Service"} demand strong hai aur margin target se kam hai; controlled price increase recommend hai.`;
     if (recommendedPricePaise > currentPricePaise) return `${service.serviceName || "Service"} margin low hai, lekin demand moderate/high risk hai; smaller increase ya bundle offer better rahega.`;
     return `${service.serviceName || "Service"} low demand hai; direct price increase ke bajay bundle, add-on ya recipe cost review karein.`;
+  }
+
+  recipeVariance(params = {}) {
+    const drafts = this.productConsumeVarianceDrafts(params);
+    const recipeExpectedCost = this.serviceRecipeExpectedCostMap(params);
+    const rows = new Map();
+    const productRows = new Map();
+    const addVariance = (key, seed, expectedCostPaise, actualCostPaise) => {
+      const row = rows.get(key) || { ...seed, expectedCostPaise: 0, actualCostPaise: 0, variancePaise: 0, draftCount: 0 };
+      row.expectedCostPaise += expectedCostPaise;
+      row.actualCostPaise += actualCostPaise;
+      row.variancePaise += actualCostPaise - expectedCostPaise;
+      row.draftCount += 1;
+      rows.set(key, row);
+    };
+    for (const draft of drafts) {
+      const expectedCostPaise = this.expectedCostForDraft(draft, recipeExpectedCost);
+      const actualCostPaise = this.actualCostForDraft(draft);
+      const branchId = draft.branchId || "";
+      const serviceId = draft.serviceId || "";
+      const serviceName = draft.serviceName || serviceId || "Service";
+      const staffId = draft.staffId || "";
+      const staffName = draft.staffName || staffId || "Unassigned";
+      addVariance(`service|${branchId}|${serviceId || serviceName}`, { dimension: "service", serviceId, serviceName, branchId, staffId: "", staffName: "" }, expectedCostPaise, actualCostPaise);
+      addVariance(`staff|${branchId}|${staffId || staffName}|${serviceId || serviceName}`, { dimension: "staff", serviceId, serviceName, branchId, staffId, staffName }, expectedCostPaise, actualCostPaise);
+      addVariance(`branch|${branchId}`, { dimension: "branch", serviceId: "", serviceName: branchId || "All branches", branchId, staffId: "", staffName: "" }, expectedCostPaise, actualCostPaise);
+      for (const line of parseJsonArray(draft.lineItemsJson)) {
+        const expectedLinePaise = toPaise(line.expectedCost ?? line.expected_cost ?? 0);
+        const actualLinePaise = toPaise(line.actualCost ?? line.actual_cost ?? 0);
+        if (actualLinePaise <= expectedLinePaise) continue;
+        const productId = String(line.productId || line.product_id || "").trim();
+        const productName = line.productName || line.product_name || productId || "Product";
+        const key = `product|${branchId}|${serviceId || serviceName}|${staffId || staffName}|${productId || productName}`;
+        const row = productRows.get(key) || {
+          dimension: "product",
+          serviceId,
+          serviceName,
+          branchId,
+          staffId,
+          staffName,
+          productId,
+          productName,
+          expectedCostPaise: 0,
+          actualCostPaise: 0,
+          variancePaise: 0,
+          draftCount: 0
+        };
+        row.expectedCostPaise += expectedLinePaise;
+        row.actualCostPaise += actualLinePaise;
+        row.variancePaise += actualLinePaise - expectedLinePaise;
+        row.draftCount += 1;
+        productRows.set(key, row);
+      }
+    }
+    return {
+      rows: [...rows.values(), ...productRows.values()]
+        .map((row) => this.recipeVarianceRow(row))
+        .sort((a, b) => b.variancePaise - a.variancePaise)
+        .slice(0, BREAKDOWN_LIMIT),
+      sourceHealth: {
+        drafts: drafts.length,
+        recipes: recipeExpectedCost.size,
+        source: "product_consume_drafts.expected_cost + actual_cost + line_items_json"
+      }
+    };
+  }
+
+  recipeVarianceRow(row = {}) {
+    const varianceBps = marginBps(Number(row.variancePaise || 0), Number(row.expectedCostPaise || 0));
+    const severity = row.variancePaise <= 0 ? "green" : Number(row.expectedCostPaise || 0) <= 0 ? "red" : varianceBps >= 2500 ? "red" : varianceBps >= 1000 ? "amber" : "green";
+    const label = row.productName || row.staffName || row.serviceName || row.branchId || "Recipe";
+    return {
+      ...row,
+      varianceBps,
+      severity,
+      recommendation: this.recipeVarianceRecommendation({ ...row, varianceBps, severity, label })
+    };
+  }
+
+  recipeVarianceRecommendation(row = {}) {
+    if (row.severity === "green") return `${row.label} recipe usage stable hai.`;
+    if (row.dimension === "product") return `${row.productName || "Product"} overuse detect hua; actual quantity vs recipe max review karein.`;
+    if (row.dimension === "staff") return `${row.staffName || "Staff"} ke service consume me variance high hai; coaching ya approval check karein.`;
+    if (row.dimension === "branch") return `${row.branchId || "Branch"} me product cost recipe se zyada hai; branch wastage audit karein.`;
+    return `${row.serviceName || "Service"} recipe variance high hai; recipe quantity, wastage percent aur product issue flow review karein.`;
   }
 
   profitDigitalTwin(query = {}, metrics = {}) {
@@ -982,6 +1068,63 @@ export class ProfitIntelligenceService {
       ORDER BY COALESCE(NULLIF(paidAt, ''), createdAt) DESC
       LIMIT ${OPERATING_EXPENSE_LIMIT}
     `, params);
+  }
+
+  productConsumeVarianceDrafts(params) {
+    if (!tableExists("product_consume_drafts")) return [];
+    return safeAll(`
+      SELECT id, branch_id AS branchId, service_id AS serviceId, service_name AS serviceName,
+        staff_id AS staffId, staff_name AS staffName, service_quantity AS serviceQuantity,
+        line_items_json AS lineItemsJson, expected_cost AS expectedCost, actual_cost AS actualCost,
+        status, created_at AS createdAt, updated_at AS updatedAt
+      FROM product_consume_drafts
+      WHERE tenant_id = @tenantId
+        AND created_at BETWEEN @startAt AND @endAt
+        AND lower(status) IN ('confirmed', 'posted', 'consumed', 'approved')
+        AND (@branchId = '' OR branch_id = @branchId)
+      ORDER BY created_at DESC
+      LIMIT ${OPERATING_EXPENSE_LIMIT}
+    `, params);
+  }
+
+  serviceRecipeExpectedCostMap(params) {
+    if (!tableExists("service_recipes")) return new Map();
+    const rows = safeAll(`
+      SELECT service_id AS serviceId, branch_id AS branchId, expected_cost AS expectedCost, updated_at AS updatedAt
+      FROM service_recipes
+      WHERE tenant_id = @tenantId
+        AND COALESCE(active, 1) = 1
+        AND lower(COALESCE(approval_status, 'approved')) = 'approved'
+        AND (@branchId = '' OR branch_id = @branchId OR branch_id = '')
+      ORDER BY updated_at DESC
+      LIMIT 5000
+    `, params);
+    const map = new Map();
+    for (const row of rows) {
+      const serviceId = String(row.serviceId || "").trim();
+      if (!serviceId) continue;
+      const branchKey = `${row.branchId || ""}|${serviceId}`;
+      const globalKey = `|${serviceId}`;
+      if (!map.has(branchKey)) map.set(branchKey, toPaise(row.expectedCost));
+      if (!row.branchId && !map.has(globalKey)) map.set(globalKey, toPaise(row.expectedCost));
+    }
+    return map;
+  }
+
+  expectedCostForDraft(draft = {}, recipeExpectedCost = new Map()) {
+    const lineExpectedPaise = parseJsonArray(draft.lineItemsJson).reduce((sum, line) => sum + toPaise(line.expectedCost ?? line.expected_cost ?? 0), 0);
+    const draftExpectedPaise = toPaise(draft.expectedCost);
+    if (draftExpectedPaise > 0) return draftExpectedPaise;
+    if (lineExpectedPaise > 0) return lineExpectedPaise;
+    const serviceId = String(draft.serviceId || "").trim();
+    const serviceQuantity = Math.max(1, Number(draft.serviceQuantity || 1));
+    return Math.round((recipeExpectedCost.get(`${draft.branchId || ""}|${serviceId}`) || recipeExpectedCost.get(`|${serviceId}`) || 0) * serviceQuantity);
+  }
+
+  actualCostForDraft(draft = {}) {
+    const draftActualPaise = toPaise(draft.actualCost);
+    if (draftActualPaise > 0) return draftActualPaise;
+    return parseJsonArray(draft.lineItemsJson).reduce((sum, line) => sum + toPaise(line.actualCost ?? line.actual_cost ?? 0), 0);
   }
 
   productConsumeRows(params) {
