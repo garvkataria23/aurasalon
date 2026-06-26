@@ -27,6 +27,7 @@ export const routes: Routes = [
   { path: 'quality', loadComponent: () => import('./pages/quality-center.component').then(m => m.QualityCenterComponent), title: 'Testing and Quality' },
   { path: 'deployment', loadComponent: () => import('./pages/deployment-ready.component').then(m => m.DeploymentReadyComponent), title: 'Deployment Ready' },
   { path: 'data-migration', loadComponent: () => import('./pages/data-migration.component').then(m => m.DataMigrationComponent), title: 'Data Migration Center', children: [
+    { path: '', pathMatch: 'full', loadComponent: () => import('./pages/data-migration-overview.component').then(m => m.DataMigrationOverviewComponent), title: 'Data Migration Center' },
     { path: 'launch', loadComponent: () => import('./pages/data-migration-launch.component').then(m => m.DataMigrationLaunchComponent), title: 'Launch Migration' },
     { path: 'ai-mapping', loadComponent: () => import('./pages/data-migration-ai-mapping.component').then(m => m.DataMigrationAiMappingComponent), title: 'AI Mapping Studio' },
     { path: 'import-worker', loadComponent: () => import('./pages/data-migration-import-worker.component').then(m => m.DataMigrationImportWorkerComponent), title: 'Import Worker' },
