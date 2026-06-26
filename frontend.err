@@ -44429,3 +44429,129 @@
          ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
 
 [39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'isRootRoute' does not exist on type 'DataMigrationComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration.component.ts:12:44:
+[37m      12 │     <section class="migration-shell" *ngIf="[32misRootRoute[37m">
+         ╵                                             [32m~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'router' does not exist on type 'DataMigrationComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration.component.ts:24:9:
+[37m      24 │     this.[32mrouter[37m.navigate(['/data-migration', route]);
+         ╵          [32m~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'router' does not exist on type 'DataMigrationComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration.component.ts:24:9:
+[37m      24 │     this.[32mrouter[37m.navigate(['/data-migration', route]);
+         ╵          [32m~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
