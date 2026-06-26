@@ -1,0 +1,14 @@
+import { Router } from "express";
+import { asyncHandler } from "../middleware/async-handler.js";
+import { requirePermission } from "../middleware/rbac.js";
+import { profitIntelligenceService } from "../services/profit-intelligence.service.js";
+
+export const profitIntelligenceRouter = Router();
+
+profitIntelligenceRouter.get(
+  "/profit-intelligence/summary",
+  requirePermission("read", () => "finance"),
+  asyncHandler((req, res) => {
+    res.json(profitIntelligenceService.summary(req.query, req.access));
+  })
+);

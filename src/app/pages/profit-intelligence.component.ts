@@ -1,0 +1,193 @@
+import { CommonModule, CurrencyPipe } from '@angular/common';
+import { Component, OnInit, signal } from '@angular/core';
+import { ReactiveFormsModule, UntypedFormBuilder } from '@angular/forms';
+import { ApiRecord, ApiService } from '../core/api.service';
+import { StateComponent } from '../shared/ui/state/state.component';
+
+@Component({
+  selector: 'app-profit-intelligence',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, StateComponent],
+  template: `
+    <section class="profit-workspace">
+      <section class="page-title">
+        <div>
+          <h1>Profit Intelligence</h1>
+          <p>Finance &gt; P&amp;L foundation with revenue, COGS, staff cost, expenses and net profit</p>
+        </div>
+        <form [formGroup]="filters" (ngSubmit)="load()">
+          <label><span>From</span><input type="date" formControlName="from" /></label>
+          <label><span>To</span><input type="date" formControlName="to" /></label>
+          <button class="primary-button" type="submit">Refresh</button>
+        </form>
+      </section>
+
+      <app-state [loading]="loading()" [error]="error()"></app-state>
+
+      <section class="metrics-grid" *ngIf="summary()?.metrics as metrics">
+        <article>
+          <span>Revenue</span>
+          <strong>{{ paise(metrics.revenuePaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Invoice booked revenue</small>
+        </article>
+        <article>
+          <span>Product Cost</span>
+          <strong>{{ paise(metrics.productCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>COGS / product consume</small>
+        </article>
+        <article>
+          <span>Gross Profit</span>
+          <strong>{{ paise(metrics.grossProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ percent(metrics.grossMarginBps) }} gross margin</small>
+        </article>
+        <article>
+          <span>Staff Cost</span>
+          <strong>{{ paise(metrics.staffCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Payroll, payout or commission</small>
+        </article>
+        <article>
+          <span>Operating Expenses</span>
+          <strong>{{ paise(metrics.operatingExpensePaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Rent, utilities, marketing</small>
+        </article>
+        <article class="net-card">
+          <span>Net Profit</span>
+          <strong>{{ paise(metrics.netProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ percent(metrics.netMarginBps) }} net margin</small>
+        </article>
+      </section>
+
+      <section class="insight-grid" *ngIf="summary() as report">
+        <article class="panel">
+          <header>
+            <div>
+              <p class="eyebrow">Income mix</p>
+              <h2>Revenue sources</h2>
+            </div>
+            <span>{{ report.sourceHealth?.invoices || 0 }} invoices</span>
+          </header>
+          <div class="rank-list">
+            <div *ngFor="let item of report.revenueBreakdown || []">
+              <span>{{ item.label }}</span>
+              <strong>{{ paise(item.amountPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            </div>
+            <div *ngIf="!(report.revenueBreakdown || []).length" class="empty-row">No revenue rows in this period.</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <header>
+            <div>
+              <p class="eyebrow">Expense control</p>
+              <h2>Top operating lines</h2>
+            </div>
+            <span>{{ report.sourceHealth?.expenses || 0 }} rows</span>
+          </header>
+          <div class="rank-list">
+            <div *ngFor="let item of report.expenseBreakdown || []">
+              <span>{{ item.category }}</span>
+              <strong>{{ paise(item.amountPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            </div>
+            <div *ngIf="!(report.expenseBreakdown || []).length" class="empty-row">No expense rows in this period.</div>
+          </div>
+        </article>
+
+        <article class="panel source-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Data health</p>
+              <h2>Calculation sources</h2>
+            </div>
+            <span>{{ report.period?.from }} to {{ report.period?.to }}</span>
+          </header>
+          <div class="source-grid">
+            <div><span>COGS</span><strong>{{ report.sourceHealth?.cogsSource }}</strong></div>
+            <div><span>Staff cost</span><strong>{{ report.sourceHealth?.staffCostSource }}</strong></div>
+            <div><span>Collections</span><strong>{{ paise(report.metrics?.collectionsPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Refunds</span><strong>{{ paise(report.metrics?.refundPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+          </div>
+          <div class="warnings" *ngIf="(report.diagnostics?.warnings || []).length">
+            <p *ngFor="let warning of report.diagnostics?.warnings">{{ warning }}</p>
+          </div>
+        </article>
+      </section>
+    </section>
+  `,
+  styles: [`
+    .profit-workspace { display: grid; gap: 0; min-height: calc(100vh - 20px); background: #f6f8fb; color: #1d2430; }
+    .page-title { display: flex; align-items: end; justify-content: space-between; gap: 16px; padding: 14px; background: #fff; border-bottom: 1px solid #d9e1ea; }
+    .page-title h1, h2 { margin: 0; letter-spacing: 0; }
+    .page-title p { margin: 6px 0 0; color: #38506d; font-size: 13px; }
+    form { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
+    label { display: grid; gap: 5px; color: #5d6f87; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    input { min-height: 34px; border: 1px solid #bdcfe2; border-radius: 3px; padding: 7px 10px; font: inherit; color: #1d2430; background: #fff; }
+    .primary-button { min-height: 34px; border: 1px solid #0f8a7d; border-radius: 3px; padding: 7px 12px; background: #0f8a7d; color: #fff; font-weight: 900; cursor: pointer; }
+    app-state { display: block; margin: 12px 14px 0; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; padding: 0 14px 12px; background: #fff; border-bottom: 1px solid #d9e1ea; }
+    .metrics-grid article { display: grid; gap: 3px; min-height: 76px; padding: 12px 14px; border: 1px solid #d9e1ea; border-left: 0; border-top: 3px solid #0a78b6; }
+    .metrics-grid article:first-child { border-left: 1px solid #d9e1ea; }
+    .metrics-grid .net-card { border-top-color: #0f8a7d; }
+    .metrics-grid span, .metrics-grid small, header > span { color: #64748b; font-size: 12px; font-weight: 800; }
+    .metrics-grid strong { font-size: 20px; line-height: 1; white-space: nowrap; }
+    .insight-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px 14px; }
+    .panel { background: #fff; border: 1px solid #d9e1ea; padding: 12px; display: grid; gap: 10px; align-content: start; }
+    header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+    .eyebrow { margin: 0 0 4px; color: #5d6f87; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .rank-list { display: grid; border: 1px solid #d9e1ea; }
+    .rank-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #d9e1ea; }
+    .rank-list > div:last-child { border-bottom: 0; }
+    .rank-list span, .source-grid span { color: #64748b; font-size: 12px; font-weight: 800; }
+    .source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .source-grid div { display: grid; gap: 4px; border: 1px solid #d9e1ea; padding: 10px; }
+    .warnings { display: grid; gap: 6px; }
+    .warnings p, .empty-row { margin: 0; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; padding: 9px 10px; font-size: 12px; font-weight: 800; }
+    @media (max-width: 1100px) {
+      .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .insight-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .page-title, header { align-items: flex-start; flex-direction: column; }
+      .metrics-grid, .source-grid { grid-template-columns: 1fr; }
+      .metrics-grid article, .metrics-grid article:first-child { border-left: 1px solid #d9e1ea; }
+    }
+  `]
+})
+export class ProfitIntelligenceComponent implements OnInit {
+  readonly summary = signal<ApiRecord | null>(null);
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly today = new Date().toISOString().slice(0, 10);
+  readonly filters = this.fb.group({
+    from: [`${this.today.slice(0, 7)}-01`],
+    to: [this.today]
+  });
+
+  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
+
+  ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.api.list<ApiRecord>('profit-intelligence/summary', this.filters.value).subscribe({
+      next: (report) => {
+        this.summary.set(report);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        this.error.set(this.api.errorText(error, 'Unable to load Profit Intelligence'));
+        this.loading.set(false);
+      }
+    });
+  }
+
+  paise(value: unknown): number {
+    return Number(value || 0) / 100;
+  }
+
+  percent(value: unknown): string {
+    return `${(Number(value || 0) / 100).toFixed(1)}%`;
+  }
+}

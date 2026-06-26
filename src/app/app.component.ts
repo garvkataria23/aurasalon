@@ -453,6 +453,7 @@ export class AppComponent {
       primaryPath: '/finance',
       items: [
         { path: '/finance', label: 'Finance', icon: 'FN', keywords: 'cash expense finance' },
+        { path: '/profit-intelligence', label: 'Profit Intelligence', icon: 'PI', keywords: 'profit intelligence pnl gross net margin cogs p and l' },
         { path: '/account-master', label: 'Account Master', icon: 'AM', keywords: 'ledger accounts chart' },
         { path: '/reports/account-ledger', label: 'Account Ledger', icon: 'AL', keywords: 'account ledger debit credit journal drilldown' },
         { path: '/balance-sheet', label: 'Balance Sheet', icon: 'BS', keywords: 'balance sheet trial balance ledger working capital accounting' },

@@ -39,6 +39,7 @@ export const routes: Routes = [
   { path: 'future-features', loadComponent: () => import('./pages/future-features.component').then(m => m.FutureFeaturesComponent), title: 'Future Salon Intelligence' },
   { path: 'workflows', loadComponent: () => import('./pages/workflow-engine.component').then(m => m.WorkflowEngineComponent), title: 'Workflow Engine' },
   { path: 'finance', loadComponent: () => import('./pages/finance-engine.component').then(m => m.FinanceEngineComponent), title: 'Finance Engine' },
+  { path: 'profit-intelligence', loadComponent: () => import('./pages/profit-intelligence.component').then(m => m.ProfitIntelligenceComponent), title: 'Profit Intelligence' },
   { path: 'account-master', loadComponent: () => import('./pages/account-master.component').then(m => m.AccountMasterComponent), title: 'Account Master' },
   { path: 'balance-sheet', loadComponent: () => import('./pages/balance-sheet.component').then(m => m.BalanceSheetComponent), title: 'Balance Sheet' },
   { path: 'transactions/outgoing-funds', loadComponent: () => import('./pages/outgoing-funds-entry.component').then(m => m.OutgoingFundsEntryComponent), title: 'Outgoing Funds Entry' },

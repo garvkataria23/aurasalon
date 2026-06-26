@@ -148,6 +148,7 @@ import { offlineSyncRouter } from "./routes/offline-sync.routes.js";
 import { operationsRouter } from "./routes/operations.routes.js";
 import { paymentPublicRouter, paymentRouter } from "./routes/payment.routes.js";
 import { posSettingsRouter } from "./routes/pos-settings.routes.js";
+import { profitIntelligenceRouter } from "./routes/profit-intelligence.routes.js";
 import { printDeviceRouter } from "./routes/print-device.routes.js";
 import { publicBookingActionsRouter } from "./routes/public-booking-actions.routes.js";
 import { publicBookingProfileRouter } from "./routes/public-booking-profile.routes.js";
@@ -365,6 +366,7 @@ export function createApp() {
   app.use("/api/v1", authenticateJwt(), futureFeaturesRouter);
   app.use("/api/v1", authenticateJwt(), workflowEngineRouter);
   app.use("/api/v1", authenticateJwt(), financeEngineRouter);
+  app.use("/api/v1", authenticateJwt(), profitIntelligenceRouter);
   app.use("/api/v1", authenticateJwt(), customer360Router);
   app.use("/api/v1", authenticateJwt(), qualityRouter);
   app.use("/api/v1", authenticateJwt(), deploymentRouter);
@@ -506,6 +508,7 @@ export function createApp() {
   app.use("/api", futureFeaturesRouter);
   app.use("/api", workflowEngineRouter);
   app.use("/api", financeEngineRouter);
+  app.use("/api", profitIntelligenceRouter);
   app.use("/api", customer360Router);
   app.use("/api", bookingPortalRouter);
   app.use("/api", bookingPortalV2Router);
