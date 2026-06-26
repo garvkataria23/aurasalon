@@ -105,6 +105,23 @@ function lineCategory(line = {}, serviceLookup = new Map()) {
   return String(category || "Uncategorized").trim() || "Uncategorized";
 }
 
+function entitlementType(line = {}) {
+  const type = revenueType(line);
+  if (type === "package") return "package";
+  if (type === "membership") return "membership";
+  return "";
+}
+
+function membershipRecordType(membership = {}) {
+  const history = parseJsonArray(membership.redeemHistory);
+  const credits = parseJsonArray(membership.serviceCredits);
+  const planName = String(membership.planName || "").toLowerCase();
+  if (history.some((item) => item?.type === "package_sale" || item?.packageId)) return "package";
+  if (credits.some((item) => item?.packageId)) return "package";
+  if (String(membership.id || "").startsWith("pkgmem_") || planName.startsWith("package:")) return "package";
+  return "membership";
+}
+
 function mapKey(parts = []) {
   return parts.map((part) => String(part || "").trim().toLowerCase()).join("|");
 }
@@ -235,8 +252,14 @@ export class ProfitIntelligenceService {
     const expenseRows = this.operatingExpenseRows(params);
     const expenseTotals = this.classifiedExpenses(expenseRows);
     const consumeRows = this.productConsumeRows(params);
+    const consumeCustomerRows = this.productConsumeCustomerRows(params);
     const serviceLookup = this.serviceLookup(params);
     const branchLookup = this.branchLookup(params);
+    const clientLookup = this.clientLookup(params);
+    const memberships = this.membershipRows(params);
+    const membershipLedger = this.membershipLedgerRows(params);
+    const membershipSnapshots = this.membershipSnapshotRows(params);
+    const productCostByInvoice = this.productConsumeInvoiceCostMap(params);
     const salesCommission = this.salesCommissionRows(params);
     const payoutRows = this.staffPayoutRows(params);
     const journalCogsRows = this.journalCogsRows(params);
@@ -248,6 +271,9 @@ export class ProfitIntelligenceService {
       staffProfit: this.staffProfitRows({ invoices, consumeRows }),
       branchProfit: this.branchProfitRows({ invoices, expenseRows, consumeRows, salesCommission, payoutRows, journalCogsRows, useJournalCogs, branchLookup }),
       categoryProfit: this.categoryProfitRows({ invoices, consumeRows, serviceLookup }),
+      customerProfit: this.customerProfitRows({ invoices, consumeCustomerRows, clientLookup }),
+      membershipProfit: this.entitlementProfitRows({ kind: "membership", invoices, memberships, membershipLedger, membershipSnapshots, productCostByInvoice }),
+      packageProfit: this.entitlementProfitRows({ kind: "package", invoices, memberships, membershipLedger, membershipSnapshots, productCostByInvoice }),
       sourceHealth: {
         cogsSource: useJournalCogs ? "journalEntryLines" : consumeRows.length ? "productConsumeDrafts" : expenseTotals.productCostPaise > 0 ? "financeExpenses" : "missing",
         staffCostSource: payoutRows.length ? "financeStaffPayouts" : salesCommission.length ? "salesCommission" : expenseTotals.staffCostPaise > 0 ? "financeExpenses" : "missing"
@@ -259,6 +285,7 @@ export class ProfitIntelligenceService {
     if (!tableExists("invoices")) return [];
     return safeAll(`
       SELECT i.id, i.invoiceNumber, i.lineItems, i.total, i.subtotal, i.discount, i.status,
+        i.clientId,
         COALESCE(NULLIF(i.branchId, ''), s.branchId, '') AS branchId,
         COALESCE(s.staffId, '') AS staffId,
         COALESCE(s.commissionTotal, 0) AS commissionTotal
@@ -270,6 +297,132 @@ export class ProfitIntelligenceService {
         AND (@branchId = '' OR COALESCE(NULLIF(i.branchId, ''), s.branchId, '') = @branchId)
       ORDER BY i.createdAt DESC
     `, params);
+  }
+
+  customerProfitRows({ invoices = [], consumeCustomerRows = [], clientLookup = new Map() }) {
+    const rows = new Map();
+    for (const invoice of invoices) {
+      const clientId = invoice.clientId || "";
+      const client = clientLookup.get(clientId) || {};
+      const row = addAmount(rows, clientId || "walk-in", {
+        clientId,
+        clientName: client.name || clientId || "Walk-in",
+        lifetimeRevenuePaise: toPaise(client.totalSpend || 0),
+        revenuePaise: 0,
+        productCostPaise: 0,
+        staffCostPaise: 0,
+        discountPaise: 0,
+        visits: 0,
+        avgBillPaise: 0
+      }, "revenuePaise", toPaise(invoice.total));
+      row.staffCostPaise += toPaise(invoice.commissionTotal);
+      row.discountPaise += toPaise(invoice.discount);
+      row.visits += 1;
+    }
+    for (const consume of consumeCustomerRows) {
+      const clientId = consume.clientId || "";
+      const row = addAmount(rows, clientId || "walk-in", {
+        clientId,
+        clientName: clientLookup.get(clientId)?.name || clientId || "Walk-in",
+        lifetimeRevenuePaise: toPaise(clientLookup.get(clientId)?.totalSpend || 0),
+        revenuePaise: 0,
+        productCostPaise: 0,
+        staffCostPaise: 0,
+        discountPaise: 0,
+        visits: 0,
+        avgBillPaise: 0
+      }, "productCostPaise", consume.productCostPaise);
+    }
+    return [...rows.values()]
+      .map((row) => marginRow({ ...row, avgBillPaise: row.visits ? Math.round(row.revenuePaise / row.visits) : 0 }))
+      .sort((a, b) => b.netProfitPaise - a.netProfitPaise)
+      .slice(0, BREAKDOWN_LIMIT);
+  }
+
+  entitlementProfitRows({ kind = "membership", invoices = [], memberships = [], membershipLedger = [], membershipSnapshots = [], productCostByInvoice = new Map() }) {
+    const rows = new Map();
+    const ledgerRows = membershipLedger.filter((item) => this.ledgerKind(item, memberships) === kind);
+    const hasLedgerSales = ledgerRows.some((item) => ["sold", "renew", "upgrade"].includes(item.action));
+    const hasLedgerRedemptions = ledgerRows.some((item) => ["redeemed", "discount_applied"].includes(item.action));
+    if (!hasLedgerSales) {
+      for (const invoice of invoices) {
+        for (const line of parseJsonArray(invoice.lineItems).filter((item) => entitlementType(item) === kind)) {
+          const planId = line.id || line.planId || line.packageId || "";
+          const planName = lineName(line);
+          const key = planId || mapKey([planName]);
+          const row = addAmount(rows, key, {
+            planId,
+            planName,
+            soldValuePaise: 0,
+            redeemedValuePaise: 0,
+            productCostPaise: 0,
+            remainingLiabilityPaise: 0,
+            netProfitPaise: 0,
+            soldCount: 0,
+            redeemedCount: 0
+          }, "soldValuePaise", lineAmountPaise(line));
+          row.soldCount += 1;
+        }
+      }
+    }
+    for (const ledger of ledgerRows) {
+      const key = ledger.planId || ledger.membershipId || mapKey([ledger.planName]);
+      const row = addAmount(rows, key, {
+        planId: ledger.planId,
+        planName: ledger.planName || ledger.planId || ledger.membershipId || (kind === "package" ? "Package" : "Membership"),
+        soldValuePaise: 0,
+        redeemedValuePaise: 0,
+        productCostPaise: 0,
+        remainingLiabilityPaise: 0,
+        netProfitPaise: 0,
+        soldCount: 0,
+        redeemedCount: 0
+      }, ["sold", "renew", "upgrade"].includes(ledger.action) ? "soldValuePaise" : "redeemedValuePaise", this.ledgerAmountPaise(ledger));
+      if (["sold", "renew", "upgrade"].includes(ledger.action)) row.soldCount += 1;
+      if (["redeemed", "discount_applied"].includes(ledger.action)) row.redeemedCount += 1;
+    }
+    for (const snapshot of membershipSnapshots.filter((item) => this.snapshotKind(item, memberships) === kind)) {
+      const key = snapshot.planId || snapshot.membershipId || mapKey([snapshot.planName]);
+      const row = addAmount(rows, key, {
+        planId: snapshot.planId,
+        planName: snapshot.planName || snapshot.planId || snapshot.membershipId || (kind === "package" ? "Package" : "Membership"),
+        soldValuePaise: 0,
+        redeemedValuePaise: 0,
+        productCostPaise: 0,
+        remainingLiabilityPaise: 0,
+        netProfitPaise: 0,
+        soldCount: 0,
+        redeemedCount: 0
+      }, "productCostPaise", Number(productCostByInvoice.get(snapshot.invoiceId) || 0));
+      if (!hasLedgerRedemptions) {
+        row.redeemedValuePaise += toPaise(snapshot.invoiceTotal || snapshot.discountAmount || 0);
+        row.redeemedCount += 1;
+      }
+    }
+    for (const membership of memberships.filter((item) => membershipRecordType(item) === kind)) {
+      const key = this.membershipPlanKey(membership);
+      const planName = this.membershipPlanName(membership);
+      const row = addAmount(rows, key, {
+        planId: this.membershipPlanId(membership),
+        planName,
+        soldValuePaise: 0,
+        redeemedValuePaise: 0,
+        productCostPaise: 0,
+        remainingLiabilityPaise: 0,
+        netProfitPaise: 0,
+        soldCount: 0,
+        redeemedCount: 0
+      }, "remainingLiabilityPaise", this.remainingLiabilityPaise(membership));
+      if (!row.planName || row.planName === "Membership" || row.planName === "Package") row.planName = planName;
+    }
+    return [...rows.values()]
+      .map((row) => ({
+        ...row,
+        netProfitPaise: Number(row.soldValuePaise || 0) - Number(row.redeemedValuePaise || 0) - Number(row.productCostPaise || 0) - Number(row.remainingLiabilityPaise || 0),
+        marginBps: marginBps(Number(row.soldValuePaise || 0) - Number(row.redeemedValuePaise || 0) - Number(row.remainingLiabilityPaise || 0), Number(row.soldValuePaise || 0))
+      }))
+      .sort((a, b) => b.netProfitPaise - a.netProfitPaise)
+      .slice(0, BREAKDOWN_LIMIT);
   }
 
   serviceProfitRows({ invoices = [], consumeRows = [], serviceLookup = new Map() }) {
@@ -503,6 +656,33 @@ export class ProfitIntelligenceService {
     `, params).map((row) => ({ ...row, productCostPaise: toPaise(row.actualCost) }));
   }
 
+  productConsumeCustomerRows(params) {
+    if (!tableExists("product_consume_drafts")) return [];
+    return safeAll(`
+      SELECT client_id AS clientId, COALESCE(SUM(actual_cost), 0) AS actualCost
+      FROM product_consume_drafts
+      WHERE tenant_id = @tenantId
+        AND created_at BETWEEN @startAt AND @endAt
+        AND lower(status) IN ('confirmed', 'posted', 'consumed', 'approved')
+        AND (@branchId = '' OR branch_id = @branchId)
+      GROUP BY client_id
+    `, params).map((row) => ({ ...row, productCostPaise: toPaise(row.actualCost) }));
+  }
+
+  productConsumeInvoiceCostMap(params) {
+    if (!tableExists("product_consume_drafts")) return new Map();
+    const rows = safeAll(`
+      SELECT invoice_id AS invoiceId, COALESCE(SUM(actual_cost), 0) AS actualCost
+      FROM product_consume_drafts
+      WHERE tenant_id = @tenantId
+        AND created_at BETWEEN @startAt AND @endAt
+        AND lower(status) IN ('confirmed', 'posted', 'consumed', 'approved')
+        AND (@branchId = '' OR branch_id = @branchId)
+      GROUP BY invoice_id
+    `, params);
+    return new Map(rows.map((row) => [row.invoiceId, toPaise(row.actualCost)]));
+  }
+
   salesCommissionRows(params) {
     if (!tableExists("sales")) return [];
     return safeAll(`
@@ -571,6 +751,106 @@ export class ProfitIntelligenceService {
         AND (@branchId = '' OR id = @branchId)
     `, params);
     return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  clientLookup(params) {
+    if (!tableExists("clients")) return new Map();
+    const rows = safeAll(`
+      SELECT id, name, totalSpend, branchId
+      FROM clients
+      WHERE tenantId = @tenantId
+        AND (@branchId = '' OR branchId = @branchId OR branchId = '')
+      LIMIT 10000
+    `, params);
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  membershipRows(params) {
+    if (!tableExists("memberships")) return [];
+    return safeAll(`
+      SELECT id, clientId, planName, price, planCredits, creditsRemaining, serviceCredits, redeemHistory, branchId, status, validityDate, createdAt
+      FROM memberships
+      WHERE tenantId = @tenantId
+        AND (@branchId = '' OR branchId = @branchId OR branchId = '')
+      LIMIT 10000
+    `, params);
+  }
+
+  membershipLedgerRows(params) {
+    if (!tableExists("client_membership_ledger")) return [];
+    return safeAll(`
+      SELECT l.membership_id AS membershipId, l.plan_id AS planId, l.action, l.amount, l.paid_amount AS paidAmount,
+        l.discount_amount AS discountAmount, l.credits_before AS creditsBefore, l.credits_after AS creditsAfter,
+        l.snapshot_json AS snapshotJson, l.created_at AS createdAt,
+        COALESCE(p.name, '') AS planName
+      FROM client_membership_ledger l
+      LEFT JOIN membership_plans p ON p.id = l.plan_id AND p.tenant_id = l.tenant_id
+      WHERE l.tenant_id = @tenantId
+        AND l.created_at BETWEEN @startAt AND @endAt
+        AND (@branchId = '' OR l.branch_id = @branchId)
+      LIMIT 10000
+    `, params);
+  }
+
+  membershipSnapshotRows(params) {
+    if (!tableExists("membership_invoice_snapshots")) return [];
+    return safeAll(`
+      SELECT invoice_id AS invoiceId, membership_id AS membershipId, plan_id AS planId, plan_name AS planName,
+        invoice_total AS invoiceTotal, discount_amount AS discountAmount, credits_used AS creditsUsed, created_at AS createdAt
+      FROM membership_invoice_snapshots
+      WHERE tenant_id = @tenantId
+        AND created_at BETWEEN @startAt AND @endAt
+        AND (@branchId = '' OR branch_id = @branchId)
+      LIMIT 10000
+    `, params);
+  }
+
+  ledgerKind(ledger = {}, memberships = []) {
+    const membership = memberships.find((item) => item.id === ledger.membershipId);
+    if (membership) return membershipRecordType(membership);
+    const snapshot = this.safeJson(ledger.snapshotJson, {});
+    return membershipRecordType(snapshot.membership || {});
+  }
+
+  snapshotKind(snapshot = {}, memberships = []) {
+    const membership = memberships.find((item) => item.id === snapshot.membershipId);
+    return membership ? membershipRecordType(membership) : "membership";
+  }
+
+  ledgerAmountPaise(ledger = {}) {
+    if (["redeemed", "discount_applied"].includes(ledger.action)) return toPaise(ledger.discountAmount || ledger.amount || 0);
+    return toPaise(ledger.paidAmount || ledger.amount || 0);
+  }
+
+  remainingLiabilityPaise(membership = {}) {
+    const totalCredits = Math.max(Number(membership.planCredits || 0), Number(membership.creditsRemaining || 0), 0);
+    if (!totalCredits) return 0;
+    return Math.round(toPaise(membership.price) * Math.max(Number(membership.creditsRemaining || 0), 0) / totalCredits);
+  }
+
+  membershipPlanId(membership = {}) {
+    const history = parseJsonArray(membership.redeemHistory);
+    const credits = parseJsonArray(membership.serviceCredits);
+    return history.find((item) => item?.planId || item?.packageId)?.planId || history.find((item) => item?.packageId)?.packageId || credits.find((item) => item?.planId || item?.packageId)?.planId || credits.find((item) => item?.packageId)?.packageId || "";
+  }
+
+  membershipPlanName(membership = {}) {
+    const name = String(membership.planName || "").trim();
+    if (name.toLowerCase().startsWith("package:")) return name.replace(/^package:\s*/i, "");
+    return name || (membershipRecordType(membership) === "package" ? "Package" : "Membership");
+  }
+
+  membershipPlanKey(membership = {}) {
+    return this.membershipPlanId(membership) || mapKey([this.membershipPlanName(membership)]);
+  }
+
+  safeJson(value, fallback = {}) {
+    if (!value || typeof value !== "string") return fallback;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
   }
 
   classifiedExpenses(rows = []) {

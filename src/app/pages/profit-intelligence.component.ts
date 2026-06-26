@@ -213,6 +213,86 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </article>
       </section>
+
+      <section class="retention-grid" *ngIf="breakdown() as detail">
+        <article class="table-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Customer profit</p>
+              <h2>Customer profitability</h2>
+            </div>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Customer</th><th>Revenue</th><th>Product Cost</th><th>Discounts</th><th>Profit</th><th>Visits</th><th>Avg Bill</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of detail.customerProfit || []">
+                  <td><strong>{{ row.clientName }}</strong><span>Lifetime {{ paise(row.lifetimeRevenuePaise) | currency: 'INR':'symbol':'1.0-0' }}</span></td>
+                  <td>{{ paise(row.revenuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.productCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.discountPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.netProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td>{{ row.visits || 0 }}</td>
+                  <td>{{ paise(row.avgBillPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                </tr>
+                <tr *ngIf="!(detail.customerProfit || []).length"><td colspan="7" class="empty-cell">No customer profit rows.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="table-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Membership profit</p>
+              <h2>Membership value</h2>
+            </div>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Plan</th><th>Sales</th><th>Redeemed</th><th>Product Cost</th><th>Liability</th><th>Profit</th><th>Sold</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of detail.membershipProfit || []">
+                  <td><strong>{{ row.planName }}</strong></td>
+                  <td>{{ paise(row.soldValuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.redeemedValuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.productCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.remainingLiabilityPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.netProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td>{{ row.soldCount || 0 }}</td>
+                </tr>
+                <tr *ngIf="!(detail.membershipProfit || []).length"><td colspan="7" class="empty-cell">No membership profit rows.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="table-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Package profit</p>
+              <h2>Package value</h2>
+            </div>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Package</th><th>Sold Value</th><th>Redeemed Value</th><th>Product Cost</th><th>Remaining Balance</th><th>Net Profit</th><th>Redeemed</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of detail.packageProfit || []">
+                  <td><strong>{{ row.planName }}</strong></td>
+                  <td>{{ paise(row.soldValuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.redeemedValuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.productCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.remainingLiabilityPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.netProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td>{{ row.redeemedCount || 0 }}</td>
+                </tr>
+                <tr *ngIf="!(detail.packageProfit || []).length"><td colspan="7" class="empty-cell">No package profit rows.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
     </section>
   `,
   styles: [`
@@ -233,6 +313,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .metrics-grid strong { font-size: 20px; line-height: 1; white-space: nowrap; }
     .insight-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px 14px; }
     .drilldown-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 14px 14px; }
+    .retention-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 14px 14px; }
     .panel { background: #fff; border: 1px solid #d9e1ea; padding: 12px; display: grid; gap: 10px; align-content: start; }
     .table-panel { background: #fff; border: 1px solid #d9e1ea; padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
     header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
@@ -253,7 +334,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .empty-cell { color: #64748b; text-align: center; font-weight: 800; }
     @media (max-width: 1100px) {
       .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .insight-grid, .drilldown-grid { grid-template-columns: 1fr; }
+      .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
       .page-title, header { align-items: flex-start; flex-direction: column; }

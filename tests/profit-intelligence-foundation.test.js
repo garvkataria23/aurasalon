@@ -51,6 +51,27 @@ test("Profit Intelligence exposes service, staff, branch and category profit bre
   assert.match(service, /categoryProfitRows/, "category profit should aggregate category revenue and costs");
 });
 
+test("Profit Intelligence exposes customer, membership and package profitability", () => {
+  for (const field of [
+    "customerProfit",
+    "membershipProfit",
+    "packageProfit",
+    "remainingLiabilityPaise",
+    "lifetimeRevenuePaise",
+    "discountPaise"
+  ]) {
+    assert.ok(service.includes(field), `${field} should be part of the Stage 3 contract`);
+  }
+  assert.match(service, /membership_invoice_snapshots/, "membership/package redemption should read invoice snapshots");
+  assert.match(service, /client_membership_ledger/, "membership/package sales and redemptions should read membership ledger");
+  assert.match(service, /productConsumeInvoiceCostMap/, "membership/package redeemed service costs should attach product consume COGS");
+  assert.match(service, /membershipRecordType/, "package entitlements should be separated from memberships");
+  assert.ok(page.includes("Customer profitability"), "customer profitability table should be visible");
+  assert.ok(page.includes("Membership value"), "membership profitability table should be visible");
+  assert.ok(page.includes("Package value"), "package profitability table should be visible");
+  assert.ok(page.includes("Product Cost"), "membership/package tables should expose redeemed product cost");
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");
