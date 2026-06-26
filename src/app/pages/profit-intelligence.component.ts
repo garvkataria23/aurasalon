@@ -270,6 +270,35 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="leak-grid" *ngIf="summary()?.profitLeaks as leaks">
+        <article class="table-panel leak-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Profit Leak Detection</p>
+              <h2>Daily leakage alert center</h2>
+            </div>
+            <span>{{ leaks.length || 0 }} active signals</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Severity</th><th>Leak Type</th><th>Branch</th><th>Source</th><th>Impact</th><th>Message</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let leak of leaks">
+                  <td><strong class="severity-pill" [ngClass]="'severity-' + severityClass(leak.severity)">{{ leak.severity }}</strong></td>
+                  <td><strong>{{ leak.type }}</strong></td>
+                  <td>{{ leak.branchId || '-' }}</td>
+                  <td>{{ leak.sourceId || '-' }}</td>
+                  <td><strong>{{ paise(leak.estimatedImpactPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td><span>{{ leak.message }}</span></td>
+                  <td><span>{{ leak.recommendedAction }}</span></td>
+                </tr>
+                <tr *ngIf="!leaks.length"><td colspan="7" class="empty-cell">No profit leaks detected.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <section class="enterprise-grid" *ngIf="summary()?.enterpriseAnalytics as analytics">
         <article class="panel analytics-card">
           <header>
@@ -630,6 +659,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .wastage-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
     .wastage-panel { border-top: 3px solid #9a3412; }
     .wastage-panel table { min-width: 1080px; }
+    .leak-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #fff; border-bottom: 1px solid #d9e1ea; }
+    .leak-panel { border-top: 3px solid #991b1b; }
+    .leak-panel table { min-width: 1040px; }
     .severity-pill { display: inline-flex; min-width: 58px; justify-content: center; border-radius: 3px; padding: 4px 7px; font-size: 11px; text-transform: uppercase; }
     .severity-green { color: #166534; background: #dcfce7; border: 1px solid #86efac; }
     .severity-amber { color: #92400e; background: #fef3c7; border: 1px solid #fbbf24; }
@@ -737,5 +769,10 @@ export class ProfitIntelligenceComponent implements OnInit {
   slotLabel(value: unknown): string {
     const text = String(value || '');
     return text ? text.replace('T', ' ').slice(0, 16) : 'No slot';
+  }
+
+  severityClass(value: unknown): string {
+    const text = String(value || 'green').toLowerCase();
+    return text === 'high' ? 'red' : text === 'medium' ? 'amber' : text === 'low' ? 'green' : text;
   }
 }

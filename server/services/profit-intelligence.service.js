@@ -283,6 +283,7 @@ export class ProfitIntelligenceService {
       netMarginBps: marginBps(netProfitPaise, revenuePaise)
     };
     const profitBreakdown = this.breakdown(query, access);
+    const recipeVariance = this.recipeVariance(params);
 
     return {
       period: { from: params.from, to: params.to, branchId: params.branchId },
@@ -290,7 +291,8 @@ export class ProfitIntelligenceService {
       ceoKpis: this.ceoKpis(params, metrics, profitBreakdown, expenseTotals.breakdown),
       profitDigitalTwin: this.profitDigitalTwin(query, metrics),
       pricingAutopilot: this.pricingAutopilot(query, profitBreakdown),
-      recipeVariance: this.recipeVariance(params),
+      recipeVariance,
+      profitLeaks: this.profitLeaks(params, metrics, invoices, payments, recipeVariance),
       enterpriseAnalytics: this.enterpriseAnalytics(params, metrics, invoices, expenseRows, profitBreakdown),
       revenueBreakdown: breakdown,
       expenseBreakdown: expenseTotals.breakdown,
@@ -442,6 +444,144 @@ export class ProfitIntelligenceService {
     if (row.dimension === "staff") return `${row.staffName || "Staff"} ke service consume me variance high hai; coaching ya approval check karein.`;
     if (row.dimension === "branch") return `${row.branchId || "Branch"} me product cost recipe se zyada hai; branch wastage audit karein.`;
     return `${row.serviceName || "Service"} recipe variance high hai; recipe quantity, wastage percent aur product issue flow review karein.`;
+  }
+
+  profitLeaks(params = {}, metrics = {}, invoices = [], payments = [], recipeVariance = {}) {
+    const serviceLookup = this.serviceLookup(params);
+    const leaks = [];
+    for (const invoice of invoices) {
+      leaks.push(...this.invoiceProfitLeaks(invoice, serviceLookup));
+    }
+    const discountPaise = invoices.reduce((sum, row) => sum + Math.max(toPaise(row.discount), toPaise(row.discountTotal)), 0);
+    if (metrics.revenuePaise > 0 && discountPaise > 0 && marginBps(discountPaise, metrics.revenuePaise) >= 1200) {
+      leaks.push(this.leakRow({
+        type: "discount_abuse",
+        severity: marginBps(discountPaise, metrics.revenuePaise) >= 2000 ? "high" : "medium",
+        branchId: params.branchId,
+        sourceId: "period_discount",
+        estimatedImpactPaise: discountPaise,
+        message: `Discounts selected period revenue ka ${Math.round(marginBps(discountPaise, metrics.revenuePaise) / 100)}% hain.`,
+        recommendedAction: "Manager approval threshold tighten karein aur discount reason audit karein."
+      }));
+    }
+    if (metrics.revenuePaise > 0 && metrics.refundPaise > 0 && marginBps(metrics.refundPaise, metrics.revenuePaise) >= 500) {
+      leaks.push(this.leakRow({
+        type: "high_refunds",
+        severity: marginBps(metrics.refundPaise, metrics.revenuePaise) >= 1000 ? "high" : "medium",
+        branchId: params.branchId,
+        sourceId: "period_refunds",
+        estimatedImpactPaise: metrics.refundPaise,
+        message: "Refund ratio normal threshold se upar hai.",
+        recommendedAction: "Refund approval, service complaint reasons aur staff-wise refund trend review karein."
+      }));
+    }
+    const collectionGapPaise = Math.max(0, Number(metrics.revenuePaise || 0) - Number(metrics.collectionsPaise || 0) - Number(metrics.refundPaise || 0));
+    if (metrics.revenuePaise > 0 && marginBps(collectionGapPaise, metrics.revenuePaise) >= 1000) {
+      leaks.push(this.leakRow({
+        type: "low_collection",
+        severity: marginBps(collectionGapPaise, metrics.revenuePaise) >= 2500 ? "high" : "medium",
+        branchId: params.branchId,
+        sourceId: "period_collection_gap",
+        estimatedImpactPaise: collectionGapPaise,
+        message: "Booked revenue aur collected payments me gap high hai.",
+        recommendedAction: "Pending invoices par payment recovery workflow aur front-desk closeout audit run karein."
+      }));
+    }
+    for (const row of recipeVariance.rows || []) {
+      if (!row.variancePaise || row.severity === "green") continue;
+      leaks.push(this.leakRow({
+        type: "inventory_mismatch",
+        severity: row.severity === "red" ? "high" : "medium",
+        branchId: row.branchId || params.branchId,
+        sourceId: `${row.dimension}:${row.serviceId || row.productId || row.branchId || "variance"}`,
+        estimatedImpactPaise: row.variancePaise,
+        message: row.productName ? `${row.productName} overuse recipe expectation se zyada hai.` : `${row.serviceName || row.branchId || "Recipe"} consume variance high hai.`,
+        recommendedAction: row.recommendation || "Recipe, stock issue aur consume confirmation audit karein."
+      }));
+    }
+    return leaks
+      .filter((leak) => leak.estimatedImpactPaise > 0)
+      .sort((a, b) => b.estimatedImpactPaise - a.estimatedImpactPaise)
+      .slice(0, BREAKDOWN_LIMIT);
+  }
+
+  invoiceProfitLeaks(invoice = {}, serviceLookup = new Map()) {
+    const leaks = [];
+    const lines = parseJsonArray(invoice.lineItems);
+    const invoiceBranchId = invoice.branchId || "";
+    const invoiceId = invoice.id || invoice.invoiceNumber || "";
+    for (const line of lines) {
+      const serviceId = lineServiceId(line);
+      const service = serviceId ? serviceLookup.get(serviceId) : serviceLookup.get(mapKey([lineName(line)]));
+      const qty = Math.max(1, Number(line.quantity || line.qty || 1));
+      const expectedPricePaise = toPaise(service?.price || line.originalPrice || line.basePrice || line.listPrice || 0) * qty;
+      const actualPaise = lineAmountPaise(line);
+      const type = revenueType(line);
+      const name = lineName(line);
+      if ((type === "addOn" || /add[-\s]?on|addon/i.test(name)) && actualPaise <= 0) {
+        leaks.push(this.leakRow({
+          type: "unbilled_add_on",
+          severity: "medium",
+          branchId: invoiceBranchId,
+          sourceId: invoiceId,
+          estimatedImpactPaise: expectedPricePaise || 50000,
+          message: `${name} add-on invoice me billed nahi hua.`,
+          recommendedAction: "POS add-on mandatory pricing aur checkout validation enable karein."
+        }));
+      }
+      if (expectedPricePaise > 0 && actualPaise > 0 && expectedPricePaise - actualPaise >= Math.max(10000, Math.round(expectedPricePaise * 0.15))) {
+        const explicitDiscount = Number(line.discount || line.discountAmount || line.discount_amount || 0) > 0;
+        const overrideFlag = line.priceOverride || line.manualPriceOverride || line.overrideReason || line.price_override;
+        if (overrideFlag || !explicitDiscount) {
+          leaks.push(this.leakRow({
+            type: "manual_price_override",
+            severity: expectedPricePaise - actualPaise >= Math.round(expectedPricePaise * 0.3) ? "high" : "medium",
+            branchId: invoiceBranchId,
+            sourceId: invoiceId,
+            estimatedImpactPaise: expectedPricePaise - actualPaise,
+            message: `${name} expected price se kam bill hua.`,
+            recommendedAction: "Manual price override approval aur reason audit karein."
+          }));
+        }
+      }
+      if ((type === "service" || type === "package" || type === "membership") && actualPaise <= 0 && expectedPricePaise > 0) {
+        leaks.push(this.leakRow({
+          type: "free_service_redemption",
+          severity: expectedPricePaise >= 100000 ? "high" : "medium",
+          branchId: invoiceBranchId,
+          sourceId: invoiceId,
+          estimatedImpactPaise: expectedPricePaise,
+          message: `${name} zero-value service redemption detect hua.`,
+          recommendedAction: "Membership/package entitlement, comp reason aur approval trail verify karein."
+        }));
+      }
+    }
+    const invoiceDiscountPaise = Math.max(toPaise(invoice.discount), toPaise(invoice.discountTotal));
+    const invoiceRevenuePaise = toPaise(invoice.total);
+    if (invoiceRevenuePaise > 0 && invoiceDiscountPaise > 0 && marginBps(invoiceDiscountPaise, invoiceRevenuePaise + invoiceDiscountPaise) >= 2500) {
+      leaks.push(this.leakRow({
+        type: "discount_abuse",
+        severity: "high",
+        branchId: invoiceBranchId,
+        sourceId: invoiceId,
+        estimatedImpactPaise: invoiceDiscountPaise,
+        message: `${invoice.invoiceNumber || invoiceId} par high discount apply hua.`,
+        recommendedAction: "Discount reason, approval aur staff-level pattern audit karein."
+      }));
+    }
+    return leaks;
+  }
+
+  leakRow({ type, severity = "medium", branchId = "", sourceId = "", estimatedImpactPaise = 0, message = "", recommendedAction = "" }) {
+    return {
+      type,
+      severity,
+      branchId,
+      sourceId,
+      estimatedImpactPaise: Math.max(0, Math.round(Number(estimatedImpactPaise || 0))),
+      message,
+      recommendedAction
+    };
   }
 
   profitDigitalTwin(query = {}, metrics = {}) {
@@ -710,7 +850,7 @@ export class ProfitIntelligenceService {
   invoiceRows(params) {
     if (!tableExists("invoices")) return [];
     return safeAll(`
-      SELECT i.id, i.invoiceNumber, i.lineItems, i.total, i.subtotal, i.discount, i.status, i.createdAt,
+      SELECT i.id, i.invoiceNumber, i.lineItems, i.total, i.subtotal, i.discount, i.discount_total AS discountTotal, i.status, i.createdAt,
         i.clientId,
         COALESCE(NULLIF(i.branchId, ''), s.branchId, '') AS branchId,
         COALESCE(s.staffId, '') AS staffId,

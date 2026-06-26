@@ -214,6 +214,30 @@ test("Profit Intelligence exposes Recipe Variance and Wastage Radar", () => {
   }
 });
 
+test("Profit Intelligence exposes Profit Leak Detection", () => {
+  for (const field of [
+    "profitLeaks",
+    "invoiceProfitLeaks",
+    "leakRow",
+    "unbilled_add_on",
+    "discount_abuse",
+    "manual_price_override",
+    "high_refunds",
+    "low_collection",
+    "free_service_redemption",
+    "inventory_mismatch",
+    "estimatedImpactPaise",
+    "recommendedAction"
+  ]) {
+    assert.ok(service.includes(field) || page.includes(field), `${field} should be part of Profit Leak Detection`);
+  }
+  assert.match(service, /collectionsPaise[\s\S]*refundPaise/, "profit leaks should compare collection and refund signals");
+  assert.match(service, /recipeVariance\.rows/, "profit leaks should include inventory/product consume mismatch signals");
+  for (const label of ["Profit Leak Detection", "Daily leakage alert center", "Leak Type", "Impact", "No profit leaks detected."]) {
+    assert.ok(page.includes(label), `${label} should be visible for Profit Leak Detection`);
+  }
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");
