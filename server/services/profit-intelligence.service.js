@@ -1,4 +1,5 @@
 import { db } from "../db.js";
+import { profitGovernanceService } from "./profit-governance.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
@@ -308,6 +309,7 @@ export class ProfitIntelligenceService {
       membershipRisk,
       enterpriseAnalytics,
       autoBoardReport: this.autoBoardReport({ metrics, ceoKpis, revenueBreakdown: breakdown, expenseBreakdown: expenseTotals.breakdown, profitBreakdown, recipeVariance, pricingAutopilot, profitLeaks, membershipRisk, enterpriseAnalytics }),
+      profitGovernance: profitGovernanceService.governanceSummary(query, access),
       revenueBreakdown: breakdown,
       expenseBreakdown: expenseTotals.breakdown,
       sourceHealth: {

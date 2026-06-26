@@ -3,6 +3,7 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { profitActionQueueService } from "../services/profit-action-queue.service.js";
 import { profitAwareBookingService } from "../services/profit-aware-booking.service.js";
+import { profitGovernanceService } from "../services/profit-governance.service.js";
 import { profitIntelligenceService } from "../services/profit-intelligence.service.js";
 
 export const profitIntelligenceRouter = Router();
@@ -36,6 +37,46 @@ profitIntelligenceRouter.post(
   requirePermission("read", () => "finance"),
   asyncHandler((req, res) => {
     res.json(profitIntelligenceService.copilot(req.body, req.access));
+  })
+);
+
+profitIntelligenceRouter.get(
+  "/profit-intelligence/governance/rules",
+  requirePermission("read", () => "finance"),
+  asyncHandler((req, res) => {
+    res.json(profitGovernanceService.listRules(req.query, req.access));
+  })
+);
+
+profitIntelligenceRouter.post(
+  "/profit-intelligence/governance/rules",
+  requirePermission("write", () => "finance"),
+  asyncHandler((req, res) => {
+    res.status(201).json(profitGovernanceService.upsertRule(req.body, req.access));
+  })
+);
+
+profitIntelligenceRouter.post(
+  "/profit-intelligence/governance/evaluate-discount",
+  requirePermission("write", () => "finance"),
+  asyncHandler((req, res) => {
+    res.json(profitGovernanceService.evaluateDiscount(req.body, req.access));
+  })
+);
+
+profitIntelligenceRouter.post(
+  "/profit-intelligence/governance/evaluate-action",
+  requirePermission("write", () => "finance"),
+  asyncHandler((req, res) => {
+    res.json(profitGovernanceService.evaluateAction(req.body, req.access));
+  })
+);
+
+profitIntelligenceRouter.get(
+  "/profit-intelligence/governance/summary",
+  requirePermission("read", () => "finance"),
+  asyncHandler((req, res) => {
+    res.json(profitGovernanceService.governanceSummary(req.query, req.access));
   })
 );
 

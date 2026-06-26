@@ -8,6 +8,8 @@ const service = readFileSync("server/services/profit-intelligence.service.js", "
 const bookingService = readFileSync("server/services/profit-aware-booking.service.js", "utf8");
 const actionService = readFileSync("server/services/profit-action-queue.service.js", "utf8");
 const actionSchema = readFileSync("server/services/profit-action-queue-schema.service.js", "utf8");
+const governanceService = readFileSync("server/services/profit-governance.service.js", "utf8");
+const governanceSchema = readFileSync("server/services/profit-governance-schema.service.js", "utf8");
 const appRoutes = readFileSync("src/app/app.routes.ts", "utf8");
 const appComponent = readFileSync("src/app/app.component.ts", "utf8");
 const page = readFileSync("src/app/pages/profit-intelligence.component.ts", "utf8");
@@ -342,6 +344,52 @@ test("Profit Intelligence exposes Profit Copilot and Auto Board Report", () => {
   assert.ok(page.includes("profit-intelligence/copilot"), "page should call Profit Copilot endpoint");
 });
 
+test("Profit Intelligence exposes Profit Governance and Margin-Safe Discount Engine", () => {
+  assert.ok(serverApp.includes("ensureProfitGovernanceSchema"), "app should ensure profit governance schema");
+  assert.ok(governanceSchema.includes("CREATE TABLE IF NOT EXISTS profit_governance_rules"), "governance rules table should be add-only");
+  assert.ok(governanceSchema.includes("CREATE TABLE IF NOT EXISTS profit_governance_audit"), "governance audit table should be add-only");
+  for (const field of [
+    "ruleType",
+    "minMarginBps",
+    "maxDiscountBps",
+    "maxImpactPaise",
+    "approvalRequired",
+    "autoExecuteAllowed",
+    "auditRequired",
+    "payloadJson",
+    "evaluateDiscount",
+    "evaluateAction",
+    "auditDecision",
+    "governanceSummary",
+    "allowed",
+    "requiresApproval",
+    "blocked",
+    "estimatedProfitPaise",
+    "riskLevel",
+    "ruleTriggered",
+    "auditId"
+  ]) {
+    assert.ok(governanceSchema.includes(field) || governanceService.includes(field) || service.includes(field) || page.includes(field), `${field} should be part of Profit Governance`);
+  }
+  for (const endpoint of [
+    "/profit-intelligence/governance/rules",
+    "/profit-intelligence/governance/evaluate-discount",
+    "/profit-intelligence/governance/evaluate-action",
+    "/profit-intelligence/governance/summary"
+  ]) {
+    assert.ok(route.includes(endpoint), `${endpoint} should be exposed`);
+  }
+  assert.match(route, /governance\/rules[\s\S]*requirePermission\("read",\s*\(\) => "finance"\)/, "governance rules list should require read finance");
+  assert.match(route, /governance\/evaluate-discount[\s\S]*requirePermission\("write",\s*\(\) => "finance"\)/, "discount evaluation should require write finance");
+  assert.ok(service.includes("profitGovernance"), "Profit Intelligence summary should include profitGovernance payload");
+  assert.ok(governanceService.includes("ensureApprovalAction"), "approval-required governance should create/reuse action queue tasks");
+  for (const label of ["Profit Governance &amp; Margin Guard", "Governance rules", "Margin-Safe Discount Simulator", "Evaluate Discount", "Governance Decisions", "Estimated Profit", "Rule Triggered"]) {
+    assert.ok(page.includes(label), `${label} should be visible for Profit Governance`);
+  }
+  assert.ok(page.includes("profit-intelligence/governance/rules"), "page should call governance rules endpoint");
+  assert.ok(page.includes("profit-intelligence/governance/evaluate-discount"), "page should call discount evaluation endpoint");
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");
@@ -349,6 +397,7 @@ test("Profit Intelligence page is routed and visible in Finance navigation", () 
   assert.ok(page.includes("profit-intelligence/breakdown"), "page should call the breakdown endpoint");
   assert.ok(page.includes("profit-intelligence/booking-recommendations"), "page should call booking recommendations endpoint");
   assert.ok(page.includes("profit-intelligence/actions"), "page should call profit action queue endpoint");
+  assert.ok(page.includes("profit-intelligence/governance/rules"), "page should call profit governance endpoint");
   assert.ok(page.includes("grossMarginBps"), "page should expose gross margin");
   assert.ok(page.includes("netMarginBps"), "page should expose net margin");
   for (const label of ["Service wise margin", "Staff wise profitability", "Branch wise profit", "Category wise margin"]) {

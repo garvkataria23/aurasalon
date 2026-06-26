@@ -32,6 +32,7 @@ import { ensureInvoicePaymentCollectionSchema } from "./services/invoice-payment
 import { ensureCashDrawerEodSchema } from "./services/cash-drawer-eod-schema.service.js";
 import { ensureGrowthRankBotSchema } from "./services/growth-rank-bot-schema.service.js";
 import { ensureProfitActionQueueSchema } from "./services/profit-action-queue-schema.service.js";
+import { ensureProfitGovernanceSchema } from "./services/profit-governance-schema.service.js";
 import { ensureLegacyRevenueSchema } from "./services/legacy-revenue-schema.service.js";
 import { ensureWaitlistSchema } from "./services/waitlist-schema.service.js";
 import { ensureTwoFactorSchema } from "./services/two-factor-schema.service.js";
@@ -204,6 +205,7 @@ export function createApp() {
   ensureCashDrawerEodSchema();
   ensureGrowthRankBotSchema();
   ensureProfitActionQueueSchema();
+  ensureProfitGovernanceSchema();
   ensureLegacyRevenueSchema();
   ensureWaitlistSchema();
   ensureTwoFactorSchema();

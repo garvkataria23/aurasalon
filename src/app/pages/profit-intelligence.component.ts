@@ -333,6 +333,86 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="governance-grid" *ngIf="summary()?.profitGovernance as governance">
+        <article class="table-panel governance-rules-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Profit Governance &amp; Margin Guard</p>
+              <h2>Governance rules</h2>
+            </div>
+            <span>{{ governance.rulesActive || 0 }} active</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Rule</th><th>Min Margin</th><th>Max Discount</th><th>Approval</th><th>Auto Execute</th><th>Audit</th><th>Severity</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let rule of governanceRules()">
+                  <td><strong>{{ rule.title }}</strong><span>{{ rule.description }}</span></td>
+                  <td>{{ percent(rule.minMarginBps) }}</td>
+                  <td>{{ percent(rule.maxDiscountBps) }}</td>
+                  <td>{{ rule.approvalRequired ? 'Required' : 'No' }}</td>
+                  <td>{{ rule.autoExecuteAllowed ? 'Allowed' : 'Blocked' }}</td>
+                  <td>{{ rule.auditRequired ? 'Required' : 'No' }}</td>
+                  <td><strong class="severity-pill" [ngClass]="'severity-' + severityClass(rule.severity)">{{ rule.severity }}</strong></td>
+                </tr>
+                <tr *ngIf="!governanceRules().length"><td colspan="7" class="empty-cell">No governance rules configured.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel margin-guard-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Margin-Safe Discount Simulator</p>
+              <h2>Pre-invoice guardrail</h2>
+            </div>
+            <span>{{ governance.blockedToday || 0 }} blocked today</span>
+          </header>
+          <form class="guard-form" [formGroup]="filters" (ngSubmit)="evaluateDiscount()">
+            <label><span>Gross Amount</span><input type="number" min="0" formControlName="guardGrossAmount" /></label>
+            <label><span>Discount</span><input type="number" min="0" formControlName="guardDiscountAmount" /></label>
+            <label><span>Product Cost</span><input type="number" min="0" formControlName="guardProductCost" /></label>
+            <label><span>Staff Cost</span><input type="number" min="0" formControlName="guardStaffCost" /></label>
+            <label><span>Membership Redemption</span><input type="number" min="0" formControlName="guardMembershipRedemption" /></label>
+            <button class="primary-button" type="submit" [disabled]="governanceBusy()">Evaluate Discount</button>
+          </form>
+          <div class="guard-result" *ngIf="governanceDecision() as decision">
+            <div><span>Status</span><strong>{{ decision.blocked ? 'Blocked' : decision.requiresApproval ? 'Approval Required' : 'Allowed' }}</strong></div>
+            <div><span>Estimated Profit</span><strong>{{ paise(decision.estimatedProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Margin</span><strong>{{ percent(decision.marginBps) }}</strong></div>
+            <div><span>Discount</span><strong>{{ percent(decision.discountBps) }}</strong></div>
+            <div><span>Rule Triggered</span><strong>{{ decision.ruleTriggered?.title || 'Within policy' }}</strong></div>
+            <div><span>Recommendation</span><strong>{{ decision.recommendedAction }}</strong></div>
+          </div>
+        </article>
+
+        <article class="table-panel governance-decisions-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Governance Decisions</p>
+              <h2>Recent audit trail</h2>
+            </div>
+            <span>{{ governance.auditCount || 0 }} decisions</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Source</th><th>Decision</th><th>Risk</th><th>Impact</th><th>Message</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of governance.recentDecisions || []">
+                  <td><strong>{{ row.sourceType }}</strong><span>{{ row.sourceId || '-' }}</span></td>
+                  <td>{{ row.decision }}</td>
+                  <td>{{ percent(row.marginBps) }} margin<span>{{ percent(row.discountBps) }} discount</span></td>
+                  <td><strong>{{ paise(row.impactPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td><span>{{ row.message }}</span></td>
+                </tr>
+                <tr *ngIf="!(governance.recentDecisions || []).length"><td colspan="5" class="empty-cell">No governance decisions yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <section class="copilot-grid" *ngIf="summary() as report">
         <article class="panel copilot-panel">
           <header>
@@ -827,6 +907,18 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .action-buttons { display: flex; flex-wrap: wrap; gap: 6px; min-width: 210px; }
     .action-buttons button { border: 1px solid #cbd5e1; background: #fff; color: #143d59; padding: 7px 9px; font-weight: 900; cursor: pointer; }
     .action-buttons button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .governance-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
+    .governance-rules-panel { border-top: 3px solid #143d59; }
+    .margin-guard-panel { border-top: 3px solid #991b1b; }
+    .governance-decisions-panel { grid-column: 1 / -1; border-top: 3px solid #8a6d0f; }
+    .governance-rules-panel table { min-width: 960px; }
+    .governance-decisions-panel table { min-width: 860px; }
+    .guard-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; }
+    .guard-form .primary-button { width: 100%; }
+    .guard-result { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .guard-result div { display: grid; gap: 4px; border: 1px solid #d9e1ea; padding: 10px; min-width: 0; }
+    .guard-result span { color: #64748b; font-size: 12px; font-weight: 800; }
+    .guard-result strong { font-size: 13px; overflow-wrap: anywhere; }
     .copilot-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
     .copilot-panel { border-top: 3px solid #143d59; }
     .board-panel { border-top: 3px solid #8a6d0f; }
@@ -886,14 +978,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
     @media (max-width: 1100px) {
       .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .ceo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .digital-twin-grid, .copilot-grid, .customer-score-grid, .enterprise-grid, .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
-      .scenario-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .digital-twin-grid, .governance-grid, .copilot-grid, .customer-score-grid, .enterprise-grid, .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
+      .scenario-form, .guard-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .board-metrics, .board-lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 760px) {
       .page-title, header { align-items: flex-start; flex-direction: column; }
       .metrics-grid, .ceo-grid, .source-grid { grid-template-columns: 1fr; }
-      .scenario-form, .copilot-form, .twin-metrics, .board-metrics, .board-lists { grid-template-columns: 1fr; }
+      .scenario-form, .guard-form, .guard-result, .copilot-form, .twin-metrics, .board-metrics, .board-lists { grid-template-columns: 1fr; }
       .metrics-grid article, .metrics-grid article:first-child { border-left: 1px solid #d9e1ea; }
     }
   `]
@@ -903,16 +995,24 @@ export class ProfitIntelligenceComponent implements OnInit {
   readonly breakdown = signal<ApiRecord | null>(null);
   readonly bookingRecommendations = signal<ApiRecord | null>(null);
   readonly actionQueue = signal<ApiRecord[]>([]);
+  readonly governanceRules = signal<ApiRecord[]>([]);
+  readonly governanceDecision = signal<ApiRecord | null>(null);
   readonly copilotResponse = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly actionBusy = signal('');
+  readonly governanceBusy = signal(false);
   readonly copilotBusy = signal(false);
   readonly today = new Date().toISOString().slice(0, 10);
   readonly filters = this.fb.group({
     from: [`${this.today.slice(0, 7)}-01`],
     to: [this.today],
     copilotQuestion: ['profit kam kyu hai?'],
+    guardGrossAmount: [5000],
+    guardDiscountAmount: [500],
+    guardProductCost: [900],
+    guardStaffCost: [700],
+    guardMembershipRedemption: [0],
     scenarioPriceChangePct: [0],
     scenarioRevenueChangePct: [0],
     scenarioCommissionChangePct: [0],
@@ -934,18 +1034,45 @@ export class ProfitIntelligenceComponent implements OnInit {
       report: this.api.list<ApiRecord>('profit-intelligence/summary', this.filters.value),
       detail: this.api.list<ApiRecord>('profit-intelligence/breakdown', this.filters.value),
       booking: this.api.list<ApiRecord>('profit-intelligence/booking-recommendations', this.filters.value),
-      actions: this.api.list<ApiRecord[]>('profit-intelligence/actions', this.filters.value)
+      actions: this.api.list<ApiRecord[]>('profit-intelligence/actions', this.filters.value),
+      governanceRules: this.api.list<ApiRecord[]>('profit-intelligence/governance/rules', this.filters.value)
     }).subscribe({
-      next: ({ report, detail, booking, actions }) => {
+      next: ({ report, detail, booking, actions, governanceRules }) => {
         this.summary.set(report);
         this.breakdown.set(detail);
         this.bookingRecommendations.set(booking);
         this.actionQueue.set(actions || []);
+        this.governanceRules.set(governanceRules || []);
         this.loading.set(false);
       },
       error: (error) => {
         this.error.set(this.api.errorText(error, 'Unable to load Profit Intelligence'));
         this.loading.set(false);
+      }
+    });
+  }
+
+  evaluateDiscount(): void {
+    this.governanceBusy.set(true);
+    this.error.set('');
+    this.api.post<ApiRecord>('profit-intelligence/governance/evaluate-discount', {
+      ...this.filters.value,
+      grossAmountPaise: this.inputPaise(this.filters.value.guardGrossAmount),
+      discountPaise: this.inputPaise(this.filters.value.guardDiscountAmount),
+      productCostPaise: this.inputPaise(this.filters.value.guardProductCost),
+      staffCostPaise: this.inputPaise(this.filters.value.guardStaffCost),
+      membershipRedemptionPaise: this.inputPaise(this.filters.value.guardMembershipRedemption),
+      sourceType: 'margin_safe_discount_simulator',
+      sourceId: `sim-${Date.now()}`
+    }).subscribe({
+      next: (decision) => {
+        this.governanceDecision.set(decision);
+        this.governanceBusy.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.error.set(this.api.errorText(error, 'Unable to evaluate margin guard'));
+        this.governanceBusy.set(false);
       }
     });
   }
@@ -993,6 +1120,10 @@ export class ProfitIntelligenceComponent implements OnInit {
 
   paise(value: unknown): number {
     return Number(value || 0) / 100;
+  }
+
+  inputPaise(value: unknown): number {
+    return Math.round(Number(value || 0) * 100);
   }
 
   percent(value: unknown): string {
