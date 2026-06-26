@@ -1062,16 +1062,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly appointmentActions: AppointmentActionOption[] = [
     { value: 'confirmed', label: 'Confirmed' },
-    { value: 'booked', label: 'Not Confirmed' },
     { value: 'arrived', label: 'Arrived' },
     { value: 'in-service', label: 'Start' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancel' },
-    { value: 'no-show', label: 'Not Came' },
-    { value: 'edit', label: 'Edit Booking' },
-    { value: 'reschedule', label: 'Reschedule Booking' },
-    { value: 'add-payment', label: 'Add Payment' },
-    { value: 'add-tip', label: 'Add Tip' }
+    { value: 'add-payment', label: 'Add Payment' }
   ];
   private readonly completedAppointmentActions: AppointmentActionOption[] = [
     { value: 'completed', label: 'Completed' },
