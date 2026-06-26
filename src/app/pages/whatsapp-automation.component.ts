@@ -9,6 +9,10 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
   selector: 'app-whatsapp-automation',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePipe, StateComponent, AuraKpiCardComponent],
+  styles: [`
+    :host .ai-layout { grid-template-columns: 1fr 1fr; align-items: stretch; }
+    :host .form-panel, :host .ai-layout .panel { display: grid; align-content: start; }
+  `],
   template: `
     <section class="page-stack">
       <div class="module-hero">
@@ -35,8 +39,13 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
       <div class="ai-layout" *ngIf="!loading()">
         <section class="form-panel">
-          <h3>Inbound auto reply and intent detection</h3>
-          <form [formGroup]="inboundForm" (ngSubmit)="processInbound()">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Auto reply engine</span>
+              <h2>Inbound intent detection</h2>
+            </div>
+          </div>
+          <form [formGroup]="inboundForm" (ngSubmit)="processInbound()" class="wa-action-form">
             <label class="field"><span>Phone</span><input formControlName="phone" placeholder="+91 98765 00000" /></label>
             <label class="field"><span>Name</span><input formControlName="displayName" placeholder="Lead name" /></label>
             <label class="field">
@@ -47,9 +56,9 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
               </select>
             </label>
             <label class="field full"><span>Incoming message</span><textarea formControlName="body"></textarea></label>
-            <div class="form-actions">
-              <button class="primary-button" type="submit" [disabled]="inboundForm.invalid || saving()">Process inbound</button>
+            <div class="form-actions" style="display:flex;gap:10px;justify-content:flex-end;grid-column:1/-1">
               <button class="ghost-button" type="button" (click)="qualifyLead()" [disabled]="inboundForm.invalid || saving()">Qualify only</button>
+              <button class="primary-button" type="submit" [disabled]="inboundForm.invalid || saving()">Process inbound</button>
             </div>
           </form>
         </section>

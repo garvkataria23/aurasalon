@@ -44555,3 +44555,3241 @@
          ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
 
 [39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 30 in [ store.approvals().filter(a => a.status === 'pending').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-approval.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.approvals().filter(a => a.status === 'pendin[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord'.
+  Overload 2 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:45:
+[37m      21 │ ...pprovals().filter([32ma => a.status === 'pending'[37m).length }} pendin...
+         ╵                      [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 30 in [ store.approvals().filter(a => a.status === 'pending').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-approval.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.approvals().filter(a => a.status === 'pendin[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord'.
+  Overload 2 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:45:
+[37m      21 │ ...pprovals().filter([32ma => a.status === 'pending'[37m).length }} pendin...
+         ╵                      [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 30 in [ store.approvals().filter(a => a.status === 'pending').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-approval.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.approvals().filter(a => a.status === 'pendin[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord'.
+  Overload 2 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:45:
+[37m      21 │ ...pprovals().filter([32ma => a.status === 'pending'[37m).length }} pendin...
+         ╵                      [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 30 in [ store.approvals().filter(a => a.status === 'pending').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-approval.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.approvals().filter(a => a.status === 'pendin[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => value is ApprovalRecord'.
+  Overload 2 of 2, '(predicate: (value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown, thisArg?: any): ApprovalRecord[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: ApprovalRecord, index: number, array: ApprovalRecord[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:45:
+[37m      21 │ ...pprovals().filter([32ma => a.status === 'pending'[37m).length }} pendin...
+         ╵                      [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 25 in [ store.jobs().filter(j => j.status === 'completed').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-history.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.jobs().filter(j => j.status === 'completed')[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: any, index: number, array: any[]) => value is any, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => value is any'.
+  Overload 2 of 2, '(predicate: (value: any, index: number, array: any[]) => unknown, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:40:
+[37m      21 │ ...re.jobs().filter([32mj => j.status === 'completed'[37m).length }} compl...
+         ╵                     [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'pendingCount' does not exist on type 'DataMigrationApprovalComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:20:
+[37m      21 │           <small>{{ [32mpendingCount[37m() }} pending</small>
+         ╵                     [32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:122:
+[37m      27 │ ...approvalNote = $event.target.[32mvalue[37m" placeholder="Approval note ...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 25 in [ store.jobs().filter(j => j.status === 'completed').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-history.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.jobs().filter(j => j.status === 'completed')[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: any, index: number, array: any[]) => value is any, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => value is any'.
+  Overload 2 of 2, '(predicate: (value: any, index: number, array: any[]) => unknown, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:40:
+[37m      21 │ ...re.jobs().filter([32mj => j.status === 'completed'[37m).length }} compl...
+         ╵                     [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'pendingCount' does not exist on type 'DataMigrationApprovalComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:21:20:
+[37m      21 │           <small>{{ [32mpendingCount[37m() }} pending</small>
+         ╵                     [32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'setNote' does not exist on type 'DataMigrationApprovalComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:27:87:
+[37m      27 │ ...ore.approvalNote" (change)="[32msetNote[37m($event)" placeholder="Appro...
+         ╵                                [32m~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 25 in [ store.jobs().filter(j => j.status === 'completed').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-history.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.jobs().filter(j => j.status === 'completed')[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: any, index: number, array: any[]) => value is any, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => value is any'.
+  Overload 2 of 2, '(predicate: (value: any, index: number, array: any[]) => unknown, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:40:
+[37m      21 │ ...re.jobs().filter([32mj => j.status === 'completed'[37m).length }} compl...
+         ╵                     [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Parser Error: Bindings cannot contain assignments at column 25 in [ store.jobs().filter(j => j.status === 'completed').length ] in C:/Users/ADMIN/Desktop/SALON-NEWW/src/app/pages/data-migration-history.component.ts@20:17[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:17:
+[37m      21 │ ...   <small>[32m{{ store.jobs().filter(j => j.status === 'completed')[37m...
+         ╵              [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: any, index: number, array: any[]) => value is any, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => value is any'.
+  Overload 2 of 2, '(predicate: (value: any, index: number, array: any[]) => unknown, thisArg?: any): any[]', gave the following error.
+    Argument of type 'undefined' is not assignable to parameter of type '(value: any, index: number, array: any[]) => unknown'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:40:
+[37m      21 │ ...re.jobs().filter([32mj => j.status === 'completed'[37m).length }} compl...
+         ╵                     [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:115:
+[37m      23 │ ...urceSoftware = $event.target.[32mvalue[37m; store.refreshSourceContext()">
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onSourceChange' does not exist on type 'DataMigrationLaunchComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:78:
+[37m      23 │ ... [value]="store.sourceSoftware" (change)="[32monSourceChange[37m($event)">
+         ╵                                              [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:103:
+[37m      29 │ ...="store.resource = $event.target.[32mvalue[37m; store.onResourceChange()">
+         ╵                                     [32m~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onSourceChange' does not exist on type 'DataMigrationLaunchComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:78:
+[37m      23 │ ... [value]="store.sourceSoftware" (change)="[32monSourceChange[37m($event)">
+         ╵                                              [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onResourceChange' does not exist on type 'DataMigrationLaunchComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:72:
+[37m      29 │ ...put" [value]="store.resource" (change)="[32monResourceChange[37m($event)">
+         ╵                                            [32m~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onSourceChange' does not exist on type 'DataMigrationLaunchComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:23:78:
+[37m      23 │ ... [value]="store.sourceSoftware" (change)="[32monSourceChange[37m($event)">
+         ╵                                              [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onResourceChange' does not exist on type 'DataMigrationLaunchComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:29:72:
+[37m      29 │ ...put" [value]="store.resource" (change)="[32monResourceChange[37m($event)">
+         ╵                                            [32m~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onSandboxChange' does not exist on type 'DataMigrationLaunchComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-launch.component.ts:47:75:
+[37m      47 │ ...ecked]="store.sandboxMode()" (change)="[32monSandboxChange[37m($event)" />
+         ╵                                           [32m~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onMappingChange' does not exist on type 'DataMigrationAiMappingComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-ai-mapping.component.ts:52:73:
+[37m      52 │ ...sourceColumn" (change)="[32monMappingChange[37m(row.targetField, $event...
+         ╵                            [32m~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onChunkSizeChange' does not exist on type 'DataMigrationImportWorkerComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-import-worker.component.ts:28:93:
+[37m      28 │ ...argeChunkSize()" (change)="[32monChunkSizeChange[37m($event)" min="100" />
+         ╵                               [32m~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onChunkSizeChange' does not exist on type 'DataMigrationImportWorkerComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-import-worker.component.ts:28:93:
+[37m      28 │ ...argeChunkSize()" (change)="[32monChunkSizeChange[37m($event)" min="100" />
+         ╵                               [32m~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onMaxChunksChange' does not exist on type 'DataMigrationImportWorkerComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-import-worker.component.ts:32:93:
+[37m      32 │ ....largeMaxChunks()" (change)="[32monMaxChunksChange[37m($event)" min="1" />
+         ╵                                 [32m~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onChunkSizeChange' does not exist on type 'DataMigrationImportWorkerComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-import-worker.component.ts:28:93:
+[37m      28 │ ...argeChunkSize()" (change)="[32monChunkSizeChange[37m($event)" min="100" />
+         ╵                               [32m~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onMaxChunksChange' does not exist on type 'DataMigrationImportWorkerComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-import-worker.component.ts:32:93:
+[37m      32 │ ....largeMaxChunks()" (change)="[32monMaxChunksChange[37m($event)" min="1" />
+         ╵                                 [32m~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onAllowPartialChange' does not exist on type 'DataMigrationImportWorkerComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-import-worker.component.ts:37:89:
+[37m      37 │ ...owPartialLargeImport()" (change)="[32monAllowPartialChange[37m($event)" />
+         ╵                                      [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onExpectedTotalChange' does not exist on type 'DataMigrationValidationComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-validation.component.ts:66:104:
+[37m      66 │ ....label }}" (change)="[32monExpectedTotalChange[37m(metric.key, $event)" />
+         ╵                         [32m~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onQuestionChange' does not exist on type 'DataMigrationAssistantComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-assistant.component.ts:23:82:
+[37m      23 │ ...ntQuestion()" (change)="[32monQuestionChange[37m($event)" placeholder="...
+         ╵                            [32m~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onSandboxChange' does not exist on type 'DataMigrationGoLiveComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:44:75:
+[37m      44 │ ...ecked]="store.sandboxMode()" (change)="[32monSandboxChange[37m($event)" />
+         ╵                                           [32m~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'value' does not exist on type 'EventTarget'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2531: Object is possibly 'null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:119:
+[37m      62 │ ...backReason.set($event.target.[32mvalue[37m)" placeholder="Rollback reas...
+         ╵                                 [32m~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onSandboxChange' does not exist on type 'DataMigrationGoLiveComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:44:75:
+[37m      44 │ ...ecked]="store.sandboxMode()" (change)="[32monSandboxChange[37m($event)" />
+         ╵                                           [32m~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'onRollbackReasonChange' does not exist on type 'DataMigrationGoLiveComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-go-live.component.ts:62:80:
+[37m      62 │ ...kReason()" (change)="[32monRollbackReasonChange[37m($event)" placeholde...
+         ╵                         [32m~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'completedCount' does not exist on type 'DataMigrationHistoryComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-history.component.ts:21:20:
+[37m      21 │           <small>{{ [32mcompletedCount[37m() }} completed</small>
+         ╵                     [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: RouterLink is not used within the template of PayrollSalaryStructurePage[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/staff-os/pages/payroll-masters.page.ts:598:26:
+[37m      598 │   imports: [CommonModule, [32mRouterLink[37m],
+          ╵                           [32m~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG5002: Unexpected closing tag "section". It may happen when the tag has already been closed by another tag. For more info see https://www.w3.org/TR/html5/syntax.html#closing-elements-that-have-implied-end-tags[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/staff-os/pages/payroll-masters.page.ts:693:4:
+[37m      693 │     [32m</section>[37m
+          ╵     [32m~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8002: Can't bind to 'routerLinkActiveOptions' since it isn't a known property of 'a'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/compliance/pages/compliance-section.page.ts:33:62:
+[37m      33 │ ...ve="active" [32m[routerLinkActiveOptions]="{exact:true}"[37m>Dashboard</a>
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'trackByKey' does not exist on type 'ComplianceSectionPage'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/compliance/pages/compliance-section.page.ts:54:64:
+[37m      54 │ ...et item of moduleCards(); trackBy:[32mtrackByKey[37m" class="metric-card">
+         ╵                                      [32m~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8002: Can't bind to 'routerLinkActiveOptions' since it isn't a known property of 'a'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/compliance/pages/compliance-section.page.ts:33:62:
+[37m      33 │ ...ve="active" [32m[routerLinkActiveOptions]="{exact:true}"[37m>Dashboard</a>
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'trackByKey' does not exist on type 'ComplianceSectionPage'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/compliance/pages/compliance-section.page.ts:54:64:
+[37m      54 │ ...et item of moduleCards(); trackBy:[32mtrackByKey[37m" class="metric-card">
+         ╵                                      [32m~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'trackByKey' does not exist on type 'ComplianceSectionPage'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/compliance/pages/compliance-section.page.ts:54:64:
+[37m      54 │ ...et item of moduleCards(); trackBy:[32mtrackByKey[37m" class="metric-card">
+         ╵                                      [32m~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DatePipe is not used within the template of Customer360Component[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/customer-360.component.ts:11:40:
+[37m      11 │ ...CommonModule, CurrencyPipe, [32mDatePipe[37m, StateComponent, AuraKpiCa...
+         ╵                                [32m~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/data-migration-approval.component.ts:52:37:
+[37m      52 │             <strong>#{{ approval.id?.[32mslice[37m(0,8) }}</strong>
+         ╵                                      [32m~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: AuraKpiCardComponent is not used within the template of InventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/inventory.component.ts:14:112:
+[37m      14 │ ...Pipe, DatePipe, RouterLink, StateComponent, [32mAuraKpiCardComponent[37m],
+         ╵                                                [32m~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: BaseChartComponent is not used within the template of ReportInventoryComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/reports-enterprise/report-inventory.component.ts:10:40:
+[37m      10 │   imports: [CommonModule, CurrencyPipe, [32mBaseChartComponent[37m],
+         ╵                                         [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

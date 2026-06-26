@@ -191,29 +191,32 @@ type InvoiceLine = {
 
     .report-command-panel {
       display: grid;
-      gap: 16px;
+      gap: 14px;
       min-width: 0;
     }
 
     .report-tab-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .report-tab-grid button {
-      min-height: 108px;
       display: grid;
-      gap: 6px;
-      align-content: start;
+      grid-template-columns: auto 1fr;
+      gap: 6px 10px;
+      align-items: center;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px 12px;
       background: #fff;
       color: var(--ink);
       cursor: pointer;
       text-align: left;
     }
+    .report-tab-grid button span { grid-row: span 2; width: 28px; height: 28px; display: grid; place-items: center; background: var(--surface-2); border-radius: 6px; font-size: 11px; }
+    .report-tab-grid button strong { font-size: 13px; line-height: 1.2; }
+    .report-tab-grid button small { color: var(--muted); font-size: 11px; }
 
     .report-tab-grid button.active,
     .report-tab-grid button:hover {
@@ -222,22 +225,10 @@ type InvoiceLine = {
       box-shadow: 0 12px 28px color-mix(in srgb, var(--teal) 12%, transparent);
     }
 
-    .report-tab-grid span,
-    .report-tab-grid small {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .report-tab-grid strong {
-      line-height: 1.2;
-    }
-
     .insight-strip {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .insight-strip article {
@@ -245,21 +236,21 @@ type InvoiceLine = {
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfdfc;
-      padding: 12px;
+      padding: 10px 12px;
     }
 
     .insight-strip span,
     .insight-strip small {
       display: block;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
     }
 
     .insight-strip strong {
       display: block;
-      margin: 4px 0;
-      font-size: 20px;
+      margin: 2px 0;
+      font-size: 18px;
     }
 
     .enterprise-report-table {
@@ -289,8 +280,10 @@ type InvoiceLine = {
     @media (max-width: 1280px) {
       .report-filter-panel,
       .invoice-report-kpis,
-      .report-tab-grid,
       .insight-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .report-tab-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }

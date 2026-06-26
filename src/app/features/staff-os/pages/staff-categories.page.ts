@@ -162,41 +162,49 @@ const scopes: Array<{ value: StaffOsCategoryScope; label: string }> = [
     </section>
   `,
   styles: [`
-    .category-page { display: grid; gap: 18px; padding: 24px; color: #10201a; }
+    .category-page { display: grid; gap: 18px; padding: 24px; color: #1e1b2e; }
     .topbar, .form-title, .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
-    .topbar span, .form-title span { color: #60766d; }
+    .topbar span, .form-title span { color: #6b7280; }
     .topbar-actions, .form-actions, .row-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .eyebrow { margin: 0 0 4px; color: #547066; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .eyebrow { margin: 0 0 4px; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
     h1, h2 { margin: 0; letter-spacing: 0; }
     h1 { font-size: 28px; }
-    h2 { font-size: 18px; }
-    .refresh, .primary, .link-button { border: 1px solid #cbd8d2; background: #fff; border-radius: 6px; padding: 9px 12px; cursor: pointer; min-height: 38px; font-weight: 800; }
-    .primary { background: #0f766e; border-color: #0f766e; color: #fff; }
-    .primary:disabled { opacity: .65; cursor: wait; }
-    .link-button { min-height: 30px; padding: 5px 9px; color: #0f766e; }
-    .scope-tabs, .future-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px; border: 1px solid #d9e5de; border-radius: 8px; background: #f8fbfb; }
-    .scope-tabs button, .future-tabs button { border: 1px solid #cbd8d2; border-radius: 6px; background: #fff; padding: 9px 12px; font-weight: 850; white-space: nowrap; }
-    .scope-tabs button.active, .future-tabs button.active { background: #0f766e; border-color: #0f766e; color: #fff; }
-    .category-shell { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(420px, 1.2fr); gap: 16px; align-items: start; }
-    .list-panel, .editor-panel, .state { border: 1px solid #d9e5de; border-radius: 8px; background: #fff; }
+    h2 { font-size: 18px; font-weight: 800; }
+    .refresh, .primary, .link-button { border: 1px solid #d1d5db; background: #fff; border-radius: 6px; padding: 9px 14px; cursor: pointer; min-height: 36px; font-weight: 700; transition: all .15s; }
+    .primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .primary:hover { background: #4338ca; border-color: #4338ca; }
+    .primary:disabled { opacity: .55; cursor: not-allowed; }
+    .refresh:hover { background: #f9fafb; border-color: #9ca3af; }
+    .link-button { min-height: 30px; padding: 5px 9px; color: #4f46e5; font-weight: 700; background: transparent; border: 0; cursor: pointer; }
+    .link-button:hover { text-decoration: underline; }
+    .scope-tabs, .future-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 6px; border: 1px solid #e0e7ff; border-radius: 8px; background: #f8f9ff; }
+    .scope-tabs button, .future-tabs button { border: 1px solid transparent; border-radius: 6px; background: transparent; padding: 8px 14px; font-weight: 700; white-space: nowrap; cursor: pointer; color: #374151; transition: all .15s; }
+    .scope-tabs button:hover, .future-tabs button:hover { background: #eef2ff; }
+    .scope-tabs button.active, .future-tabs button.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .category-shell { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
+    .list-panel, .editor-panel, .state { border: 1px solid #e0e7ff; border-radius: 10px; background: #fff; }
     .list-panel, .editor-panel { padding: 16px; display: grid; gap: 14px; }
-    .category-table { display: grid; border-top: 1px solid #edf2ef; }
-    .category-row { display: grid; grid-template-columns: 1fr .7fr 1fr; gap: 10px; align-items: center; min-height: 42px; border-bottom: 1px solid #edf2ef; background: #fff; }
-    .category-row.header { color: #6c8178; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-    .badge { width: fit-content; border-radius: 999px; background: #eef6f1; color: #286345; padding: 4px 9px; font-size: 12px; font-weight: 850; }
-    .badge.archived { background: #f5f0e6; color: #8a5a00; }
+    .list-panel:hover, .editor-panel:hover { border-color: #c7d2fe; }
+    .category-table { display: grid; border: 1px solid #eef2ff; border-radius: 8px; overflow: hidden; }
+    .category-row { display: grid; grid-template-columns: 1fr .7fr 1.2fr; gap: 10px; align-items: center; min-height: 42px; border-bottom: 1px solid #eef2ff; background: #fff; padding: 0 10px; }
+    .category-row:last-child { border-bottom: 0; }
+    .category-row:hover { background: #f8f9ff; }
+    .category-row.header { color: #6b7280; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; background: #f8f9ff; }
+    .badge { width: fit-content; border-radius: 999px; background: #eef2ff; color: #4f46e5; padding: 3px 9px; font-size: 11px; font-weight: 800; }
+    .badge.archived { background: #fef3c7; color: #92400e; }
     form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .form-title, .future-tabs, .field.full, .form-actions, form .state { grid-column: 1 / -1; }
-    .field { display: grid; gap: 6px; color: #34483f; font-size: 13px; font-weight: 850; }
-    input, select, textarea { width: 100%; border: 1px solid #cbd8d2; border-radius: 8px; padding: 10px 11px; font: inherit; color: #10201a; background: #fff; }
-    textarea { resize: vertical; min-height: 84px; }
-    .field small, .error { color: #a52828; }
-    .state, .empty { padding: 14px; color: #61746c; }
-    .error { border-color: #e7b1b1; }
-    .hide-toggle { display: inline-flex; gap: 8px; align-items: center; font-weight: 850; color: #40544c; }
-    .hide-toggle input { width: auto; }
-    .form-actions { justify-content: flex-end; border-top: 1px solid #edf2ef; padding-top: 12px; }
-    @media (max-width: 980px) { .category-shell, form { grid-template-columns: 1fr; } }
+    .field { display: grid; gap: 5px; color: #374151; font-size: 13px; font-weight: 700; }
+    input, select, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 11px; font: inherit; color: #1e1b2e; background: #fff; transition: border-color .15s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+    textarea { resize: vertical; min-height: 72px; }
+    .field small, .error { color: #dc2626; }
+    .state, .empty { padding: 14px; color: #6b7280; }
+    .error { border-color: #fecaca; }
+    .hide-toggle { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; color: #374151; cursor: pointer; }
+    .hide-toggle input { accent-color: #4f46e5; width: auto; }
+    .form-actions { justify-content: flex-end; border-top: 1px solid #e0e7ff; padding-top: 14px; }
+    @media (max-width: 980px) { form { grid-template-columns: 1fr; } }
   `]
 })
 export class StaffCategoriesPage implements OnInit {

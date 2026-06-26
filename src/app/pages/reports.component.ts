@@ -403,14 +403,39 @@ import { StateComponent } from '../shared/ui/state/state.component';
               </div>
               <div class="tbl-wrap" *ngIf="a.scheduledReports?.length">
                 <table class="tbl tbl-compact">
-                  <thead><tr><th>Name</th><th>Frequency</th><th>Next run</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Name</th><th>Frequency</th><th>Next run</th><th>Status</th><th></th></tr></thead>
                   <tbody>
-                    <tr *ngFor="let s of a.scheduledReports">
-                      <td><strong>{{ s.name }}</strong></td>
-                      <td>{{ s.cadence }}</td>
-                      <td>{{ s.nextRunAt | date:'short' }}</td>
-                      <td><span class="sch-badge" [class]="s.status?.toLowerCase()">{{ s.status }}</span></td>
-                    </tr>
+                    <ng-container *ngFor="let s of a.scheduledReports">
+                      <tr class="sch-row" [class.sch-row-open]="expandedSchedule() === s.id" (click)="toggleSchedule(s.id)">
+                        <td><strong>{{ s.name }}</strong></td>
+                        <td>{{ s.cadence }}</td>
+                        <td>{{ s.nextRunAt | date:'short' }}</td>
+                        <td><span class="sch-badge" [class]="s.status?.toLowerCase()">{{ s.status }}</span></td>
+                        <td class="sch-toggle">{{ expandedSchedule() === s.id ? '−' : '+' }}</td>
+                      </tr>
+                      <tr *ngIf="expandedSchedule() === s.id" class="sch-detail">
+                        <td colspan="5">
+                          <div class="sch-detail-body">
+                            <div class="sch-detail-item">
+                              <span>Reports</span>
+                              <span>{{ (s.reportKeys || []).join(', ') || '—' }}</span>
+                            </div>
+                            <div class="sch-detail-item">
+                              <span>Recipients</span>
+                              <span>{{ (s.recipients || []).join(', ') || '—' }}</span>
+                            </div>
+                            <div class="sch-detail-item">
+                              <span>Last run</span>
+                              <span>{{ (s.lastRunAt | date:'short') || '—' }}</span>
+                            </div>
+                            <div class="sch-detail-item">
+                              <span>Created</span>
+                              <span>{{ (s.createdAt | date:'short') || '—' }}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </ng-container>
                   </tbody>
                 </table>
               </div>
@@ -730,6 +755,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .sch-badge.active { background: rgba(5,150,105,0.1); color: #059669; }
     .sch-badge.paused { background: rgba(217,119,6,0.1); color: #d97706; }
     .sch-badge.error { background: rgba(220,38,38,0.08); color: #dc2626; }
+    .sch-row { cursor: pointer; transition: background 120ms ease; }
+    .sch-row:hover { background: var(--color-surface-muted); }
+    .sch-row.sch-row-open { background: rgba(79,70,229,0.04); }
+    .sch-toggle { text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); width: 32px; user-select: none; }
+    .sch-detail td { padding: 0 12px 12px !important; background: rgba(79,70,229,0.03); border-bottom: 2px solid var(--color-primary); }
+    .sch-detail-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; padding: 8px 0; }
+    .sch-detail-item { display: flex; flex-direction: column; gap: 2px; }
+    .sch-detail-item span:first-child { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .sch-detail-item span:last-child { font-size: 0.84rem; color: var(--ink); word-break: break-all; }
 
     /* ─── INVENTORY ─── */
     .inv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -761,7 +795,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .lib-card:hover .lib-arrow { opacity: 1; color: var(--color-primary); transform: translateX(3px); }
 
     /* ─── AI INSIGHTS + SCHEDULES ─── */
-    .is-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .is-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
     .is-card {
       padding: 20px 22px; border-radius: 14px; border: 1px solid var(--line);
       background: var(--surface);
@@ -770,6 +804,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .is-card-h { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--color-surface-muted); }
     .is-card-h svg { color: var(--color-primary); width: 18px; }
     .is-card-h span { font-size: 0.92rem; font-weight: 650; flex: 1; }
+    .is-card .tbl-wrap { max-height: 340px; overflow-y: auto; }
     .is-add {
       padding: 4px 12px; border-radius: 7px; border: 1px solid var(--line);
       background: transparent; font-size: 0.76rem; font-weight: 600; color: var(--color-primary);
@@ -821,7 +856,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     @media (max-width: 900px) {
       .ea-grid { grid-template-columns: 1fr; }
-      .is-grid { grid-template-columns: 1fr; }
+
       .inv-grid { grid-template-columns: 1fr; }
       .page-head { flex-direction: column; }
       .page-head-r { width: 100%; }
@@ -865,6 +900,12 @@ export class ReportsComponent implements OnInit {
     { label: 'Appointment Activity', path: '/appointment-activity', module: 'Bookings' },
     { label: 'Client CRM', path: '/clients', module: 'Clients' }
   ];
+
+  readonly expandedSchedule = signal<string | null>(null);
+
+  toggleSchedule(id: string): void {
+    this.expandedSchedule.set(this.expandedSchedule() === id ? null : id);
+  }
 
   constructor(private readonly api: ApiService) {
     effect(() => {

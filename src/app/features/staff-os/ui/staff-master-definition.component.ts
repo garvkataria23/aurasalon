@@ -260,57 +260,68 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
     </section>
   `,
   styles: [`
-    .master-page { display: grid; gap: 18px; padding: 24px; color: #10201a; }
+    .master-page { display: grid; gap: 18px; padding: 24px; color: #1e1b2e; }
     .topbar, .panel-heading, .form-title, .form-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
     .topbar h1, .panel-heading h2, .form-title h2, .sub-panel h3 { margin: 0; letter-spacing: 0; }
     .topbar h1 { font-size: 28px; }
-    .eyebrow { margin: 0 0 4px; color: #557169; font-size: 12px; font-weight: 900; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { margin: 0 0 4px; color: #6b7280; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .topbar-actions, .form-actions { align-items: center; flex-wrap: wrap; }
-    .primary, .ghost, .danger { border: 1px solid #cbd8d2; border-radius: 7px; cursor: pointer; font: inherit; font-weight: 850; min-height: 38px; padding: 9px 13px; text-decoration: none; }
-    .primary { background: #0f766e; border-color: #0f766e; color: #fff; }
-    .ghost { background: #fff; color: #0f513f; }
-    .danger { background: #fff6f3; border-color: #f0b9aa; color: #a33720; }
-    .primary:disabled, .danger:disabled { cursor: wait; opacity: .65; }
-    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .metric-grid article, .list-panel, .editor-panel, .state { border: 1px solid #d9e5de; border-radius: 8px; background: #fff; }
-    .metric-grid article { display: grid; gap: 6px; padding: 14px; }
-    .metric-grid span, .panel-heading span, .record-row small, .field small { color: #60766d; }
-    .metric-grid strong { font-size: 24px; }
-    .state, .empty { padding: 14px; color: #60766d; }
-    .state.error { border-color: #e6b4a6; color: #a33720; background: #fff8f6; }
-    .master-shell { display: grid; grid-template-columns: minmax(320px, .78fr) minmax(520px, 1.22fr); gap: 16px; }
+    .primary, .ghost, .danger { border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font: inherit; font-weight: 700; min-height: 36px; padding: 8px 14px; text-decoration: none; transition: all .15s; }
+    .primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .primary:hover { background: #4338ca; border-color: #4338ca; }
+    .primary:disabled { opacity: .55; cursor: not-allowed; }
+    .ghost { background: #fff; color: #374151; }
+    .ghost:hover { background: #f9fafb; border-color: #9ca3af; }
+    .danger { background: #fff; color: #dc2626; border-color: #fca5a5; }
+    .danger:hover { background: #fef2f2; }
+    .danger:disabled { opacity: .55; cursor: not-allowed; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .metric-grid article, .list-panel, .editor-panel, .state { border: 1px solid #e0e7ff; border-radius: 10px; background: #fff; }
+    .metric-grid article { display: grid; gap: 4px; padding: 14px 16px; }
+    .metric-grid article:hover { border-color: #c7d2fe; }
+    .metric-grid span { color: #6b7280; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .metric-grid strong { font-size: 22px; color: #4f46e5; }
+    .panel-heading span, .record-row small, .field small { color: #6b7280; }
+    .state, .empty { padding: 14px; color: #6b7280; }
+    .state.error { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+    .master-shell { display: grid; grid-template-columns: 1fr; gap: 18px; }
     .list-panel, .editor-panel { display: grid; gap: 14px; padding: 16px; }
-    .compact-filter, .search-box, .field { display: grid; gap: 6px; color: #34483f; font-size: 13px; font-weight: 850; }
+    .list-panel:hover, .editor-panel:hover { border-color: #c7d2fe; }
+    .compact-filter, .search-box, .field { display: grid; gap: 5px; color: #374151; font-size: 13px; font-weight: 700; }
     .compact-filter { min-width: 180px; }
-    input, select, textarea { width: 100%; border: 1px solid #cbd8d2; border-radius: 8px; background: #fff; color: #10201a; font: inherit; padding: 10px 11px; }
-    input[readonly] { background: #f3f7f5; color: #68786f; }
-    input[type="color"] { min-height: 42px; padding: 4px; }
-    textarea { min-height: 84px; resize: vertical; }
-    .record-table { display: grid; gap: 8px; max-height: 590px; overflow: auto; padding-right: 2px; }
-    .record-row { align-items: center; background: #fbfdfc; border: 1px solid #e2ebe6; border-radius: 8px; color: inherit; cursor: pointer; display: grid; gap: 10px; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 58px; padding: 10px; text-align: left; }
-    .record-row.active { border-color: #0f766e; box-shadow: 0 0 0 2px rgba(15, 118, 110, .12); }
+    input, select, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #1e1b2e; font: inherit; padding: 9px 11px; transition: border-color .15s; box-sizing: border-box; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+    input[readonly] { background: #f3f4f6; color: #6b7280; }
+    input[type="color"] { min-height: 40px; padding: 3px; }
+    textarea { min-height: 72px; resize: vertical; }
+    .record-table { display: grid; gap: 6px; max-height: 400px; overflow: auto; }
+    .record-row { align-items: center; background: #fff; border: 1px solid #eef2ff; border-radius: 8px; color: inherit; cursor: pointer; display: grid; gap: 10px; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 50px; padding: 8px 10px; text-align: left; transition: all .15s; }
+    .record-row:hover { border-color: #c7d2fe; background: #f8f9ff; }
+    .record-row.active { border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,.15); background: #eef2ff; }
     .record-row strong, .record-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .record-row i { border-radius: 999px; background: #eef7f2; color: #1d6649; font-size: 11px; font-style: normal; font-weight: 900; padding: 5px 8px; text-transform: uppercase; }
-    .record-row i.hidden { background: #fff0ed; color: #9e321d; }
-    .swatch { width: 18px; height: 18px; border: 1px solid rgba(16, 32, 26, .15); border-radius: 5px; }
+    .record-row i { border-radius: 999px; background: #eef2ff; color: #4f46e5; font-size: 11px; font-style: normal; font-weight: 800; padding: 4px 8px; text-transform: uppercase; }
+    .record-row i.hidden { background: #fef3c7; color: #92400e; }
+    .swatch { width: 16px; height: 16px; border: 1px solid rgba(0,0,0,.1); border-radius: 4px; }
     form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .full, .form-title, .form-actions { grid-column: 1 / -1; }
-    .sub-panel { border: 1px solid #e2ebe6; border-radius: 8px; background: #f8fbf9; display: grid; gap: 12px; padding: 14px; }
+    .sub-panel { border: 1px solid #e0e7ff; border-radius: 8px; background: #f8f9ff; display: grid; gap: 12px; padding: 14px; }
+    .sub-panel h3 { font-size: 14px; font-weight: 800; color: #4f46e5; }
     .form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .check-field { align-items: center; border: 1px solid #edf2ef; border-radius: 8px; color: #34483f; display: grid; font-size: 13px; font-weight: 850; gap: 8px; grid-template-columns: auto 1fr; min-height: 43px; padding: 10px 11px; }
+    .check-field { align-items: center; border: 1px solid #eef2ff; border-radius: 8px; color: #374151; display: grid; font-size: 13px; font-weight: 700; gap: 8px; grid-template-columns: auto 1fr; min-height: 40px; padding: 8px 11px; }
     .check-field input, .hide-toggle input, .choice-field input { width: auto; }
-    .hide-toggle { align-items: center; color: #34483f; display: inline-flex; font-size: 13px; font-weight: 850; gap: 8px; }
-    .choice-field { border: 1px solid #e2ebe6; border-radius: 8px; display: flex; gap: 14px; margin: 0; padding: 12px; flex-wrap: wrap; }
-    .choice-field legend { color: #34483f; font-size: 13px; font-weight: 900; padding: 0 6px; }
-    .choice-field label { align-items: center; display: inline-flex; gap: 6px; font-size: 13px; font-weight: 850; }
-    .form-actions { justify-content: flex-end; border-top: 1px solid #edf2ef; padding-top: 12px; }
+    input[type='checkbox'] { accent-color: #4f46e5; height: 16px; margin: 0; width: 16px; cursor: pointer; }
+    .hide-toggle { align-items: center; color: #374151; display: inline-flex; font-size: 13px; font-weight: 700; gap: 8px; cursor: pointer; }
+    .choice-field { border: 1px solid #e0e7ff; border-radius: 8px; display: flex; gap: 14px; margin: 0; padding: 10px 12px; flex-wrap: wrap; background: #f8f9ff; }
+    .choice-field legend { color: #374151; font-size: 12px; font-weight: 800; padding: 0 6px; }
+    .choice-field label { align-items: center; display: inline-flex; gap: 6px; font-size: 13px; font-weight: 700; }
+    .form-actions { justify-content: flex-end; border-top: 1px solid #e0e7ff; padding-top: 14px; }
     @media (max-width: 1080px) {
-      .metric-grid, .master-shell, .form-grid { grid-template-columns: 1fr 1fr; }
+      .metric-grid, .form-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 720px) {
       .master-page { padding: 16px; }
       .topbar, .panel-heading, .form-title { flex-direction: column; }
-      .metric-grid, .master-shell, form, .form-grid { grid-template-columns: 1fr; }
+      .metric-grid, form, .form-grid { grid-template-columns: 1fr; }
       .record-row { grid-template-columns: auto minmax(0, 1fr); }
       .record-row i { grid-column: 2; width: fit-content; }
     }
@@ -362,7 +373,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
     dayCount: [1],
     paid: [true],
     availableForAppointment: [false],
-    color: ['#0f766e'],
+    color: ['#4f46e5'],
     sortOrder: [0],
     leaveQuota: [0],
     quotaPeriod: ['yearly'],
@@ -528,7 +539,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
   }
 
   recordColor(record: MasterRecord): string {
-    return (record as { color?: string }).color || '#0f766e';
+    return (record as { color?: string }).color || '#4f46e5';
   }
 
   recordSubline(record: MasterRecord): string {
@@ -592,7 +603,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
       dayCount: 1,
       paid: true,
       availableForAppointment: false,
-      color: this.isShift() ? '#bbf7d0' : '#0f766e',
+      color: this.isShift() ? '#bbf7d0' : '#4f46e5',
       sortOrder: 0,
       leaveQuota: 0,
       quotaPeriod: 'yearly',
@@ -713,7 +724,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
       dayCount: attendance.dayCount,
       paid: attendance.paid,
       availableForAppointment: attendance.availableForAppointment,
-      color: attendance.color || '#0f766e',
+      color: attendance.color || '#4f46e5',
       sortOrder: attendance.sortOrder || 0
     };
   }
