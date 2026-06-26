@@ -1,6 +1,7 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpHeaders, HttpParams, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, map, of, switchMap, throwError, timeout } from 'rxjs';
+import { filter, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthSessionService } from './auth-session.service';
 import { AppStateService } from './state/app-state.service';
@@ -60,6 +61,57 @@ export class ApiService {
     });
   }
 
+  postBinary<T = ApiRecord>(path: string, payload: Blob | ArrayBuffer, fileName: string, contentType = 'application/octet-stream'): Observable<T> {
+    return this.withAuth((headers) => this.http.post<ApiEnvelope<T> | T>(`${environment.apiBaseUrl}/${path}`, payload, {
+      headers: this.headersForMutation(path, headers)
+        .set('content-type', contentType)
+        .set('x-file-name', fileName)
+    }), this.timeoutFor(path));
+  }
+
+  postBinaryWithHeaders<T = ApiRecord>(path: string, payload: Blob | ArrayBuffer, fileName: string, extraHeaders: Record<string, string> = {}, contentType = 'application/octet-stream'): Observable<T> {
+    return this.withAuth((headers) => {
+      let reqHeaders = this.headersForMutation(path, headers)
+        .set('content-type', contentType)
+        .set('x-file-name', fileName);
+      for (const [key, value] of Object.entries(extraHeaders)) {
+        reqHeaders = reqHeaders.set(key, value);
+      }
+      return this.http.post<ApiEnvelope<T> | T>(`${environment.apiBaseUrl}/${path}`, payload, { headers: reqHeaders });
+    }, this.timeoutFor(path));
+  }
+
+  postBinaryWithProgress<T = ApiRecord>(path: string, payload: Blob | ArrayBuffer, fileName: string, extraHeaders: Record<string, string> = {}, onProgress: (percent: number) => void): Observable<T> {
+    return this.withAuth((headers) => {
+      let reqHeaders = this.headersForMutation(path, headers)
+        .set('content-type', 'application/octet-stream')
+        .set('x-file-name', fileName);
+      for (const [key, value] of Object.entries(extraHeaders)) {
+        reqHeaders = reqHeaders.set(key, value);
+      }
+      const req = new HttpRequest('POST', `${environment.apiBaseUrl}/${path}`, payload, {
+        headers: reqHeaders,
+        reportProgress: true,
+      });
+      return this.http.request(req).pipe(
+        tap((event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            onProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        }),
+        filter((event) => event.type === HttpEventType.Response),
+        map((event) => {
+          const body = (event as HttpResponse<ApiEnvelope<T> | T>).body;
+          if (body && typeof body === 'object' && 'success' in body) {
+            const envelope = body as ApiEnvelope<T>;
+            if (envelope.success === false) throw new Error(envelope.error?.message || 'API request failed');
+            return envelope.data as T;
+          }
+          return body as T;
+        })
+      );
+    }, this.timeoutFor(path));
+  }
   put<T = ApiRecord>(path: string, payload: ApiRecord = {}): Observable<T> {
     return this.withAuth((headers) => this.http.put<ApiEnvelope<T> | T>(`${environment.apiBaseUrl}/${path}`, payload, { headers }), this.timeoutFor(path));
   }
@@ -141,7 +193,8 @@ export class ApiService {
 
   private timeoutFor(resource: string): number {
     const normalized = resource.replace(/^\/+/, '').split(/[?#]/)[0];
-    return normalized.startsWith('migration/') ? 180000 : 15000;
+    if (normalized.startsWith('migration/')) return 1800000;
+    return 15000;
   }
 
   private headersForMutation(resource: string, headers = this.headers()): HttpHeaders {
@@ -190,3 +243,4 @@ export class ApiService {
     return BRANCH_SCOPE_EXCLUDED_PREFIXES.has(prefix);
   }
 }
+

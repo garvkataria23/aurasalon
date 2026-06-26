@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, firstValueFrom, switchMap } from 'rxjs';
 import { ApiRecord } from '../../../core/api.service';
 import { AppStateService } from '../../../core/state/app-state.service';
@@ -189,6 +189,7 @@ type StaffPhotoUploadResponse = { url?: string };
                     <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
                     <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
                     <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
+                    <a routerLink="/permissions" [queryParams]="staffPermissionParams(staff)">Permissions</a>
                   </span>
                   <span><button type="button" class="row-action" [disabled]="statusChanging() === staff.id" (click)="toggleStaffStatus(staff)">{{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}</button></span>
                 </div>
@@ -400,6 +401,7 @@ type StaffPhotoUploadResponse = { url?: string };
                   <span class="row-links">
                     <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
                     <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
+                    <a routerLink="/permissions" [queryParams]="staffPermissionParams(staff)">Permissions</a>
                   </span>
                   <span><button type="button" class="row-action" (click)="openAddStaff()">New</button></span>
                 </div>
@@ -458,6 +460,7 @@ type StaffPhotoUploadResponse = { url?: string };
               <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
               <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
               <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
+              <a routerLink="/permissions" [queryParams]="staffPermissionParams(staff)">Permissions</a>
             </span>
             <span>
               <button
@@ -519,7 +522,7 @@ type StaffPhotoUploadResponse = { url?: string };
               <strong>{{ selectedCategoryDefaultsText() }}</strong>
             </article>
             <div class="context-links">
-              <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to">{{ link.label }}</a>
+              <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to" [queryParams]="integrationLinkParams(link)">{{ link.label }}</a>
             </div>
           </section>
 
@@ -596,7 +599,7 @@ type StaffPhotoUploadResponse = { url?: string };
                 </label>
                 <label class="field">
                   <span>Login ID</span>
-                  <input formControlName="loginId" autocomplete="username" placeholder="aftab01 or mobile/email" />
+                  <input formControlName="loginId" autocomplete="username" placeholder="aftab01 or mobile/email" (blur)="normalizeStaffLoginId()" />
                 </label>
                 <label class="field">
                   <span>Password</span>
@@ -612,6 +615,7 @@ type StaffPhotoUploadResponse = { url?: string };
                     <option value="manager">Manager</option>
                   </select>
                 </label>
+                <p class="login-ready-note" [class.ready]="staffLoginReady()">{{ staffLoginProvisionNote() }}</p>
               </section>
 
               <label class="field">
@@ -1232,7 +1236,7 @@ type StaffPhotoUploadResponse = { url?: string };
                   </article>
                 </div>
                 <nav class="live-panel-links" aria-label="Employee connected modules">
-                  <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to" [queryParams]="staffContextParams()">{{ link.label }}</a>
+                  <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to" [queryParams]="integrationLinkParams(link)">{{ link.label }}</a>
                 </nav>
               </section>
               <div class="drawer-action-buttons">
@@ -2280,12 +2284,6 @@ type StaffPhotoUploadResponse = { url?: string };
     .detail-tabs { position: sticky; top: 76px; z-index: 2; display: flex; gap: 0; overflow-x: auto; background: #fff; border-bottom: 1px solid #d6dee0; padding-top: 12px; }
     .detail-tabs button { border: 1px solid #d6dee0; border-bottom: 0; background: #f8fafb; border-radius: 0; color: #4b5563; cursor: pointer; font-size: 12px; font-weight: 900; min-height: 34px; padding: 7px 11px; text-transform: uppercase; white-space: nowrap; }
     .detail-tabs button.active { background: #fff; border-top: 3px solid #f97316; color: #111827; padding-top: 5px; }
-    .live-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 10px; border: 1px solid #d9e5de; border-radius: 4px; background: #f8fbf9; margin-top: 14px; padding: 12px; }
-    .live-context article { display: grid; gap: 4px; min-width: 0; }
-    .live-context span { color: #60766d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-    .live-context strong { color: #10201a; font-size: 13px; overflow-wrap: anywhere; }
-    .context-links { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-    .context-links a { background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #0f766e; font-size: 12px; font-weight: 800; min-height: 30px; padding: 6px 9px; text-decoration: none; }
     .staff-form { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr) 172px; gap: 12px 18px; padding-top: 18px; }
     .field { display: grid; grid-template-columns: 165px minmax(0, 1fr); align-items: center; gap: 10px; font-weight: 800; color: #34483f; font-size: 13px; }
     .field.full, .staff-form > .full, .staff-form .state { grid-column: 1 / 3; }
@@ -2300,6 +2298,8 @@ type StaffPhotoUploadResponse = { url?: string };
     .photo-remove { background: #fff8f7; border-color: #f5b7b1; color: #b42318; }
     .login-provision { display: grid; grid-column: 1 / 3; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px; border: 1px solid #b6d8cf; border-radius: 8px; background: #f0fbf7; }
     .login-provision > div, .login-provision .check-field { grid-column: 1 / -1; }
+    .login-ready-note { grid-column: 1 / -1; margin: -2px 0 0; border: 1px solid #d9e5de; border-radius: 8px; background: #ffffff; color: #5e7168; font-size: 12px; font-weight: 800; line-height: 1.35; padding: 9px 10px; }
+    .login-ready-note.ready { background: #e9fff5; border-color: #8ad7b4; color: #12664c; }
     .check-field { align-items: center; border: 1px solid #edf2ef; border-radius: 8px; color: #34483f; display: grid; font-size: 13px; font-weight: 800; gap: 8px; grid-template-columns: auto 1fr; min-height: 43px; padding: 10px 11px; }
     .check-field input { width: 18px; height: 18px; padding: 0; }
     .incentive-command, .salary-command { align-items: center; background: #f0fbf7; border: 1px solid #b6d8cf; border-radius: 8px; display: grid; gap: 12px; grid-template-columns: 1fr auto; padding: 14px; }
@@ -2328,17 +2328,8 @@ type StaffPhotoUploadResponse = { url?: string };
     textarea { resize: vertical; min-height: 88px; }
     .field small { color: #a52828; font-weight: 700; }
     .drawer-actions { position: sticky; right: 0; top: 128px; grid-column: 3; grid-row: 1 / span 18; align-self: start; display: grid; justify-content: stretch; gap: 12px; padding: 0 0 0 12px; border-top: 0; border-left: 1px solid #e4ebe7; background: #fff; }
-    .live-employee-panel { display: grid; gap: 9px; }
     .live-panel-title { border-bottom: 1px solid #e4ebe7; display: grid; gap: 3px; padding-bottom: 9px; }
-    .live-panel-title span, .live-employee-panel article span, .catalog-mini-grid span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .live-panel-title strong { color: #111827; font-size: 13px; overflow-wrap: anywhere; }
-    .live-employee-panel > article { border: 1px solid #d9e5de; border-left: 4px solid #0f6eb3; border-radius: 4px; display: grid; gap: 3px; min-height: 64px; padding: 9px; }
-    .live-employee-panel > article.green { border-left-color: #16a34a; }
-    .live-employee-panel > article.amber { border-left-color: #f59e0b; }
-    .live-employee-panel > article.violet { border-left-color: #7c3aed; }
-    .live-employee-panel > article.neutral { border-left-color: #94a3b8; }
-    .live-employee-panel > article strong { color: #111827; font-size: 17px; overflow-wrap: anywhere; }
-    .live-employee-panel > article small { color: #60766d; font-size: 11px; font-weight: 700; }
     .catalog-mini-grid { display: grid; gap: 7px; grid-template-columns: 1fr 1fr; }
     .catalog-mini-grid article { border: 1px solid #e4ebe7; border-radius: 4px; display: grid; gap: 3px; padding: 8px; }
     .catalog-mini-grid strong { color: #111827; font-size: 15px; }
@@ -2346,7 +2337,7 @@ type StaffPhotoUploadResponse = { url?: string };
     .live-panel-links a { border: 1px solid #cbd8d2; border-radius: 4px; color: #0f6eb3; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
-    @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision { grid-column: 1 / -1; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
+    
     @media (max-width: 640px) {
       .staff-os { gap: 12px; padding: 0; }
       .drawer-shell { padding: 0; }
@@ -2379,8 +2370,6 @@ type StaffPhotoUploadResponse = { url?: string };
       .heatmap { grid-template-columns: repeat(7, minmax(22px, 1fr)); }
       .action-empty .primary, .action-empty .refresh { width: 100%; }
       input, select, textarea { min-height: 44px; }
-      .live-context { grid-template-columns: 1fr; }
-      .context-links { justify-content: flex-start; }
       .drawer { width: 100%; height: 100%; border-radius: 0; padding: 0 14px 16px; }
       .drawer::before, .drawer::after { display: none; }
       .detail-tabs { top: 84px; }
@@ -2475,7 +2464,8 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     core: [
       { label: 'Category Master', to: '/staff-os/staff-categories' },
       { label: 'Staff Profile', to: '/staff-os/staff-profile' },
-      { label: 'Roster', to: '/staff-os/roster-calendar' }
+      { label: 'Roster', to: '/staff-os/roster-calendar' },
+      { label: 'Permissions', to: '/permissions' }
     ],
     contact: [
       { label: 'Staff Profile', to: '/staff-os/staff-profile' },
@@ -2709,6 +2699,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     public readonly store: StaffOsStore,
     private readonly fb: UntypedFormBuilder,
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly appState: AppStateService
   ) {
     effect(() => {
@@ -2772,6 +2763,21 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       staffId: this.route.snapshot.queryParamMap.get('staffId') || '',
       date: this.attendanceDate()
     };
+  }
+
+  staffPermissionParams(staff?: StaffOsStaff | null): ApiRecord {
+    const value = this.staffForm.getRawValue() as Record<string, unknown>;
+    return {
+      mode: 'rights',
+      userId: staff?.loginUserId || '',
+      staffId: staff?.id || this.route.snapshot.queryParamMap.get('staffId') || '',
+      role: String(value.loginRole || staff?.roleId || value.roleId || 'staff'),
+      branchId: staff?.branchId || String(value.branchId || this.attendanceBranchId() || this.appState.selectedBranchId() || '')
+    };
+  }
+
+  integrationLinkParams(link: StaffIntegrationLink): ApiRecord {
+    return link.to === '/permissions' ? this.staffPermissionParams() : this.staffContextParams();
   }
 
   staffControlCards(): StaffControlCard[] {
@@ -3712,6 +3718,16 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     });
   }
 
+  private openStaffPermissions(staff: StaffOsStaff, role: string): void {
+    void this.router.navigate(['/permissions'], {
+      queryParams: {
+        ...this.staffPermissionParams(staff),
+        role,
+        source: 'staff-created'
+      }
+    });
+  }
+
   private staffPhotoError(error: unknown, fallback: string): string {
     const apiError = error as { error?: { error?: string; message?: string }; message?: string };
     return apiError?.error?.error || apiError?.error?.message || apiError?.message || fallback;
@@ -3723,8 +3739,8 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       return;
     }
     const value = this.staffForm.getRawValue() as Record<string, unknown>;
-    const loginEnabled = Boolean(value.enableStaffLogin || value.loginId || value.loginPassword);
-    if (loginEnabled && (!String(value.loginId || '').trim() || !String(value.loginPassword || '').trim())) {
+    const staffLogin = this.staffLoginPayload(value);
+    if (staffLogin && (!String(staffLogin['loginId'] || '').trim() || !String(staffLogin['password'] || '').trim())) {
       this.addStaffError.set('Login ID and password are required when staff login is enabled.');
       this.detailTab.set('core');
       return;
@@ -3757,27 +3773,47 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       state: value.state,
       pincode: value.pincode,
       employeeDetails,
-      staffLogin: loginEnabled ? {
-        enabled: true,
-        loginId: value.loginId,
-        email: value.email || value.contactEmail,
-        password: value.loginPassword,
-        role: value.loginRole || 'staff'
-      } : undefined,
+      enableStaffLogin: Boolean(staffLogin),
+      loginId: staffLogin?.['loginId'],
+      loginPassword: staffLogin?.['password'],
+      loginRole: staffLogin?.['role'],
+      staffLogin,
       notes
     }).pipe(finalize(() => this.addStaffSaving.set(false))).subscribe({
-      next: () => {
+      next: (staff) => {
         const branchId = String(value.branchId || '');
+        const permissionRole = String(staffLogin?.['role'] || value.roleId || 'staff');
         this.staffForm.reset(this.defaultStaffFormValue(branchId));
         this.resetIncentiveProfile();
         this.detailTab.set('core');
         this.addStaffOpen.set(false);
         this.store.load();
+        this.openStaffPermissions(staff, permissionRole);
       },
       error: (error: { error?: { error?: string; message?: string }; message?: string }) => {
         this.addStaffError.set(error?.error?.error || error?.error?.message || error?.message || 'Unable to save staff');
       }
     });
+  }
+
+  staffLoginReady(): boolean {
+    const value = this.staffForm.getRawValue() as Record<string, unknown>;
+    const login = this.staffLoginPayload(value);
+    return Boolean(login?.['loginId'] && login?.['password']);
+  }
+
+  staffLoginProvisionNote(): string {
+    const value = this.staffForm.getRawValue() as Record<string, unknown>;
+    const login = this.staffLoginPayload(value);
+    if (!login) return 'Enable only when this employee needs app login, live appointments, or own-work reports.';
+    if (!login['loginId']) return 'Enter the Login ID the staff will use on the main login screen.';
+    if (!login['password']) return 'Enter a password before saving; the employee and login are saved together.';
+    return `Ready: ${login['loginId']} will work on the main login screen after Save Employee.`;
+  }
+
+  normalizeStaffLoginId(): void {
+    const normalized = this.normalizeStaffLoginIdValue(this.staffForm.get('loginId')?.value);
+    this.staffForm.patchValue({ loginId: normalized }, { emitEvent: false });
   }
 
   activeCategoriesForSelectedBranch(): StaffOsStaffCategory[] {
@@ -4330,6 +4366,24 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       remarks: '',
       imeiNo: ''
     };
+  }
+
+  private staffLoginPayload(value: Record<string, unknown>): ApiRecord | undefined {
+    const loginId = this.normalizeStaffLoginIdValue(value['loginId']);
+    const password = String(value['loginPassword'] || '');
+    const enabled = Boolean(value['enableStaffLogin'] || loginId || password);
+    if (!enabled) return undefined;
+    return {
+      enabled: true,
+      loginId,
+      email: String(value['email'] || value['contactEmail'] || '').trim(),
+      password,
+      role: String(value['loginRole'] || 'staff')
+    };
+  }
+
+  private normalizeStaffLoginIdValue(value: unknown): string {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
   }
 
   private nextStaffEmployeeCode(branchId = ''): string {

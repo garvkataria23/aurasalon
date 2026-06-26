@@ -1,7 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -9,7 +9,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 @Component({
   selector: 'app-clients',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero client-command-hero">
@@ -153,6 +153,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
       </section>
 
       <section class="panel client-database-panel">
+        <div class="section-title client-list-title">
+          <div><h2>Total client list</h2><p>{{ filteredClients.length }} visible · {{ totalClientCount }} loaded clients</p></div>
+        </div>
         <div class="table-toolbar">
           <label class="search-field">
             <span>Search/filter</span>
@@ -199,19 +202,19 @@ import { StateComponent } from '../shared/ui/state/state.component';
                 *ngFor="let client of filteredClients"
                 tabindex="0"
                 role="button"
-                [attr.aria-label]="'Open profile for ' + client.name"
-                (click)="openClient(client.id)"
-                (keydown.enter)="openClient(client.id)"
-                (keydown.space)="openClient(client.id); $event.preventDefault()"
+                [attr.aria-label]="'Open profile for ' + clientDisplayName(client)"
+                (click)="openClient(clientId(client))"
+                (keydown.enter)="openClient(clientId(client))"
+                (keydown.space)="openClient(clientId(client)); $event.preventDefault()"
               >
                 <td>
-                  <span class="identity-cell">
-                    <span class="avatar">{{ initials(client.name) }}</span>
+                  <a class="identity-cell" [routerLink]="['/clients', clientId(client)]" (click)="$event.stopPropagation()">
+                    <span class="avatar">{{ initials(clientDisplayName(client)) }}</span>
                     <span>
-                      <strong>{{ client.name }}</strong>
-                      <small>{{ client.phone }} · {{ client.email || 'No email' }}</small>
+                      <strong>{{ clientDisplayName(client) }}</strong>
+                      <small>{{ clientContactLine(client) }}</small>
                     </span>
-                  </span>
+                  </a>
                 </td>
                 <td>{{ client.gender || '-' }}</td>
                 <td>{{ client.birthday ? (client.birthday | date: 'mediumDate') : '-' }}</td>
@@ -219,7 +222,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                 <td class="note-cell" [title]="client.notes || ''">{{ shortText(client.notes) }}</td>
                 <td class="right" [class.due-amount]="client.unpaidBalance > 0">{{ client.unpaidBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
                 <td>
-                  <span class="badge" *ngFor="let tag of client.tags">{{ tag }}</span>
+                  <span class="badge" *ngFor="let tag of clientTags(client)">{{ tag }}</span>
                 </td>
                 <td>{{ client.totalSpend | currency: 'INR':'symbol':'1.0-0' }}</td>
                 <td>{{ client.visitCount }}</td>
@@ -231,9 +234,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <label class="row-select" (click)="$event.stopPropagation()">
                     <input
                       type="checkbox"
-                      [checked]="isClientSelected(client.id)"
-                      (change)="toggleClientSelection(client.id, $event)"
-                      [attr.aria-label]="'Select ' + client.name"
+                      [checked]="isClientSelected(clientId(client))"
+                      (change)="toggleClientSelection(clientId(client), $event)"
+                      [attr.aria-label]="'Select ' + clientDisplayName(client)"
                     />
                   </label>
                   <button class="danger-button mini" type="button" (click)="deleteClient(client, $event)" [disabled]="saving()">Delete</button>
@@ -241,6 +244,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
               </tr>
             </tbody>
           </table>
+          <div class="client-load-more" *ngIf="hasMoreClients()">
+            <button class="ghost-button" type="button" (click)="loadMoreClients()" [disabled]="loading()">Load more clients</button>
+            <span>Showing {{ totalClientCount }}. Next batch loads {{ clientBatchSize }} more.</span>
+          </div>
         </div>
       </section>
     </section>
@@ -256,10 +263,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
       width: 100%;
       max-width: none;
       min-width: 0;
-      padding-inline: var(--client-edge-safe);
-      padding-block: 16px;
+      padding-inline-end: var(--client-edge-safe);
       box-sizing: border-box;
-      display: grid; gap: 14px;
     }
 
     .client-command-hero {
@@ -269,18 +274,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
       overflow: hidden;
       align-items: center;
       gap: 16px;
-      min-height: 72px;
-      padding: 16px 20px;
+      min-height: 84px;
+      padding: 18px 22px;
       border: 1px solid color-mix(in srgb, var(--teal) 20%, var(--line));
       background: color-mix(in srgb, var(--surface) 96%, white);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
-      border-radius: 12px;
-    }
-    .client-command-hero::after {
-      content: ''; position: absolute; inset: 0;
-      border-radius: 12px;
-      background: linear-gradient(135deg, color-mix(in srgb, var(--teal) 4%, transparent), transparent 60%);
-      pointer-events: none;
+      box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 6%, transparent);
     }
 
     .hero-copy {
@@ -291,7 +289,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
     .hero-copy h2 {
       margin: 0;
-      font-size: 28px;
+      font-size: 34px;
       letter-spacing: 0;
       line-height: 1.05;
     }
@@ -317,13 +315,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
     .client-reports-panel {
       display: grid;
-      gap: 14px;
+      gap: 18px;
       min-width: 0;
-      padding: 16px;
+      padding: 18px;
       background:
         linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white), color-mix(in srgb, var(--surface-2) 92%, white)),
         var(--surface);
-      border-radius: 12px;
     }
 
     .client-report-heading {
@@ -364,13 +361,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .client-report-metrics .metric-card {
-      min-height: 96px;
-      border-top-width: 3px;
-      border-radius: 10px;
+      min-height: 104px;
+      border-top-width: 4px;
       background:
         linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white), var(--surface)),
         var(--surface);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
+      box-shadow: 0 12px 28px color-mix(in srgb, var(--ink) 5%, transparent);
     }
 
     .client-report-metrics .kpi-link-card {
@@ -380,6 +376,16 @@ import { StateComponent } from '../shared/ui/state/state.component';
       cursor: pointer;
       font: inherit;
       text-align: left;
+    }
+
+    .client-load-more {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 2px 0;
+      color: var(--muted);
+      font-weight: 700;
+      flex-wrap: wrap;
     }
 
     .client-report-metrics .kpi-link-card:hover,
@@ -394,7 +400,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
         linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 92%, white)),
         var(--surface);
       overflow: hidden;
-      border-radius: 12px;
     }
 
     .client-database-panel .table-toolbar {
@@ -406,8 +411,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
       align-items: end;
       gap: 12px;
       overflow: visible;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
+      padding: 12px;
+      border: 1px solid color-mix(in srgb, var(--line) 75%, white);
+      border-radius: var(--radius-md);
       background: color-mix(in srgb, var(--surface) 92%, white);
       backdrop-filter: blur(18px);
     }
@@ -432,10 +438,13 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .client-database-panel .table-wrap {
-      max-height: min(720px, 70vh);
+      max-height: min(780px, 72vh);
       overflow: auto;
       overscroll-behavior: contain;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
       background: var(--surface);
+      box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 4%, transparent);
     }
 
     .client-database-panel .clients-crm-table {
@@ -534,7 +543,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
   `]
 })
-export class ClientsComponent implements OnInit {
+export class ClientsComponent implements OnInit, OnDestroy {
   readonly clients = signal<ApiRecord[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -542,6 +551,7 @@ export class ClientsComponent implements OnInit {
   readonly showForm = signal(false);
   readonly tagFilter = signal('');
   readonly selectedClientIds = signal<string[]>([]);
+  readonly hasMoreClients = signal(false);
   readonly editingClientId = signal('');
   readonly clientReports = signal<ApiRecord | null>(null);
   readonly client360Report = signal<ApiRecord | null>(null);
@@ -570,6 +580,16 @@ export class ClientsComponent implements OnInit {
     'rebooking-rate'
   ]);
   private pendingEditClientId = '';
+  readonly clientBatchSize = 500;
+  private clientLimit = this.clientBatchSize;
+  private clientBatchTimer: ReturnType<typeof setTimeout> | undefined;
+  private clientLoadInFlight = false;
+  private reportLoadInFlight = false;
+  private refreshTimer: ReturnType<typeof setInterval> | undefined;
+  private readonly refreshOnFocus = () => this.refreshVisibleData();
+  private readonly refreshOnVisibility = () => {
+    if (document.visibilityState === 'visible') this.refreshVisibleData();
+  };
   query = '';
 
   readonly form = this.fb.group({
@@ -596,14 +616,28 @@ export class ClientsComponent implements OnInit {
     this.pendingEditClientId = this.route.snapshot.queryParamMap.get('edit') || '';
     this.load();
     this.loadReports();
+    this.startAutoRefresh();
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this.clientBatchTimer) clearTimeout(this.clientBatchTimer);
+    window.removeEventListener('focus', this.refreshOnFocus);
+    document.removeEventListener('visibilitychange', this.refreshOnVisibility);
   }
 
   get filteredClients(): ApiRecord[] {
-    return this.clients().filter((client) => {
-      const queryMatch = JSON.stringify(client).toLowerCase().includes(this.query.toLowerCase());
-      const tagMatch = this.tagFilter() ? (client.tags || []).includes(this.tagFilter()) : true;
-      return queryMatch && tagMatch;
-    });
+    return this.clients()
+      .filter((client) => client && typeof client === 'object')
+      .filter((client) => {
+        const queryMatch = JSON.stringify(client).toLowerCase().includes(this.query.toLowerCase());
+        const tagMatch = this.tagFilter() ? this.clientTags(client).includes(this.tagFilter()) : true;
+        return queryMatch && tagMatch;
+      });
+  }
+
+  get totalClientCount(): number {
+    return this.clients().filter((client) => client && typeof client === 'object').length;
   }
 
   get selectedCount(): number {
@@ -616,42 +650,112 @@ export class ClientsComponent implements OnInit {
     return visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.error.set('');
-    const branchId = this.api.selectedBranchId();
+  clientId(client: ApiRecord | null | undefined): string {
+    return String(client?.id || '');
+  }
+
+  clientDisplayName(client: ApiRecord | null | undefined): string {
+    if (!client) return 'Client';
+    return String(client.name || client.fullName || client.full_name || client.clientName || client.customerName || client.phone || client.email || client.id || 'Client').trim() || 'Client';
+  }
+
+  clientPhone(client: ApiRecord | null | undefined): string {
+    return String(client?.phone || client?.mobile || client?.mobileNumber || client?.contactNumber || '').trim();
+  }
+
+  clientContactLine(client: ApiRecord | null | undefined): string {
+    const phone = this.clientPhone(client) || 'No phone';
+    const email = String(client?.email || '').trim() || 'No email';
+    return `${phone} · ${email}`;
+  }
+
+  clientTags(client: ApiRecord | null | undefined): string[] {
+    const tags = client?.tags;
+    if (Array.isArray(tags)) return tags.filter(Boolean).map(String);
+    return tags ? [String(tags)] : [];
+  }
+
+  private normalizeClients(clients: ApiRecord[]): ApiRecord[] {
+    return clients
+      .filter((client) => client && typeof client === 'object')
+      .map((client) => ({
+        ...client,
+        id: this.clientId(client),
+        name: this.clientDisplayName(client),
+        phone: this.clientPhone(client),
+        email: String(client.email || '').trim(),
+        tags: this.clientTags(client)
+      }));
+  }
+  load(showSpinner = true): void {
+    if (this.clientLoadInFlight) return;
+    this.clientLoadInFlight = true;
+    if (showSpinner) {
+      this.loading.set(true);
+      this.error.set('');
+    }
+    const listParams = { includeAllBranches: true, limit: this.clientLimit };
     forkJoin({
-      clients: this.api.list<ApiRecord[]>('clients', { branchId }),
-      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000, branchId }),
-      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000, branchId })
+      clients: this.api.list<ApiRecord[]>('clients', listParams),
+      invoices: this.api.list<ApiRecord[]>('invoices', listParams),
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', listParams)
     }).subscribe({
       next: ({ clients, invoices, walletTransactions }) => {
-        const linkedWalletClients = this.withWalletBalances(clients || [], walletTransactions || []);
+        const loadedClients = this.normalizeClients(clients || []);
+        this.hasMoreClients.set(loadedClients.length >= this.clientLimit);
+        this.scheduleNextClientBatch();
+        const linkedWalletClients = this.withWalletBalances(loadedClients, walletTransactions || []);
         this.clients.set(this.withUnpaidBalances(linkedWalletClients, invoices || []));
-        this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => client.id === id)));
+        this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => this.clientId(client) === id)));
         this.openPendingEditClient();
+        this.clientLoadInFlight = false;
         this.loading.set(false);
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load clients');
+        this.clientLoadInFlight = false;
         this.loading.set(false);
       }
     });
   }
+  loadMoreClients(): void {
+    if (this.clientBatchTimer) clearTimeout(this.clientBatchTimer);
+    this.clientBatchTimer = undefined;
+    this.loadNextClientBatch(true);
+  }
 
-  loadReports(): void {
-    this.reportLoading.set(true);
-    this.reportError.set('');
-    const branchId = this.api.selectedBranchId();
+  private scheduleNextClientBatch(): void {
+    if (!this.hasMoreClients() || this.clientBatchTimer) return;
+    this.clientBatchTimer = setTimeout(() => {
+      this.clientBatchTimer = undefined;
+      this.loadNextClientBatch(false);
+    }, 1000);
+  }
+
+  private loadNextClientBatch(showSpinner: boolean): void {
+    if (this.clientLoadInFlight) return;
+    this.clientLimit += this.clientBatchSize;
+    this.load(showSpinner);
+  }
+
+  loadReports(showSpinner = true): void {
+    if (this.reportLoadInFlight) return;
+    this.reportLoadInFlight = true;
+    if (showSpinner) {
+      this.reportLoading.set(true);
+      this.reportError.set('');
+    }
+    const reportScope = { includeAllBranches: true };
     forkJoin({
-      topRfm: this.api.report<ApiRecord[]>('clients/top-rfm', { limit: 10, branchId }),
-      lapsed: this.api.report<ApiRecord[]>('clients/lapsed', { minDays: 60, maxDays: 180, limit: 10, branchId }),
-      newVsReturning: this.api.report<ApiRecord[]>('clients/new-vs-returning', { months: 6, branchId }),
-      occasions: this.api.report<ApiRecord[]>('clients/occasions', { withinDays: 30, limit: 10, branchId }),
-      byService: this.api.report<ApiRecord[]>('clients/by-service', { limit: 8, branchId })
+      topRfm: this.api.report<ApiRecord[]>('clients/top-rfm', { ...reportScope, limit: 10 }),
+      lapsed: this.api.report<ApiRecord[]>('clients/lapsed', { ...reportScope, minDays: 60, maxDays: 180, limit: 10 }),
+      newVsReturning: this.api.report<ApiRecord[]>('clients/new-vs-returning', { ...reportScope, months: 6 }),
+      occasions: this.api.report<ApiRecord[]>('clients/occasions', { ...reportScope, withinDays: 30, limit: 10 }),
+      byService: this.api.report<ApiRecord[]>('clients/by-service', { ...reportScope, limit: 8 })
     }).subscribe({
       next: (reports) => {
         this.clientReports.set(reports);
+        this.reportLoadInFlight = false;
         this.reportLoading.set(false);
         const focusClientId = reports.topRfm?.[0]?.id || reports.lapsed?.[0]?.id || this.clients()[0]?.id || '';
         if (focusClientId) {
@@ -662,15 +766,15 @@ export class ClientsComponent implements OnInit {
       },
       error: (error) => {
         this.reportError.set(this.api.errorText(error, 'Unable to load client reports'));
+        this.reportLoadInFlight = false;
         this.reportLoading.set(false);
       }
     });
   }
-
   loadClient360(clientId: string): void {
     if (!clientId) return;
     this.api.report<ApiRecord>(`clients/${encodeURIComponent(clientId)}/360`, {
-      branchId: this.api.selectedBranchId()
+      includeAllBranches: true
     }).subscribe({
       next: (report) => {
         this.client360Report.set(report);
@@ -682,7 +786,6 @@ export class ClientsComponent implements OnInit {
       error: (error) => this.reportError.set(this.api.errorText(error, 'Unable to load client 360 report'))
     });
   }
-
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -767,15 +870,15 @@ export class ClientsComponent implements OnInit {
 
   editClient(client: ApiRecord, event?: Event): void {
     event?.stopPropagation();
-    this.editingClientId.set(String(client.id || ''));
+    this.editingClientId.set(this.clientId(client));
     this.form.patchValue({
-      name: client.name || '',
-      phone: client.phone || '',
+      name: this.clientDisplayName(client),
+      phone: this.clientPhone(client),
       email: client.email || '',
       gender: client.gender || '',
       birthday: this.dateInputValue(client.birthday),
       anniversary: this.dateInputValue(client.anniversary),
-      tag: Array.isArray(client.tags) && client.tags.length ? client.tags[0] : 'new',
+      tag: this.clientTags(client)[0] || 'new',
       notes: client.notes || ''
     });
     this.showForm.set(true);
@@ -784,7 +887,7 @@ export class ClientsComponent implements OnInit {
   private openPendingEditClient(): void {
     const clientId = this.pendingEditClientId;
     if (!clientId) return;
-    const client = this.clients().find((item) => String(item.id || '') === clientId);
+    const client = this.clients().find((item) => this.clientId(item) === clientId);
     if (!client) return;
     this.pendingEditClientId = '';
     this.editClient(client);
@@ -835,8 +938,8 @@ export class ClientsComponent implements OnInit {
 
   deleteClient(client: ApiRecord, event?: Event): void {
     event?.stopPropagation();
-    const id = String(client?.id || '');
-    if (!id || !window.confirm(`Delete client "${client.name || id}"?`)) return;
+    const id = this.clientId(client);
+    if (!id || !window.confirm(`Delete client "${this.clientDisplayName(client) || id}"?`)) return;
     this.saving.set(true);
     this.api.delete('clients', id).subscribe({
       next: () => {
@@ -943,9 +1046,21 @@ export class ClientsComponent implements OnInit {
   }
 
   reportBranchLabel(): string {
-    return this.api.selectedBranchId() ? 'Branch scope' : 'All branches';
+    return 'All branches';
   }
 
+  private startAutoRefresh(): void {
+    if (this.refreshTimer) return;
+    this.refreshTimer = setInterval(() => this.refreshVisibleData(), 30000);
+    window.addEventListener('focus', this.refreshOnFocus);
+    document.addEventListener('visibilitychange', this.refreshOnVisibility);
+  }
+
+  private refreshVisibleData(): void {
+    if (document.visibilityState === 'hidden' || this.saving()) return;
+    this.load(false);
+    this.loadReports(false);
+  }
   private withUnpaidBalances(clients: ApiRecord[], invoices: ApiRecord[]): ApiRecord[] {
     const unpaidByClient = new Map<string, number>();
     for (const invoice of invoices) {
@@ -957,7 +1072,7 @@ export class ClientsComponent implements OnInit {
     }
     return clients.map((client) => ({
       ...client,
-      unpaidBalance: unpaidByClient.get(String(client.id)) || 0
+      unpaidBalance: unpaidByClient.get(this.clientId(client)) || 0
     }));
   }
 
@@ -972,7 +1087,7 @@ export class ClientsComponent implements OnInit {
       }
     }
     return clients.map((client) => {
-      const latest = latestByClient.get(String(client.id));
+      const latest = latestByClient.get(this.clientId(client));
       const linkedBalance = latest?.balanceAfter ?? latest?.balance_after;
       return {
         ...client,
@@ -996,7 +1111,7 @@ export class ClientsComponent implements OnInit {
   }
 
   private filteredClientIds(): string[] {
-    return this.filteredClients.map((client) => String(client.id || '')).filter(Boolean);
+    return this.filteredClients.map((client) => this.clientId(client)).filter(Boolean);
   }
 
   private dateInputValue(value: unknown): string {
@@ -1010,7 +1125,7 @@ export class ClientsComponent implements OnInit {
 
   private removeDeletedClients(ids: string[]): void {
     const deleted = new Set(ids);
-    this.clients.set(this.clients().filter((client) => !deleted.has(String(client.id))));
+    this.clients.set(this.clients().filter((client) => !deleted.has(this.clientId(client))));
     this.selectedClientIds.set(this.selectedClientIds().filter((id) => !deleted.has(id)));
   }
 }

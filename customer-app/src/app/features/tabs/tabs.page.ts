@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, HostListener, signal } from "@angular/core";
 import { RouterLink, RouterLinkActive } from "@angular/router";
 import { IonButton, IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
@@ -45,9 +45,9 @@ import { AuthService } from "../../core/auth.service";
         <a routerLink="/tabs/profile" routerLinkActive="active">Profile</a>
       </div>
       <div class="nav-actions" aria-label="Customer quick actions">
-        <a class="location-chip" routerLink="/tabs/search">
+        <a class="location-chip" routerLink="/tabs/search" [queryParams]="{ nearMe: true, map: true, filter: 'nearest', sort: 'distance' }">
           <ion-icon name="location-outline"></ion-icon>
-          Near me
+          {{ locationLabel() }}
         </a>
         <a class="icon-link" routerLink="/notifications" aria-label="Open notifications">
           <ion-icon name="notifications-outline"></ion-icon>
@@ -331,8 +331,17 @@ import { AuthService } from "../../core/auth.service";
   `]
 })
 export class TabsPage {
+  readonly locationLabel = signal(this.readLocationLabel());
+
   constructor(readonly auth: AuthService) {
     addIcons({ homeOutline, searchOutline, sparklesOutline, calendarOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline });
+  }
+
+  @HostListener("window:storage")
+  @HostListener("window:focus")
+  @HostListener("window:aura:customer-location-updated")
+  refreshLocationLabel() {
+    this.locationLabel.set(this.readLocationLabel());
   }
 
   unlock() {
@@ -342,4 +351,15 @@ export class TabsPage {
   logout() {
     void this.auth.logout().catch(() => undefined);
   }
+
+  private readLocationLabel(): string {
+    try {
+      const label = (localStorage.getItem("aura_customer_area_label") || "").trim();
+      return label && label.toLowerCase() !== "near me" ? label : "Current location";
+    } catch {
+      return "Current location";
+    }
+  }
 }
+
+

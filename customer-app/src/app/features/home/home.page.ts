@@ -10,13 +10,16 @@ import {
   chatbubblesOutline,
   chevronForwardOutline,
   locationOutline,
+  mapOutline,
   navigateOutline,
   notificationsOutline,
+  optionsOutline,
   personCircleOutline,
   pricetagOutline,
   ribbonOutline,
   searchOutline,
   sparklesOutline,
+  swapVerticalOutline,
   timeOutline
 } from "ionicons/icons";
 import { BusinessCardComponent } from "../../shared/business-card.component";
@@ -92,6 +95,20 @@ interface ConsultationChatMessage {
                   </div>
                 }
               </div>
+              <div class="home-control-row" aria-label="Home search controls">
+                <button type="button" class="home-control-button" (click)="openDiscoverPanel('filter')">
+                  <ion-icon name="options-outline"></ion-icon>
+                  <span>Filter</span>
+                </button>
+                <button type="button" class="home-control-button" (click)="openDiscoverPanel('sort')">
+                  <ion-icon name="swap-vertical-outline"></ion-icon>
+                  <span>Sort</span>
+                </button>
+                <button type="button" class="home-control-button map" (click)="openMapSearch()">
+                  <ion-icon name="map-outline"></ion-icon>
+                  <span>Show map</span>
+                </button>
+              </div>
               <ion-button class="primary-gradient" (click)="search()">
                 <ion-icon name="search-outline" slot="start"></ion-icon>
                 Search
@@ -104,7 +121,7 @@ interface ConsultationChatMessage {
           <aside class="live-consultation-card" aria-label="Live AI consultation">
             <div class="consultation-topline">
               <span><ion-icon name="sparkles-outline"></ion-icon> Live consultation</span>
-              <small>{{ consultationResponse()?.mode === "groq" ? "Groq AI live" : "Smart local guide" }}</small>
+              <small>{{ consultationResponse()?.mode === "openai" ? "ChatGPT AI live" : "Smart local guide" }}</small>
             </div>
             <h2>Show photos, chat, and get the right salon plan</h2>
             <p class="consultation-copy">Ask for hair, skin, nails, spa, barber or bridal help. Aura checks your photos, location, live salons, services, prices and next steps.</p>
@@ -810,6 +827,39 @@ interface ConsultationChatMessage {
       min-width: 0;
     }
 
+
+    .home-control-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .home-control-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 44px;
+      padding: 0 13px;
+      border: 1px solid rgba(214, 169, 74, 0.28);
+      border-radius: 999px;
+      color: #5F3F10;
+      background: rgba(255, 249, 236, 0.94);
+      font-size: 0.88rem;
+      font-weight: 900;
+      white-space: nowrap;
+      box-shadow: 0 10px 22px rgba(92, 65, 28, 0.1);
+    }
+
+    .home-control-button.map {
+      color: #120D05;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 213, 141, 0.72));
+    }
+
+    .home-control-button ion-icon {
+      font-size: 1.05rem;
+    }
     .home-suggestion-panel {
       position: absolute;
       top: calc(100% + 8px);
@@ -1175,6 +1225,18 @@ interface ConsultationChatMessage {
         width: 100%;
       }
 
+
+      .home-control-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .home-control-button {
+        width: 100%;
+        min-width: 0;
+        padding: 0 8px;
+        font-size: 0.78rem;
+      }
       .welcome-actions ion-button {
         width: 100%;
       }
@@ -1192,6 +1254,10 @@ interface ConsultationChatMessage {
       .search-panel {
         grid-template-columns: minmax(0, 1fr) auto auto;
         align-items: center;
+      }
+
+      .home-control-row {
+        flex-wrap: nowrap;
       }
 
       .business-grid,
@@ -1312,13 +1378,16 @@ export class HomePage implements OnInit {
       chatbubblesOutline,
       chevronForwardOutline,
       locationOutline,
+      mapOutline,
       navigateOutline,
       notificationsOutline,
+      optionsOutline,
       personCircleOutline,
       pricetagOutline,
       ribbonOutline,
       searchOutline,
       sparklesOutline,
+      swapVerticalOutline,
       timeOutline
     });
   }
@@ -1361,6 +1430,31 @@ export class HomePage implements OnInit {
   search() {
     const intent = this.searchIntent(this.query().trim());
     void this.openDiscover(intent.query, intent.mode, intent.nearMe);
+  }
+
+  openDiscoverPanel(panel: "filter" | "sort") {
+    const intent = this.searchIntent(this.query().trim());
+    return this.router.navigate(["/tabs/search"], {
+      queryParams: {
+        q: intent.query || undefined,
+        mode: intent.mode,
+        panel
+      }
+    });
+  }
+
+  openMapSearch() {
+    const intent = this.searchIntent(this.query().trim());
+    return this.router.navigate(["/tabs/search"], {
+      queryParams: {
+        q: intent.query || undefined,
+        mode: "locations",
+        filter: "nearest",
+        sort: "distance",
+        nearMe: true,
+        map: true
+      }
+    });
   }
 
   clearSearch() {
@@ -1747,3 +1841,4 @@ export class HomePage implements OnInit {
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 }
+

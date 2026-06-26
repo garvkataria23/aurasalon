@@ -1,9 +1,9 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChildren } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 import { IonButton, IonContent, IonIcon, IonInput, IonItem, IonList } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { callOutline, logoApple, logoFacebook, logoGoogle, logoWhatsapp, mailOutline, personOutline, shieldCheckmarkOutline, sparklesOutline } from "ionicons/icons";
+import { callOutline, closeOutline, logoApple, logoFacebook, logoGoogle, logoWhatsapp, mailOutline, personOutline, shieldCheckmarkOutline, sparklesOutline } from "ionicons/icons";
 import { environment } from "../../../environments/environment";
 import { AuthService } from "../../core/auth.service";
 import { CustomerProfile } from "../../core/api.types";
@@ -25,7 +25,7 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
           @if (notice) {
             <p class="notice-text">{{ notice }}</p>
           }
-          @if (auth.error()) {
+          @if (auth.error() && !mobileNotice) {
             <p class="error-text">{{ auth.error() }}</p>
           }
 
@@ -42,15 +42,15 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
             </form>
             <div class="divider"><span></span><strong>OR</strong><span></span></div>
             <div class="social-stack">
-              <ion-button expand="block" fill="outline" class="choice-button" (click)="showMobile()" [disabled]="auth.loading()">
+              <ion-button expand="block" fill="outline" class="choice-button" (click)="openMobileModal()" [disabled]="auth.loading()">
                 <ion-icon name="call-outline" slot="start"></ion-icon>
                 Continue with mobile
               </ion-button>
-              <ion-button expand="block" fill="outline" class="choice-button" (click)="continueWithFacebook()" [disabled]="auth.loading() || !auth.firebaseConfigured()">
+              <ion-button expand="block" fill="outline" class="choice-button" (click)="continueWithFacebook()" [disabled]="auth.loading() || !auth.firebaseConfigured() || mobileOtpCooldownCountdown > 0">
                 <ion-icon name="logo-facebook" slot="start"></ion-icon>
                 Continue with Facebook
               </ion-button>
-              <ion-button expand="block" fill="outline" class="choice-button" (click)="continueWithGoogle()" [disabled]="auth.loading() || !auth.firebaseConfigured()">
+              <ion-button expand="block" fill="outline" class="choice-button" (click)="continueWithGoogle()" [disabled]="auth.loading() || !auth.firebaseConfigured() || mobileOtpCooldownCountdown > 0">
                 <ion-icon name="logo-google" slot="start"></ion-icon>
                 Continue with Google
               </ion-button>
@@ -62,7 +62,7 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
                 Continue as guest
               </ion-button>
               @if (appleLoginEnabled) {
-                <ion-button expand="block" fill="outline" class="choice-button" (click)="continueWithApple()" [disabled]="auth.loading() || !auth.firebaseConfigured()">
+                <ion-button expand="block" fill="outline" class="choice-button" (click)="continueWithApple()" [disabled]="auth.loading() || !auth.firebaseConfigured() || mobileOtpCooldownCountdown > 0">
                   <ion-icon name="logo-apple" slot="start"></ion-icon>
                   Continue with Apple
                 </ion-button>
@@ -192,6 +192,83 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
 
           <p class="terms"><ion-icon name="shield-checkmark-outline"></ion-icon> By continuing, you agree to AuraSalon booking terms and privacy settings.</p>
         </section>
+
+        <div id="customer-phone-recaptcha" class="recaptcha-host" aria-hidden="true"></div>
+
+        @if (mobileModalOpen) {
+          <div class="modal-backdrop" (click)="closeMobileModal()" aria-hidden="true"></div>
+          <section class="mobile-modal" role="dialog" aria-modal="true" aria-labelledby="mobileLoginTitle">
+            <div class="modal-head">
+              <div>
+                <p class="modal-eyebrow">Secure mobile login</p>
+                <h2 id="mobileLoginTitle">Continue with mobile</h2>
+              </div>
+              <ion-button type="button" fill="clear" class="modal-close" aria-label="Close mobile login" (click)="closeMobileModal()">
+                <ion-icon name="close-outline"></ion-icon>
+              </ion-button>
+            </div>
+
+            @if (mobileNotice) {
+              <p class="notice-text">{{ mobileNotice }}</p>
+            }
+            @if (auth.error() && !mobileNotice) {
+              <p class="error-text">{{ auth.error() }}</p>
+            }
+
+            @if (mobileStage === "number") {
+              <form class="auth-form" (submit)="sendMobileOtp($event)">
+                <p class="step-copy">Enter your India mobile number. Firebase will send a real SMS OTP.</p>
+                <div class="phone-grid modal-phone-grid">
+                  <label>
+                    <span class="field-label">Country</span>
+                    <select class="plain-input country-select" [ngModel]="countryCode" name="modalCountryCode" (ngModelChange)="onCountryCodeChange($event)">
+                      @for (option of countryOptions; track option.code) {
+                        <option [value]="option.code">{{ option.label }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Mobile number</span>
+                    <input class="plain-input" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="10" [ngModel]="phone" name="modalPhone" (ngModelChange)="onPhoneChange($event)" />
+                  </label>
+                </div>
+                <ion-button id="customer-phone-sign-in-button" type="submit" expand="block" size="large" class="primary-gradient" [disabled]="auth.loading() || !auth.firebaseConfigured() || mobileOtpCooldownCountdown > 0">
+                  {{ mobileOtpCooldownCountdown > 0 ? "Try again in " + mobileOtpCooldownCountdown + "s" : auth.loading() ? "Sending OTP..." : "Send OTP" }}
+                </ion-button>
+                @if (!auth.firebaseConfigured()) {
+                  <p class="helper">Firebase is not configured for this deployment.</p>
+                }
+              </form>
+            } @else {
+              <form class="auth-form" (submit)="verifyMobileOtp($event)">
+                <p class="step-copy">Enter the 6-digit OTP sent to <strong>{{ fullPhone() }}</strong>.</p>
+                <div class="otp-preview" aria-label="One-time password">
+                  @for (slot of otpSlots; track slot) {
+                    <input
+                      #mobileOtpBox
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="one-time-code"
+                      maxlength="1"
+                      pattern="[0-9]*"
+                      [attr.aria-label]="'OTP digit ' + (slot + 1)"
+                      [value]="otpDigits[slot]"
+                      (input)="onMobileOtpInput(slot, $event)"
+                      (keydown)="onMobileOtpKeydown(slot, $event)"
+                      (paste)="onMobileOtpPaste($event)" />
+                  }
+                </div>
+                <ion-button type="submit" expand="block" size="large" class="primary-gradient" [disabled]="auth.loading()">
+                  {{ auth.loading() ? "Verifying..." : "Verify and continue" }}
+                </ion-button>
+                <ion-button type="button" fill="clear" class="resend-otp-button" (click)="resendFirebaseOtp()" [disabled]="auth.loading() || mobileResendCountdown > 0">
+                  {{ mobileResendCountdown > 0 ? "Resend OTP in " + mobileResendCountdown + "s" : "Resend OTP" }}
+                </ion-button>
+                <ion-button type="button" expand="block" fill="clear" (click)="mobileStage = 'number'">Use another number</ion-button>
+              </form>
+            }
+          </section>
+        }
       </main>
     </ion-content>
   `,
@@ -479,16 +556,144 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
       color: #10B981;
     }
 
+    .recaptcha-host {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(35, 25, 13, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .mobile-modal {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 21;
+      width: min(calc(100vw - 28px), 470px);
+      display: grid;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid rgba(214, 169, 74, 0.28);
+      border-radius: 24px;
+      background: rgba(255, 252, 245, 0.98);
+      box-shadow: 0 28px 80px rgba(35, 25, 13, 0.28);
+      transform: translate(-50%, -50%);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-eyebrow {
+      margin: 0 0 4px;
+      color: var(--primary-2);
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .modal-close {
+      --color: var(--text);
+      --background-activated: rgba(214, 169, 74, 0.12);
+      min-width: 42px;
+      min-height: 42px;
+      margin: -6px -8px 0 0;
+      font-size: 1.15rem;
+    }
+
+    .modal-phone-grid {
+      grid-template-columns: 132px minmax(0, 1fr);
+    }
+
+    .country-select {
+      appearance: auto;
+    }
+
+    .otp-preview {
+      display: grid;
+      grid-template-columns: repeat(6, 48px);
+      justify-content: center;
+      gap: 8px;
+      margin: 8px 0 4px;
+    }
+
+    .otp-preview input {
+      width: 48px;
+      height: 54px;
+      min-width: 0;
+      padding: 0;
+      border: 1px solid rgba(126, 110, 85, 0.28);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text);
+      font-size: 1.24rem;
+      font-weight: 900;
+      text-align: center;
+      outline: none;
+    }
+
+    .otp-preview input:focus {
+      border-color: rgba(214, 169, 74, 0.58);
+      box-shadow: 0 0 0 4px rgba(214, 169, 74, 0.14);
+    }
+
     @media (max-width: 599px) {
       .auth-card {
         width: 100%;
         border-radius: 24px;
+      }
+
+      .mobile-modal {
+        top: auto;
+        bottom: max(14px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        border-radius: 22px;
+      }
+
+      .modal-phone-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .otp-preview {
+        grid-template-columns: repeat(6, minmax(0, 42px));
+        gap: 6px;
+      }
+
+      .otp-preview input {
+        width: 42px;
+        height: 50px;
+        border-radius: 12px;
+        font-size: 1.1rem;
       }
     }
   `]
 })
 export class LoginPage implements OnInit, OnDestroy {
   readonly appleLoginEnabled = APPLE_LOGIN_ENABLED;
+  readonly countryOptions = [
+    { code: "+91", label: "India +91" }
+  ];
+  readonly otpSlots = [0, 1, 2, 3, 4, 5];
   private readonly namePartMaxLength = 40;
   step: AuthStep = "choices";
   email = "";
@@ -505,11 +710,21 @@ export class LoginPage implements OnInit, OnDestroy {
   countryCode = "+91";
   phone = "";
   notice = "";
+  mobileNotice = "";
+  mobileModalOpen = false;
+  mobileStage: "number" | "otp" = "number";
+  otpDigits = ["", "", "", "", "", ""];
+  mobileResendCountdown = 0;
+  mobileOtpCooldownCountdown = 0;
   otpChannel: "sms" | "whatsapp" = "sms";
   private completionResendTimer?: ReturnType<typeof setInterval>;
+  private mobileResendTimer?: ReturnType<typeof setInterval>;
+  private mobileOtpCooldownTimer?: ReturnType<typeof setInterval>;
+
+  @ViewChildren("mobileOtpBox") private readonly mobileOtpBoxes!: QueryList<ElementRef<HTMLInputElement>>;
 
   constructor(readonly auth: AuthService, private readonly router: Router, private readonly route: ActivatedRoute) {
-    addIcons({ callOutline, logoApple, logoFacebook, logoGoogle, logoWhatsapp, mailOutline, personOutline, shieldCheckmarkOutline, sparklesOutline });
+    addIcons({ callOutline, closeOutline, logoApple, logoFacebook, logoGoogle, logoWhatsapp, mailOutline, personOutline, shieldCheckmarkOutline, sparklesOutline });
   }
 
   ngOnInit() {
@@ -522,6 +737,8 @@ export class LoginPage implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.clearCompletionResendTimer();
+    this.clearMobileResendTimer();
+    this.clearMobileOtpCooldown();
   }
 
   async continueWithEmail(event: Event) {
@@ -562,35 +779,72 @@ export class LoginPage implements OnInit, OnDestroy {
       .catch(() => undefined);
   }
 
-  showMobile() {
-    this.step = "mobile";
+  openMobileModal() {
+    this.mobileModalOpen = true;
+    this.mobileStage = "number";
+    this.mobileNotice = "";
     this.notice = "";
+    this.auth.error.set("");
     this.code = "";
+    this.otpDigits = ["", "", "", "", "", ""];
     this.otpChannel = "sms";
+    this.countryCode = this.countryCode || "+91";
+  }
+
+  closeMobileModal() {
+    this.mobileModalOpen = false;
+    this.mobileStage = "number";
+    this.mobileNotice = "";
+    this.code = "";
+    this.otpDigits = ["", "", "", "", "", ""];
+    this.clearMobileResendTimer();
+  }
+
+  showMobile() {
+    this.openMobileModal();
   }
 
   showWhatsApp() {
-    this.step = "mobile";
-    this.notice = "";
+    this.notice = "WhatsApp login is coming soon. Use mobile SMS OTP, Google, Facebook, or email for now.";
+    this.mobileModalOpen = false;
     this.code = "";
     this.otpChannel = "whatsapp";
   }
 
-  async sendMobileOtp(event: Event) {
-    event.preventDefault();
+  async sendMobileOtp(event?: Event) {
+    event?.preventDefault();
+    this.phone = this.phoneDigits(this.phone);
     const phone = this.fullPhone();
-    if (phone.replace(/\D/g, "").length < 8) {
-      this.notice = "Enter a valid mobile number.";
+    if (!/^\+91\d{10}$/.test(phone)) {
+      this.mobileNotice = "Enter a valid 10-digit India mobile number.";
       return;
     }
+    if (this.isLocalPhoneAuthHost()) {
+      this.mobileNotice = "Firebase real SMS OTP cannot be sent from localhost. Open the customer app on an HTTPS domain added in Firebase Authentication authorized domains.";
+      return;
+    }
+    if (this.mobileOtpCooldownCountdown > 0) {
+      this.mobileNotice = `Firebase is rate-limiting OTP sends. Try again in ${this.mobileOtpCooldownCountdown}s.`;
+      return;
+    }
+    this.mobileNotice = "";
     this.notice = "";
-    await this.auth.requestOtp(phone, this.otpChannel)
-      .then((response) => {
+    await this.auth.requestFirebasePhoneOtp(phone, "customer-phone-recaptcha")
+      .then(() => {
         this.code = "";
-        this.step = "mobileCode";
-        this.notice = this.otpNotice(response);
+        this.otpDigits = ["", "", "", "", "", ""];
+        this.clearMobileOtpCooldown();
+        this.mobileStage = "otp";
+        this.mobileNotice = "OTP sent by SMS.";
+        this.startMobileResendCountdown();
+        setTimeout(() => this.focusMobileOtp(0));
       })
-      .catch((error) => this.handleOtpRequestError(error));
+      .catch(() => this.handleFirebaseOtpRequestFailure());
+  }
+
+  async resendFirebaseOtp() {
+    if (this.mobileResendCountdown > 0 || this.mobileOtpCooldownCountdown > 0 || this.auth.loading()) return;
+    await this.sendMobileOtp();
   }
 
   async resendOtp(channel: "sms" | "whatsapp") {
@@ -604,16 +858,19 @@ export class LoginPage implements OnInit, OnDestroy {
       .catch((error) => this.handleOtpRequestError(error));
   }
 
-  async verifyMobileOtp(event: Event) {
-    event.preventDefault();
+  async verifyMobileOtp(event?: Event) {
+    event?.preventDefault();
+    this.mobileNotice = "";
     this.notice = "";
-    await this.auth.verifyOtp(this.fullPhone(), this.code)
+    const otp = this.mobileOtpValue() || this.code.trim();
+    if (!/^\d{6}$/.test(otp)) {
+      this.mobileNotice = "Enter the 6-digit OTP.";
+      return;
+    }
+    await this.auth.verifyFirebasePhoneOtp(otp)
       .then((session) => {
-        if (!this.auth.profileComplete(session.customer)) {
-          this.prepareCompletion(session.customer);
-          return;
-        }
-        this.openHome();
+        this.closeMobileModal();
+        this.afterProviderSignIn(session);
       })
       .catch(() => undefined);
   }
@@ -710,8 +967,8 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
   fullPhone(): string {
-    const code = this.countryCode.trim().startsWith("+") ? this.countryCode.trim() : `+${this.countryCode.trim()}`;
-    return `${code}${this.phone.replace(/\D/g, "")}`;
+    const code = this.countryCode.trim().startsWith("+") ? this.countryCode.trim() : "+" + this.countryCode.trim();
+    return code + this.phoneDigits(this.phone);
   }
 
   completionFullPhone(): string {
@@ -723,6 +980,39 @@ export class LoginPage implements OnInit, OnDestroy {
     return String(value || "").replace(/[^\p{L}]/gu, "").slice(0, this.namePartMaxLength);
   }
 
+  onCountryCodeChange(value: unknown) {
+    const codeDigits = String(value || "").replace(/\D/g, "").slice(0, 3) || "91";
+    this.countryCode = `+${codeDigits}`;
+  }
+
+  onPhoneChange(value: unknown) {
+    this.phone = this.phoneDigits(value);
+  }
+
+  onMobileOtpInput(index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.replace(/\D/g, "");
+    if (value.length > 1) {
+      this.fillMobileOtpFrom(value, index);
+      return;
+    }
+    this.otpDigits[index] = value;
+    input.value = value;
+    this.mobileNotice = "";
+    if (value && index < this.otpSlots.length - 1) this.focusMobileOtp(index + 1);
+  }
+
+  onMobileOtpKeydown(index: number, event: KeyboardEvent) {
+    if (event.key === "Backspace" && !this.otpDigits[index] && index > 0) {
+      this.focusMobileOtp(index - 1);
+    }
+  }
+
+  onMobileOtpPaste(event: ClipboardEvent) {
+    event.preventDefault();
+    this.fillMobileOtpFrom(event.clipboardData?.getData("text") || "", 0);
+  }
+
   onCompletionCountryCodeChange(value: unknown) {
     const codeDigits = String(value || "").replace(/\D/g, "").slice(0, 3) || "91";
     this.completionCountryCode = `+${codeDigits}`;
@@ -732,6 +1022,84 @@ export class LoginPage implements OnInit, OnDestroy {
   onCompletionPhoneChange(value: unknown) {
     this.completionPhone = this.phoneDigits(value);
     this.resetCompletionPhoneVerification();
+  }
+
+  private fillMobileOtpFrom(value: string, startIndex: number) {
+    const chars = value.replace(/\D/g, "").slice(0, this.otpSlots.length - startIndex).split("");
+    chars.forEach((char, offset) => {
+      this.otpDigits[startIndex + offset] = char;
+    });
+    this.mobileOtpBoxes?.forEach((box, index) => {
+      box.nativeElement.value = this.otpDigits[index] || "";
+    });
+    this.mobileNotice = "";
+    this.focusMobileOtp(Math.min(startIndex + chars.length, this.otpSlots.length - 1));
+  }
+
+  private focusMobileOtp(index: number) {
+    this.mobileOtpBoxes?.get(index)?.nativeElement.focus();
+  }
+
+  private mobileOtpValue(): string {
+    return this.otpDigits.join("");
+  }
+
+  private startMobileResendCountdown() {
+    this.clearMobileResendTimer();
+    this.mobileResendCountdown = 30;
+    this.mobileResendTimer = setInterval(() => {
+      this.mobileResendCountdown = Math.max(0, this.mobileResendCountdown - 1);
+      if (this.mobileResendCountdown === 0) this.clearMobileResendTimer();
+    }, 1000);
+  }
+
+  private clearMobileResendTimer() {
+    if (this.mobileResendTimer) {
+      clearInterval(this.mobileResendTimer);
+      this.mobileResendTimer = undefined;
+    }
+    this.mobileResendCountdown = 0;
+  }
+
+  private handleFirebaseOtpRequestFailure() {
+    const message = this.auth.error().trim();
+    if (this.isFirebaseOtpRateLimitMessage(message)) {
+      this.auth.error.set("");
+      this.mobileNotice = "Firebase has temporarily rate-limited OTP sends for this number or project. Wait before trying again.";
+      this.startMobileOtpCooldown();
+      return;
+    }
+    if (!message || message.toLowerCase() === "error" || message.toLowerCase() === "unable to send otp") {
+      this.auth.error.set("");
+      this.mobileNotice = "Firebase could not send OTP. Check Phone provider, India SMS region policy, billing/quota, and authorized domain, then try again.";
+    }
+  }
+
+  private startMobileOtpCooldown(seconds = 60) {
+    this.clearMobileOtpCooldown();
+    this.mobileOtpCooldownCountdown = seconds;
+    this.mobileOtpCooldownTimer = setInterval(() => {
+      this.mobileOtpCooldownCountdown = Math.max(0, this.mobileOtpCooldownCountdown - 1);
+      if (this.mobileOtpCooldownCountdown === 0) this.clearMobileOtpCooldown();
+    }, 1000);
+  }
+
+  private clearMobileOtpCooldown() {
+    if (this.mobileOtpCooldownTimer) {
+      clearInterval(this.mobileOtpCooldownTimer);
+      this.mobileOtpCooldownTimer = undefined;
+    }
+    this.mobileOtpCooldownCountdown = 0;
+  }
+
+  private isFirebaseOtpRateLimitMessage(message: string): boolean {
+    const normalized = message.toLowerCase();
+    return normalized.includes("too many otp attempts") || normalized.includes("quota exceeded") || normalized.includes("rate-limit");
+  }
+
+  private isLocalPhoneAuthHost(): boolean {
+    if (typeof window === "undefined") return false;
+    return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
   }
 
   private afterProviderSignIn(session: { customer: CustomerProfile }) {

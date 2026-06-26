@@ -1,0 +1,69 @@
+{
+  "source": "C:\\salon excel backup\\migration-export\\flexisalonerp_001SalonDataSSense\\migration-ready-csv\\ready",
+  "outputZip": "C:\\aura-salon-crm-pos-full-20260622-152001\\outputs\\migration\\aura-app-import-ready.zip",
+  "fileCount": 12,
+  "totalRows": 66036,
+  "files": [
+    {
+      "file": "01_clients.csv",
+      "rows": 3339,
+      "size_kb": 406.7
+    },
+    {
+      "file": "02_staff.csv",
+      "rows": 26,
+      "size_kb": 2.0
+    },
+    {
+      "file": "03_services.csv",
+      "rows": 503,
+      "size_kb": 34.5
+    },
+    {
+      "file": "04_products.csv",
+      "rows": 1779,
+      "size_kb": 146.0
+    },
+    {
+      "file": "05_vendors.csv",
+      "rows": 69,
+      "size_kb": 5.3
+    },
+    {
+      "file": "06_inventory.csv",
+      "rows": 1633,
+      "size_kb": 263.3
+    },
+    {
+      "file": "07_memberships.csv",
+      "rows": 282,
+      "size_kb": 39.7
+    },
+    {
+      "file": "08_appointments.csv",
+      "rows": 12422,
+      "size_kb": 2762.9
+    },
+    {
+      "file": "09_sales.csv",
+      "rows": 14563,
+      "size_kb": 3487.1
+    },
+    {
+      "file": "10_invoices.csv",
+      "rows": 14563,
+      "size_kb": 2892.5
+    },
+    {
+      "file": "11_payments.csv",
+      "rows": 14316,
+      "size_kb": 1717.4
+    },
+    {
+      "file": "12_expenses.csv",
+      "rows": 2541,
+      "size_kb": 370.5
+    }
+  ],
+  "usage": "Upload this ZIP in Data Migration with Source Software Generic CSV and Resource Auto-detect by sheet name. Run Analyze, Dry run, approval, then Final import."
+}

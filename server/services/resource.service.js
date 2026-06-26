@@ -146,7 +146,7 @@ export class ResourceService {
   listScope(resource, query = {}, access = {}) {
     const scope = tenantService.accessScope(access, resource);
     if (!truthy(query.includeAllBranches)) return scope;
-    const allBranchResources = new Set(["packages", "memberships", "giftCards"]);
+    const allBranchResources = new Set(["packages", "memberships", "giftCards", "clients", "invoices", "walletTransactions"]);
     const privilegedRoles = new Set(["superAdmin", "owner", "admin", "manager"]);
     if (!allBranchResources.has(resource) || !privilegedRoles.has(access.role)) return scope;
     return { tenantId: access.tenantId };

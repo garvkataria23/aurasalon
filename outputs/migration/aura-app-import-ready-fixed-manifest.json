@@ -1,0 +1,73 @@
+{
+  "sourceFile": "outputs\\migration\\aura-app-import-ready-fixed.zip",
+  "outputFile": "outputs\\migration\\aura-app-import-ready-fixed.zip",
+  "rules": [
+    "Resolved generated historical client phone collisions while preserving original duplicate customer phone values."
+  ],
+  "changedGeneratedClientPhones": [
+    "0001:00101094"
+  ],
+  "files": [
+    {
+      "file": "01_clients.csv",
+      "rows": 3384,
+      "sizeBytes": 454519
+    },
+    {
+      "file": "02_staff.csv",
+      "rows": 27,
+      "sizeBytes": 2396
+    },
+    {
+      "file": "03_services.csv",
+      "rows": 504,
+      "sizeBytes": 34851
+    },
+    {
+      "file": "04_products.csv",
+      "rows": 2090,
+      "sizeBytes": 233334
+    },
+    {
+      "file": "05_vendors.csv",
+      "rows": 69,
+      "sizeBytes": 5321
+    },
+    {
+      "file": "06_inventory.csv",
+      "rows": 1633,
+      "sizeBytes": 297725
+    },
+    {
+      "file": "07_memberships.csv",
+      "rows": 282,
+      "sizeBytes": 43172
+    },
+    {
+      "file": "08_appointments.csv",
+      "rows": 12422,
+      "sizeBytes": 2947879
+    },
+    {
+      "file": "09_sales.csv",
+      "rows": 14563,
+      "sizeBytes": 3701872
+    },
+    {
+      "file": "10_invoices.csv",
+      "rows": 14563,
+      "sizeBytes": 3441737
+    },
+    {
+      "file": "11_payments.csv",
+      "rows": 14316,
+      "sizeBytes": 2301396
+    },
+    {
+      "file": "12_expenses.csv",
+      "rows": 2541,
+      "sizeBytes": 402253
+    }
+  ],
+  "sha256": "0be6853a512a9c45f04b0f88126cc607db089f96791e3190e83859802db618c1"
+}

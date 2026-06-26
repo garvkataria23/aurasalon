@@ -6,9 +6,57 @@ import { tenantService } from "./tenant.service.js";
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
+const cleanText = (value) => String(value ?? "").trim();
 
-function scope(access, branchId = "") {
-  const scoped = tenantService.accessScope(access || {});
+function clientDisplayName(client = {}) {
+  if (!client || typeof client !== "object") return "Client";
+  return cleanText(client.name || client.fullName || client.full_name || client.clientName || client.customerName || client.phone || client.email || client.id) || "Client";
+}
+
+function normalizeClient(client = {}) {
+  const row = client && typeof client === "object" ? client : {};
+  const tags = Array.isArray(row.tags) ? row.tags.filter(Boolean) : (row.tags ? [row.tags] : []);
+  return {
+    ...row,
+    name: clientDisplayName(row),
+    phone: cleanText(row.phone || row.mobile || row.mobileNumber || row.contactNumber),
+    email: cleanText(row.email),
+    tags
+  };
+}
+
+function safeObjectList(value) {
+  if (Array.isArray(value)) return value.filter((item) => item && typeof item === "object");
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === "object") : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function safeIdList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {
+      return value.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function canReadAllBranches(access = {}) {
+  return ["superAdmin", "owner", "admin", "manager", "analyst"].includes(access.role);
+}
+
+function scope(access, branchId = "", options = {}) {
+  const scoped = options.allBranches && canReadAllBranches(access) ? { tenantId: access.tenantId } : tenantService.accessScope(access || {});
   if (branchId) scoped.branchId = branchId;
   return scoped;
 }
@@ -26,6 +74,16 @@ function safeRows(sql, params = {}) {
   } catch {
     return [];
   }
+}
+
+function wantsAllBranches(query = {}) {
+  return query.includeAllBranches === true || String(query.includeAllBranches || "").toLowerCase() === "true";
+}
+
+function boundedLimit(value, fallback, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(Math.floor(parsed), max);
 }
 
 function dateKey(value) {
@@ -103,10 +161,14 @@ function daysUntil(value) {
 
 export class Customer360Service {
   summary(query = {}, access) {
-    const branchId = query.branchId || access.branchId || "";
+    const includeAllBranches = wantsAllBranches(query) && canReadAllBranches(access);
+    const branchId = includeAllBranches ? "" : query.branchId || access.branchId || "";
     if (branchId) tenantService.assertBranchAccess(access, branchId);
-    const clients = repositories.clients.list({ branchId, limit: 10000 }, scope(access, branchId));
-    const profiles = clients.map((client) => this.intelligenceForClient(client.id, access, false));
+    const limit = boundedLimit(query.limit, 10000, 50000);
+    const clientQuery = branchId ? { branchId, limit } : { limit };
+    const snapshotQuery = branchId ? { branchId, limit: 50 } : { limit: 50 };
+    const clients = repositories.clients.list(clientQuery, scope(access, branchId, { allBranches: includeAllBranches })).filter(Boolean).map(normalizeClient);
+    const profiles = clients.map((client) => this.summaryProfile(client));
     return {
       metrics: {
         clients: profiles.length,
@@ -116,18 +178,57 @@ export class Customer360Service {
         vip: clients.filter((client) => (client.tags || []).includes("VIP")).length
       },
       profiles,
-      snapshots: repositories.customerIntelligenceSnapshots.list({ branchId, limit: 50 }, scope(access, branchId))
+      clientList: clients.map((client) => ({
+        id: client.id,
+        name: client.name,
+        phone: client.phone || "",
+        email: client.email || "",
+        branchId: client.branchId || "",
+        lastVisitAt: client.lastVisitAt || "",
+        totalSpend: money(client.totalSpend || 0),
+        visitCount: Number(client.visitCount || 0)
+      })),
+      snapshots: repositories.customerIntelligenceSnapshots.list(snapshotQuery, scope(access, branchId, { allBranches: includeAllBranches }))
     };
   }
 
+  summaryProfile(client = {}) {
+    client = normalizeClient(client);
+    const lifetimeValue = money(client.totalSpend || client.lifetimeValue || 0);
+    const visitCount = Number(client.visitCount || 0);
+    const averageSpend = visitCount ? money(lifetimeValue / visitCount) : 0;
+    const inactiveDays = daysSince(client.lastVisitAt || client.updatedAt || client.createdAt);
+    const riskScore = Math.min(100, Math.round((inactiveDays > 90 ? 45 : inactiveDays > 45 ? 25 : 8) + (visitCount <= 1 ? 15 : 0)));
+    const favoriteService = client.favoriteService || client.preferredService || "No favorite yet";
+    return {
+      client,
+      metrics: {
+        lifetimeValue,
+        averageSpend,
+        favoriteService,
+        riskScore,
+        lastVisit: client.lastVisitAt || "",
+        inactiveDays,
+        visitCount,
+        loyaltyPoints: Number(client.loyaltyPoints || 0),
+        outstandingBalance: 0,
+        membershipStatus: client.membershipStatus || "none"
+      },
+      nextBestAction: riskScore >= 70
+        ? { action: "Send personal win-back WhatsApp", reason: "High churn risk", channel: "WhatsApp", priority: "high" }
+        : { action: "Ask for review after next visit", reason: "Healthy customer profile", channel: "WhatsApp", priority: "normal" },
+      insights: []
+    };
+  }
   profile(clientId, access) {
     return this.intelligenceForClient(clientId, access, true);
   }
 
   addTimelineEvent(clientId, payload = {}, access) {
     if (!payload.title && !payload.body) throw badRequest("title or body is required");
-    const client = repositories.clients.getById(clientId, scope(access));
-    if (!client) throw notFound("Client not found");
+    const storedClient = repositories.clients.getById(clientId, scope(access));
+    if (!storedClient) throw notFound("Client not found");
+    const client = normalizeClient(storedClient);
     if (client.branchId) tenantService.assertBranchAccess(access, client.branchId);
     const event = repositories.customerTimelineEvents.create({
       id: makeId("ctime"),
@@ -161,8 +262,9 @@ export class Customer360Service {
   }
 
   intelligenceForClient(clientId, access, includeTimeline = true) {
-    const client = repositories.clients.getById(clientId, scope(access));
-    if (!client) throw notFound("Client not found");
+    const storedClient = repositories.clients.getById(clientId, scope(access));
+    if (!storedClient) throw notFound("Client not found");
+    const client = normalizeClient(storedClient);
     if (client.branchId) tenantService.assertBranchAccess(access, client.branchId);
     const queryScope = scope(access, client.branchId || "");
     const sales = repositories.sales.list({ branchId: client.branchId || "", limit: 10000 }, queryScope).filter((sale) => sale.clientId === clientId);
@@ -177,18 +279,23 @@ export class Customer360Service {
     const productCounts = new Map();
     const colorHistory = [];
     for (const sale of sales) {
-      for (const item of sale.items || []) {
-        if (item.type === "service") serviceCounts.set(item.name, (serviceCounts.get(item.name) || 0) + Number(item.quantity || 1));
-        if (item.type === "product") productCounts.set(item.name, (productCounts.get(item.name) || 0) + Number(item.quantity || 1));
-        if (/colo[u]?r|highlight|balayage|global/i.test(item.name || "")) colorHistory.push(item.name);
+      for (const item of safeObjectList(sale.items)) {
+        const name = cleanText(item.name || item.serviceName || item.productName || item.title || item.id);
+        if (!name) continue;
+        if (item.type === "service") serviceCounts.set(name, (serviceCounts.get(name) || 0) + Number(item.quantity || 1));
+        if (item.type === "product") productCounts.set(name, (productCounts.get(name) || 0) + Number(item.quantity || 1));
+        if (/colo[u]?r|highlight|balayage|global/i.test(name)) colorHistory.push(name);
       }
       if (sale.staffId) staffCounts.set(sale.staffId, (staffCounts.get(sale.staffId) || 0) + 1);
     }
     for (const appointment of appointments) {
       if (appointment.staffId) staffCounts.set(appointment.staffId, (staffCounts.get(appointment.staffId) || 0) + 1);
-      for (const serviceId of appointment.serviceIds || []) {
+      for (const serviceId of safeIdList(appointment.serviceIds)) {
         const service = repositories.services.getById(serviceId, scope(access));
-        if (service) serviceCounts.set(service.name, (serviceCounts.get(service.name) || 0) + 1);
+        if (service && typeof service === "object") {
+          const serviceName = cleanText(service.name || service.serviceName || service.title || service.id);
+          if (serviceName) serviceCounts.set(serviceName, (serviceCounts.get(serviceName) || 0) + 1);
+        }
       }
     }
     const favoriteService = [...serviceCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "No favorite yet";
@@ -211,11 +318,14 @@ export class Customer360Service {
     const previousMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 7);
     const monthToDateSpend = money(invoices.filter((invoice) => monthKey(invoice.createdAt || invoice.invoiceDate) === currentMonth).reduce((sum, invoice) => sum + Number(invoice.total || 0), 0));
     const previousMonthSpend = money(invoices.filter((invoice) => monthKey(invoice.createdAt || invoice.invoiceDate) === previousMonth).reduce((sum, invoice) => sum + Number(invoice.total || 0), 0));
-    const serviceSpend = money(sales.reduce((sum, sale) => sum + (sale.items || []).filter((item) => item.type === "service").reduce((lineSum, item) => lineSum + Number(item.total || item.price || 0) * Number(item.quantity || 1), 0), 0));
-    const productSpend = money(sales.reduce((sum, sale) => sum + (sale.items || []).filter((item) => item.type === "product").reduce((lineSum, item) => lineSum + Number(item.total || item.price || 0) * Number(item.quantity || 1), 0), 0));
+    const serviceSpend = money(sales.reduce((sum, sale) => sum + safeObjectList(sale.items).filter((item) => item.type === "service").reduce((lineSum, item) => lineSum + Number(item.total || item.price || 0) * Number(item.quantity || 1), 0), 0));
+    const productSpend = money(sales.reduce((sum, sale) => sum + safeObjectList(sale.items).filter((item) => item.type === "product").reduce((lineSum, item) => lineSum + Number(item.total || item.price || 0) * Number(item.quantity || 1), 0), 0));
     const completedDates = appointments.filter((item) => item.status === "completed" && item.startAt).map((item) => item.startAt).sort();
     const topServices = [...serviceCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name).slice(0, 3);
-    const allServices = repositories.services.list({ limit: 10000 }, scope(access)).map((service) => service.name).filter(Boolean);
+    const allServices = repositories.services.list({ limit: 10000 }, scope(access))
+      .filter((service) => service && typeof service === "object")
+      .map((service) => cleanText(service.name || service.serviceName || service.title))
+      .filter(Boolean);
     const untriedServices = allServices.filter((name) => !serviceCounts.has(name)).slice(0, 5);
     const reviewAverage = reviews.length ? money(reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length) : null;
     const sentimentScore = reviews.length ? Math.max(0, Math.min(100, Math.round((reviewAverage || 0) * 20 - negativeReviews.length * 8))) : 70;
@@ -310,7 +420,7 @@ export class Customer360Service {
       id: `sale-${sale.id}`,
       type: "purchase",
       title: `Sale INR ${sale.total}`,
-      body: (sale.items || []).map((item) => item.name).join(", "),
+      body: safeObjectList(sale.items).map((item) => cleanText(item.name || item.serviceName || item.productName || item.title || "Item")).join(", "),
       createdAt: sale.createdAt,
       metadata: { saleId: sale.id }
     }));
@@ -465,7 +575,7 @@ export class Customer360Service {
           saleId: sale?.id || "",
           status: appointment.status || "",
           startAt: appointment.startAt || appointment.createdAt || "",
-          services: appointment.serviceIds || (sale?.items || []).filter((item) => item.type === "service").map((item) => item.name),
+          services: safeIdList(appointment.serviceIds).length ? safeIdList(appointment.serviceIds) : safeObjectList(sale?.items).filter((item) => item.type === "service").map((item) => cleanText(item.name || item.serviceName || item.title || "Service")),
           amount: money(invoice?.total || sale?.total || 0),
           paid: money(invoice?.paid || 0),
           balance: money(invoice?.balance || 0)

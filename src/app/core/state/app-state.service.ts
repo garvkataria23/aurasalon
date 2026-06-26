@@ -12,7 +12,8 @@ export type UserRole =
   | 'accountant'
   | 'inventoryManager'
   | 'analyst'
-  | 'customMarketingLead';
+  | 'customMarketingLead'
+  | (string & {});
 
 const DEFAULT_TENANT_ID = 'tenant_aura';
 

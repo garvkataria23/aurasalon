@@ -2,12 +2,17 @@ import { migrationService } from "../services/migration.service.js";
 
 const MIGRATION_WORKER_INTERVAL_MS = 15 * 1000;
 const MIGRATION_WORKER_ID = `migration-worker-${process.pid || "local"}`;
+let tickInProgress = false;
 
 export function runLargeMigrationWorkerTick() {
+  if (tickInProgress) return;
+  tickInProgress = true;
   try {
     migrationService.processQueuedLargeJobs({ maxJobs: 2, maxChunks: 5, workerId: MIGRATION_WORKER_ID });
   } catch (error) {
     console.warn("[MigrationLargeImport] Worker tick skipped", error.message);
+  } finally {
+    tickInProgress = false;
   }
 }
 

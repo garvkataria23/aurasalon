@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { ApiRecord, ApiService } from './core/api.service';
 import { AuthSessionService } from './core/auth-session.service';
 import { I18nService, LocalePreference } from './core/i18n.service';
+import { grantsAllow, staticGrantsForRole } from './core/permission.guard';
 import { AppStateService, UserRole } from './core/state/app-state.service';
 import { AutoNameCaseDirective } from './shared/directives/auto-name-case.directive';
 import { CommandPaletteComponent } from './shared/ui/command-palette/command-palette.component';
@@ -17,6 +18,7 @@ type NavItem = {
   label: string;
   icon: string;
   keywords?: string;
+  permission?: string | string[];
   children?: NavItem[];
 };
 
@@ -44,25 +46,66 @@ type ActiveNavTabGroup = {
   template: `
     <ng-container *ngIf="!session.isAuthenticated() && !isPortal(); else authenticatedApp">
       <main class="auth-shell">
-        <section class="auth-card">
-          <span class="eyebrow">Secure salon SaaS login</span>
-          <h1>Aura Salon OS</h1>
-          <p>Sign in with a tenant user before accessing CRM, POS, finance, inventory, reports and admin modules.</p>
-          <form [formGroup]="loginForm" (ngSubmit)="login()" class="form-grid">
-            <label class="field"><span>Tenant ID</span><input formControlName="tenantId" /></label>
-            <label class="field"><span>Email / Staff Login ID</span><input formControlName="email" autocomplete="username" /></label>
-            <label class="field"><span>Password</span><input formControlName="password" type="password" /></label>
-            <label class="field"><span>Branch ID</span><input formControlName="branchId" placeholder="Optional" /></label>
-            <label class="field full" *ngIf="requiresTotp()">
+        <section class="auth-card" aria-label="Aura Salon OS secure login">
+          <header class="auth-card-head">
+            <div class="auth-brand-lockup">
+              <span class="auth-brand-mark">Aura Shine</span>
+              <span class="auth-brand-kicker">Enterprise Salon OS</span>
+            </div>
+            <div>
+              <span class="eyebrow">Secure sign in</span>
+              <h1>Aura Salon OS</h1>
+              <p>Use your owner-created email or staff login ID to open the correct tenant and branch workspace.</p>
+            </div>
+          </header>
+
+          <form [formGroup]="loginForm" (ngSubmit)="login()" class="auth-form-grid">
+            <label class="field enterprise-field">
+              <span>Tenant ID</span>
+              <input formControlName="tenantId" autocomplete="organization" />
+            </label>
+            <label class="field enterprise-field">
+              <span>Email or Login ID</span>
+              <input formControlName="email" autocomplete="username" placeholder="owner@aurasalon.example" />
+            </label>
+            <label class="field enterprise-field">
+              <span>Password</span>
+              <div class="auth-input-action">
+                <input
+                  formControlName="password"
+                  [type]="passwordVisible() ? 'text' : 'password'"
+                  autocomplete="current-password"
+                  (keyup)="captureCapsLock($event)"
+                  (blur)="clearCapsLock()"
+                />
+                <button type="button" [attr.aria-pressed]="passwordVisible()" (click)="passwordVisible.set(!passwordVisible())">
+                  {{ passwordVisible() ? 'Hide' : 'Show' }}
+                </button>
+              </div>
+            </label>
+            <label class="field enterprise-field">
+              <span>Branch ID</span>
+              <input formControlName="branchId" placeholder="Optional branch ID" />
+            </label>
+            <label class="field full enterprise-field" *ngIf="requiresTotp()">
               <span>Authenticator or recovery code</span>
               <input formControlName="totpToken" autocomplete="one-time-code" inputmode="numeric" placeholder="6-digit code or recovery code" />
             </label>
-            <div class="state error" *ngIf="loginError()">{{ loginError() }}</div>
-            <button class="primary-button" type="submit" [disabled]="loginForm.invalid || loginBusy()">
-              {{ loginBusy() ? 'Signing in...' : (requiresTotp() ? 'Verify & sign in' : 'Sign in securely') }}
+
+            <div class="auth-form-options full">
+              <label class="auth-checkline">
+                <input type="checkbox" [checked]="rememberLoginContext()" (change)="toggleRememberLoginContext($event)" />
+                <span>Remember tenant and branch</span>
+              </label>
+            </div>
+
+            <div class="state warning full" *ngIf="capsLockOn()">Caps Lock is on. Passwords are case-sensitive.</div>
+            <div class="state error full" *ngIf="loginError()">{{ loginError() }}</div>
+
+            <button class="primary-button auth-submit-button full" type="submit" [disabled]="loginForm.invalid || loginBusy()">
+              {{ loginButtonLabel() }}
             </button>
           </form>
-          <small>Default seeded owner: owner@aurasalon.example. Set DEMO_ADMIN_PASSWORD in production before first run.</small>
         </section>
       </main>
     </ng-container>
@@ -199,6 +242,16 @@ type ActiveNavTabGroup = {
 
         <section class="workspace-page-tabs" *ngIf="activePageTabs() as tabs" aria-label="Related pages">
           <div class="workspace-page-tabs-head">
+            <button
+              class="ghost-button page-context-back-button"
+              type="button"
+              (click)="goBack()"
+              [attr.aria-label]="backButtonLabel()"
+              [title]="backButtonLabel()"
+            >
+              <span aria-hidden="true">&larr;</span>
+              <span>Back</span>
+            </button>
             <span class="nav-icon" aria-hidden="true">{{ tabs.icon }}</span>
             <div>
               <span class="eyebrow">{{ tabs.groupLabel }}</span>
@@ -244,13 +297,22 @@ export class AppComponent {
   readonly loginBusy = signal(false);
   readonly loginError = signal('');
   readonly requiresTotp = signal(false);
+  readonly passwordVisible = signal(false);
+  readonly capsLockOn = signal(false);
+  readonly rememberLoginContext = signal(this.readRememberLoginContext());
   readonly loginForm = this.fb.group({
-    tenantId: ['tenant_aura', Validators.required],
-    email: ['owner@aurasalon.example', Validators.required],
+    tenantId: [this.savedLoginValue('tenantId', 'tenant_aura'), Validators.required],
+    email: [this.savedLoginValue('email', 'owner@aurasalon.example'), Validators.required],
     password: ['', Validators.required],
-    branchId: [''],
+    branchId: [this.savedLoginValue('branchId', '')],
     totpToken: ['']
   });
+
+  readonly loginButtonLabel = computed(() => this.loginBusy()
+    ? 'Signing in...'
+    : this.requiresTotp()
+      ? 'Verify & sign in'
+      : 'Sign in securely');
 
   readonly navQuery = signal('');
   readonly activeRoute = signal('');
@@ -258,6 +320,34 @@ export class AppComponent {
   readonly sidebarCompact = signal(this.readInitialSidebarCompact());
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   private loadedLocalizationTenantId = '';
+  private readonly navPermissionRules: Array<{ pattern: RegExp; permission: string | string[] }> = [
+    { pattern: /^\/(security|enterprise-security-shield|security-alerts|security-blocklist|security-policy-center|permissions|compliance|audit-compliance|two-factor)/, permission: ['read:security', 'write:security', 'admin:security'] },
+    { pattern: /^\/(business-details|settings|branches|white-label|localization)/, permission: ['read:settings', 'write:settings', 'read:branches', 'write:branches'] },
+    { pattern: /^\/(appointments|appointment-activity|scheduler|staff\/my-work)/, permission: 'read:appointments' },
+    { pattern: /^\/appointment-deposits/, permission: 'read:appointment_deposits' },
+    { pattern: /^\/(clients|client-masters|customer-360)/, permission: ['read:clients', 'read:customer-360'] },
+    { pattern: /^\/(pos|cash-drawer|checkout|sales)/, permission: ['read:pos', 'read:sales', 'read:invoices'] },
+    { pattern: /^\/(billing|invoices|payments)/, permission: ['read:invoices', 'read:payments', 'read:finance'] },
+    { pattern: /^\/(inventory|products)/, permission: ['read:inventory', 'read:products'] },
+    { pattern: /^\/suppliers/, permission: 'read:suppliers' },
+    { pattern: /^\/(services|packages)/, permission: 'read:services' },
+    { pattern: /^\/(memberships|gift-cards|loyalty)/, permission: ['read:memberships', 'read:services'] },
+    { pattern: /^\/(staff|staff-os|staff-enterprise|payroll|commissions)/, permission: 'read:staff' },
+    { pattern: /^\/(finance|account-master|balance-sheet|transactions)/, permission: 'read:finance' },
+    { pattern: /^\/(reports|analytics|kpi-details|predictive-forecasting|data-warehouse|kpi-monitoring)/, permission: ['read:reports', 'read:analytics'] },
+    { pattern: /^\/(marketing|growth-rank-bot|growth-advisor|discount-rules|reputation|coupons)/, permission: 'read:marketing' },
+    { pattern: /^\/(whatsapp|message-logs)/, permission: 'read:whatsapp' },
+    { pattern: /^\/(ai|command-center|image-analysis|recommendation-engine|knowledge-base|gamification|fraud-detection|appointment-optimization|dynamic-pricing|pricing)/, permission: 'read:ai' },
+    { pattern: /^\/smart-booking/, permission: 'read:smart-booking' },
+    { pattern: /^\/(book|online-booking)/, permission: 'read:booking-portal' },
+    { pattern: /^\/offline/, permission: 'read:offline' },
+    { pattern: /^\/workflows/, permission: 'read:workflows' },
+    { pattern: /^\/quality/, permission: 'read:quality' },
+    { pattern: /^\/deployment/, permission: 'read:deployment' },
+    { pattern: /^\/data-migration/, permission: 'read:migration' },
+    { pattern: /^\/(developer-api|webhooks|plugins|app-marketplace|marketplace-integrations)/, permission: ['read:developer-api', 'read:plugins', 'read:marketplace-integrations'] },
+    { pattern: /^\/(franchise|training-academy)/, permission: 'read:franchise' }
+  ];
 
   readonly favoriteNavItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'D', keywords: 'home kpi overview' },
@@ -739,12 +829,11 @@ export class AppComponent {
 
   readonly visibleNavGroups = computed(() => {
     const term = this.navQuery().trim().toLowerCase();
-    if (!term) return this.navGroups;
     return this.navGroups
       .map((group) => {
         const groupMatches = `${group.label} ${group.id}`.toLowerCase().includes(term);
-        const items = groupMatches ? group.items : group.items
-          .map((item) => this.filterNavItem(item, group, term))
+        const items = group.items
+          .map((item) => this.filterNavItem(item, group, term, groupMatches))
           .filter((item): item is NavItem => Boolean(item));
         return { ...group, items };
       })
@@ -814,8 +903,18 @@ export class AppComponent {
     }
     this.loginBusy.set(true);
     this.loginError.set('');
+    this.saveLoginContextPreference();
     const raw = this.loginForm.getRawValue() as { tenantId: string; email: string; password: string; branchId?: string; totpToken?: string };
-    const payload = { ...raw, totpToken: (raw.totpToken || '').trim() || undefined };
+    const identity = String(raw.email || '').trim();
+    const isEmailIdentity = identity.includes('@');
+    const payload = {
+      tenantId: String(raw.tenantId || '').trim(),
+      email: isEmailIdentity ? identity : undefined,
+      loginId: isEmailIdentity ? undefined : identity,
+      password: raw.password,
+      branchId: String(raw.branchId || '').trim() || undefined,
+      totpToken: (raw.totpToken || '').trim() || undefined
+    };
     this.session.login(payload).subscribe({
       next: (session) => {
         this.state.setTenant(session.tenant.id);
@@ -838,6 +937,24 @@ export class AppComponent {
         this.loginBusy.set(false);
       }
     });
+  }
+
+  captureCapsLock(event: KeyboardEvent): void {
+    this.capsLockOn.set(Boolean(event.getModifierState?.('CapsLock')));
+  }
+
+  clearCapsLock(): void {
+    this.capsLockOn.set(false);
+  }
+
+  toggleRememberLoginContext(event: Event): void {
+    const checked = Boolean((event.target as HTMLInputElement | null)?.checked);
+    this.rememberLoginContext.set(checked);
+    if (checked) {
+      this.saveLoginContextPreference();
+      return;
+    }
+    this.clearSavedLoginContext();
   }
 
   logout(): void {
@@ -1022,11 +1139,33 @@ export class AppComponent {
     return null;
   }
 
-  private filterNavItem(item: NavItem, group: NavGroup, term: string): NavItem | null {
-    if (!item.children?.length) return this.navItemText(item, group).includes(term) ? item : null;
-    const children = item.children.filter((child) => this.navItemText(child, group).includes(term));
+  private filterNavItem(item: NavItem, group: NavGroup, term: string, groupMatches = false): NavItem | null {
+    const textMatches = !term || groupMatches || this.navItemText(item, group).includes(term);
+    if (!item.children?.length) return textMatches && this.canAccessNavItem(item) ? item : null;
+    const children = item.children
+      .map((child) => this.filterNavItem(child, group, term, groupMatches))
+      .filter((child): child is NavItem => Boolean(child));
     if (children.length) return { ...item, children };
-    return this.navItemText({ ...item, children: [] }, group).includes(term) ? item : null;
+    return textMatches && this.canAccessNavItem(item) ? { ...item, children: [] } : null;
+  }
+
+  private canAccessNavItem(item: NavItem): boolean {
+    return this.canAccessPermission(item.permission || this.navPermissionForPath(item.path));
+  }
+
+  private navPermissionForPath(path: string): string | string[] {
+    const cleanPath = this.routePath(path);
+    if (!cleanPath || cleanPath === '/' || cleanPath === '/dashboard' || cleanPath === '/apps') return '';
+    return this.navPermissionRules.find((rule) => rule.pattern.test(cleanPath))?.permission || '';
+  }
+
+  private canAccessPermission(permission?: string | string[]): boolean {
+    if (!permission || (Array.isArray(permission) && !permission.length)) return true;
+    const permissions = Array.isArray(permission) ? permission : [permission];
+    const dynamicGrants = this.session.currentUser()?.permissions || [];
+    const grants = dynamicGrants.length ? dynamicGrants : staticGrantsForRole(this.state.userRole());
+    if (!grants.length) return false;
+    return permissions.some((item) => grantsAllow(grants, item));
   }
 
   private isRouteActive(url: string, path: string): boolean {
@@ -1082,6 +1221,48 @@ export class AppComponent {
     }
   }
 
+  private readRememberLoginContext(): boolean {
+    try {
+      return localStorage.getItem('auraRememberLoginContext') === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  private savedLoginValue(key: 'tenantId' | 'email' | 'branchId', fallback: string): string {
+    try {
+      if (localStorage.getItem('auraRememberLoginContext') !== 'true') return fallback;
+      const parsed = JSON.parse(localStorage.getItem('auraLoginContext') || '{}') as Partial<Record<'tenantId' | 'email' | 'branchId', string>>;
+      return String(parsed[key] || fallback);
+    } catch {
+      return fallback;
+    }
+  }
+
+  private saveLoginContextPreference(): void {
+    try {
+      if (!this.rememberLoginContext()) return;
+      const raw = this.loginForm.getRawValue() as { tenantId?: string; email?: string; branchId?: string };
+      localStorage.setItem('auraRememberLoginContext', 'true');
+      localStorage.setItem('auraLoginContext', JSON.stringify({
+        tenantId: String(raw.tenantId || '').trim(),
+        email: String(raw.email || '').trim(),
+        branchId: String(raw.branchId || '').trim()
+      }));
+    } catch {
+      return;
+    }
+  }
+
+  private clearSavedLoginContext(): void {
+    try {
+      localStorage.removeItem('auraRememberLoginContext');
+      localStorage.removeItem('auraLoginContext');
+    } catch {
+      return;
+    }
+  }
+
   private readGlobalError(message: unknown): string {
     if (typeof message === 'string') return message;
     if (message && typeof message === 'object') {
@@ -1092,3 +1273,5 @@ export class AppComponent {
     return 'Unexpected application error';
   }
 }
+
+

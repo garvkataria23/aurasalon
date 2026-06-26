@@ -5,7 +5,8 @@ import { environment } from '../../environments/environment';
 
 export type LoginPayload = {
   tenantId: string;
-  email: string;
+  email?: string;
+  loginId?: string;
   password: string;
   branchId?: string;
   totpToken?: string;
@@ -21,7 +22,7 @@ export type AuthSession = {
   expiresIn: number;
   refreshToken: string;
   refreshExpiresAt: string;
-  user: { id: string; name: string; loginId?: string; email: string; role: string; staffId?: string; branchId: string; branchIds: string[] };
+  user: { id: string; name: string; loginId?: string; email: string; role: string; staffId?: string; branchId: string; branchIds: string[]; permissions?: string[] };
   tenant: { id: string; name: string; slug: string; subscriptionStatus: string };
 };
 

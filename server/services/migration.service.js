@@ -2,21 +2,31 @@ import * as XLSX from "xlsx";
 import { createHash, randomUUID } from "node:crypto";
 import { columnsFor, db, insertRow, listRows, updateRow } from "../db.js";
 import { securityService } from "./security.service.js";
+import { migrationUploadStore } from "./migration-upload-store.service.js";
+import { balanceSheetService } from "./balance-sheet.service.js";
+import { extractZipEntries, createZipArchive } from "../utils/zip-archive.js";
 
 const now = () => new Date().toISOString();
-const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
+const makeId = (prefix) => `${prefix}_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+const makeIdLong = (prefix) => `${prefix}_${randomUUID().replace(/-/g, '')}`;
+const UNMAPPED_BRANCH_PREFIX = "__unmapped_branch__:";
+const BLOCKED_TIME_CLIENT_NAME = "Imported Blocked Time";
+const SOURCE_BRANCH_ALIASES = [
+  { branchId: "branch_hyd", names: ["0001 ho", "0001 0001", "head office", "ho"] },
+  { branchId: "branch_blr", names: ["0002 baram", "baram", "baramati"] }
+];
 
 const SOURCE_ADAPTERS = {
-  zenoti: { label: "Zenoti", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
-  salonist: { label: "Salonist", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
-  dingg: { label: "DINGG", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
-  fresha: { label: "Fresha", type: "salon-pos", formats: ["xlsx", "csv"], status: "adapter-ready" },
-  tally: { label: "Tally", type: "accounting", formats: ["xlsx", "csv"], status: "scaffold-ready" },
-  busy: { label: "Busy", type: "accounting", formats: ["xlsx", "csv"], status: "scaffold-ready" },
-  marg: { label: "Marg", type: "inventory-accounting", formats: ["xlsx", "csv"], status: "scaffold-ready" },
-  excel: { label: "Generic Excel", type: "spreadsheet", formats: ["xlsx", "xls"], status: "adapter-ready" },
-  csv: { label: "Generic CSV", type: "spreadsheet", formats: ["csv"], status: "adapter-ready" },
-  manual: { label: "Manual records", type: "manual", formats: ["xlsx", "csv"], status: "adapter-ready" }
+  zenoti: { label: "Zenoti", type: "salon-pos", formats: ["xlsx", "csv", "zip"], status: "adapter-ready" },
+  salonist: { label: "Salonist", type: "salon-pos", formats: ["xlsx", "csv", "zip"], status: "adapter-ready" },
+  dingg: { label: "DINGG", type: "salon-pos", formats: ["xlsx", "csv", "zip"], status: "adapter-ready" },
+  fresha: { label: "Fresha", type: "salon-pos", formats: ["xlsx", "csv", "zip"], status: "adapter-ready" },
+  tally: { label: "Tally", type: "accounting", formats: ["xlsx", "csv", "zip"], status: "scaffold-ready" },
+  busy: { label: "Busy", type: "accounting", formats: ["xlsx", "csv", "zip"], status: "scaffold-ready" },
+  marg: { label: "Marg", type: "inventory-accounting", formats: ["xlsx", "csv", "zip"], status: "scaffold-ready" },
+  excel: { label: "Generic Excel", type: "spreadsheet", formats: ["xlsx", "xls", "zip"], status: "adapter-ready" },
+  csv: { label: "Generic CSV", type: "spreadsheet", formats: ["csv", "zip"], status: "adapter-ready" },
+  manual: { label: "Manual records", type: "manual", formats: ["xlsx", "csv", "zip"], status: "adapter-ready" }
 };
 
 const RESOURCE_ORDER = [
@@ -166,12 +176,12 @@ const RESOURCE_TEMPLATES = {
   sales: {
     table: "sales",
     required: ["clientId", "branchId", "total"],
-    fields: ["originalRecordId", "clientId", "clientName", "clientPhone", "staffId", "staffName", "branchId", "branchName", "serviceName", "lineItem", "subtotal", "discount", "gstAmount", "total", "status", "createdAt"]
+    fields: ["originalRecordId", "clientId", "clientName", "clientPhone", "staffId", "staffName", "branchId", "branchName", "serviceName", "lineItem", "subtotal", "discount", "gstAmount", "total", "paymentMode", "status", "createdAt"]
   },
   invoices: {
     table: "invoices",
     required: ["invoiceNumber", "clientId", "total"],
-    fields: ["originalRecordId", "invoiceNumber", "clientId", "clientName", "clientPhone", "staffId", "staffName", "branchId", "branchName", "subtotal", "discount", "gstAmount", "total", "paid", "balance", "status", "createdAt"]
+    fields: ["originalRecordId", "saleId", "invoiceNumber", "clientId", "clientName", "clientPhone", "staffId", "staffName", "branchId", "branchName", "subtotal", "discount", "gstAmount", "total", "paid", "balance", "paymentMode", "status", "createdAt"]
   },
   payments: {
     table: "payments",
@@ -179,6 +189,51 @@ const RESOURCE_TEMPLATES = {
     fields: ["invoiceId", "invoiceNumber", "originalRecordId", "mode", "paymentMode", "amount", "reference", "branchId", "branchName", "createdAt"]
   }
 };
+
+const MAX_IMPORT_ROWS = 50000;
+const MAX_IMPORT_FILE_BYTES = 100 * 1024 * 1024;
+const VALID_MIGRATION_TABLES = new Set([
+  ...Object.values(RESOURCE_TEMPLATES).map((t) => t.table),
+  "migration_large_jobs", "migration_file_chunks", "migration_reconciliation_snapshots", "migration_id_map",
+  "migration_mappings", "migration_jobs", "migration_import_batches", "migration_row_results", "migration_audit_logs"
+]);
+const MIGRATION_ADMIN_TABLES = new Set([
+  "migration_large_jobs", "migration_file_chunks", "migration_reconciliation_snapshots", "migration_id_map",
+  "migration_mappings", "migration_jobs", "migration_import_batches", "migration_row_results", "migration_audit_logs"
+]);
+const SAFE_IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+function assertValidTable(table, label) {
+  if (!VALID_MIGRATION_TABLES.has(table)) {
+    throw new Error(`Invalid table ${label || "name"}: ${table}`);
+  }
+}
+function assertValidMigrationAdminTable(table, label) {
+  if (!MIGRATION_ADMIN_TABLES.has(table)) {
+    throw new Error(`Invalid admin table ${label || "name"}: ${table}`);
+  }
+}
+function assertValidColumnNames(columns) {
+  for (const col of columns) {
+    if (!SAFE_IDENTIFIER_RE.test(col)) {
+      throw new Error(`Invalid column name: ${col}`);
+    }
+  }
+}
+
+function assertImportPayloadLimits(payload, parsed) {
+  const totalRows = Array.isArray(payload.rows) ? payload.rows.length
+    : (parsed && Array.isArray(parsed.sheets) ? parsed.sheets.reduce((sum, s) => sum + (Array.isArray(s.rows) ? s.rows.length : 0), 0) : 0);
+  if (totalRows > MAX_IMPORT_ROWS) {
+    throw badRequest(`Import payload exceeds maximum row count of ${MAX_IMPORT_ROWS}. Received ${totalRows} rows. Large ZIP/XLSX imports are not supported in normal import mode. Please use Large Import Mode with CSV chunk upload.`);
+  }
+  if (payload.fileBase64) {
+    const raw = String(payload.fileBase64).replace(/^data:[^;]+;base64,/, "");
+    const decodedBytes = Buffer.from(raw, "base64").length;
+    if (decodedBytes > MAX_IMPORT_FILE_BYTES) {
+      throw badRequest(`Import file exceeds maximum size of ${Math.round(MAX_IMPORT_FILE_BYTES / 1024 / 1024)}MB. Received ${Math.round(decodedBytes / 1024 / 1024)}MB.`);
+    }
+  }
+}
 
 export const migrationService = {
   adapters() {
@@ -188,6 +243,67 @@ export const migrationService = {
   templates(resource = "") {
     if (resource) return templateFor(resource);
     return Object.fromEntries(Object.keys(RESOURCE_TEMPLATES).map((key) => [key, templateFor(key)]));
+  },
+  uploadSource(payload, access) {
+    return storeMigrationUpload(migrationUploadStore.store(payload, access), access);
+  },
+
+  uploadSourceBuffer(payload, access) {
+    return storeMigrationUpload(migrationUploadStore.storeBuffer(payload, access), access);
+  },
+
+  createUploadSession(payload, access) {
+    const session = migrationUploadStore.createSession(payload, access);
+    auditMigration("migration.upload_session_created", {
+      sessionId: session.sessionId,
+      fileName: session.fileName,
+      sizeBytes: session.sizeBytes,
+      totalParts: session.totalParts
+    }, access);
+    return session;
+  },
+
+  uploadSessionPart(sessionId, partNumber, payload, access) {
+    return migrationUploadStore.storeSessionPart(sessionId, partNumber, payload, access);
+  },
+
+  completeUploadSession(sessionId, payload, access) {
+    const upload = migrationUploadStore.completeSession(sessionId, payload, access);
+    return storeMigrationUpload(upload, access);
+  },
+
+  uploadSessions(query, access) {
+    return migrationUploadStore.sessions(query || {}, access);
+  },
+
+  uploadSession(sessionId, access) {
+    return migrationUploadStore.session(sessionId, access);
+  },
+
+  commandCenter(payload, access) {
+    const preview = previewPayload(payload, access, { persist: false, dryRun: true });
+    const report = buildMigrationCommandCenter(preview, payload, access);
+    auditMigration("migration.command_center_previewed", {
+      fileName: report.fileName,
+      totalRows: report.totals.totalRows,
+      conflicts: report.conflicts.total
+    }, access);
+    return report;
+  },
+
+  proofPack(payload, access) {
+    return buildMigrationProofPack(payload || {}, access);
+  },
+
+  normalizeSource(payload, access) {
+    const normalized = normalizeSourcePackage(payload, access);
+    auditMigration("migration.source_normalized", {
+      sourceFileName: normalized.sourceFileName,
+      outputFileName: normalized.fileName,
+      fileCount: normalized.summary.fileCount,
+      totalRows: normalized.summary.totalRows
+    }, access);
+    return normalized;
   },
 
   mappings(access) {
@@ -297,7 +413,7 @@ export const migrationService = {
       totalRows: integer(payload.totalRows, 0),
       chunkSize,
       mapping: payload.mapping || {},
-      settings: importSettings({ ...payload, sourceSoftware }),
+      settings: importSettings({ ...payload, sourceSoftware }, access),
       summary: { totalRows: integer(payload.totalRows, 0), chunkSize, resource, sourceSoftware },
       resumeToken: `job:${id}:chunk:0`,
       createdBy: access.userId || "system"
@@ -373,6 +489,14 @@ export const migrationService = {
 
   processQueuedLargeJobs(payload = {}, access = {}) {
     return processQueuedLargeMigrationJobs(payload, access);
+  },
+
+  parseCsvText(csvText) {
+    return parseCsvChunkRows({ csvText });
+  },
+
+  analyzeChunkRows(jobId, chunkNumber, payload, access) {
+    return this.analyzeLargeJobChunk(jobId, chunkNumber, payload, access);
   },
   startLargeJob(jobId, payload, access) {
     requireLargeMigrationJob(jobId, access);
@@ -484,7 +608,7 @@ export const migrationService = {
     const rows = Array.isArray(payload.rows) ? payload.rows : [];
     if (!rows.length) throw badRequest("rows are required for chunk import.");
     const preview = previewPayload(largeChunkPayload(job, payload, rows), access, { persist: false, dryRun: false, jobId: job.id });
-    const gate = migrationApprovalGate(access, preview.summary);
+    const gate = migrationApprovalGate(access, preview.summary, approvalIdentityForJob(job, preview.summary));
     if ((!gate.allowed || preview.summary.errorRows) && payload.skipApprovalGate !== true) {
       throw badRequest(`Final chunk import blocked: ${gate.reason}`);
     }
@@ -535,12 +659,17 @@ export const migrationService = {
     ensureMigrationApprovalSchema();
     const id = makeId("mapr");
     const ts = now();
+    const identity = approvalIdentityFromSubmission(payload);
     const record = {
       id,
       tenantId: access.tenantId,
       branchId: payload.branchId || access.branchId || "",
-      jobId: payload.jobId || "",
-      resource: payload.resource || "",
+      jobId: identity.jobId || "",
+      resource: identity.resource || "auto",
+      sourceSoftware: identity.sourceSoftware || "",
+      fileName: identity.fileName || "",
+      sourceFileHash: identity.sourceFileHash || "",
+      totalRows: identity.totalRows || 0,
       status: "pending",
       note: cleanText(payload.note),
       summaryJson: JSON.stringify(payload.summary || {}),
@@ -553,11 +682,11 @@ export const migrationService = {
     };
     db.prepare(
       `INSERT INTO migration_approvals
-        (id, tenantId, branchId, jobId, resource, status, note, summaryJson, submittedBy, submittedAt, reviewedBy, reviewedAt, createdAt, updatedAt)
+        (id, tenantId, branchId, jobId, resource, sourceSoftware, fileName, sourceFileHash, totalRows, status, note, summaryJson, submittedBy, submittedAt, reviewedBy, reviewedAt, createdAt, updatedAt)
        VALUES
-        (@id, @tenantId, @branchId, @jobId, @resource, @status, @note, @summaryJson, @submittedBy, @submittedAt, @reviewedBy, @reviewedAt, @createdAt, @updatedAt)`
+        (@id, @tenantId, @branchId, @jobId, @resource, @sourceSoftware, @fileName, @sourceFileHash, @totalRows, @status, @note, @summaryJson, @submittedBy, @submittedAt, @reviewedBy, @reviewedAt, @createdAt, @updatedAt)`
     ).run(record);
-    auditMigration("migration.approval.submitted", { jobId: record.jobId, approvalId: id }, access);
+    auditMigration("migration.approval.submitted", { jobId: record.jobId, approvalId: id, fileName: record.fileName, sourceFileHash: record.sourceFileHash }, access);
     return deserializeApproval(record);
   },
 
@@ -633,8 +762,8 @@ export const migrationService = {
       uploadStatus: lastJob ? lastJob.status : "not_started",
       migrationProgress: lastJob ? progressFor(lastJob) : 0,
       errorsCount: errors,
-      importedRecordsCount: importedRecords,
-      ...clientTotals,
+      importedRecordsCount: importedRecords,      ...clientTotals,
+      entityTotals: migrationEntityTotals(access),
       rollbackHistory,
       completionChecklist: [
         { key: "template", label: "Download or review resource template", done: true },
@@ -656,12 +785,33 @@ export const migrationService = {
   },
 
   import(payload, access) {
+    assertImportPayloadLimits(payload);
     const precheck = this.canImport(payload, access);
     if (!precheck.allowed && payload.skipApprovalGate !== true) {
       throw badRequest(`Final import blocked: ${precheck.blocked.join(", ")}`);
     }
     const preview = previewPayload(payload, access, { persist: false, dryRun: false });
     const sourceSoftware = sourceKey(payload.sourceSoftware);
+    const duplicate = payload.forceImport === true ? null : findDuplicateImportJob(access, {
+      sourceSoftware,
+      resource: payload.resource || "auto",
+      fileName: payload.fileName || preview.fileName,
+      totalRows: preview.summary.totalRows,
+      sourceFileHash: migrationSourceHash(payload, access)
+    });
+    if (duplicate) {
+      const batch = latestBatchForJob(duplicate.id, access);
+      return {
+        duplicateImport: true,
+        alreadyImported: true,
+        job: duplicate,
+        jobId: duplicate.id,
+        batchId: batch?.id || "",
+        summary: duplicate.summary || preview.summary,
+        details: this.job(duplicate.id, access),
+        message: `This source file was already imported in job ${duplicate.id}. Roll back that job before importing it again.`
+      };
+    }
     const batchId = makeId("batch");
     const jobId = makeId("mig");
     const branchId = payload.branchId || access.branchId || "";
@@ -676,7 +826,7 @@ export const migrationService = {
       dryRun: 0,
       migrationMode: payload.migrationMode === false ? 0 : 1,
       mapping: preview.mapping,
-      settings: importSettings(payload),
+      settings: importSettings(payload, access),
       totalRows: preview.summary.totalRows,
       summary: preview.summary
     }));
@@ -768,7 +918,7 @@ export const migrationService = {
     return {
       ...preview,
       dataQualityScore: qualityScore,
-      approvalGate: migrationApprovalGate(access, preview.summary),
+      approvalGate: migrationApprovalGate(access, preview.summary, approvalIdentityForPayload(payload, preview, access)),
       anomalySummary: migrationAnomalySummary(rows),
       branchWisePreview: preview.summary.byBranch || {},
       requiredMappingComplete: requiredMappingComplete(payload.mapping || {}, payload.resource || ""),
@@ -787,10 +937,11 @@ export const migrationService = {
 
   canImport(payload, access) {
     const preview = previewPayload(payload, access, { persist: false, dryRun: true });
-    const gate = migrationApprovalGate(access, preview.summary);
+    const gate = migrationApprovalGate(access, preview.summary, approvalIdentityForPayload(payload, preview, access));
     const mappingReady = requiredMappingComplete(payload.mapping || {}, payload.resource || "");
     const blocked = [];
-    if (Number(preview.summary.errorRows || 0) > 0) blocked.push("critical_errors_present");
+    const allowPartialImport = payload.allowPartialImport === true;
+    if (Number(preview.summary.errorRows || 0) > 0 && !allowPartialImport) blocked.push("critical_errors_present");
     if (!gate.approved) blocked.push("owner_approval_required");
     if (!mappingReady) blocked.push("required_mapping_incomplete");
     return {
@@ -798,6 +949,7 @@ export const migrationService = {
       blocked,
       approvalGate: gate,
       mappingReady,
+      allowPartialImport,
       dataQualityScore: this.dataQualityScore(preview.summary),
       summary: preview.summary
     };
@@ -851,21 +1003,94 @@ function migrationAnomalySummary(rows = []) {
   };
 }
 
-function migrationApprovalGate(access = {}, summary = {}) {
+function migrationApprovalGate(access = {}, summary = {}, identityInput = {}) {
   ensureMigrationApprovalSchema();
-  const approved = Boolean(db
-    .prepare("SELECT id FROM migration_approvals WHERE tenantId = ? AND status = 'approved' ORDER BY createdAt DESC LIMIT 1")
-    .get(access.tenantId));
+  const identity = normalizeApprovalIdentity(identityInput, summary);
+  const approvals = db
+    .prepare("SELECT * FROM migration_approvals WHERE tenantId = @tenantId AND status = 'approved' ORDER BY createdAt DESC LIMIT 100")
+    .all({ tenantId: access.tenantId })
+    .map(deserializeApproval);
+  const matched = approvals.find((approval) => approvalMatchesIdentity(approval, identity));
+  const approved = Boolean(matched);
   const hasErrors = Number(summary.errorRows || 0) > 0;
   return {
     approved,
+    approvalId: matched?.id || "",
+    identity,
     allowed: approved && !hasErrors,
-    reason: hasErrors ? "critical_errors_present" : approved ? "approved" : "owner_approval_required"
+    reason: hasErrors ? "critical_errors_present" : approved ? "approved" : "owner_approval_required_for_this_source"
   };
 }
 
+function normalizeApprovalIdentity(identity = {}, summary = {}) {
+  const sourceEvidence = identity.sourceEvidence || summary.sourceEvidence || summary.summary?.sourceEvidence || {};
+  return {
+    jobId: cleanText(identity.jobId),
+    resource: canonicalResource(identity.resource || "") || cleanText(identity.resource || summary.resource || "auto") || "auto",
+    sourceSoftware: sourceKey(identity.sourceSoftware || summary.sourceSoftware || ""),
+    fileName: cleanText(identity.fileName || sourceEvidence.fileName || summary.fileName),
+    sourceFileHash: cleanText(identity.sourceFileHash || sourceEvidence.sha256 || summary.sourceFileHash),
+    totalRows: integer(identity.totalRows ?? summary.totalRows ?? summary.summary?.totalRows, 0)
+  };
+}
+
+function approvalIdentityForPayload(payload = {}, preview = {}, access = {}) {
+  const summary = preview.summary || {};
+  return normalizeApprovalIdentity({
+    jobId: payload.jobId || "",
+    resource: payload.resource || "auto",
+    sourceSoftware: payload.sourceSoftware || preview.sourceSoftware || summary.sourceSoftware || "",
+    fileName: payload.fileName || preview.fileName || summary.fileName || "",
+    sourceFileHash: payload.sourceFileHash || migrationSourceHash(payload, access) || "",
+    totalRows: payload.totalRows || summary.totalRows || 0,
+    sourceEvidence: summary.sourceEvidence
+  }, summary);
+}
+
+function approvalIdentityForJob(job = {}, summary = {}) {
+  return normalizeApprovalIdentity({
+    jobId: job.id,
+    resource: job.resource || "auto",
+    sourceSoftware: job.sourceSoftware,
+    fileName: job.fileName,
+    sourceFileHash: job.settings?.sourceFileHash || job.sourceFileHash || "",
+    totalRows: job.totalRows || summary.totalRows || 0,
+    sourceEvidence: job.settings?.sourceEvidence || summary.sourceEvidence
+  }, summary);
+}
+
+function approvalIdentityFromSubmission(payload = {}) {
+  const summary = payload.summary || {};
+  const nestedSummary = summary.summary || summary;
+  const sourceEvidence = payload.sourceEvidence || summary.sourceEvidence || nestedSummary.sourceEvidence || {};
+  return normalizeApprovalIdentity({
+    jobId: payload.jobId,
+    resource: payload.resource || nestedSummary.resource || "auto",
+    sourceSoftware: payload.sourceSoftware || summary.sourceSoftware || nestedSummary.sourceSoftware,
+    fileName: payload.fileName || summary.fileName || nestedSummary.fileName,
+    sourceFileHash: payload.sourceFileHash || summary.sourceFileHash || nestedSummary.sourceFileHash,
+    totalRows: payload.totalRows ?? nestedSummary.totalRows ?? summary.totalRows,
+    sourceEvidence
+  }, nestedSummary);
+}
+
+function approvalMatchesIdentity(approval = {}, identity = {}) {
+  const approvalHash = cleanText(approval.sourceFileHash);
+  const identityHash = cleanText(identity.sourceFileHash);
+  if (identityHash) return approvalHash === identityHash;
+  const approvalJobId = cleanText(approval.jobId);
+  const identityJobId = cleanText(identity.jobId);
+  if (identityJobId) return approvalJobId === identityJobId;
+  const fileMatches = cleanText(approval.fileName).toLowerCase() === cleanText(identity.fileName).toLowerCase();
+  const rowsMatch = Number(approval.totalRows || 0) === Number(identity.totalRows || 0);
+  const sourceMatches = cleanText(approval.sourceSoftware) === cleanText(identity.sourceSoftware);
+  const resourceMatches = cleanText(approval.resource || "auto") === cleanText(identity.resource || "auto");
+  return Boolean(identity.fileName && identity.totalRows && fileMatches && rowsMatch && sourceMatches && resourceMatches);
+}
+
 function requiredMappingComplete(mapping = {}, resource = "") {
-  const canonical = canonicalResource(resource || "clients") || "clients";
+  const canonical = canonicalResource(resource || "");
+  if (!canonical) return true;
   const required = RESOURCE_TEMPLATES[canonical]?.required || [];
   if (!required.length) return true;
   const mappedTargets = new Set(Object.values(mapping || {}).filter(Boolean));
@@ -903,12 +1128,456 @@ function buildResumeToken(preview = {}) {
 }
 
 
+function normalizeFlexiSourceRows(parsed = {}, sourceSoftware = "csv") {
+  const account = flexiSheet(parsed, "dbo.AccountMaster");
+  const productService = flexiSheet(parsed, "dbo.ProdServMaster");
+  const appointmentsMain = flexiSheet(parsed, "dbo.AppointMentMain");
+  const appointmentsChild = flexiSheet(parsed, "dbo.AppointMentChild");
+  const slipMain = flexiSheet(parsed, "dbo.SlipMain");
+  const slipBalance = flexiSheet(parsed, "dbo.SlipBalAmt");
+  const stock = flexiSheet(parsed, "dbo.Stock");
+  const membership = flexiSheet(parsed, "dbo.ClientMShip");
+  const expenses = flexiSheet(parsed, "dbo.ExpenceDetail");
+  if (!account.length && !productService.length && !appointmentsChild.length && !slipBalance.length) return [];
+
+  const rows = [];
+  const accountByCode = new Map(account.map((row) => [flexiKey(row.BranchCode, row.Code), row]));
+  const serviceByCode = new Map(productService.map((row) => [cleanText(row.Code), row]));
+  const appointmentByDoc = new Map(appointmentsMain.map((row) => [flexiDocKey(row), row]));
+  const slipByDoc = new Map(slipMain.map((row) => [flexiDocKey(row), row]));
+
+  account.filter((row) => cleanKey(row.Flag) === "cl" && cleanText(row.Name)).forEach((row, index) => rows.push(flexiRow("clients", {
+    originalRecordId: flexiKey(row.BranchCode, row.Code),
+    name: row.Name,
+    phone: row.Mobile1 || row.TMobile1,
+    email: row.EMail,
+    gender: cleanText(row.Female) === "1" ? "female" : "",
+    birthday: row.DOB,
+    anniversary: row.DOA,
+    tags: row.Salutation,
+    notes: [row.Remarks, row.RefThru].filter(Boolean).join("; "),
+    branchId: "",
+    branchName: row.CurrBranch || row.Branch,
+    createdAt: row.CDate
+  }, row, "dbo.AccountMaster/clients", index)));
+
+  account.filter((row) => cleanKey(row.Flag) === "emp" && cleanText(row.Name)).forEach((row, index) => rows.push(flexiRow("staff", {
+    originalRecordId: flexiKey(row.BranchCode, row.Code),
+    name: row.Name,
+    role: row.Designation || row.EMPType || "Stylist",
+    phone: row.Mobile1 || row.TMobile1,
+    email: row.EMail,
+    branchId: "",
+    branchName: row.CurrBranch || row.Branch,
+    shift: row.ShiftCode,
+    status: cleanText(row.Hide) === "1" ? "inactive" : "active",
+    createdAt: row.DOJ || row.CDate
+  }, row, "dbo.AccountMaster/staff", index)));
+
+  account.filter((row) => ["acs", "sup", "pur"].includes(cleanKey(row.Flag)) && cleanText(row.Name)).forEach((row, index) => rows.push(flexiRow("vendors", {
+    originalRecordId: flexiKey(row.BranchCode, row.Code),
+    name: row.Name,
+    contactName: row.ShortName,
+    phone: row.Mobile1 || row.TMobile1,
+    email: row.EMail,
+    gstin: row.GSTINNo,
+    address: "",
+    status: cleanText(row.Hide) === "1" ? "inactive" : "active",
+    createdAt: row.CDate
+  }, row, "dbo.AccountMaster/vendors", index)));
+
+  productService.filter((row) => cleanKey(row.Flag) === "sl" && cleanText(row.Name)).forEach((row, index) => rows.push(flexiRow("services", {
+    originalRecordId: row.Code,
+    name: row.Name,
+    category: row.CategoryCode || "Imported",
+    price: flexiMoney(row.Rate || row.RateMember),
+    durationMinutes: integer(row.TimeTaken, 0),
+    gstRate: flexiGstRate(row.GSTTaxCode || row.TaxCode),
+    status: cleanText(row.Hide) === "1" ? "inactive" : "active",
+    createdAt: ""
+  }, row, "dbo.ProdServMaster/services", index)));
+
+  productService.filter((row) => cleanKey(row.Flag) === "pl" && cleanText(row.Name)).forEach((row, index) => rows.push(flexiRow("products", {
+    originalRecordId: row.Code,
+    name: row.Name,
+    sku: row.BarCode || row.Code,
+    category: row.CategoryCode || "Imported",
+    supplier: row.MfgCCode || row.TCompany,
+    branchId: "",
+    branchName: "",
+    stock: flexiMoney(row.OpgQty),
+    lowStockThreshold: flexiMoney(row.MinQty || row.OrdLevQty),
+    expiryDate: "",
+    unitCost: flexiMoney(row.CostRate || row.COP || row.LastCostRate),
+    price: flexiMoney(row.Rate || row.LastMRP),
+    gstRate: flexiGstRate(row.GSTTaxCode || row.TaxCode),
+    createdAt: ""
+  }, row, "dbo.ProdServMaster/products", index)));
+
+  stock.filter((row) => cleanText(row.PCode)).forEach((row, index) => rows.push(flexiRow("inventory", {
+    originalRecordId: `stock:${flexiDocKey(row)}:${row.Sno || index + 1}`,
+    productId: row.PCode,
+    productName: serviceByCode.get(cleanText(row.PCode))?.Name || "",
+    sku: row.PCode,
+    branchId: "",
+    branchName: row.Branch,
+    type: numberValue(row.RecQty) > 0 ? "stock_in" : "stock_out",
+    quantity: numberValue(row.RecQty) > 0 ? flexiMoney(row.RecQty) : flexiMoney(-Math.abs(numberValue(row.IssQty))),
+    unitCost: flexiMoney(row.CostRate || row.Rate),
+    reason: "Flexi stock migration",
+    createdAt: row.DocDate
+  }, row, "dbo.Stock", index)));
+
+  membership.filter((row) => cleanText(row.ClientCode) && cleanText(row.MShipCode)).forEach((row, index) => rows.push(flexiRow("memberships", {
+    originalRecordId: `membership:${flexiKey(row.BranchCode, row.ClientCode)}:${row.MShipCode}:${row.MShipNo || index + 1}`,
+    clientId: flexiKey(row.BranchCode, row.ClientCode),
+    clientName: row.ClientName,
+    clientPhone: accountByCode.get(flexiKey(row.BranchCode, row.ClientCode))?.Mobile1 || "",
+    planName: `Legacy Membership ${row.MShipCode}`,
+    price: "0.00",
+    planCredits: "0",
+    creditsRemaining: "0",
+    validityDate: row.DOE,
+    autoRenew: "false",
+    branchId: "",
+    branchName: row.Branch,
+    createdAt: row.DOR || row.CDate
+  }, row, "dbo.ClientMShip", index)));
+
+  appointmentsChild.filter((row) => cleanText(row.DocNo)).forEach((row, index) => {
+    const main = appointmentByDoc.get(flexiDocKey(row)) || {};
+    const client = accountByCode.get(flexiKey(main.CBranchCode || main.BranchCode, main.ClientCode));
+    const staff = accountByCode.get(flexiKey(row.OprBranchCode, row.OprCode));
+    rows.push(flexiRow("appointments", {
+      originalRecordId: `appt:${flexiDocKey(row)}:${row.Sno || index + 1}`,
+      clientId: flexiKey(main.CBranchCode || main.BranchCode, main.ClientCode || ""),
+      clientName: client?.Name || "",
+      clientPhone: main.ContactNo || client?.Mobile1 || "",
+      staffId: flexiKey(row.OprBranchCode, row.OprCode),
+      staffName: staff?.Name || "",
+      serviceId: row.ServCode,
+      serviceIds: row.ServCode,
+      serviceName: serviceByCode.get(cleanText(row.ServCode))?.Name || row.ServCode,
+      branchId: "",
+      branchName: row.Branch,
+      startAt: flexiDateTime(row.DocDate || main.DocDate, row.StartTime || main.ATTime),
+      endAt: "",
+      status: flexiAppointmentStatus(row.Status),
+      source: "FlexiSalonERP",
+      chair: row.RoomCode,
+      notes: [main.Remarks, row.Remarks].filter(Boolean).join("; "),
+      createdAt: main.CDate || row.DocDate
+    }, row, "dbo.AppointMentChild", index));
+  });
+
+  slipBalance.filter((row) => cleanText(row.DocNo)).forEach((row, index) => {
+    const main = slipByDoc.get(flexiDocKey(row)) || {};
+    const client = accountByCode.get(flexiKey(row.AccBranchCode, row.AccCode));
+    const common = {
+      originalRecordId: `sale:${flexiDocKey(row)}`,
+      clientId: flexiKey(row.AccBranchCode, row.AccCode),
+      clientName: client?.Name || main.Person || "",
+      clientPhone: client?.Mobile1 || "",
+      staffId: "",
+      staffName: "",
+      branchId: "",
+      branchName: row.Branch,
+      subtotal: flexiMoney(row.TotalAmt),
+      discount: flexiMoney(main.DedDiscAmt || main.DiscAmt),
+      gstAmount: flexiMoney(main.TaxAmt || main.IGSTAmt || main.CGSTAmt || main.SGSTAmt),
+      total: flexiMoney(row.TotalAmt),
+      status: "completed",
+      createdAt: row.DocDate
+    };
+    rows.push(flexiRow("sales", { ...common, serviceName: "", lineItem: "" }, row, "dbo.SlipBalAmt/sales", index));
+    rows.push(flexiRow("invoices", {
+      originalRecordId: `invoice:${flexiDocKey(row)}`,
+      invoiceNumber: row.SSInvNo || row.DocNo,
+      saleId: common.originalRecordId,
+      ...common,
+      paid: flexiMoney(Math.max(0, numberValue(row.TotalAmt) - numberValue(row.BalAmt))),
+      balance: flexiMoney(row.BalAmt)
+    }, row, "dbo.SlipBalAmt/invoices", index));
+  });
+
+  slipMain.filter((row) => cleanText(row.DocNo)).forEach((row, index) => {
+    for (const mode of [
+      ["cash", row.CashAmt],
+      ["card", row.CardAmt],
+      ["cheque", row.ChequeAmt],
+      ["third_party", row.TPartyAmt]
+    ]) {
+      if (numberValue(mode[1]) <= 0) continue;
+      rows.push(flexiRow("payments", {
+        invoiceId: `invoice:${flexiDocKey(row)}`,
+        invoiceNumber: row.SSINVNo || row.DocNo,
+        originalRecordId: `payment:${flexiDocKey(row)}:${mode[0]}`,
+        mode: mode[0],
+        paymentMode: mode[0],
+        amount: flexiMoney(mode[1]),
+        reference: row.RefNo || row.PaymentTxn,
+        branchId: "",
+        branchName: row.Branch,
+        createdAt: row.DocDate
+      }, row, "dbo.SlipMain/payments", index));
+    }
+  });
+
+  expenses.filter((row) => cleanKey(row.DocType) === "og" && cleanText(row.DocNo)).forEach((row, index) => rows.push(flexiRow("expenses", {
+    originalRecordId: `expense:${flexiDocKey(row)}:${row.SNo || index + 1}`,
+    branchId: "",
+    branchName: row.Branch,
+    category: row.Type || "Imported",
+    vendor: accountByCode.get(flexiKey(row.AccBranchCode, row.AccCode))?.Name || row.AccCode,
+    amount: flexiMoney(row.Amount),
+    taxAmount: "0.00",
+    paymentMode: "card",
+    paidAt: row.DocDate,
+    notes: row.Remarks || row.Reason,
+    createdAt: row.DocDate
+  }, row, "dbo.ExpenceDetail", index)));
+
+  rows.mapping = {};
+  rows.unmatchedColumns = [];
+  return rows;
+}
+
+function flexiSheet(parsed = {}, name = "") {
+  const wanted = cleanKey(name);
+  return (parsed.sheets || []).find((sheet) => cleanKey(sheet.name).endsWith(wanted))?.rows || [];
+}
+
+function flexiRow(resource, fields, raw, sourceSheet, index) {
+  return {
+    resource,
+    entity: resource,
+    sourceSheet,
+    sourceRowNumber: index + 2,
+    sourceExternalId: cleanText(fields.originalRecordId) || `${sourceSheet}:${index + 2}`,
+    raw,
+    fields,
+    payload: fields,
+    sourceSoftware: "csv"
+  };
+}
+
+function flexiKey(branchCode, code) {
+  const branch = cleanText(branchCode);
+  const value = cleanText(code);
+  return branch && value ? `${branch}:${value}` : value;
+}
+
+function flexiDocKey(row = {}) {
+  return [row.BranchCode, row.DocType, row.Prefix, row.DocNo].map(cleanText).filter(Boolean).join(":");
+}
+
+function flexiMoney(value) {
+  return numberValue(value, 0).toFixed(2);
+}
+
+function flexiGstRate(value) {
+  const match = cleanText(value).match(/(\d+(?:\.\d+)?)/);
+  return match ? match[1] : "18";
+}
+
+function flexiDateTime(date, time) {
+  const datePart = cleanText(date).slice(0, 10);
+  const timePart = cleanText(time).match(/\d{1,2}:\d{2}(?::\d{2})?/);
+  return datePart ? `${datePart}T${timePart ? timePart[0] : "00:00:00"}` : "";
+}
+
+function flexiAppointmentStatus(value) {
+  const status = cleanKey(value);
+  if (["c", "cancel", "cancelled"].includes(status)) return "cancelled";
+  if (["co", "complete", "completed", "done"].includes(status)) return "completed";
+  return "booked";
+}
+const AURA_PACKAGE_ORDER = [
+  "clients",
+  "staff",
+  "services",
+  "products",
+  "vendors",
+  "inventory",
+  "memberships",
+  "appointments",
+  "sales",
+  "invoices",
+  "payments",
+  "expenses"
+];
+
+function storeMigrationUpload(upload, access) {
+  auditMigration("migration.upload.stored", {
+    fileRef: upload.fileRef,
+    fileName: upload.fileName,
+    sizeBytes: upload.sizeBytes,
+    sha256: upload.sha256
+  }, access);
+  return upload;
+}
+function normalizeSourcePackage(payload = {}, access = {}) {
+  const source = uploadedBufferSource(payload, access, "migration-source.zip", "fileBase64 or fileRef is required to normalize a migration source.");
+  const sourceSoftware = sourceKey(payload.sourceSoftware);
+  const readyPackage = auraReadyZipPackage(source, sourceSoftware);
+  if (readyPackage) return readyPackage;
+  const parsed = parseUploadedBuffer(source.fileName, source.buffer, {
+    maxEntries: 500,
+    maxUncompressedBytes: 180 * 1024 * 1024,
+    preferCsv: true
+  });
+  const flexiRows = normalizeFlexiSourceRows(parsed, sourceSoftware);
+  const normalizedRows = flexiRows.length ? flexiRows : normalizeParsedRows(parsed, { ...payload, resource: payload.resource || "" }, access, sourceSoftware);
+  const orderedRows = dependencyOrderedRows(normalizedRows).filter((row) => payload.includeClients === false ? row.resource !== "clients" : true);
+  if (!orderedRows.length) {
+    throw badRequest("No Aura-supported migration tables were detected in this source file. Add CSV/XLSX files named for clients, staff, services, products, appointments, invoices, payments or expenses.");
+  }
+  const byResource = groupNormalizedRows(orderedRows);
+  const files = [];
+  const manifestFiles = [];
+  let totalRows = 0;
+  for (const resource of AURA_PACKAGE_ORDER) {
+    const rows = byResource[resource] || [];
+    if (!rows.length) continue;
+    const fileName = `${String(AURA_PACKAGE_ORDER.indexOf(resource) + 1).padStart(2, "0")}_${resource}.csv`;
+    const csv = canonicalCsvForResource(resource, rows);
+    files.push({ name: fileName, data: csv });
+    totalRows += rows.length;
+    manifestFiles.push({ file: fileName, resource, rows: rows.length, sizeBytes: Buffer.byteLength(csv, "utf8") });
+  }
+  const manifest = {
+    generatedAt: now(),
+    sourceFileName: parsed.fileName,
+    sourceSoftware,
+    targetSourceSoftware: "csv",
+    fileCount: manifestFiles.length,
+    totalRows,
+    files: manifestFiles,
+    usage: "Upload/analyze this generated package with Source Software Generic CSV and Resource Auto-detect by sheet name."
+  };
+  files.unshift({ name: "00_manifest.json", data: `${JSON.stringify(manifest, null, 2)}\n` });
+  const zip = createZipArchive(files);
+  return {
+    normalized: true,
+    sourceFileName: parsed.fileName,
+    sourceSoftware,
+    targetSourceSoftware: "csv",
+    targetResource: "auto",
+    fileName: appReadyPackageName(parsed.fileName, payload.includeClients === false),
+    fileBase64: zip.toString("base64"),
+    fileSizeBytes: zip.length,
+    summary: manifest,
+    files: manifestFiles,
+    mapping: normalizedRows.mapping || {},
+    unmatchedColumns: normalizedRows.unmatchedColumns || []
+  };
+}
+
+function parseNormalizationPayload(payload = {}, access = {}) {
+  const source = uploadedBufferSource(payload, access, "migration-source.zip", "fileBase64 or fileRef is required to normalize a migration source.");
+  return parseUploadedBuffer(source.fileName, source.buffer, {
+    maxEntries: 500,
+    maxUncompressedBytes: 180 * 1024 * 1024,
+    preferCsv: true
+  });
+}
+
+function auraReadyZipPackage(source = {}, sourceSoftware = "csv") {
+  if (!isZipUpload(source.fileName)) return null;
+  let entries = [];
+  try {
+    entries = extractZipEntries(source.buffer, { maxEntries: 75, maxUncompressedBytes: 180 * 1024 * 1024 });
+  } catch (_err) {
+    return null;
+  }
+  const csvEntries = entries.filter((entry) => isCsvUpload(entry.name));
+  const manifestEntry = entries.find((entry) => String(entry.name || "").toLowerCase().endsWith("00_manifest.json"));
+  const resourceEntries = csvEntries
+    .map((entry) => ({ entry, resource: auraResourceFromPackageFile(entry.name) }))
+    .filter((item) => item.resource);
+  const looksReady = Boolean(manifestEntry) || resourceEntries.length >= 2 || String(source.fileName || "").toLowerCase().includes("aura-app-import-ready");
+  if (!looksReady || !resourceEntries.length) return null;
+  const files = [];
+  let totalRows = 0;
+  for (const item of resourceEntries) {
+    const rows = parseCsvChunkRows({ csvText: item.entry.data.toString("utf8") });
+    totalRows += rows.length;
+    files.push({ file: `${sourceNameForFile(item.entry.name)}.csv`, resource: item.resource, rows: rows.length, sizeBytes: item.entry.data.length });
+  }
+  const manifest = {
+    generatedAt: now(),
+    sourceFileName: source.fileName,
+    sourceSoftware,
+    targetSourceSoftware: "csv",
+    fileCount: files.length,
+    totalRows,
+    files,
+    usage: "Already Aura-ready. Upload/analyze with Source Software Generic CSV and Resource Auto-detect by sheet name."
+  };
+  return {
+    normalized: true,
+    alreadyAuraReady: true,
+    sourceFileName: source.fileName,
+    sourceSoftware,
+    targetSourceSoftware: "csv",
+    targetResource: "auto",
+    fileName: source.fileName,
+    fileBase64: source.buffer.toString("base64"),
+    fileSizeBytes: source.buffer.length,
+    summary: manifest,
+    files,
+    mapping: {},
+    unmatchedColumns: []
+  };
+}
+
+function auraResourceFromPackageFile(fileName = "") {
+  const base = sourceNameForFile(fileName).toLowerCase().replace(/^\d+[_-]/, "");
+  return AURA_PACKAGE_ORDER.includes(base) ? base : "";
+}
+
+function groupNormalizedRows(rows = []) {
+  return rows.reduce((grouped, row) => {
+    grouped[row.resource] = grouped[row.resource] || [];
+    grouped[row.resource].push(row);
+    return grouped;
+  }, {});
+}
+
+function canonicalCsvForResource(resource, rows = []) {
+  const template = RESOURCE_TEMPLATES[resource];
+  if (!template) return "";
+  const header = template.fields;
+  const lines = rows.map((row) => header.map((field) => csvValue(normalizedFieldValue(row, field))).join(","));
+  return `\uFEFF${header.join(",")}\n${lines.join("\n")}\n`;
+}
+
+function normalizedFieldValue(row = {}, field = "") {
+  if (row.fields && row.fields[field] !== undefined && row.fields[field] !== null && row.fields[field] !== "") return row.fields[field];
+  if (row.payload && row.payload[field] !== undefined && row.payload[field] !== null) return row.payload[field];
+  if (field === "paymentMode" && row.payload?.mode) return row.payload.mode;
+  if (field === "mode" && row.payload?.paymentMode) return row.payload.paymentMode;
+  if (field === "branchName" && row.fields?.branch) return row.fields.branch;
+  return "";
+}
+
+function csvValue(value) {
+  const text = Array.isArray(value) ? value.join("|") : cleanText(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function appReadyPackageName(fileName = "migration-source.zip", withoutClients = false) {
+  const base = sourceNameForFile(fileName).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "migration-source";
+  return `aura-import-${base}${withoutClients ? "-without-clients" : ""}.zip`;
+}
 function previewPayload(payload, access, { persist, dryRun, jobId = "" }) {
-  const parsed = parsePayload(payload);
+  const parsed = parsePayload(payload, access);
+  assertImportPayloadLimits(payload, parsed);
   const sourceSoftware = sourceKey(payload.sourceSoftware);
   const normalized = normalizeParsedRows(parsed, payload, access, sourceSoftware);
   const context = createContext(access, normalized);
   const summary = emptySummary(sourceSoftware, parsed.fileName, dryRun);
+  const sourceEvidence = migrationSourceEvidence(payload, access, parsed.fileName);
   const relationJobId = jobId || cleanText(payload.jobId);
   const seen = new Set();
   const rows = normalized.map((row) => {
@@ -919,11 +1588,13 @@ function previewPayload(payload, access, { persist, dryRun, jobId = "" }) {
   });
   summary.affectedRecords = summary.validRows + summary.warningRows;
   summary.byBranch = branchSummary(rows);
+  if (sourceEvidence) summary.sourceEvidence = sourceEvidence;
   const response = {
     sourceSoftware,
     fileName: parsed.fileName,
     mapping: normalized.mapping || {},
     unmatchedColumns: normalized.unmatchedColumns || [],
+    sourceEvidence,
     summary,
     rows: rows.slice(0, 500)
   };
@@ -948,7 +1619,7 @@ function csvChunkChecksum(payload = {}) {
   return createHash("sha256").update(JSON.stringify({ header, csvText }), "utf8").digest("hex");
 }
 
-function parseCsvChunkRows(payload = {}) {
+export function parseCsvChunkRows(payload = {}) {
   const csvText = String(payload.csvText || "").replace(/^\uFEFF/, "");
   const header = Array.isArray(payload.header) ? payload.header.map((item) => cleanText(item)) : [];
   const records = csvRecords(csvText);
@@ -997,30 +1668,102 @@ function csvRecords(text = "") {
   }
   return rows;
 }
-function parsePayload(payload = {}) {
+function parsePayload(payload = {}, access = {}) {
   if (Array.isArray(payload.rows)) {
     return {
       fileName: payload.fileName || "manual-records",
       sheets: [{ name: payload.resource || "clients", rows: payload.rows }]
     };
   }
-  if (!payload.fileBase64) throw badRequest("fileBase64 or rows is required.");
+  const source = uploadedBufferSource(payload, access, "migration.xlsx", "fileBase64, fileRef, or rows is required.");
+  return parseUploadedBuffer(source.fileName, source.buffer);
+}
+
+function uploadedBufferSource(payload = {}, access = {}, fallbackFileName = "migration.xlsx", requiredMessage = "fileBase64 or fileRef is required.") {
+  if (payload.fileRef) {
+    const upload = migrationUploadStore.read(payload.fileRef, access);
+    return { fileName: payload.fileName || upload.fileName || fallbackFileName, buffer: upload.buffer };
+  }
+  if (!payload.fileBase64) throw badRequest(requiredMessage);
   const base64 = String(payload.fileBase64).includes(",") ? String(payload.fileBase64).split(",").pop() : payload.fileBase64;
-  const workbook = XLSX.read(Buffer.from(base64, "base64"), { type: "buffer", cellDates: true, raw: false });
+  return { fileName: payload.fileName || fallbackFileName, buffer: Buffer.from(base64, "base64") };
+}
+
+function parseUploadedBuffer(fileName, buffer, options = {}) {
+  if (isZipUpload(fileName)) return parseZipPayload(fileName, buffer, options);
+  if (isCsvUpload(fileName)) {
+    return {
+      fileName,
+      sheets: [{ name: sourceNameForFile(fileName), rows: parseCsvChunkRows({ csvText: buffer.toString("utf8") }) }]
+    };
+  }
   return {
-    fileName: payload.fileName || "migration.xlsx",
-    sheets: workbook.SheetNames.map((name) => ({
-      name,
-      rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: "", raw: false })
-    }))
+    fileName,
+    sheets: parseWorkbookSheets(buffer)
   };
 }
 
+function parseZipPayload(fileName, buffer, options = {}) {
+  let entries = extractZipEntries(buffer, { maxEntries: options.maxEntries || 75, maxUncompressedBytes: options.maxUncompressedBytes || 75 * 1024 * 1024 })
+    .filter((entry) => isSupportedZipMigrationFile(entry.name))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const csvEntries = entries.filter((entry) => isCsvUpload(entry.name));
+  if (options.preferCsv && csvEntries.length) entries = csvEntries;
+  if (!entries.length) throw badRequest("ZIP archive must contain at least one .csv, .xls or .xlsx migration file.");
+  const sheets = [];
+  for (const entry of entries) {
+    const sourceName = sourceNameForFile(entry.name);
+    if (isCsvUpload(entry.name)) {
+      sheets.push({ name: sourceName, rows: parseCsvChunkRows({ csvText: entry.data.toString("utf8") }) });
+      continue;
+    }
+    sheets.push(...parseWorkbookSheets(entry.data, sourceName));
+  }
+  if (!sheets.length) throw badRequest("ZIP archive did not produce any migration rows.");
+  return { fileName, sheets };
+}
+
+function parseWorkbookSheets(buffer, prefix = "") {
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true, raw: false });
+  return workbook.SheetNames.map((name) => ({
+    name: prefix ? `${prefix}/${name}` : name,
+    rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: "", raw: false })
+  }));
+}
+
+function isZipUpload(fileName = "") {
+  return cleanText(fileName).toLowerCase().endsWith(".zip");
+}
+
+function isCsvUpload(fileName = "") {
+  return cleanText(fileName).toLowerCase().endsWith(".csv");
+}
+
+function isSpreadsheetUpload(fileName = "") {
+  const lower = cleanText(fileName).toLowerCase();
+  return lower.endsWith(".xlsx") || lower.endsWith(".xls");
+}
+
+function isSupportedZipMigrationFile(fileName = "") {
+  const normalized = String(fileName || "").replace(/\\/g, "/");
+  const lower = normalized.toLowerCase();
+  if (!lower || lower.endsWith("/") || lower.startsWith("__macosx/") || lower.split("/").some((part) => part.startsWith("."))) return false;
+  return isCsvUpload(lower) || isSpreadsheetUpload(lower);
+}
+
+function sourceNameForFile(fileName = "") {
+  return String(fileName || "migration")
+    .replace(/\\/g, "/")
+    .replace(/^.*?([^/]+)$/g, "$1")
+    .replace(/\.(csv|xlsx|xls)$/i, "") || "migration";
+}
 function normalizeParsedRows(parsed, payload, access, sourceSoftware) {
   const allMappings = {};
   const allUnmatched = [];
+  const requestedResource = canonicalResource(payload.resource || "");
+  const branchLookup = buildBranchLookup(access);
   const rows = parsed.sheets.flatMap((sheet) => {
-    const resource = canonicalResource(payload.resource || detectResource(sheet.name));
+    const resource = requestedResource || canonicalResource(detectResource(sheet.name));
     if (!resource) return [];
     const columns = Object.keys(sheet.rows[0] || {});
     const auto = autoMapColumns(columns, resource);
@@ -1029,8 +1772,9 @@ function normalizeParsedRows(parsed, payload, access, sourceSoftware) {
     allUnmatched.push(...auto.unmatched.filter((column) => !mapping[column]));
     return sheet.rows
       .filter((row) => Object.values(row).some((value) => String(value ?? "").trim() !== ""))
-      .map((raw, index) => prepareRow({ raw, mapping, resource, sourceSheet: sheet.name, sourceRowNumber: index + 2, access, sourceSoftware }));
+      .map((raw, index) => prepareRow({ raw, mapping, resource, sourceSheet: sheet.name, sourceRowNumber: index + 2, access, sourceSoftware, branchLookup }));
   });
+  ensureUniqueInvoiceNumbers(rows, access);
   rows.mapping = allMappings;
   rows.unmatchedColumns = Array.from(new Set(allUnmatched));
   return rows.sort((a, b) => RESOURCE_ORDER.indexOf(a.resource) - RESOURCE_ORDER.indexOf(b.resource));
@@ -1050,13 +1794,13 @@ function resourceRank(resource) {
   const index = RESOURCE_ORDER.indexOf(resource);
   return index >= 0 ? index : RESOURCE_ORDER.length;
 }
-function prepareRow({ raw, mapping, resource, sourceSheet, sourceRowNumber, access, sourceSoftware }) {
+function prepareRow({ raw, mapping, resource, sourceSheet, sourceRowNumber, access, sourceSoftware, branchLookup }) {
   const fields = {};
   for (const [column, field] of Object.entries(mapping)) {
     if (!field || field === "__ignore") continue;
     fields[field] = raw[column];
   }
-  const branchId = resolveBranchId(fields, access);
+  const branchId = resolveBranchId(fields, access, branchLookup);
   const sourceExternalId = cleanText(fields.originalRecordId) || `${sourceSheet}:${sourceRowNumber}`;
   const payload = buildPayload(resource, fields, { branchId, sourceSoftware, sourceExternalId });
   return {
@@ -1146,15 +1890,16 @@ function buildPayload(resource, fields, { branchId }) {
     };
   }
   if (resource === "inventory") {
+    const quantity = numberValue(fields.quantity ?? fields.stock, 0);
     return {
       productId: cleanText(fields.productId),
       productName: cleanText(fields.productName),
       sku: cleanText(fields.sku),
       branchId,
-      type: cleanText(fields.type) || "import_opening_stock",
-      quantity: numberValue(fields.quantity ?? fields.stock, 0),
+      type: cleanText(fields.type) || (quantity < 0 ? "stock_out" : "import_opening_stock"),
+      quantity,
       unitCost: money(fields.unitCost),
-      totalCost: numberValue(fields.quantity ?? fields.stock, 0) * money(fields.unitCost),
+      totalCost: quantity * money(fields.unitCost),
       reason: cleanText(fields.reason) || "Imported stock movement",
       referenceType: "migration",
       createdAt: createdAt || undefined
@@ -1206,9 +1951,10 @@ function buildPayload(resource, fields, { branchId }) {
     };
   }
   if (resource === "appointments") {
+    const blockedTime = isBlockedAppointmentFields(fields);
     return {
       clientId: cleanText(fields.clientId),
-      clientName: cleanText(fields.clientName),
+      clientName: cleanText(fields.clientName) || (blockedTime ? BLOCKED_TIME_CLIENT_NAME : ""),
       clientPhone: normalizePhone(fields.clientPhone || fields.phone),
       staffId: cleanText(fields.staffId),
       staffName: cleanText(fields.staffName),
@@ -1217,10 +1963,11 @@ function buildPayload(resource, fields, { branchId }) {
       serviceName: cleanText(fields.serviceName),
       startAt: dateValue(fields.startAt || fields.createdAt),
       endAt: dateValue(fields.endAt),
-      status: cleanText(fields.status) || "completed",
+      status: cleanText(fields.status) || (blockedTime ? "blocked" : "completed"),
       source: cleanText(fields.source) || "migration",
       chair: cleanText(fields.chair),
-      notes: cleanText(fields.notes),
+      notes: [cleanText(fields.notes), blockedTime ? "Legacy blocked-time appointment" : ""].filter(Boolean).join(" | "),
+      blockedTime,
       createdAt: createdAt || undefined
     };
   }
@@ -1241,6 +1988,7 @@ function buildPayload(resource, fields, { branchId }) {
       total: money(fields.total || fields.amount),
       paid: money(fields.paid),
       balance: fields.balance === undefined || fields.balance === "" ? undefined : money(fields.balance),
+      paymentMode: cleanText(fields.paymentMode || fields.mode),
       status: cleanText(fields.status) || "completed",
       createdAt: createdAt || undefined
     };
@@ -1332,7 +2080,8 @@ function validatePreparedRow(row, context, seen) {
     if (required === "invoiceId" && (payload.invoiceId || payload.invoiceNumber)) continue;
     if (empty(payload[required])) errors.push(`${required} is required`);
   }
-  if (payload.branchId && !context.branches.some((branch) => branch.id === payload.branchId)) errors.push(`Unknown branchId ${payload.branchId}`);
+  if (payload.branchId?.startsWith?.(UNMAPPED_BRANCH_PREFIX)) errors.push(`Unmapped branchName ${unmappedBranchName(payload.branchId)}`);
+  else if (payload.branchId && !context.branches.some((branch) => branch.id === payload.branchId)) errors.push(`Unknown branchId ${payload.branchId}`);
   const duplicate = duplicateFor(row, context, seen);
   if (duplicate) warnings.push(`Possible duplicate: ${duplicate}`);
   validateReferences(row, context, warnings, errors);
@@ -1344,11 +2093,17 @@ function validatePreparedRow(row, context, seen) {
 function validateReferences(row, context, warnings, errors) {
   const payload = row.payload;
   if (["appointments", "sales", "invoices", "memberships"].includes(row.resource) && !resolveClient(payload, context)) {
-    if (payload.clientName || payload.clientPhone) warnings.push("Client will be auto-created from migrated history");
+    if (payload.clientName || payload.clientPhone || payload.blockedTime) warnings.push("Client will be auto-created from migrated history");
     else errors.push("Client reference could not be resolved");
   }
-  if (row.resource === "appointments" && !resolveStaff(payload, context)) errors.push("Staff reference could not be resolved");
-  if (row.resource === "inventory" && !resolveProduct(payload, context)) errors.push("Product reference could not be resolved");
+  if (row.resource === "appointments" && !resolveStaff(payload, context)) {
+    if (payload.staffName || payload.staffId) warnings.push("Staff will be auto-created from migrated history");
+    else errors.push("Staff reference could not be resolved");
+  }
+  if (row.resource === "inventory") {
+    if (!resolveProduct(payload, context)) errors.push("Product reference could not be resolved");
+    if (Number(payload.quantity || 0) < 0) warnings.push("Negative inventory movement imported as stock-out history");
+  }
   if (row.resource === "payments" && !resolveInvoice(payload, context)) errors.push("Invoice reference could not be resolved");
 }
 
@@ -1378,7 +2133,8 @@ function importPreviewRows(preview, options) {
       resourceCounter.errors++;
     } else {
       try {
-        result = importOne(row, { ...options, context });
+        const rowImportTx = db.transaction(() => importOne(row, { ...options, context }));
+        result = rowImportTx();
         if (result.action === "skipped" || result.action === "merged") {
           counters.skippedRows++;
           resourceCounter.skipped++;
@@ -1456,6 +2212,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
     if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Staff already exists" };
     const created = insertRow("staff", { ...payload, ...meta });
     context.staff.push(created);
+    indexStaffRecord(context, created);
     return { action: "created", targetId: created.id, status: row.status, message: "Staff imported" };
   }
   if (row.resource === "services") {
@@ -1463,6 +2220,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
     if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Service already exists" };
     const created = insertRow("services", { ...payload, ...meta });
     context.services.push(created);
+    indexServiceRecord(context, created);
     return { action: "created", targetId: created.id, status: row.status, message: "Service imported" };
   }
   if (row.resource === "products") {
@@ -1470,6 +2228,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
     if (existing) return { action: "skipped", targetId: existing.id, status: "warning", message: "Product already exists" };
     const created = insertRow("products", { ...payload, ...meta });
     context.products.push(created);
+    indexProductRecord(context, created);
     return { action: "created", targetId: created.id, status: row.status, message: "Product imported" };
   }
   if (row.resource === "inventory") {
@@ -1500,6 +2259,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
   }
   if (row.resource === "expenses") {
     const created = insertRow("finance_expenses", { ...payload, ...meta });
+    postMigrationExpenseJournal(created, payload, access, meta);
     return { action: "created", targetId: created.id, status: row.status, message: "Expense imported" };
   }
   if (row.resource === "memberships") {
@@ -1510,7 +2270,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
   }
   if (row.resource === "appointments") {
     const client = ensureClient(payload, context, access, meta);
-    const staff = resolveStaff(payload, context);
+    const staff = ensureStaff(payload, context, access, meta);
     const serviceIds = resolveServiceIds(payload, context);
     const startAt = payload.startAt || now();
     const created = insertRow("appointments", {
@@ -1526,10 +2286,12 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
   }
   if (row.resource === "sales") {
     const sale = createImportedSale(payload, context, access, meta);
+    postMigrationSaleJournal(sale, payload, row, context, access, meta);
     return { action: "created", targetId: sale.id, status: row.status, message: "Sale imported" };
   }
   if (row.resource === "invoices") {
     const invoice = createImportedInvoice(payload, context, access, meta);
+    postMigrationInvoiceJournal(invoice, payload, context, access, meta);
     return { action: "created", targetId: invoice.id, status: row.status, message: "Invoice imported" };
   }
   if (row.resource === "payments") {
@@ -1547,6 +2309,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
     const balance = Math.max(0, Number(invoice.total || 0) - paid);
     const updated = updateRow("invoices", invoice.id, { paid, balance, status: balance <= 0 ? "paid" : "partial" }, { tenantId: access.tenantId });
     Object.assign(invoice, updated);
+    postMigrationPaymentJournal(created, invoice, payload, access, meta);
     return { action: "created", targetId: created.id, status: row.status, message: "Payment imported" };
   }
   return { action: "skipped", targetId: "", status: "warning", message: "Unsupported resource" };
@@ -1575,19 +2338,14 @@ function createImportedSale(payload, context, access, meta) {
 }
 
 function createImportedInvoice(payload, context, access, meta) {
-  const existing = context.invoices.find((invoice) => same(invoice.invoiceNumber, payload.invoiceNumber));
-  if (existing) {
-    const error = new Error(`Invoice number already exists: ${payload.invoiceNumber}`);
-    error.status = 409;
-    throw error;
-  }
   const sale = payload.saleId ? context.sales.find((item) => item.id === payload.saleId) : createImportedSale(payload, context, access, meta);
   const paid = payload.balance === undefined ? money(payload.paid) : Math.max(0, money(payload.total) - money(payload.balance));
   const balance = payload.balance === undefined ? Math.max(0, money(payload.total) - paid) : money(payload.balance);
+  const invoiceNumber = uniqueInvoiceNumberForImport(payload, context, access, meta, sale);
   const invoice = insertRow("invoices", {
     saleId: sale.id,
     clientId: sale.clientId,
-    invoiceNumber: payload.invoiceNumber || `MIG-${sale.id.slice(-8).toUpperCase()}`,
+    invoiceNumber,
     branchId: payload.branchId || sale.branchId,
     staffId: payload.staffId || sale.staffId || "",
     lineItems: sale.items,
@@ -1602,7 +2360,283 @@ function createImportedInvoice(payload, context, access, meta) {
     ...meta
   });
   context.invoices.push(invoice);
+  indexInvoiceRecord(context, invoice);
   return invoice;
+}
+
+const MIGRATION_PAYMENT_ASSET_CODES = {
+  cash: "1000",
+  bank: "1010",
+  card: "1010",
+  credit_card: "1010",
+  debit_card: "1010",
+  upi: "1010",
+  cheque: "1010",
+  check: "1010",
+  neft: "1010",
+  rtgs: "1010",
+  imps: "1010",
+  wallet: "1010",
+  online: "1010",
+  razorpay: "1010",
+  stripe: "1010",
+  paytm: "1010",
+  phonepe: "1010",
+  google_pay: "1010",
+  gpay: "1010"
+};
+
+const MIGRATION_EXPENSE_ACCOUNT_CODES = {
+  salary: "5100",
+  staff_salary: "5100",
+  commission: "5100",
+  staff_commission: "5100",
+  rent: "5200",
+  marketing: "5300",
+  utilities: "5300",
+  software_subscription: "5300",
+  communication: "5300",
+  repair_maintenance: "5300",
+  cleaning_housekeeping: "5300",
+  bank_charges: "5300",
+  professional_legal: "5300",
+  other: "5300",
+  imported: "5300",
+  cogs: "5000",
+  product: "5000",
+  product_consumable: "5000",
+  wastage_damage: "5000",
+  inventory_purchase: "1200",
+  fixed_asset_purchase: "1500",
+  security_deposit: "1100",
+  prepaid_expense: "1100",
+  advance: "1100",
+  gst_payment: "2100",
+  statutory_payment: "2100",
+  bank_deposit: "1010",
+  loan: "2200",
+  interest: "5300",
+  owner_drawing: "3100",
+  depreciation: "5400",
+  client_refreshment: "5300",
+  uniform: "5300",
+  stationery: "5300",
+  travel: "5300",
+  training: "5300"
+};
+
+const MIGRATION_LEDGER_SOURCE_TYPES_BY_TABLE = {
+  payments: ["migration.payment.received"],
+  invoices: ["migration.invoice.receivable", "migration.invoice.settlement"],
+  sales: ["migration.sale.recorded"],
+  finance_expenses: ["migration.expense.recorded"]
+};
+
+function postMigrationExpenseJournal(expense, payload, access, meta) {
+  const amountPaise = amountToPaise(expense.amount);
+  if (amountPaise <= 0) return null;
+  const inputGstPaise = Math.min(amountPaise, Math.max(0, amountToPaise(expense.taxAmount ?? payload.taxAmount)));
+  const expensePaise = amountPaise - inputGstPaise;
+  return postMigrationJournal({
+    branchId: ledgerBranchId(expense, payload, access),
+    businessDate: migrationBusinessDate(payload.paidAt, expense.paidAt, payload.createdAt, expense.createdAt),
+    sourceType: "migration.expense.recorded",
+    sourceId: expense.id,
+    memo: "Migration expense " + (expense.category || payload.category || "import"),
+    lines: [
+      ...(expensePaise > 0 ? [{ code: expenseAccountCode(expense.category || payload.category), debitPaise: expensePaise }] : []),
+      ...(inputGstPaise > 0 ? [{ code: "2100", debitPaise: inputGstPaise, memo: "Input GST credit" }] : []),
+      { code: paymentAssetCode(expense.paymentMode || payload.paymentMode || payload.mode), creditPaise: amountPaise }
+    ]
+  }, access, meta);
+}
+
+function postMigrationSaleJournal(sale, payload, row, context, access, meta) {
+  if (hasPendingInvoiceForSale(context, row, sale, payload)) return null;
+  const amountPaise = amountToPaise(sale.total || payload.total);
+  if (amountPaise <= 0) return null;
+  const taxPaise = Math.min(amountPaise, Math.max(0, amountToPaise(sale.gstAmount ?? payload.gstAmount)));
+  const revenuePaise = amountPaise - taxPaise;
+  const statusKey = cleanKey(sale.status || payload.status);
+  const debitCode = ["unpaid", "pending", "open", "due"].includes(statusKey) ? "1100" : paymentAssetCode(payload.paymentMode || payload.mode);
+  return postMigrationJournal({
+    branchId: ledgerBranchId(sale, payload, access),
+    businessDate: migrationBusinessDate(payload.createdAt, sale.createdAt),
+    sourceType: "migration.sale.recorded",
+    sourceId: sale.id,
+    memo: "Migration sale " + (payload.lineItem || sale.id),
+    lines: [
+      { code: debitCode, debitPaise: amountPaise },
+      ...(revenuePaise > 0 ? [{ code: "4000", creditPaise: revenuePaise }] : []),
+      ...(taxPaise > 0 ? [{ code: "2100", creditPaise: taxPaise }] : [])
+    ]
+  }, access, meta);
+}
+
+function postMigrationInvoiceJournal(invoice, payload, context, access, meta) {
+  const amountPaise = amountToPaise(invoice.total || payload.total);
+  if (amountPaise <= 0) return null;
+  const taxPaise = Math.min(amountPaise, Math.max(0, amountToPaise(invoice.gstAmount ?? payload.gstAmount)));
+  const revenuePaise = amountPaise - taxPaise;
+  const branchId = ledgerBranchId(invoice, payload, access);
+  const businessDate = migrationBusinessDate(payload.createdAt, invoice.createdAt);
+  const receivable = postMigrationJournal({
+    branchId,
+    businessDate,
+    sourceType: "migration.invoice.receivable",
+    sourceId: invoice.id,
+    memo: "Migration invoice " + (invoice.invoiceNumber || invoice.id),
+    lines: [
+      { code: "1100", debitPaise: amountPaise },
+      ...(revenuePaise > 0 ? [{ code: "4000", creditPaise: revenuePaise }] : []),
+      ...(taxPaise > 0 ? [{ code: "2100", creditPaise: taxPaise }] : [])
+    ]
+  }, access, meta);
+  const paidPaise = Math.min(amountPaise, Math.max(0, amountToPaise(invoice.paid ?? payload.paid)));
+  if (paidPaise > 0 && !hasPendingPaymentForInvoice(context, payload, invoice)) {
+    postMigrationJournal({
+      branchId,
+      businessDate,
+      sourceType: "migration.invoice.settlement",
+      sourceId: invoice.id,
+      memo: "Migration invoice opening settlement " + (invoice.invoiceNumber || invoice.id),
+      lines: [
+        { code: paymentAssetCode(payload.paymentMode || payload.mode), debitPaise: paidPaise },
+        { code: "1100", creditPaise: paidPaise }
+      ]
+    }, access, meta);
+  }
+  return receivable;
+}
+
+function postMigrationPaymentJournal(payment, invoice, payload, access, meta) {
+  const amountPaise = amountToPaise(payment.amount || payload.amount);
+  if (amountPaise <= 0) return null;
+  return postMigrationJournal({
+    branchId: ledgerBranchId(payment, { ...payload, branchId: payload.branchId || invoice.branchId }, access),
+    businessDate: migrationBusinessDate(payload.createdAt, payment.createdAt, invoice.createdAt),
+    sourceType: "migration.payment.received",
+    sourceId: payment.id,
+    memo: "Migration payment " + (payment.reference || invoice.invoiceNumber || payment.id),
+    lines: [
+      { code: paymentAssetCode(payment.mode || payload.mode || payload.paymentMode), debitPaise: amountPaise },
+      { code: "1100", creditPaise: amountPaise }
+    ]
+  }, access, meta);
+}
+
+function postMigrationJournal(entry, access, meta) {
+  if (!shouldPostMigrationLedger(meta)) return null;
+  const branchId = cleanText(entry.branchId || access.branchId || access.branchIds?.[0]);
+  if (!branchId) throw badRequest("Branch is required for migration ledger posting.");
+  const sourceId = cleanText(entry.sourceId);
+  if (!sourceId) throw badRequest("Source id is required for migration ledger posting.");
+  const lines = (entry.lines || [])
+    .map((line) => ({
+      ...line,
+      debitPaise: Math.max(0, Math.round(Number(line.debitPaise || 0))),
+      creditPaise: Math.max(0, Math.round(Number(line.creditPaise || 0)))
+    }))
+    .filter((line) => line.debitPaise > 0 || line.creditPaise > 0);
+  const debitTotal = lines.reduce((sum, line) => sum + line.debitPaise, 0);
+  const creditTotal = lines.reduce((sum, line) => sum + line.creditPaise, 0);
+  if (debitTotal <= 0) return null;
+  if (lines.length < 2 || debitTotal !== creditTotal) throw badRequest("Migration journal entry must balance before posting.");
+  const ledgerAccess = migrationLedgerAccess(access, branchId);
+  const accounts = new Map(balanceSheetService.accounts({ branchId }, ledgerAccess).map((account) => [account.code, account]));
+  const mappedLines = lines.map((line) => {
+    const account = accounts.get(line.code);
+    if (!account) throw badRequest("Ledger account " + line.code + " is not configured for branch " + branchId + ".");
+    return {
+      accountId: account.id,
+      debitPaise: line.debitPaise,
+      creditPaise: line.creditPaise,
+      memo: line.memo || entry.memo || ""
+    };
+  });
+  return balanceSheetService.createJournal({
+    branchId,
+    businessDate: entry.businessDate || undefined,
+    sourceType: entry.sourceType,
+    sourceId,
+    memo: entry.memo || "Migration journal",
+    idempotencyKey: ["migration", access.tenantId, branchId, entry.sourceType, sourceId].join(":"),
+    lines: mappedLines
+  }, ledgerAccess);
+}
+
+function reverseMigrationJournalsForImportedRows(table, whereSql, params, access) {
+  assertValidTable(table, "reverseMigrationJournalsForImportedRows");
+  const sourceTypes = MIGRATION_LEDGER_SOURCE_TYPES_BY_TABLE[table];
+  if (!sourceTypes?.length) return;
+  const rows = db.prepare(`SELECT id FROM ${table} WHERE ${whereSql}`).all(params);
+  for (const row of rows) {
+    for (const sourceType of sourceTypes) {
+      const entries = db.prepare("SELECT id FROM journalEntries WHERE tenantId = @tenantId AND sourceType = @sourceType AND sourceId = @sourceId AND status = 'posted' ORDER BY createdAt DESC")
+        .all({ tenantId: access.tenantId, sourceType, sourceId: row.id });
+      for (const entry of entries) {
+        balanceSheetService.reverseJournal(entry.id, { reason: "Rollback migration " + table + " " + row.id }, access);
+      }
+    }
+  }
+}
+
+function shouldPostMigrationLedger(meta = {}) {
+  return Number(meta.imported || 0) === 1;
+}
+
+function migrationLedgerAccess(access, branchId) {
+  return { ...access, requestedBranchId: branchId };
+}
+
+function ledgerBranchId(record = {}, payload = {}, access = {}) {
+  return cleanText(record.branchId || payload.branchId || access.branchId || access.branchIds?.[0]);
+}
+
+function amountToPaise(value) {
+  return Math.round(numberValue(value, 0) * 100);
+}
+
+function paymentAssetCode(mode) {
+  const key = cleanKey(mode || "bank").replace(/\s+/g, "_");
+  return MIGRATION_PAYMENT_ASSET_CODES[key] || "1010";
+}
+
+function expenseAccountCode(category) {
+  const key = cleanKey(category || "other").replace(/\s+/g, "_");
+  return MIGRATION_EXPENSE_ACCOUNT_CODES[key] || "5300";
+}
+
+function migrationBusinessDate(...values) {
+  for (const value of values) {
+    const match = cleanText(value).match(/\d{4}-\d{2}-\d{2}/);
+    if (match) return match[0];
+  }
+  return "";
+}
+
+function referenceKeys(...values) {
+  return new Set(values.map((value) => cleanText(value)).filter(Boolean));
+}
+
+function hasPendingInvoiceForSale(context, row, sale, payload) {
+  const keys = referenceKeys(row?.sourceExternalId, payload?.originalRecordId, sale?.originalRecordId, sale?.id);
+  if (!keys.size) return false;
+  return (context.pendingRows || []).some((pending) => {
+    if (pending.resource !== "invoices") return false;
+    const pendingPayload = pending.payload || {};
+    return keys.has(cleanText(pendingPayload.saleId));
+  });
+}
+
+function hasPendingPaymentForInvoice(context, payload, invoice) {
+  const keys = referenceKeys(payload?.originalRecordId, payload?.invoiceNumber, invoice?.originalRecordId, invoice?.invoiceNumber, invoice?.id);
+  if (!keys.size) return false;
+  return (context.pendingRows || []).some((pending) => {
+    if (pending.resource !== "payments") return false;
+    const pendingPayload = pending.payload || {};
+    return keys.has(cleanText(pendingPayload.invoiceId)) || keys.has(cleanText(pendingPayload.invoiceNumber));
+  });
 }
 
 function rollbackImports(access, filters = {}) {
@@ -1760,6 +2794,7 @@ function findRollbackBatches(access, filters) {
 }
 
 function deleteImportedRows(table, batchIds, access, filters) {
+  assertValidTable(table, "deleteImportedRows");
   const columns = columnsFor(table);
   if (!columns.includes("imported") || !columns.includes("importBatchId")) {
     return 0;
@@ -1776,8 +2811,34 @@ function deleteImportedRows(table, batchIds, access, filters) {
     where.push("branchId = @branchId");
     params.branchId = filters.branchId;
   }
-  const result = db.prepare(`DELETE FROM ${table} WHERE ${where.join(" AND ")}`).run(params);
+  const whereSql = where.join(" AND ");
+  reverseMigrationJournalsForImportedRows(table, whereSql, params, access);
+  if (table === "inventory_transactions") reverseImportedInventoryTransactions(whereSql, params, access);
+  if (table === "sales") reverseImportedClientSales(whereSql, params, access);
+  const result = db.prepare(`DELETE FROM ${table} WHERE ${whereSql}`).run(params);
   return result.changes || 0;
+}
+
+function reverseImportedInventoryTransactions(whereSql, params, access) {
+  const rows = db.prepare(`SELECT productId, quantity FROM inventory_transactions WHERE ${whereSql}`).all(params);
+  for (const row of rows) {
+    if (!row.productId) continue;
+    const product = db.prepare("SELECT id, stock FROM products WHERE id = @id AND tenantId = @tenantId").get({ id: row.productId, tenantId: access.tenantId });
+    if (!product) continue;
+    updateRow("products", product.id, { stock: Number(product.stock || 0) - Number(row.quantity || 0) }, { tenantId: access.tenantId });
+  }
+}
+
+function reverseImportedClientSales(whereSql, params, access) {
+  const rows = db.prepare(`SELECT clientId, COUNT(*) AS visits, SUM(total) AS total FROM sales WHERE ${whereSql} AND COALESCE(clientId, '') <> '' GROUP BY clientId`).all(params);
+  for (const row of rows) {
+    const client = db.prepare("SELECT id, totalSpend, visitCount FROM clients WHERE id = @id").get({ id: row.clientId });
+    if (!client) continue;
+    updateRow("clients", client.id, {
+      totalSpend: Math.max(0, Number(client.totalSpend || 0) - Number(row.total || 0)),
+      visitCount: Math.max(0, Number(client.visitCount || 0) - Number(row.visits || 0))
+    }, { tenantId: access.tenantId });
+  }
 }
 
 function rollbackTableOrder(resource = "") {
@@ -1814,9 +2875,17 @@ function createContext(access, pendingRows = []) {
   const invoices = listRows("invoices", scope);
   const sales = listRows("sales", scope);
   addPendingDependencyReferences({ clients, staff, services, products, invoices, sales }, pendingRows);
-  const context = { access, branches, clients, staff, services, products, vendors, invoices, sales };
-  context.clientIndex = { phone: new Map(), email: new Map(), name: new Map() };
+  const context = { access, branches, clients, staff, services, products, vendors, invoices, sales, pendingRows };
+  context.clientIndex = { id: new Map(), original: new Map(), phone: new Map(), email: new Map(), name: new Map() };
+  context.staffIndex = { id: new Map(), original: new Map(), name: new Map(), email: new Map(), phone: new Map() };
+  context.productIndex = { id: new Map(), original: new Map(), sku: new Map(), name: new Map() };
+  context.invoiceIndex = { id: new Map(), original: new Map(), number: new Map() };
+  context.serviceIndex = { id: new Map(), name: new Map() };
   for (const client of clients) indexClientRecord(context, client);
+  for (const staffRow of staff) indexStaffRecord(context, staffRow);
+  for (const product of products) indexProductRecord(context, product);
+  for (const invoice of invoices) indexInvoiceRecord(context, invoice);
+  for (const service of services) indexServiceRecord(context, service);
   return context;
 }
 
@@ -1844,24 +2913,58 @@ function addPendingDependencyReferences(context, pendingRows = []) {
 function liveOnly(rows = []) {
   return rows.filter((row) => !row.pending);
 }
-function resolveBranchId(fields, access) {
+function buildBranchLookup(access = {}) {
+  const branches = listRows("branches", { tenantId: access.tenantId, limit: 1000 });
+  const byId = new Set(branches.map((branch) => cleanText(branch.id)).filter(Boolean));
+  const byName = new Map();
+  for (const branch of branches) {
+    for (const value of [branch.id, branch.name, branch.city]) {
+      const key = cleanKey(value);
+      if (key && !byName.has(key)) byName.set(key, branch.id);
+    }
+  }
+  return { branches, byId, byName };
+}
+
+function resolveBranchId(fields, access, branchLookup = null) {
   const explicit = cleanText(fields.branchId);
   if (explicit) return explicit;
   const branchName = cleanText(fields.branchName);
+  const lookup = branchLookup || buildBranchLookup(access);
   if (branchName) {
-    const branch = listRows("branches", { tenantId: access.tenantId, limit: 1000 }).find((row) => same(row.name, branchName) || same(row.city, branchName));
-    if (branch) return branch.id;
+    const branchId = lookup.byName.get(cleanKey(branchName)) || sourceBranchAlias(branchName, lookup);
+    if (branchId) return branchId;
+    return UNMAPPED_BRANCH_PREFIX + branchName;
   }
   return access.branchId || access.branchIds?.[0] || "branch_hyd";
 }
 
+function sourceBranchAlias(branchName, lookup = null) {
+  const key = cleanKey(branchName);
+  const alias = SOURCE_BRANCH_ALIASES.find((item) => item.names.some((name) => cleanKey(name) === key));
+  if (!alias) return "";
+  if (!lookup || lookup.byId.has(alias.branchId)) return alias.branchId;
+  return "";
+}
+
+function unmappedBranchName(branchId = "") {
+  return cleanText(branchId).replace(UNMAPPED_BRANCH_PREFIX, "");
+}
+
 function resolveClient(payload, context) {
-  return payload.clientId ? context.clients.find((client) => client.id === payload.clientId) : findClient(payload, context);
+  const explicitClientId = cleanText(payload.clientId);
+  if (explicitClientId) {
+    const direct = context.clientIndex?.id.get(explicitClientId) || context.clientIndex?.original.get(explicitClientId);
+    if (direct) return direct;
+  }
+  return findClient(payload, context, { ignoreOriginalRecordId: Boolean(explicitClientId) });
 }
 
 function ensureClient(payload, context, access, meta) {
   const existing = resolveClient(payload, context);
   if (existing) return existing;
+  const clientOriginalId = cleanText(payload.clientId || payload.clientOriginalRecordId || payload.originalClientId || payload.originalRecordId || meta.originalRecordId);
+  const clientMeta = { ...meta, originalRecordId: clientOriginalId };
   const created = insertRow("clients", {
     name: payload.clientName || "Imported Client",
     phone: payload.clientPhone || `imported-${randomUUID().slice(0, 8)}`,
@@ -1872,18 +2975,47 @@ function ensureClient(payload, context, access, meta) {
     purchaseHistory: [],
     whatsappHistory: [],
     consentForms: [],
-    ...meta
+    ...clientMeta
   });
   context.clients.push(created);
   indexClientRecord(context, created);
   return created;
 }
 
+function ensureStaff(payload, context, access, meta) {
+  const existing = resolveStaff(payload, context);
+  if (existing) return existing;
+  const sourceId = cleanText(payload.staffId || payload.originalStaffId || meta.originalRecordId);
+  const staffMeta = { ...meta, originalRecordId: sourceId };
+  const created = insertRow("staff", {
+    name: cleanText(payload.staffName) || (sourceId ? "Imported Staff " + sourceId : "Imported Staff"),
+    role: "Stylist",
+    phone: "",
+    email: "",
+    branchId: payload.branchId || access.branchId || access.branchIds?.[0] || "branch_hyd",
+    shift: "",
+    status: "active",
+    assignedServices: [],
+    commissionRule: {},
+    attendance: [],
+    performance: {},
+    notes: "Auto-created during data migration",
+    ...staffMeta
+  });
+  context.staff.push(created);
+  indexStaffRecord(context, created);
+  return created;
+}
+
 function indexClientRecord(context, client) {
   if (!context.clientIndex) return;
+  const id = cleanText(client.id);
+  const original = cleanText(client.originalRecordId);
   const phone = normalizePhone(client.phone);
   const email = cleanText(client.email).toLowerCase();
   const name = cleanText(client.name).toLowerCase();
+  if (id) context.clientIndex.id.set(id, client);
+  if (original && !context.clientIndex.original.has(original)) context.clientIndex.original.set(original, client);
   if (phone && !context.clientIndex.phone.has(phone)) context.clientIndex.phone.set(phone, client);
   if (email && !context.clientIndex.email.has(email)) context.clientIndex.email.set(email, client);
   if (name && !context.clientIndex.name.has(name)) context.clientIndex.name.set(name, client);
@@ -1893,18 +3025,17 @@ function findClient(payload, context, options = {}) {
   const phone = normalizePhone(payload.phone || payload.clientPhone);
   const email = cleanText(payload.email).toLowerCase();
   const name = cleanText(payload.name || payload.clientName).toLowerCase();
-  const originalRecordId = cleanText(payload.originalRecordId || payload.sourceExternalId);
+  const originalRecordId = options.ignoreOriginalRecordId ? '' : cleanText(payload.originalRecordId || payload.sourceExternalId);
   const branchId = cleanText(payload.branchId);
-  const candidates = context.clients.filter((client) => sameClientBranch(client, branchId));
-  const strongMatch = candidates.find((client) =>
-    (originalRecordId && same(client.originalRecordId, originalRecordId)) ||
-    (phone && normalizePhone(client.phone) === phone) ||
-    (email && cleanText(client.email).toLowerCase() === email)
-  );
-  if (strongMatch || options.strongOnly) return strongMatch;
-  return candidates.find((client) =>
-    (name && cleanText(client.name).toLowerCase() === name)
-  );
+  const indexed = [
+    originalRecordId ? context.clientIndex?.original.get(originalRecordId) : null,
+    phone ? context.clientIndex?.phone.get(phone) : null,
+    email ? context.clientIndex?.email.get(email) : null
+  ].find((client) => client && sameClientBranch(client, branchId));
+  if (indexed || options.strongOnly) return indexed || null;
+  const nameMatch = name ? context.clientIndex?.name.get(name) : null;
+  if (nameMatch && sameClientBranch(nameMatch, branchId)) return nameMatch;
+  return null;
 }
 
 function sameClientBranch(client, branchId) {
@@ -1912,29 +3043,139 @@ function sameClientBranch(client, branchId) {
 }
 
 function resolveStaff(payload, context) {
-  if (payload.staffId) return context.staff.find((staff) => staff.id === payload.staffId);
-  if (payload.staffName) return context.staff.find((staff) => same(staff.name, payload.staffName));
-  return null;
+  const id = cleanText(payload.staffId);
+  if (id) {
+    const byId = context.staffIndex?.id.get(id) || context.staffIndex?.original.get(id);
+    if (byId) return byId;
+  }
+  const name = cleanText(payload.staffName).toLowerCase();
+  return name ? context.staffIndex?.name.get(name) || null : null;
 }
 
 function resolveProduct(payload, context) {
-  if (payload.productId) return context.products.find((product) => product.id === payload.productId);
-  if (payload.sku) return context.products.find((product) => same(product.sku, payload.sku) && (!payload.branchId || product.branchId === payload.branchId));
-  if (payload.productName) return context.products.find((product) => same(product.name, payload.productName) && (!payload.branchId || product.branchId === payload.branchId));
-  return null;
+  const id = cleanText(payload.productId);
+  if (id) return context.productIndex?.id.get(id) || context.productIndex?.original.get(id) || null;
+  const branchId = cleanText(payload.branchId);
+  const sku = cleanText(payload.sku).toLowerCase();
+  const bySku = sku ? context.productIndex?.sku.get(branchKey(sku, branchId)) || context.productIndex?.sku.get(branchKey(sku, '')) : null;
+  if (bySku) return bySku;
+  const name = cleanText(payload.productName).toLowerCase();
+  return name ? context.productIndex?.name.get(branchKey(name, branchId)) || context.productIndex?.name.get(branchKey(name, '')) || null : null;
 }
 
 function resolveInvoice(payload, context) {
-  if (payload.invoiceId) return context.invoices.find((invoice) => invoice.id === payload.invoiceId);
-  if (payload.invoiceNumber) return context.invoices.find((invoice) => same(invoice.invoiceNumber, payload.invoiceNumber) && invoice.id);
-  return null;
+  const id = cleanText(payload.invoiceId);
+  if (id) return context.invoiceIndex?.id.get(id) || context.invoiceIndex?.original.get(id) || null;
+  const number = cleanText(payload.invoiceNumber).toLowerCase();
+  return number ? context.invoiceIndex?.number.get(number) || null : null;
+}
+
+function branchKey(value, branchId = "") {
+  return `${cleanText(value).toLowerCase()}|${cleanText(branchId)}`;
+}
+
+function indexStaffRecord(context, staff) {
+  if (!context.staffIndex) return;
+  const id = cleanText(staff.id);
+  const original = cleanText(staff.originalRecordId);
+  const name = cleanText(staff.name).toLowerCase();
+  const email = cleanText(staff.email).toLowerCase();
+  const phone = normalizePhone(staff.phone);
+  if (id) context.staffIndex.id.set(id, staff);
+  if (original && !context.staffIndex.original.has(original)) context.staffIndex.original.set(original, staff);
+  if (name && !context.staffIndex.name.has(name)) context.staffIndex.name.set(name, staff);
+  if (email && !context.staffIndex.email.has(email)) context.staffIndex.email.set(email, staff);
+  if (phone && !context.staffIndex.phone.has(phone)) context.staffIndex.phone.set(phone, staff);
+}
+
+function indexProductRecord(context, product) {
+  if (!context.productIndex) return;
+  const id = cleanText(product.id);
+  const original = cleanText(product.originalRecordId);
+  const branchId = cleanText(product.branchId);
+  const sku = cleanText(product.sku).toLowerCase();
+  const name = cleanText(product.name).toLowerCase();
+  if (id) context.productIndex.id.set(id, product);
+  if (original && !context.productIndex.original.has(original)) context.productIndex.original.set(original, product);
+  if (sku && !context.productIndex.sku.has(branchKey(sku, branchId))) context.productIndex.sku.set(branchKey(sku, branchId), product);
+  if (sku && !context.productIndex.sku.has(branchKey(sku, ""))) context.productIndex.sku.set(branchKey(sku, ""), product);
+  if (name && !context.productIndex.name.has(branchKey(name, branchId))) context.productIndex.name.set(branchKey(name, branchId), product);
+  if (name && !context.productIndex.name.has(branchKey(name, ""))) context.productIndex.name.set(branchKey(name, ""), product);
+}
+
+function indexInvoiceRecord(context, invoice) {
+  if (!context.invoiceIndex) return;
+  const id = cleanText(invoice.id);
+  const original = cleanText(invoice.originalRecordId);
+  const number = cleanText(invoice.invoiceNumber).toLowerCase();
+  if (id) context.invoiceIndex.id.set(id, invoice);
+  if (original && !context.invoiceIndex.original.has(original)) context.invoiceIndex.original.set(original, invoice);
+  if (number && !context.invoiceIndex.number.has(number)) context.invoiceIndex.number.set(number, invoice);
+}
+
+function indexServiceRecord(context, service) {
+  if (!context.serviceIndex) return;
+  const id = cleanText(service.id);
+  const name = cleanText(service.name).toLowerCase();
+  if (id) context.serviceIndex.id.set(id, service);
+  if (name && !context.serviceIndex.name.has(name)) context.serviceIndex.name.set(name, service);
+}
+
+function isBlockedAppointmentFields(fields = {}) {
+  const text = [fields.serviceName, fields.serviceId, fields.status, fields.notes, fields.lineItem].map(cleanText).join(" ").toLowerCase();
+  return /(aptblock|blocked?|block time|break|lunch|hold)/.test(text);
+}
+
+function ensureUniqueInvoiceNumbers(rows = [], access = {}) {
+  const used = new Set(listRows("invoices", { tenantId: access.tenantId, limit: 100000 }).map((invoice) => cleanText(invoice.invoiceNumber).toLowerCase()).filter(Boolean));
+  const generatedBySourceId = new Map();
+  const invoiceNumberCounts = new Map();
+  for (const row of rows.filter((item) => item.resource === "invoices")) {
+    const original = cleanText(row.payload.invoiceNumber);
+    const key = original.toLowerCase();
+    invoiceNumberCounts.set(key, (invoiceNumberCounts.get(key) || 0) + 1);
+    if (key && !used.has(key) && invoiceNumberCounts.get(key) === 1) {
+      used.add(key);
+      continue;
+    }
+    const generated = uniqueTargetInvoiceNumber(row, access, used);
+    row.payload.originalInvoiceNumber = original;
+    row.payload.invoiceNumber = generated;
+    row.fields.invoiceNumber = generated;
+    if (row.sourceExternalId) generatedBySourceId.set(row.sourceExternalId, generated);
+    used.add(generated.toLowerCase());
+  }
+  for (const row of rows.filter((item) => item.resource === "payments")) {
+    const invoiceId = cleanText(row.payload.invoiceId);
+    if (invoiceId && generatedBySourceId.has(invoiceId)) row.payload.invoiceNumber = generatedBySourceId.get(invoiceId);
+  }
+}
+
+function uniqueInvoiceNumberForImport(payload = {}, context = {}, access = {}, meta = {}, sale = {}) {
+  const used = new Set((context.invoices || []).map((invoice) => cleanText(invoice.invoiceNumber).toLowerCase()).filter(Boolean));
+  const requested = cleanText(payload.invoiceNumber);
+  if (requested && !used.has(requested.toLowerCase())) return requested;
+  return uniqueTargetInvoiceNumber({ payload, sourceExternalId: meta.originalRecordId || payload.saleId || sale.id || requested }, access, used);
+}
+
+function uniqueTargetInvoiceNumber(row = {}, access = {}, usedNumbers = new Set()) {
+  const used = new Set(usedNumbers);
+  const seed = cleanText(row.sourceExternalId || row.payload?.originalRecordId || row.payload?.invoiceNumber || row.payload?.saleId || (cleanText(row.sourceSheet || "invoice") + ":" + cleanText(row.sourceRowNumber || "")));
+  const base = "MIG-" + slug(seed || randomUUID()).slice(0, 32).toUpperCase();
+  let candidate = base;
+  let suffix = 1;
+  while (used.has(candidate.toLowerCase())) {
+    suffix += 1;
+    candidate = base + "-" + suffix;
+  }
+  return candidate;
 }
 
 function resolveServiceIds(payload, context) {
   const ids = Array.isArray(payload.serviceIds) ? payload.serviceIds : [];
-  const resolved = ids.filter((id) => context.services.some((service) => service.id === id));
+  const resolved = ids.filter((id) => context.serviceIndex?.id.has(id));
   if (payload.serviceName) {
-    const service = context.services.find((item) => same(item.name, payload.serviceName));
+    const service = context.serviceIndex?.name.get(cleanText(payload.serviceName).toLowerCase());
     if (service) resolved.push(service.id);
   }
   return Array.from(new Set(resolved));
@@ -2053,6 +3294,38 @@ function updateMigrationRow(table, rowId, data, scope) {
   return updateRow(table, rowId, jsonBindData(data), scope);
 }
 
+function migrationEntityTotals(access = {}) {
+  const tenantId = access.tenantId || "";
+  const branchId = access.requestedBranchId || access.branchId || "";
+  if (!tenantId) return [];
+  return Object.entries(RESOURCE_TEMPLATES).map(([resource, template]) => {
+    const table = template.table;
+    const label = resource === "clients" ? "Client Master" : resourceLabel(resource);
+    const columns = new Set(columnsFor(table));
+    const activeWhere = ["tenantId = @tenantId"];
+    if (columns.has("deletedAt")) activeWhere.push("(deletedAt IS NULL OR deletedAt = '')");
+    if (columns.has("archivedAt")) activeWhere.push("(archivedAt IS NULL OR archivedAt = '')");
+    if (columns.has("status")) activeWhere.push("LOWER(COALESCE(status, '')) NOT IN ('deleted', 'archived')");
+    const branchWhere = branchId && columns.has("branchId") ? " AND branchId = @branchId" : "";
+    const importedWhere = columns.has("imported") ? " AND imported = 1" : columns.has("importBatchId") ? " AND COALESCE(importBatchId, '') <> ''" : "";
+    const params = { tenantId, branchId };
+    try {
+      assertValidTable(table, "migrationEntityTotals");
+      const total = Number(db.prepare(`SELECT COUNT(*) AS total FROM ${table} WHERE ${activeWhere.join(" AND ")}`).get(params)?.total || 0);
+      const branchTotal = branchWhere ? Number(db.prepare(`SELECT COUNT(*) AS total FROM ${table} WHERE ${activeWhere.join(" AND ")}${branchWhere}`).get(params)?.total || 0) : total;
+      const migrated = importedWhere ? Number(db.prepare(`SELECT COUNT(*) AS total FROM ${table} WHERE ${activeWhere.join(" AND ")}${importedWhere}`).get(params)?.total || 0) : 0;
+      return { resource, label, table, total, branchTotal, migrated };
+    } catch {
+      return { resource, label, table, total: 0, branchTotal: 0, migrated: 0 };
+    }
+  });
+}
+
+function resourceLabel(resource = "") {
+  return String(resource || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 function liveClientTotals(access = {}) {
   const tenantId = access.tenantId || "";
   const branchId = access.requestedBranchId || access.branchId || "";
@@ -2155,7 +3428,7 @@ function suggestColumnMappings(columns, resource) {
 
 // --- Migration approval workflow (self-contained, lazy table) ---
 let migrationApprovalSchemaReady = false;
-function ensureMigrationApprovalSchema() {
+export function ensureMigrationApprovalSchema() {
   if (migrationApprovalSchemaReady) return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS migration_approvals (
@@ -2172,13 +3445,19 @@ function ensureMigrationApprovalSchema() {
       reviewedBy TEXT NOT NULL DEFAULT '',
       reviewedAt TEXT NOT NULL DEFAULT '',
       createdAt TEXT NOT NULL DEFAULT '',
-      updatedAt TEXT NOT NULL DEFAULT ''
+      updatedAt TEXT NOT NULL DEFAULT '',
+      sourceSoftware TEXT NOT NULL DEFAULT '',
+      fileName TEXT NOT NULL DEFAULT '',
+      sourceFileHash TEXT NOT NULL DEFAULT '',
+      totalRows INTEGER NOT NULL DEFAULT 0
     );
   `);
   ensureMigrationApprovalColumns();
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_migration_approvals_scope
       ON migration_approvals (tenantId, status, createdAt);
+    CREATE INDEX IF NOT EXISTS idx_migration_approvals_identity
+      ON migration_approvals (tenantId, status, sourceFileHash, jobId, fileName, totalRows);
   `);
   migrationApprovalSchemaReady = true;
 }
@@ -2197,7 +3476,11 @@ function ensureMigrationApprovalColumns() {
     ["reviewedBy", "TEXT NOT NULL DEFAULT ''"],
     ["reviewedAt", "TEXT NOT NULL DEFAULT ''"],
     ["createdAt", "TEXT NOT NULL DEFAULT ''"],
-    ["updatedAt", "TEXT NOT NULL DEFAULT ''"]
+    ["updatedAt", "TEXT NOT NULL DEFAULT ''"],
+    ["sourceSoftware", "TEXT NOT NULL DEFAULT ''"],
+    ["fileName", "TEXT NOT NULL DEFAULT ''"],
+    ["sourceFileHash", "TEXT NOT NULL DEFAULT ''"],
+    ["totalRows", "INTEGER NOT NULL DEFAULT 0"]
   ];
   for (const [name, definition] of requiredColumns) {
     if (!columns.has(name)) {
@@ -2262,17 +3545,227 @@ function adapterFor(sourceSoftware) {
   return `${sourceSoftware}-${SOURCE_ADAPTERS[sourceSoftware]?.type || "spreadsheet"}`;
 }
 
-function importSettings(payload) {
+function migrationSourceHash(payload = {}, access = {}) {
+  if (payload.sourceFileHash) return cleanText(payload.sourceFileHash);
+  const evidence = migrationSourceEvidence(payload, access, payload.fileName || "");
+  if (evidence?.sha256) return evidence.sha256;
+  return "";
+}
+
+function buildMigrationCommandCenter(preview = {}, payload = {}, access = {}) {
+  const summary = preview.summary || {};
+  const rows = Array.isArray(preview.allRows) ? preview.allRows : [];
+  const byResource = summary.byResource || summary.byEntity || {};
+  const byBranch = summary.byBranch || branchSummaryFromRows(rows);
+  const resources = Object.keys(byResource);
+  const missingFields = resources.map((resource) => {
+    const template = templateFor(resource);
+    const available = new Set(rows.filter((row) => row.resource === resource).flatMap((row) => Object.keys(row.raw || row.fields || {})).map((key) => cleanKey(key)));
+    const missing = (template.required || []).filter((field) => !available.has(cleanKey(field)) && rows.some((row) => row.resource === resource && !row.fields?.[field]));
+    return { resource, missing };
+  }).filter((item) => item.missing.length);
+  const mappingMemory = resources.map((resource) => mappingMemoryFor(resource, payload, access)).filter(Boolean);
+  const conflicts = rows.filter((row) => row.status === "duplicate" || String(row.message || "").toLowerCase().includes("duplicate") || String(row.message || "").toLowerCase().includes("already"));
+  const branchImpact = Object.entries(byBranch).map(([branchId, bucket]) => ({
+    branchId: branchId || access.branchId || "unassigned",
+    totalRows: Number(bucket.total || 0),
+    validRows: Number(bucket.valid || 0),
+    warningRows: Number(bucket.warnings || bucket.warningRows || 0),
+    errorRows: Number(bucket.errors || bucket.errorRows || 0),
+    estimatedImportRows: Math.max(0, Number(bucket.valid || 0) - Number(bucket.duplicates || 0)),
+    franchiseRisk: Number(bucket.errors || 0) ? "blocked" : Number(bucket.warnings || 0) ? "review" : "ready"
+  }));
+  const recommendedActions = [];
+  if (missingFields.length) recommendedActions.push("Complete required field mappings before approval.");
+  if (conflicts.length) recommendedActions.push("Resolve duplicate conflicts in the merge studio.");
+  if (Number(summary.errorRows || 0)) recommendedActions.push("Fix critical rows or enable partial import for valid rows only.");
+  if (!recommendedActions.length) recommendedActions.push("Ready for dry-run, owner approval, and queued import.");
+  return {
+    fileName: preview.fileName,
+    sourceSoftware: preview.sourceSoftware,
+    generatedAt: now(),    liveTotals: migrationEntityTotals(access),
+    totals: {
+      totalRows: Number(summary.totalRows || 0),
+      validRows: Number(summary.validRows || 0),
+      warningRows: Number(summary.warningRows || 0),
+      errorRows: Number(summary.errorRows || 0),
+      duplicateRows: Number(summary.duplicateRows || 0)
+    },
+    entities: Object.entries(byResource).map(([resource, bucket]) => ({ resource, ...bucket })),
+    branches: branchImpact,
+    missingFields,
+    mappingMemory,
+    conflicts: {
+      total: conflicts.length,
+      rows: conflicts.slice(0, 100).map((row) => ({
+        resource: row.resource,
+        sourceRowNumber: row.sourceRowNumber,
+        status: row.status,
+        message: row.message,
+        targetId: row.targetId || row.existingId || "",
+        fields: row.fields || {}
+      }))
+    },
+    simulator: {
+      mode: payload.simulationMode || "branch_franchise_preview",
+      branchCount: branchImpact.length,
+      readyBranches: branchImpact.filter((branch) => branch.franchiseRisk === "ready").length,
+      blockedBranches: branchImpact.filter((branch) => branch.franchiseRisk === "blocked").length,
+      estimatedImportRows: branchImpact.reduce((total, branch) => total + branch.estimatedImportRows, 0)
+    },
+    recommendedActions
+  };
+}
+
+function branchSummaryFromRows(rows = []) {
+  const result = {};
+  for (const row of rows) {
+    const branchId = cleanText(row.fields?.branchId || row.raw?.branchId || row.branchId || "unassigned");
+    if (!result[branchId]) result[branchId] = { total: 0, valid: 0, warnings: 0, errors: 0, duplicates: 0 };
+    result[branchId].total += 1;
+    if (row.status === "error") result[branchId].errors += 1;
+    else if (row.status === "warning") result[branchId].warnings += 1;
+    else result[branchId].valid += 1;
+    if (row.status === "duplicate" || String(row.message || "").toLowerCase().includes("duplicate")) result[branchId].duplicates += 1;
+  }
+  return result;
+}
+
+function mappingMemoryFor(resource, payload = {}, access = {}) {
+  const canonical = canonicalResource(resource || "");
+  if (!canonical) return null;
+  const row = db.prepare(`
+    SELECT * FROM migration_mappings
+    WHERE tenantId = @tenantId AND resource = @resource
+      AND (@sourceSoftware = '' OR sourceSoftware = @sourceSoftware)
+    ORDER BY updatedAt DESC
+    LIMIT 1
+  `).get({
+    tenantId: access.tenantId,
+    resource: canonical,
+    sourceSoftware: sourceKey(payload.sourceSoftware || "")
+  });
+  if (!row) return { resource: canonical, learned: false, mapping: suggestColumnMappings(Object.keys((payload.mapping || {})), canonical) };
+  const parsed = deserializeJson(row, ["mapping", "unmatchedColumns", "requiredFields"]);
+  return {
+    resource: canonical,
+    learned: true,
+    mappingId: parsed.id,
+    name: parsed.name,
+    mapping: parsed.mapping || {},
+    unmatchedColumns: parsed.unmatchedColumns || [],
+    requiredFields: parsed.requiredFields || []
+  };
+}
+
+function buildMigrationProofPack(payload = {}, access = {}) {
+  const jobId = cleanText(payload.jobId || payload.id || "");
+  const job = jobId ? db.prepare("SELECT * FROM migration_jobs WHERE id = @id AND tenantId = @tenantId").get({ id: jobId, tenantId: access.tenantId }) : null;
+  const largeJob = !job && jobId ? largeMigrationJob(jobId, access) : null;
+  const jobs = job ? [deserializeJson(job, ["summary", "mapping", "settings"])] : migrationService.jobs(access).slice(0, 10);
+  const totals = jobs.reduce((acc, item) => {
+    acc.totalRows += Number(item.totalRows || item.summary?.totalRows || 0);
+    acc.importedRows += Number(item.importedRows || item.summary?.importedRows || 0);
+    acc.errorRows += Number(item.errorRows || item.summary?.errorRows || 0);
+    acc.skippedRows += Number(item.skippedRows || item.summary?.skippedRows || 0);
+    return acc;
+  }, { totalRows: 0, importedRows: 0, errorRows: 0, skippedRows: 0 });
+  return {
+    generatedAt: now(),
+    tenantId: access.tenantId,
+    branchId: access.branchId || "",
+    scope: jobId ? "single_job" : "recent_jobs",
+    jobId,
+    job: job ? jobs[0] : null,
+    largeJob,
+    totals,
+    jobs,
+    controls: {
+      rollbackAvailable: Boolean(job && job.status !== "rolled_back"),
+      auditStamped: true,
+      sourceEvidenceRequired: true,
+      approvalRequired: true
+    }
+  };
+}
+function migrationSourceEvidence(payload = {}, access = {}, fileName = "") {
+  if (payload.sourceFileHash && !payload.fileRef && !payload.fileBase64) {
+    return {
+      fileRef: "",
+      fileName: fileName || payload.fileName || "migration-source",
+      sizeBytes: integer(payload.fileSizeBytes, 0),
+      sha256: cleanText(payload.sourceFileHash),
+      storage: "client_sha256"
+    };
+  }
+  if (payload.fileRef) {
+    const upload = migrationUploadStore.read(payload.fileRef, access);
+    return {
+      fileRef: upload.fileRef,
+      fileName: upload.fileName || fileName,
+      sizeBytes: upload.sizeBytes,
+      sha256: upload.sha256,
+      storage: "migration_uploads"
+    };
+  }
+  const raw = String(payload.fileBase64 || "");
+  if (!raw) return null;
+  const base64 = raw.includes(",") ? raw.split(",").pop() : raw;
+  return {
+    fileRef: "",
+    fileName: fileName || payload.fileName || "migration-source",
+    sizeBytes: Buffer.from(base64 || "", "base64").length,
+    sha256: createHash("sha256").update(base64 || "", "utf8").digest("hex"),
+    storage: "inline_base64"
+  };
+}
+
+function findDuplicateImportJob(access = {}, identity = {}) {
+  const rows = db.prepare(`
+    SELECT * FROM migration_jobs
+    WHERE tenantId = @tenantId
+      AND dryRun = 0
+      AND fileName = @fileName
+      AND status IN ('completed', 'completed_with_errors')
+    ORDER BY createdAt DESC
+    LIMIT 20
+  `).all({ tenantId: access.tenantId, fileName: cleanText(identity.fileName) }).map((row) => deserializeJson(row, ["summary", "mapping", "settings"]));
+  return rows.find((job) => sameImportIdentity(job, identity)) || null;
+}
+
+function sameImportIdentity(job = {}, identity = {}) {
+  if (cleanText(job.sourceSoftware) !== cleanText(identity.sourceSoftware)) return false;
+  const jobResource = cleanText(job.resource || "auto");
+  const incomingResource = cleanText(identity.resource || "auto");
+  if (jobResource !== incomingResource) return false;
+  if (Number(job.totalRows || 0) !== Number(identity.totalRows || 0)) return false;
+  const existingHash = cleanText(job.settings?.sourceFileHash || "");
+  const incomingHash = cleanText(identity.sourceFileHash || "");
+  return Boolean(existingHash && incomingHash && existingHash === incomingHash);
+}
+
+function latestBatchForJob(jobId, access = {}) {
+  return db.prepare(`
+    SELECT * FROM migration_import_batches
+    WHERE tenantId = @tenantId AND jobId = @jobId AND status <> 'rolled_back'
+    ORDER BY createdAt DESC
+    LIMIT 1
+  `).get({ tenantId: access.tenantId, jobId }) || null;
+}
+function importSettings(payload, access = {}) {
   return {
     migrationMode: payload.migrationMode !== false,
     preserveCreatedAt: true,
     preserveInvoiceNumbers: true,
     preserveHistoricalPayments: true,
     partialFailureHandling: "row-level",
+    allowPartialImport: payload.allowPartialImport === true,
+    sourceFileHash: migrationSourceHash(payload, access),
     originalSystem: payload.sourceSoftware || "excel",
     sandboxMode: payload.sandboxMode !== false,
     duplicateDecisions: payload.duplicateDecisions || {},
-    approvalGate: payload.skipApprovalGate === true ? "skipped_by_admin" : "required"
+    approvalGate: payload.skipApprovalGate === true ? "skipped_by_admin" : "required",
+    sourceEvidence: migrationSourceEvidence(payload, access, payload.fileName || "")
   };
 }
 
@@ -2677,7 +4170,7 @@ function importStagedLargeJobChunk(jobId, chunkNumber, payload, access) {
   }
   const preview = stagedPreviewForChunk(job, chunk, access);
   if (!preview.allRows.length) throw badRequest("No staged rows found for this chunk.");
-  const gate = migrationApprovalGate(access, preview.summary);
+  const gate = migrationApprovalGate(access, preview.summary, approvalIdentityForJob(job, preview.summary));
   if ((!gate.allowed || preview.summary.errorRows) && payload.skipApprovalGate !== true) {
     throw badRequest(`Final staged chunk import blocked: ${gate.reason}`);
   }
@@ -3000,33 +4493,46 @@ function directChunk(id, access) {
 }
 
 function replaceStagingRows(jobId, chunkId, chunkNumber, preview, access, duplicateDecisions = {}) {
-  const rows = (preview.allRows || preview.rows || []).map((row) => directBindData({
-    id: makeId("migrow"),
-    tenantId: access.tenantId,
-    jobId,
-    chunkId,
-    chunkNumber,
-    resource: row.resource,
-    sourceSheet: row.sourceSheet,
-    sourceRowNumber: row.sourceRowNumber,
-    sourceExternalId: row.sourceExternalId,
-    status: row.status,
-    duplicateKey: row.duplicate || /duplicate|already/i.test(String(row.message || "")) ? duplicateKeyFor(row) : "",
-    duplicateDecision: duplicateDecisionFor(row, duplicateDecisions),
-    payload: row.payload,
-    raw: row.raw,
-    errors: row.errors || [],
-    warnings: row.warnings || [],
-    createdAt: now(),
-    updatedAt: now()
-  }));
+  const baseRows = preview.allRows || preview.rows || [];
   const columns = ["id", "tenantId", "jobId", "chunkId", "chunkNumber", "resource", "sourceSheet", "sourceRowNumber", "sourceExternalId", "status", "duplicateKey", "duplicateDecision", "payload", "raw", "errors", "warnings", "createdAt", "updatedAt"];
   const insert = db.prepare(`INSERT INTO migration_staging_rows (${columns.join(", ")}) VALUES (${columns.map((column) => `@${column}`).join(", ")})`);
-  const replaceTx = db.transaction(() => {
-    db.prepare("DELETE FROM migration_staging_rows WHERE tenantId = @tenantId AND jobId = @jobId AND chunkId = @chunkId").run({ tenantId: access.tenantId, jobId, chunkId });
-    for (const row of rows) insert.run(row);
-  });
-  replaceTx();
+  const del = db.prepare("DELETE FROM migration_staging_rows WHERE tenantId = @tenantId AND jobId = @jobId AND chunkId = @chunkId");
+  let attempts = 0;
+  const MAX_ATTEMPTS = 5;
+  while (attempts < MAX_ATTEMPTS) {
+    attempts++;
+    const rows = baseRows.map((row) => directBindData({
+      id: makeIdLong("migrow"),
+      tenantId: access.tenantId,
+      jobId,
+      chunkId,
+      chunkNumber,
+      resource: row.resource,
+      sourceSheet: row.sourceSheet,
+      sourceRowNumber: row.sourceRowNumber,
+      sourceExternalId: row.sourceExternalId,
+      status: row.status,
+      duplicateKey: row.duplicate || /duplicate|already/i.test(String(row.message || "")) ? duplicateKeyFor(row) : "",
+      duplicateDecision: duplicateDecisionFor(row, duplicateDecisions),
+      payload: row.payload,
+      raw: row.raw,
+      errors: row.errors || [],
+      warnings: row.warnings || [],
+      createdAt: now(),
+      updatedAt: now()
+    }));
+    const replaceTx = db.transaction(() => {
+      del.run({ tenantId: access.tenantId, jobId, chunkId });
+      for (const row of rows) insert.run(row);
+    });
+    try {
+      replaceTx();
+      return;
+    } catch (err) {
+      if (err.message?.includes("UNIQUE constraint") && attempts < MAX_ATTEMPTS) continue;
+      throw err;
+    }
+  }
 }
 
 function recomputeLargeJobTotals(jobId, access) {
@@ -3057,20 +4563,24 @@ function recomputeLargeJobTotals(jobId, access) {
 }
 
 function insertDirectRow(table, data) {
+  assertValidMigrationAdminTable(table, "insertDirectRow");
   const ts = now();
-  const row = directBindData({ id: data.id || makeId("migrow"), createdAt: ts, updatedAt: ts, ...data });
+  const row = directBindData({ id: data.id || makeIdLong("migrow"), createdAt: ts, updatedAt: ts, ...data });
   const columns = Object.keys(row);
+  assertValidColumnNames(columns);
   const placeholders = columns.map((column) => `@${column}`);
   db.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders.join(", ")})`).run(row);
   return deserializeDirectRow(row);
 }
 
 function updateDirectRow(table, id, data, access) {
+  assertValidMigrationAdminTable(table, "updateDirectRow");
   const row = directBindData({ ...data, updatedAt: now() });
   delete row.id;
   delete row.tenantId;
   const keys = Object.keys(row);
   if (!keys.length) return null;
+  assertValidColumnNames(keys);
   const params = { ...row, id, tenantId: access.tenantId };
   db.prepare(`UPDATE ${table} SET ${keys.map((key) => `${key} = @${key}`).join(", ")} WHERE id = @id AND tenantId = @tenantId`).run(params);
   return params;
@@ -3163,13 +4673,3 @@ function withBusyRetry(fn, attempts = 12) {
 function sleepSync(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
-
-
-
-
-
-
-
-
-
-

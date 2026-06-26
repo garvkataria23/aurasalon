@@ -29,6 +29,11 @@ type BusinessNotificationProfile = {
   providerMode?: string;
   invoiceClientEnabled?: boolean;
   invoiceOwnerEnabled?: boolean;
+  reportEmailEnabled?: boolean;
+  reportEmailTime?: string;
+  reportEmailTimezone?: string;
+  reportLastSentDate?: string;
+  contactVerifications?: ContactVerification[];
 };
 
 type BusinessHour = {
@@ -51,6 +56,30 @@ type BusinessMediaUploadResponse = {
 };
 
 type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
+
+type ContactVerification = {
+  contactRole: 'reportingEmail' | 'ownerEmail' | 'ownerMobile';
+  contactType: 'email' | 'phone';
+  contactValue: string;
+  status: 'verified' | 'pending' | 'unverified' | string;
+  verifiedAt?: string;
+  requestedAt?: string;
+  expiresAt?: string;
+};
+
+type PendingContactVerification = ContactVerification & {
+  key: ContactListKey;
+  otp: string;
+  devOtp?: string;
+  deliveryChannel?: string;
+};
+
+type ContactVerificationResponse = ContactVerification & {
+  requestId?: string;
+  expiresAt?: string;
+  deliveryChannel?: string;
+  devOtp?: string;
+};
 
 @Component({
   selector: 'app-business-details',
@@ -315,12 +344,41 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
           </label>
           <label class="check-card">
             <input type="checkbox" [(ngModel)]="form.invoiceOwnerEnabled" />
+              <span class="checkmark" aria-hidden="true"></span>
+              <span>
+                <strong>Owner invoice close</strong>
+                <small>Send invoice and appointment alerts to owner contacts only</small>
+              </span>
+            </label>
+        </div>
+
+        <div class="report-schedule-card">
+          <label class="check-card">
+            <input type="checkbox" [(ngModel)]="form.reportEmailEnabled" />
             <span class="checkmark" aria-hidden="true"></span>
             <span>
-              <strong>Owner invoice close</strong>
-              <small>Send summary to owners and reporting contacts</small>
+              <strong>Daily report email</strong>
+              <small>Send full-day PDF report only to verified reporting emails</small>
             </span>
           </label>
+          <div class="report-schedule-grid">
+            <label>
+              Report time
+              <input type="time" [(ngModel)]="form.reportEmailTime" />
+            </label>
+            <label>
+              Timezone
+              <select [(ngModel)]="form.reportEmailTimezone">
+                <option value="Asia/Kolkata">India / IST</option>
+                <option value="Asia/Dubai">UAE / GST</option>
+                <option value="Asia/Singapore">Singapore / SGT</option>
+                <option value="Europe/London">UK / London</option>
+                <option value="America/New_York">US / New York</option>
+                <option value="America/Los_Angeles">US / Los Angeles</option>
+              </select>
+            </label>
+          </div>
+          <small class="input-hint">Last sent business date: {{ form.reportLastSentDate || 'Not sent yet' }}. Reporting emails do not receive invoice or appointment alerts.</small>
         </div>
 
         <div class="contact-section">
@@ -329,8 +387,10 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
             <span>Paste comma, semicolon, space or newline separated emails.</span>
           </label>
           <div class="token-editor" [class.has-error]="invalidEmailChips(reportingEmailsText).length">
-            <span *ngFor="let email of contactList(reportingEmailsText)" class="contact-chip" [class.invalid]="!isEmailTokenValid(email)">
+            <span *ngFor="let email of contactList(reportingEmailsText)" class="contact-chip" [class.invalid]="!isEmailTokenValid(email)" [class.unverified]="!isContactVerified('reportingEmails', email)">
               {{ email }}
+              <em>{{ isContactVerified('reportingEmails', email) ? 'Verified' : 'Unverified' }}</em>
+              <button *ngIf="!isContactVerified('reportingEmails', email) && isEmailTokenValid(email)" type="button" class="chip-verify" (click)="requestContactVerificationForToken('reportingEmails', email)" aria-label="Verify reporting email">Verify</button>
               <button type="button" (click)="removeContactToken('reportingEmails', email)" aria-label="Remove reporting email">x</button>
             </span>
             <input
@@ -339,11 +399,18 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
               inputmode="email"
               autocomplete="email"
               [(ngModel)]="reportingEmailDraft"
-              (keydown)="handleContactKeydown($event, 'reportingEmails')"
-              (paste)="handleContactPaste($event, 'reportingEmails')"
-              (blur)="commitContactDraft('reportingEmails')"
+              (keydown.enter)="requestContactVerificationFromDraft($event, 'reportingEmails')"
               placeholder="reporting@salon.com"
             />
+          </div>
+          <button class="verify-contact-button" type="button" (click)="requestContactVerification('reportingEmails')" [disabled]="contactVerificationLoading()">
+            Send OTP to verify email
+          </button>
+          <div *ngIf="pendingVerification()?.key === 'reportingEmails'" class="otp-panel">
+            <strong>Enter OTP sent to {{ pendingVerification()?.contactValue }}</strong>
+            <input inputmode="numeric" maxlength="6" [ngModel]="contactOtpDraft" (ngModelChange)="setContactOtpDraft($event)" placeholder="6 digit OTP" />
+            <span *ngIf="pendingVerification()?.devOtp">Dev OTP: {{ pendingVerification()?.devOtp }}</span>
+            <button type="button" (click)="verifyPendingContact()" [disabled]="contactVerificationLoading()">Verify and add</button>
           </div>
           <small class="input-hint">Supports common international email formats, plus aliases and Unicode domains.</small>
         </div>
@@ -354,8 +421,10 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
             <span>Each email becomes a separate recipient box.</span>
           </label>
           <div class="token-editor" [class.has-error]="invalidEmailChips(ownerEmailsText).length">
-            <span *ngFor="let email of contactList(ownerEmailsText)" class="contact-chip" [class.invalid]="!isEmailTokenValid(email)">
+            <span *ngFor="let email of contactList(ownerEmailsText)" class="contact-chip" [class.invalid]="!isEmailTokenValid(email)" [class.unverified]="!isContactVerified('ownerEmails', email)">
               {{ email }}
+              <em>{{ isContactVerified('ownerEmails', email) ? 'Verified' : 'Unverified' }}</em>
+              <button *ngIf="!isContactVerified('ownerEmails', email) && isEmailTokenValid(email)" type="button" class="chip-verify" (click)="requestContactVerificationForToken('ownerEmails', email)" aria-label="Verify owner email">Verify</button>
               <button type="button" (click)="removeContactToken('ownerEmails', email)" aria-label="Remove owner email">x</button>
             </span>
             <input
@@ -364,11 +433,18 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
               inputmode="email"
               autocomplete="email"
               [(ngModel)]="ownerEmailDraft"
-              (keydown)="handleContactKeydown($event, 'ownerEmails')"
-              (paste)="handleContactPaste($event, 'ownerEmails')"
-              (blur)="commitContactDraft('ownerEmails')"
+              (keydown.enter)="requestContactVerificationFromDraft($event, 'ownerEmails')"
               placeholder="owner@salon.com"
             />
+          </div>
+          <button class="verify-contact-button" type="button" (click)="requestContactVerification('ownerEmails')" [disabled]="contactVerificationLoading()">
+            Send OTP to verify email
+          </button>
+          <div *ngIf="pendingVerification()?.key === 'ownerEmails'" class="otp-panel">
+            <strong>Enter OTP sent to {{ pendingVerification()?.contactValue }}</strong>
+            <input inputmode="numeric" maxlength="6" [ngModel]="contactOtpDraft" (ngModelChange)="setContactOtpDraft($event)" placeholder="6 digit OTP" />
+            <span *ngIf="pendingVerification()?.devOtp">Dev OTP: {{ pendingVerification()?.devOtp }}</span>
+            <button type="button" (click)="verifyPendingContact()" [disabled]="contactVerificationLoading()">Verify and add</button>
           </div>
           <small class="input-hint">Example: owner+branch@salon.co.in or unicode-name@idn.example</small>
         </div>
@@ -387,20 +463,27 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
               type="tel"
               inputmode="tel"
               autocomplete="tel"
-              [(ngModel)]="ownerMobileDraft"
-              (keydown)="handleContactKeydown($event, 'ownerMobiles')"
-              (paste)="handleContactPaste($event, 'ownerMobiles')"
-              (blur)="commitContactDraft('ownerMobiles')"
+              [ngModel]="ownerMobileDraft"
+              (ngModelChange)="setOwnerMobileDraft($event)"
+              (keydown.enter)="requestContactVerificationFromDraft($event, 'ownerMobiles')"
               placeholder="90000 00000"
             />
-            <button class="ghost-button compact" type="button" (click)="commitContactDraft('ownerMobiles')">Add</button>
+            <button class="ghost-button compact" type="button" (click)="requestContactVerification('ownerMobiles')" [disabled]="contactVerificationLoading()">Send OTP</button>
           </div>
           <div class="token-editor phone-chip-editor" [class.has-error]="invalidPhoneChips().length">
-            <span *ngFor="let phone of contactList(ownerMobilesText)" class="contact-chip phone" [class.invalid]="!isPhoneTokenValid(phone)">
+            <span *ngFor="let phone of contactList(ownerMobilesText)" class="contact-chip phone" [class.invalid]="!isPhoneTokenValid(phone)" [class.unverified]="!isContactVerified('ownerMobiles', phone)">
               {{ phone }}
+              <em>{{ isContactVerified('ownerMobiles', phone) ? 'Verified' : 'Unverified' }}</em>
+              <button *ngIf="!isContactVerified('ownerMobiles', phone) && isPhoneTokenValid(phone)" type="button" class="chip-verify" (click)="requestContactVerificationForToken('ownerMobiles', phone)" aria-label="Verify owner mobile">Verify</button>
               <button type="button" (click)="removeContactToken('ownerMobiles', phone)" aria-label="Remove owner mobile">x</button>
             </span>
             <span *ngIf="!contactList(ownerMobilesText).length" class="empty-token">No owner mobile added</span>
+          </div>
+          <div *ngIf="pendingVerification()?.key === 'ownerMobiles'" class="otp-panel">
+            <strong>Enter OTP sent to {{ pendingVerification()?.contactValue }}</strong>
+            <input inputmode="numeric" maxlength="6" [ngModel]="contactOtpDraft" (ngModelChange)="setContactOtpDraft($event)" placeholder="6 digit OTP" />
+            <span *ngIf="pendingVerification()?.devOtp">Dev OTP: {{ pendingVerification()?.devOtp }}</span>
+            <button type="button" (click)="verifyPendingContact()" [disabled]="contactVerificationLoading()">Verify and add</button>
           </div>
           <small class="input-hint">Numbers are saved in international format. Length is checked using the selected or pasted country code.</small>
         </div>
@@ -790,6 +873,25 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
       border-color: #fecdca;
       color: #b42318;
     }
+    .contact-chip.unverified {
+      background: #fff8ed;
+      border-color: #f8d9a6;
+      color: #9a5b13;
+    }
+    .contact-chip em {
+      border-radius: 999px;
+      padding: 3px 7px;
+      background: rgba(15, 127, 115, 0.12);
+      color: #0b4f48;
+      font-size: 10px;
+      font-style: normal;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .contact-chip.unverified em {
+      background: rgba(180, 83, 9, 0.13);
+      color: #92400e;
+    }
     .contact-chip button {
       display: grid;
       place-items: center;
@@ -803,6 +905,18 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
       font-weight: 900;
       cursor: pointer;
     }
+    .contact-chip button.chip-verify {
+      width: auto;
+      min-width: 54px;
+      padding: 0 8px;
+      background: rgba(15, 127, 115, 0.14);
+      color: #0b4f48;
+      font-size: 11px;
+    }
+    .contact-chip.unverified button.chip-verify {
+      background: rgba(180, 83, 9, 0.14);
+      color: #7c2d12;
+    }
     .phone-entry-row {
       display: grid;
       grid-template-columns: minmax(116px, 0.7fr) minmax(150px, 1fr) auto;
@@ -815,6 +929,65 @@ type ContactListKey = 'reportingEmails' | 'ownerEmails' | 'ownerMobiles';
     }
     .phone-chip-editor {
       min-height: 44px;
+    }
+    .verify-contact-button {
+      justify-self: start;
+      min-height: 36px;
+      border: 1px solid #bfe5df;
+      border-radius: 999px;
+      padding: 0 13px;
+      background: #ecfdf9;
+      color: #0b4f48;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .verify-contact-button:disabled {
+      cursor: wait;
+      opacity: .7;
+    }
+    .otp-panel {
+      display: grid;
+      gap: 8px;
+      border: 1px solid #bfd7ff;
+      border-radius: 8px;
+      padding: 10px;
+      background: #f7fbff;
+    }
+    .otp-panel strong {
+      color: #1e3a8a;
+      font-size: 13px;
+    }
+    .otp-panel span {
+      color: #0b4f48;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .otp-panel button {
+      justify-self: start;
+      min-height: 36px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #0f7f73;
+      color: #fff;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .report-schedule-card {
+      display: grid;
+      gap: 12px;
+      border: 1px solid #d6dfdd;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfdfc;
+    }
+    .report-schedule-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .report-schedule-grid label {
+      margin: 0;
     }
     .empty-token {
       color: #64748b;
@@ -1067,8 +1240,11 @@ export class BusinessDetailsComponent implements OnInit {
   saving = signal(false);
   coverUploading = signal(false);
   galleryUploading = signal(false);
+  contactVerificationLoading = signal(false);
   error = signal('');
   saved = signal(false);
+  contactVerifications = signal<ContactVerification[]>([]);
+  pendingVerification = signal<PendingContactVerification | null>(null);
 
   form: BusinessNotificationProfile = this.emptyForm();
   reportingEmailsText = '';
@@ -1077,6 +1253,7 @@ export class BusinessDetailsComponent implements OnInit {
   reportingEmailDraft = '';
   ownerEmailDraft = '';
   ownerMobileDraft = '';
+  contactOtpDraft = '';
   ownerMobileCountryCode = '+91';
   coverImageText = '';
   galleryImagesText = '';
@@ -1132,7 +1309,6 @@ export class BusinessDetailsComponent implements OnInit {
     this.saving.set(true);
     this.error.set('');
     this.saved.set(false);
-    this.commitAllContactDrafts();
     const validationError = this.contactValidationError();
     if (validationError) {
       this.saving.set(false);
@@ -1144,6 +1320,9 @@ export class BusinessDetailsComponent implements OnInit {
       reportingEmails: this.lines(this.reportingEmailsText),
       ownerEmails: this.lines(this.ownerEmailsText),
       ownerMobiles: this.contactList(this.ownerMobilesText),
+      reportEmailEnabled: this.form.reportEmailEnabled === true,
+      reportEmailTime: this.validReportTime(this.form.reportEmailTime),
+      reportEmailTimezone: this.form.reportEmailTimezone || 'Asia/Kolkata',
       socialLinks: this.publicProfileLinks(),
       businessHours: this.normalizedBusinessHours()
     };
@@ -1306,6 +1485,140 @@ export class BusinessDetailsComponent implements OnInit {
     this.saved.set(false);
   }
 
+  isContactVerified(key: ContactListKey, value: string): boolean {
+    const contactValue = key === 'ownerMobiles' ? this.normalizePhoneToken(value) : String(value || '').trim();
+    const role = this.contactRoleForKey(key);
+    const type = key === 'ownerMobiles' ? 'phone' : 'email';
+    return this.contactVerifications().some((item) =>
+      item.contactRole === role
+      && item.contactType === type
+      && item.contactValue === contactValue
+      && item.status === 'verified'
+    );
+  }
+
+  requestContactVerificationFromDraft(event: Event, key: ContactListKey): void {
+    event.preventDefault();
+    this.requestContactVerification(key);
+  }
+
+  requestContactVerification(key: ContactListKey): void {
+    const rawValue = this.contactDraftValue(key);
+    const contactValue = key === 'ownerMobiles' ? this.normalizePhoneToken(rawValue) : String(rawValue || '').trim();
+    this.requestContactVerificationValue(key, contactValue);
+  }
+
+  requestContactVerificationForToken(key: ContactListKey, value: string): void {
+    const contactValue = key === 'ownerMobiles' ? this.normalizePhoneToken(value) : String(value || '').trim();
+    this.requestContactVerificationValue(key, contactValue);
+  }
+
+  setOwnerMobileDraft(value: string): void {
+    const raw = String(value || '');
+    const hasInternationalPrefix = raw.trim().startsWith('+') || raw.trim().startsWith('00');
+    const digits = raw.replace(/\D/g, '').slice(0, 15);
+    this.ownerMobileDraft = hasInternationalPrefix ? `+${digits.replace(/^00/, '')}` : digits;
+  }
+
+  setContactOtpDraft(value: string): void {
+    this.contactOtpDraft = String(value || '').replace(/\D/g, '').slice(0, 6);
+  }
+
+  private requestContactVerificationValue(key: ContactListKey, contactValue: string): void {
+    if (!contactValue) {
+      this.error.set(key === 'ownerMobiles' ? 'Enter owner mobile number first' : 'Enter email first');
+      return;
+    }
+    if (key === 'ownerMobiles' && !this.isPhoneTokenValid(contactValue)) {
+      this.error.set(`Fix owner mobile number format: ${contactValue}`);
+      return;
+    }
+    if (key !== 'ownerMobiles' && !this.isEmailTokenValid(contactValue)) {
+      this.error.set(`Fix email format: ${contactValue}`);
+      return;
+    }
+    this.contactVerificationLoading.set(true);
+    this.error.set('');
+    this.api.post<ContactVerificationResponse>('invoice-notifications/contact-verifications/request', {
+      contactRole: this.contactRoleForKey(key),
+      contactType: key === 'ownerMobiles' ? 'phone' : 'email',
+      contactValue,
+      channel: key === 'ownerMobiles' ? 'sms' : 'email'
+    })
+      .pipe(finalize(() => this.contactVerificationLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.contactOtpDraft = '';
+          this.pendingVerification.set({
+            key,
+            contactRole: response.contactRole,
+            contactType: response.contactType,
+            contactValue: response.contactValue,
+            status: response.status || 'pending',
+            expiresAt: response.expiresAt || '',
+            otp: '',
+            devOtp: response.devOtp,
+            deliveryChannel: response.deliveryChannel
+          });
+        },
+        error: (err) => this.error.set(this.api.errorText(err, 'Unable to send OTP'))
+      });
+  }
+
+  verifyPendingContact(): void {
+    const pending = this.pendingVerification();
+    const otp = this.contactOtpDraft.trim();
+    if (!pending) return;
+    if (!/^\d{6}$/.test(otp)) {
+      this.error.set('Enter valid 6 digit OTP');
+      return;
+    }
+    this.contactVerificationLoading.set(true);
+    this.error.set('');
+    this.api.post<ContactVerificationResponse>('invoice-notifications/contact-verifications/verify', {
+      contactRole: pending.contactRole,
+      contactType: pending.contactType,
+      contactValue: pending.contactValue,
+      otp
+    })
+      .pipe(finalize(() => this.contactVerificationLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.upsertContactVerification({
+            contactRole: response.contactRole,
+            contactType: response.contactType,
+            contactValue: response.contactValue,
+            status: 'verified',
+            verifiedAt: response.verifiedAt || new Date().toISOString()
+          });
+          this.addVerifiedContactToken(pending.key, response.contactValue);
+          this.setContactDraftValue(pending.key, '');
+          this.pendingVerification.set(null);
+          this.contactOtpDraft = '';
+          this.saved.set(false);
+        },
+        error: (err) => this.error.set(this.api.errorText(err, 'Unable to verify OTP'))
+      });
+  }
+
+  private contactRoleForKey(key: ContactListKey): ContactVerification['contactRole'] {
+    if (key === 'reportingEmails') return 'reportingEmail';
+    if (key === 'ownerEmails') return 'ownerEmail';
+    return 'ownerMobile';
+  }
+
+  private addVerifiedContactToken(key: ContactListKey, value: string): void {
+    const normalized = key === 'ownerMobiles' ? this.normalizePhoneToken(value) : String(value || '').trim();
+    const existing = this.contactList(this.contactTextValue(key));
+    this.setContactTextValue(key, [...new Set([...existing, normalized])]);
+  }
+
+  private upsertContactVerification(verification: ContactVerification): void {
+    const key = `${verification.contactRole}:${verification.contactType}:${verification.contactValue}`;
+    const existing = this.contactVerifications().filter((item) => `${item.contactRole}:${item.contactType}:${item.contactValue}` !== key);
+    this.contactVerifications.set([...existing, verification]);
+  }
+
   private commitAllContactDrafts(): void {
     this.commitContactDraft('reportingEmails');
     this.commitContactDraft('ownerEmails');
@@ -1313,13 +1626,38 @@ export class BusinessDetailsComponent implements OnInit {
   }
 
   private contactValidationError(): string {
+    const pendingDraft = this.pendingContactDraft();
+    if (pendingDraft) return pendingDraft;
     const invalidReporting = this.invalidEmailChips(this.reportingEmailsText);
     if (invalidReporting.length) return `Fix reporting email format: ${invalidReporting[0]}`;
     const invalidOwnerEmails = this.invalidEmailChips(this.ownerEmailsText);
     if (invalidOwnerEmails.length) return `Fix owner email format: ${invalidOwnerEmails[0]}`;
     const invalidOwnerMobiles = this.invalidPhoneChips();
     if (invalidOwnerMobiles.length) return `Fix owner mobile number format: ${invalidOwnerMobiles[0]}`;
+    const unverified = this.unverifiedContactTokens();
+    if (unverified.length) return `Verify ${unverified[0]} with OTP before saving owner/reporting contacts.`;
     return '';
+  }
+
+  private pendingContactDraft(): string {
+    const reporting = this.reportingEmailDraft.trim();
+    if (reporting) return `Send OTP and verify reporting email before saving: ${reporting}`;
+    const ownerEmail = this.ownerEmailDraft.trim();
+    if (ownerEmail) return `Send OTP and verify owner email before saving: ${ownerEmail}`;
+    const ownerMobile = this.ownerMobileDraft.trim();
+    if (ownerMobile) return `Send OTP and verify owner mobile before saving: ${this.normalizePhoneToken(ownerMobile) || ownerMobile}`;
+    return '';
+  }
+
+  private unverifiedContactTokens(): string[] {
+    return [
+      ...this.contactList(this.reportingEmailsText)
+        .filter((item) => this.isEmailTokenValid(item) && !this.isContactVerified('reportingEmails', item)),
+      ...this.contactList(this.ownerEmailsText)
+        .filter((item) => this.isEmailTokenValid(item) && !this.isContactVerified('ownerEmails', item)),
+      ...this.contactList(this.ownerMobilesText)
+        .filter((item) => this.isPhoneTokenValid(item) && !this.isContactVerified('ownerMobiles', item))
+    ];
   }
 
   private addContactTokens(key: ContactListKey, rawValue: string): void {
@@ -1424,6 +1762,7 @@ export class BusinessDetailsComponent implements OnInit {
     this.mapsUrl = String(links['mapsUrl'] || links['googleMaps'] || '');
     this.showBusinessHours = links['showBusinessHours'] !== false;
     this.businessHours = this.mergeBusinessHours(profile.businessHours);
+    this.contactVerifications.set(profile.contactVerifications || []);
   }
 
   private emptyForm(): BusinessNotificationProfile {
@@ -1449,8 +1788,17 @@ export class BusinessDetailsComponent implements OnInit {
       businessHours: this.defaultBusinessHours(),
       providerMode: 'queued',
       invoiceClientEnabled: true,
-      invoiceOwnerEnabled: true
+      invoiceOwnerEnabled: true,
+      reportEmailEnabled: false,
+      reportEmailTime: '21:00',
+      reportEmailTimezone: 'Asia/Kolkata',
+      reportLastSentDate: ''
     };
+  }
+
+  private validReportTime(value: string | undefined): string {
+    const time = String(value || '').trim();
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '21:00';
   }
 
   copyMondayToWeek(): void {

@@ -70,5 +70,6 @@ export function runFlashSaleCheck() {
   }
 }
 
-setInterval(runFlashSaleCheck, CHECK_INTERVAL_MS);
+const flashSaleTimer = setInterval(runFlashSaleCheck, CHECK_INTERVAL_MS);
+if (typeof flashSaleTimer.unref === "function") flashSaleTimer.unref();
 runFlashSaleCheck();

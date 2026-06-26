@@ -1,7 +1,25 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { migrationService } from "../services/migration.service.js";
+import { largeFileUploadService } from "../services/large-file-upload.service.js";
+import { badRequest } from "../utils/app-error.js";
+
+const LARGE_UPLOAD_ACCEPTED_TYPES = new Set([
+  "text/csv", "application/csv",
+  "application/zip", "application/x-zip-compressed",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/octet-stream"
+]);
+
+function assertLargeUploadContentType(req, _res, next) {
+  const ct = String(req.headers["content-type"] || "").toLowerCase();
+  if (!LARGE_UPLOAD_ACCEPTED_TYPES.has(ct)) {
+    return next(badRequest(`Unsupported content type "${ct}". Accepted types: CSV, Excel, ZIP.`));
+  }
+  next();
+}
 
 export const migrationRouter = Router();
 const migrationResource = () => "migration";
@@ -55,6 +73,90 @@ migrationRouter.post(
 );
 
 migrationRouter.post(
+  "/migration/normalize-source",
+  requirePermission("write", migrationResource),
+  asyncHandler((req, res) => {
+    res.json(migrationService.normalizeSource(req.body, req.access));
+  })
+);
+migrationRouter.post(
+  "/migration/uploads",
+  requirePermission("write", migrationResource),
+  asyncHandler((req, res) => {
+    res.status(201).json(migrationService.uploadSource(req.body, req.access));
+  })
+);
+migrationRouter.post(
+  "/migration/uploads/binary",
+  requirePermission("write", migrationResource),
+  express.raw({ type: "*/*", limit: process.env.MIGRATION_UPLOAD_RAW_LIMIT || "180mb" }),
+  asyncHandler((req, res) => {
+    const fileName = req.query.fileName || req.headers["x-file-name"] || req.headers["x-migration-file-name"] || "migration-source.zip";
+    res.status(201).json(migrationService.uploadSourceBuffer({
+      fileName,
+      mimeType: req.headers["content-type"] || "application/octet-stream",
+      purpose: req.query.purpose || req.headers["x-migration-purpose"] || "source",
+      buffer: req.body
+    }, req.access));
+  })
+);
+
+
+migrationRouter.get(
+  "/migration/uploads/sessions",
+  requirePermission("read", migrationResource),
+  asyncHandler((req, res) => {
+    res.json(migrationService.uploadSessions(req.query || {}, req.access));
+  })
+);
+
+migrationRouter.get(
+  "/migration/uploads/sessions/:id",
+  requirePermission("read", migrationResource),
+  asyncHandler((req, res) => {
+    res.json(migrationService.uploadSession(req.params.id, req.access));
+  })
+);
+migrationRouter.post(
+  "/migration/uploads/sessions",
+  requirePermission("write", migrationResource),
+  asyncHandler((req, res) => {
+    res.status(201).json(migrationService.createUploadSession(req.body || {}, req.access));
+  })
+);
+
+migrationRouter.post(
+  "/migration/uploads/sessions/:id/parts/:partNumber",
+  requirePermission("write", migrationResource),
+  express.raw({ type: "*/*", limit: process.env.MIGRATION_UPLOAD_PART_LIMIT || "16mb" }),
+  asyncHandler((req, res) => {
+    res.status(201).json(migrationService.uploadSessionPart(req.params.id, req.params.partNumber, { buffer: req.body }, req.access));
+  })
+);
+
+migrationRouter.post(
+  "/migration/uploads/sessions/:id/complete",
+  requirePermission("write", migrationResource),
+  asyncHandler((req, res) => {
+    res.status(201).json(migrationService.completeUploadSession(req.params.id, req.body || {}, req.access));
+  })
+);
+migrationRouter.post(
+  "/migration/command-center",
+  requirePermission("write", migrationResource),
+  asyncHandler((req, res) => {
+    res.json(migrationService.commandCenter(req.body || {}, req.access));
+  })
+);
+
+migrationRouter.post(
+  "/migration/proof-pack",
+  requirePermission("read", migrationResource),
+  asyncHandler((req, res) => {
+    res.json(migrationService.proofPack(req.body || {}, req.access));
+  })
+);
+migrationRouter.post(
   "/migration/reconcile",
   requirePermission("write", migrationResource),
   asyncHandler((req, res) => {
@@ -102,6 +204,16 @@ migrationRouter.post(
   requirePermission("write", migrationResource),
   asyncHandler((req, res) => {
     res.json(migrationService.retryFailedLargeJobChunks(req.params.id, req.body || {}, req.access));
+  })
+);
+
+migrationRouter.post(
+  "/migration/large-upload",
+  requirePermission("write", migrationResource),
+  express.raw({ type: "*/*", limit: process.env.MIGRATION_LARGE_UPLOAD_RAW_LIMIT || "500mb" }),
+  assertLargeUploadContentType,
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await largeFileUploadService.handleUpload(req.body, req.headers, req.access));
   })
 );
 
@@ -303,6 +415,8 @@ migrationRouter.post(
     res.json(migrationService.rollbackLast(req.access, req.body || {}));
   })
 );
+
+
 
 
 

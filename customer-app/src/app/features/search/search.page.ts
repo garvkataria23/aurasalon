@@ -57,7 +57,7 @@ interface ProfessionalResult {
           </button>
           <div>
             <h1>{{ searchTitle() }}</h1>
-            <p>Any time · {{ location() ? "Selected area" : "Current location" }}</p>
+            <p>Any time · {{ locationDisplayLabel() }}</p>
           </div>
           <button class="map-toggle-button" type="button" (click)="toggleMapPanel()" aria-label="Toggle map">
             <ion-icon name="map-outline"></ion-icon>
@@ -223,7 +223,7 @@ interface ProfessionalResult {
           </div>
           @if (location()) {
             <div class="selected-area-row">
-              <span><ion-icon name="locate-outline"></ion-icon> Using selected area for distance results</span>
+              <span><ion-icon name="locate-outline"></ion-icon> Using {{ locationDisplayLabel() }} for distance results</span>
               <button type="button" (click)="clearSelectedArea()">Change area</button>
             </div>
           }
@@ -239,7 +239,7 @@ interface ProfessionalResult {
             </div>
 
             @if (showMap()) {
-              <section class="aura-map-card premium-card" aria-label="Live salon map">
+              <section class="aura-map-card premium-card" [class.fullscreen-map]="mapFullscreen()" aria-label="Live salon map">
                 <div class="map-copy">
                   <div>
                     <p class="eyebrow">Live map</p>
@@ -248,15 +248,19 @@ interface ProfessionalResult {
                   <div class="map-actions">
                     <button type="button" (click)="useLocation()">
                       <ion-icon name="locate-outline"></ion-icon>
-                      Use my area
+                      Use current location
                     </button>
                     <button type="button" (click)="toggleMapPickMode()">
                       {{ mapPickMode() ? "Tap map" : "Pick on map" }}
                     </button>
-                    <button type="button" (click)="fitToResults()">Fit</button>
+                    <button type="button" (click)="openFullMap()">Fit</button>
+                    @if (mapFullscreen()) {
+                      <button type="button" (click)="closeFullMap()">Close</button>
+                    }
                   </div>
                 </div>
                 <div
+                  #liveMap
                   class="live-map"
                 [class.locating]="mapLoading()"
                 [class.picking]="mapPickMode()"
@@ -700,6 +704,34 @@ interface ProfessionalResult {
       box-shadow: var(--shadow-card) !important;
     }
 
+    .aura-map-card.fullscreen-map {
+      position: fixed;
+      inset: 16px;
+      z-index: 5000;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      margin: 0;
+      max-height: calc(100vh - 32px);
+      border-radius: 28px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 232, 0.98));
+      box-shadow: 0 30px 90px rgba(35, 25, 13, 0.28) !important;
+    }
+
+    .aura-map-card.fullscreen-map .map-copy,
+    .aura-map-card.fullscreen-map .live-map,
+    .aura-map-card.fullscreen-map .map-preview-card {
+      grid-column: 1;
+    }
+
+    .aura-map-card.fullscreen-map .live-map {
+      height: 100%;
+      min-height: 0;
+      border-radius: 22px;
+    }
+
+    .aura-map-card.fullscreen-map .map-preview-card {
+      align-self: stretch;
+    }
     .aura-map-card.premium-card:hover ion-icon,
     .aura-map-card.premium-card:active ion-icon {
       transform: none !important;
@@ -1821,6 +1853,26 @@ interface ProfessionalResult {
         align-items: start;
       }
 
+      .aura-map-card.fullscreen-map {
+        inset: 112px 16px 16px;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        height: calc(100vh - 128px);
+        max-height: calc(100vh - 128px);
+      }
+
+      .aura-map-card.fullscreen-map .map-copy {
+        grid-column: 1 / -1;
+      }
+
+      .aura-map-card.fullscreen-map .live-map {
+        grid-column: 1;
+        min-height: 0;
+      }
+
+      .aura-map-card.fullscreen-map .map-preview-card {
+        grid-column: 2;
+      }
       .map-copy {
         grid-column: 1 / -1;
       }
@@ -1884,11 +1936,19 @@ interface ProfessionalResult {
         overflow-x: auto;
         padding-bottom: 2px;
       }
+
+      .aura-map-card.fullscreen-map {
+        inset: 8px;
+        max-height: calc(100vh - 16px);
+        border-radius: 22px;
+        padding: 12px;
+      }
     }
   `]
 })
 export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild("overlayHost") private overlayHost?: ElementRef<HTMLElement>;
+  @ViewChild("liveMap") private liveMap?: ElementRef<HTMLElement>;
   readonly query = signal("");
   readonly mode = signal<SearchMode>("salons");
   readonly filter = signal<FilterKey>("open");
@@ -1916,6 +1976,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   readonly locationRetryAvailable = signal(false);
   readonly mapPickMode = signal(false);
   readonly mapPanelOpen = signal(false);
+  readonly mapFullscreen = signal(false);
   readonly selectedBusiness = signal<import("../../core/api.types").Business | null>(null);
   readonly searchModes: { key: SearchMode; label: string; copy: string; icon: string }[] = [
     { key: "salons", label: "Salons", copy: "Venues near you", icon: "business-outline" },
@@ -1943,7 +2004,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     {
       title: "Location",
       options: [
-        { key: "nearest", label: "Near me", description: "Use selected area" }
+        { key: "nearest", label: "Current location", description: "Use your detected area" }
       ]
     },
     {
@@ -1993,16 +2054,19 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   readonly hasPriceFilter = computed(() => this.activeFilters().some((key) => key === "budget" || key === "mid" || key === "premium") || !!this.minPrice() || !!this.maxPrice());
   readonly hasTimeFilter = computed(() => this.activeFilters().some((key) => key === "today" || key === "morning" || key === "afternoon" || key === "evening"));
   readonly hasAvailabilityFilter = computed(() => this.activeFilters().some((key) => key === "open" || key === "today" || key === "morning" || key === "afternoon" || key === "evening"));
+  private readonly initialLocation = this.savedLocation();
+  readonly location = signal<{ lat: number; lng: number } | null>(this.initialLocation);
+  readonly areaLabel = signal(this.savedAreaLabel(this.initialLocation));
+  readonly locationDisplayLabel = computed(() => this.location() ? this.areaLabel() : "Current location");
   readonly activeFilterSummary = computed(() => {
     const labels = this.activeFilters()
-      .map((key) => this.flatFilterOptions().find((option) => option.key === key)?.label)
+      .map((key) => key === "nearest" ? this.locationDisplayLabel() : this.flatFilterOptions().find((option) => option.key === key)?.label)
       .filter(Boolean) as string[];
     if (this.minPrice() || this.maxPrice()) labels.push(`Rs ${this.minPrice() || "0"} - ${this.maxPrice() || "Any"}`);
     return labels;
   });
 
-  readonly location = signal<{ lat: number; lng: number } | null>(null);
-  private readonly defaultCenter = { lat: 20.5937, lng: 78.9629 };
+  private readonly defaultCenter = this.initialLocation || { lat: 20.5937, lng: 78.9629 };
   private readonly locationTimeoutMs = 20000;
   private panStart: { x: number; y: number; center: { lat: number; lng: number } } | null = null;
   private routeSubscription?: Subscription;
@@ -2029,7 +2093,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     { label: "Closest slots", copy: "Distance-ready sorting", icon: "compass-outline", query: "", filter: "nearest" as FilterKey }
   ]);
   readonly mapStatus = computed(() => {
-    if (this.location()) return `Using your selected area. Distances update from ${this.location()?.lat.toFixed(3)}, ${this.location()?.lng.toFixed(3)}.`;
+    if (this.location()) return `Using ${this.locationDisplayLabel()} for distance results.`;
     return "Live OpenStreetMap tiles are shown with venue pins. Use your area to sort by true distance.";
   });
   readonly mapTiles = computed<MapTile[]>(() => {
@@ -2198,7 +2262,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   });
   readonly resultCount = computed(() => this.mode() === "staff" ? this.professionalResults().length : this.filtered().length);
   readonly filterLabel = computed(() => this.activeFilterSummary().join(", ") || "all filters");
-  readonly showMap = computed(() => this.mapPanelOpen() || this.mapPickMode());
+  readonly showMap = computed(() => this.mapPanelOpen() || this.mapPickMode() || this.mapFullscreen());
 
   constructor(readonly marketplace: MarketplaceService, private readonly route: ActivatedRoute) {
     addIcons({ arrowBackOutline, businessOutline, compassOutline, heart, heartOutline, locateOutline, locationOutline, mapOutline, optionsOutline, peopleOutline, pricetagOutline, ribbonOutline, sparklesOutline, swapVerticalOutline });
@@ -2221,6 +2285,8 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
       this.selectedCountry.set(params.get("country") || "");
       this.selectedState.set(params.get("state") || "");
       this.selectedCity.set(params.get("city") || "");
+      if (params.get("map") === "true") this.mapPanelOpen.set(true);
+      this.openPanelFromRoute(params.get("panel"));
       if (params.get("nearMe") === "true" || intent.nearMe) {
         this.useLocation();
         return;
@@ -2309,7 +2375,9 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
 
   clearSelectedArea() {
     this.location.set(null);
+    this.areaLabel.set("Current location");
     this.mapPickMode.set(false);
+    this.mapFullscreen.set(false);
     this.locationRetryAvailable.set(false);
     this.mapErrorTitle.set("");
     this.mapError.set("");
@@ -2345,6 +2413,24 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     this.draftSort.set(this.sort());
     this.sortPanelOpen.update((value) => !value);
     if (this.sortPanelOpen()) this.filterPanelOpen.set(false);
+  }
+
+  private openPanelFromRoute(panel: string | null) {
+    if (panel === "filter") {
+      this.draftMode.set(this.mode());
+      this.draftFilters.set([...this.activeFilters()]);
+      this.draftRadiusKm.set(this.radiusKm());
+      this.draftMinPrice.set(this.minPrice());
+      this.draftMaxPrice.set(this.maxPrice());
+      this.filterPanelOpen.set(true);
+      this.sortPanelOpen.set(false);
+      return;
+    }
+    if (panel === "sort") {
+      this.draftSort.set(this.sort());
+      this.sortPanelOpen.set(true);
+      this.filterPanelOpen.set(false);
+    }
   }
 
   sortDescription(value: SortKey): string {
@@ -2498,7 +2584,21 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
 
   toggleMapPanel() {
     this.mapPanelOpen.update((value) => !value);
-    if (!this.mapPanelOpen()) this.mapPickMode.set(false);
+    if (!this.mapPanelOpen()) {
+      this.mapPickMode.set(false);
+      this.mapFullscreen.set(false);
+    }
+  }
+
+  openFullMap() {
+    this.mapPanelOpen.set(true);
+    this.mapFullscreen.set(true);
+    window.requestAnimationFrame(() => this.fitToResults());
+  }
+
+  closeFullMap() {
+    this.mapFullscreen.set(false);
+    window.requestAnimationFrame(() => this.fitToResults());
   }
 
   private requestCurrentLocation(attempt: number) {
@@ -2518,9 +2618,12 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     this.mapError.set("");
     this.locationRetryAvailable.set(false);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const currentLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const label = await this.resolveAreaLabel(currentLocation);
         this.location.set(currentLocation);
+        this.areaLabel.set(label);
+        this.persistCustomerLocation(currentLocation, label);
         this.mapCenter.set(currentLocation);
         this.mapZoom.set(Math.max(this.mapZoom(), 13));
         this.filter.set("nearest");
@@ -2532,6 +2635,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
         this.mapErrorTitle.set("");
         this.mapError.set("");
         this.locationRetryAvailable.set(false);
+        this.locationNotice.set(`Showing places near ${label}.`);
         void this.executeSearch();
       },
       (error) => {
@@ -2640,6 +2744,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
       zoom
     );
     this.location.set(pickedLocation);
+    this.areaLabel.set(`Selected area ${this.coordinateLabel(pickedLocation)}`);
     this.mapCenter.set(pickedLocation);
     this.mapPickMode.set(false);
     this.filter.set("nearest");
@@ -2712,6 +2817,68 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
 
   private isTimeFilterKey(key: FilterKey): boolean {
     return key === "today" || key === "morning" || key === "afternoon" || key === "evening";
+  }
+
+  private async resolveAreaLabel(coordinates: { lat: number; lng: number }): Promise<string> {
+    const nearest = this.nearestBusiness(coordinates);
+    if (nearest) return nearest.area || nearest.city || nearest.businessName;
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coordinates.lat}&lon=${coordinates.lng}`);
+      if (!response.ok) throw new Error("reverse geocode failed");
+      const data = await response.json() as { address?: Record<string, string>; display_name?: string };
+      const address = data.address || {};
+      return address["suburb"] || address["neighbourhood"] || address["city_district"] || address["city"] || address["town"] || address["state"] || data.display_name || `Current location ${this.coordinateLabel(coordinates)}`;
+    } catch {
+      return `Current location ${this.coordinateLabel(coordinates)}`;
+    }
+  }
+
+  private persistCustomerLocation(coordinates: { lat: number; lng: number }, label: string) {
+    try {
+      localStorage.setItem("aura_customer_area_label", label);
+      localStorage.setItem("aura_customer_location", JSON.stringify(coordinates));
+      window.dispatchEvent(new CustomEvent("aura:customer-location-updated", { detail: { label, location: coordinates } }));
+    } catch {
+      // Local storage can be unavailable in private or restricted browser modes.
+    }
+  }
+
+  private savedLocation(): { lat: number; lng: number } | null {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("aura_customer_location") || "null") as { lat?: number; lng?: number } | null;
+      const lat = Number(parsed?.lat);
+      const lng = Number(parsed?.lng);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private savedAreaLabel(location: { lat: number; lng: number } | null): string {
+    try {
+      const label = (localStorage.getItem("aura_customer_area_label") || "").trim();
+      if (label && label.toLowerCase() !== "near me") return label;
+    } catch {
+      // Fall through to a deterministic coordinate label.
+    }
+    return location ? `Current location ${this.coordinateLabel(location)}` : "Current location";
+  }
+
+  private coordinateLabel(coordinates: { lat: number; lng: number }): string {
+    return `(${coordinates.lat.toFixed(3)}, ${coordinates.lng.toFixed(3)})`;
+  }
+
+  private nearestBusiness(coordinates: { lat: number; lng: number }): import("../../core/api.types").Business | null {
+    return this.marketplace.businesses()
+      .map((business) => {
+        const businessLocation = this.businessCoordinates(business);
+        return {
+          business,
+          distance: businessLocation ? this.distanceKm(coordinates, businessLocation) : Number.MAX_SAFE_INTEGER
+        };
+      })
+      .filter((item) => item.distance <= 25)
+      .sort((left, right) => left.distance - right.distance)[0]?.business ?? null;
   }
 
   private hasUsableLocation(): boolean {
@@ -2938,6 +3105,18 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private mapViewport(): { width: number; height: number } {
+    const rect = this.liveMap?.nativeElement.getBoundingClientRect();
+    if (rect && rect.width >= 240 && rect.height >= 240) {
+      return { width: rect.width, height: rect.height };
+    }
+    if (this.mapFullscreen()) {
+      const previewWidth = window.innerWidth >= 1024 ? 360 : 0;
+      const verticalChrome = window.innerWidth >= 1024 ? 150 : 230;
+      return {
+        width: Math.max(320, window.innerWidth - previewWidth - 76),
+        height: Math.max(320, window.innerHeight - verticalChrome)
+      };
+    }
     if (window.innerWidth < 560) return { width: Math.min(window.innerWidth - 32, 520), height: 300 };
     if (window.innerWidth < 1024) return { width: Math.min(window.innerWidth - 32, 720), height: 360 };
     return { width: 500, height: 360 };
@@ -2970,3 +3149,9 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     return Math.round((6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
   }
 }
+
+
+
+
+
+
