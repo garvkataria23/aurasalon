@@ -2033,7 +2033,8 @@ export class PosInvoicesComponent implements OnInit {
           sale.clientPhone ||
           ''
       );
-      const invoicePayments = payments.filter((payment) => payment.invoiceId === invoice.id);
+      const invoiceId = String(invoice.id || invoice.invoiceId || invoice.invoice_id || '');
+      const invoicePayments = payments.filter((payment) => this.recordId(payment.invoiceId || payment.invoice_id) === invoiceId);
       const items = this.readArray(invoice.lineItems?.length ? invoice.lineItems : sale.items)
         .map((item) => {
           const itemStaffId = String(item.staffId || item.staff_id || item.assignedStaffId || item.assigned_staff_id || staffId || '');
@@ -2053,7 +2054,7 @@ export class PosInvoicesComponent implements OnInit {
       const paymentStatus = this.paymentStatusForInvoice(invoice, total, paid, balance);
       const documentStatus = String(invoice.status || '').trim().toLowerCase() || 'saved';
       return {
-      id: invoice.id,
+      id: invoiceId,
       invoiceNumber: invoice.invoiceNumber || invoice.invoice_no || invoice.id,
       clientId,
       clientName: client.name || invoice.clientName || sale.clientName || 'Walk-in client',
@@ -2098,11 +2099,24 @@ export class PosInvoicesComponent implements OnInit {
   }
 
   private isReceivedDuePayment(payment: ApiRecord): boolean {
-    const referenceText = `${payment.reference || ''} ${payment.remarks || ''} ${payment.note || ''}`.toLowerCase();
+    const referenceText = [
+      payment.reference,
+      payment.referenceNo,
+      payment.reference_no,
+      payment.paymentReference,
+      payment.payment_reference,
+      payment.remarks,
+      payment.note,
+      payment.description
+    ].join(' ').toLowerCase();
     return referenceText.includes('pos unpaid receive')
       || referenceText.includes('old unpaid')
       || referenceText.includes('receive due')
       || referenceText.includes('received due');
+  }
+
+  private recordId(value: unknown): string {
+    return String(value || '').trim();
   }
 
   private rowReceivedDueTotal(row: InvoiceRegisterRow): number {
