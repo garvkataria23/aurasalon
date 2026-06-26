@@ -233,20 +233,16 @@ interface SegmentRow {
     </section>
   `,
   styles: [`
-    .reputation-page {
-      display: grid;
-      gap: 22px;
-    }
+    .reputation-page { display: grid; gap: 20px; }
 
     .reputation-hero,
     .filter-panel,
     .form-panel,
     .review-feed,
     .insight-panel {
-      border: 1px solid #dbe4e8;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: #ffffff;
-      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.07);
+      background: var(--surface);
     }
 
     .reputation-hero {
@@ -257,37 +253,10 @@ interface SegmentRow {
       padding: 28px;
     }
 
-    .hero-copy {
-      max-width: 760px;
-    }
-
-    .hero-copy h2,
-    .section-heading h3,
-    .insight-panel h3 {
-      margin: 4px 0 8px;
-      color: #0f172a;
-      letter-spacing: 0;
-    }
-
-    .hero-copy h2 {
-      font-size: 34px;
-      line-height: 1.1;
-    }
-
-    .hero-copy p {
-      margin: 0;
-      color: #53657d;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-
-    .hero-actions,
-    .form-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .hero-copy { max-width: 760px; }
+    .hero-copy h2 { margin: 4px 0 8px; font-size: 34px; line-height: 1.1; color: var(--ink); }
+    .hero-copy p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+    .hero-actions, .form-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
     .metric-grid {
       display: grid;
@@ -297,43 +266,22 @@ interface SegmentRow {
 
     .metric-card {
       min-height: 126px;
-      border: 1px solid #dbe4e8;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: #ffffff;
+      background: var(--surface);
       padding: 18px;
       display: grid;
       align-content: space-between;
       gap: 10px;
     }
-
-    .metric-card span,
-    .metric-card small,
-    .segment-row span,
-    .platform-row span,
-    .review-meta,
-    .reply-strip span,
-    .empty-state span,
-    .notice {
-      color: #53657d;
-    }
-
-    .metric-card strong {
-      font-size: 28px;
-      color: #0f172a;
-      line-height: 1;
-    }
-
+    .metric-card span, .metric-card small { color: var(--muted); }
+    .metric-card strong { font-size: 28px; color: var(--ink); line-height: 1; }
     .metric-card.green { border-top: 4px solid #0f8f79; }
     .metric-card.blue { border-top: 4px solid #2563eb; }
     .metric-card.gold { border-top: 4px solid #ca8a04; }
     .metric-card.rose { border-top: 4px solid #e11d48; }
 
-    .form-panel,
-    .filter-panel,
-    .review-feed,
-    .insight-panel {
-      padding: 22px;
-    }
+    .form-panel, .filter-panel, .review-feed, .insight-panel { padding: 22px; }
 
     .form-panel form {
       display: grid;
@@ -341,57 +289,43 @@ interface SegmentRow {
       gap: 14px;
     }
 
-    .field,
-    .compact-field,
-    .search-field {
+    .field, .compact-field, .search-field {
       display: grid;
       gap: 7px;
       font-weight: 700;
-      color: #334155;
+      color: var(--ink);
     }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    .field input,
-    .field select,
-    .field textarea,
-    .compact-field select,
-    .search-field input {
+    .field.full { grid-column: 1 / -1; }
+    .field input, .field select, .field textarea,
+    .compact-field select, .search-field input {
       width: 100%;
-      border: 1px solid #d8e0e6;
+      border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px 14px;
-      background: #fbfdfe;
-      color: #0f172a;
+      background: var(--surface-2);
+      color: var(--ink);
       font: inherit;
       font-weight: 500;
       outline: none;
     }
-
-    .field textarea {
-      resize: vertical;
-    }
-
-    .form-actions {
-      grid-column: 1 / -1;
-      justify-content: flex-end;
-    }
+    .field textarea { resize: vertical; }
+    .form-actions { grid-column: 1 / -1; justify-content: flex-end; }
+    .form-panel .section-heading h3 { color: var(--ink); }
 
     .filter-panel {
       display: grid;
-      grid-template-columns: minmax(280px, 1fr) repeat(3, minmax(170px, 220px));
+      grid-template-columns: 1fr repeat(3, minmax(140px, 1fr));
       gap: 14px;
       align-items: end;
     }
 
     .content-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 360px;
+      grid-template-columns: 1fr 1fr;
       gap: 18px;
-      align-items: start;
+      align-items: stretch;
     }
+    .review-feed, .insight-panel { display: grid; align-content: start; }
 
     .section-heading {
       display: flex;
@@ -400,52 +334,29 @@ interface SegmentRow {
       gap: 16px;
       margin-bottom: 18px;
     }
+    .section-heading h3 { margin: 4px 0 0; color: var(--ink); }
 
     .review-card {
-      border: 1px solid #dbe4e8;
+      border: 1px solid var(--line);
       border-radius: 8px;
       padding: 18px;
       display: grid;
       gap: 14px;
-      background: #ffffff;
+      background: var(--surface);
     }
+    .review-card + .review-card { margin-top: 14px; }
 
-    .review-card + .review-card {
-      margin-top: 14px;
-    }
-
-    .review-topline,
-    .review-meta,
-    .reply-strip,
-    .platform-row {
+    .review-topline, .review-meta, .reply-strip, .platform-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
     }
+    .review-topline h4 { margin: 7px 0 0; color: var(--ink); font-size: 18px; }
+    .review-text { margin: 0; color: var(--ink); line-height: 1.65; }
+    .review-meta { justify-content: flex-start; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 
-    .review-topline h4 {
-      margin: 7px 0 0;
-      color: #0f172a;
-      font-size: 18px;
-    }
-
-    .review-text {
-      margin: 0;
-      color: #26364b;
-      line-height: 1.65;
-    }
-
-    .review-meta {
-      justify-content: flex-start;
-      flex-wrap: wrap;
-      font-size: 13px;
-    }
-
-    .platform-pill,
-    .sentiment-pill,
-    .health-pill,
-    .rating-badge {
+    .platform-pill, .sentiment-pill, .health-pill, .rating-badge {
       display: inline-flex;
       align-items: center;
       min-height: 30px;
@@ -455,208 +366,91 @@ interface SegmentRow {
       font-weight: 800;
       line-height: 1;
     }
-
-    .platform-pill {
-      background: #eef6f4;
-      color: #0f766e;
-    }
-
-    .sentiment-pill.positive {
-      background: #e8f7f1;
-      color: #047857;
-    }
-
-    .sentiment-pill.neutral,
-    .sentiment-pill.unknown {
-      background: #eef2f7;
-      color: #475569;
-    }
-
-    .sentiment-pill.negative {
-      background: #fff1f2;
-      color: #be123c;
-    }
-
-    .sentiment-pill.mixed {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .rating-badge {
-      background: #e8f7f1;
-      color: #047857;
-      white-space: nowrap;
-    }
-
-    .rating-badge.mid {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .rating-badge.low {
-      background: #fff1f2;
-      color: #be123c;
-    }
+    .platform-pill { background: #eef6f4; color: #0f766e; }
+    .sentiment-pill.positive { background: #e8f7f1; color: #047857; }
+    .sentiment-pill.neutral, .sentiment-pill.unknown { background: var(--surface-2); color: var(--muted); }
+    .sentiment-pill.negative { background: #fff1f2; color: #be123c; }
+    .sentiment-pill.mixed { background: #fef3c7; color: #92400e; }
+    .rating-badge { background: #e8f7f1; color: #047857; white-space: nowrap; }
+    .rating-badge.mid { background: #fef3c7; color: #92400e; }
+    .rating-badge.low { background: #fff1f2; color: #be123c; }
 
     .reply-strip {
       border-radius: 8px;
-      border: 1px solid #d7ebe5;
-      background: #f7fcfa;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
       padding: 14px;
       align-items: flex-start;
     }
+    .reply-strip span { color: var(--muted); }
+    .reply-strip p { margin: 5px 0 0; color: var(--ink); line-height: 1.55; }
 
-    .reply-strip p {
-      margin: 5px 0 0;
-      color: #26364b;
-      line-height: 1.55;
-    }
+    .insight-panel { display: grid; gap: 22px; }
+    .insight-panel section + section { border-top: 1px solid var(--line); padding-top: 22px; }
+    .insight-panel h3 { margin: 4px 0 8px; color: var(--ink); }
+    .segment-list { display: grid; gap: 14px; }
+    .segment-row { display: grid; gap: 8px; }
+    .segment-row span { color: var(--muted); }
+    .segment-row > div:first-child { display: flex; justify-content: space-between; gap: 12px; }
+    .bar-track { height: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+    .bar-track span { display: block; height: 100%; border-radius: inherit; background: #0f8f79; }
+    .platform-row { border-bottom: 1px solid var(--line); padding: 11px 0; }
+    .platform-row span { color: var(--muted); }
+    .platform-row strong { color: var(--ink); }
+    .action-list { margin: 0; padding-left: 18px; color: var(--ink); display: grid; gap: 10px; line-height: 1.5; }
 
-    .insight-panel {
-      display: grid;
-      gap: 22px;
-    }
-
-    .insight-panel section + section {
-      border-top: 1px solid #e5edf1;
-      padding-top: 22px;
-    }
-
-    .segment-list {
-      display: grid;
-      gap: 14px;
-    }
-
-    .segment-row {
-      display: grid;
-      gap: 8px;
-    }
-
-    .segment-row > div:first-child {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .bar-track {
-      height: 8px;
-      overflow: hidden;
-      border-radius: 999px;
-      background: #ecf1f4;
-    }
-
-    .bar-track span {
-      display: block;
-      height: 100%;
-      border-radius: inherit;
-      background: #0f8f79;
-    }
-
-    .platform-row {
-      border-bottom: 1px solid #edf2f5;
-      padding: 11px 0;
-    }
-
-    .platform-row strong {
-      color: #0f172a;
-    }
-
-    .action-list {
-      margin: 0;
-      padding-left: 18px;
-      color: #26364b;
-      display: grid;
-      gap: 10px;
-      line-height: 1.5;
-    }
-
-    .health-pill {
-      background: #e8f7f1;
-      color: #047857;
-    }
-
-    .health-pill.alert {
-      background: #fff1f2;
-      color: #be123c;
-    }
+    .health-pill { background: #e8f7f1; color: #047857; }
+    .health-pill.alert { background: #fff1f2; color: #be123c; }
 
     .notice {
       margin: 0;
-      border: 1px solid #c7e8df;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: #f4fbf8;
+      background: var(--surface-2);
       padding: 12px 14px;
       font-weight: 700;
+      color: var(--ink);
     }
 
     .empty-state {
-      border: 1px dashed #cfdbe3;
+      border: 1px dashed var(--line);
       border-radius: 8px;
       padding: 28px;
       display: grid;
       gap: 8px;
       text-align: center;
-      color: #0f172a;
+      color: var(--ink);
     }
+    .empty-state span { color: var(--muted); }
 
     .icon-button {
-      width: 36px;
-      height: 36px;
-      border: 1px solid #d8e0e6;
+      width: 36px; height: 36px;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: #ffffff;
-      color: #26364b;
+      background: var(--surface);
+      color: var(--ink);
       font-weight: 900;
       cursor: pointer;
     }
 
-    .slim {
-      padding: 9px 12px;
-      white-space: nowrap;
-    }
+    .slim { padding: 9px 12px; white-space: nowrap; }
 
     @media (max-width: 1180px) {
-      .metric-grid,
-      .content-grid,
-      .filter-panel,
-      .form-panel form {
+      .metric-grid, .content-grid, .filter-panel, .form-panel form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-
-      .content-grid {
-        align-items: stretch;
-      }
-
-      .search-field {
-        grid-column: 1 / -1;
-      }
+      .search-field { grid-column: 1 / -1; }
     }
 
     @media (max-width: 720px) {
-      .reputation-hero,
-      .review-topline,
-      .reply-strip,
-      .section-heading {
-        align-items: stretch;
-        flex-direction: column;
+      .reputation-hero, .review-topline, .reply-strip, .section-heading {
+        align-items: stretch; flex-direction: column;
       }
-
-      .metric-grid,
-      .content-grid,
-      .filter-panel,
-      .form-panel form {
+      .metric-grid, .content-grid, .filter-panel, .form-panel form {
         grid-template-columns: 1fr;
       }
-
-      .hero-copy h2 {
-        font-size: 28px;
-      }
-
-      .search-field,
-      .field.full,
-      .form-actions {
-        grid-column: auto;
-      }
+      .hero-copy h2 { font-size: 28px; }
+      .search-field, .field.full, .form-actions { grid-column: auto; }
     }
   `]
 })

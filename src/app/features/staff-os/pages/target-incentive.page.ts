@@ -163,57 +163,70 @@ const targetMeta: Record<StaffOsTargetIncentiveType, { title: string; label: str
     </section>
   `,
   styles: [`
-    .target-page { color: #10201a; display: grid; gap: 18px; padding: 24px; }
+    .target-page { color: var(--ink); display: grid; gap: 18px; padding: 24px; }
     .topbar, .selected-band { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
     .topbar-actions, .actions, .list-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
-    .eyebrow { color: #547066; font-size: 12px; font-weight: 850; letter-spacing: .08em; margin: 0 0 5px; text-transform: uppercase; }
+    .eyebrow { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; margin: 0 0 5px; text-transform: uppercase; }
     h1, h2 { margin: 0; letter-spacing: 0; }
-    h1 { font-size: 30px; }
-    h2 { font-size: 20px; }
-    .primary, .refresh { border: 1px solid #cbd8d2; border-radius: 6px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 12px; text-decoration: none; }
-    .primary { background: #0f766e; border-color: #0f766e; color: #fff; }
-    .primary.secondary { background: #10201a; border-color: #10201a; }
-    .primary:disabled { opacity: .65; cursor: wait; }
-    .refresh { background: #fff; color: #34483f; }
-    .danger { color: #a52828; }
-    .mini { min-height: 32px; padding: 6px 9px; }
-    .metrics { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; }
-    .metrics article, .state, .left-panel, .slab-panel { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; }
-    .metrics article { padding: 14px; }
-    .metrics span { color: #60766d; font-size: 12px; font-weight: 850; text-transform: uppercase; }
-    .metrics strong { display: block; font-size: 24px; margin-top: 6px; }
-    .state { color: #61746c; padding: 14px; }
-    .error { color: #a52828; border-color: #e7b1b1; }
-    .target-shell { display: grid; grid-template-columns: minmax(320px, .7fr) minmax(620px, 1.3fr); gap: 16px; align-items: start; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 18px; font-weight: 800; }
+    .primary, .refresh { border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-weight: 700; min-height: 36px; padding: 8px 14px; text-decoration: none; transition: all .15s; }
+    .primary { background: var(--color-primary); border-color: var(--color-primary); color: var(--surface); }
+    .primary:hover { background: var(--color-primary-strong); border-color: var(--color-primary-strong); }
+    .primary.secondary { background: var(--ink); border-color: var(--ink); }
+    .primary.secondary:hover { background: #111827; }
+    .primary:disabled { opacity: .55; cursor: not-allowed; }
+    .refresh { background: var(--surface); color: var(--ink); }
+    .refresh:hover { background: var(--surface-2); border-color: var(--muted); }
+    .danger { color: var(--red); }
+    .danger:hover { background: #fef2f2; border-color: #fca5a5; }
+    .mini { min-height: 30px; padding: 5px 10px; font-size: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .metrics article, .state, .left-panel, .slab-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+    .metrics article { padding: 14px 16px; display: grid; gap: 3px; }
+    .metrics article:hover { border-color: var(--color-primary-ring); }
+    .metrics span { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .metrics strong { display: block; font-size: 22px; color: var(--color-primary); }
+    .state { color: var(--muted); padding: 14px; }
+    .error { color: var(--red); border-color: #fecaca; }
+    .target-shell { display: grid; grid-template-columns: 1fr; gap: 18px; }
     .left-panel, .slab-panel { display: grid; gap: 14px; padding: 16px; }
-    .toggles { display: grid; gap: 7px; }
-    .toggles label, .hide-toggle, .copy-check { align-items: center; color: #34483f; display: inline-flex; font-size: 13px; font-weight: 850; gap: 8px; }
-    .toggles input, .hide-toggle input, .copy-check input { height: 18px; padding: 0; width: 18px; }
-    .role-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .role-tabs button { background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #34483f; cursor: pointer; font-weight: 850; min-height: 38px; }
-    .role-tabs button.active { background: #10201a; border-color: #10201a; color: #fff; }
-    .filters { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
-    .filters label, .notes { color: #34483f; display: grid; font-size: 13px; font-weight: 850; gap: 6px; }
-    input, select, textarea { background: #fff; border: 1px solid #cbd8d2; border-radius: 8px; color: #10201a; font: inherit; padding: 10px 11px; width: 100%; }
-    .assignee-list { border-top: 1px solid #edf2ef; display: grid; max-height: 520px; overflow: auto; }
-    .assignee-row { align-items: center; border-bottom: 1px solid #edf2ef; display: grid; gap: 8px; grid-template-columns: auto 1fr auto; min-height: 52px; }
-    .assignee-row.active { background: #f8fbf9; }
-    .assignee-row button { background: transparent; border: 0; cursor: pointer; padding: 8px 0; text-align: left; }
-    .assignee-row small { color: #60766d; display: block; margin-top: 3px; }
-    .assignee-row em { background: #eef6f1; border-radius: 999px; color: #286345; font-size: 12px; font-style: normal; font-weight: 850; padding: 4px 8px; }
-    .tab-label { background: #f8fbf9; border: 1px solid #d9e5de; border-radius: 8px 8px 0 0; color: #10201a; font-weight: 900; justify-self: start; padding: 10px 16px; }
-    .selected-band, .slab-workbench { border: 1px solid #d9e5de; border-radius: 8px; padding: 14px; }
+    .left-panel:hover, .slab-panel:hover { border-color: var(--color-primary-ring); }
+    .toggles { display: flex; gap: 14px; flex-wrap: wrap; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+    .toggles label, .hide-toggle, .copy-check { align-items: center; color: var(--ink); display: inline-flex; font-size: 13px; font-weight: 600; gap: 6px; cursor: pointer; }
+    .toggles input, .hide-toggle input, .copy-check input { accent-color: var(--color-primary); height: 16px; margin: 0; width: 16px; cursor: pointer; }
+    .role-tabs { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; width: fit-content; }
+    .role-tabs button { background: transparent; border: 0; border-radius: 6px; color: var(--ink); cursor: pointer; font-weight: 700; min-height: 32px; padding: 5px 14px; transition: all .15s; }
+    .role-tabs button.active { background: var(--color-primary); color: var(--surface); }
+    .role-tabs button:not(.active):hover { background: var(--color-primary-soft); }
+    .filters { display: flex; gap: 10px; }
+    .filters label { flex: 1; }
+    .filters label, .notes { color: var(--ink); display: grid; font-size: 13px; font-weight: 700; gap: 5px; }
+    input, select, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; padding: 9px 11px; width: 100%; transition: border-color .15s; box-sizing: border-box; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--ring-brand); }
+    .assignee-list { border: 1px solid var(--line); border-radius: 8px; display: grid; max-height: 380px; overflow: auto; }
+    .assignee-row { align-items: center; border-bottom: 1px solid var(--line); display: grid; gap: 8px; grid-template-columns: auto 1fr auto; min-height: 46px; padding: 0 8px; }
+    .assignee-row:last-child { border-bottom: 0; }
+    .assignee-row.active { background: var(--color-primary-soft); }
+    .assignee-row:hover { background: var(--surface-2); }
+    .assignee-row button { background: transparent; border: 0; cursor: pointer; padding: 6px 0; text-align: left; width: 100%; }
+    .assignee-row small { color: var(--muted); display: block; margin-top: 2px; font-size: 12px; }
+    .assignee-row em { background: var(--color-primary-soft); border-radius: 999px; color: var(--color-primary); font-size: 11px; font-style: normal; font-weight: 800; padding: 3px 8px; }
+    .tab-label { background: var(--surface-2); border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; color: var(--color-primary); font-weight: 800; justify-self: start; padding: 8px 16px; font-size: 13px; margin-bottom: -1px; }
+    .selected-band, .slab-workbench { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
     .slab-workbench { display: grid; gap: 10px; }
-    .admin-target-box { align-content: start; display: grid; gap: 14px; grid-template-columns: minmax(180px, 280px); justify-content: center; min-height: 260px; padding-top: 34px; }
-    .admin-target-box label { color: #34483f; display: grid; font-size: 13px; font-weight: 850; gap: 7px; }
-    .copy-standard { align-self: start; background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #34483f; cursor: pointer; font-weight: 850; justify-self: start; min-height: 38px; padding: 8px 11px; }
-    .grid { align-items: center; display: grid; gap: 8px; grid-template-columns: 54px repeat(4, minmax(90px, 1fr)) 36px; }
-    .grid.header { color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-    .icon-button { align-items: center; background: #fff; border: 1px solid #e7b1b1; border-radius: 6px; color: #a52828; cursor: pointer; display: inline-flex; font-size: 18px; font-weight: 900; height: 34px; justify-content: center; width: 34px; }
+    .admin-target-box { align-content: start; display: grid; gap: 14px; grid-template-columns: minmax(180px, 280px); justify-content: center; min-height: 200px; padding-top: 24px; }
+    .admin-target-box label { color: var(--ink); display: grid; font-size: 13px; font-weight: 700; gap: 6px; }
+    .copy-standard { align-self: start; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; color: var(--ink); cursor: pointer; font-weight: 700; justify-self: start; min-height: 36px; padding: 7px 12px; transition: all .15s; }
+    .copy-standard:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .grid { align-items: center; display: grid; gap: 8px; grid-template-columns: 50px repeat(4, minmax(90px, 1fr)) 36px; }
+    .grid.header { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .icon-button { align-items: center; background: var(--surface); border: 1px solid #fecaca; border-radius: 6px; color: var(--red); cursor: pointer; display: inline-flex; font-size: 18px; font-weight: 800; height: 34px; justify-content: center; width: 34px; transition: all .15s; }
+    .icon-button:hover { background: #fef2f2; border-color: var(--red); }
     .add-row { justify-self: start; }
-    .actions { border-top: 1px solid #edf2ef; padding-top: 12px; }
-    @media (max-width: 1060px) { .target-shell, .metrics { grid-template-columns: 1fr; } }
-    @media (max-width: 760px) { .filters, .grid { grid-template-columns: 1fr; } .grid.header { display: none; } }
+    .actions { border-top: 1px solid var(--line); padding-top: 14px; }
+    @media (max-width: 1060px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 760px) { .metrics { grid-template-columns: 1fr; } .filters, .grid { grid-template-columns: 1fr; } .grid.header { display: none; } }
   `]
 })
 export class StaffTargetIncentiveComponent implements OnInit {
