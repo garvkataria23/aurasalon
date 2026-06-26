@@ -168,6 +168,27 @@ test("Profit Intelligence exposes margin-aware booking recommendations", () => {
   }
 });
 
+test("Profit Intelligence exposes AI Pricing Autopilot", () => {
+  for (const field of [
+    "pricingAutopilot",
+    "pricingRecommendation",
+    "currentPricePaise",
+    "recommendedPricePaise",
+    "expectedProfitLiftPaise",
+    "currentMarginBps",
+    "projectedMarginBps",
+    "demandRisk",
+    "reason"
+  ]) {
+    assert.ok(service.includes(field) || page.includes(field), `${field} should be part of AI Pricing Autopilot`);
+  }
+  assert.match(service, /services\.price/, "pricing autopilot should use service master price when available");
+  assert.match(service, /targetMarginBps/, "pricing autopilot should support target margin");
+  for (const label of ["AI Pricing Autopilot", "Service price recommendations", "Current Price", "Recommended", "Profit Lift", "Demand Risk"]) {
+    assert.ok(page.includes(label), `${label} should be visible for AI Pricing Autopilot`);
+  }
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");

@@ -109,6 +109,11 @@ function clampPercent(value, min = -100, max = 100) {
   return Math.max(min, Math.min(max, Number(value || 0)));
 }
 
+function roundPricePaise(value, stepPaise = 5000) {
+  const amount = Math.max(0, Number(value || 0));
+  return Math.ceil(amount / stepPaise) * stepPaise;
+}
+
 function classifyExpense(category = "") {
   const text = String(category || "").toLowerCase();
   if (/(cogs|consume|consumable|product cost|backbar|recipe)/.test(text)) return "productCost";
@@ -284,6 +289,7 @@ export class ProfitIntelligenceService {
       metrics,
       ceoKpis: this.ceoKpis(params, metrics, profitBreakdown, expenseTotals.breakdown),
       profitDigitalTwin: this.profitDigitalTwin(query, metrics),
+      pricingAutopilot: this.pricingAutopilot(query, profitBreakdown),
       enterpriseAnalytics: this.enterpriseAnalytics(params, metrics, invoices, expenseRows, profitBreakdown),
       revenueBreakdown: breakdown,
       expenseBreakdown: expenseTotals.breakdown,
@@ -301,6 +307,55 @@ export class ProfitIntelligenceService {
         netProfit: fromPaise(netProfitPaise)
       }
     };
+  }
+
+  pricingAutopilot(query = {}, breakdown = {}) {
+    const targetMarginBps = Math.max(1000, Math.min(8000, Math.round(numberParam(query, "targetMarginBps", 3500))));
+    const recommendations = (breakdown.serviceProfit || [])
+      .filter((service) => Number(service.revenuePaise || 0) > 0)
+      .map((service) => this.pricingRecommendation(service, targetMarginBps))
+      .sort((a, b) => b.expectedProfitLiftPaise - a.expectedProfitLiftPaise)
+      .slice(0, BREAKDOWN_LIMIT);
+    return {
+      targetMarginBps,
+      recommendations,
+      source: "serviceProfit actual revenue, product COGS, staff cost and services.price"
+    };
+  }
+
+  pricingRecommendation(service = {}, targetMarginBps = 3500) {
+    const demandVolume = Math.max(1, Number(service.invoiceCount || 0));
+    const currentPricePaise = Number(service.currentPricePaise || 0) || Math.round(Number(service.revenuePaise || 0) / demandVolume);
+    const expectedCostPaise = Math.round((Number(service.productCostPaise || 0) + Number(service.staffCostPaise || 0)) / demandVolume);
+    const targetPricePaise = targetMarginBps < 9900
+      ? roundPricePaise(expectedCostPaise / (1 - targetMarginBps / 10000))
+      : currentPricePaise;
+    const currentMarginBps = Number(service.netMarginBps || 0);
+    const demandRisk = demandVolume >= 8 ? "low" : demandVolume >= 3 ? "medium" : "high";
+    const maxLiftBps = demandRisk === "low" ? 2000 : demandRisk === "medium" ? 1200 : 700;
+    const cappedPricePaise = roundPricePaise(currentPricePaise * (1 + maxLiftBps / 10000));
+    const shouldIncrease = currentMarginBps < targetMarginBps;
+    const recommendedPricePaise = shouldIncrease ? Math.max(currentPricePaise, Math.min(targetPricePaise, cappedPricePaise)) : currentPricePaise;
+    const projectedProfitPaise = recommendedPricePaise - expectedCostPaise;
+    return {
+      serviceId: service.serviceId || "",
+      serviceName: service.serviceName || "Unmapped service",
+      currentPricePaise,
+      recommendedPricePaise,
+      expectedProfitLiftPaise: Math.max(0, (recommendedPricePaise - currentPricePaise) * demandVolume),
+      currentMarginBps,
+      projectedMarginBps: marginBps(projectedProfitPaise, recommendedPricePaise),
+      demandRisk,
+      demandVolume,
+      reason: this.pricingReason({ service, currentMarginBps, targetMarginBps, demandRisk, recommendedPricePaise, currentPricePaise })
+    };
+  }
+
+  pricingReason({ service = {}, currentMarginBps = 0, targetMarginBps = 3500, demandRisk = "medium", recommendedPricePaise = 0, currentPricePaise = 0 }) {
+    if (currentMarginBps >= targetMarginBps) return `${service.serviceName || "Service"} target margin ke andar hai; price hold karein aur add-on attach karein.`;
+    if (demandRisk === "low") return `${service.serviceName || "Service"} demand strong hai aur margin target se kam hai; controlled price increase recommend hai.`;
+    if (recommendedPricePaise > currentPricePaise) return `${service.serviceName || "Service"} margin low hai, lekin demand moderate/high risk hai; smaller increase ya bundle offer better rahega.`;
+    return `${service.serviceName || "Service"} low demand hai; direct price increase ke bajay bundle, add-on ya recipe cost review karein.`;
   }
 
   profitDigitalTwin(query = {}, metrics = {}) {
@@ -726,6 +781,7 @@ export class ProfitIntelligenceService {
           serviceId,
           serviceName,
           category: lineCategory(line, serviceLookup),
+          currentPricePaise: toPaise(service?.price || 0),
           revenuePaise: 0,
           productCostPaise: 0,
           staffCostPaise: 0,
@@ -741,6 +797,7 @@ export class ProfitIntelligenceService {
         serviceId: consume.serviceId,
         serviceName: consume.serviceName || "Unmapped service",
         category: serviceLookup.get(consume.serviceId)?.category || "Services",
+        currentPricePaise: toPaise(serviceLookup.get(consume.serviceId)?.price || 0),
         revenuePaise: 0,
         productCostPaise: 0,
         staffCostPaise: 0,
@@ -1015,7 +1072,7 @@ export class ProfitIntelligenceService {
   serviceLookup(params) {
     if (!tableExists("services")) return new Map();
     const rows = safeAll(`
-      SELECT id, name, category, branchId
+      SELECT id, name, category, price, durationMinutes, branchId
       FROM services
       WHERE tenantId = @tenantId
         AND (@branchId = '' OR branchId = @branchId OR branchId = '')

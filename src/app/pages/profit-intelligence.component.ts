@@ -209,6 +209,36 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="pricing-grid" *ngIf="summary()?.pricingAutopilot as pricing">
+        <article class="table-panel pricing-panel">
+          <header>
+            <div>
+              <p class="eyebrow">AI Pricing Autopilot</p>
+              <h2>Service price recommendations</h2>
+            </div>
+            <span>{{ percent(pricing.targetMarginBps) }} target margin</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Service</th><th>Current Price</th><th>Recommended</th><th>Profit Lift</th><th>Current Margin</th><th>Projected</th><th>Demand Risk</th><th>Reason</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of pricing.recommendations || []">
+                  <td><strong>{{ row.serviceName }}</strong><span>{{ row.demandVolume || 0 }} sales</span></td>
+                  <td>{{ paise(row.currentPricePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.recommendedPricePaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td>{{ paise(row.expectedProfitLiftPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ percent(row.currentMarginBps) }}</td>
+                  <td>{{ percent(row.projectedMarginBps) }}</td>
+                  <td><strong>{{ row.demandRisk }}</strong></td>
+                  <td><span>{{ row.reason }}</span></td>
+                </tr>
+                <tr *ngIf="!(pricing.recommendations || []).length"><td colspan="8" class="empty-cell">No pricing recommendations yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <section class="enterprise-grid" *ngIf="summary()?.enterpriseAnalytics as analytics">
         <article class="panel analytics-card">
           <header>
@@ -563,6 +593,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .booking-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
     .booking-panel { border-top: 3px solid #0a78b6; }
     .booking-panel table { min-width: 980px; }
+    .pricing-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #fff; border-bottom: 1px solid #d9e1ea; }
+    .pricing-panel { border-top: 3px solid #0f8a7d; }
+    .pricing-panel table { min-width: 1040px; }
     .enterprise-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 10px; padding: 12px 14px; background: #f6f8fb; border-bottom: 1px solid #d9e1ea; }
     .analytics-card { border-top: 3px solid #0f8a7d; }
     .analytics-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
