@@ -58,6 +58,69 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="ceo-grid" *ngIf="summary()?.ceoKpis as kpis">
+        <article>
+          <span>Today's Revenue</span>
+          <strong>{{ paise(kpis.todayRevenuePaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Live invoice revenue</small>
+        </article>
+        <article>
+          <span>Today's Profit</span>
+          <strong>{{ paise(kpis.todayProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>After COGS, staff and expenses</small>
+        </article>
+        <article>
+          <span>This Month Profit</span>
+          <strong>{{ paise(kpis.monthProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>Month to date net profit</small>
+        </article>
+        <article>
+          <span>Gross / Net Margin</span>
+          <strong>{{ percent(kpis.grossMarginBps) }} / {{ percent(kpis.netMarginBps) }}</strong>
+          <small>Current filter margin</small>
+        </article>
+        <article>
+          <span>Top Service</span>
+          <strong>{{ kpis.topService?.label }}</strong>
+          <small>{{ paise(kpis.topService?.amountPaise) | currency: 'INR':'symbol':'1.0-0' }} profit</small>
+        </article>
+        <article>
+          <span>Top Staff</span>
+          <strong>{{ kpis.topStaff?.label }}</strong>
+          <small>{{ paise(kpis.topStaff?.amountPaise) | currency: 'INR':'symbol':'1.0-0' }} profit</small>
+        </article>
+        <article>
+          <span>Top Branch</span>
+          <strong>{{ kpis.topBranch?.label }}</strong>
+          <small>{{ paise(kpis.topBranch?.amountPaise) | currency: 'INR':'symbol':'1.0-0' }} profit</small>
+        </article>
+        <article>
+          <span>Top Customer</span>
+          <strong>{{ kpis.topCustomer?.label }}</strong>
+          <small>{{ paise(kpis.topCustomer?.amountPaise) | currency: 'INR':'symbol':'1.0-0' }} profit</small>
+        </article>
+        <article>
+          <span>Highest Expense</span>
+          <strong>{{ kpis.highestExpense?.label }}</strong>
+          <small>{{ paise(kpis.highestExpense?.amountPaise) | currency: 'INR':'symbol':'1.0-0' }}</small>
+        </article>
+        <article>
+          <span>Revenue / Employee</span>
+          <strong>{{ paise(kpis.revenuePerEmployeePaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ kpis.employeeCount || 0 }} active staff</small>
+        </article>
+        <article>
+          <span>Revenue / Chair</span>
+          <strong>{{ paise(kpis.revenuePerChairPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ kpis.chairCount || 0 }} active chairs</small>
+        </article>
+        <article>
+          <span>Revenue / Hour</span>
+          <strong>{{ paise(kpis.revenuePerHourPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ kpis.businessHours || 0 }} business hours</small>
+        </article>
+      </section>
+
       <section class="insight-grid" *ngIf="summary() as report">
         <article class="panel">
           <header>
@@ -311,6 +374,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .metrics-grid .net-card { border-top-color: #0f8a7d; }
     .metrics-grid span, .metrics-grid small, header > span { color: #64748b; font-size: 12px; font-weight: 800; }
     .metrics-grid strong { font-size: 20px; line-height: 1; white-space: nowrap; }
+    .ceo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
+    .ceo-grid article { display: grid; gap: 4px; min-width: 0; min-height: 88px; padding: 11px 12px; background: #fff; border: 1px solid #d9e1ea; border-top: 3px solid #143d59; }
+    .ceo-grid span, .ceo-grid small { color: #64748b; font-size: 12px; font-weight: 800; }
+    .ceo-grid strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; line-height: 1.1; }
     .insight-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px 14px; }
     .drilldown-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 14px 14px; }
     .retention-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 14px 14px; }
@@ -334,11 +401,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .empty-cell { color: #64748b; text-align: center; font-weight: 800; }
     @media (max-width: 1100px) {
       .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .ceo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
       .page-title, header { align-items: flex-start; flex-direction: column; }
-      .metrics-grid, .source-grid { grid-template-columns: 1fr; }
+      .metrics-grid, .ceo-grid, .source-grid { grid-template-columns: 1fr; }
       .metrics-grid article, .metrics-grid article:first-child { border-left: 1px solid #d9e1ea; }
     }
   `]

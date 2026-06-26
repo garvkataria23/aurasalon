@@ -72,6 +72,31 @@ test("Profit Intelligence exposes customer, membership and package profitability
   assert.ok(page.includes("Product Cost"), "membership/package tables should expose redeemed product cost");
 });
 
+test("Profit Intelligence exposes CEO dashboard KPIs", () => {
+  for (const field of [
+    "ceoKpis",
+    "todayRevenuePaise",
+    "todayProfitPaise",
+    "monthProfitPaise",
+    "topService",
+    "topStaff",
+    "topBranch",
+    "topCustomer",
+    "highestExpense",
+    "revenuePerEmployeePaise",
+    "revenuePerChairPaise",
+    "revenuePerHourPaise"
+  ]) {
+    assert.ok(service.includes(field), `${field} should be part of the Stage 4 CEO KPI contract`);
+  }
+  assert.match(service, /activeEmployeeCount/, "CEO KPIs should calculate revenue per employee from staff");
+  assert.match(service, /activeChairCount/, "CEO KPIs should calculate revenue per chair from appointments");
+  assert.match(service, /BUSINESS_HOURS_PER_DAY/, "CEO KPIs should calculate revenue per business hour");
+  for (const label of ["Today's Revenue", "This Month Profit", "Top Service", "Top Staff", "Top Branch", "Top Customer", "Highest Expense", "Revenue / Employee", "Revenue / Chair", "Revenue / Hour"]) {
+    assert.ok(page.includes(label), `${label} KPI should be visible`);
+  }
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");

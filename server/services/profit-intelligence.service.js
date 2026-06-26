@@ -4,6 +4,7 @@ import { tenantService } from "./tenant.service.js";
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const OPERATING_EXPENSE_LIMIT = 1000;
 const BREAKDOWN_LIMIT = 12;
+const BUSINESS_HOURS_PER_DAY = 10;
 
 const toPaise = (value) => Math.round((Number(value) || 0) * 100);
 const fromPaise = (value) => Math.round(Number(value || 0)) / 100;
@@ -15,6 +16,16 @@ function istDate(date = new Date()) {
 
 function monthStart(dateText = istDate()) {
   return `${dateText.slice(0, 7)}-01`;
+}
+
+function periodWindow(from, to, params = {}) {
+  return {
+    ...params,
+    from,
+    to,
+    startAt: `${from}T00:00:00`,
+    endAt: `${to}T23:59:59`
+  };
 }
 
 function tableExists(name) {
@@ -213,21 +224,24 @@ export class ProfitIntelligenceService {
     const grossProfitPaise = revenuePaise - productCostPaise;
     const netProfitPaise = grossProfitPaise - staffCostPaise - operatingExpensePaise - refundPaise;
     const breakdown = revenueBreakdown(invoices);
+    const metrics = {
+      revenuePaise,
+      collectionsPaise,
+      refundPaise,
+      productCostPaise,
+      staffCostPaise,
+      operatingExpensePaise,
+      grossProfitPaise,
+      netProfitPaise,
+      grossMarginBps: marginBps(grossProfitPaise, revenuePaise),
+      netMarginBps: marginBps(netProfitPaise, revenuePaise)
+    };
+    const profitBreakdown = this.breakdown(query, access);
 
     return {
       period: { from: params.from, to: params.to, branchId: params.branchId },
-      metrics: {
-        revenuePaise,
-        collectionsPaise,
-        refundPaise,
-        productCostPaise,
-        staffCostPaise,
-        operatingExpensePaise,
-        grossProfitPaise,
-        netProfitPaise,
-        grossMarginBps: marginBps(grossProfitPaise, revenuePaise),
-        netMarginBps: marginBps(netProfitPaise, revenuePaise)
-      },
+      metrics,
+      ceoKpis: this.ceoKpis(params, metrics, profitBreakdown, expenseTotals.breakdown),
       revenueBreakdown: breakdown,
       expenseBreakdown: expenseTotals.breakdown,
       sourceHealth: {
@@ -244,6 +258,51 @@ export class ProfitIntelligenceService {
         netProfit: fromPaise(netProfitPaise)
       }
     };
+  }
+
+  ceoKpis(params, metrics, breakdown = {}, expenseBreakdown = []) {
+    const today = istDate();
+    const todayMetrics = this.basicMetrics(periodWindow(today, today, params));
+    const monthMetrics = this.basicMetrics(periodWindow(monthStart(today), today, params));
+    const employeeCount = this.activeEmployeeCount(params);
+    const chairCount = this.activeChairCount(params);
+    const businessHours = this.businessHours(params);
+    return {
+      todayRevenuePaise: todayMetrics.revenuePaise,
+      todayProfitPaise: todayMetrics.netProfitPaise,
+      monthProfitPaise: monthMetrics.netProfitPaise,
+      grossMarginBps: metrics.grossMarginBps,
+      netMarginBps: metrics.netMarginBps,
+      topService: this.topProfitItem(breakdown.serviceProfit, "serviceName", "netProfitPaise"),
+      topStaff: this.topProfitItem(breakdown.staffProfit, "staffName", "netProfitPaise"),
+      topBranch: this.topProfitItem(breakdown.branchProfit, "branchName", "netProfitPaise"),
+      topCustomer: this.topProfitItem(breakdown.customerProfit, "clientName", "netProfitPaise"),
+      highestExpense: this.highestExpense(expenseBreakdown),
+      revenuePerEmployeePaise: employeeCount ? Math.round(metrics.revenuePaise / employeeCount) : 0,
+      revenuePerChairPaise: chairCount ? Math.round(metrics.revenuePaise / chairCount) : 0,
+      revenuePerHourPaise: businessHours ? Math.round(metrics.revenuePaise / businessHours) : metrics.revenuePaise,
+      employeeCount,
+      chairCount,
+      businessHours
+    };
+  }
+
+  basicMetrics(params) {
+    const invoices = this.invoiceRows(params);
+    const payments = this.paymentRows(params);
+    const revenuePaise = invoices.reduce((sum, row) => sum + toPaise(row.total), 0);
+    const refundPaise = payments.reduce((sum, row) => sum + Math.abs(Math.min(0, toPaise(row.amount))), 0);
+    const expenseTotals = this.classifiedExpenses(this.operatingExpenseRows(params));
+    const journalCogsPaise = this.journalCogsPaise(params);
+    const consumeCogsPaise = this.productConsumeCogsPaise(params);
+    const productCostPaise = journalCogsPaise > 0 ? journalCogsPaise : consumeCogsPaise + expenseTotals.productCostPaise;
+    const payoutStaffPaise = this.staffPayoutPaise(params);
+    const commissionPaise = this.salesCommissionPaise(params);
+    const staffCostPaise = payoutStaffPaise > 0 ? payoutStaffPaise : expenseTotals.staffCostPaise + commissionPaise;
+    const operatingExpensePaise = expenseTotals.operatingExpensePaise;
+    const grossProfitPaise = revenuePaise - productCostPaise;
+    const netProfitPaise = grossProfitPaise - staffCostPaise - operatingExpensePaise - refundPaise;
+    return { revenuePaise, grossProfitPaise, netProfitPaise };
   }
 
   breakdown(query = {}, access = {}) {
@@ -928,6 +987,56 @@ export class ProfitIntelligenceService {
         AND (@branchId = '' OR branchId = @branchId)
     `, params);
     return toPaise(row.commissionTotal);
+  }
+
+  topProfitItem(rows = [], labelField = "label", valueField = "netProfitPaise") {
+    const row = [...(rows || [])].sort((a, b) => Number(b[valueField] || 0) - Number(a[valueField] || 0))[0] || {};
+    return {
+      label: row[labelField] || "No data",
+      amountPaise: Number(row[valueField] || 0),
+      revenuePaise: Number(row.revenuePaise || row.soldValuePaise || 0)
+    };
+  }
+
+  highestExpense(expenseBreakdown = []) {
+    const row = [...(expenseBreakdown || [])].sort((a, b) => Number(b.amountPaise || 0) - Number(a.amountPaise || 0))[0] || {};
+    return {
+      label: row.category || "No data",
+      amountPaise: Number(row.amountPaise || 0)
+    };
+  }
+
+  activeEmployeeCount(params) {
+    if (!tableExists("staff")) return 0;
+    const row = safeGet(`
+      SELECT COUNT(*) AS count
+      FROM staff
+      WHERE tenantId = @tenantId
+        AND lower(COALESCE(status, 'active')) NOT IN ('inactive', 'terminated', 'left')
+        AND (@branchId = '' OR branchId = @branchId OR branchId = '')
+    `, params);
+    return Number(row.count || 0);
+  }
+
+  activeChairCount(params) {
+    if (!tableExists("appointments")) return 0;
+    const rows = safeAll(`
+      SELECT DISTINCT COALESCE(NULLIF(chair, ''), NULLIF(room, ''), '') AS station
+      FROM appointments
+      WHERE tenantId = @tenantId
+        AND startAt BETWEEN @startAt AND @endAt
+        AND lower(COALESCE(status, '')) NOT IN ('cancelled', 'canceled', 'void')
+        AND (@branchId = '' OR branchId = @branchId)
+    `, params).filter((row) => String(row.station || "").trim());
+    return rows.length || 0;
+  }
+
+  businessHours(params) {
+    const from = new Date(`${params.from}T00:00:00`);
+    const to = new Date(`${params.to}T00:00:00`);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from) return BUSINESS_HOURS_PER_DAY;
+    const days = Math.floor((to.getTime() - from.getTime()) / 86400000) + 1;
+    return Math.max(1, days * BUSINESS_HOURS_PER_DAY);
   }
 
   diagnostics({ revenuePaise, productCostPaise, staffCostPaise, operatingExpensePaise, invoices }) {
