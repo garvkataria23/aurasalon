@@ -293,6 +293,8 @@ export class ProfitIntelligenceService {
       pricingAutopilot: this.pricingAutopilot(query, profitBreakdown),
       recipeVariance,
       profitLeaks: this.profitLeaks(params, metrics, invoices, payments, recipeVariance),
+      customerProfitScore: this.customerProfitScore(profitBreakdown),
+      membershipRisk: this.membershipRisk(profitBreakdown),
       enterpriseAnalytics: this.enterpriseAnalytics(params, metrics, invoices, expenseRows, profitBreakdown),
       revenueBreakdown: breakdown,
       expenseBreakdown: expenseTotals.breakdown,
@@ -309,6 +311,93 @@ export class ProfitIntelligenceService {
         grossProfit: fromPaise(grossProfitPaise),
         netProfit: fromPaise(netProfitPaise)
       }
+    };
+  }
+
+  customerProfitScore(breakdown = {}) {
+    return (breakdown.customerProfit || [])
+      .map((customer) => this.customerScoreRow(customer))
+      .sort((a, b) => b.profitScore - a.profitScore || b.profitPaise - a.profitPaise)
+      .slice(0, BREAKDOWN_LIMIT);
+  }
+
+  customerScoreRow(customer = {}) {
+    const revenuePaise = Number(customer.revenuePaise || 0);
+    const profitPaise = Number(customer.netProfitPaise || customer.grossProfitPaise || 0);
+    const discountPaise = Number(customer.discountPaise || 0);
+    const productCostPaise = Number(customer.productCostPaise || 0);
+    const visits = Number(customer.visits || 0);
+    const avgBillPaise = Number(customer.avgBillPaise || (visits ? Math.round(revenuePaise / visits) : 0));
+    const lifetimeRevenuePaise = Number(customer.lifetimeRevenuePaise || revenuePaise);
+    const margin = marginBps(profitPaise, revenuePaise);
+    const discountBps = marginBps(discountPaise, revenuePaise);
+    const profitScore = Math.max(0, Math.min(100, Math.round(
+      50 + (margin / 180) + Math.min(24, visits * 3) - (discountBps / 250) + (avgBillPaise >= 500000 ? 6 : 0)
+    )));
+    let tier = "Low Value";
+    let recommendation = "Low-margin ya low-frequency customer hai; targeted bundle, reactivation offer aur discount control use karein.";
+    if (discountBps >= 1500) {
+      tier = "Discount Dependent";
+      recommendation = "Discount cap tighten karein aur prepaid package ya value-add offer shift karein.";
+    } else if (revenuePaise >= 100000 && margin < 2500) {
+      tier = "High Revenue Low Margin";
+      recommendation = "High spend ke bawajood margin low hai; recipe, add-ons aur price override review karein.";
+    } else if (lifetimeRevenuePaise >= 200000 && visits <= 1) {
+      tier = "Churn Risk High LTV";
+      recommendation = "High LTV customer dormant ho raha hai; senior stylist callback aur retention task create karein.";
+    } else if (profitPaise > 0 && (profitScore >= 65 || margin >= 3500)) {
+      tier = "VIP Profitable";
+      recommendation = "Premium slot access, membership renewal aur high-margin add-on upsell prioritize karein.";
+    }
+    return {
+      clientId: customer.clientId || "",
+      clientName: customer.clientName || "Walk-in",
+      revenuePaise,
+      profitPaise,
+      discountPaise,
+      productCostPaise,
+      visits,
+      avgBillPaise,
+      profitScore,
+      tier,
+      recommendation
+    };
+  }
+
+  membershipRisk(breakdown = {}) {
+    return [
+      ...(breakdown.membershipProfit || []).map((plan) => this.membershipRiskRow(plan, "membership")),
+      ...(breakdown.packageProfit || []).map((plan) => this.membershipRiskRow(plan, "package"))
+    ]
+      .sort((a, b) => a.riskImpactPaise - b.riskImpactPaise || b.remainingLiabilityPaise - a.remainingLiabilityPaise)
+      .slice(0, BREAKDOWN_LIMIT);
+  }
+
+  membershipRiskRow(plan = {}, kind = "membership") {
+    const soldValuePaise = Number(plan.soldValuePaise || 0);
+    const redeemedValuePaise = Number(plan.redeemedValuePaise || 0);
+    const remainingLiabilityPaise = Number(plan.remainingLiabilityPaise || 0);
+    const productCostPaise = Number(plan.productCostPaise || 0);
+    const redemptionBasePaise = Math.max(1, redeemedValuePaise);
+    const projectedCostPaise = Math.round(remainingLiabilityPaise * Math.min(9000, marginBps(productCostPaise, redemptionBasePaise)) / 10000);
+    const riskImpactPaise = soldValuePaise - redeemedValuePaise - remainingLiabilityPaise - projectedCostPaise;
+    const liabilityBps = marginBps(remainingLiabilityPaise, Math.max(1, soldValuePaise));
+    const severity = riskImpactPaise < 0 ? "high" : liabilityBps >= 3500 ? "medium" : "low";
+    const recommendation = severity === "high"
+      ? "Future redemptions profit negative kar sakte hain; plan pricing, redemption cap aur recipe cost urgently review karein."
+      : severity === "medium"
+        ? "Liability high hai; redemption pacing aur add-on upsell monitor karein."
+        : "Liability controlled hai; renewal aur upgrade offer continue rakhein.";
+    return {
+      kind,
+      planName: plan.planName || (kind === "package" ? "Package" : "Membership"),
+      soldValuePaise,
+      redeemedValuePaise,
+      remainingLiabilityPaise,
+      projectedCostPaise,
+      riskImpactPaise,
+      severity,
+      recommendation
     };
   }
 

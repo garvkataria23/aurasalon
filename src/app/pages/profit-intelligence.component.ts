@@ -299,6 +299,65 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="customer-score-grid" *ngIf="summary() as report">
+        <article class="table-panel customer-score-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Customer Profit Score</p>
+              <h2>Profit tier intelligence</h2>
+            </div>
+            <span>{{ report.customerProfitScore?.length || 0 }} customers</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Customer</th><th>Profit Tier</th><th>Score</th><th>Revenue</th><th>Profit</th><th>Discount</th><th>Visits</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of report.customerProfitScore || []">
+                  <td><strong>{{ row.clientName }}</strong><span>{{ row.clientId || 'walk-in' }}</span></td>
+                  <td><strong>{{ row.tier }}</strong></td>
+                  <td>{{ row.profitScore || 0 }}/100</td>
+                  <td>{{ paise(row.revenuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.profitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td>{{ paise(row.discountPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.visits || 0 }}<span>{{ paise(row.avgBillPaise) | currency: 'INR':'symbol':'1.0-0' }} avg bill</span></td>
+                  <td><span>{{ row.recommendation }}</span></td>
+                </tr>
+                <tr *ngIf="!(report.customerProfitScore || []).length"><td colspan="8" class="empty-cell">No customer score signals yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="table-panel liability-panel">
+          <header>
+            <div>
+              <p class="eyebrow">Membership Liability Risk</p>
+              <h2>Future redemption exposure</h2>
+            </div>
+            <span>{{ report.membershipRisk?.length || 0 }} plans</span>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Plan</th><th>Type</th><th>Sold</th><th>Redeemed</th><th>Liability</th><th>Future Cost</th><th>Risk Impact</th><th>Severity</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of report.membershipRisk || []">
+                  <td><strong>{{ row.planName }}</strong></td>
+                  <td>{{ row.kind || 'membership' }}</td>
+                  <td>{{ paise(row.soldValuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.redeemedValuePaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.remainingLiabilityPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ paise(row.projectedCostPaise) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><strong>{{ paise(row.riskImpactPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
+                  <td><strong class="severity-pill" [ngClass]="'severity-' + severityClass(row.severity)">{{ row.severity }}</strong></td>
+                  <td><span>{{ row.recommendation }}</span></td>
+                </tr>
+                <tr *ngIf="!(report.membershipRisk || []).length"><td colspan="9" class="empty-cell">No membership liability risk yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <section class="enterprise-grid" *ngIf="summary()?.enterpriseAnalytics as analytics">
         <article class="panel analytics-card">
           <header>
@@ -662,6 +721,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .leak-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #fff; border-bottom: 1px solid #d9e1ea; }
     .leak-panel { border-top: 3px solid #991b1b; }
     .leak-panel table { min-width: 1040px; }
+    .customer-score-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
+    .customer-score-panel { border-top: 3px solid #143d59; }
+    .liability-panel { border-top: 3px solid #8a6d0f; }
+    .customer-score-panel table { min-width: 1060px; }
+    .liability-panel table { min-width: 1080px; }
     .severity-pill { display: inline-flex; min-width: 58px; justify-content: center; border-radius: 3px; padding: 4px 7px; font-size: 11px; text-transform: uppercase; }
     .severity-green { color: #166534; background: #dcfce7; border: 1px solid #86efac; }
     .severity-amber { color: #92400e; background: #fef3c7; border: 1px solid #fbbf24; }
@@ -702,7 +766,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     @media (max-width: 1100px) {
       .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .ceo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .digital-twin-grid, .enterprise-grid, .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
+      .digital-twin-grid, .customer-score-grid, .enterprise-grid, .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
       .scenario-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 760px) {

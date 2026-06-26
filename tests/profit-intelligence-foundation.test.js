@@ -238,6 +238,38 @@ test("Profit Intelligence exposes Profit Leak Detection", () => {
   }
 });
 
+test("Profit Intelligence exposes Customer Profit Score and Membership Liability Risk", () => {
+  for (const field of [
+    "customerProfitScore",
+    "customerScoreRow",
+    "clientId",
+    "clientName",
+    "revenuePaise",
+    "profitPaise",
+    "discountPaise",
+    "productCostPaise",
+    "visits",
+    "avgBillPaise",
+    "profitScore",
+    "tier",
+    "membershipRisk",
+    "membershipRiskRow",
+    "soldValuePaise",
+    "redeemedValuePaise",
+    "remainingLiabilityPaise",
+    "projectedCostPaise",
+    "riskImpactPaise"
+  ]) {
+    assert.ok(service.includes(field) || page.includes(field), `${field} should be part of customer score or membership risk`);
+  }
+  for (const tier of ["VIP Profitable", "High Revenue Low Margin", "Discount Dependent", "Churn Risk High LTV", "Low Value"]) {
+    assert.ok(service.includes(tier), `${tier} tier should be classified`);
+  }
+  for (const label of ["Customer Profit Score", "Profit tier intelligence", "Profit Tier", "Membership Liability Risk", "Future redemption exposure", "Future Cost", "Risk Impact"]) {
+    assert.ok(page.includes(label), `${label} should be visible for customer score or membership risk`);
+  }
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");
