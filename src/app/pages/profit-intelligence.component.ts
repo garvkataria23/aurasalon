@@ -413,6 +413,48 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </article>
       </section>
 
+      <section class="pos-guard-grid">
+        <article class="panel pos-guard-panel">
+          <header>
+            <div>
+              <p class="eyebrow">POS Margin Guard</p>
+              <h2>Negative margin prevention</h2>
+            </div>
+            <span>Pre-save check</span>
+          </header>
+          <form class="pos-guard-form" [formGroup]="filters" (ngSubmit)="checkPosMargin()">
+            <label><span>Gross Amount</span><input type="number" min="0" formControlName="posGrossAmount" /></label>
+            <label><span>Discount</span><input type="number" min="0" formControlName="posDiscountAmount" /></label>
+            <label><span>Product Cost</span><input type="number" min="0" formControlName="posProductCost" /></label>
+            <label><span>Staff Cost</span><input type="number" min="0" formControlName="posStaffCost" /></label>
+            <label><span>Membership Redemption</span><input type="number" min="0" formControlName="posMembershipRedemption" /></label>
+            <button class="primary-button" type="submit" [disabled]="posGuardBusy()">Check Margin</button>
+          </form>
+        </article>
+
+        <article class="panel pos-result-panel" *ngIf="posMarginDecision() as decision">
+          <header>
+            <div>
+              <p class="eyebrow">POS decision</p>
+              <h2>{{ decision.blocked ? 'Blocked' : decision.requiresApproval ? 'Approval required' : 'Allowed' }}</h2>
+            </div>
+            <span>{{ percent(decision.marginBps) }} margin</span>
+          </header>
+          <div class="guard-result">
+            <div><span>Estimated Profit</span><strong>{{ paise(decision.estimatedProfitPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div><span>Discount</span><strong>{{ percent(decision.discountBps) }}</strong></div>
+            <div><span>Rule Triggered</span><strong>{{ decision.ruleTriggered?.title || 'Within policy' }}</strong></div>
+            <div><span>Recommendation</span><strong>{{ decision.recommendedAction }}</strong></div>
+          </div>
+          <div class="rank-list suggestion-list">
+            <div *ngFor="let reason of decision.reasons || []">
+              <span>{{ reason.message }}</span>
+              <strong>{{ paise(reason.impactPaise) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
       <section class="copilot-grid" *ngIf="summary() as report">
         <article class="panel copilot-panel">
           <header>
@@ -919,6 +961,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .guard-result div { display: grid; gap: 4px; border: 1px solid #d9e1ea; padding: 10px; min-width: 0; }
     .guard-result span { color: #64748b; font-size: 12px; font-weight: 800; }
     .guard-result strong { font-size: 13px; overflow-wrap: anywhere; }
+    .pos-guard-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 10px; padding: 12px 14px; background: #fff; border-bottom: 1px solid #d9e1ea; }
+    .pos-guard-panel { border-top: 3px solid #991b1b; }
+    .pos-result-panel { border-top: 3px solid #0f8a7d; }
+    .pos-guard-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; }
+    .pos-guard-form .primary-button { width: 100%; }
     .copilot-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border-bottom: 1px solid #d9e1ea; }
     .copilot-panel { border-top: 3px solid #143d59; }
     .board-panel { border-top: 3px solid #8a6d0f; }
@@ -978,14 +1025,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
     @media (max-width: 1100px) {
       .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .ceo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .digital-twin-grid, .governance-grid, .copilot-grid, .customer-score-grid, .enterprise-grid, .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
-      .scenario-form, .guard-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .digital-twin-grid, .governance-grid, .pos-guard-grid, .copilot-grid, .customer-score-grid, .enterprise-grid, .insight-grid, .drilldown-grid, .retention-grid { grid-template-columns: 1fr; }
+      .scenario-form, .guard-form, .pos-guard-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .board-metrics, .board-lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 760px) {
       .page-title, header { align-items: flex-start; flex-direction: column; }
       .metrics-grid, .ceo-grid, .source-grid { grid-template-columns: 1fr; }
-      .scenario-form, .guard-form, .guard-result, .copilot-form, .twin-metrics, .board-metrics, .board-lists { grid-template-columns: 1fr; }
+      .scenario-form, .guard-form, .pos-guard-form, .guard-result, .copilot-form, .twin-metrics, .board-metrics, .board-lists { grid-template-columns: 1fr; }
       .metrics-grid article, .metrics-grid article:first-child { border-left: 1px solid #d9e1ea; }
     }
   `]
@@ -997,11 +1044,13 @@ export class ProfitIntelligenceComponent implements OnInit {
   readonly actionQueue = signal<ApiRecord[]>([]);
   readonly governanceRules = signal<ApiRecord[]>([]);
   readonly governanceDecision = signal<ApiRecord | null>(null);
+  readonly posMarginDecision = signal<ApiRecord | null>(null);
   readonly copilotResponse = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly actionBusy = signal('');
   readonly governanceBusy = signal(false);
+  readonly posGuardBusy = signal(false);
   readonly copilotBusy = signal(false);
   readonly today = new Date().toISOString().slice(0, 10);
   readonly filters = this.fb.group({
@@ -1013,6 +1062,11 @@ export class ProfitIntelligenceComponent implements OnInit {
     guardProductCost: [900],
     guardStaffCost: [700],
     guardMembershipRedemption: [0],
+    posGrossAmount: [5000],
+    posDiscountAmount: [500],
+    posProductCost: [900],
+    posStaffCost: [700],
+    posMembershipRedemption: [0],
     scenarioPriceChangePct: [0],
     scenarioRevenueChangePct: [0],
     scenarioCommissionChangePct: [0],
@@ -1073,6 +1127,38 @@ export class ProfitIntelligenceComponent implements OnInit {
       error: (error) => {
         this.error.set(this.api.errorText(error, 'Unable to evaluate margin guard'));
         this.governanceBusy.set(false);
+      }
+    });
+  }
+
+  checkPosMargin(): void {
+    this.posGuardBusy.set(true);
+    this.error.set('');
+    this.api.post<ApiRecord>('profit-intelligence/pos-margin-check', {
+      ...this.filters.value,
+      grossAmountPaise: this.inputPaise(this.filters.value.posGrossAmount),
+      discountPaise: this.inputPaise(this.filters.value.posDiscountAmount),
+      productCostPaise: this.inputPaise(this.filters.value.posProductCost),
+      staffCostPaise: this.inputPaise(this.filters.value.posStaffCost),
+      membershipRedemptionPaise: this.inputPaise(this.filters.value.posMembershipRedemption),
+      sourceType: 'pos_margin_guard_simulator',
+      sourceId: `pos-sim-${Date.now()}`,
+      lineItems: [{
+        type: 'service',
+        name: 'Sample POS invoice',
+        amountPaise: this.inputPaise(this.filters.value.posGrossAmount),
+        productCostPaise: this.inputPaise(this.filters.value.posProductCost),
+        staffCostPaise: this.inputPaise(this.filters.value.posStaffCost)
+      }]
+    }).subscribe({
+      next: (decision) => {
+        this.posMarginDecision.set(decision);
+        this.posGuardBusy.set(false);
+        this.refreshActions();
+      },
+      error: (error) => {
+        this.error.set(this.api.errorText(error, 'Unable to check POS margin'));
+        this.posGuardBusy.set(false);
       }
     });
   }

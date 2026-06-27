@@ -10,6 +10,7 @@ const actionService = readFileSync("server/services/profit-action-queue.service.
 const actionSchema = readFileSync("server/services/profit-action-queue-schema.service.js", "utf8");
 const governanceService = readFileSync("server/services/profit-governance.service.js", "utf8");
 const governanceSchema = readFileSync("server/services/profit-governance-schema.service.js", "utf8");
+const posGuardService = readFileSync("server/services/pos-profit-guard.service.js", "utf8");
 const appRoutes = readFileSync("src/app/app.routes.ts", "utf8");
 const appComponent = readFileSync("src/app/app.component.ts", "utf8");
 const page = readFileSync("src/app/pages/profit-intelligence.component.ts", "utf8");
@@ -390,6 +391,39 @@ test("Profit Intelligence exposes Profit Governance and Margin-Safe Discount Eng
   assert.ok(page.includes("profit-intelligence/governance/evaluate-discount"), "page should call discount evaluation endpoint");
 });
 
+test("Profit Intelligence exposes POS Negative Margin Prevention", () => {
+  assert.ok(route.includes("/profit-intelligence/pos-margin-check"), "POS margin check route should be exposed");
+  assert.match(route, /\/profit-intelligence\/pos-margin-check[\s\S]*requirePermission\("write",\s*\(\) => "finance"\)/, "POS margin check should require write finance");
+  for (const field of [
+    "PosProfitGuardService",
+    "marginCheck",
+    "estimateInvoiceCosts",
+    "recipeCostMap",
+    "profitGovernanceService.evaluateDiscount",
+    "grossAmountPaise",
+    "discountPaise",
+    "productCostPaise",
+    "staffCostPaise",
+    "membershipRedemptionPaise",
+    "allowed",
+    "blocked",
+    "requiresApproval",
+    "estimatedProfitPaise",
+    "marginBps",
+    "discountBps",
+    "reasons",
+    "ruleTriggered",
+    "recommendedAction",
+    "auditId"
+  ]) {
+    assert.ok(posGuardService.includes(field) || route.includes(field) || page.includes(field), `${field} should be part of POS Negative Margin Prevention`);
+  }
+  for (const label of ["POS Margin Guard", "Negative margin prevention", "Check Margin", "POS decision", "Estimated Profit", "Rule Triggered"]) {
+    assert.ok(page.includes(label), `${label} should be visible for POS Margin Guard`);
+  }
+  assert.ok(page.includes("profit-intelligence/pos-margin-check"), "page should call POS margin check endpoint");
+});
+
 test("Profit Intelligence page is routed and visible in Finance navigation", () => {
   assert.match(appRoutes, /profit-intelligence[\s\S]*ProfitIntelligenceComponent/, "Angular route should load ProfitIntelligenceComponent");
   assert.ok(appComponent.includes("path: '/profit-intelligence'"), "Finance navigation should include the page");
@@ -398,6 +432,7 @@ test("Profit Intelligence page is routed and visible in Finance navigation", () 
   assert.ok(page.includes("profit-intelligence/booking-recommendations"), "page should call booking recommendations endpoint");
   assert.ok(page.includes("profit-intelligence/actions"), "page should call profit action queue endpoint");
   assert.ok(page.includes("profit-intelligence/governance/rules"), "page should call profit governance endpoint");
+  assert.ok(page.includes("profit-intelligence/pos-margin-check"), "page should call POS margin guard endpoint");
   assert.ok(page.includes("grossMarginBps"), "page should expose gross margin");
   assert.ok(page.includes("netMarginBps"), "page should expose net margin");
   for (const label of ["Service wise margin", "Staff wise profitability", "Branch wise profit", "Category wise margin"]) {

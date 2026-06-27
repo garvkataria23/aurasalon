@@ -3,6 +3,7 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { profitActionQueueService } from "../services/profit-action-queue.service.js";
 import { profitAwareBookingService } from "../services/profit-aware-booking.service.js";
+import { posProfitGuardService } from "../services/pos-profit-guard.service.js";
 import { profitGovernanceService } from "../services/profit-governance.service.js";
 import { profitIntelligenceService } from "../services/profit-intelligence.service.js";
 
@@ -69,6 +70,14 @@ profitIntelligenceRouter.post(
   requirePermission("write", () => "finance"),
   asyncHandler((req, res) => {
     res.json(profitGovernanceService.evaluateAction(req.body, req.access));
+  })
+);
+
+profitIntelligenceRouter.post(
+  "/profit-intelligence/pos-margin-check",
+  requirePermission("write", () => "finance"),
+  asyncHandler((req, res) => {
+    res.json(posProfitGuardService.marginCheck(req.body, req.access));
   })
 );
 
