@@ -90,6 +90,16 @@ Rules:
 
 ---
 
+## Delete Safety Rule
+
+- Kisi bhi existing code, file, route, API, schema, UI section, test, config, ya business logic ko delete/remove karne se pehle user se explicit permission lo.
+- Refactor ke naam par bhi removal mat karo jab tak user ne clearly approve na kiya ho.
+- Agar obsolete code remove karna zaroori lage, pehle short reason + exact file/symbol list batao, phir approval ka wait karo.
+- Additive change preferred: delete ke bajay disable, wrap, extend, or deprecate approach use karo jab feasible ho.
+- Delete safety: existing code/file/route/API/schema/UI/test/config/business logic remove karne se pehle explicit user permission lo. Pehle exact removal list aur reason batao; approval ke bina additive/wrapper approach use karo.
+
+---
+
 ## 6. Profit Intelligence
 `docs/profit-intelligence.md` SIRF in ke liye padho:
 balance sheet · accounting · profitability · expenses · cashflow ·
