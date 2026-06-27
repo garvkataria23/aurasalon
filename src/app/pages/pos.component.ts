@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit, computed, effect, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, forkJoin, of, Subscription } from 'rxjs';
@@ -191,6 +191,7 @@ type PackageClientNotice = {
             <label class="field smart-search-field pos-floating-search client-search-field" style="min-width: 0;">
               <span>Client</span>
               <input
+                #clientSearchInput
                 type="search"
                 [ngModel]="clientSearchText"
                 (ngModelChange)="setClientSearch($event)"
@@ -349,11 +350,13 @@ type PackageClientNotice = {
               <span>Staff</span>
               <div class="staff-search-input-wrap">
                 <input
+                  #staffSearchInput
                   type="search"
                   [ngModel]="staffSearchText"
                   (ngModelChange)="setStaffSearch($event)"
                   (focus)="staffSearchActive = true"
                   (blur)="closeStaffSearchSoon()"
+                  (keydown)="handleStaffSearchKeydown($event)"
                   [ngModelOptions]="{ standalone: true }"
                   placeholder="Search staff name, phone, role, ID 1/2"
                 />
@@ -446,11 +449,13 @@ type PackageClientNotice = {
             <label class="field smart-search-field">
               <span>Add service</span>
               <input
+                #serviceSearchInput
                 type="search"
                 [ngModel]="serviceSearchText"
                 (ngModelChange)="setServiceSearch($event)"
                 (focus)="serviceSearchActive = true"
                 (blur)="closeServiceSearchSoon()"
+                (keydown)="handleServiceSearchKeydown($event)"
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Type service name, e.g. cut"
               />
@@ -491,11 +496,13 @@ type PackageClientNotice = {
             <label class="field smart-search-field">
               <span>Add product</span>
               <input
+                #productSearchInput
                 type="search"
                 [ngModel]="productSearchText"
                 (ngModelChange)="setProductSearch($event)"
                 (focus)="productSearchActive = true"
                 (blur)="closeProductSearchSoon()"
+                (keydown)="handleProductSearchKeydown($event)"
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Type product name, SKU, barcode"
               />
@@ -538,27 +545,35 @@ type PackageClientNotice = {
           <div class="benefit-lines">
             <label class="field">
               <span>Membership sale</span>
-              <select #membershipPlanSelect>
+              <select
+                #membershipPlanSelect
+                (change)="addMembershipPlanFromSelect(membershipPlanSelect)"
+                (keydown)="handleMembershipPlanKeydown($event, membershipPlanSelect)"
+              >
                 <option value="">Choose membership</option>
                 <option *ngFor="let plan of activeMembershipPlans()" [value]="plan.id">{{ membershipPlanLabel(plan) }}</option>
               </select>
             </label>
-            <button class="ghost-button" type="button" (click)="addMembershipPlan(membershipPlanSelect.value); membershipPlanSelect.value = ''">Add</button>
+            <button class="ghost-button" type="button" (click)="addMembershipPlanFromSelect(membershipPlanSelect)">Add</button>
 
             <label class="field">
               <span>Package sale</span>
-              <select #packageSelect>
+              <select
+                #packageSelect
+                (change)="addPackageFromSelect(packageSelect)"
+                (keydown)="handlePackageKeydown($event, packageSelect)"
+              >
                 <option value="">Choose package</option>
                 <option *ngFor="let itemPackage of packages()" [value]="itemPackage.id">{{ itemPackage.name }} - ₹{{ itemPackage.price }}</option>
               </select>
             </label>
-            <button class="ghost-button" type="button" (click)="addPackage(packageSelect.value); packageSelect.value = ''">Add</button>
+            <button class="ghost-button" type="button" (click)="addPackageFromSelect(packageSelect)">Add</button>
 
             <label class="field">
               <span>Gift card sale</span>
-              <input #giftCardAmount type="number" min="0" placeholder="Gift card amount" />
+              <input #giftCardAmount type="number" min="0" placeholder="Gift card amount" (keydown)="handleGiftCardAmountKeydown($event, giftCardAmount)" />
             </label>
-            <button class="ghost-button" type="button" (click)="addGiftCard(giftCardAmount.value); giftCardAmount.value = ''">Add</button>
+            <button class="ghost-button" type="button" (click)="addGiftCardFromInput(giftCardAmount)">Add</button>
           </div>
 
           <div class="table-wrap">
@@ -1567,7 +1582,15 @@ type PackageClientNotice = {
     }
   `]
 })
-export class PosComponent implements OnInit, OnDestroy {
+export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('clientSearchInput') private clientSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('staffSearchInput') private staffSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('serviceSearchInput') private serviceSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('productSearchInput') private productSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('membershipPlanSelect') private membershipPlanSelect?: ElementRef<HTMLSelectElement>;
+  @ViewChild('packageSelect') private packageSelect?: ElementRef<HTMLSelectElement>;
+  @ViewChild('giftCardAmount') private giftCardAmount?: ElementRef<HTMLInputElement>;
+
   readonly clients = signal<ApiRecord[]>([]);
   readonly staff = signal<ApiRecord[]>([]);
   readonly services = signal<ApiRecord[]>([]);
@@ -1737,6 +1760,60 @@ export class PosComponent implements OnInit, OnDestroy {
     this.loadPosSettings();
     this.branchSyncReady = true;
     this.load();
+  }
+
+  ngAfterViewInit(): void {
+    this.focusInitialDirectInvoiceField();
+  }
+
+  private focusInitialDirectInvoiceField(): void {
+    this.focusLater(() => {
+      if (!this.form.value.clientId) {
+        this.focusClientSearch();
+        return;
+      }
+      if (!this.form.value.staffId) {
+        this.focusStaffSearch();
+        return;
+      }
+      this.focusServiceSearch();
+    });
+  }
+
+  private focusLater(action: () => void): void {
+    window.setTimeout(action, 0);
+  }
+
+  private focusClientSearch(): void {
+    this.clientSearchActive = true;
+    this.clientSearchInput?.nativeElement.focus();
+  }
+
+  private focusStaffSearch(): void {
+    this.staffSearchActive = true;
+    this.staffSearchInput?.nativeElement.focus();
+  }
+
+  private focusServiceSearch(): void {
+    this.serviceSearchActive = true;
+    this.serviceSearchInput?.nativeElement.focus();
+  }
+
+  private focusProductSearch(): void {
+    this.productSearchActive = true;
+    this.productSearchInput?.nativeElement.focus();
+  }
+
+  private focusMembershipPlan(): void {
+    this.membershipPlanSelect?.nativeElement.focus();
+  }
+
+  private focusPackageSelect(): void {
+    this.packageSelect?.nativeElement.focus();
+  }
+
+  private focusGiftCardAmount(): void {
+    this.giftCardAmount?.nativeElement.focus();
   }
 
   ngOnDestroy(): void {
@@ -2037,6 +2114,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!hadPendingHold) this.restoreActiveBillingDraft();
         this.applyRouteClientSelection(clientsWithBalances);
         this.loading.set(false);
+        this.focusInitialDirectInvoiceField();
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load POS data');
@@ -3289,6 +3367,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.unpaidReceiveMode = this.activePaymentModes()[0]?.id || 'cash';
     this.unpaidReceiveMessage.set('');
     if (clientId) this.loadMembershipIntelligence(clientId);
+    this.focusLater(() => this.focusStaffSearch());
   }
 
   selectClientFromResult(event: Event, client: ApiRecord): void {
@@ -3318,6 +3397,11 @@ export class PosComponent implements OnInit, OnDestroy {
       this.selectClient(results[this.activeClientResultIndex()]);
       return;
     }
+    if (event.key === 'Enter' && this.form.value.clientId) {
+      event.preventDefault();
+      this.focusStaffSearch();
+      return;
+    }
     if (event.key === 'Escape') {
       this.clientSearchActive = false;
     }
@@ -3327,6 +3411,24 @@ export class PosComponent implements OnInit, OnDestroy {
     this.staffSearchText = this.staffOption(person);
     this.form.patchValue({ staffId: person.id }, { emitEvent: false });
     this.staffSearchActive = false;
+    this.focusLater(() => this.focusServiceSearch());
+  }
+
+  handleStaffSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.staffSearchActive = false;
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const query = this.normalizeSearch(this.staffSearchText);
+    const candidate = query ? this.filteredStaff()[0] : undefined;
+    if (candidate) {
+      this.selectStaff(candidate);
+      return;
+    }
+    this.staffSearchActive = false;
+    this.focusServiceSearch();
   }
 
   clearStaffSelection(): void {
@@ -3428,20 +3530,12 @@ export class PosComponent implements OnInit, OnDestroy {
 
   toggleServiceSelection(service: ApiRecord): void {
     if (!service.id) return;
-    this.selectedServiceIds = this.isServiceSelected(service.id)
-      ? this.selectedServiceIds.filter((id) => id !== service.id)
-      : [...this.selectedServiceIds, service.id];
-    this.selectedServiceId = this.selectedServiceIds[0] || '';
-    this.serviceSearchActive = true;
+    this.addServiceFromSearch(service);
   }
 
   toggleProductSelection(product: ApiRecord): void {
     if (!product.id) return;
-    this.selectedProductIds = this.isProductSelected(product.id)
-      ? this.selectedProductIds.filter((id) => id !== product.id)
-      : [...this.selectedProductIds, product.id];
-    this.selectedProductId = this.selectedProductIds[0] || '';
-    this.productSearchActive = true;
+    this.addProductFromSearch(product);
   }
 
   selectVisibleServices(): void {
@@ -3474,6 +3568,66 @@ export class PosComponent implements OnInit, OnDestroy {
     this.selectedProductIds = [];
     this.selectedProductId = '';
     this.productSearchActive = true;
+  }
+
+  handleServiceSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.serviceSearchActive = false;
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (this.selectedServiceIds.length) {
+      this.addSelectedService();
+      return;
+    }
+    const query = this.normalizeSearch(this.serviceSearchText);
+    const candidate = query ? this.filteredServices()[0] : undefined;
+    if (candidate) {
+      this.addServiceFromSearch(candidate);
+      return;
+    }
+    this.serviceSearchActive = false;
+    this.focusProductSearch();
+  }
+
+  handleProductSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.productSearchActive = false;
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (this.selectedProductIds.length) {
+      this.addSelectedProduct();
+      return;
+    }
+    const query = this.normalizeSearch(this.productSearchText);
+    const candidate = query ? this.filteredProducts()[0] : undefined;
+    if (candidate) {
+      this.addProductFromSearch(candidate);
+      return;
+    }
+    this.productSearchActive = false;
+    this.focusMembershipPlan();
+  }
+
+  handleMembershipPlanKeydown(event: KeyboardEvent, select: HTMLSelectElement): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.addMembershipPlanFromSelect(select);
+  }
+
+  handlePackageKeydown(event: KeyboardEvent, select: HTMLSelectElement): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.addPackageFromSelect(select);
+  }
+
+  handleGiftCardAmountKeydown(event: KeyboardEvent, input: HTMLInputElement): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.addGiftCardFromInput(input);
   }
 
   closeClientSearchSoon(): void {
@@ -3674,12 +3828,23 @@ export class PosComponent implements OnInit, OnDestroy {
     this.clearCoupon();
   }
 
+  addServiceFromSearch(service: ApiRecord): void {
+    const serviceId = String(service.id || '');
+    if (!serviceId) return;
+    this.addService(serviceId);
+    this.serviceSearchText = '';
+    this.clearServiceSelection();
+    this.serviceSearchActive = false;
+    this.focusLater(() => this.focusProductSearch());
+  }
+
   addSelectedService(): void {
     if (!this.selectedServiceIds.length) return;
     this.selectedServiceIds.forEach((id) => this.addService(id));
     this.serviceSearchText = '';
     this.clearServiceSelection();
     this.serviceSearchActive = false;
+    this.focusLater(() => this.focusProductSearch());
   }
 
   addProduct(id: string): void {
@@ -3702,12 +3867,23 @@ export class PosComponent implements OnInit, OnDestroy {
     this.clearCoupon();
   }
 
+  addProductFromSearch(product: ApiRecord): void {
+    const productId = String(product.id || '');
+    if (!productId) return;
+    this.addProduct(productId);
+    this.productSearchText = '';
+    this.clearProductSelection();
+    this.productSearchActive = false;
+    this.focusLater(() => this.focusMembershipPlan());
+  }
+
   addSelectedProduct(): void {
     if (!this.selectedProductIds.length) return;
     this.selectedProductIds.forEach((id) => this.addProduct(id));
     this.productSearchText = '';
     this.clearProductSelection();
     this.productSearchActive = false;
+    this.focusLater(() => this.focusMembershipPlan());
   }
 
   addMembershipPlan(id: string): void {
@@ -3747,6 +3923,13 @@ export class PosComponent implements OnInit, OnDestroy {
     this.clearCoupon();
   }
 
+  addMembershipPlanFromSelect(select: HTMLSelectElement): void {
+    const planId = String(select.value || '');
+    if (planId) this.addMembershipPlan(planId);
+    select.value = '';
+    this.focusLater(() => this.focusPackageSelect());
+  }
+
   addPackage(id: string): void {
     const itemPackage = this.packages().find((item) => item.id === id);
     if (!itemPackage) return;
@@ -3766,6 +3949,13 @@ export class PosComponent implements OnInit, OnDestroy {
     ]);
     this.normalizeBenefitServiceMappings();
     this.clearCoupon();
+  }
+
+  addPackageFromSelect(select: HTMLSelectElement): void {
+    const packageId = String(select.value || '');
+    if (packageId) this.addPackage(packageId);
+    select.value = '';
+    this.focusLater(() => this.focusGiftCardAmount());
   }
 
   addGiftCard(value: number | string): void {
@@ -3788,6 +3978,12 @@ export class PosComponent implements OnInit, OnDestroy {
     ]);
     this.normalizeBenefitServiceMappings();
     this.clearCoupon();
+  }
+
+  addGiftCardFromInput(input: HTMLInputElement): void {
+    this.addGiftCard(input.value);
+    input.value = '';
+    this.focusLater(() => this.focusGiftCardAmount());
   }
 
   removeItem(index: number): void {
