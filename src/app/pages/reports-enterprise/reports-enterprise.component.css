@@ -122,6 +122,46 @@
 .skeleton-line.h-8 { height: 20px; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+.payment-mode-card {
+  display: grid;
+  gap: 6px;
+  min-height: 100px;
+}
+.payment-mode-list {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0;
+}
+.payment-mode-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+}
+.payment-mode-row:last-child { border-bottom: none; }
+.pm-label {
+  font-weight: 600;
+  color: var(--muted);
+}
+.pm-amount {
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.payment-mode-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+  margin-top: 4px;
+  border-top: 2px solid var(--teal);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 

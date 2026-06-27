@@ -12,6 +12,11 @@ export interface FilterState {
   paymentMethod: string;
 }
 
+export interface PaymentModeItem {
+  mode: string;
+  amount: number;
+}
+
 export interface ReportKpi {
   label: string;
   value: string;
@@ -77,6 +82,13 @@ export class ReportsEnterpriseService {
       { label: 'Staff Utilization', value: pct(rand(62, 91) / 100), change: m ? '+5.6%' : '-2.8%', trend: m ? 'up' : 'down', icon: '⭐', tone: 'rose' },
       { label: 'Net Profit Estimate', value: curr(rand(95000, 185000)), change: m ? '+10.2%' : '-4.5%', trend: m ? 'up' : 'down', icon: '📊', tone: 'green' }
     ];
+  }
+
+  getPaymentModeSummary(filters: FilterState): Observable<PaymentModeItem[]> {
+    return safe(this.api.report<ApiRecord>('advanced', this.params(filters)).pipe(map(r => {
+      const data = r?.['paymentModeSummary'] as ApiRecord[] || [];
+      return data.map((item: ApiRecord) => ({ mode: String(item?.['mode'] || ''), amount: Number(item?.['amount'] || 0) }));
+    })), []);
   }
 
   getRevenueTrend(): Observable<{ labels: string[]; values: number[] }> {

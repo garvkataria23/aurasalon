@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiRecord } from '../../../core/api.service';
 import { CommandCenterApi } from '../data/command-center.api';
@@ -165,20 +166,15 @@ interface AiKpiImpact extends ApiRecord {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <section class="page-stack ai-workforce-page">
-      <article class="module-hero ai-workforce-hero">
-        <div>
-          <span class="eyebrow">Workforce Tools</span>
-          <h2>Workforce Automation</h2>
-          <p>Queue, approvals, run history, alerts and agent controls for safe salon automation.</p>
-        </div>
-        <div class="hero-actions">
-          <button class="ghost-button" type="button" (click)="loadAll()" [disabled]="loading()">Refresh</button>
-          <button class="primary-button" type="button" (click)="registerAgent()" [disabled]="!!saving()">Register agent</button>
-        </div>
-      </article>
+      <nav class="command-nav" aria-label="Command modules">
+        <a *ngFor="let mod of commandModules" [routerLink]="mod.path" class="command-nav-btn" [class.active]="mod.active">{{ mod.label }}</a>
+        <span class="command-nav-fill"></span>
+        <button class="ghost-button" type="button" (click)="loadAll()" [disabled]="loading()">Refresh</button>
+        <button class="primary-button" type="button" (click)="registerAgent()" [disabled]="!!saving()">Register agent</button>
+      </nav>
 
       <div *ngIf="loading()" class="state loading">Loading workforce data...</div>
       <div *ngIf="error()" class="state error">
@@ -671,8 +667,8 @@ interface AiKpiImpact extends ApiRecord {
   `,
   styles: [`
     .ai-workforce-page {
-      gap: 20px;
-      padding: 28px 32px;
+      gap: 12px;
+      padding: 16px 20px;
       background: #f5f6fb;
       min-height: 100%;
     }
@@ -681,49 +677,60 @@ interface AiKpiImpact extends ApiRecord {
     }
     .muted { color: #6b7c74; font-size: 12px; font-weight: 700; }
 
-    .module-hero {
-      background: #fff; border-radius: 14px; padding: 24px 28px;
+    .command-nav {
+      display: flex; align-items: center; gap: 2px; padding: 4px 6px;
+      background: #fff; border-radius: 10px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
+      overflow-x: auto;
     }
-    .ai-workforce-hero h2 {
-      font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+    .command-nav-btn {
+      display: inline-flex; align-items: center; height: 34px;
+      padding: 0 12px; border-radius: 7px;
+      color: #6b7c74; text-decoration: none; font-weight: 700; font-size: 12px;
+      white-space: nowrap; cursor: pointer; flex-shrink: 0;
+      transition: background 140ms ease, color 140ms ease;
     }
-    .ai-workforce-hero p { color: #6b7c74; font-size: 14px; line-height: 1.5; max-width: 640px; margin-top: 6px; }
-    .hero-actions { display: flex; gap: 8px; flex-shrink: 0; }
-    .hero-actions button { border-radius: 8px; min-height: 38px; padding: 0 16px; cursor: pointer; font-weight: 700; font-size: 13px; transition: box-shadow 140ms ease, transform 140ms ease; }
-    .hero-actions button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .command-nav-btn.active { color: #12231d; background: #f0f5f3; box-shadow: inset 0 0 0 1px rgba(15,118,110,0.15); }
+    .command-nav-btn:hover:not(.active) { background: #f5f6fb; }
+    .command-nav-fill { flex: 1; min-width: 8px; }
+    .command-nav button {
+      border-radius: 7px; min-height: 32px; padding: 0 12px; cursor: pointer;
+      font-weight: 700; font-size: 12px; white-space: nowrap; flex-shrink: 0;
+      transition: box-shadow 140ms ease, transform 140ms ease;
+    }
+    .command-nav button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .primary-button { border: 0; background: #174f3a; color: #fff; }
     .ghost-button { border: 1px solid #d9e5de; background: #fff; color: #2d3f38; }
     .danger-text { color: #d32f2f; }
-    .state { padding: 18px 22px; background: #fff; border-radius: 12px; color: #6b7c74; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .state { padding: 12px 16px; background: #fff; border-radius: 10px; color: #6b7c74; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
     .state.error { border-left: 3px solid #d32f2f; color: #b71c1c; background: #fff; }
     .state.loading { border-left: 3px solid #0f766e; }
 
     .ai-tabs {
-      display: flex; align-items: center; gap: 4px; padding: 6px;
-      background: #fff; border-radius: 12px;
+      display: flex; align-items: center; gap: 2px; padding: 3px 4px;
+      background: #fff; border-radius: 10px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
       overflow-x: auto;
     }
     .ai-tabs button {
-      height: 40px; display: inline-flex; align-items: center; gap: 8px;
-      padding: 0 14px; border: 0; border-radius: 8px;
-      color: #6b7c74; background: transparent; font-weight: 700; font-size: 13px;
+      height: 34px; display: inline-flex; align-items: center; gap: 6px;
+      padding: 0 12px; border: 0; border-radius: 7px;
+      color: #6b7c74; background: transparent; font-weight: 700; font-size: 12px;
       white-space: nowrap; cursor: pointer; flex-shrink: 0;
       transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
     .ai-tabs button.active { color: #12231d; background: #f0f5f3; box-shadow: inset 0 0 0 1px rgba(15,118,110,0.15); }
     .ai-tabs button:hover:not(.active) { background: #f5f6fb; }
     .ai-tabs strong {
-      min-width: 22px; height: 22px; display: grid; place-items: center;
-      border-radius: 999px; background: #fff; color: #0f766e; font-size: 11px;
+      min-width: 20px; height: 20px; display: grid; place-items: center;
+      border-radius: 999px; background: #fff; color: #0f766e; font-size: 10px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
-    .ai-tab-panel { display: grid; gap: 20px; }
+    .ai-tab-panel { display: grid; gap: 12px; }
 
     .panel {
-      padding: 20px; background: #fff; border-radius: 12px;
+      padding: 16px; background: #fff; border-radius: 12px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
     }
     .section-title {
@@ -743,11 +750,11 @@ interface AiKpiImpact extends ApiRecord {
     .eyebrow { margin: 0; color: #6b7c74; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
 
     .ai-metrics-grid {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px;
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
     }
     .metric-card {
-      display: grid; gap: 6px; padding: 18px 20px;
-      background: #fff; border-radius: 12px;
+      display: grid; gap: 4px; padding: 14px 16px;
+      background: #fff; border-radius: 10px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04);
       border-top: 3px solid #d9e5de;
       transition: transform 200ms ease, box-shadow 200ms ease;
@@ -762,7 +769,7 @@ interface AiKpiImpact extends ApiRecord {
     .metric-card.neutral { border-top-color: #0f766e; }
 
     .ai-overview-grid {
-      display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start;
+      display: grid; grid-template-columns: 1fr; gap: 10px; align-items: start;
     }
     .ai-overview-grid.has-detail {
       grid-template-columns: 1fr 1fr;
@@ -819,7 +826,7 @@ interface AiKpiImpact extends ApiRecord {
     .run-mini strong { font-size: 13px; color: #12231d; }
     .run-mini small { color: #6b7c74; font-size: 11px; }
 
-    .queue-grid, .alerts-grid, .settings-grid { display: grid; gap: 12px; }
+    .queue-grid, .alerts-grid, .settings-grid { display: grid; gap: 8px; }
 
     .decision-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
     .decision-head h3, .settings-card h3 { margin: 0; font-size: 14px; line-height: 1.25; color: #12231d; }
@@ -855,7 +862,7 @@ interface AiKpiImpact extends ApiRecord {
     .approval-line { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: #f0f5f3; color: #0f766e; font-weight: 800; font-size: 12px; }
     .check-line { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #12231d; }
 
-    .premium-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+    .premium-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
     .premium-card { min-height: 100%; }
 
     .provider-grid, .marketplace-grid, .prompt-version-list, .kpi-impact-list { display: grid; gap: 10px; }
@@ -967,6 +974,15 @@ export class AiWorkforceDashboardPage implements OnInit {
       { label: 'KPI impact', value: this.formatCurrency(totals.estimatedKpiImpact), caption: 'Projected value protected', tone: 'good' as Tone }
     ];
   });
+
+  readonly commandModules = [
+    { path: '/command-center/ai-workforce-dashboard', label: 'AI Workforce', active: true },
+    { path: '/command-center/owner-command-center', label: 'Owner Command', active: false },
+    { path: '/command-center/ai-ceo-daily-brief', label: 'CEO Brief', active: false },
+    { path: '/command-center/approval-hub', label: 'Approval Hub', active: false },
+    { path: '/command-center/engagement', label: 'Engagement', active: false },
+    { path: '/command-center/data-warehouse', label: 'Data Warehouse', active: false }
+  ];
 
   constructor(private readonly api: CommandCenterApi) {}
 

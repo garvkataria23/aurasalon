@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FilterState, ReportKpi, ReportsEnterpriseService } from './reports-enterprise.service';
+import { FilterState, PaymentModeItem, ReportKpi, ReportsEnterpriseService } from './reports-enterprise.service';
 import { ReportOverviewComponent } from './report-overview.component';
 import { ReportRevenueComponent } from './report-revenue.component';
 import { ReportClientsComponent } from './report-clients.component';
@@ -33,6 +33,8 @@ export class ReportsEnterpriseComponent implements OnInit {
   readonly activeTab = signal('overview');
   readonly multiBranch = signal(true);
   readonly kpiLoading = signal(true);
+  readonly paymentModeSummary = signal<PaymentModeItem[]>([]);
+  readonly paymentModeLoading = signal(true);
 
   readonly tabs = computed(() => {
     const base = [
@@ -70,10 +72,15 @@ export class ReportsEnterpriseComponent implements OnInit {
 
   loadKpis(): void {
     this.kpiLoading.set(true);
+    this.paymentModeLoading.set(true);
     this.service.getKpis(this.toFilters()).subscribe(kpis => {
       this.kpis.set(kpis);
       this.kpiLoading.set(false);
       this.loading.set(false);
+    });
+    this.service.getPaymentModeSummary(this.toFilters()).subscribe(data => {
+      this.paymentModeSummary.set(data);
+      this.paymentModeLoading.set(false);
     });
   }
 
