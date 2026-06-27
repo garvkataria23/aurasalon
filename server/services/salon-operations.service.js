@@ -158,6 +158,103 @@ function itemTaxableSubtotal(item = {}) {
   return money(Math.max(0, itemGross(item) - itemLineDiscount(item)));
 }
 
+function serviceCreditRemaining(credit = {}) {
+  return Math.max(0, Number(credit.remaining ?? credit.creditsRemaining ?? credit.credits_remaining ?? credit.credits ?? credit.quantity ?? 0));
+}
+
+function serviceCreditRules(credit = {}) {
+  return credit.benefitRules && typeof credit.benefitRules === "object" ? credit.benefitRules : {};
+}
+
+function serviceCreditMatchesMapping(credit = {}, mapping = {}) {
+  const serviceId = String(credit.serviceId || credit.service_id || "").trim().toLowerCase();
+  const serviceName = String(credit.serviceName || credit.service_name || credit.name || "").trim().toLowerCase();
+  if (!serviceId && !serviceName) return true;
+  if (serviceId && serviceId === String(mapping.serviceId || "").trim().toLowerCase()) return true;
+  if (serviceName && String(mapping.serviceName || "").trim().toLowerCase().includes(serviceName)) return true;
+  return false;
+}
+
+function mappedMembershipRedeemSubtotal(serviceLineMappings = [], items = []) {
+  const seen = new Set();
+  return money(serviceLineMappings.reduce((sum, mapping) => {
+    const lineIndex = Number(mapping.lineIndex);
+    if (!Number.isFinite(lineIndex) || seen.has(lineIndex)) return sum;
+    seen.add(lineIndex);
+    const item = items[lineIndex];
+    if (!item || !["service", "package_redeem", "product"].includes(String(item.type || ""))) return sum;
+    return sum + itemTaxableSubtotal(item);
+  }, 0));
+}
+
+function monthKey(value = now()) {
+  return String(value || "").slice(0, 7);
+}
+
+function unlimitedMonthlyUsage(membership = {}, credit = {}) {
+  const currentMonth = monthKey();
+  const serviceId = String(credit.serviceId || credit.service_id || "");
+  const serviceName = String(credit.serviceName || credit.service_name || credit.name || "").toLowerCase();
+  return (membership.redeemHistory || [])
+    .filter((entry) => monthKey(entry.redeemedAt || entry.date) === currentMonth)
+    .flatMap((entry) => Array.isArray(entry.serviceLineMappings) ? entry.serviceLineMappings : [])
+    .filter((mapping) => {
+      if (!serviceId && !serviceName) return true;
+      if (serviceId && String(mapping.serviceId || "") === serviceId) return true;
+      return serviceName && String(mapping.serviceName || "").toLowerCase().includes(serviceName);
+    })
+    .reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+}
+
+function planServiceCreditRedemption(membership = {}, serviceLineMappings = [], invoiceAdjustmentAmount = 0) {
+  const serviceCredits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
+  const mappings = Array.isArray(serviceLineMappings) ? serviceLineMappings.filter((mapping) => Number(mapping.credits || 0) > 0) : [];
+  if (!serviceCredits.length) {
+    const creditsUsed = mappings.reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+    return { serviceCredits: [], creditsUsed, unlimited: false, prepaid: false, legacy: true };
+  }
+  const nextServiceCredits = serviceCredits.map((credit) => ({ ...credit }));
+  const prepaidIndex = nextServiceCredits.findIndex((credit) => String(credit.type || "") === "prepaid_credit");
+  if (prepaidIndex >= 0) {
+    const amount = money(invoiceAdjustmentAmount);
+    const available = money(serviceCreditRemaining(nextServiceCredits[prepaidIndex]));
+    if (amount > available) throw conflict("Membership does not have enough prepaid credit");
+    nextServiceCredits[prepaidIndex].remaining = money(available - amount);
+    return { serviceCredits: nextServiceCredits, creditsUsed: amount, unlimited: false, prepaid: true };
+  }
+
+  let consumed = 0;
+  let unlimited = false;
+  for (const mapping of mappings) {
+    let requested = Math.max(0, Math.floor(Number(mapping.credits || 0)));
+    for (let index = 0; index < nextServiceCredits.length && requested > 0; index += 1) {
+      const credit = nextServiceCredits[index];
+      const type = String(credit.type || "");
+      if (["bill_discount", "product_discount", "prepaid_credit"].includes(type)) continue;
+      if (!serviceCreditMatchesMapping(credit, mapping)) continue;
+      if (type === "unlimited_service") {
+        const rules = serviceCreditRules(credit);
+        const fairUsage = rules.fairUsage && typeof rules.fairUsage === "object" ? rules.fairUsage : {};
+        const monthlyCap = Math.max(0, Number(fairUsage.monthlyCap || 0));
+        const usedThisMonth = unlimitedMonthlyUsage(membership, credit);
+        if (monthlyCap && usedThisMonth + requested > monthlyCap) throw conflict("Membership fair-usage limit reached");
+        consumed += requested;
+        unlimited = true;
+        requested = 0;
+        break;
+      }
+      const available = serviceCreditRemaining(credit);
+      const used = Math.min(available, requested);
+      if (used <= 0) continue;
+      nextServiceCredits[index].remaining = available - used;
+      consumed += used;
+      requested -= used;
+    }
+    if (requested > 0) throw conflict("Membership service credits do not cover selected services");
+  }
+  return { serviceCredits: nextServiceCredits, creditsUsed: consumed, unlimited, prepaid: false };
+}
+
 function calculateInvoice(items = [], discount = 0, tipTotal = 0) {
   const usesLinePricing = items.some(hasLinePricing);
   if (!usesLinePricing) {
@@ -1168,11 +1265,20 @@ export class SalonOperationsService {
     const amount = money(Number(membershipRedeem?.invoiceAdjustmentAmount || 0));
     if (!membershipRedeem?.membershipId || amount <= 0) return amount;
     const membership = requireRecord(repositories.memberships, membershipRedeem.membershipId, "Membership", access);
-    const creditsRemaining = money(membership.creditsRemaining || 0);
-    if (creditsRemaining < amount) throw conflict("Membership does not have enough credits");
     const serviceCredits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
     const prepaidCredit = serviceCredits.find((credit) => credit?.type === "prepaid_credit");
-    if (!prepaidCredit) return amount;
+    const serviceLineMappings = Array.isArray(membershipRedeem.serviceLineMappings) ? membershipRedeem.serviceLineMappings : [];
+    if (!prepaidCredit) {
+      if (!serviceLineMappings.length) throw conflict("Membership service credit requires service-line mappings");
+      const mappedSubtotal = mappedMembershipRedeemSubtotal(serviceLineMappings, items);
+      if (amount > mappedSubtotal) throw conflict("Membership credit exceeds mapped service amount");
+      const redemption = planServiceCreditRedemption(membership, serviceLineMappings, amount);
+      const requestedCredits = Number(membershipRedeem.creditsUsed || redemption.creditsUsed || 0);
+      if (redemption.legacy && Number(membership.creditsRemaining || 0) < requestedCredits) throw conflict("Membership does not have enough credits");
+      return amount;
+    }
+    const creditsRemaining = money(serviceCreditRemaining(prepaidCredit));
+    if (creditsRemaining < amount) throw conflict("Membership does not have enough credits");
     const rules = prepaidCredit.benefitRules && typeof prepaidCredit.benefitRules === "object" ? prepaidCredit.benefitRules : {};
     const restriction = rules.serviceRestriction && typeof rules.serviceRestriction === "object" ? rules.serviceRestriction : {};
     const restrictionType = String(restriction.type || "all");
@@ -1206,21 +1312,30 @@ export class SalonOperationsService {
   redeemMembership({ membershipId, creditsUsed = 0, saleId = "", serviceId = "", serviceLineMappings = [], benefitType = "", benefitName = "", remainingAfterRedeem = 0, invoiceAdjustmentAmount = 0 }, access) {
     if (!membershipId || !creditsUsed) return null;
     const membership = requireRecord(repositories.memberships, membershipId, "Membership", access);
-    if (Number(membership.creditsRemaining) < Number(creditsUsed)) {
-      throw conflict("Membership does not have enough credits");
-    }
+    const creditsBefore = Number(membership.creditsRemaining || 0);
+    const redemption = planServiceCreditRedemption(membership, serviceLineMappings, money(invoiceAdjustmentAmount || creditsUsed));
+    const deductedCredits = redemption.prepaid ? money(invoiceAdjustmentAmount || creditsUsed) : Number(redemption.creditsUsed || creditsUsed);
+    if (!redemption.unlimited && (redemption.legacy || creditsBefore > 0) && creditsBefore < deductedCredits) throw conflict("Membership does not have enough credits");
+    const creditsAfter = redemption.unlimited ? creditsBefore : Math.max(0, creditsBefore - deductedCredits);
     return repositories.memberships.update(membershipId, {
-      creditsRemaining: Number(membership.creditsRemaining) - Number(creditsUsed),
+      creditsRemaining: creditsAfter,
+      serviceCredits: redemption.serviceCredits,
       redeemHistory: [
         {
           date: now().slice(0, 10),
+          redeemedAt: now(),
+          type: "membership_redeem",
           credits: Number(creditsUsed),
+          creditsUsed: Number(creditsUsed),
+          creditsBefore,
+          creditsAfter,
           invoiceAdjustmentAmount: money(invoiceAdjustmentAmount || creditsUsed),
           saleId,
           serviceId,
           benefitType,
           benefitName,
           remainingAfterRedeem: Number(remainingAfterRedeem || 0),
+          unlimited: redemption.unlimited,
           serviceLineMappings: Array.isArray(serviceLineMappings) ? serviceLineMappings : []
         },
         ...(membership.redeemHistory || [])

@@ -47,6 +47,8 @@ type BenefitServiceMapping = {
   lineIndex: number;
   serviceId: string;
   serviceName: string;
+  staffId?: string;
+  staffName?: string;
   credits: number;
 };
 
@@ -54,8 +56,15 @@ type RedeemableServiceLine = {
   lineIndex: number;
   serviceId: string;
   serviceName: string;
+  staffId: string;
   staffName: string;
   finalAmount: number;
+};
+
+type MembershipLineBenefitState = {
+  status: 'credit' | 'unlimited' | 'discount' | 'eligible' | 'none';
+  label: string;
+  detail: string;
 };
 
 type TipLine = {
@@ -595,6 +604,14 @@ type PackageClientNotice = {
                   <td>
                     <span style="display: block; margin-bottom: 6px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase;">{{ itemCategoryTitle(item) }}</span>
                     <span>{{ item.name }}</span>
+                    <small
+                      *ngIf="membershipLineBenefitState(item, index).status !== 'none'"
+                      class="membership-line-badge"
+                      [ngClass]="'membership-line-badge--' + membershipLineBenefitState(item, index).status"
+                    >
+                      {{ membershipLineBenefitState(item, index).label }}
+                      <span *ngIf="membershipLineBenefitState(item, index).detail">· {{ membershipLineBenefitState(item, index).detail }}</span>
+                    </small>
                   </td>
                   <td>
                     <div class="line-staff-box" [class.has-splits]="item.staffSplits?.length">
@@ -713,6 +730,11 @@ type PackageClientNotice = {
             Redeeming {{ redeemableBenefitTypeLabel(benefit) }} {{ benefit.planName || benefit.name || benefit.membershipId }}.
             {{ selectedRedeemableBenefitRemainingCredits() }} credits available · {{ membershipCreditRedeemCap(benefit) }} eligible for this bill.
           </p>
+          <div class="membership-redemption-panel" *ngIf="selectedClient()">
+            <strong>{{ membershipRedemptionPanelTitle() }}</strong>
+            <span>{{ membershipRedemptionPanelSummary() }}</span>
+            <span *ngIf="membershipRedemptionConflictReason()" class="warning-text">{{ membershipRedemptionConflictReason() }}</span>
+          </div>
           <div class="inline-hint" *ngIf="membershipEligibilityNotes().length">
             <span *ngFor="let note of membershipEligibilityNotes()">{{ note }}</span>
           </div>
@@ -802,7 +824,7 @@ type PackageClientNotice = {
             <div><span>Subtotal</span><strong>{{ subtotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Manual discount</span><strong>{{ manualDiscountAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div *ngIf="membershipAutoDiscount > 0"><span>{{ membershipAutoDiscountLabel }}</span><strong>{{ membershipAutoDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
-            <div *ngIf="prepaidMembershipRedeemDiscount > 0"><span>Membership credit redeem</span><strong>{{ prepaidMembershipRedeemDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div *ngIf="membershipCreditAdjustmentAmount() > 0"><span>Membership credit redeem</span><strong>{{ membershipCreditAdjustmentAmount() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Coupon discount</span><strong>{{ couponDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>GST</span><strong>{{ gst | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Staff tips</span><strong>{{ tipTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
@@ -1074,6 +1096,52 @@ type PackageClientNotice = {
       border: 1px solid rgba(15, 118, 110, 0.14);
       border-radius: 10px;
       background: #f8fffd;
+    }
+
+    :host .membership-redemption-panel {
+      display: grid;
+      gap: 4px;
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid #d7e8e2;
+      border-radius: 8px;
+      background: #f8fcfa;
+      color: #315148;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    :host .membership-line-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #d8e2df;
+      background: #f8fafc;
+      color: #52625d;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    :host .membership-line-badge--credit,
+    :host .membership-line-badge--unlimited {
+      border-color: #9bd8c4;
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    :host .membership-line-badge--discount {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    :host .membership-line-badge--eligible {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #92400e;
     }
 
     :host .benefit-mapping-box__header,
@@ -1855,7 +1923,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get billLevelDiscount(): number {
     const base = Math.max(0, this.subtotal - this.itemDiscountTotal);
-    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount + this.prepaidMembershipRedeemDiscount));
+    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount + this.membershipCreditAdjustmentAmount()));
   }
 
   get gst(): number {
@@ -2055,6 +2123,22 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
         }, 0);
     const baseAfterManual = Math.max(0, this.subtotal - this.itemDiscountTotal - this.manualDiscountAmount - this.couponDiscount);
     return this.money(Math.min(Math.max(0, Number(this.creditsUsed || 0)), taxableMappedTotal, baseAfterManual, this.membershipCreditRedeemCap(benefit)));
+  }
+
+  membershipCreditAdjustmentAmount(): number {
+    const benefit = this.selectedRedeemableBenefit();
+    if (!benefit || Number(this.creditsUsed || 0) <= 0) return 0;
+    if (this.isPrepaidCreditBenefit(benefit)) return this.prepaidMembershipRedeemDiscount;
+    if (!this.isCreditBenefit(benefit)) return 0;
+    const mappedLines = this.selectedBenefitServiceMappings();
+    if (!mappedLines.length) return 0;
+    const taxableMappedTotal = mappedLines.reduce((sum, mapping) => {
+      const item = this.items()[mapping.lineIndex];
+      if (!item || !this.membershipCreditAllowedForItem(item, benefit)) return sum;
+      return sum + this.lineTaxableSubtotal(item);
+    }, 0);
+    const baseAfterManual = Math.max(0, this.subtotal - this.itemDiscountTotal - this.manualDiscountAmount - this.couponDiscount);
+    return this.money(Math.min(taxableMappedTotal, baseAfterManual));
   }
 
   get totalDiscount(): number {
@@ -2857,8 +2941,15 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private prepaidCreditLine(benefit?: ApiRecord): ApiRecord | undefined {
-    const rows = Array.isArray(benefit?.['serviceCredits']) ? benefit?.['serviceCredits'] as ApiRecord[] : [];
+    const rows = this.benefitServiceCreditEntries(benefit);
     return rows.find((credit) => String(credit['type'] || '') === 'prepaid_credit');
+  }
+
+  private benefitServiceCreditEntries(benefit?: ApiRecord): ApiRecord[] {
+    const direct = Array.isArray(benefit?.['serviceCredits']) ? benefit?.['serviceCredits'] as ApiRecord[] : [];
+    const nestedMembership = benefit?.['membership'] as ApiRecord | undefined;
+    const nested = Array.isArray(nestedMembership?.['serviceCredits']) ? nestedMembership?.['serviceCredits'] as ApiRecord[] : [];
+    return [...direct, ...nested].filter((credit) => credit && typeof credit === 'object');
   }
 
   private benefitRulesFor(benefit?: ApiRecord): ApiRecord {
@@ -2883,10 +2974,24 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
       || this.redeemableBenefitTypeLabel(benefit) === 'package';
   }
 
+  private isAutoServiceCreditBenefit(benefit?: ApiRecord): boolean {
+    const rules = this.benefitRulesFor(benefit);
+    const planType = String(rules['planType'] || '').toLowerCase();
+    return ['visit_pack', 'service_credit', 'combo', 'unlimited'].includes(planType)
+      || this.redeemableBenefitTypeLabel(benefit) === 'package';
+  }
+
+  private isUnlimitedBenefit(benefit?: ApiRecord): boolean {
+    return String(this.benefitRulesFor(benefit)['planType'] || '').toLowerCase() === 'unlimited';
+  }
+
   private membershipCreditAllowedForItem(item: SaleItem, benefit?: ApiRecord): boolean {
     const rules = this.benefitRulesFor(benefit);
     if (item.type === 'product') return Boolean(rules['allowProductRedeem']);
     if (item.type !== 'service' && item.type !== 'package_redeem') return false;
+    const creditEntries = this.benefitServiceCreditEntries(benefit)
+      .filter((credit) => !['bill_discount', 'product_discount', 'prepaid_credit'].includes(String(credit['type'] || '')));
+    if (creditEntries.length && creditEntries.some((credit) => this.serviceCreditEntryMatchesItem(credit, item))) return true;
     const restriction = this.readJsonObject(rules['serviceRestriction']) || {};
     const type = String(restriction['type'] || 'all');
     const value = String(restriction['value'] || '').trim().toLowerCase();
@@ -2895,6 +3000,19 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
     const service = this.services().find((row) => String(row.id) === item.id);
     const haystack = `${item.id} ${item.name} ${service?.['category'] || ''} ${service?.['code'] || ''}`.toLowerCase();
     return tokens.some((token) => haystack.includes(token));
+  }
+
+  private serviceCreditEntryMatchesItem(credit: ApiRecord, item: SaleItem): boolean {
+    const serviceId = String(credit['serviceId'] || credit['service_id'] || '').trim().toLowerCase();
+    const serviceName = String(credit['serviceName'] || credit['service_name'] || credit['name'] || '').trim().toLowerCase();
+    const category = String(credit['category'] || credit['serviceCategory'] || credit['service_category'] || '').trim().toLowerCase();
+    const service = this.services().find((row) => String(row.id || '') === String(item.id || ''));
+    const itemCategory = String(service?.['category'] || '').toLowerCase();
+    if (!serviceId && !serviceName && !category) return true;
+    if (serviceId && serviceId === String(item.id || '').toLowerCase()) return true;
+    if (serviceName && String(item.name || '').toLowerCase().includes(serviceName)) return true;
+    if (category && itemCategory.includes(category)) return true;
+    return false;
   }
 
   membershipCreditRedeemCap(benefit: ApiRecord | undefined = this.selectedRedeemableBenefit()): number {
@@ -2929,10 +3047,98 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
         lineIndex,
         serviceId: String(item.id || ''),
         serviceName: item.name || `Service ${lineIndex + 1}`,
+        staffId: item.staffId || '',
         staffName: item.staffName || '',
         finalAmount: this.lineTotal(item)
       }));
     return this.redeemableServiceLinesCache;
+  }
+
+  private eligibleAutoCreditBenefits(): ApiRecord[] {
+    return this.redeemableBenefits()
+      .filter((benefit) => this.isAutoServiceCreditBenefit(benefit))
+      .filter((benefit) => this.membershipCreditRedeemCap(benefit) > 0 && this.redeemableServiceLines(benefit).length > 0);
+  }
+
+  private autoSuggestMembershipRedemption(reason = ''): void {
+    if (this.membershipId || this.creditsUsed > 0 || !this.form.value.clientId) return;
+    const matches = this.eligibleAutoCreditBenefits();
+    if (matches.length === 1) {
+      const benefit = matches[0];
+      this.membershipId = String(benefit['membershipId'] || benefit['id'] || '');
+      this.creditsUsed = Math.min(this.membershipCreditRedeemCap(benefit), this.redeemableServiceLines(benefit).length || 1);
+      this.autoAllocateBenefitCredits();
+      this.applyMembershipDiscountsToEligibleItems();
+      const name = benefit['businessLabel'] || benefit['planName'] || benefit['name'] || 'membership benefit';
+      this.dataHint.set(`${name} auto-applied${reason ? ` for ${reason}` : ''}.`);
+      return;
+    }
+    if (matches.length > 1) {
+      this.dataHint.set(`${matches.length} membership benefits match this bill. Select the benefit before saving.`);
+    }
+  }
+
+  membershipRedemptionPanelTitle(): string {
+    const selected = this.selectedRedeemableBenefit();
+    if (selected) return 'Membership credit applied';
+    const matches = this.eligibleAutoCreditBenefits();
+    if (matches.length > 1) return 'Multiple membership benefits matched';
+    if (matches.length === 1) return 'Membership benefit ready';
+    return 'Membership redemption';
+  }
+
+  membershipRedemptionPanelSummary(): string {
+    const selected = this.selectedRedeemableBenefit();
+    if (selected) {
+      const name = String(selected['businessLabel'] || selected['planName'] || selected['name'] || 'Selected benefit');
+      const amount = this.membershipCreditAdjustmentAmount();
+      const mappings = this.selectedBenefitServiceMappings().length;
+      const creditLabel = this.isUnlimitedBenefit(selected) ? 'unlimited use' : `${Number(this.creditsUsed || 0)} credit${Number(this.creditsUsed || 0) === 1 ? '' : 's'}`;
+      return `${name}: ${creditLabel} mapped to ${mappings} line${mappings === 1 ? '' : 's'}${amount > 0 ? `, bill adjusted ₹${amount.toLocaleString('en-IN')}` : ''}.`;
+    }
+    const matches = this.eligibleAutoCreditBenefits();
+    if (matches.length === 1) {
+      const benefit = matches[0];
+      return `${benefit['businessLabel'] || benefit['planName'] || benefit['name'] || 'Benefit'} can cover matching service lines.`;
+    }
+    if (matches.length > 1) return 'Select one benefit so credits are not deducted from the wrong membership/package.';
+    return 'No matching service credit is selected for this bill.';
+  }
+
+  membershipRedemptionConflictReason(): string {
+    if (this.membershipId) return '';
+    const matches = this.eligibleAutoCreditBenefits();
+    return matches.length > 1 ? `${matches.length} benefits match this service. Manual selection required.` : '';
+  }
+
+  membershipLineBenefitState(item: SaleItem, index: number): MembershipLineBenefitState {
+    const mappedCredits = this.serviceLineMappedCredits(index);
+    const selected = this.selectedRedeemableBenefit();
+    if (selected && mappedCredits > 0) {
+      return {
+        status: this.isUnlimitedBenefit(selected) ? 'unlimited' : 'credit',
+        label: this.isUnlimitedBenefit(selected) ? 'Unlimited covered' : 'Credit covered',
+        detail: `${mappedCredits} credit${mappedCredits === 1 ? '' : 's'}`
+      };
+    }
+    if (item.discountSource === 'membership') {
+      return {
+        status: 'discount',
+        label: 'Membership discount',
+        detail: `${this.lineDiscountAmount(item).toLocaleString('en-IN')} off`
+      };
+    }
+    const matches = this.redeemableBenefits()
+      .filter((benefit) => this.isAutoServiceCreditBenefit(benefit))
+      .filter((benefit) => this.membershipCreditAllowedForItem(item, benefit));
+    if (matches.length) {
+      return {
+        status: 'eligible',
+        label: matches.length === 1 ? 'Credit eligible' : 'Multiple credits',
+        detail: matches.length === 1 ? String(matches[0]['businessLabel'] || matches[0]['planName'] || matches[0]['name'] || '') : 'select benefit'
+      };
+    }
+    return { status: 'none', label: '', detail: '' };
   }
 
   private benefitCachePart(benefit: ApiRecord): string {
@@ -3075,6 +3281,8 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
         lineIndex,
         serviceId: serviceLine.serviceId,
         serviceName: serviceLine.serviceName,
+        staffId: serviceLine.staffId,
+        staffName: serviceLine.staffName,
         credits
       });
     }
@@ -3111,6 +3319,8 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
         lineIndex: line.lineIndex,
         serviceId: line.serviceId,
         serviceName: line.serviceName,
+        staffId: line.staffId,
+        staffName: line.staffName,
         credits
       });
       remaining -= credits;
@@ -3175,6 +3385,8 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
         lineIndex: mapping.lineIndex,
         serviceId: line.serviceId,
         serviceName: line.serviceName,
+        staffId: line.staffId,
+        staffName: line.staffName,
         credits
       });
       remaining -= credits;
@@ -3867,6 +4079,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     ]);
     this.normalizeBenefitServiceMappings();
+    this.autoSuggestMembershipRedemption(service.name || 'service');
     this.clearCoupon();
   }
 
@@ -3906,6 +4119,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     ]);
     this.normalizeBenefitServiceMappings();
+    this.autoSuggestMembershipRedemption(product.name || 'product');
     this.clearCoupon();
   }
 
@@ -4605,6 +4819,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
         itemManualDiscountTotal: this.itemManualDiscountTotal,
         membershipAutoDiscount: this.membershipAutoDiscount,
         prepaidMembershipRedeemDiscount: this.prepaidMembershipRedeemDiscount,
+        membershipCreditAdjustmentAmount: this.membershipCreditAdjustmentAmount(),
         couponDiscount: this.couponDiscount,
         totalDiscount: this.totalDiscount
       },
@@ -4620,7 +4835,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
           benefitName: selectedBenefit?.['planName'] || selectedBenefit?.['name'] || this.membershipId,
           remainingBeforeRedeem: this.selectedRedeemableBenefitRemainingCredits(),
           remainingAfterRedeem: this.benefitRemainingAfterRedeem(),
-          invoiceAdjustmentAmount: this.prepaidMembershipRedeemDiscount,
+          invoiceAdjustmentAmount: this.membershipCreditAdjustmentAmount(),
           serviceId: serviceLineMappings[0]?.serviceId || '',
           serviceLineMappings
         } : {}),
@@ -5086,6 +5301,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
       }
       this.normalizeBenefitServiceMappings();
       this.applyMembershipDiscountsToEligibleItems();
+      this.autoSuggestMembershipRedemption('client');
     });
   }
 
@@ -5120,9 +5336,17 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private applyMembershipDiscountsToEligibleItems(): void {
-    const nextItems = this.items().map((item) => {
+    const nextItems = this.items().map((item, index) => {
       if (!['service', 'product'].includes(item.type)) return item;
       if (item.discountSource === 'manual') return item;
+      if (this.selectedRedeemableBenefit() && this.serviceLineMappedCredits(index) > 0) {
+        return {
+          ...item,
+          discountType: 'amount' as ItemDiscountType,
+          discountValue: 0,
+          discountSource: 'none' as ItemDiscountSource
+        };
+      }
       return {
         ...item,
         ...this.defaultItemDiscount(item.type)
