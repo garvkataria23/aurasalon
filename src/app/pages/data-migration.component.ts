@@ -93,6 +93,14 @@ type ApprovalRecord = {
   id: string;
   jobId?: string;
   resource?: string;
+  sourceSoftware?: string;
+  fileName?: string;
+  sourceFileHash?: string;
+  totalRows?: number;
+  errorCount?: number;
+  warningCount?: number;
+  validRows?: number;
+  importableRows?: number;
   status: string;
   note?: string;
   submittedAt?: string;
@@ -112,6 +120,11 @@ type LargeMigrationJob = {
   chunkSize?: number;
   resumeToken?: string;
   createdAt?: string;
+  sourceSoftware?: string;
+  resource?: string;
+  fileName?: string;
+  sourceFileHash?: string;
+  settings?: { sourceFileHash?: string; sourceEvidence?: any } & Record<string, any>;
   chunks?: Array<{ id: string; chunkNumber: number; status: string; totalRows: number; importedRows?: number; skippedRows?: number; errorRows?: number; warningRows?: number; checksum?: string; completedAt?: string; failureReason?: string; summary?: { diagnostics?: AnalyzerDiagnostics } & Record<string, any> }>;
   reconciliations?: LargeReconciliationSnapshot[];
   summary?: { diagnostics?: AnalyzerDiagnostics } & Record<string, any>;
@@ -392,7 +405,7 @@ type MigrationRecoveryReport = {
               <span>Diagnostics source</span><strong>{{ diagnosticsSource() }}</strong>
             </div>
           </div>
-          <p class="muted" *ngIf="!importApprovalReady()">Owner approval required before queued import writes into live modules.</p>
+          <p class="muted" *ngIf="!importApprovalReady()">Approval required for this exact upload/job.</p>
           <p class="migration-warning" *ngIf="largePendingChunks()">{{ largePendingChunks() }} chunk(s) still need analysis. Queue/resume is blocked unless partial import is enabled.</p>
           <div class="chunk-list" *ngIf="largeJobChunks().length">
             <article *ngFor="let chunk of largeJobChunks()" [class.done]="chunk.status === 'imported' || chunk.status === 'imported_with_errors' || chunk.status === 'skipped_with_errors'" [class.danger]="chunk.status === 'failed'">
@@ -578,7 +591,7 @@ type MigrationRecoveryReport = {
             Analyze must run before approval.
           </p>
           <p class="success-text" *ngIf="summary() && !latestPendingApproval() && !importApprovalReady()">
-            Analyze is complete. Click "Submit for approval".
+            Analyze is complete. Submit approval for this exact upload/job.
           </p>
           <p class="error-text" *ngIf="approvalDebug()">{{ approvalDebug() }}</p>
           <div class="approval-list">
@@ -1765,7 +1778,7 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.importApprovalReady()) {
-      this.error.set('Final import blocked: run Analyze, submit for approval, then approve the latest request.');
+      this.error.set('Final import blocked: Approval required for this exact upload/job.');
       return;
     }
     if (this.shouldUseLargeMigrationFlow() && (!this.largeJob()?.id || this.largeJobIsTerminal())) {
@@ -2648,7 +2661,24 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
   }
 
   latestPendingApproval(): ApprovalRecord | null {
-    return this.approvals().find((approval) => approval.status === 'pending') || null;
+    return this.approvals().find((approval) => approval.status === 'pending' && this.approvalMatchesActiveUpload(approval)) || null;
+  }
+
+  private activeApprovalIdentity(): { jobId: string; sourceFileHash: string; fileName: string; totalRows: number } {
+    const job = this.largeJob();
+    const summary = this.summary() as any;
+    const sourceEvidence = summary?.sourceEvidence || job?.settings?.sourceEvidence || {};
+    return {
+      jobId: String(job?.id || this.jobs()[0]?.id || ''),
+      sourceFileHash: String(this.fileSha256() || job?.sourceFileHash || job?.settings?.sourceFileHash || sourceEvidence?.sha256 || ''),
+      fileName: String(job?.fileName || this.fileName() || sourceEvidence?.fileName || ''),
+      totalRows: Number(job?.totalRows || summary?.totalRows || 0)
+    };
+  }
+
+  private approvalMatchesActiveUpload(approval: ApprovalRecord | null | undefined): boolean {
+    const activeJobId = String(this.largeJob()?.id || '');
+    return Boolean(approval && activeJobId && approval.jobId === activeJobId);
   }
 
   async submitApproval(): Promise<void> {
@@ -2668,21 +2698,32 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
       this.loading.set(true);
       this.error.set('');
       this.approvalDebug.set('');
-      const sourceEvidence = (this.summary() as any)?.sourceEvidence || null;
+      const summary = this.summary();
+      const sourceEvidence = (summary as any)?.sourceEvidence || null;
+      const approvalIdentity = this.activeApprovalIdentity();
+      const errorCount = Number(summary?.errorRows || this.largeJob()?.errorRows || 0);
+      const warningCount = Number(summary?.warningRows || this.largeJob()?.warningRows || 0);
+      const validRows = Number(summary?.validRows || this.largeJob()?.validRows || 0);
+      const importableRows = validRows + warningCount;
+      const approvalSourceEvidence = { ...(sourceEvidence || {}), fileName: approvalIdentity.fileName, sha256: approvalIdentity.sourceFileHash };
       const approval = await firstValueFrom(this.api.post<ApprovalRecord>('migration/approvals', {
-        jobId: this.largeJob()?.id || this.jobs()[0]?.id || '',
+        jobId: approvalIdentity.jobId,
         resource: this.resource || 'auto',
         sourceSoftware: this.sourceSoftware,
-        fileName: this.fileName(),
-        sourceFileHash: this.fileSha256() || sourceEvidence?.sha256 || '',
-        totalRows: this.summary()?.totalRows || 0,
-        sourceEvidence,
+        fileName: approvalIdentity.fileName,
+        sourceFileHash: approvalIdentity.sourceFileHash,
+        totalRows: approvalIdentity.totalRows,
+        errorCount,
+        warningCount,
+        validRows,
+        importableRows,
+        sourceEvidence: approvalSourceEvidence,
         note: this.approvalNote || this.goLiveGate(),
         summary: {
           readinessScore: this.readinessScore(),
           dataQualityScore: this.dataQualityScore ? this.dataQualityScore() : undefined,
-          summary: this.summary(),
-          sourceEvidence,
+          summary,
+          sourceEvidence: approvalSourceEvidence,
           reconciliation: this.reconciliationResult(),
           duplicateDecisions: this.duplicateDecisions()
         }
@@ -2998,7 +3039,7 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
   }
 
   importApprovalReady(): boolean {
-    return this.approvals().some((approval) => approval.status === 'approved');
+    return this.approvals().some((approval) => approval.status === 'approved' && this.approvalMatchesActiveUpload(approval));
   }
 
   progressLabel(): string {
