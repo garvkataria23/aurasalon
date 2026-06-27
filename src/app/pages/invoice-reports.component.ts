@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
@@ -364,6 +364,33 @@ export class InvoiceReportsComponent implements OnInit {
   readonly walletTransactions = signal<ApiRecord[]>([]);
   readonly auditLogs = signal<ApiRecord[]>([]);
   readonly activeReport = signal('staff-services');
+  readonly clientFilterOptions = computed(() => {
+    const map = new Map<string, string>();
+    for (const line of this.lines()) {
+      if (line.clientId) map.set(line.clientId, `${line.clientName}${line.clientPhone ? ` · ${line.clientPhone}` : ''}`);
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  });
+  readonly staffFilterOptions = computed(() => {
+    const map = new Map<string, string>();
+    for (const line of this.lines()) {
+      const id = line.staffId || line.staffName;
+      if (id) map.set(id, line.staffName || id);
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  });
+  readonly paymentModeOptions = computed(() => {
+    const modes = new Set(this.payments().map((payment) => this.paymentMode(payment)).filter(Boolean));
+    return [...modes].map((id) => ({ id, label: this.modeLabel(id) })).sort((a, b) => a.label.localeCompare(b.label));
+  });
+  readonly receivedByOptions = computed(() => {
+    const map = new Map<string, string>();
+    for (const payment of this.payments().filter((item) => this.isReceivedDuePayment(item))) {
+      const id = this.paymentReceiverId(payment);
+      if (id) map.set(id, this.paymentReceiver(payment));
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  });
 
   from = this.monthStart();
   to = this.today();
@@ -818,37 +845,6 @@ export class InvoiceReportsComponent implements OnInit {
       })
       .filter((row) => Number(row['totalUnpaid']) > 0 || Number(row['pendingDue']) > 0)
       .sort((a, b) => Number(b['pendingDue']) - Number(a['pendingDue']) || Number(b['totalUnpaid']) - Number(a['totalUnpaid']));
-  }
-
-  clientFilterOptions(): Array<{ id: string; label: string }> {
-    const map = new Map<string, string>();
-    for (const line of this.lines()) {
-      if (line.clientId) map.set(line.clientId, `${line.clientName}${line.clientPhone ? ` · ${line.clientPhone}` : ''}`);
-    }
-    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
-  }
-
-  staffFilterOptions(): Array<{ id: string; label: string }> {
-    const map = new Map<string, string>();
-    for (const line of this.lines()) {
-      const id = line.staffId || line.staffName;
-      if (id) map.set(id, line.staffName || id);
-    }
-    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
-  }
-
-  paymentModeOptions(): Array<{ id: string; label: string }> {
-    const modes = new Set(this.payments().map((payment) => this.paymentMode(payment)).filter(Boolean));
-    return [...modes].map((id) => ({ id, label: this.modeLabel(id) })).sort((a, b) => a.label.localeCompare(b.label));
-  }
-
-  receivedByOptions(): Array<{ id: string; label: string }> {
-    const map = new Map<string, string>();
-    for (const payment of this.payments().filter((item) => this.isReceivedDuePayment(item))) {
-      const id = this.paymentReceiverId(payment);
-      if (id) map.set(id, this.paymentReceiver(payment));
-    }
-    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
   }
 
   private matchesRecoveryFilters(row: ApiRecord): boolean {
