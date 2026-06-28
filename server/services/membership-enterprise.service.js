@@ -2372,6 +2372,8 @@ export class MembershipEnterpriseService {
       .filter((item) => !filters.clientId || item.clientId === filters.clientId)
       .filter((item) => !filters.planId || item.planId === filters.planId);
     const discountLeakage = this.membershipDiscountLeakage(snapshotRows, risks);
+    const redeemReport = this.membershipRedeemReport(query, access);
+    const membershipRedeem = redeemReport.rows || [];
     const actionQueue = this.membershipActionQueue({
       expiringSoon,
       autoRenewFailedPayments,
@@ -2390,8 +2392,10 @@ export class MembershipEnterpriseService {
       autoRenewFailedPayments,
       upgradeDowngrade,
       discountLeakage,
+      membershipRedeem,
       actionQueue
     });
+    const redeemSummary = redeemReport.summary || {};
     return {
       generatedAt: now(),
       filters,
@@ -2406,6 +2410,13 @@ export class MembershipEnterpriseService {
         autoRenewFailedPayments: autoRenewFailedPayments.length,
         upgradeDowngrade: upgradeDowngrade.length,
         discountLeakage: money(discountLeakage.reduce((sum, row) => sum + Number(row.discountAmount || row.totalDiscount || 0), 0)),
+        totalMembership: Number(redeemSummary.totalMembership || 0),
+        totalEwallet: money(redeemSummary.totalEwallet || 0),
+        totalRedeemed: money(redeemSummary.totalRedeemed || 0),
+        redeemCount: Number(redeemSummary.redeemCount || 0),
+        clientsWithActiveWallet: Number(redeemSummary.clientsWithActiveWallet || 0),
+        lastRedeemedToday: Number(redeemSummary.lastRedeemedToday || 0),
+        membershipRedeem: membershipRedeem.length,
         highRiskSignals: risks.filter((risk) => ["high", "critical"].includes(risk.riskLevel)).length,
         actionQueue: actionQueue.length
       },
@@ -2420,10 +2431,191 @@ export class MembershipEnterpriseService {
         autoRenewFailedPayments,
         upgradeDowngrade,
         discountLeakage,
+        membershipRedeem,
         actionQueue
       },
       exportRows: exportRows.slice(0, 2000)
     };
+  }
+
+  membershipRedeemReport(query = {}, access) {
+    const branchId = query.branchId || "";
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+    const filters = this.membershipReportFilters(query);
+    const memberships = repositories.memberships.list({ limit: 10000 }, scope(access, branchId));
+    const clients = repositories.clients.list({ limit: 10000 }, scope(access));
+    const clientById = new Map(clients.map((client) => [client.id, client]));
+    const ledger = this.ledgerList({ branchId, limit: 1000 }, access);
+    const snapshots = db.prepare(
+      `SELECT * FROM membership_invoice_snapshots
+       WHERE tenant_id = @tenantId
+         AND (@branchId = '' OR branch_id = @branchId)
+       ORDER BY created_at DESC
+       LIMIT 1000`
+    ).all({ tenantId: access.tenantId, branchId }).map(rowToSnapshot);
+    const latestWalletByClient = this.latestWalletBalanceByClient(access, branchId);
+    const rows = memberships
+      .map((membership) => this.membershipRedeemReportRow(membership, clientById, ledger, snapshots, latestWalletByClient, access))
+      .filter((row) => this.membershipRedeemReportMatches(row, filters))
+      .sort((a, b) => String(b.lastRedeemedAt || b.takenOn || "").localeCompare(String(a.lastRedeemedAt || a.takenOn || "")));
+    const todayKey = today();
+    const activeWalletClients = new Set(rows.filter((row) => Number(row.ewalletBalance || 0) > 0).map((row) => row.clientId).filter(Boolean));
+    return {
+      generatedAt: now(),
+      filters,
+      summary: {
+        totalMembership: rows.length,
+        totalEwallet: money(rows.reduce((sum, row) => sum + Number(row.ewalletBalance || 0), 0)),
+        totalRedeemed: money(rows.reduce((sum, row) => sum + Number(row.totalRedeemedAmount || 0), 0)),
+        redeemCount: rows.reduce((sum, row) => sum + Number(row.redeemCount || 0), 0),
+        clientsWithActiveWallet: activeWalletClients.size,
+        lastRedeemedToday: rows.filter((row) => row.lastRedeemedDate === todayKey).length
+      },
+      rows
+    };
+  }
+
+  latestWalletBalanceByClient(access, branchId = "") {
+    const latest = new Map();
+    const rows = repositories.walletTransactions.list({ limit: 10000 }, scope(access, branchId))
+      .sort((a, b) => String(b.createdAt || b.created_at || "").localeCompare(String(a.createdAt || a.created_at || "")));
+    for (const row of rows) {
+      const clientId = row.clientId || row.client_id || "";
+      if (!clientId || latest.has(clientId)) continue;
+      const balance = row.balanceAfter ?? row.balance_after ?? row.balance ?? row.amount ?? 0;
+      latest.set(clientId, money(balance));
+    }
+    return latest;
+  }
+
+  membershipRedeemReportRow(membership, clientById, ledger = [], snapshots = [], latestWalletByClient = new Map(), access) {
+    const client = clientById.get(membership.clientId) || {};
+    const plan = this.safeResolveMembershipPlan(membership, access) || {};
+    const planId = this.membershipPlanId(membership) || plan.id || "";
+    const planType = this.membershipPlanType(membership, plan);
+    const events = this.membershipRedeemEvents(membership, planId, ledger, snapshots);
+    const last = events[0] || null;
+    const walletBalance = latestWalletByClient.has(membership.clientId)
+      ? latestWalletByClient.get(membership.clientId)
+      : money(client.walletBalance || client.wallet_balance || 0);
+    return {
+      membershipId: membership.id,
+      clientId: membership.clientId,
+      clientName: client.name || client.fullName || membership.clientId || "Walk-in",
+      phone: client.phone || client.mobile || client.contact || "",
+      planId,
+      planName: membership.planName || plan.name || "Membership",
+      planType,
+      businessLabel: plan.name ? planBusinessLabel(plan, planType) : "",
+      branchId: membership.branchId || client.branchId || "",
+      ewalletBalance: money(walletBalance),
+      lastRedeemedAmount: money(last?.amount || 0),
+      totalRedeemedAmount: money(events.reduce((sum, event) => sum + Number(event.amount || 0), 0)),
+      redeemCount: events.length,
+      lastRedeemedAt: last?.createdAt || "",
+      lastRedeemedDate: last?.date || "",
+      lastRedeemedTime: last?.time || "",
+      invoiceId: last?.invoiceId || "",
+      saleId: last?.saleId || "",
+      posReference: last?.invoiceId || last?.saleId || last?.referenceNo || "",
+      status: events.length ? "redeemed" : "not_redeemed",
+      takenOn: this.membershipStartDate(membership)
+    };
+  }
+
+  membershipPlanType(membership = {}, plan = {}) {
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    const fromHistory = history.find((item) => item?.planType)?.planType;
+    return planTypeFromRules(plan, { ...membership, planType: fromHistory || membership.planType });
+  }
+
+  membershipRedeemEvents(membership = {}, planId = "", ledger = [], snapshots = []) {
+    const events = new Map();
+    const membershipId = membership.id || "";
+    const clientId = membership.clientId || "";
+    const add = (event) => {
+      const amount = money(event.amount || 0);
+      if (amount <= 0 && !event.invoiceId && !event.createdAt) return;
+      const createdAt = event.createdAt || event.date || "";
+      const key = [event.invoiceId || event.saleId || event.id || createdAt, amount, event.type || ""].join("|");
+      if (events.has(key)) return;
+      events.set(key, {
+        ...event,
+        amount,
+        createdAt,
+        date: dateOnly(createdAt),
+        time: this.timeOnly(createdAt)
+      });
+    };
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    for (const item of history) {
+      const type = String(item?.type || "");
+      const amount = Number(item?.redeemedAmount || item?.discountAmount || item?.amount || item?.value || item?.creditsUsed || 0);
+      if (!/redeem|discount|credit_used|wallet_used/i.test(type) && amount <= 0) continue;
+      add({
+        id: item.id || "",
+        type,
+        amount,
+        createdAt: item.redeemedAt || item.createdAt || item.date || "",
+        invoiceId: item.invoiceId || "",
+        saleId: item.saleId || "",
+        referenceNo: item.referenceNo || ""
+      });
+    }
+    for (const row of ledger) {
+      if (membershipId && row.membershipId !== membershipId) continue;
+      if (!membershipId && row.clientId !== clientId) continue;
+      if (planId && row.planId && row.planId !== planId) continue;
+      if (!["redeemed", "discount_applied"].includes(row.action)) continue;
+      add({
+        id: row.id,
+        type: row.action,
+        amount: row.discountAmount || row.amount || Math.max(0, Number(row.creditsBefore || 0) - Number(row.creditsAfter || 0)),
+        createdAt: row.createdAt,
+        invoiceId: row.invoiceId,
+        saleId: row.saleId,
+        referenceNo: row.snapshot?.payment?.referenceNo || ""
+      });
+    }
+    for (const snapshot of snapshots) {
+      const sameMembership = membershipId && snapshot.membershipId === membershipId;
+      const sameClientPlan = !snapshot.membershipId && snapshot.clientId === clientId && (!planId || !snapshot.planId || snapshot.planId === planId);
+      if (!sameMembership && !sameClientPlan) continue;
+      add({
+        id: snapshot.id,
+        type: Number(snapshot.creditsUsed || 0) > 0 ? "redeemed" : "discount_applied",
+        amount: snapshot.discountAmount || snapshot.creditsUsed || 0,
+        createdAt: snapshot.createdAt,
+        invoiceId: snapshot.invoiceId,
+        saleId: snapshot.saleId
+      });
+    }
+    return [...events.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  }
+
+  membershipRedeemReportMatches(row, filters) {
+    const matchDate = row.lastRedeemedDate || row.takenOn || "";
+    if (filters.fromDate && matchDate && matchDate < filters.fromDate) return false;
+    if (filters.toDate && matchDate && matchDate > filters.toDate) return false;
+    if (filters.branchId && row.branchId !== filters.branchId) return false;
+    if (filters.planId && row.planId !== filters.planId) return false;
+    if (filters.clientId && row.clientId !== filters.clientId) return false;
+    if (filters.planType && row.planType !== filters.planType) return false;
+    if (filters.redeemStatus && row.status !== filters.redeemStatus) return false;
+    if (filters.walletBalance === "positive" && Number(row.ewalletBalance || 0) <= 0) return false;
+    if (filters.walletBalance === "zero" && Number(row.ewalletBalance || 0) !== 0) return false;
+    const search = String(filters.clientSearch || "").toLowerCase();
+    if (search && ![row.clientName, row.phone, row.planName, row.posReference].join(" ").toLowerCase().includes(search)) return false;
+    return true;
+  }
+
+  timeOnly(value) {
+    const raw = String(value || "");
+    if (!raw) return "";
+    const date = new Date(raw);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const match = raw.match(/T(\d{2}:\d{2})/);
+    return match ? match[1] : "";
   }
 
   membershipActionQueue({ expiringSoon = [], autoRenewFailedPayments = [], creditLiability = [], planWiseProfitability = [], risks = [] } = {}) {
@@ -2536,6 +2728,9 @@ export class MembershipEnterpriseService {
       `Auto-renew failed/missing payment: ${metrics.autoRenewFailedPayments || 0}`,
       `Upgrade/downgrade rows: ${metrics.upgradeDowngrade || 0}`,
       `Discount leakage: Rs ${metrics.discountLeakage || 0}`,
+      `Membership redeem count: ${metrics.redeemCount || 0}`,
+      `Membership redeemed: Rs ${metrics.totalRedeemed || 0}`,
+      `Membership ewallet: Rs ${metrics.totalEwallet || 0}`,
       `High risk signals: ${metrics.highRiskSignals || 0}`,
       ...report.exportRows.slice(0, 45).map((row) => `${row.report}: ${row.primary || row.clientName || row.planName || row.staffName || ""} ${row.amount || row.value || ""}`)
     ];
@@ -2548,9 +2743,13 @@ export class MembershipEnterpriseService {
       toDate: text(query.toDate || query.endDate || ""),
       branchId: text(query.branchId || ""),
       planId: text(query.planId || ""),
+      planType: text(query.planType || ""),
       staffId: text(query.staffId || ""),
       clientId: text(query.clientId || ""),
+      clientSearch: text(query.clientSearch || query.client || query.q || ""),
       status: text(query.status || ""),
+      redeemStatus: text(query.redeemStatus || ""),
+      walletBalance: text(query.walletBalance || ""),
       paymentMode: text(query.paymentMode || ""),
       riskLevel: text(query.riskLevel || "all")
     };
@@ -2770,6 +2969,7 @@ export class MembershipEnterpriseService {
     for (const row of reportSets.autoRenewFailedPayments || []) push("auto_renew_failed_payments", row, row.clientName, row.price);
     for (const row of reportSets.upgradeDowngrade || []) push("upgrade_downgrade", row, row.clientName, row.amount || row.refundAmount);
     for (const row of reportSets.discountLeakage || []) push("discount_leakage", row, row.invoiceId, row.discountAmount);
+    for (const row of reportSets.membershipRedeem || []) push("membership_redeem", row, row.clientName, row.lastRedeemedAmount || row.ewalletBalance);
     for (const row of reportSets.actionQueue || []) push("membership_action_queue", row, row.primary, row.amount || row.value);
     return rows;
   }

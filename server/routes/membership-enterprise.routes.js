@@ -382,6 +382,14 @@ membershipEnterpriseRouter.get(
 );
 
 membershipEnterpriseRouter.get(
+  "/membership-enterprise/reports/redeem",
+  requirePermission("read", () => "memberships"),
+  asyncHandler((req, res) => {
+    res.json(membershipEnterpriseService.membershipRedeemReport(req.query, req.access));
+  })
+);
+
+membershipEnterpriseRouter.get(
   "/membership-enterprise/reports/export/csv",
   requirePermission("read", () => "memberships"),
   asyncHandler((req, res) => {

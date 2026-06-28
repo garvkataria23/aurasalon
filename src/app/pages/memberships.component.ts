@@ -1,7 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable, catchError, forkJoin, of } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { PosMembershipPlan, PosSettingsService } from '../core/pos-settings.service';
@@ -55,7 +55,7 @@ type RewardReport = {
 
 type MembershipDeskTab = 'overview' | 'plans' | 'active' | 'audit' | 'commission' | 'risk' | 'reports' | 'rewards' | 'reminders' | 'autoRenew';
 type PlanWorkspaceView = 'plans' | 'packages' | 'giftcards';
-type MembershipReportTab = 'actionQueue' | 'activeMembers' | 'expiringSoon' | 'renewalRevenue' | 'cancelledMemberships' | 'staffWiseSales' | 'planWiseProfitability' | 'creditLiability' | 'autoRenewFailedPayments' | 'upgradeDowngrade' | 'discountLeakage';
+type MembershipReportTab = 'actionQueue' | 'activeMembers' | 'expiringSoon' | 'renewalRevenue' | 'cancelledMemberships' | 'staffWiseSales' | 'planWiseProfitability' | 'creditLiability' | 'autoRenewFailedPayments' | 'upgradeDowngrade' | 'discountLeakage' | 'membershipRedeem';
 type RewardDeskTab = 'ledger' | 'roi' | 'expiring' | 'abuse';
 type LifecycleAction = 'renew' | 'upgrade' | 'downgrade' | 'cancel';
 type PlanLifecycleDialog = {
@@ -896,6 +896,25 @@ type PlanLifecycleDialog = {
             </select>
           </label>
           <label class="field">
+            <span>Client search</span>
+            <input type="search" placeholder="Name, phone, invoice" [(ngModel)]="reportFilters.clientSearch" (ngModelChange)="onReportFilterChanged()" />
+          </label>
+          <label class="field">
+            <span>Plan type</span>
+            <select [(ngModel)]="reportFilters.planType" (ngModelChange)="onReportFilterChanged()">
+              <option value="">All plan types</option>
+              <option value="discount">Discount</option>
+              <option value="prepaid_credit">Prepaid credit</option>
+              <option value="visit_pack">Visit pack</option>
+              <option value="service_credit">Service credit</option>
+              <option value="combo">Combo</option>
+              <option value="unlimited">Unlimited</option>
+              <option value="family">Family</option>
+              <option value="corporate">Corporate</option>
+              <option value="tiered">Tiered</option>
+            </select>
+          </label>
+          <label class="field">
             <span>Staff</span>
             <select [(ngModel)]="reportFilters.staffId" (ngModelChange)="onReportFilterChanged()">
               <option value="">All staff</option>
@@ -940,6 +959,22 @@ type PlanLifecycleDialog = {
               <option value="low">Low</option>
             </select>
           </label>
+          <label class="field">
+            <span>Redeem status</span>
+            <select [(ngModel)]="reportFilters.redeemStatus" (ngModelChange)="onReportFilterChanged()">
+              <option value="">Redeemed / not redeemed</option>
+              <option value="redeemed">Redeemed</option>
+              <option value="not_redeemed">Not redeemed</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Wallet balance</span>
+            <select [(ngModel)]="reportFilters.walletBalance" (ngModelChange)="onReportFilterChanged()">
+              <option value="">All wallet balances</option>
+              <option value="positive">Positive</option>
+              <option value="zero">Zero</option>
+            </select>
+          </label>
         </section>
 
         <section class="member-count-strip compact-count-strip">
@@ -948,6 +983,7 @@ type PlanLifecycleDialog = {
           <article role="button" tabindex="0" (click)="setReportTab('renewalRevenue')" (keydown.enter)="setReportTab('renewalRevenue')"><span>Renewal revenue</span><strong>{{ reportMetric('renewalRevenue') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Filtered renewals</small></article>
           <article role="button" tabindex="0" (click)="setReportTab('creditLiability')" (keydown.enter)="setReportTab('creditLiability')"><span>Credit liability</span><strong>{{ reportMetric('creditLiability') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Unused credit value</small></article>
           <article role="button" tabindex="0" (click)="setReportTab('discountLeakage')" (keydown.enter)="setReportTab('discountLeakage')"><span>Discount leakage</span><strong>{{ reportMetric('discountLeakage') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Membership discount audit</small></article>
+          <article role="button" tabindex="0" (click)="setReportTab('membershipRedeem')" (keydown.enter)="setReportTab('membershipRedeem')"><span>Membership redeem</span><strong>{{ reportMetric('totalRedeemed') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ reportMetric('redeemCount') }} redemptions</small></article>
           <article role="button" tabindex="0" (click)="setReportTab('actionQueue')" (keydown.enter)="setReportTab('actionQueue')"><span>Action queue</span><strong>{{ reportMetric('actionQueue') }}</strong><small>Renewal, wallet and plan tasks</small></article>
         </section>
 
@@ -963,6 +999,7 @@ type PlanLifecycleDialog = {
           <button type="button" [class.active]="activeReportTab() === 'autoRenewFailedPayments'" (click)="setReportTab('autoRenewFailedPayments')">Auto-renew failed <span>{{ reportSet('autoRenewFailedPayments').length }}</span></button>
           <button type="button" [class.active]="activeReportTab() === 'upgradeDowngrade'" (click)="setReportTab('upgradeDowngrade')">Upgrade / downgrade <span>{{ reportSet('upgradeDowngrade').length }}</span></button>
           <button type="button" [class.active]="activeReportTab() === 'discountLeakage'" (click)="setReportTab('discountLeakage')">Discount leakage <span>{{ reportSet('discountLeakage').length }}</span></button>
+          <button type="button" [class.active]="activeReportTab() === 'membershipRedeem'" (click)="setReportTab('membershipRedeem')">Membership Redeem <span>{{ reportSet('membershipRedeem').length }}</span></button>
         </nav>
 
         <section class="form-panel report-card action-queue-card report-detail-card" *ngIf="activeReportTab() === 'actionQueue'">
@@ -1095,6 +1132,43 @@ type PlanLifecycleDialog = {
                 </tr></tbody></table>
             </div>
             <ng-template #noDiscountReport><div class="empty-panel compact-empty"><strong>No discount leakage.</strong></div></ng-template>
+          </section>
+
+          <section class="form-panel report-card report-detail-card wide-report-card" *ngIf="activeReportTab() === 'membershipRedeem'">
+            <div class="section-title compact-section-title">
+              <div>
+                <span class="eyebrow">Wallet + POS redemption</span>
+                <h3>Membership Redeem</h3>
+              </div>
+              <span class="badge">{{ reportSet('membershipRedeem').length }} rows</span>
+            </div>
+            <section class="member-count-strip compact-count-strip">
+              <article><span>Total Membership</span><strong>{{ reportMetric('totalMembership') }}</strong><small>Filtered memberships</small></article>
+              <article><span>Total Ewallet</span><strong>{{ reportMetric('totalEwallet') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Wallet liability</small></article>
+              <article><span>Total Redeemed</span><strong>{{ reportMetric('totalRedeemed') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Ledger + snapshot total</small></article>
+              <article><span>Redeem Count</span><strong>{{ reportMetric('redeemCount') }}</strong><small>Redemption events</small></article>
+              <article><span>Active Wallet Clients</span><strong>{{ reportMetric('clientsWithActiveWallet') }}</strong><small>Balance above zero</small></article>
+              <article><span>Last Redeemed Today</span><strong>{{ reportMetric('lastRedeemedToday') }}</strong><small>Same-day recovery</small></article>
+            </section>
+            <div class="table-wrap compact-table" *ngIf="reportSet('membershipRedeem').length; else noRedeemReport">
+              <table><thead><tr><th>Name</th><th>Contact</th><th>Membership / Plan</th><th>Ewallet</th><th>Last redeemed</th><th>Date</th><th>Time</th><th>Invoice / POS</th><th>Branch</th><th>Action</th></tr></thead>
+                <tbody><tr *ngFor="let row of reportSet('membershipRedeem').slice(0, 30)">
+                  <td>{{ row['clientName'] }}</td>
+                  <td>{{ row['phone'] || '-' }}</td>
+                  <td>{{ row['planName'] }}<small>{{ row['businessLabel'] || row['planType'] || '' }}</small></td>
+                  <td>{{ row['ewalletBalance'] | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row['lastRedeemedAmount'] | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row['lastRedeemedDate'] || '-' }}</td>
+                  <td>{{ row['lastRedeemedTime'] || '-' }}</td>
+                  <td>{{ row['posReference'] || '-' }}</td>
+                  <td>{{ row['branchId'] || '-' }}</td>
+                  <td class="inline-actions">
+                    <a class="ghost-button mini" *ngIf="row['clientId']" [routerLink]="['/clients', row['clientId']]">Client 360</a>
+                    <a class="ghost-button mini" *ngIf="row['membershipId']" [routerLink]="['/memberships', row['membershipId']]">Membership 360</a>
+                  </td>
+                </tr></tbody></table>
+            </div>
+            <ng-template #noRedeemReport><div class="empty-panel compact-empty"><strong>No membership redeem rows.</strong><span>Redeem history, client membership ledger and POS snapshots will appear here.</span></div></ng-template>
           </section>
         </div>
       </section>
@@ -2630,9 +2704,13 @@ export class MembershipsComponent implements OnInit, OnDestroy {
     toDate: '',
     branchId: '',
     planId: '',
+    planType: '',
     staffId: '',
     clientId: '',
+    clientSearch: '',
     status: '',
+    redeemStatus: '',
+    walletBalance: '',
     paymentMode: '',
     riskLevel: 'all'
   };
@@ -2753,11 +2831,23 @@ export class MembershipsComponent implements OnInit, OnDestroy {
   readonly expiringRewardRows = computed(() => this.rewardReport().expiring || []);
   readonly rewardAbuseRows = computed(() => this.rewardReport().abuseAlerts || []);
 
-  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder, private readonly posSettings: PosSettingsService) {}
+  constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder, private readonly posSettings: PosSettingsService, private readonly route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    this.applyQueryParams();
     this.membershipPlans.set(this.posSettings.loadMembershipPlans());
     this.load();
+    if (this.activeTab() === 'reports') this.startReportLiveRefresh();
+  }
+
+  private applyQueryParams(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const tab = params.get('tab') || '';
+    const report = params.get('report') || '';
+    const tabs: MembershipDeskTab[] = ['overview', 'plans', 'active', 'audit', 'commission', 'risk', 'reports', 'rewards', 'reminders', 'autoRenew'];
+    const reports: MembershipReportTab[] = ['actionQueue', 'activeMembers', 'expiringSoon', 'renewalRevenue', 'cancelledMemberships', 'staffWiseSales', 'planWiseProfitability', 'creditLiability', 'autoRenewFailedPayments', 'upgradeDowngrade', 'discountLeakage', 'membershipRedeem'];
+    if (tabs.includes(tab as MembershipDeskTab)) this.activeTab.set(tab as MembershipDeskTab);
+    if (reports.includes(report as MembershipReportTab)) this.activeReportTab.set(report as MembershipReportTab);
   }
 
   ngOnDestroy(): void {
@@ -3687,9 +3777,13 @@ export class MembershipsComponent implements OnInit, OnDestroy {
       toDate: this.reportFilters.toDate || '',
       branchId: this.reportFilters.branchId || '',
       planId: this.reportFilters.planId || '',
+      planType: this.reportFilters.planType || '',
       staffId: this.reportFilters.staffId || '',
       clientId: this.reportFilters.clientId || '',
+      clientSearch: this.reportFilters.clientSearch || '',
       status: this.reportFilters.status || '',
+      redeemStatus: this.reportFilters.redeemStatus || '',
+      walletBalance: this.reportFilters.walletBalance || '',
       paymentMode: this.reportFilters.paymentMode || '',
       riskLevel: this.reportFilters.riskLevel === 'all' ? '' : this.reportFilters.riskLevel
     };
