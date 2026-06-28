@@ -46,6 +46,14 @@ clientReportsRouter.get(
 );
 
 clientReportsRouter.get(
+  "/reports/clients/revenue",
+  requirePermission("read", () => "reports"),
+  asyncHandler((req, res) => {
+    res.json(clientReportsService.clientRevenue(req.query, req.access));
+  })
+);
+
+clientReportsRouter.get(
   "/reports/clients/:id/360",
   requirePermission("read", () => "reports"),
   asyncHandler((req, res) => {

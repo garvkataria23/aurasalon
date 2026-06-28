@@ -1,5 +1,6 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
@@ -33,6 +34,16 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
     accent: 'blue',
     empty: 'No RFM clients found for this branch.',
     params: (branchId) => ({ limit: 50, branchId })
+  },
+  'client-revenue': {
+    key: 'client-revenue',
+    title: 'Client Revenue',
+    description: 'Salonist-style client revenue register with visits, last visit, due and membership signal.',
+    endpoint: 'clients/revenue',
+    apiName: 'clients/revenue',
+    accent: 'teal',
+    empty: 'No client revenue found for the selected filters.',
+    params: (branchId) => ({ limit: 100, branchId })
   },
   lapsed: {
     key: 'lapsed',
@@ -80,7 +91,7 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
   selector: 'app-client-report-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
   template: `
     <section class="client-report-detail">
       <div class="report-back-row">
@@ -113,7 +124,65 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
         [empty]="!loading() && !error() && !rows().length ? config().empty : ''"
       ></app-state>
 
-      <ng-container *ngIf="!loading() && !error() && rows().length">
+      <ng-container *ngIf="!loading() && !error() && (rows().length || reportKey() === 'client-revenue')">
+        <section class="panel revenue-filter-panel" *ngIf="reportKey() === 'client-revenue'">
+          <label>
+            <span>From</span>
+            <input type="date" [(ngModel)]="revenueFilters.from" />
+          </label>
+          <label>
+            <span>To</span>
+            <input type="date" [(ngModel)]="revenueFilters.to" />
+          </label>
+          <label>
+            <span>Revenue order</span>
+            <select [(ngModel)]="revenueFilters.order">
+              <option value="desc">High to low</option>
+              <option value="asc">Low to high</option>
+            </select>
+          </label>
+          <label>
+            <span>Client</span>
+            <input placeholder="Name or phone" [(ngModel)]="revenueFilters.search" />
+          </label>
+          <label>
+            <span>Membership</span>
+            <select [(ngModel)]="revenueFilters.membershipStatus">
+              <option value="all">All clients</option>
+              <option value="member">Members</option>
+              <option value="non-member">Non-members</option>
+            </select>
+          </label>
+          <label>
+            <span>Visits</span>
+            <select [(ngModel)]="revenueFilters.visitBucket">
+              <option value="all">All visits</option>
+              <option value="1">1 visit</option>
+              <option value="2-5">2-5</option>
+              <option value="6-10">6-10</option>
+              <option value="10+">10+</option>
+            </select>
+          </label>
+          <label>
+            <span>Revenue</span>
+            <select [(ngModel)]="revenueFilters.revenueBucket">
+              <option value="all">All revenue</option>
+              <option value="0-1000">Up to ₹1,000</option>
+              <option value="1000-10000">₹1,000 - ₹10,000</option>
+              <option value="10000+">₹10,000+</option>
+            </select>
+          </label>
+          <label>
+            <span>Staff</span>
+            <input placeholder="Staff name" [(ngModel)]="revenueFilters.staff" />
+          </label>
+          <label>
+            <span>Service</span>
+            <input placeholder="Service name" [(ngModel)]="revenueFilters.service" />
+          </label>
+          <button class="primary-button" type="button" (click)="load()">Run Report</button>
+        </section>
+
         <section class="report-summary-grid">
           <article class="summary-card" *ngFor="let card of summaryCards()">
             <span>{{ card.label }}</span>
@@ -134,6 +203,43 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
           </div>
 
           <div [ngSwitch]="reportKey()">
+            <div *ngSwitchCase="'client-revenue'" class="revenue-table-wrap">
+              <table class="revenue-table">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Phone</th>
+                    <th>Visits</th>
+                    <th>Last visit</th>
+                    <th>Total revenue</th>
+                    <th>Average bill</th>
+                    <th>Paid</th>
+                    <th>Pending due</th>
+                    <th>Membership</th>
+                    <th>Last staff</th>
+                    <th>Last service</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of rows(); trackBy: trackRow">
+                    <td><strong>{{ clientName(row) }}</strong></td>
+                    <td>{{ text(row['phone'], '-') }}</td>
+                    <td>{{ numeric(row['totalVisits']) }}</td>
+                    <td>{{ row['lastVisitAt'] | date: 'dd-MMM-yyyy' }}</td>
+                    <td>{{ numeric(row['totalRevenue']) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ numeric(row['averageBill']) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ numeric(row['paidAmount']) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ numeric(row['pendingDue']) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td><span class="status-pill" [class.member]="row['membershipStatus'] === 'Member'">{{ text(row['membershipStatus'], 'Non-member') }}</span></td>
+                    <td>{{ text(row['lastStaffName'], 'Unassigned') }}</td>
+                    <td>{{ text(row['lastServiceName'], '-') }}</td>
+                    <td><a class="mini-link" [routerLink]="clientLink(row)">Open 360</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <div *ngSwitchCase="'top-rfm'" class="report-list">
               <div class="report-row header four"><span>Client</span><span>RFM</span><span>Spend</span><span>Segment</span></div>
               <a class="report-row four clickable" *ngFor="let row of rows(); trackBy: trackRow" [routerLink]="clientLink(row)">
@@ -212,6 +318,7 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
     }
 
     .report-hero.blue { --accent: #2f5dcc; }
+    .report-hero.teal { --accent: #0f8f7b; }
     .report-hero.red { --accent: #b91c1c; }
     .report-hero.green { --accent: #1f7a3d; }
     .report-hero.amber { --accent: #b87810; }
@@ -272,6 +379,36 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       gap: 12px;
     }
 
+    .revenue-filter-panel {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .revenue-filter-panel label {
+      display: grid;
+      gap: 6px;
+    }
+
+    .revenue-filter-panel span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .revenue-filter-panel input,
+    .revenue-filter-panel select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+    }
+
     .summary-card {
       display: grid;
       gap: 6px;
@@ -312,6 +449,66 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       display: grid;
       gap: 6px;
       overflow-x: auto;
+    }
+
+    .revenue-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .revenue-table {
+      width: 100%;
+      min-width: 1320px;
+      border-collapse: collapse;
+    }
+
+    .revenue-table th,
+    .revenue-table td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .revenue-table th {
+      background: color-mix(in srgb, var(--surface) 78%, #e2e8f0);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .status-pill,
+    .mini-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .status-pill.member {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .mini-link {
+      border: 1px solid color-mix(in srgb, #0f766e 36%, var(--line));
+      background: color-mix(in srgb, #ccfbf1 35%, var(--surface));
+      color: #064e3b;
     }
 
     .report-row {
@@ -381,6 +578,10 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .revenue-filter-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .report-row.four,
       .report-row.three {
         min-width: 720px;
@@ -391,16 +592,32 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       .report-summary-grid {
         grid-template-columns: 1fr;
       }
+
+      .revenue-filter-panel {
+        grid-template-columns: 1fr;
+      }
     }
   `]
 })
 export class ClientReportDetailComponent implements OnInit, OnDestroy {
   readonly reportKey = signal('top-rfm');
   readonly rows = signal<ApiRecord[]>([]);
+  readonly reportSummary = signal<ApiRecord>({});
   readonly loading = signal(true);
   readonly error = signal('');
   readonly config = computed(() => CLIENT_REPORT_CONFIG[this.reportKey()] || CLIENT_REPORT_CONFIG['top-rfm']);
   readonly reportNavItems = Object.values(CLIENT_REPORT_CONFIG);
+  readonly revenueFilters = {
+    from: '',
+    to: '',
+    order: 'desc',
+    search: '',
+    membershipStatus: 'all',
+    visitBucket: 'all',
+    revenueBucket: 'all',
+    staff: '',
+    service: ''
+  };
 
   private routeSub?: Subscription;
 
@@ -425,9 +642,11 @@ export class ClientReportDetailComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set('');
     const config = this.config();
-    this.api.report<ApiRecord[]>(config.endpoint, config.params(this.api.selectedBranchId())).subscribe({
-      next: (rows) => {
-        this.rows.set(Array.isArray(rows) ? rows : []);
+    this.api.report<ApiRecord[] | ApiRecord>(config.endpoint, this.paramsFor(config)).subscribe({
+      next: (response) => {
+        const rows = Array.isArray(response) ? response : Array.isArray(response?.['rows']) ? response['rows'] : [];
+        this.reportSummary.set(!Array.isArray(response) && response?.['summary'] ? response['summary'] : {});
+        this.rows.set(rows);
         this.loading.set(false);
       },
       error: (error) => {
@@ -442,6 +661,20 @@ export class ClientReportDetailComponent implements OnInit, OnDestroy {
     const rows = this.rows();
     const sum = (key: string) => rows.reduce((total, row) => total + this.numeric(row[key]), 0);
     const max = (key: string) => rows.reduce((highest, row) => Math.max(highest, this.numeric(row[key])), 0);
+    const summary = this.reportSummary();
+
+    if (this.reportKey() === 'client-revenue') {
+      return [
+        { label: 'Total clients', value: this.numeric(summary['totalClients']) || rows.length, hint: 'Revenue clients in filter' },
+        { label: 'Total visits', value: this.numeric(summary['totalVisits']) || sum('totalVisits'), hint: 'Valid invoice visits' },
+        { label: 'Total revenue', value: this.numeric(summary['totalRevenue']) || sum('totalRevenue'), hint: 'Completed valid invoices', currency: true },
+        { label: 'New clients', value: this.numeric(summary['newClients']), hint: 'Created in selected window' },
+        { label: 'Repeat clients', value: this.numeric(summary['repeatClients']), hint: 'More than one visit' },
+        { label: 'Average bill', value: this.numeric(summary['averageBill']) || sum('totalRevenue') / Math.max(1, sum('totalVisits')), hint: 'Revenue / visits', currency: true },
+        { label: 'Pending due', value: this.numeric(summary['pendingDue']) || sum('pendingDue'), hint: 'Open balance', currency: true },
+        { label: 'Member clients', value: this.numeric(summary['memberClients']), hint: 'Active membership signal' }
+      ];
+    }
 
     if (this.reportKey() === 'top-rfm') {
       return [
@@ -489,7 +722,7 @@ export class ClientReportDetailComponent implements OnInit, OnDestroy {
   }
 
   clientLink(row: ApiRecord): string[] {
-    return row?.['id'] ? ['/clients', String(row['id'])] : ['/clients'];
+    return row?.['id'] || row?.['clientId'] ? ['/clients', String(row['id'] || row['clientId'])] : ['/clients'];
   }
 
   clientName(row: ApiRecord): string {
@@ -514,5 +747,22 @@ export class ClientReportDetailComponent implements OnInit, OnDestroy {
 
   trackRow(index: number, row: ApiRecord): string {
     return String(row?.['id'] || row?.['serviceName'] || row?.['month'] || row?.['nextDate'] || index);
+  }
+
+  private paramsFor(config: ClientReportConfig): ApiRecord {
+    const params = config.params(this.api.selectedBranchId());
+    if (config.key !== 'client-revenue') return params;
+    return {
+      ...params,
+      from: this.revenueFilters.from,
+      to: this.revenueFilters.to,
+      order: this.revenueFilters.order,
+      search: this.revenueFilters.search,
+      membershipStatus: this.revenueFilters.membershipStatus,
+      visitBucket: this.revenueFilters.visitBucket,
+      revenueBucket: this.revenueFilters.revenueBucket,
+      staff: this.revenueFilters.staff,
+      service: this.revenueFilters.service
+    };
   }
 }

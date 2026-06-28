@@ -18,7 +18,7 @@ const ownerHeaders = {
   "x-user-role": "owner"
 };
 
-test("client report endpoints expose all six CRM reports on legacy and v1 APIs", async () => {
+test("client report endpoints expose all seven CRM reports on legacy and v1 APIs", async () => {
   const server = await listen(createApp());
   const port = server.address().port;
   const legacyBase = `http://127.0.0.1:${port}/api`;
@@ -30,6 +30,21 @@ test("client report endpoints expose all six CRM reports on legacy and v1 APIs",
     assert.ok(Array.isArray(topRows));
     assert.ok(topRows.length > 0);
     assert.ok(topRows[0].rfmScore >= 1);
+
+    const revenue = await fetch(`${legacyBase}/reports/clients/revenue?limit=5`, { headers: ownerHeaders });
+    assert.equal(revenue.status, 200);
+    const revenueBody = await revenue.json();
+    assert.ok(revenueBody.summary);
+    assert.ok(Array.isArray(revenueBody.rows));
+    assert.ok(Number(revenueBody.summary.totalClients || 0) >= revenueBody.rows.length);
+    if (revenueBody.rows.length) {
+      assert.ok(revenueBody.rows[0].clientName);
+      assert.ok("totalVisits" in revenueBody.rows[0]);
+      assert.ok("totalRevenue" in revenueBody.rows[0]);
+      assert.ok("averageBill" in revenueBody.rows[0]);
+      assert.ok("pendingDue" in revenueBody.rows[0]);
+      assert.ok("membershipStatus" in revenueBody.rows[0]);
+    }
 
     const reportChecks = await Promise.all([
       fetch(`${legacyBase}/reports/clients/lapsed?minDays=1&maxDays=3650&limit=3`, { headers: ownerHeaders }).then(async (response) => [response.status, await response.json()]),

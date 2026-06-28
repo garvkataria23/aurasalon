@@ -26,6 +26,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <div class="section-title client-report-heading">
           <div class="client-api-strip" aria-label="Client report APIs">
             <span>clients/360</span>
+            <span>clients/revenue</span>
             <span>clients/top-rfm</span>
             <span>clients/lapsed</span>
             <span>clients/new-vs-returning</span>
@@ -43,6 +44,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <span>Client 360</span>
               <strong>{{ client360Report()?.client?.name || 'No client' }}</strong>
               <small>{{ (client360Report()?.metrics?.totalSpend || 0) | currency: 'INR':'symbol':'1.0-0' }} lifetime</small>
+            </button>
+            <button class="metric-card teal kpi-link-card" type="button" (click)="openClientReport('client-revenue')">
+              <span>Client Revenue</span>
+              <strong>{{ (clientRevenueSummary().totalRevenue || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>{{ clientRevenueSummary().totalClients || 0 }} clients · {{ (clientRevenueSummary().pendingDue || 0) | currency: 'INR':'symbol':'1.0-0' }} due</small>
             </button>
             <button class="metric-card blue kpi-link-card" type="button" (click)="openClientReport('top-rfm')">
               <span>{{ client360Report()?.client ? 'Client RFM' : 'Top Clients RFM' }}</span>
@@ -697,6 +703,7 @@ export class ClientsComponent implements OnInit {
     this.reportError.set('');
     const branchId = this.api.selectedBranchId();
     forkJoin({
+      clientRevenue: this.api.report<ApiRecord>('clients/revenue', { limit: 10, branchId }),
       topRfm: this.api.report<ApiRecord[]>('clients/top-rfm', { limit: 10, branchId }),
       lapsed: this.api.report<ApiRecord[]>('clients/lapsed', { minDays: 60, maxDays: 180, limit: 10, branchId }),
       newVsReturning: this.api.report<ApiRecord[]>('clients/new-vs-returning', { months: 6, branchId }),
@@ -934,6 +941,11 @@ export class ClientsComponent implements OnInit {
   reportList(key: string): ApiRecord[] {
     const value = this.clientReports()?.[key];
     return Array.isArray(value) ? value : [];
+  }
+
+  clientRevenueSummary(): ApiRecord {
+    const report = this.clientReports()?.['clientRevenue'];
+    return report && typeof report === 'object' && !Array.isArray(report) ? report['summary'] || {} : {};
   }
 
   clientMetricCards(): ApiRecord[] {
