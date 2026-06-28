@@ -8,6 +8,22 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
 type MatrixCell = { key: string; label: string; tone?: 'section' | 'primary' | 'normal' };
 type MatrixColumn = { key: string; label: string; from?: string; to?: string };
+type ReportTab = 'summary' | 'payments';
+type PaymentDistributionRow = {
+  date: string;
+  invoiceDateValue: string;
+  name: string;
+  contact: string;
+  invoiceNo: string;
+  invoiceId: string;
+  price: number;
+  paymentMode: string;
+  paymentModeKey: string;
+  transactionId: string;
+  paymentDate: string;
+  paymentDateValue: string;
+  notes: string;
+};
 
 @Component({
   selector: 'app-financial-summary-report',
@@ -25,17 +41,36 @@ type MatrixColumn = { key: string; label: string; from?: string; to?: string };
           <a class="ghost-button" routerLink="/reports">Reports</a>
           <a class="ghost-button" routerLink="/reports/invoices">Invoice reports</a>
           <a class="ghost-button" routerLink="/finance">Finance</a>
-          <button class="ghost-button" type="button" (click)="exportCsv()" [disabled]="!matrixColumns().length">Export</button>
+          <button class="ghost-button" type="button" (click)="exportCsv()" [disabled]="activeTab === 'summary' ? !matrixColumns().length : !paymentDistributionRows().length">Export</button>
           <button class="ghost-button icon-action" type="button" (click)="printReport()" title="Print financial summary">Print</button>
         </div>
       </div>
 
+      <div class="report-tabs" role="tablist" aria-label="Financial report views">
+        <button type="button" [class.active]="activeTab === 'summary'" (click)="activeTab = 'summary'">Financial Summary</button>
+        <button type="button" [class.active]="activeTab === 'payments'" (click)="activeTab = 'payments'">Payment Distributions</button>
+      </div>
+
       <section class="panel filter-panel">
-        <label class="field">
+        <label class="field" *ngIf="activeTab === 'summary'">
           <span>View</span>
           <select [(ngModel)]="periodMode">
             <option value="month">Month</option>
             <option value="quarter">Quarter</option>
+          </select>
+        </label>
+        <label class="field" *ngIf="activeTab === 'payments'">
+          <span>Type</span>
+          <select [(ngModel)]="paymentTypeFilter">
+            <option value="">All Type</option>
+            <option *ngFor="let type of paymentTypeOptions()" [value]="type.key">{{ type.label }}</option>
+          </select>
+        </label>
+        <label class="field" *ngIf="activeTab === 'payments'">
+          <span>Date basis</span>
+          <select [(ngModel)]="paymentDateBasis">
+            <option value="payment">By Payment Date</option>
+            <option value="invoice">By Invoice Date</option>
           </select>
         </label>
         <label class="field">
@@ -56,7 +91,7 @@ type MatrixColumn = { key: string; label: string; from?: string; to?: string };
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <ng-container *ngIf="!loading() && !error()">
+      <ng-container *ngIf="!loading() && !error() && activeTab === 'summary'">
         <div class="summary-strip">
           <article>
             <span>Total Sales</span>
@@ -152,6 +187,72 @@ type MatrixColumn = { key: string; label: string; from?: string; to?: string };
           </div>
         </section>
       </ng-container>
+
+      <ng-container *ngIf="!loading() && !error() && activeTab === 'payments'">
+        <section class="payment-distribution-stack">
+          <div class="payment-card-strip">
+            <article *ngFor="let card of paymentDistributionCards()">
+              <strong>{{ card.value }}</strong>
+              <span>{{ card.label }}</span>
+            </article>
+          </div>
+
+          <section class="panel payment-table-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Payment register</span>
+                <h2>Payment Distributions</h2>
+                <p>{{ dateLabel(from) }} to {{ dateLabel(to) }} · {{ paymentDistributionRows().length }} payment row(s)</p>
+              </div>
+              <div class="payment-actions">
+                <label class="search-field">
+                  <span class="sr-only">Search payment rows</span>
+                  <input [(ngModel)]="paymentSearch" placeholder="Name, phone or invoice" />
+                </label>
+                <button class="ghost-button" type="button" (click)="exportCsv()" [disabled]="!paymentDistributionRows().length">Download</button>
+              </div>
+            </div>
+
+            <div class="payment-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Invoice No</th>
+                    <th class="right">Price</th>
+                    <th>Payment Modes</th>
+                    <th>Transaction ID</th>
+                    <th>Payment Date</th>
+                    <th>Notes</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of visiblePaymentDistributionRows()">
+                    <td>{{ row.date }}</td>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.contact }}</td>
+                    <td>{{ row.invoiceNo }}</td>
+                    <td class="right">{{ row.price | number: '1.2-2' }}</td>
+                    <td><span class="mode-pill">{{ row.paymentMode }}</span></td>
+                    <td>{{ row.transactionId || '-' }}</td>
+                    <td>{{ row.paymentDate }}</td>
+                    <td>{{ row.notes || '-' }}</td>
+                    <td>
+                      <a class="row-action" [routerLink]="['/pos/invoices']" [queryParams]="{ q: row.invoiceNo || row.invoiceId }">Open</a>
+                    </td>
+                  </tr>
+                  <tr *ngIf="!visiblePaymentDistributionRows().length">
+                    <td colspan="10" class="empty-cell">No payment distribution rows found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </ng-container>
     </section>
   `,
   styles: [`
@@ -177,15 +278,48 @@ type MatrixColumn = { key: string; label: string; from?: string; to?: string };
       flex-wrap: wrap;
     }
 
+    .report-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: fit-content;
+      max-width: 100%;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .report-tabs button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .report-tabs button.active {
+      color: #fff;
+      background: var(--teal);
+      box-shadow: 0 8px 20px rgba(15, 118, 110, .18);
+    }
+
     .icon-action {
       min-width: 42px;
     }
 
     .filter-panel {
       display: grid;
-      grid-template-columns: 220px minmax(160px, 1fr) minmax(160px, 1fr) minmax(210px, 1.2fr) auto;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
       align-items: end;
+    }
+
+    .filter-panel .primary-button {
+      min-height: 48px;
     }
 
     .summary-strip {
@@ -319,10 +453,143 @@ type MatrixColumn = { key: string; label: string; from?: string; to?: string };
       gap: 10px;
     }
 
+    .payment-distribution-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .payment-card-strip {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(130px, 1fr));
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .payment-card-strip article {
+      min-height: 72px;
+      display: grid;
+      gap: 8px;
+      align-content: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .payment-card-strip strong {
+      color: var(--ink);
+      font-size: 1.08rem;
+      line-height: 1.05;
+    }
+
+    .payment-card-strip span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .payment-table-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .payment-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-field input {
+      width: min(260px, 72vw);
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 14px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .payment-table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fff;
+    }
+
+    .payment-table-wrap table {
+      min-width: 1180px;
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+
+    .payment-table-wrap th,
+    .payment-table-wrap td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 0.82rem;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .payment-table-wrap th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fbfa;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mode-pill,
+    .row-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 118, 110, .22);
+      color: var(--teal);
+      background: rgba(15, 118, 110, .08);
+      font-weight: 900;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .empty-cell {
+      height: 160px;
+      text-align: center !important;
+      color: var(--muted) !important;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     @media (max-width: 1180px) {
       .filter-panel,
       .summary-strip,
-      .insight-grid {
+      .insight-grid,
+      .payment-card-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -330,7 +597,8 @@ type MatrixColumn = { key: string; label: string; from?: string; to?: string };
     @media (max-width: 720px) {
       .filter-panel,
       .summary-strip,
-      .insight-grid {
+      .insight-grid,
+      .payment-card-strip {
         grid-template-columns: 1fr;
       }
 
@@ -354,7 +622,11 @@ export class FinancialSummaryReportComponent implements OnInit {
   readonly walletTransactions = signal<ApiRecord[]>([]);
   readonly financeSummary = signal<ApiRecord>({});
 
+  activeTab: ReportTab = 'summary';
   periodMode: 'month' | 'quarter' = 'month';
+  paymentTypeFilter = '';
+  paymentDateBasis: 'payment' | 'invoice' = 'payment';
+  paymentSearch = '';
   from = this.defaultFrom();
   to = this.today();
 
@@ -435,6 +707,63 @@ export class FinancialSummaryReportComponent implements OnInit {
     return this.filteredInvoices().length;
   }
 
+  paymentDistributionCards(): Array<{ label: string; value: string }> {
+    const rows = this.paymentRowsInDateRange();
+    const amountFor = (modeKey: string) => rows
+      .filter((row) => modeKey === 'all' || row.paymentModeKey === modeKey)
+      .reduce((sum, row) => sum + row.price, 0);
+    return [
+      { label: 'Payment Count', value: String(rows.length) },
+      { label: 'Total Amount', value: this.money(amountFor('all')).toFixed(2) },
+      { label: 'CARD', value: this.money(amountFor('card')).toFixed(2) },
+      { label: 'CASH', value: this.money(amountFor('cash')).toFixed(2) },
+      { label: 'Check', value: this.money(amountFor('check')).toFixed(2) },
+      { label: 'DINGG PAYMENT', value: this.money(amountFor('dingg_payment')).toFixed(2) },
+      { label: 'UPI', value: this.money(amountFor('upi')).toFixed(2) },
+      { label: 'Prepaid', value: this.money(amountFor('prepaid')).toFixed(2) },
+      { label: 'Reward', value: this.money(amountFor('reward')).toFixed(2) },
+      { label: 'Giftcard', value: this.money(amountFor('giftcard')).toFixed(2) }
+    ];
+  }
+
+  paymentTypeOptions(): Array<{ key: string; label: string }> {
+    const baseline = new Map<string, string>([
+      ['card', 'CARD'],
+      ['cash', 'CASH'],
+      ['check', 'Check'],
+      ['dingg_payment', 'DINGG PAYMENT'],
+      ['upi', 'UPI'],
+      ['prepaid', 'Prepaid'],
+      ['reward', 'Reward'],
+      ['giftcard', 'Giftcard']
+    ]);
+    for (const row of this.paymentRowsInDateRange()) {
+      baseline.set(row.paymentModeKey, row.paymentMode);
+    }
+    return [...baseline.entries()].map(([key, label]) => ({ key, label }));
+  }
+
+  paymentDistributionRows(): PaymentDistributionRow[] {
+    return this.paymentRowsInDateRange()
+      .filter((row) => !this.paymentTypeFilter || row.paymentModeKey === this.paymentTypeFilter)
+      .sort((a, b) => this.dateMs(b.paymentDateValue) - this.dateMs(a.paymentDateValue));
+  }
+
+  visiblePaymentDistributionRows(): PaymentDistributionRow[] {
+    const query = this.paymentSearch.trim().toLowerCase();
+    return this.paymentDistributionRows().filter((row) => {
+      if (!query) return true;
+      return [
+        row.name,
+        row.contact,
+        row.invoiceNo,
+        row.paymentMode,
+        row.transactionId,
+        row.notes
+      ].join(' ').toLowerCase().includes(query);
+    });
+  }
+
   netCashflow(): number {
     return this.money(this.totalFor('paid') - this.totalFor('expenses'));
   }
@@ -481,7 +810,17 @@ export class FinancialSummaryReportComponent implements OnInit {
     return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
+  compactDateLabel(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value || '-';
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+  }
+
   exportCsv(): void {
+    if (this.activeTab === 'payments') {
+      this.exportPaymentDistributionCsv();
+      return;
+    }
     const columns = this.matrixColumns();
     const rows = this.matrixRows();
     const csv = [
@@ -496,6 +835,25 @@ export class FinancialSummaryReportComponent implements OnInit {
 
   printReport(): void {
     window.print();
+  }
+
+  private exportPaymentDistributionCsv(): void {
+    const headers = ['Date', 'Name', 'Contact', 'Invoice No', 'Price', 'Payment Modes', 'Transaction ID', 'Payment Date', 'Notes'];
+    const csv = [
+      headers.map((cell) => this.csvCell(cell)).join(','),
+      ...this.visiblePaymentDistributionRows().map((row) => [
+        row.date,
+        row.name,
+        row.contact,
+        row.invoiceNo,
+        row.price.toFixed(2),
+        row.paymentMode,
+        row.transactionId,
+        row.paymentDate,
+        row.notes
+      ].map((cell) => this.csvCell(cell)).join(','))
+    ].join('\n');
+    this.downloadFile(`payment-distributions-${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
   }
 
   private safeList(resource: string, params: ApiRecord = {}) {
@@ -561,6 +919,51 @@ export class FinancialSummaryReportComponent implements OnInit {
 
   private filteredInvoices(): ApiRecord[] {
     return this.invoices().filter((invoice) => this.inDateRange(this.invoiceDate(invoice)));
+  }
+
+  private paymentRowsInDateRange(): PaymentDistributionRow[] {
+    return this.paymentDistributionBaseRows().filter((row) => {
+      const basisDate = this.paymentDateBasis === 'invoice' ? row.invoiceDateValue : row.paymentDateValue;
+      return this.inDateRange(basisDate);
+    });
+  }
+
+  private paymentDistributionBaseRows(): PaymentDistributionRow[] {
+    const invoiceById = new Map<string, ApiRecord>();
+    for (const invoice of this.invoices()) {
+      const ids = [
+        invoice['id'],
+        invoice['invoiceId'],
+        invoice['invoice_id'],
+        invoice['invoiceNumber'],
+        invoice['invoice_number'],
+        invoice['number']
+      ].filter((value) => value !== undefined && value !== null && value !== '');
+      for (const id of ids) invoiceById.set(String(id), invoice);
+    }
+
+    return this.payments().map((payment) => {
+      const invoiceId = String(payment['invoiceId'] || payment['invoice_id'] || payment['invoiceNumber'] || payment['invoice_number'] || '');
+      const invoice = invoiceById.get(invoiceId) || {};
+      const invoiceDateValue = this.invoiceDate(invoice) || this.paymentDate(payment);
+      const paymentDateValue = this.paymentDate(payment) || invoiceDateValue;
+      const paymentMode = this.modeLabel(this.paymentMode(payment));
+      return {
+        date: this.compactDateLabel(invoiceDateValue),
+        invoiceDateValue,
+        name: String(invoice['clientName'] || invoice['client_name'] || invoice['name'] || payment['clientName'] || payment['client_name'] || 'Walk In'),
+        contact: String(invoice['clientPhone'] || invoice['client_phone'] || invoice['phone'] || payment['clientPhone'] || payment['client_phone'] || '-'),
+        invoiceNo: String(invoice['invoiceNumber'] || invoice['invoice_number'] || invoice['number'] || payment['invoiceNumber'] || payment['invoice_number'] || invoiceId || '-'),
+        invoiceId: String(invoice['id'] || invoiceId || ''),
+        price: this.paymentAmount(payment),
+        paymentMode,
+        paymentModeKey: this.modeKey(paymentMode),
+        transactionId: String(payment['transactionId'] || payment['transaction_id'] || payment['paymentId'] || payment['payment_id'] || payment['referenceNo'] || payment['reference_no'] || payment['id'] || ''),
+        paymentDate: this.compactDateLabel(paymentDateValue),
+        paymentDateValue,
+        notes: String(payment['notes'] || payment['note'] || payment['remarks'] || payment['reference'] || payment['paymentReference'] || payment['payment_reference'] || '')
+      };
+    }).filter((row) => row.price > 0);
   }
 
   private invoicesForPeriod(column: MatrixColumn): ApiRecord[] {
@@ -683,6 +1086,9 @@ export class FinancialSummaryReportComponent implements OnInit {
     if (normalized.includes('card')) return 'card';
     if (normalized.includes('upi') || normalized.includes('gpay') || normalized.includes('paytm') || normalized.includes('phonepe')) return 'upi';
     if (normalized.includes('cheque') || normalized.includes('check')) return 'check';
+    if (normalized.includes('dingg')) return 'dingg_payment';
+    if (normalized.includes('prepaid') || normalized.includes('advance')) return 'prepaid';
+    if (normalized.includes('giftcard') || normalized.includes('gift card')) return 'giftcard';
     if (normalized.includes('wallet')) return 'wallet';
     if (normalized.includes('reward')) return 'reward';
     if (normalized.includes('bank') || normalized.includes('neft') || normalized.includes('imps') || normalized.includes('rtgs')) return 'bank';
@@ -696,6 +1102,9 @@ export class FinancialSummaryReportComponent implements OnInit {
       card: 'CARD',
       upi: 'UPI',
       check: 'Check',
+      dingg_payment: 'DINGG PAYMENT',
+      prepaid: 'Prepaid',
+      giftcard: 'Giftcard',
       bank: 'Bank',
       wallet: 'Wallet',
       reward: 'Reward',

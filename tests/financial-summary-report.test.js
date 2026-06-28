@@ -54,3 +54,27 @@ test("financial summary matrix includes Salonist-style financial rows", () => {
   assert.match(financialSummary, /walletTransactions/);
   assert.match(financialSummary, /matrixRows\(\): MatrixCell\[\]/);
 });
+
+test("financial summary includes Salonist-style Payment Distributions tab", () => {
+  for (const label of [
+    "Payment Distributions",
+    "All Type",
+    "By Payment Date",
+    "By Invoice Date",
+    "Payment Count",
+    "Total Amount",
+    "DINGG PAYMENT",
+    "Prepaid",
+    "Giftcard",
+    "Transaction ID",
+    "Payment Date",
+    "Name, phone or invoice",
+    "Download"
+  ]) {
+    assert.match(financialSummary, new RegExp(label), `missing payment distribution label: ${label}`);
+  }
+
+  assert.match(financialSummary, /paymentDistributionRows\(\): PaymentDistributionRow\[\]/);
+  assert.match(financialSummary, /paymentDistributionCards\(\)/);
+  assert.match(financialSummary, /exportPaymentDistributionCsv\(\)/);
+});
