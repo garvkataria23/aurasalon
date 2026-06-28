@@ -8,7 +8,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
 type MatrixCell = { key: string; label: string; tone?: 'section' | 'primary' | 'normal' };
 type MatrixColumn = { key: string; label: string; from?: string; to?: string };
-type ReportTab = 'summary' | 'payments' | 'daily-sheet' | 'daily-revenue';
+type ReportTab = 'summary' | 'payments' | 'daily-sheet' | 'daily-revenue' | 'member-sales';
 type PaymentDistributionRow = {
   date: string;
   invoiceDateValue: string;
@@ -60,6 +60,22 @@ type DailyRevenueRow = {
   refundReturn: number;
   finalCashInValue: number;
 };
+type MemberSalesRow = {
+  clientId: string;
+  clientName: string;
+  phone: string;
+  membershipStatus: 'Active member' | 'Expired member' | 'Non-member';
+  activePlanName: string;
+  totalVisits: number;
+  totalSale: number;
+  paidAmount: number;
+  pendingAmount: number;
+  discountUsed: number;
+  lastVisitDate: string;
+  suggestedAction: string;
+  isMember: boolean;
+  isExpiredMember: boolean;
+};
 
 @Component({
   selector: 'app-financial-summary-report',
@@ -87,6 +103,7 @@ type DailyRevenueRow = {
         <button type="button" [class.active]="activeTab === 'payments'" (click)="setActiveTab('payments')">Payment Distributions</button>
         <button type="button" [class.active]="activeTab === 'daily-sheet'" (click)="setActiveTab('daily-sheet')">Daily Sheet</button>
         <button type="button" [class.active]="activeTab === 'daily-revenue'" (click)="setActiveTab('daily-revenue')">Daily Revenue</button>
+        <button type="button" [class.active]="activeTab === 'member-sales'" (click)="setActiveTab('member-sales')">Member vs Non-Member Sales</button>
       </div>
 
       <section class="panel filter-panel">
@@ -114,6 +131,18 @@ type DailyRevenueRow = {
         <label class="field" *ngIf="activeTab === 'daily-sheet'">
           <span>Sheet date</span>
           <input type="date" [(ngModel)]="dailySheetDate" (ngModelChange)="setDailySheetDate($event)" />
+        </label>
+        <label class="field" *ngIf="activeTab === 'member-sales'">
+          <span>Client type</span>
+          <select [(ngModel)]="memberClientTypeFilter">
+            <option value="all">All</option>
+            <option value="members">Members</option>
+            <option value="non-members">Non-members</option>
+          </select>
+        </label>
+        <label class="field" *ngIf="activeTab === 'member-sales'">
+          <span>Search</span>
+          <input type="search" [(ngModel)]="memberSalesSearch" placeholder="Client, phone or membership plan" />
         </label>
         <label class="field">
           <span>From</span>
@@ -593,6 +622,155 @@ type DailyRevenueRow = {
           </section>
         </section>
       </ng-container>
+
+      <ng-container *ngIf="!loading() && !error() && activeTab === 'member-sales'">
+        <section class="member-sales-stack">
+          <div class="section-title daily-sheet-title">
+            <div>
+              <span class="eyebrow">Membership growth report</span>
+              <h2>Member vs Non-Member Sales</h2>
+              <p>{{ dateLabel(from) }} to {{ dateLabel(to) }} · compare revenue, visits, ROI and conversion opportunities.</p>
+            </div>
+            <div class="hero-actions">
+              <span class="badge">{{ visibleMemberSalesRows().length }} client(s)</span>
+              <button class="ghost-button" type="button" (click)="exportCsv()" [disabled]="!visibleMemberSalesRows().length">CSV full report</button>
+              <button class="ghost-button" type="button" (click)="exportMemberSalesOwnerPdf()" [disabled]="!visibleMemberSalesRows().length">Owner PDF</button>
+              <button class="ghost-button" type="button" (click)="exportMemberConversionPdf()" [disabled]="!memberConversionOpportunities().length">Conversion PDF</button>
+            </div>
+          </div>
+
+          <div class="daily-sheet-kpis">
+            <article><span>Member clients count</span><strong>{{ memberSalesSummary()['memberClients'] }}</strong><small>{{ memberSalesSummary()['memberVisits'] }} visits</small></article>
+            <article><span>Non-member clients count</span><strong>{{ memberSalesSummary()['nonMemberClients'] }}</strong><small>{{ memberSalesSummary()['nonMemberVisits'] }} visits</small></article>
+            <article><span>Member revenue</span><strong>{{ memberSalesSummary()['memberRevenue'] | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ memberSalesSummary()['memberRevenueShare'] | number:'1.1-1' }}% share</small></article>
+            <article><span>Non-member revenue</span><strong>{{ memberSalesSummary()['nonMemberRevenue'] | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ memberSalesSummary()['nonMemberRevenueShare'] | number:'1.1-1' }}% share</small></article>
+            <article><span>Paid amount</span><strong>{{ memberSalesSummary()['paidAmount'] | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Total collected</small></article>
+            <article><span>Pending amount</span><strong>{{ memberSalesSummary()['pendingAmount'] | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Open balance</small></article>
+            <article><span>Collection rate %</span><strong>{{ memberSalesSummary()['collectionRate'] | number:'1.1-1' }}%</strong><small>Paid / sale</small></article>
+          </div>
+
+          <div class="member-sales-grid">
+            <section class="panel daily-sheet-card">
+              <div class="mini-section-title"><span>Member vs Non-Member Comparison</span><strong>Revenue quality</strong></div>
+              <table>
+                <thead><tr><th>Metric</th><th class="right">Members</th><th class="right">Non-members</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let row of memberComparisonRows()">
+                    <td>{{ row['label'] }}</td>
+                    <td class="right">{{ row['member'] }}</td>
+                    <td class="right">{{ row['nonMember'] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="panel daily-sheet-card">
+              <div class="mini-section-title"><span>Membership ROI</span><strong>Profitability signal</strong></div>
+              <table>
+                <thead><tr><th>Metric</th><th class="right">Value</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let row of membershipRoiRows()">
+                    <td>{{ row['label'] }}</td>
+                    <td class="right">{{ row['value'] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="panel daily-sheet-card">
+              <div class="mini-section-title"><span>Conversion Opportunity</span><strong>Non-member growth list</strong></div>
+              <table>
+                <thead><tr><th>Client</th><th class="right">Sale</th><th class="right">Visits</th><th>Suggested plan</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let row of memberConversionOpportunities()">
+                    <td>{{ row['clientName'] }}<br><small>{{ row['phone'] }}</small></td>
+                    <td class="right">{{ row['totalSale'] | number:'1.2-2' }}</td>
+                    <td class="right">{{ row['totalVisits'] }}</td>
+                    <td>{{ row['suggestedPlan'] }}</td>
+                    <td>{{ row['followUpAction'] }}</td>
+                  </tr>
+                  <tr *ngIf="!memberConversionOpportunities().length">
+                    <td colspan="5" class="empty-cell">No conversion opportunity found for selected range.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="panel daily-sheet-card">
+              <div class="mini-section-title"><span>Staff-Wise Impact</span><strong>Conversion accountability</strong></div>
+              <table>
+                <thead><tr><th>Staff name</th><th class="right">Member sales</th><th class="right">Non-member sales</th><th class="right">Member conversion count</th><th class="right">Repeat member visits</th><th class="right">Member pending</th><th class="right">Non-member pending</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let row of memberStaffImpactRows()">
+                    <td>{{ row['staffName'] }}</td>
+                    <td class="right">{{ row['memberSales'] | number:'1.2-2' }}</td>
+                    <td class="right">{{ row['nonMemberSales'] | number:'1.2-2' }}</td>
+                    <td class="right">{{ row['memberConversionCount'] }}</td>
+                    <td class="right">{{ row['repeatMemberVisits'] }}</td>
+                    <td class="right">{{ row['memberPending'] | number:'1.2-2' }}</td>
+                    <td class="right">{{ row['nonMemberPending'] | number:'1.2-2' }}</td>
+                  </tr>
+                  <tr *ngIf="!memberStaffImpactRows().length">
+                    <td colspan="7" class="empty-cell">No staff impact rows found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <section class="panel daily-revenue-alerts">
+            <div class="mini-section-title"><span>Owner Alerts</span><strong>Membership revenue control</strong></div>
+            <div class="alert-grid">
+              <article *ngFor="let alert of memberSalesAlerts()" [class.warn]="alert['tone'] === 'warn'" [class.danger]="alert['tone'] === 'danger'">
+                <span>{{ alert['label'] }}</span>
+                <strong>{{ alert['value'] }}</strong>
+                <small>{{ alert['detail'] }}</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel daily-revenue-table-card">
+            <div class="mini-section-title"><span>Client-level table</span><strong>Renew, upsell, convert or recover due</strong></div>
+            <div class="financial-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client name</th>
+                    <th>Phone</th>
+                    <th>Membership status</th>
+                    <th>Active plan name</th>
+                    <th class="right">Total visits</th>
+                    <th class="right">Total sale</th>
+                    <th class="right">Paid amount</th>
+                    <th class="right">Pending amount</th>
+                    <th class="right">Discount used</th>
+                    <th>Last visit date</th>
+                    <th>Suggested action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of visibleMemberSalesRows()">
+                    <td><strong>{{ row.clientName }}</strong></td>
+                    <td>{{ row.phone }}</td>
+                    <td>{{ row.membershipStatus }}</td>
+                    <td>{{ row.activePlanName || '-' }}</td>
+                    <td class="right">{{ row.totalVisits }}</td>
+                    <td class="right">{{ row.totalSale | number:'1.2-2' }}</td>
+                    <td class="right">{{ row.paidAmount | number:'1.2-2' }}</td>
+                    <td class="right">{{ row.pendingAmount | number:'1.2-2' }}</td>
+                    <td class="right">{{ row.discountUsed | number:'1.2-2' }}</td>
+                    <td>{{ row.lastVisitDate }}</td>
+                    <td><span class="mode-pill">{{ row.suggestedAction }}</span></td>
+                  </tr>
+                  <tr *ngIf="!visibleMemberSalesRows().length">
+                    <td colspan="11" class="empty-cell">No member sales rows found for selected filters.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </ng-container>
     </section>
   `,
   styles: [`
@@ -994,8 +1172,15 @@ type DailyRevenueRow = {
       flex-wrap: wrap;
     }
 
-    .daily-revenue-stack {
+    .daily-revenue-stack,
+    .member-sales-stack {
       display: grid;
+      gap: 14px;
+    }
+
+    .member-sales-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
     }
 
@@ -1178,6 +1363,7 @@ type DailyRevenueRow = {
       .daily-sheet-kpis,
       .daily-sheet-grid,
       .daily-revenue-charts,
+      .member-sales-grid,
       .aging-chart,
       .alert-grid,
       .daily-revenue-drilldown {
@@ -1193,6 +1379,7 @@ type DailyRevenueRow = {
       .daily-sheet-kpis,
       .daily-sheet-grid,
       .daily-revenue-charts,
+      .member-sales-grid,
       .aging-chart,
       .alert-grid,
       .daily-revenue-drilldown {
@@ -1217,6 +1404,8 @@ export class FinancialSummaryReportComponent implements OnInit {
   readonly sales = signal<ApiRecord[]>([]);
   readonly branches = signal<ApiRecord[]>([]);
   readonly walletTransactions = signal<ApiRecord[]>([]);
+  readonly clients = signal<ApiRecord[]>([]);
+  readonly memberships = signal<ApiRecord[]>([]);
   readonly financeExpenses = signal<ApiRecord[]>([]);
   readonly auditLogs = signal<ApiRecord[]>([]);
   readonly cashDrawerReports = signal<ApiRecord[]>([]);
@@ -1229,6 +1418,8 @@ export class FinancialSummaryReportComponent implements OnInit {
   paymentTypeFilter = '';
   paymentDateBasis: 'payment' | 'invoice' = 'payment';
   paymentSearch = '';
+  memberClientTypeFilter: 'all' | 'members' | 'non-members' = 'all';
+  memberSalesSearch = '';
   from = this.defaultFrom();
   to = this.today();
   dailySheetDate = this.today();
@@ -1244,6 +1435,7 @@ export class FinancialSummaryReportComponent implements OnInit {
   private dailyRevenueAlertsCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
   private dailyRevenueDrilldownCache = new Map<string, ApiRecord>();
   private financialControlDataLoaded = false;
+  private memberSalesDataLoaded = false;
 
   readonly baseRows: MatrixCell[] = [
     { key: 'sales', label: 'SALES', tone: 'section' },
@@ -1271,6 +1463,7 @@ export class FinancialSummaryReportComponent implements OnInit {
     if (tab === 'daily-sheet') this.setDailySheetDate(this.dailySheetDate);
     if (tab !== 'daily-revenue') this.expandedDailyRevenueDate = '';
     if (this.needsFinancialControlData()) this.ensureFinancialControlDataLoaded();
+    if (tab === 'member-sales') this.ensureMemberSalesDataLoaded();
   }
 
   load(): void {
@@ -1296,6 +1489,10 @@ export class FinancialSummaryReportComponent implements OnInit {
         if (this.needsFinancialControlData()) {
           this.financialControlDataLoaded = false;
           this.ensureFinancialControlDataLoaded();
+        }
+        if (this.activeTab === 'member-sales') {
+          this.memberSalesDataLoaded = false;
+          this.ensureMemberSalesDataLoaded();
         }
       },
       error: (error) => {
@@ -1426,7 +1623,8 @@ export class FinancialSummaryReportComponent implements OnInit {
     if (this.activeTab === 'summary') return !this.matrixColumns().length;
     if (this.activeTab === 'payments') return !this.paymentDistributionRows().length;
     if (this.activeTab === 'daily-sheet') return !this.dailySheetSummary().totalBills;
-    return !this.dailyRevenueRows().length;
+    if (this.activeTab === 'daily-revenue') return !this.dailyRevenueRows().length;
+    return !this.visibleMemberSalesRows().length;
   }
 
   periodModeLabel(): string {
@@ -1461,6 +1659,10 @@ export class FinancialSummaryReportComponent implements OnInit {
     }
     if (this.activeTab === 'daily-revenue') {
       this.exportDailyRevenueCsv();
+      return;
+    }
+    if (this.activeTab === 'member-sales') {
+      this.exportMemberSalesCsv();
       return;
     }
     if (this.activeTab === 'payments') {
@@ -1820,6 +2022,173 @@ export class FinancialSummaryReportComponent implements OnInit {
     return value;
   }
 
+  memberSalesRows(): MemberSalesRow[] {
+    const rowsByClient = new Map<string, MemberSalesRow>();
+    const invoices = this.filteredInvoices();
+    for (const invoice of invoices) {
+      const clientId = this.invoiceClientId(invoice);
+      const client = this.clientForInvoice(invoice);
+      const key = clientId || this.invoiceClientPhone(invoice) || this.invoiceClientName(invoice);
+      const memberships = this.membershipsForClient(clientId, client);
+      const activeMembership = memberships.find((membership) => this.isActiveMembership(membership));
+      const expiredMembership = !activeMembership && memberships.length > 0;
+      const row = rowsByClient.get(key) || {
+        clientId,
+        clientName: this.invoiceClientName(invoice, client),
+        phone: this.invoiceClientPhone(invoice, client),
+        membershipStatus: activeMembership ? 'Active member' : expiredMembership ? 'Expired member' : 'Non-member',
+        activePlanName: String(activeMembership?.['planName'] || activeMembership?.['plan_name'] || activeMembership?.['name'] || memberships[0]?.['planName'] || ''),
+        totalVisits: 0,
+        totalSale: 0,
+        paidAmount: 0,
+        pendingAmount: 0,
+        discountUsed: 0,
+        lastVisitDate: '',
+        suggestedAction: '',
+        isMember: !!activeMembership,
+        isExpiredMember: expiredMembership
+      };
+      row.totalVisits += 1;
+      row.totalSale = this.money(row.totalSale + this.invoiceTotal(invoice));
+      row.paidAmount = this.money(row.paidAmount + this.invoicePaid(invoice));
+      row.pendingAmount = this.money(row.pendingAmount + this.invoiceBalance(invoice));
+      row.discountUsed = this.money(row.discountUsed + this.invoiceDiscount(invoice) + this.couponDiscount(invoice) + this.membershipDiscount(invoice));
+      const invoiceDate = this.invoiceDate(invoice);
+      row.lastVisitDate = !row.lastVisitDate || this.dateMs(invoiceDate) > this.dateMs(row.lastVisitDate) ? invoiceDate : row.lastVisitDate;
+      row.suggestedAction = this.memberSuggestedAction(row);
+      rowsByClient.set(key, row);
+    }
+    return [...rowsByClient.values()].sort((a, b) => b.totalSale - a.totalSale);
+  }
+
+  visibleMemberSalesRows(): MemberSalesRow[] {
+    const query = this.memberSalesSearch.trim().toLowerCase();
+    return this.memberSalesRows().filter((row) => {
+      if (this.memberClientTypeFilter === 'members' && !row.isMember) return false;
+      if (this.memberClientTypeFilter === 'non-members' && row.isMember) return false;
+      if (!query) return true;
+      return [row.clientName, row.phone, row.membershipStatus, row.activePlanName, row.suggestedAction].join(' ').toLowerCase().includes(query);
+    });
+  }
+
+  memberSalesSummary(): ApiRecord {
+    const rows = this.visibleMemberSalesRows();
+    const members = rows.filter((row) => row.isMember);
+    const nonMembers = rows.filter((row) => !row.isMember);
+    const totalRevenue = rows.reduce((sum, row) => sum + row.totalSale, 0);
+    const memberRevenue = members.reduce((sum, row) => sum + row.totalSale, 0);
+    const nonMemberRevenue = nonMembers.reduce((sum, row) => sum + row.totalSale, 0);
+    const paidAmount = rows.reduce((sum, row) => sum + row.paidAmount, 0);
+    const pendingAmount = rows.reduce((sum, row) => sum + row.pendingAmount, 0);
+    return {
+      memberClients: members.length,
+      nonMemberClients: nonMembers.length,
+      memberRevenue: this.money(memberRevenue),
+      nonMemberRevenue: this.money(nonMemberRevenue),
+      memberVisits: members.reduce((sum, row) => sum + row.totalVisits, 0),
+      nonMemberVisits: nonMembers.reduce((sum, row) => sum + row.totalVisits, 0),
+      paidAmount: this.money(paidAmount),
+      pendingAmount: this.money(pendingAmount),
+      collectionRate: totalRevenue ? this.money((paidAmount / totalRevenue) * 100) : 0,
+      memberRevenueShare: totalRevenue ? this.money((memberRevenue / totalRevenue) * 100) : 0,
+      nonMemberRevenueShare: totalRevenue ? this.money((nonMemberRevenue / totalRevenue) * 100) : 0
+    };
+  }
+
+  memberComparisonRows(): ApiRecord[] {
+    const rows = this.visibleMemberSalesRows();
+    const memberRows = rows.filter((row) => row.isMember);
+    const nonMemberRows = rows.filter((row) => !row.isMember);
+    const total = (items: MemberSalesRow[], key: keyof MemberSalesRow) => this.money(items.reduce((sum, row) => sum + Number(row[key] || 0), 0));
+    const avg = (items: MemberSalesRow[]) => items.length ? this.money(total(items, 'totalSale') / Math.max(1, total(items, 'totalVisits'))) : 0;
+    const collection = (items: MemberSalesRow[]) => total(items, 'totalSale') ? this.money((total(items, 'paidAmount') / total(items, 'totalSale')) * 100) : 0;
+    const totalRevenue = total(rows, 'totalSale');
+    return [
+      { label: 'Revenue', member: this.formatMoney(total(memberRows, 'totalSale')), nonMember: this.formatMoney(total(nonMemberRows, 'totalSale')) },
+      { label: 'Average bill', member: this.formatMoney(avg(memberRows)), nonMember: this.formatMoney(avg(nonMemberRows)) },
+      { label: 'Visit frequency', member: String(total(memberRows, 'totalVisits')), nonMember: String(total(nonMemberRows, 'totalVisits')) },
+      { label: 'Paid amount', member: this.formatMoney(total(memberRows, 'paidAmount')), nonMember: this.formatMoney(total(nonMemberRows, 'paidAmount')) },
+      { label: 'Pending amount', member: this.formatMoney(total(memberRows, 'pendingAmount')), nonMember: this.formatMoney(total(nonMemberRows, 'pendingAmount')) },
+      { label: 'Collection rate %', member: `${collection(memberRows).toFixed(1)}%`, nonMember: `${collection(nonMemberRows).toFixed(1)}%` },
+      { label: 'Revenue share %', member: `${(totalRevenue ? this.money((total(memberRows, 'totalSale') / totalRevenue) * 100) : 0).toFixed(1)}%`, nonMember: `${(totalRevenue ? this.money((total(nonMemberRows, 'totalSale') / totalRevenue) * 100) : 0).toFixed(1)}%` }
+    ];
+  }
+
+  membershipRoiRows(): ApiRecord[] {
+    const memberRows = this.visibleMemberSalesRows().filter((row) => row.isMember);
+    const membershipSaleAmount = this.money(this.linesForInvoices(this.filteredInvoices()).filter((line) => this.normalizedItemType(line) === 'membership').reduce((sum, line) => sum + this.lineAmount(line), 0));
+    const membershipDiscountGiven = this.money(memberRows.reduce((sum, row) => sum + row.discountUsed, 0));
+    const memberRevenue = this.money(memberRows.reduce((sum, row) => sum + row.totalSale, 0));
+    const repeatMembers = memberRows.filter((row) => row.totalVisits > 1);
+    const benefitAbuse = memberRows.filter((row) => row.totalSale > 0 && row.discountUsed / row.totalSale >= 0.25);
+    return [
+      { label: 'Membership sale amount', value: this.formatMoney(membershipSaleAmount) },
+      { label: 'Membership discount given', value: this.formatMoney(membershipDiscountGiven) },
+      { label: 'Revenue generated by members', value: this.formatMoney(memberRevenue) },
+      { label: 'Repeat visits by members', value: String(repeatMembers.reduce((sum, row) => sum + row.totalVisits, 0)) },
+      { label: 'Member retention %', value: `${(memberRows.length ? this.money((repeatMembers.length / memberRows.length) * 100) : 0).toFixed(1)}%` },
+      { label: 'Membership payback value', value: this.formatMoney(memberRevenue - membershipDiscountGiven + membershipSaleAmount) },
+      { label: 'Benefit abuse / high discount alert', value: String(benefitAbuse.length) }
+    ];
+  }
+
+  memberConversionOpportunities(): ApiRecord[] {
+    return this.visibleMemberSalesRows()
+      .filter((row) => !row.isMember && (row.totalSale >= 5000 || row.totalVisits >= 2 || row.pendingAmount > 0))
+      .slice(0, 20)
+      .map((row) => ({
+        ...row,
+        suggestedPlan: row.totalSale >= 12000 ? 'Gold membership' : row.totalVisits >= 2 ? 'Visit pack / Silver membership' : 'Starter discount membership',
+        potentialRevenue: this.money(row.totalSale * 1.15),
+        followUpAction: row.pendingAmount > 0 ? 'Recover due + offer membership' : 'WhatsApp / call / offer'
+      }));
+  }
+
+  memberStaffImpactRows(): ApiRecord[] {
+    const map = new Map<string, ApiRecord>();
+    const memberRows = this.memberSalesRows();
+    for (const invoice of this.filteredInvoices()) {
+      const invoiceClientId = this.invoiceClientId(invoice);
+      const invoicePhone = this.invoiceClientPhone(invoice);
+      const row = memberRows.find((item) => (!!invoiceClientId && item.clientId === invoiceClientId) || item.phone === invoicePhone);
+      const staffName = String(invoice['staffName'] || invoice['staff_name'] || invoice['createdByName'] || invoice['created_by_name'] || 'Unassigned');
+      const current = map.get(staffName) || { staffName, memberSales: 0, nonMemberSales: 0, memberConversionCount: new Set<string>(), repeatMemberVisits: 0, memberPending: 0, nonMemberPending: 0 };
+      if (row?.isMember) {
+        current['memberSales'] = this.money(Number(current['memberSales'] || 0) + this.invoiceTotal(invoice));
+        current['memberPending'] = this.money(Number(current['memberPending'] || 0) + this.invoiceBalance(invoice));
+        current['repeatMemberVisits'] = Number(current['repeatMemberVisits'] || 0) + (row.totalVisits > 1 ? 1 : 0);
+        (current['memberConversionCount'] as Set<string>).add(row.clientId || row.phone);
+      } else {
+        current['nonMemberSales'] = this.money(Number(current['nonMemberSales'] || 0) + this.invoiceTotal(invoice));
+        current['nonMemberPending'] = this.money(Number(current['nonMemberPending'] || 0) + this.invoiceBalance(invoice));
+      }
+      map.set(staffName, current);
+    }
+    return [...map.values()]
+      .map((row) => ({ ...row, memberConversionCount: (row['memberConversionCount'] as Set<string>).size }) as ApiRecord)
+      .sort((a, b) => Number(b['memberSales'] || 0) + Number(b['nonMemberSales'] || 0) - Number(a['memberSales'] || 0) - Number(a['nonMemberSales'] || 0));
+  }
+
+  memberSalesAlerts(): ApiRecord[] {
+    const rows = this.visibleMemberSalesRows();
+    const nonMembers = rows.filter((row) => !row.isMember);
+    const members = rows.filter((row) => row.isMember);
+    const highValueNonMember = [...nonMembers].sort((a, b) => b.totalSale - a.totalSale)[0];
+    const repeatNonMember = nonMembers.find((row) => row.totalVisits >= 2);
+    const highDiscountMember = members.find((row) => row.totalSale > 0 && row.discountUsed / row.totalSale >= 0.25);
+    const memberDue = members.find((row) => row.pendingAmount > 0);
+    const expiredVisitor = rows.find((row) => row.isExpiredMember);
+    const lowConversionStaff = this.memberStaffImpactRows().find((row) => Number(row['nonMemberSales'] || 0) > Number(row['memberSales'] || 0) * 2);
+    return [
+      { label: 'High value non-member', value: highValueNonMember ? this.formatMoney(highValueNonMember.totalSale) : '₹0', detail: highValueNonMember?.clientName || 'No high value non-member', tone: highValueNonMember && highValueNonMember.totalSale >= 5000 ? 'warn' : 'normal' },
+      { label: 'Repeat non-member not converted', value: repeatNonMember ? `${repeatNonMember.totalVisits} visits` : '0', detail: repeatNonMember?.clientName || 'No repeat non-member risk', tone: repeatNonMember ? 'warn' : 'normal' },
+      { label: 'Member using high discount', value: highDiscountMember ? this.formatMoney(highDiscountMember.discountUsed) : '₹0', detail: highDiscountMember?.clientName || 'No benefit abuse signal', tone: highDiscountMember ? 'danger' : 'normal' },
+      { label: 'Member pending due', value: memberDue ? this.formatMoney(memberDue.pendingAmount) : '₹0', detail: memberDue?.clientName || 'No member due', tone: memberDue ? 'danger' : 'normal' },
+      { label: 'Expired member still visiting', value: expiredVisitor ? expiredVisitor.clientName : '0', detail: expiredVisitor ? 'Renewal opportunity' : 'No expired visitor', tone: expiredVisitor ? 'warn' : 'normal' },
+      { label: 'Staff with low membership conversion', value: String(lowConversionStaff?.['staffName'] || 'Clear'), detail: lowConversionStaff ? 'Non-member sales much higher than member sales' : 'No staff conversion risk', tone: lowConversionStaff ? 'warn' : 'normal' }
+    ];
+  }
+
   exportDailySheetPdf(): void {
     const summary = this.dailySheetSummary();
     const lines = [
@@ -1916,6 +2285,45 @@ export class FinancialSummaryReportComponent implements OnInit {
       ...this.dailyRevenueRows().map((row) => `${row.dateLabel}: net ${this.formatMoney(row.netSale)}, GST ${this.formatMoney(row.gst)}, received ${this.formatMoney(row.receivedAmount)}`)
     ];
     this.downloadFile(`daily-revenue-accountant-${Date.now()}.pdf`, this.simplePdf(lines), 'application/pdf');
+  }
+
+  exportMemberSalesOwnerPdf(): void {
+    const summary = this.memberSalesSummary();
+    const lines = [
+      'Member vs Non-Member Sales Owner Summary',
+      `Generated: ${new Date().toLocaleString('en-IN')}`,
+      `Date range: ${this.dateLabel(this.from)} to ${this.dateLabel(this.to)}`,
+      `Branch: ${this.branchLabel()}`,
+      '',
+      `Member clients count: ${summary['memberClients']}`,
+      `Non-member clients count: ${summary['nonMemberClients']}`,
+      `Member revenue: ${this.formatMoney(Number(summary['memberRevenue'] || 0))}`,
+      `Non-member revenue: ${this.formatMoney(Number(summary['nonMemberRevenue'] || 0))}`,
+      `Member visits: ${summary['memberVisits']}`,
+      `Non-member visits: ${summary['nonMemberVisits']}`,
+      `Paid amount: ${this.formatMoney(Number(summary['paidAmount'] || 0))}`,
+      `Pending amount: ${this.formatMoney(Number(summary['pendingAmount'] || 0))}`,
+      `Collection rate: ${Number(summary['collectionRate'] || 0).toFixed(1)}%`,
+      '',
+      'Membership ROI',
+      ...this.membershipRoiRows().map((row) => `${row['label']}: ${row['value']}`),
+      '',
+      'Owner alerts',
+      ...this.memberSalesAlerts().map((alert) => `${alert['label']}: ${alert['value']} - ${alert['detail']}`)
+    ];
+    this.downloadFile(`member-vs-non-member-owner-${Date.now()}.pdf`, this.simplePdf(lines), 'application/pdf');
+  }
+
+  exportMemberConversionPdf(): void {
+    const lines = [
+      'Membership Conversion List',
+      `Generated: ${new Date().toLocaleString('en-IN')}`,
+      `Date range: ${this.dateLabel(this.from)} to ${this.dateLabel(this.to)}`,
+      `Branch: ${this.branchLabel()}`,
+      '',
+      ...this.memberConversionOpportunities().map((row, index) => `${index + 1}. ${row['clientName']} | ${row['phone']} | sale ${this.formatMoney(Number(row['totalSale'] || 0))} | visits ${row['totalVisits']} | plan ${row['suggestedPlan']} | action ${row['followUpAction']}`)
+    ];
+    this.downloadFile(`membership-conversion-list-${Date.now()}.pdf`, this.simplePdf(lines), 'application/pdf');
   }
 
   private exportPaymentDistributionCsv(): void {
@@ -2022,6 +2430,27 @@ export class FinancialSummaryReportComponent implements OnInit {
       ...rows.map((row) => row.map((cell) => this.csvCell(cell)).join(','))
     ].join('\n');
     this.downloadFile(`daily-revenue-${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
+  }
+
+  private exportMemberSalesCsv(): void {
+    const headers = ['Client name', 'Phone', 'Membership status', 'Active plan name', 'Total visits', 'Total sale', 'Paid amount', 'Pending amount', 'Discount used', 'Last visit date', 'Suggested action'];
+    const csv = [
+      headers.map((cell) => this.csvCell(cell)).join(','),
+      ...this.visibleMemberSalesRows().map((row) => [
+        row.clientName,
+        row.phone,
+        row.membershipStatus,
+        row.activePlanName,
+        row.totalVisits,
+        row.totalSale,
+        row.paidAmount,
+        row.pendingAmount,
+        row.discountUsed,
+        this.compactDateLabel(row.lastVisitDate),
+        row.suggestedAction
+      ].map((cell) => this.csvCell(cell)).join(','))
+    ].join('\n');
+    this.downloadFile(`member-vs-non-member-sales-${Date.now()}.csv`, csv, 'text/csv;charset=utf-8');
   }
 
   private dailyRevenueRowsForRange(from: string, to: string): DailyRevenueRow[] {
@@ -2360,6 +2789,80 @@ export class FinancialSummaryReportComponent implements OnInit {
         this.auxiliaryLoading.set(false);
       }
     });
+  }
+
+  private ensureMemberSalesDataLoaded(): void {
+    if (this.memberSalesDataLoaded || this.auxiliaryLoading()) return;
+    this.auxiliaryLoading.set(true);
+    forkJoin({
+      clients: this.safeList('clients', { limit: 10000, compact: true, includeAllBranches: true }),
+      memberships: this.safeList('memberships', { limit: 10000, includeAllBranches: true })
+    }).subscribe({
+      next: (data) => {
+        this.clients.set(data.clients || []);
+        this.memberships.set(data.memberships || []);
+        this.memberSalesDataLoaded = true;
+        this.auxiliaryLoading.set(false);
+      },
+      error: () => {
+        this.memberSalesDataLoaded = true;
+        this.auxiliaryLoading.set(false);
+      }
+    });
+  }
+
+  private invoiceClientId(invoice: ApiRecord): string {
+    return String(invoice['clientId'] || invoice['client_id'] || invoice['customerId'] || invoice['customer_id'] || '');
+  }
+
+  private clientForInvoice(invoice: ApiRecord): ApiRecord | undefined {
+    const clientId = this.invoiceClientId(invoice);
+    const phone = this.invoiceClientPhone(invoice);
+    return this.clients().find((client) => String(client['id']) === clientId)
+      || this.clients().find((client) => this.phoneDigits(String(client['phone'] || client['mobile'] || '')) === this.phoneDigits(phone));
+  }
+
+  private invoiceClientName(invoice: ApiRecord, client?: ApiRecord): string {
+    return String(invoice['clientName'] || invoice['client_name'] || invoice['customerName'] || invoice['customer_name'] || client?.['name'] || client?.['fullName'] || 'Walk In');
+  }
+
+  private invoiceClientPhone(invoice: ApiRecord, client?: ApiRecord): string {
+    return String(invoice['clientPhone'] || invoice['client_phone'] || invoice['phone'] || invoice['customerPhone'] || invoice['customer_phone'] || client?.['phone'] || client?.['mobile'] || '-');
+  }
+
+  private membershipsForClient(clientId: string, client?: ApiRecord): ApiRecord[] {
+    const ids = new Set([clientId, String(client?.['id'] || ''), String(client?.['membershipId'] || client?.['membership_id'] || '')].filter(Boolean));
+    const phone = this.phoneDigits(String(client?.['phone'] || client?.['mobile'] || ''));
+    return this.memberships().filter((membership) => {
+      const linkedIds = [
+        membership['clientId'],
+        membership['client_id'],
+        membership['customerId'],
+        membership['customer_id'],
+        membership['id']
+      ].map((value) => String(value || '')).filter(Boolean);
+      const linkedPhone = this.phoneDigits(String(membership['clientPhone'] || membership['client_phone'] || membership['phone'] || ''));
+      return linkedIds.some((id) => ids.has(id)) || (!!phone && linkedPhone === phone);
+    });
+  }
+
+  private isActiveMembership(membership: ApiRecord): boolean {
+    const status = String(membership['status'] || '').toLowerCase();
+    const activeFlag = membership['isActive'] === true || membership['isActive'] === 1 || membership['active'] === true || membership['active'] === 1;
+    const expiry = String(membership['expiryDate'] || membership['expiry_date'] || membership['expiresAt'] || membership['expires_at'] || membership['validTill'] || membership['valid_till'] || '');
+    const notExpired = !expiry || !this.dateMs(expiry) || this.dateMs(expiry) >= this.dateMs(this.from || this.today());
+    return notExpired && (activeFlag || status === 'active' || status === 'current');
+  }
+
+  private memberSuggestedAction(row: MemberSalesRow): string {
+    if (row.pendingAmount > 0) return 'recover due';
+    if (row.isExpiredMember) return 'renew';
+    if (row.isMember) return row.totalSale >= 10000 ? 'upsell' : 'renew';
+    return 'convert';
+  }
+
+  private phoneDigits(value: string): string {
+    return String(value || '').replace(/\D/g, '');
   }
 
   private periodColumns(): MatrixColumn[] {
