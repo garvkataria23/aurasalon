@@ -72,8 +72,24 @@ test("Daily Revenue implements calculations and exports", () => {
     "exportDailyRevenueOwnerPdf",
     "exportDailyRevenueAccountantPdf",
     "businessDateKey",
-    "previousRevenueRange"
+    "previousRevenueRange",
+    "dailyRevenueCacheKey",
+    "invalidateDailyRevenueCache",
+    "ensureFinancialControlDataLoaded",
+    "auxiliaryLoading"
   ]) {
     assert.match(page, new RegExp(token), `missing Daily Revenue implementation token ${token}`);
   }
+});
+
+test("Daily Revenue avoids repeated heavy work during page render", () => {
+  const loadBlock = page.slice(page.indexOf("load(): void"), page.indexOf("matrixColumns():"));
+  assert.match(page, /private dailyRevenueRowsCache/);
+  assert.match(page, /private dailyRevenueKpisCache/);
+  assert.match(page, /private dailyRevenueDrilldownCache/);
+  assert.match(page, /needsFinancialControlData\(\)/);
+  assert.match(page, /financeExpenses: this\.safeList\('financeExpenses'/);
+  assert.doesNotMatch(loadBlock, /financeExpenses:/);
+  assert.doesNotMatch(loadBlock, /auditLogs:/);
+  assert.doesNotMatch(loadBlock, /cashDrawerReports:/);
 });

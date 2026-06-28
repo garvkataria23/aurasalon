@@ -544,41 +544,41 @@ type DailyRevenueRow = {
                     </tr>
                     <tr *ngIf="expandedDailyRevenueDate === row.dateKey" class="drilldown-row">
                       <td colspan="19">
-                        <div class="daily-revenue-drilldown">
+                        <div class="daily-revenue-drilldown" *ngIf="dailyRevenueDrilldown(row.dateKey) as detail">
                           <article>
                             <span>Us din ke invoices</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['invoiceCount'] }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['invoiceNumbers'] || 'No invoice' }}</small>
+                            <strong>{{ detail['invoiceCount'] }}</strong>
+                            <small>{{ detail['invoiceNumbers'] || 'No invoice' }}</small>
                           </article>
                           <article>
                             <span>Staff-wise sale</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['topStaff'] || 'Unassigned' }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['staffSummary'] || 'No staff rows' }}</small>
+                            <strong>{{ detail['topStaff'] || 'Unassigned' }}</strong>
+                            <small>{{ detail['staffSummary'] || 'No staff rows' }}</small>
                           </article>
                           <article>
                             <span>Service-wise sale</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['topService'] || 'No service' }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['serviceSummary'] || 'No service rows' }}</small>
+                            <strong>{{ detail['topService'] || 'No service' }}</strong>
+                            <small>{{ detail['serviceSummary'] || 'No service rows' }}</small>
                           </article>
                           <article>
                             <span>Payment mode breakup</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['topMode'] || 'No payment' }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['paymentModeSummary'] || 'No payments' }}</small>
+                            <strong>{{ detail['topMode'] || 'No payment' }}</strong>
+                            <small>{{ detail['paymentModeSummary'] || 'No payments' }}</small>
                           </article>
                           <article>
                             <span>Due/recovered invoices</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['dueSummary'] }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['recoveredSummary'] }}</small>
+                            <strong>{{ detail['dueSummary'] }}</strong>
+                            <small>{{ detail['recoveredSummary'] }}</small>
                           </article>
                           <article>
                             <span>High discount bills</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['highDiscountCount'] }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['highDiscountInvoices'] || 'No high discount bill' }}</small>
+                            <strong>{{ detail['highDiscountCount'] }}</strong>
+                            <small>{{ detail['highDiscountInvoices'] || 'No high discount bill' }}</small>
                           </article>
                           <article>
                             <span>Deleted/edited invoices</span>
-                            <strong>{{ dailyRevenueDrilldown(row.dateKey)['auditCount'] }}</strong>
-                            <small>{{ dailyRevenueDrilldown(row.dateKey)['auditSummary'] || 'No edit/delete signal' }}</small>
+                            <strong>{{ detail['auditCount'] }}</strong>
+                            <small>{{ detail['auditSummary'] || 'No edit/delete signal' }}</small>
                           </article>
                         </div>
                       </td>
@@ -1222,6 +1222,7 @@ export class FinancialSummaryReportComponent implements OnInit {
   readonly cashDrawerReports = signal<ApiRecord[]>([]);
   readonly cashDrawerSessions = signal<ApiRecord[]>([]);
   readonly financeSummary = signal<ApiRecord>({});
+  readonly auxiliaryLoading = signal(false);
 
   activeTab: ReportTab = 'summary';
   periodMode: 'month' | 'quarter' = 'month';
@@ -1232,6 +1233,17 @@ export class FinancialSummaryReportComponent implements OnInit {
   to = this.today();
   dailySheetDate = this.today();
   expandedDailyRevenueDate = '';
+  private dataVersion = 0;
+  private dailyRevenueRowsCache: { key: string; rows: DailyRevenueRow[] } = { key: '', rows: [] };
+  private dailyRevenueKpisCache: { key: string; value: ApiRecord } = { key: '', value: {} };
+  private dailyRevenueChartCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
+  private serviceProductChartCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
+  private paymentModeTrendChartCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
+  private discountVsNetChartCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
+  private pendingDueAgingChartCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
+  private dailyRevenueAlertsCache: { key: string; value: ApiRecord[] } = { key: '', value: [] };
+  private dailyRevenueDrilldownCache = new Map<string, ApiRecord>();
+  private financialControlDataLoaded = false;
 
   readonly baseRows: MatrixCell[] = [
     { key: 'sales', label: 'SALES', tone: 'section' },
@@ -1257,6 +1269,8 @@ export class FinancialSummaryReportComponent implements OnInit {
   setActiveTab(tab: ReportTab): void {
     this.activeTab = tab;
     if (tab === 'daily-sheet') this.setDailySheetDate(this.dailySheetDate);
+    if (tab !== 'daily-revenue') this.expandedDailyRevenueDate = '';
+    if (this.needsFinancialControlData()) this.ensureFinancialControlDataLoaded();
   }
 
   load(): void {
@@ -1268,10 +1282,6 @@ export class FinancialSummaryReportComponent implements OnInit {
       sales: this.safeList('sales', { limit: 10000 }),
       branches: this.safeList('branches', { limit: 1000 }),
       walletTransactions: this.safeList('walletTransactions', { limit: 10000 }),
-      financeExpenses: this.safeList('financeExpenses', { limit: 10000 }),
-      auditLogs: this.safeList('auditLogs', { limit: 10000 }),
-      cashDrawerReports: this.safeList('cashDrawerEodReports', { limit: 1000 }),
-      cashDrawerSessions: this.safeList('cashDrawerSessions', { limit: 1000 }),
       financeSummary: this.api.list<ApiRecord>('finance/summary').pipe(catchError(() => of({} as ApiRecord)))
     }).subscribe({
       next: (data) => {
@@ -1280,12 +1290,13 @@ export class FinancialSummaryReportComponent implements OnInit {
         this.sales.set(data.sales || []);
         this.branches.set(data.branches || []);
         this.walletTransactions.set(data.walletTransactions || []);
-        this.financeExpenses.set(data.financeExpenses || []);
-        this.auditLogs.set(data.auditLogs || []);
-        this.cashDrawerReports.set(data.cashDrawerReports || []);
-        this.cashDrawerSessions.set(data.cashDrawerSessions || []);
         this.financeSummary.set(data.financeSummary || {});
+        this.invalidateDailyRevenueCache();
         this.loading.set(false);
+        if (this.needsFinancialControlData()) {
+          this.financialControlDataLoaded = false;
+          this.ensureFinancialControlDataLoaded();
+        }
       },
       error: (error) => {
         this.error.set(this.api.errorText(error, 'Unable to load financial summary'));
@@ -1596,10 +1607,16 @@ export class FinancialSummaryReportComponent implements OnInit {
   }
 
   dailyRevenueRows(): DailyRevenueRow[] {
-    return this.dailyRevenueRowsForRange(this.from, this.to);
+    const key = this.dailyRevenueCacheKey();
+    if (this.dailyRevenueRowsCache.key !== key) {
+      this.dailyRevenueRowsCache = { key, rows: this.dailyRevenueRowsForRange(this.from, this.to) };
+    }
+    return this.dailyRevenueRowsCache.rows;
   }
 
   dailyRevenueKpis(): ApiRecord {
+    const key = this.dailyRevenueCacheKey();
+    if (this.dailyRevenueKpisCache.key === key) return this.dailyRevenueKpisCache.value;
     const rows = this.dailyRevenueRows();
     const totals = this.dailyRevenueTotals(rows);
     const previous = this.previousRevenueRange();
@@ -1610,7 +1627,7 @@ export class FinancialSummaryReportComponent implements OnInit {
     const lowest = [...activeRows].sort((a, b) => a.netSale - b.netSale)[0];
     const growthRate = previousTotals.netSale ? ((totals.netSale - previousTotals.netSale) / previousTotals.netSale) * 100 : (totals.netSale ? 100 : 0);
     const pendingDueTrend = this.money(totals.pendingDueAmount - previousTotals.pendingDueAmount);
-    return {
+    const value = {
       bestRevenueDay: best?.dateLabel || '-',
       bestRevenueValue: best?.netSale || 0,
       lowestRevenueDay: lowest?.dateLabel || '-',
@@ -1623,20 +1640,28 @@ export class FinancialSummaryReportComponent implements OnInit {
       discountLeakageRate: totals.grossSale ? this.money(((totals.discount + totals.couponDiscount + totals.membershipDiscount) / totals.grossSale) * 100) : 0,
       collectionRate: totals.netSale ? this.money((totals.receivedAmount / totals.netSale) * 100) : 0
     };
+    this.dailyRevenueKpisCache = { key, value };
+    return value;
   }
 
   dailyRevenueChart(): ApiRecord[] {
+    const key = this.dailyRevenueCacheKey();
+    if (this.dailyRevenueChartCache.key === key) return this.dailyRevenueChartCache.value;
     const rows = [...this.dailyRevenueRows()].reverse();
     const max = Math.max(1, ...rows.map((row) => row.netSale));
-    return rows.map((row) => ({
+    const value = rows.map((row) => ({
       label: row.dateLabel,
       value: row.netSale,
       height: Math.max(6, this.money((row.netSale / max) * 100))
     }));
+    this.dailyRevenueChartCache = { key, value };
+    return value;
   }
 
   serviceProductChart(): ApiRecord[] {
-    return [...this.dailyRevenueRows()].reverse().map((row) => {
+    const key = this.dailyRevenueCacheKey();
+    if (this.serviceProductChartCache.key === key) return this.serviceProductChartCache.value;
+    const value = [...this.dailyRevenueRows()].reverse().map((row) => {
       const total = Math.max(1, row.serviceSale + row.productSale);
       return {
         label: row.dateLabel,
@@ -1644,10 +1669,14 @@ export class FinancialSummaryReportComponent implements OnInit {
         productWidth: this.money((row.productSale / total) * 100)
       };
     });
+    this.serviceProductChartCache = { key, value };
+    return value;
   }
 
   paymentModeTrendChart(): ApiRecord[] {
-    return [...this.dailyRevenueRows()].reverse().map((row) => {
+    const key = this.dailyRevenueCacheKey();
+    if (this.paymentModeTrendChartCache.key === key) return this.paymentModeTrendChartCache.value;
+    const value = [...this.dailyRevenueRows()].reverse().map((row) => {
       const payments = this.paymentsForDateKey(row.dateKey);
       const amountFor = (mode: string) => payments
         .filter((payment) => this.dailyPaymentModeKey(payment) === mode)
@@ -1667,10 +1696,14 @@ export class FinancialSummaryReportComponent implements OnInit {
         walletWidth: this.money((wallet / total) * 100)
       };
     });
+    this.paymentModeTrendChartCache = { key, value };
+    return value;
   }
 
   discountVsNetChart(): ApiRecord[] {
-    return [...this.dailyRevenueRows()].reverse().map((row) => {
+    const key = this.dailyRevenueCacheKey();
+    if (this.discountVsNetChartCache.key === key) return this.discountVsNetChartCache.value;
+    const value = [...this.dailyRevenueRows()].reverse().map((row) => {
       const discount = row.discount + row.couponDiscount + row.membershipDiscount;
       const total = Math.max(1, row.netSale + discount);
       return {
@@ -1679,9 +1712,13 @@ export class FinancialSummaryReportComponent implements OnInit {
         discountWidth: this.money((discount / total) * 100)
       };
     });
+    this.discountVsNetChartCache = { key, value };
+    return value;
   }
 
   pendingDueAgingChart(): ApiRecord[] {
+    const key = this.dailyRevenueCacheKey();
+    if (this.pendingDueAgingChartCache.key === key) return this.pendingDueAgingChartCache.value;
     const buckets = new Map<string, ApiRecord>([
       ['0-7 days', { label: '0-7 days', count: 0, amount: 0 }],
       ['8-15 days', { label: '8-15 days', count: 0, amount: 0 }],
@@ -1697,10 +1734,14 @@ export class FinancialSummaryReportComponent implements OnInit {
       bucket['count'] = Number(bucket['count'] || 0) + 1;
       bucket['amount'] = this.money(Number(bucket['amount'] || 0) + this.invoiceBalance(invoice));
     }
-    return [...buckets.values()];
+    const value = [...buckets.values()];
+    this.pendingDueAgingChartCache = { key, value };
+    return value;
   }
 
   dailyRevenueAlerts(): ApiRecord[] {
+    const key = this.dailyRevenueCacheKey();
+    if (this.dailyRevenueAlertsCache.key === key) return this.dailyRevenueAlertsCache.value;
     const rows = this.dailyRevenueRows();
     const totals = this.dailyRevenueTotals(rows);
     const highDiscount = [...rows].sort((a, b) => this.dailyDiscountRate(b) - this.dailyDiscountRate(a))[0];
@@ -1710,7 +1751,7 @@ export class FinancialSummaryReportComponent implements OnInit {
     const lowProduct = rows.filter((row) => row.netSale > 0 && row.productSale <= 0)[0];
     const cashMismatch = this.dailyRevenueCashMismatch();
     const gstRisk = rows.filter((row) => row.netSale > 0 && row.gst <= 0);
-    return [
+    const value = [
       { label: 'High discount day', value: highDiscount ? `${this.dailyDiscountRate(highDiscount).toFixed(1)}%` : '0%', detail: highDiscount ? highDiscount.dateLabel : 'No discount risk', tone: highDiscount && this.dailyDiscountRate(highDiscount) >= 20 ? 'danger' : 'normal' },
       { label: 'Low collection day', value: lowCollection ? `${this.dailyCollectionRate(lowCollection).toFixed(1)}%` : '100%', detail: lowCollection ? lowCollection.dateLabel : 'No low collection day', tone: lowCollection && this.dailyCollectionRate(lowCollection) < 80 ? 'warn' : 'normal' },
       { label: 'Expenses high day', value: highExpense ? this.formatMoney(highExpense.expenses) : '₹0', detail: highExpense ? highExpense.dateLabel : 'No expenses', tone: highExpense && totals.netSale && highExpense.expenses / totals.netSale > 0.12 ? 'warn' : 'normal' },
@@ -1719,9 +1760,14 @@ export class FinancialSummaryReportComponent implements OnInit {
       { label: 'Cash mismatch with drawer', value: this.formatMoney(cashMismatch), detail: cashMismatch ? 'Drawer variance linked' : 'No cash mismatch signal', tone: cashMismatch ? 'danger' : 'normal' },
       { label: 'GST mismatch risk', value: String(gstRisk.length), detail: gstRisk.length ? 'Revenue days without GST signal' : 'GST signal present', tone: gstRisk.length ? 'warn' : 'normal' }
     ];
+    this.dailyRevenueAlertsCache = { key, value };
+    return value;
   }
 
   dailyRevenueDrilldown(dateKey: string): ApiRecord {
+    const cacheKey = `${this.dailyRevenueCacheKey()}|${dateKey}`;
+    const cached = this.dailyRevenueDrilldownCache.get(cacheKey);
+    if (cached) return cached;
     const invoices = this.invoicesForDateKey(dateKey);
     const payments = this.paymentsForDateKey(dateKey);
     const lines = this.linesForInvoices(invoices);
@@ -1754,7 +1800,7 @@ export class FinancialSummaryReportComponent implements OnInit {
     const topStaff = this.topMapEntry(staffMap);
     const topService = this.topMapEntry(serviceMap);
     const topMode = this.topMapEntry(modeMap);
-    return {
+    const value = {
       invoiceCount: invoices.length,
       invoiceNumbers: invoices.slice(0, 8).map((invoice) => invoice['invoiceNumber'] || invoice['invoice_number'] || invoice['number'] || invoice['id']).filter(Boolean).join(', '),
       topStaff: topStaff?.[0] || '',
@@ -1770,6 +1816,8 @@ export class FinancialSummaryReportComponent implements OnInit {
       auditCount: audit.length,
       auditSummary: audit.slice(0, 4).map((log) => String(log['action'] || log['event'] || log['type'] || 'audit')).join(', ')
     };
+    this.dailyRevenueDrilldownCache.set(cacheKey, value);
+    return value;
   }
 
   exportDailySheetPdf(): void {
@@ -2138,6 +2186,34 @@ export class FinancialSummaryReportComponent implements OnInit {
       .join(' | ');
   }
 
+  private dailyRevenueCacheKey(): string {
+    return [
+      this.dataVersion,
+      this.from,
+      this.to,
+      this.invoices().length,
+      this.payments().length,
+      this.sales().length,
+      this.financeExpenses().length,
+      this.auditLogs().length,
+      this.cashDrawerReports().length,
+      this.cashDrawerSessions().length
+    ].join('|');
+  }
+
+  private invalidateDailyRevenueCache(): void {
+    this.dataVersion += 1;
+    this.dailyRevenueRowsCache = { key: '', rows: [] };
+    this.dailyRevenueKpisCache = { key: '', value: {} };
+    this.dailyRevenueChartCache = { key: '', value: [] };
+    this.serviceProductChartCache = { key: '', value: [] };
+    this.paymentModeTrendChartCache = { key: '', value: [] };
+    this.discountVsNetChartCache = { key: '', value: [] };
+    this.pendingDueAgingChartCache = { key: '', value: [] };
+    this.dailyRevenueAlertsCache = { key: '', value: [] };
+    this.dailyRevenueDrilldownCache.clear();
+  }
+
   private dailyInvoices(): ApiRecord[] {
     return this.filteredInvoices();
   }
@@ -2255,6 +2331,35 @@ export class FinancialSummaryReportComponent implements OnInit {
 
   private safeList(resource: string, params: ApiRecord = {}) {
     return this.api.list<ApiRecord[]>(resource, params).pipe(catchError(() => of([] as ApiRecord[])));
+  }
+
+  private needsFinancialControlData(): boolean {
+    return this.activeTab === 'daily-sheet' || this.activeTab === 'daily-revenue';
+  }
+
+  private ensureFinancialControlDataLoaded(): void {
+    if (this.financialControlDataLoaded || this.auxiliaryLoading()) return;
+    this.auxiliaryLoading.set(true);
+    forkJoin({
+      financeExpenses: this.safeList('financeExpenses', { limit: 10000 }),
+      auditLogs: this.safeList('auditLogs', { limit: 10000 }),
+      cashDrawerReports: this.safeList('cashDrawerEodReports', { limit: 1000 }),
+      cashDrawerSessions: this.safeList('cashDrawerSessions', { limit: 1000 })
+    }).subscribe({
+      next: (data) => {
+        this.financeExpenses.set(data.financeExpenses || []);
+        this.auditLogs.set(data.auditLogs || []);
+        this.cashDrawerReports.set(data.cashDrawerReports || []);
+        this.cashDrawerSessions.set(data.cashDrawerSessions || []);
+        this.financialControlDataLoaded = true;
+        this.auxiliaryLoading.set(false);
+        this.invalidateDailyRevenueCache();
+      },
+      error: () => {
+        this.financialControlDataLoaded = true;
+        this.auxiliaryLoading.set(false);
+      }
+    });
   }
 
   private periodColumns(): MatrixColumn[] {
