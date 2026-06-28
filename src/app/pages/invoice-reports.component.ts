@@ -37,6 +37,19 @@ type ProductSalesSummary = {
   reorderSuggestions: number;
 };
 
+type SalesDiscountSummary = {
+  totalInvoices: number;
+  grossSale: number;
+  totalDiscount: number;
+  discountRate: number;
+  netSale: number;
+  manualDiscount: number;
+  couponDiscount: number;
+  membershipLoyaltyDiscount: number;
+  highRiskInvoices: number;
+  marginLossAlerts: number;
+};
+
 type InvoiceLine = {
   invoiceId: string;
   invoiceNumber: string;
@@ -76,6 +89,7 @@ type InvoiceLine = {
   couponCode: string;
   couponDiscount: number;
   loyaltyDiscount: number;
+  membershipDiscount: number;
   prepaidAmount: number;
   tipAmount: number;
 };
@@ -237,6 +251,54 @@ type InvoiceLine = {
         </label>
       </section>
 
+      <section class="panel product-advanced-filter-panel discount-advanced-filter-panel" *ngIf="activeReport() === 'sales-discount-intelligence'">
+        <label class="field">
+          <span>Discount type</span>
+          <select [(ngModel)]="discountTypeFilter">
+            <option value="">All discount sources</option>
+            <option value="manual">Manual discount</option>
+            <option value="coupon">Coupon discount</option>
+            <option value="membership">Membership / loyalty</option>
+            <option value="package">Package benefit</option>
+            <option value="owner">Owner approved</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Coupon code</span>
+          <select [(ngModel)]="couponCodeFilter">
+            <option value="">All coupons</option>
+            <option *ngFor="let coupon of couponCodeOptions()" [value]="coupon.id">{{ coupon.label }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Service / product</span>
+          <select [(ngModel)]="serviceProductFilter">
+            <option value="">All services/products</option>
+            <option *ngFor="let item of serviceProductOptions()" [value]="item.id">{{ item.label }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Discount % bucket</span>
+          <select [(ngModel)]="discountBucketFilter">
+            <option value="">All buckets</option>
+            <option value="0-5">0-5%</option>
+            <option value="5-10">5-10%</option>
+            <option value="10-20">10-20%</option>
+            <option value="20+">20%+</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Risk</span>
+          <select [(ngModel)]="discountRiskFilter">
+            <option value="">All risk</option>
+            <option value="normal">Normal</option>
+            <option value="review">Review</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </label>
+      </section>
+
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="notice()">{{ notice() }}</div>
 
@@ -285,7 +347,7 @@ type InvoiceLine = {
         <section class="panel report-command-panel">
           <div class="section-title">
             <div>
-              <span class="eyebrow">19 connected reports</span>
+              <span class="eyebrow">20 connected reports</span>
               <h2>{{ activeDefinition().title }}</h2>
               <p>{{ activeDefinition().description }}</p>
             </div>
@@ -295,6 +357,7 @@ type InvoiceLine = {
               <button class="ghost-button" type="button" (click)="exportPdf()">Export PDF</button>
               <button class="ghost-button" type="button" *ngIf="activeReport() === 'products'" (click)="exportProductOwnerPdf()">Owner summary PDF</button>
               <button class="ghost-button" type="button" *ngIf="activeReport() === 'products'" (click)="exportProductAccountingCsv()">Accounting export</button>
+              <button class="ghost-button" type="button" *ngIf="activeReport() === 'sales-discount-intelligence'" (click)="exportSalesDiscountOwnerPdf()">Owner discount PDF</button>
             </div>
           </div>
 
@@ -325,6 +388,63 @@ type InvoiceLine = {
               <strong>{{ card.value }}</strong>
               <small>{{ card.detail }}</small>
             </article>
+          </div>
+
+          <div class="discount-intelligence-stack" *ngIf="activeReport() === 'sales-discount-intelligence'">
+            <div class="metrics-grid invoice-report-kpis discount-intelligence-kpis">
+              <article class="metric-card"><span>Total invoices</span><strong>{{ salesDiscountSummary().totalInvoices }}</strong><small>Discounted bills</small></article>
+              <article class="metric-card"><span>Gross sale</span><strong>{{ salesDiscountSummary().grossSale | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Before discount</small></article>
+              <article class="metric-card"><span>Total discount</span><strong>{{ salesDiscountSummary().totalDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ salesDiscountSummary().discountRate }}% leakage</small></article>
+              <article class="metric-card"><span>Net sale</span><strong>{{ salesDiscountSummary().netSale | currency: 'INR':'symbol':'1.0-0' }}</strong><small>After discount</small></article>
+              <article class="metric-card"><span>Manual discount</span><strong>{{ salesDiscountSummary().manualDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Staff/counter applied</small></article>
+              <article class="metric-card"><span>Coupon discount</span><strong>{{ salesDiscountSummary().couponDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Coupon engine</small></article>
+              <article class="metric-card"><span>Membership / loyalty</span><strong>{{ salesDiscountSummary().membershipLoyaltyDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Member/package/loyalty</small></article>
+              <article class="metric-card"><span>Risk alerts</span><strong>{{ salesDiscountSummary().highRiskInvoices }}</strong><small>{{ salesDiscountSummary().marginLossAlerts }} margin loss</small></article>
+            </div>
+
+            <div class="product-sales-control-grid">
+              <article *ngFor="let card of salesDiscountSourceCards()">
+                <span>{{ card.label }}</span>
+                <strong>{{ card.value }}</strong>
+                <small>{{ card.detail }}</small>
+              </article>
+            </div>
+
+            <div class="discount-drilldown-grid">
+              <section>
+                <div class="mini-section-title"><span>Staff-wise discount</span><strong>Top leakage</strong></div>
+                <table>
+                  <thead><tr><th>Staff</th><th>Bills</th><th>Discount</th><th>Risk</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let row of salesDiscountStaffRows().slice(0, 6)">
+                      <td>{{ row['staffName'] }}</td><td>{{ row['totalBills'] }}</td><td>{{ row['discountGiven'] | currency:'INR':'symbol':'1.0-0' }}</td><td><span class="badge">{{ row['risk'] }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <section>
+                <div class="mini-section-title"><span>Client leakage</span><strong>Discount dependency</strong></div>
+                <table>
+                  <thead><tr><th>Client</th><th>Visits</th><th>Discount</th><th>Risk</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let row of salesDiscountClientRows().slice(0, 6)">
+                      <td>{{ row['clientName'] }}</td><td>{{ row['totalVisits'] }}</td><td>{{ row['totalDiscountReceived'] | currency:'INR':'symbol':'1.0-0' }}</td><td><span class="badge">{{ row['repeatDiscountRisk'] }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <section>
+                <div class="mini-section-title"><span>Profit + audit</span><strong>Action queue</strong></div>
+                <table>
+                  <thead><tr><th>Invoice</th><th>Margin</th><th>Approval</th><th>Alert</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let row of salesDiscountRiskRows().slice(0, 6)">
+                      <td>{{ row['invoiceNumber'] }}</td><td>{{ row['grossMargin'] | currency:'INR':'symbol':'1.0-0' }}</td><td><span class="badge">{{ row['approvalStatus'] }}</span></td><td>{{ row['suspiciousDiscountAlert'] }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+            </div>
           </div>
 
           <div class="metrics-grid due-recovery-kpis" *ngIf="activeReport() === 'due-recovery'">
@@ -521,6 +641,56 @@ type InvoiceLine = {
       font-size: 18px;
     }
 
+    .discount-intelligence-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .discount-intelligence-kpis {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .discount-drilldown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .discount-drilldown-grid section {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fff, #f8fbfa);
+      padding: 12px;
+      overflow: auto;
+    }
+
+    .discount-drilldown-grid table {
+      width: 100%;
+      min-width: 520px;
+    }
+
+    .mini-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .mini-section-title span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .mini-section-title strong {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
     .enterprise-report-table {
       max-height: 660px;
       overflow: auto;
@@ -569,7 +739,8 @@ type InvoiceLine = {
       .invoice-report-kpis,
       .report-tab-grid,
       .insight-strip,
-      .product-sales-control-grid {
+      .product-sales-control-grid,
+      .discount-drilldown-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -580,7 +751,8 @@ type InvoiceLine = {
       .invoice-report-kpis,
       .report-tab-grid,
       .insight-strip,
-      .product-sales-control-grid {
+      .product-sales-control-grid,
+      .discount-drilldown-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -639,6 +811,8 @@ export class InvoiceReportsComponent implements OnInit {
   readonly productBrandOptions = computed(() => this.uniqueLineOption('productBrand'));
   readonly productCategoryOptions = computed(() => this.uniqueLineOption('productCategory'));
   readonly gstRateOptions = computed(() => this.uniqueLineOption('gstRate', (value) => `${this.money(Number(value || 0))}%`));
+  readonly couponCodeOptions = computed(() => this.uniqueAnyLineOption('couponCode'));
+  readonly serviceProductOptions = computed(() => this.uniqueAnyLineOption('itemName'));
   readonly paymentModeOptions = computed(() => {
     const modes = new Set(this.payments().map((payment) => this.paymentMode(payment)).filter(Boolean));
     return [...modes].map((id) => ({ id, label: this.modeLabel(id) })).sort((a, b) => a.label.localeCompare(b.label));
@@ -669,9 +843,15 @@ export class InvoiceReportsComponent implements OnInit {
   gstRateFilter = '';
   marginHealthFilter = '';
   inventorySignalFilter = '';
+  discountTypeFilter = '';
+  couponCodeFilter = '';
+  serviceProductFilter = '';
+  discountBucketFilter = '';
+  discountRiskFilter = '';
 
   readonly reportDefinitions: ReportDefinition[] = [
     { id: 'sale-summary', title: 'Sale Summary', badge: '00', description: 'Sale list with bill, client, payment, prepaid, coupon, loyalty and GST details.' },
+    { id: 'sales-discount-intelligence', title: 'Sales Discount Intelligence', badge: '00A', description: 'Sales discount register, source breakdown, profit impact, approval risk and leakage intelligence.' },
     { id: 'overview', title: 'Invoice Summary', badge: '01', description: 'Gross, discount, GST, paid, due and invoice count.' },
     { id: 'staff-services', title: 'Staff Service Sales', badge: '02', description: 'Staff ne kaunsi service ki aur kitna revenue banaya.' },
     { id: 'staff-discounts', title: 'Staff Discount Performance', badge: '03', description: 'Without discount vs with discount staff revenue.' },
@@ -697,6 +877,9 @@ export class InvoiceReportsComponent implements OnInit {
   private readonly columns: Record<string, ReportColumn[]> = {
     'sale-summary': [
       { key: 'invoiceNumber', label: 'Invoice No' }, { key: 'clientName', label: 'Name' }, { key: 'clientPhone', label: 'Contact' }, { key: 'itemDescription', label: 'Item Description' }, { key: 'itemTypes', label: 'Item Types' }, { key: 'actualPrice', label: 'Actual Price', type: 'currency' }, { key: 'price', label: 'Price', type: 'currency' }, { key: 'paid', label: 'Paid', type: 'currency' }, { key: 'prepaid', label: 'Prepaid', type: 'currency' }, { key: 'balance', label: 'Balance', type: 'currency' }, { key: 'modes', label: 'Modes' }, { key: 'status', label: 'Status', type: 'badge' }, { key: 'date', label: 'Date' }, { key: 'addedBy', label: 'Added By' }, { key: 'invoiceDate', label: 'Invoice Date' }, { key: 'couponCode', label: 'Coupon Code' }, { key: 'couponDiscount', label: 'Coupon Discount', type: 'currency' }, { key: 'loyaltyDiscount', label: 'Loyalty Discount', type: 'currency' }, { key: 'gst', label: 'GST', type: 'currency' }
+    ],
+    'sales-discount-intelligence': [
+      { key: 'invoiceNumber', label: 'Invoice no' }, { key: 'invoiceDate', label: 'Invoice date' }, { key: 'invoiceTime', label: 'Invoice time' }, { key: 'clientName', label: 'Client' }, { key: 'clientPhone', label: 'Phone' }, { key: 'staffName', label: 'Staff' }, { key: 'serviceProductNames', label: 'Service/product names' }, { key: 'actualPrice', label: 'Actual price', type: 'currency' }, { key: 'manualDiscount', label: 'Manual discount', type: 'currency' }, { key: 'couponDiscount', label: 'Coupon discount', type: 'currency' }, { key: 'membershipLoyaltyDiscount', label: 'Membership/loyalty', type: 'currency' }, { key: 'finalPrice', label: 'Final price', type: 'currency' }, { key: 'paymentMode', label: 'Payment mode' }, { key: 'status', label: 'Status', type: 'badge' }, { key: 'discountRate', label: 'Discount %', type: 'percent' }, { key: 'discountGivenBy', label: 'Discount given by' }, { key: 'userRole', label: 'Role' }, { key: 'discountReason', label: 'Reason' }, { key: 'approvalStatus', label: 'Approval', type: 'badge' }, { key: 'invoiceEditedAfterDiscount', label: 'Edited after discount', type: 'badge' }, { key: 'suspiciousDiscountAlert', label: 'Suspicious alert', type: 'badge' }, { key: 'cogs', label: 'COGS', type: 'currency' }, { key: 'staffCommissionImpact', label: 'Staff commission impact', type: 'currency' }, { key: 'grossMargin', label: 'Gross margin', type: 'currency' }, { key: 'marginPercent', label: 'Margin %', type: 'percent' }, { key: 'lowMarginAlert', label: 'Low margin alert', type: 'badge' }, { key: 'lossMakingInvoiceAlert', label: 'Loss-making alert', type: 'badge' }
     ],
     overview: [
       { key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value', type: 'currency' }, { key: 'count', label: 'Count', type: 'number' }, { key: 'note', label: 'Note' }
@@ -904,6 +1087,93 @@ export class InvoiceReportsComponent implements OnInit {
     ];
   }
 
+  salesDiscountSummary(): SalesDiscountSummary {
+    const rows = this.salesDiscountRows();
+    const grossSale = this.sum(rows, 'actualPrice');
+    const totalDiscount = this.sum(rows, 'totalDiscount');
+    const netSale = this.sum(rows, 'finalPrice');
+    return {
+      totalInvoices: rows.length,
+      grossSale,
+      totalDiscount,
+      discountRate: grossSale ? this.money((totalDiscount / grossSale) * 100) : 0,
+      netSale,
+      manualDiscount: this.sum(rows, 'manualDiscount'),
+      couponDiscount: this.sum(rows, 'couponDiscount'),
+      membershipLoyaltyDiscount: this.sum(rows, 'membershipLoyaltyDiscount'),
+      highRiskInvoices: rows.filter((row) => ['High risk', 'Critical risk', 'Owner approval'].some((token) => String(row['risk'] || row['approvalStatus'] || '').includes(token))).length,
+      marginLossAlerts: rows.filter((row) => String(row['lossMakingInvoiceAlert'] || row['lowMarginAlert'] || '').toLowerCase().includes('loss') || String(row['lowMarginAlert'] || '').toLowerCase().includes('negative')).length
+    };
+  }
+
+  salesDiscountSourceCards(): ApiRecord[] {
+    const rows = this.salesDiscountRows();
+    const ownerApproved = rows.filter((row) => String(row['approvalStatus'] || '').toLowerCase().includes('owner'));
+    const staffApplied = rows.filter((row) => Number(row['manualDiscount'] || 0) > 0);
+    return [
+      { label: 'Manual discount', value: this.formatMoney(this.sum(rows, 'manualDiscount')), detail: `${staffApplied.length} invoice(s)` },
+      { label: 'Coupon discount', value: this.formatMoney(this.sum(rows, 'couponDiscount')), detail: `${rows.filter((row) => row['couponCode']).length} coupon invoice(s)` },
+      { label: 'Membership discount', value: this.formatMoney(this.sum(rows, 'membershipDiscount')), detail: 'Membership benefit source' },
+      { label: 'Package benefit', value: this.formatMoney(this.sum(rows, 'packageBenefitDiscount')), detail: 'Package/service credit impact' },
+      { label: 'Loyalty discount', value: this.formatMoney(this.sum(rows, 'loyaltyDiscount')), detail: 'Loyalty / points impact' },
+      { label: 'Staff-applied', value: this.formatMoney(this.sum(staffApplied, 'manualDiscount')), detail: 'Counter/manual discount' },
+      { label: 'Owner-approved', value: this.formatMoney(this.sum(ownerApproved, 'totalDiscount')), detail: `${ownerApproved.length} high approval invoice(s)` },
+      { label: 'Missing reason', value: rows.filter((row) => row['discountReason'] === 'Reason missing').length, detail: 'Audit gap' }
+    ];
+  }
+
+  salesDiscountStaffRows(): ApiRecord[] {
+    return this.group(this.salesDiscountRows(), (row) => String(row['staffName'] || 'Unassigned'))
+      .map((items) => {
+        const gross = this.sum(items, 'actualPrice');
+        const discount = this.sum(items, 'totalDiscount');
+        const rate = gross ? this.money((discount / gross) * 100) : 0;
+        return {
+          staffName: items[0]['staffName'] || 'Unassigned',
+          totalBills: items.length,
+          grossSale: gross,
+          discountGiven: discount,
+          discountPercent: rate,
+          netSale: this.sum(items, 'finalPrice'),
+          highDiscountInvoiceCount: items.filter((row) => Number(row['discountRate'] || 0) >= 20).length,
+          risk: this.discountRiskLabel(rate, discount, false, false)
+        };
+      })
+      .sort((a, b) => Number(b['discountGiven']) - Number(a['discountGiven']));
+  }
+
+  salesDiscountClientRows(): ApiRecord[] {
+    return this.group(this.salesDiscountRows(), (row) => String(row['clientId'] || row['clientName'] || 'Walk-in'))
+      .map((items) => {
+        const spent = this.sum(items, 'finalPrice');
+        const discount = this.sum(items, 'totalDiscount');
+        const gross = this.sum(items, 'actualPrice');
+        const dependency = gross ? this.money((discount / gross) * 100) : 0;
+        const isWalkIn = String(items[0]['clientName'] || '').toLowerCase().includes('walk');
+        return {
+          clientName: items[0]['clientName'],
+          phone: items[0]['clientPhone'],
+          totalVisits: items.length,
+          totalSpent: spent,
+          totalDiscountReceived: discount,
+          discountDependencyPercent: dependency,
+          repeatDiscountRisk: dependency >= 20 || items.length >= 3 ? 'Repeat discount risk' : 'Normal',
+          walkInDiscountRisk: isWalkIn && discount > 0 ? 'Walk-in discount risk' : 'No walk-in risk'
+        };
+      })
+      .sort((a, b) => Number(b['totalDiscountReceived']) - Number(a['totalDiscountReceived']));
+  }
+
+  salesDiscountRiskRows(): ApiRecord[] {
+    return this.salesDiscountRows().filter((row) => this.isSalesDiscountRiskRow(row));
+  }
+
+  isSalesDiscountRiskRow = (row: ApiRecord): boolean => {
+    return ['high', 'critical', 'owner', 'missing', 'negative', 'loss', 'suspicious'].some((token) =>
+      `${row['risk']} ${row['approvalStatus']} ${row['discountReason']} ${row['lowMarginAlert']} ${row['lossMakingInvoiceAlert']} ${row['suspiciousDiscountAlert']}`.toLowerCase().includes(token)
+    );
+  };
+
   activeDefinition(): ReportDefinition {
     return this.reportDefinitions.find((report) => report.id === this.activeReport()) || this.reportDefinitions[0];
   }
@@ -915,6 +1185,7 @@ export class InvoiceReportsComponent implements OnInit {
   activeRows(): ApiRecord[] {
     const report = this.activeReport();
     if (report === 'sale-summary') return this.saleSummaryRows();
+    if (report === 'sales-discount-intelligence') return this.salesDiscountRows();
     if (report === 'overview') return this.overviewRows();
     if (report === 'staff-services') return this.staffServiceRows();
     if (report === 'staff-discounts') return this.staffDiscountRows();
@@ -966,6 +1237,7 @@ export class InvoiceReportsComponent implements OnInit {
 
   searchPlaceholder(): string {
     if (this.activeReport() === 'sale-summary') return 'Invoice, name or phone';
+    if (this.activeReport() === 'sales-discount-intelligence') return 'Invoice, client, staff, service, coupon or reason';
     if (this.activeReport() === 'products') return 'Product, brand, category, SKU, barcode, customer or invoice';
     return 'Invoice, client, staff, service, product, payment mode';
   }
@@ -995,7 +1267,9 @@ export class InvoiceReportsComponent implements OnInit {
   exportPdf(): void {
     const report = this.activeDefinition();
     const rows = this.activeRows();
-    const summaryLines = this.unpaidExportSummaryLines();
+    const summaryLines = this.activeReport() === 'sales-discount-intelligence'
+      ? this.salesDiscountExportSummaryLines()
+      : this.unpaidExportSummaryLines();
     const body = [
       `${report.title}`,
       `Generated: ${new Date().toLocaleString('en-IN')}`,
@@ -1035,6 +1309,38 @@ export class InvoiceReportsComponent implements OnInit {
       ...rows.slice(0, 30).map((row, index) => `${index + 1}. ${row['product']} | ${row['name']} | ${this.formatMoney(Number(row['totalPriceAfterDiscount'] || 0))} | ${row['stockSignal']} | ${row['lowMarginAlert']}`)
     ];
     this.downloadFile(`product-sales-owner-summary-${Date.now()}.pdf`, this.simplePdf(body), 'application/pdf');
+  }
+
+  exportSalesDiscountOwnerPdf(): void {
+    const summary = this.salesDiscountSummary();
+    const staffRows = this.salesDiscountStaffRows();
+    const clientRows = this.salesDiscountClientRows();
+    const riskRows = this.salesDiscountRiskRows();
+    const body = [
+      'Sales Discount Intelligence Owner Summary',
+      `Generated: ${new Date().toLocaleString('en-IN')}`,
+      `Date range: ${this.from || 'All'} to ${this.to || 'All'}`,
+      `Branch: ${this.branchFilter ? this.branchFilterOptions().find((branch) => branch.id === this.branchFilter)?.label || this.branchFilter : this.branchLabel()}`,
+      '',
+      `Total discount: ${this.formatMoney(summary.totalDiscount)} (${summary.discountRate}%)`,
+      `Gross sale: ${this.formatMoney(summary.grossSale)}`,
+      `Net sale: ${this.formatMoney(summary.netSale)}`,
+      `Manual discount: ${this.formatMoney(summary.manualDiscount)}`,
+      `Coupon discount: ${this.formatMoney(summary.couponDiscount)}`,
+      `Membership / loyalty discount: ${this.formatMoney(summary.membershipLoyaltyDiscount)}`,
+      `High-risk invoices: ${summary.highRiskInvoices}`,
+      `Margin loss alerts: ${summary.marginLossAlerts}`,
+      '',
+      'Top staff by discount',
+      ...staffRows.slice(0, 8).map((row, index) => `${index + 1}. ${row['staffName']} | ${this.formatMoney(Number(row['discountGiven'] || 0))} | ${row['discountPercent']}% | ${row['risk']}`),
+      '',
+      'Top clients by discount',
+      ...clientRows.slice(0, 8).map((row, index) => `${index + 1}. ${row['clientName']} | ${this.formatMoney(Number(row['totalDiscountReceived'] || 0))} | ${row['discountDependencyPercent']}% | ${row['repeatDiscountRisk']}`),
+      '',
+      'High-risk invoices',
+      ...riskRows.slice(0, 12).map((row, index) => `${index + 1}. ${row['invoiceNumber']} | ${row['clientName']} | ${this.formatMoney(Number(row['totalDiscount'] || 0))} | ${row['approvalStatus']} | ${row['suspiciousDiscountAlert']}`)
+    ];
+    this.downloadFile(`sales-discount-intelligence-owner-${Date.now()}.pdf`, this.simplePdf(body), 'application/pdf');
   }
 
   exportProductAccountingCsv(): void {
@@ -1092,6 +1398,161 @@ export class InvoiceReportsComponent implements OnInit {
         tipAmount: this.uniqueInvoiceSum(invoiceLines, 'tipAmount')
       };
     }).sort((a, b) => this.dateMs(b['invoiceSortAt']) - this.dateMs(a['invoiceSortAt']) || String(b['invoiceNumber']).localeCompare(String(a['invoiceNumber'])));
+  }
+
+  private salesDiscountRows(): ApiRecord[] {
+    return this.uniqueInvoiceRows().map((line) => {
+      const invoiceLines = this.filteredLines().filter((item) => item.invoiceId === line.invoiceId);
+      const actualPrice = this.sum(invoiceLines, 'gross');
+      const lineDiscount = this.sum(invoiceLines, 'discount');
+      const couponDiscount = this.uniqueInvoiceSum(invoiceLines, 'couponDiscount');
+      const loyaltyDiscount = this.uniqueInvoiceSum(invoiceLines, 'loyaltyDiscount');
+      const membershipDiscount = this.uniqueInvoiceSum(invoiceLines, 'membershipDiscount');
+      const packageBenefitDiscount = this.sum(invoiceLines.filter((item) => item.itemType === 'package'), 'discount');
+      const membershipLoyaltyDiscount = this.money(loyaltyDiscount + membershipDiscount + packageBenefitDiscount);
+      const manualDiscount = this.money(Math.max(0, lineDiscount - packageBenefitDiscount));
+      const totalDiscount = this.money(lineDiscount + couponDiscount + loyaltyDiscount + membershipDiscount);
+      const taxable = this.sum(invoiceLines, 'taxable');
+      const cogs = this.money(invoiceLines.filter((item) => item.itemType === 'product').reduce((sum, item) => sum + item.productUnitCost * item.quantity, 0));
+      const staffCommissionImpact = this.money(
+        this.sum(invoiceLines.filter((item) => item.itemType === 'service'), 'taxable') * 0.1
+        + this.sum(invoiceLines.filter((item) => item.itemType === 'product'), 'taxable') * 0.05
+        + this.sum(invoiceLines.filter((item) => ['membership', 'package'].includes(item.itemType)), 'taxable') * 0.03
+      );
+      const grossMargin = this.money(taxable - cogs - staffCommissionImpact);
+      const marginPercent = taxable > 0 ? this.money((grossMargin / taxable) * 100) : 0;
+      const discountRate = actualPrice ? this.money((totalDiscount / actualPrice) * 100) : 0;
+      const discountReason = this.discountReasonForInvoice(line.invoiceId, totalDiscount, discountRate);
+      const approvalStatus = this.discountApprovalStatus(discountRate, discountReason, grossMargin);
+      const risk = this.discountRiskLabel(discountRate, totalDiscount, discountReason === 'Reason missing', grossMargin < 0);
+      const invoiceEditedAfterDiscount = this.invoiceEditedAfterDiscount(line.invoiceId, line.invoiceNumber) ? 'Edited after discount' : 'No edit linked';
+      const suspiciousDiscountAlert = this.suspiciousDiscountAlert(discountRate, discountReason, grossMargin, invoiceEditedAfterDiscount);
+      return {
+        invoiceId: line.invoiceId,
+        invoiceNumber: line.invoiceNumber,
+        invoiceDate: this.dateKey(line.date),
+        invoiceTime: this.timeLabel(line.date),
+        clientId: line.clientId,
+        clientName: line.clientName,
+        clientPhone: line.clientPhone,
+        staffId: line.staffId,
+        staffName: line.staffName,
+        serviceProductNames: [...new Set(invoiceLines.map((item) => item.itemName).filter(Boolean))].join(', '),
+        itemTypes: [...new Set(invoiceLines.map((item) => item.itemType).filter(Boolean))].join(', '),
+        actualPrice,
+        totalDiscount,
+        manualDiscount,
+        couponCode: line.couponCode,
+        couponDiscount,
+        loyaltyDiscount,
+        membershipDiscount,
+        packageBenefitDiscount,
+        membershipLoyaltyDiscount,
+        finalPrice: this.sum(invoiceLines, 'final'),
+        paymentMode: line.paymentModes,
+        status: line.status,
+        discountRate,
+        discountGivenBy: line.addedBy,
+        userRole: this.discountUserRole(line.addedBy),
+        discountReason,
+        approvalStatus,
+        invoiceEditedAfterDiscount,
+        suspiciousDiscountAlert,
+        cogs,
+        staffCommissionImpact,
+        grossMargin,
+        marginPercent,
+        lowMarginAlert: this.invoiceMarginAlert(marginPercent, cogs, taxable),
+        lossMakingInvoiceAlert: grossMargin < 0 ? 'Loss-making invoice' : 'No loss',
+        risk
+      };
+    }).filter((row) => Number(row['totalDiscount'] || 0) > 0)
+      .filter((row) => this.matchesSalesDiscountFilters(row))
+      .sort((a, b) => Number(b['totalDiscount']) - Number(a['totalDiscount']) || this.dateMs(String(b['invoiceDate'])) - this.dateMs(String(a['invoiceDate'])));
+  }
+
+  private matchesSalesDiscountFilters(row: ApiRecord): boolean {
+    const sourceMatch = !this.discountTypeFilter || this.discountSourceMatches(row, this.discountTypeFilter);
+    const couponMatch = !this.couponCodeFilter || String(row['couponCode'] || '') === String(this.couponCodeFilter);
+    const itemMatch = !this.serviceProductFilter || String(row['serviceProductNames'] || '').split(',').map((item) => item.trim()).includes(this.serviceProductFilter);
+    const bucketMatch = !this.discountBucketFilter || this.discountBucket(Number(row['discountRate'] || 0)) === this.discountBucketFilter;
+    const riskMatch = !this.discountRiskFilter || String(row['risk'] || '').toLowerCase().includes(this.discountRiskFilter);
+    return sourceMatch && couponMatch && itemMatch && bucketMatch && riskMatch;
+  }
+
+  private discountSourceMatches(row: ApiRecord, source: string): boolean {
+    if (source === 'manual') return Number(row['manualDiscount'] || 0) > 0;
+    if (source === 'coupon') return Number(row['couponDiscount'] || 0) > 0;
+    if (source === 'membership') return Number(row['membershipDiscount'] || 0) > 0 || Number(row['loyaltyDiscount'] || 0) > 0;
+    if (source === 'package') return Number(row['packageBenefitDiscount'] || 0) > 0;
+    if (source === 'owner') return String(row['approvalStatus'] || '').toLowerCase().includes('owner');
+    return true;
+  }
+
+  private discountBucket(rate: number): string {
+    if (rate >= 20) return '20+';
+    if (rate >= 10) return '10-20';
+    if (rate >= 5) return '5-10';
+    return '0-5';
+  }
+
+  private discountRiskLabel(rate: number, discount: number, missingReason: boolean, negativeMargin: boolean): string {
+    if (negativeMargin) return 'Critical risk';
+    if (missingReason && rate >= 10) return 'High risk';
+    if (rate >= 20 || discount >= 5000) return 'High risk';
+    if (rate >= 10) return 'Review';
+    return 'Normal';
+  }
+
+  private discountApprovalStatus(rate: number, reason: string, grossMargin: number): string {
+    if (grossMargin < 0) return 'Owner approval missing';
+    if (rate >= 20) return 'Owner approval';
+    if (rate >= 10) return reason === 'Reason missing' ? 'Manager review missing' : 'Manager review';
+    if (rate >= 5) return 'Watch';
+    return 'Normal';
+  }
+
+  private discountReasonForInvoice(invoiceId: string, discount: number, rate: number): string {
+    if (discount <= 0) return 'No discount';
+    const audit = this.auditLogs().find((log) => {
+      const text = `${log.action || ''} ${log.entityType || log.entity_type || ''} ${log.entityId || log.entity_id || ''} ${log.invoiceId || log.invoice_id || ''} ${log.reason || ''} ${log.note || ''} ${JSON.stringify(log.details || {})}`.toLowerCase();
+      return text.includes(String(invoiceId).toLowerCase()) && text.includes('discount');
+    });
+    const reason = audit?.['reason'] || audit?.['note'] || (audit?.['details'] as ApiRecord | undefined)?.['reason'];
+    if (reason) return String(reason);
+    return rate >= 5 ? 'Reason missing' : 'Routine discount';
+  }
+
+  private invoiceEditedAfterDiscount(invoiceId: string, invoiceNumber: string): boolean {
+    return this.auditLogs().some((log) => {
+      const action = String(log.action || log.event || log.type || '').toLowerCase();
+      const text = `${log.entityType || log.entity_type || ''} ${log.entityId || log.entity_id || ''} ${log.invoiceId || log.invoice_id || ''} ${log.message || ''} ${JSON.stringify(log.details || {})}`.toLowerCase();
+      return (text.includes(String(invoiceId).toLowerCase()) || text.includes(String(invoiceNumber).toLowerCase()))
+        && ['edit', 'update', 'changed', 'discount'].some((token) => action.includes(token) || text.includes(token));
+    });
+  }
+
+  private suspiciousDiscountAlert(rate: number, reason: string, margin: number, edited: string): string {
+    if (margin < 0) return 'Negative margin after discount';
+    if (rate >= 20 && reason === 'Reason missing') return 'High discount without reason';
+    if (edited.includes('Edited')) return 'Discount edited after invoice';
+    if (rate >= 10 && reason === 'Reason missing') return 'Reason missing';
+    return 'No suspicious alert';
+  }
+
+  private invoiceMarginAlert(marginPercent: number, cogs: number, taxable: number): string {
+    if (taxable > 0 && cogs <= 0) return 'Cost missing';
+    if (marginPercent < 0) return 'Negative margin';
+    if (marginPercent < 20) return 'Low margin';
+    return 'Healthy';
+  }
+
+  private discountUserRole(addedBy: string): string {
+    const value = String(addedBy || '').toLowerCase();
+    if (value.includes('owner') || value.includes('admin')) return 'Owner/Admin';
+    if (value.includes('manager')) return 'Manager';
+    if (value.includes('counter') || value.includes('cashier')) return 'Cashier';
+    return addedBy ? 'Staff/User' : 'Audit not linked';
   }
 
   private staffServiceRows(): ApiRecord[] {
@@ -1467,6 +1928,25 @@ export class InvoiceReportsComponent implements OnInit {
     ];
   }
 
+  private salesDiscountExportSummaryLines(): string[] {
+    const summary = this.salesDiscountSummary();
+    const topStaff = this.salesDiscountStaffRows().slice(0, 5).map((row) => `${row['staffName']} ${this.formatMoney(Number(row['discountGiven'] || 0))}`).join(', ');
+    const topClients = this.salesDiscountClientRows().slice(0, 5).map((row) => `${row['clientName']} ${this.formatMoney(Number(row['totalDiscountReceived'] || 0))}`).join(', ');
+    const riskRows = this.salesDiscountRiskRows();
+    return [
+      `Total discount: ${this.formatMoney(summary.totalDiscount)} (${summary.discountRate}%)`,
+      `Gross sale: ${this.formatMoney(summary.grossSale)}`,
+      `Net sale: ${this.formatMoney(summary.netSale)}`,
+      `Manual discount: ${this.formatMoney(summary.manualDiscount)}`,
+      `Coupon discount: ${this.formatMoney(summary.couponDiscount)}`,
+      `Membership / loyalty discount: ${this.formatMoney(summary.membershipLoyaltyDiscount)}`,
+      `Top staff by discount: ${topStaff || 'No staff discount'}`,
+      `Top clients by discount: ${topClients || 'No client discount'}`,
+      `High-risk invoices: ${riskRows.length}`,
+      `Margin loss alerts: ${summary.marginLossAlerts}`
+    ];
+  }
+
   private walletRows(): ApiRecord[] {
     const linesByClient = this.group(this.filteredLines(), (line) => line.clientId || line.clientName);
     return linesByClient.map((lines) => {
@@ -1681,6 +2161,15 @@ export class InvoiceReportsComponent implements OnInit {
       const couponCode = String(invoice.couponCode || invoice.coupon_code || sale.couponCode || sale.coupon_code || '');
       const couponDiscount = this.money(Number(invoice.couponDiscount || invoice.coupon_discount || sale.couponDiscount || sale.coupon_discount || 0));
       const loyaltyDiscount = this.money(Number(invoice.loyaltyDiscount || invoice.loyalty_discount || sale.loyaltyDiscount || sale.loyalty_discount || invoice.loyaltyPointsDiscount || invoice.loyalty_points_discount || 0));
+      const membershipDiscount = this.money(Number(
+        invoice.membershipDiscount
+        || invoice.membership_discount
+        || sale.membershipDiscount
+        || sale.membership_discount
+        || invoice.membershipRedeem?.autoDiscountAmount
+        || sale.membershipRedeem?.autoDiscountAmount
+        || 0
+      ));
       const tipAmount = this.money(Number(invoice.tipAmount || invoice.tip_amount || sale.tipAmount || sale.tip_amount || 0));
       const addedBy = String(invoice.addedBy || invoice.added_by || invoice.createdByName || invoice.created_by_name || invoice.createdBy || invoice.created_by || sale.addedBy || sale.createdBy || staffPerson.name || 'Counter');
       return items.map((item) => {
@@ -1734,6 +2223,7 @@ export class InvoiceReportsComponent implements OnInit {
           couponCode,
           couponDiscount,
           loyaltyDiscount,
+          membershipDiscount,
           prepaidAmount,
           tipAmount
         };
@@ -1923,6 +2413,16 @@ export class InvoiceReportsComponent implements OnInit {
   private uniqueLineOption(key: keyof InvoiceLine, labelFn?: (value: unknown) => string): { id: string; label: string }[] {
     const map = new Map<string, string>();
     for (const line of this.lines().filter((item) => item.itemType === 'product')) {
+      const value = line[key];
+      const id = String(value ?? '').trim();
+      if (id) map.set(id, labelFn ? labelFn(value) : id);
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  private uniqueAnyLineOption(key: keyof InvoiceLine, labelFn?: (value: unknown) => string): { id: string; label: string }[] {
+    const map = new Map<string, string>();
+    for (const line of this.lines()) {
       const value = line[key];
       const id = String(value ?? '').trim();
       if (id) map.set(id, labelFn ? labelFn(value) : id);
