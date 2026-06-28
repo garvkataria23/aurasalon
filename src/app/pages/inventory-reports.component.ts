@@ -27,11 +27,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <div class="state success" *ngIf="success()">{{ success() }}</div>
 
       <section class="report-tabs">
-        <button type="button" [class.active]="activeTab() === 'summary'" (click)="activeTab.set('summary')">Inventory Summary</button>
-        <button type="button" [class.active]="activeTab() === 'product-in-out'" (click)="activeTab.set('product-in-out')">Product IN/OUT Retail</button>
-        <button type="button" [class.active]="activeTab() === 'dead-stock'" (click)="activeTab.set('dead-stock')">Dead Stock</button>
-        <button type="button" [class.active]="activeTab() === 'expiry-risk'" (click)="activeTab.set('expiry-risk')">Expiry Risk</button>
-        <button type="button" [class.active]="activeTab() === 'supplier-spend'" (click)="activeTab.set('supplier-spend')">Supplier Spend</button>
+        <button type="button" [class.active]="activeTab() === 'summary'" (click)="setTab('summary')">Inventory Summary</button>
+        <button type="button" [class.active]="activeTab() === 'product-in-out'" (click)="setTab('product-in-out')">Product IN/OUT Retail</button>
+        <button type="button" [class.active]="activeTab() === 'dead-stock'" (click)="setTab('dead-stock')">Dead Stock</button>
+        <button type="button" [class.active]="activeTab() === 'expiry-risk'" (click)="setTab('expiry-risk')">Expiry Risk</button>
+        <button type="button" [class.active]="activeTab() === 'supplier-spend'" (click)="setTab('supplier-spend')">Supplier Spend</button>
       </section>
 
       <ng-container *ngIf="activeTab() === 'summary'">
@@ -79,8 +79,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <option value="waste">Waste / expiry</option>
             </select>
           </label>
-          <button class="primary-button" type="button" (click)="loadProductInOut()">Run Report</button>
+          <button class="primary-button run-report-button" type="button" (click)="loadProductInOut()" [disabled]="productLoading()">Run Report</button>
         </div>
+
+        <p class="muted product-preview-note" *ngIf="productInOutReport()">
+          Showing first {{ productInOutRows().length }} of {{ productInOutTotalRows() }} rows. Use filters or export for focused review.
+        </p>
 
         <section class="report-kpis product-inout-kpis" *ngIf="productInOutReport()?.summary as summary">
           <article class="metric-card teal"><span>Total Product</span><strong>{{ summary.totalProduct || 0 }}</strong><small>filtered retail rows</small></article>
@@ -206,14 +210,21 @@ import { StateComponent } from '../shared/ui/state/state.component';
     </section>
   `,
   styles: [`
+    :host, .inventory-enterprise-page { display: block; max-width: 100%; overflow-x: hidden; }
     .hero-actions, .section-title, .report-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .hero-actions, .section-title { flex-wrap: wrap; }
     .section-title p { margin: 4px 0 0; color: var(--muted); }
     .report-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
     .report-tabs button { border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 12px; font-weight: 900; color: var(--muted); cursor: pointer; }
     .report-tabs button.active { border-color: var(--teal); color: var(--ink); background: color-mix(in srgb, var(--teal) 10%, #fff); box-shadow: 0 12px 28px color-mix(in srgb, var(--teal) 10%, transparent); }
     .report-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
     .product-inout-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .product-report-filters { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; align-items: end; }
+    .product-inout-panel { max-width: 100%; overflow: hidden; }
+    .product-report-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; max-width: 100%; }
+    .product-report-filters .field { min-width: 0; }
+    .product-report-filters input, .product-report-filters select { width: 100%; min-width: 0; }
+    .run-report-button { min-height: 50px; }
+    .product-preview-note { margin: 6px 0 0; font-size: 12px; font-weight: 800; }
     .movement-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
     .movement-strip article, .alert-grid article { border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 12px; }
     .movement-strip span, .movement-strip small, .alert-grid span, .alert-grid small { display: block; color: var(--muted); font-size: 12px; font-weight: 800; text-transform: capitalize; }
@@ -221,9 +232,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .enterprise-grid.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
     .report-row { padding: 10px 0; border-bottom: 1px solid var(--border); }
     .report-row span, .muted { color: var(--muted); }
-    .table-wrap { overflow: auto; }
+    .table-wrap { overflow: auto; max-width: 100%; }
     table { min-width: 980px; }
     .product-inout-table table { min-width: 2600px; }
+    .product-inout-table { max-height: 64vh; border: 1px solid var(--border); border-radius: 8px; }
     td small { display: block; color: var(--muted); font-size: 11px; font-weight: 800; }
     .badge.warn { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
     .badge.danger, .alert-grid article.high { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
@@ -231,6 +243,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .action-cell .mini { margin: 2px; }
     .alert-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     pre { white-space: pre-wrap; margin: 0; font-family: inherit; color: var(--muted); }
+    @media (max-width: 1400px) { .product-report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 1100px) { .report-kpis, .product-inout-kpis, .product-report-filters, .movement-strip, .enterprise-grid.three, .report-tabs, .alert-grid { grid-template-columns: 1fr; } }
   `]
 })
@@ -241,6 +254,7 @@ export class InventoryReportsComponent implements OnInit {
   readonly queue = signal<ApiRecord[]>([]);
   readonly activeTab = signal('summary');
   readonly loading = signal(true);
+  readonly productLoading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly success = signal('');
@@ -257,16 +271,21 @@ export class InventoryReportsComponent implements OnInit {
 
   ngOnInit(): void { this.load(); }
 
+  setTab(tab: string): void {
+    this.activeTab.set(tab);
+    if (tab === 'product-in-out' && !this.productInOutReport() && !this.productLoading()) {
+      this.loadProductInOut();
+    }
+  }
+
   load(): void {
     this.loading.set(true);
     Promise.all([
       firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/reports', { branchId: this.api.selectedBranchId() })),
-      firstValueFrom(this.api.list<ApiRecord>('inventory-intelligence/product-in-out-retail-report', this.productInOutParams())),
       firstValueFrom(this.api.list<ApiRecord[]>('inventory-intelligence/supplier-whatsapp-queue', { limit: 100 })),
       firstValueFrom(this.api.list<ApiRecord[]>('suppliers', { limit: 1000 }))
-    ]).then(([report, productInOut, queue, suppliers]) => {
+    ]).then(([report, queue, suppliers]) => {
       this.report.set(report || null);
-      this.productInOutReport.set(productInOut || null);
       this.queue.set(queue || []);
       this.suppliers.set(suppliers || []);
       this.loading.set(false);
@@ -297,15 +316,19 @@ export class InventoryReportsComponent implements OnInit {
   }
 
   loadProductInOut(): void {
-    this.saving.set(true);
+    this.productLoading.set(true);
     this.api.list<ApiRecord>('inventory-intelligence/product-in-out-retail-report', this.productInOutParams()).subscribe({
-      next: (report) => { this.productInOutReport.set(report || null); this.success.set('Product IN/OUT Retail report refreshed.'); this.saving.set(false); },
-      error: (error) => { this.error.set(error?.error?.error || error?.message || 'Unable to load Product IN/OUT Retail report'); this.saving.set(false); }
+      next: (report) => { this.productInOutReport.set(report || null); this.success.set('Product IN/OUT Retail report refreshed.'); this.productLoading.set(false); },
+      error: (error) => { this.error.set(error?.error?.error || error?.message || 'Unable to load Product IN/OUT Retail report'); this.productLoading.set(false); }
     });
   }
 
   productInOutRows(): ApiRecord[] {
     return (this.productInOutReport()?.['rows'] || []) as ApiRecord[];
+  }
+
+  productInOutTotalRows(): number {
+    return Number(this.productInOutReport()?.['totalRows'] || this.productInOutRows().length || 0);
   }
 
   exportProductInOutCsv(): void {
@@ -357,7 +380,7 @@ export class InventoryReportsComponent implements OnInit {
       gstRate: this.productGstRate,
       stockStatus: this.productStockStatus,
       movementType: this.productMovementType,
-      limit: 10000
+      limit: 300
     };
   }
 

@@ -2478,6 +2478,7 @@ export class InventoryEnterpriseService {
     const gstFilter = query.gstRate || query.gst_rate || "";
     const stockStatus = String(query.stockStatus || query.stock_status || "").trim().toLowerCase();
     const movementType = String(query.movementType || query.movement_type || "").trim().toLowerCase();
+    const limit = Math.min(1000, Math.max(1, number(query.limit, 300)));
     const branchQuery = branchId ? { branchId, limit: 10000 } : { limit: 10000 };
     const products = repositories.products.list(branchQuery, scope(access, branchId));
     const productById = new Map(products.map((product) => [String(product.id), product]));
@@ -2659,7 +2660,17 @@ export class InventoryEnterpriseService {
       reorderCount: finalRows.filter((row) => row.reorderQty > 0).length,
       alerts: alerts.length
     };
-    return { branchId, from, to, summary, rows: finalRows, movementBreakdown, alerts };
+    return {
+      branchId,
+      from,
+      to,
+      summary,
+      rows: finalRows.slice(0, limit),
+      totalRows: finalRows.length,
+      rowLimit: limit,
+      movementBreakdown,
+      alerts: alerts.slice(0, 100)
+    };
   }
 
   createReportSnapshot(query = {}, access) {

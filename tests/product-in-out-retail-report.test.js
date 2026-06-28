@@ -13,6 +13,8 @@ test("inventory intelligence exposes Product IN/OUT Retail report API", () => {
   assert.match(service, /movementBreakdown/);
   assert.match(service, /negativeStockAlert/);
   assert.match(service, /batchFifoSource/);
+  assert.match(service, /totalRows: finalRows\.length/);
+  assert.match(service, /rows: finalRows\.slice\(0, limit\)/);
 });
 
 test("inventory reports page adds Product IN/OUT Retail tab and Salonist base columns", () => {
@@ -55,4 +57,12 @@ test("Product IN/OUT Retail includes advanced controls and exports", () => {
   assert.match(page, /loadProductInOut\(\)/);
   assert.match(page, /exportProductInOutCsv\(\)/);
   assert.match(page, /exportProductInOutOwnerPdf\(\)/);
+});
+
+test("Product IN/OUT Retail is lazy loaded with a bounded preview", () => {
+  assert.match(page, /setTab\(tab: string\)/);
+  assert.match(page, /tab === 'product-in-out'/);
+  assert.match(page, /limit: 300/);
+  assert.doesNotMatch(page, /limit: 10000/);
+  assert.match(page, /productInOutTotalRows\(\)/);
 });
