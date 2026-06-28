@@ -163,6 +163,59 @@ function safeArray(value) {
   return [];
 }
 
+function productReportKey(value = "") {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function dateInProductReportRange(value = "", from = "", to = "") {
+  const date = String(value || "").slice(0, 10);
+  if (!date) return true;
+  return (!from || date >= from) && (!to || date <= to);
+}
+
+function latestDate(current = "", next = "") {
+  const currentTime = Date.parse(current || "");
+  const nextTime = Date.parse(next || "");
+  if (!Number.isFinite(nextTime)) return current || "";
+  if (!Number.isFinite(currentTime) || nextTime > currentTime) return next;
+  return current || "";
+}
+
+function classifyProductMovement(type = "", quantity = 0) {
+  const clean = String(type || "").toLowerCase();
+  if (clean.includes("purchase") || clean.includes("receive") || clean.includes("opening")) return "purchase";
+  if (clean.includes("return")) return "return";
+  if (clean.includes("waste") || clean.includes("expiry") || clean.includes("writeoff") || clean.includes("damage")) return "waste";
+  if (clean.includes("sale") || clean.includes("deduction") || clean.includes("consume")) return "sale";
+  return number(quantity, 0) < 0 ? "adjustment" : "purchase";
+}
+
+function isRetailProductItem(item = {}) {
+  const raw = `${item.type || item.itemType || item.kind || item.category || item.name || item.productName || ""}`.toLowerCase();
+  return raw.includes("product") || raw.includes("retail") || Boolean(item.productId || item.product_id || item.sku || item.barcode);
+}
+
+function resolveProductForReport(item = {}, productById = new Map(), productByKey = new Map()) {
+  for (const id of [item.productId, item.product_id, item.id, item.sku, item.barcode, item.productCode, item.product_code]) {
+    const product = productById.get(String(id || ""));
+    if (product) return product;
+  }
+  for (const key of [item.name, item.productName, item.itemName, item.sku, item.barcode]) {
+    const product = productByKey.get(productReportKey(key));
+    if (product) return product;
+  }
+  return {};
+}
+
+function movementMatchesRow(row = {}, movementType = "") {
+  if (movementType === "purchase") return number(row.purchaseIn, 0) > 0;
+  if (movementType === "sale") return number(row.salesCount || row.retailSoldOut, 0) > 0;
+  if (movementType === "return") return number(row.returnIn, 0) > 0;
+  if (movementType === "waste") return number(row.wasteExpiryOut, 0) > 0;
+  if (movementType === "adjustment") return number(row.manualAdjustment, 0) !== 0;
+  return true;
+}
+
 function safeRecipeUnit(value = "") {
   const normalized = String(value || "").trim().toLowerCase();
   return RECIPE_UNITS.has(normalized) ? normalized : "pcs";
@@ -2412,6 +2465,201 @@ export class InventoryEnterpriseService {
       supplierSpend: money(supplierSpend.reduce((sum, item) => sum + item.spend, 0))
     };
     return { branchId, metrics, deadStock, expiring, supplierSpend };
+  }
+
+  productInOutRetailReport(query = {}, access) {
+    const branchId = query.branchId || query.branch_id || "";
+    if (branchId) assertBranch(access, branchId);
+    const from = String(query.from || query.periodStart || query.period_start || "").slice(0, 10);
+    const to = String(query.to || query.periodEnd || query.period_end || "").slice(0, 10);
+    const q = String(query.q || query.search || "").trim().toLowerCase();
+    const categoryFilter = String(query.category || "").trim().toLowerCase();
+    const brandFilter = String(query.brand || "").trim().toLowerCase();
+    const gstFilter = query.gstRate || query.gst_rate || "";
+    const stockStatus = String(query.stockStatus || query.stock_status || "").trim().toLowerCase();
+    const movementType = String(query.movementType || query.movement_type || "").trim().toLowerCase();
+    const branchQuery = branchId ? { branchId, limit: 10000 } : { limit: 10000 };
+    const products = repositories.products.list(branchQuery, scope(access, branchId));
+    const productById = new Map(products.map((product) => [String(product.id), product]));
+    const productByKey = new Map();
+    for (const product of products) {
+      for (const key of [product.id, product.sku, product.barcode, product.name]) {
+        const clean = productReportKey(key);
+        if (clean) productByKey.set(clean, product);
+      }
+    }
+    const transactions = repositories.inventory.list(branchQuery, scope(access, branchId));
+    const batches = repositories.inventoryBatches.list(branchQuery, scope(access, branchId));
+    const sales = repositories.sales.list(branchQuery, scope(access, branchId));
+    const invoices = repositories.invoices.list({ limit: 10000 }, scope(access));
+    const invoiceBySaleId = new Map(invoices.map((invoice) => [String(invoice.saleId || invoice.sale_id || ""), invoice]));
+    const rows = new Map();
+    const movements = [];
+    const productsWithNegativeInventoryCost = new Set();
+
+    const ensureRow = (product = {}) => {
+      const productId = String(product.id || product.productId || product.product_id || product.sku || product.name || "unmapped");
+      if (!rows.has(productId)) {
+        rows.set(productId, {
+          productId,
+          product: product.name || product.productName || productId,
+          sku: product.sku || product.code || "",
+          barcode: product.barcode || product.barCode || "",
+          brand: product.brand || product.manufacturer || product.supplier || "",
+          category: product.category || "Retail",
+          branchId: product.branchId || product.branch_id || branchId || "",
+          costPrice: money(number(product.unitCost || product.costPrice || product.purchasePrice, 0)),
+          sellPrice: money(number(product.price || product.sellingPrice || product.mrp, 0)),
+          gstRate: number(product.gstRate || product.gst || product.taxRate, 0),
+          openingStock: 0,
+          purchaseIn: 0,
+          retailSoldOut: 0,
+          returnIn: 0,
+          wasteExpiryOut: 0,
+          manualAdjustment: 0,
+          salesCount: 0,
+          newStock: 0,
+          adjustment: 0,
+          inHand: number(product.stock, 0),
+          revenue: 0,
+          cogs: 0,
+          grossMargin: 0,
+          marginPercent: 0,
+          reorderQty: 0,
+          lowStockThreshold: number(product.lowStockThreshold || product.reorderLevel || product.minimumStock, 0),
+          stockStatus: "healthy",
+          negativeStockAlert: "",
+          missingCostAlert: "",
+          lowMarginAlert: "",
+          deadStock: "",
+          expiryRisk: "",
+          batchFifoSource: "",
+          lastMovementDate: ""
+        });
+      }
+      return rows.get(productId);
+    };
+
+    for (const product of products) ensureRow(product);
+
+    for (const tx of transactions) {
+      const txDate = String(tx.createdAt || tx.created_at || "").slice(0, 10);
+      const product = productById.get(String(tx.productId || tx.product_id || "")) || {};
+      const row = ensureRow(product.id ? product : { id: tx.productId || tx.product_id, name: tx.productId || tx.product_id, branchId: tx.branchId || tx.branch_id });
+      const qty = number(tx.quantity, 0);
+      const type = String(tx.type || "").toLowerCase();
+      const amount = Math.abs(qty);
+      if (!dateInProductReportRange(txDate, from, to)) {
+        if (from && txDate && txDate < from) row.openingStock = money(row.openingStock + qty);
+        continue;
+      }
+      const movement = classifyProductMovement(type, qty);
+      row.lastMovementDate = latestDate(row.lastMovementDate, tx.createdAt || tx.created_at || "");
+      if (movement === "purchase") row.purchaseIn = money(row.purchaseIn + Math.abs(qty));
+      else if (movement === "sale") row.retailSoldOut = money(row.retailSoldOut + amount);
+      else if (movement === "return") row.returnIn = money(row.returnIn + Math.abs(qty));
+      else if (movement === "waste") row.wasteExpiryOut = money(row.wasteExpiryOut + amount);
+      else row.manualAdjustment = money(row.manualAdjustment + qty);
+      row.newStock = row.purchaseIn;
+      row.adjustment = row.manualAdjustment;
+      const txCost = Math.abs(number(tx.totalCost, 0)) || Math.abs(qty) * number(tx.unitCost || row.costPrice, 0);
+      if (qty < 0) {
+        row.cogs = money(row.cogs + txCost);
+        productsWithNegativeInventoryCost.add(row.productId);
+      }
+      movements.push({ productId: row.productId, movementType: movement, quantity: qty, date: txDate, amount: money(txCost) });
+    }
+
+    for (const sale of sales) {
+      const saleDate = String(sale.createdAt || sale.created_at || "").slice(0, 10);
+      if (!dateInProductReportRange(saleDate, from, to)) continue;
+      const invoice = invoiceBySaleId.get(String(sale.id || "")) || {};
+      const items = safeArray(invoice.lineItems || invoice.line_items || sale.items);
+      for (const item of items) {
+        if (!isRetailProductItem(item)) continue;
+        const product = resolveProductForReport(item, productById, productByKey);
+        const row = ensureRow(product.id ? product : {
+          id: item.productId || item.product_id || item.sku || item.barcode || item.name || item.productName,
+          name: item.name || item.productName || item.itemName || "Retail product",
+          sku: item.sku || "",
+          barcode: item.barcode || "",
+          category: item.category || "Retail",
+          branchId: sale.branchId || sale.branch_id || branchId
+        });
+        const qty = number(item.quantity || item.qty, 1);
+        const rate = money(number(item.price || item.rate || item.unitPrice || item.sellingPrice || row.sellPrice, row.sellPrice));
+        const gross = money(number(item.total || item.lineTotal || item.finalAmount, rate * qty));
+        const discount = money(number(item.discount || item.discountAmount, 0));
+        const revenue = money(Math.max(0, gross - discount));
+        const itemCost = money(number(item.unitCost || item.costPrice || item.purchasePrice || row.costPrice, row.costPrice));
+        row.salesCount = money(row.salesCount + qty);
+        row.retailSoldOut = Math.max(row.retailSoldOut, row.salesCount);
+        row.revenue = money(row.revenue + revenue);
+        if (!productsWithNegativeInventoryCost.has(row.productId)) row.cogs = money(row.cogs + itemCost * qty);
+        row.sellPrice = row.sellPrice || rate;
+        row.costPrice = row.costPrice || itemCost;
+        row.gstRate = row.gstRate || number(item.gstRate || item.gst_rate || item.taxRate, 0);
+        row.lastMovementDate = latestDate(row.lastMovementDate, sale.createdAt || sale.created_at || invoice.createdAt || invoice.created_at || "");
+        movements.push({ productId: row.productId, movementType: "sale", quantity: -Math.abs(qty), date: saleDate, amount: revenue });
+      }
+    }
+
+    for (const batch of batches) {
+      const row = rows.get(String(batch.productId || batch.product_id || ""));
+      if (!row) continue;
+      const days = batch.expiryDate ? Math.round((new Date(batch.expiryDate).getTime() - Date.now()) / 86400000) : null;
+      const available = number(batch.quantityAvailable || batch.quantity_available, 0);
+      if (available > 0 && batch.batchNumber) row.batchFifoSource = row.batchFifoSource || `${batch.batchNumber}${batch.expiryDate ? ` / ${batch.expiryDate}` : ""}`;
+      if (days !== null && days <= 90 && available > 0) row.expiryRisk = days < 0 ? "Expired stock" : `${days} days`;
+    }
+
+    const finalRows = [...rows.values()].map((row) => {
+      row.closingStock = number(row.inHand, 0);
+      row.grossMargin = money(number(row.revenue, 0) - number(row.cogs, 0));
+      row.marginPercent = row.revenue > 0 ? money((row.grossMargin / row.revenue) * 100) : 0;
+      row.reorderQty = row.inHand <= Math.max(row.lowStockThreshold, row.salesCount) ? Math.max(0, Math.ceil(Math.max(row.salesCount * 2, row.lowStockThreshold * 2) - row.inHand)) : 0;
+      row.stockStatus = row.inHand < 0 ? "negative" : row.inHand <= Math.max(row.lowStockThreshold, 1) ? "low" : "healthy";
+      row.negativeStockAlert = row.inHand < 0 ? "Negative stock" : "";
+      row.missingCostAlert = row.costPrice <= 0 ? "Cost missing" : "";
+      row.lowMarginAlert = row.revenue > 0 && (row.costPrice <= 0 || row.marginPercent < 20) ? (row.costPrice <= 0 ? "Cost missing" : "Low margin") : "";
+      row.deadStock = row.inHand > 0 && row.salesCount <= 0 ? "No sale in range" : "";
+      row.batchFifoSource = row.batchFifoSource || "Batch/FIFO not linked";
+      return row;
+    }).filter((row) => {
+      const text = `${row.product} ${row.sku} ${row.barcode} ${row.brand} ${row.category}`.toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (categoryFilter && String(row.category || "").toLowerCase() !== categoryFilter) return false;
+      if (brandFilter && String(row.brand || "").toLowerCase() !== brandFilter) return false;
+      if (gstFilter !== "" && number(row.gstRate, 0) !== number(gstFilter, 0)) return false;
+      if (stockStatus && row.stockStatus !== stockStatus) return false;
+      if (movementType && !movementMatchesRow(row, movementType)) return false;
+      return true;
+    }).sort((a, b) => number(b.revenue, 0) - number(a.revenue, 0) || String(a.product).localeCompare(String(b.product)));
+
+    const movementBreakdown = ["purchase", "sale", "return", "waste", "adjustment"].map((type) => {
+      const typed = movements.filter((item) => item.movementType === type);
+      return { type, quantity: money(typed.reduce((sum, item) => sum + Math.abs(number(item.quantity, 0)), 0)), amount: money(typed.reduce((sum, item) => sum + number(item.amount, 0), 0)), count: typed.length };
+    });
+    const alerts = finalRows.flatMap((row) => [
+      row.negativeStockAlert ? { severity: "high", productId: row.productId, product: row.product, type: "negative_stock", message: row.negativeStockAlert } : null,
+      row.missingCostAlert ? { severity: "medium", productId: row.productId, product: row.product, type: "missing_cost", message: row.missingCostAlert } : null,
+      row.lowMarginAlert ? { severity: "medium", productId: row.productId, product: row.product, type: "low_margin", message: row.lowMarginAlert } : null,
+      row.reorderQty > 0 ? { severity: row.stockStatus === "negative" ? "high" : "medium", productId: row.productId, product: row.product, type: "reorder", message: `Reorder ${row.reorderQty}` } : null,
+      row.expiryRisk ? { severity: String(row.expiryRisk).includes("Expired") ? "high" : "medium", productId: row.productId, product: row.product, type: "expiry", message: row.expiryRisk } : null
+    ].filter(Boolean));
+    const summary = {
+      totalProduct: finalRows.length,
+      totalSalesCount: money(finalRows.reduce((sum, row) => sum + number(row.salesCount, 0), 0)),
+      totalInHand: money(finalRows.reduce((sum, row) => sum + number(row.inHand, 0), 0)),
+      revenue: money(finalRows.reduce((sum, row) => sum + number(row.revenue, 0), 0)),
+      cogs: money(finalRows.reduce((sum, row) => sum + number(row.cogs, 0), 0)),
+      grossMargin: money(finalRows.reduce((sum, row) => sum + number(row.grossMargin, 0), 0)),
+      negativeStockCount: finalRows.filter((row) => row.stockStatus === "negative").length,
+      lowStockCount: finalRows.filter((row) => row.stockStatus === "low").length,
+      reorderCount: finalRows.filter((row) => row.reorderQty > 0).length,
+      alerts: alerts.length
+    };
+    return { branchId, from, to, summary, rows: finalRows, movementBreakdown, alerts };
   }
 
   createReportSnapshot(query = {}, access) {

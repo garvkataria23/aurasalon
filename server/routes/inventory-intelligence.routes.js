@@ -570,6 +570,14 @@ inventoryIntelligenceRouter.get(
   })
 );
 
+inventoryIntelligenceRouter.get(
+  "/inventory-intelligence/product-in-out-retail-report",
+  requirePermission("read", () => "inventory"),
+  asyncHandler((req, res) => {
+    res.json(inventoryEnterpriseService.productInOutRetailReport(req.query, req.access));
+  })
+);
+
 inventoryIntelligenceRouter.post(
   "/inventory-intelligence/reports/snapshot",
   requirePermission("write", () => "inventory"),
