@@ -29,6 +29,7 @@ import { ensureEngagementSchema } from "./services/engagement-schema.service.js"
 import { ensurePurchaseBillDraftSchema } from "./services/purchase-bill-schema.service.js";
 import { ensureProductUnitSchema } from "./services/inventory-enterprise.service.js";
 import { ensureInvoicePaymentCollectionSchema } from "./services/invoice-payment-collection-schema.service.js";
+import { ensureDueRecoveryFollowupSchema } from "./services/due-recovery-followup-schema.service.js";
 import { ensureCashDrawerEodSchema } from "./services/cash-drawer-eod-schema.service.js";
 import { ensureGrowthRankBotSchema } from "./services/growth-rank-bot-schema.service.js";
 import { ensureProfitActionQueueSchema } from "./services/profit-action-queue-schema.service.js";
@@ -204,6 +205,7 @@ export function createApp() {
   ensurePurchaseBillDraftSchema();
   ensureProductUnitSchema();
   ensureInvoicePaymentCollectionSchema();
+  ensureDueRecoveryFollowupSchema();
   ensureCashDrawerEodSchema();
   ensureGrowthRankBotSchema();
   ensureProfitActionQueueSchema();

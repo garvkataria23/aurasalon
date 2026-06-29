@@ -192,6 +192,26 @@ type InvoiceLine = {
             <option *ngFor="let receiver of receivedByOptions()" [value]="receiver.id">{{ receiver.label }}</option>
           </select>
         </label>
+        <label class="field">
+          <span>Recovery owner</span>
+          <select [(ngModel)]="recoveryOwnerFilter">
+            <option value="">All owners</option>
+            <option *ngFor="let owner of recoveryOwnerOptions()" [value]="owner.id">{{ owner.label }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Follow-up status</span>
+          <select [(ngModel)]="followUpStatusFilter">
+            <option value="">All follow-ups</option>
+            <option value="reminder_stage">Reminder stage</option>
+            <option value="call_pending">Call pending</option>
+            <option value="call_done">Call done</option>
+            <option value="daily_due">Daily due</option>
+            <option value="daily_done">Daily done</option>
+            <option value="follow_up_note">Note added</option>
+            <option value="recovered">Recovered</option>
+          </select>
+        </label>
         <label class="field span-2">
           <span>Search</span>
           <input [(ngModel)]="query" [placeholder]="searchPlaceholder()" />
@@ -572,6 +592,8 @@ type InvoiceLine = {
             <article class="metric-card"><span>11-20 days</span><strong>{{ (dueRecoverySummary()['bucket11To20'] || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Manager call queue</small></article>
             <article class="metric-card"><span>21+ days</span><strong>{{ (dueRecoverySummary()['bucket21Plus'] || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Daily follow-up risk</small></article>
             <article class="metric-card"><span>Recovered this month</span><strong>{{ (dueRecoverySummary()['recoveredThisMonth'] || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Closed from old dues</small></article>
+            <article class="metric-card"><span>Call follow-up pending</span><strong>{{ dueRecoverySummary()['callFollowUpPending'] || 0 }}</strong><small>Manager queue</small></article>
+            <article class="metric-card"><span>Daily follow-up due today</span><strong>{{ dueRecoverySummary()['dailyFollowUpDueToday'] || 0 }}</strong><small>21+ unpaid calls</small></article>
           </div>
 
           <div class="table-wrap enterprise-report-table">
@@ -611,6 +633,19 @@ type InvoiceLine = {
                           (click)="sendDueReminder(row)"
                         >
                           {{ actionLoading() === row['invoiceId'] ? 'Sending...' : 'Send payment reminder' }}
+                        </button>
+                        <select class="mini-select" [(ngModel)]="recoveryOwnerDrafts[row['invoiceId']]">
+                          <option value="">Manager</option>
+                          <option *ngFor="let owner of recoveryOwnerOptions()" [value]="owner.id">{{ owner.label }}</option>
+                        </select>
+                        <button class="ghost-button mini" type="button" [disabled]="actionLoading() === dueRecoveryActionKey(row, 'assign')" (click)="assignDueRecoveryManager(row)">
+                          {{ actionLoading() === dueRecoveryActionKey(row, 'assign') ? 'Assigning...' : 'Assign manager' }}
+                        </button>
+                        <button class="ghost-button mini" type="button" [disabled]="actionLoading() === dueRecoveryActionKey(row, 'call')" (click)="markDueRecoveryCallDone(row)">
+                          {{ actionLoading() === dueRecoveryActionKey(row, 'call') ? 'Saving...' : 'Mark call done' }}
+                        </button>
+                        <button class="ghost-button mini" type="button" [disabled]="actionLoading() === dueRecoveryActionKey(row, 'note')" (click)="addDueRecoveryFollowUpNote(row)">
+                          {{ actionLoading() === dueRecoveryActionKey(row, 'note') ? 'Saving...' : 'Add note' }}
                         </button>
                         <small *ngIf="dueReminderDisabledReason(row)">{{ dueReminderDisabledReason(row) }}</small>
                       </div>
@@ -862,6 +897,16 @@ type InvoiceLine = {
       font-weight: 800;
     }
 
+    .mini-select {
+      min-width: 128px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0 10px;
+      font-weight: 800;
+    }
+
     .right {
       text-align: right;
       white-space: nowrap;
@@ -964,6 +1009,17 @@ export class InvoiceReportsComponent implements OnInit {
     }
     return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
   });
+  readonly recoveryOwnerOptions = computed(() => {
+    const map = new Map<string, string>();
+    for (const staff of this.staffFilterOptions()) map.set(staff.id, staff.label);
+    for (const row of this.dueRecoveryReportRows()) {
+      const id = String(row['recoveryOwnerId'] || '').trim();
+      if (id) map.set(id, String(row['recoveryOwnerName'] || id));
+      const staffId = String(row['staffId'] || '').trim();
+      if (staffId) map.set(staffId, String(row['staffName'] || staffId));
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  });
   readonly serviceGroupOptions = computed(() => this.uniqueServiceTrendOption('serviceGroup'));
   readonly serviceTrendOptions = computed(() => this.uniqueServiceTrendOption('serviceName'));
   readonly serviceGstRateOptions = computed(() => this.uniqueServiceTrendOption('gstRate', (value) => `${this.money(Number(value || 0))}%`));
@@ -979,6 +1035,9 @@ export class InvoiceReportsComponent implements OnInit {
   agingBucket = '';
   paymentModeFilter = '';
   receivedByFilter = '';
+  recoveryOwnerFilter = '';
+  followUpStatusFilter = '';
+  recoveryOwnerDrafts: Record<string, string> = {};
   productFilter = '';
   productBrandFilter = '';
   productCategoryFilter = '';
@@ -1066,7 +1125,7 @@ export class InvoiceReportsComponent implements OnInit {
       { key: 'invoiceNumber', label: 'Invoice' }, { key: 'originalInvoiceDate', label: 'Invoice date' }, { key: 'originalInvoiceTime', label: 'Invoice time' }, { key: 'clientName', label: 'Client' }, { key: 'clientPhone', label: 'Phone' }, { key: 'staffName', label: 'Staff' }, { key: 'serviceNames', label: 'Services' }, { key: 'totalAmount', label: 'Total', type: 'currency' }, { key: 'paid', label: 'Paid', type: 'currency' }, { key: 'due', label: 'Due', type: 'currency' }, { key: 'paymentStatus', label: 'Status', type: 'badge' }, { key: 'bucket', label: 'Aging bucket', type: 'badge' }, { key: 'duePaidDate', label: 'Due paid date' }, { key: 'duePaidTime', label: 'Due paid time' }, { key: 'receivedAmount', label: 'Received due', type: 'currency' }, { key: 'paymentMode', label: 'Mode' }, { key: 'receivedBy', label: 'Received by' }, { key: 'receiverId', label: 'Receiver ID' }, { key: 'settlementPaymentId', label: 'Settlement/payment ID' }, { key: 'paymentReference', label: 'Reference no.' }, { key: 'daysToRecovery', label: 'Days to recovery', type: 'number' }, { key: 'partialPaymentHistory', label: 'Partial payment history' }
     ],
     'due-recovery': [
-      { key: 'invoiceNumber', label: 'Invoice' }, { key: 'invoiceDate', label: 'Date' }, { key: 'invoiceTime', label: 'Time' }, { key: 'clientName', label: 'Client' }, { key: 'clientPhone', label: 'Phone' }, { key: 'staffName', label: 'Staff' }, { key: 'serviceNames', label: 'Services' }, { key: 'totalAmount', label: 'Total', type: 'currency' }, { key: 'paidAmount', label: 'Paid', type: 'currency' }, { key: 'dueAmount', label: 'Due', type: 'currency' }, { key: 'agingBucket', label: 'Aging', type: 'badge' }, { key: 'recoveryStatus', label: 'Recovery', type: 'badge' }, { key: 'lastPaymentAt', label: 'Last payment', type: 'date' }, { key: 'paymentLinkStatus', label: 'Reminder status', type: 'badge' }, { key: 'reminderChannel', label: 'Channel', type: 'badge' }, { key: 'lastReminderSentAt', label: 'Last reminder', type: 'date' }, { key: 'actions', label: 'Action' }
+      { key: 'invoiceNumber', label: 'Invoice no' }, { key: 'invoiceDate', label: 'Original date' }, { key: 'invoiceTime', label: 'Original time' }, { key: 'clientName', label: 'Client' }, { key: 'clientPhone', label: 'Phone' }, { key: 'staffName', label: 'Staff' }, { key: 'serviceNames', label: 'Services' }, { key: 'totalAmount', label: 'Total', type: 'currency' }, { key: 'paidAmount', label: 'Paid', type: 'currency' }, { key: 'dueAmount', label: 'Due', type: 'currency' }, { key: 'agingBucket', label: 'Aging', type: 'badge' }, { key: 'recoveryStatus', label: 'Recovery', type: 'badge' }, { key: 'lastPaymentAt', label: 'Last payment', type: 'date' }, { key: 'receivedBy', label: 'Received by' }, { key: 'paymentMode', label: 'Payment mode', type: 'badge' }, { key: 'settlementPaymentId', label: 'Settlement/payment ID' }, { key: 'paymentReference', label: 'Reference' }, { key: 'partialPaymentHistory', label: 'Partial payment history' }, { key: 'paymentLinkStatus', label: 'Reminder status', type: 'badge' }, { key: 'reminderChannel', label: 'Channel', type: 'badge' }, { key: 'lastReminderSentAt', label: 'Last reminder', type: 'date' }, { key: 'callFollowUpStatus', label: 'Call follow-up', type: 'badge' }, { key: 'recoveryOwnerName', label: 'Recovery owner' }, { key: 'lastFollowUpAt', label: 'Last follow-up', type: 'date' }, { key: 'lastFollowUpNote', label: 'Follow-up note' }, { key: 'actions', label: 'Action' }
     ],
     'staff-unpaid': [
       { key: 'staffName', label: 'Staff' }, { key: 'serviceName', label: 'Service' }, { key: 'invoiceCount', label: 'Invoices', type: 'number' }, { key: 'totalBilled', label: 'Total billed', type: 'currency' }, { key: 'totalUnpaid', label: 'Total unpaid', type: 'currency' }, { key: 'totalRecovered', label: 'Recovered', type: 'currency' }, { key: 'pendingDue', label: 'Pending due', type: 'currency' }, { key: 'recoveryRate', label: 'Recovery rate', type: 'percent' }
@@ -1458,7 +1517,9 @@ export class InvoiceReportsComponent implements OnInit {
       ? this.salesDiscountExportSummaryLines()
       : this.activeReport() === 'deleted-invoice-approvals'
         ? this.deletedInvoiceExportSummaryLines()
-        : this.unpaidExportSummaryLines();
+        : this.activeReport() === 'due-recovery'
+          ? this.dueRecoveryExportSummaryLines()
+          : this.unpaidExportSummaryLines();
     const body = [
       `${report.title}`,
       `Generated: ${new Date().toLocaleString('en-IN')}`,
@@ -2117,6 +2178,43 @@ export class InvoiceReportsComponent implements OnInit {
     ];
   }
 
+  private dueRecoveryExportSummaryLines(): string[] {
+    const rows = this.dueRecoveryRows();
+    const summary = this.dueRecoverySummary();
+    const pendingRows = rows.filter((row) => Number(row['dueAmount'] || 0) > 0);
+    const agingSummary = this.group(pendingRows, (row) => String(row['agingBucket'] || 'No bucket'))
+      .map((items) => `${items[0]['agingBucket']}: ${items.length} invoice(s), ${this.formatMoney(this.sum(items, 'dueAmount'))}`)
+      .join(' | ');
+    const topClients = this.group(pendingRows, (row) => String(row['clientName'] || 'Client'))
+      .map((items) => ({ name: String(items[0]['clientName'] || 'Client'), due: this.sum(items, 'dueAmount') }))
+      .sort((a, b) => b.due - a.due)
+      .slice(0, 5)
+      .map((item) => `${item.name} ${this.formatMoney(item.due)}`)
+      .join(', ');
+    const staffWise = this.group(pendingRows, (row) => String(row['staffName'] || 'Unassigned'))
+      .map((items) => ({ name: String(items[0]['staffName'] || 'Unassigned'), due: this.sum(items, 'dueAmount') }))
+      .sort((a, b) => b.due - a.due)
+      .slice(0, 5)
+      .map((item) => `${item.name} ${this.formatMoney(item.due)}`)
+      .join(', ');
+    const managerPending = pendingRows
+      .filter((row) => ['call_pending', 'daily_due'].includes(String(row['callFollowUpStatus'] || '')))
+      .slice(0, 8)
+      .map((row) => `${row['invoiceNumber']} · ${row['clientName']} · ${row['recoveryOwnerName'] || 'Unassigned'} · ${row['callFollowUpStatus']}`)
+      .join(' | ');
+    return [
+      `Total pending due: ${this.formatMoney(Number(summary['totalPendingDue'] || this.sum(pendingRows, 'dueAmount')))}`,
+      `Pending invoice count: ${summary['pendingInvoiceCount'] || pendingRows.length}`,
+      `Recovered this month: ${this.formatMoney(Number(summary['recoveredThisMonth'] || 0))}`,
+      `Call follow-up pending: ${summary['callFollowUpPending'] || 0}`,
+      `Daily follow-up due today: ${summary['dailyFollowUpDueToday'] || 0}`,
+      `Aging bucket totals: ${agingSummary || 'No pending due'}`,
+      `Top pending clients: ${topClients || 'No client due'}`,
+      `Staff-wise unpaid: ${staffWise || 'No staff due'}`,
+      `Manager follow-up pending: ${managerPending || 'No manager queue'}`
+    ];
+  }
+
   private salesDiscountExportSummaryLines(): string[] {
     const summary = this.salesDiscountSummary();
     const topStaff = this.salesDiscountStaffRows().slice(0, 5).map((row) => `${row['staffName']} ${this.formatMoney(Number(row['discountGiven'] || 0))}`).join(', ');
@@ -2627,7 +2725,12 @@ export class InvoiceReportsComponent implements OnInit {
       status: this.recoveryStatus === 'all' ? '' : this.recoveryStatus,
       agingBucket: ['0-10', '11-20', '21+'].includes(this.agingBucket) ? this.agingBucket : '',
       clientId: this.clientFilter,
+      branchId: this.branchFilter,
       staffId: this.staffFilter,
+      paymentMode: this.paymentModeFilter,
+      receivedBy: this.receivedByFilter,
+      recoveryOwner: this.recoveryOwnerFilter,
+      followUpStatus: this.followUpStatusFilter,
       q: this.query,
       limit: 10000
     }).pipe(catchError(() => of({ summary: {}, rows: [] } as DueRecoveryReport)));
@@ -2680,9 +2783,15 @@ export class InvoiceReportsComponent implements OnInit {
       const statusMatch = this.recoveryStatus === 'all' || !this.recoveryStatus || row['recoveryStatus'] === this.recoveryStatus;
       const bucketMatch = !this.agingBucket || row['agingBucket'] === this.agingBucket || !['0-10', '11-20', '21+'].includes(this.agingBucket);
       const clientMatch = !this.clientFilter || String(row['clientId'] || '') === String(this.clientFilter);
+      const branchMatch = !this.branchFilter || String(row['branchId'] || '') === String(this.branchFilter);
+      const staffMatch = !this.staffFilter || [row['staffId'], row['staffName']].map(String).includes(String(this.staffFilter));
+      const modeMatch = !this.paymentModeFilter || String(row['paymentMode'] || '').toLowerCase() === String(this.paymentModeFilter).toLowerCase();
+      const receiverMatch = !this.receivedByFilter || String(row['receiverId'] || '') === String(this.receivedByFilter);
+      const ownerMatch = !this.recoveryOwnerFilter || String(row['recoveryOwnerId'] || '') === String(this.recoveryOwnerFilter);
+      const followUpMatch = !this.followUpStatusFilter || String(row['callFollowUpStatus'] || '') === String(this.followUpStatusFilter);
       const query = this.query.trim().toLowerCase();
-      const haystack = `${row['invoiceNumber']} ${row['clientName']} ${row['clientPhone']} ${row['staffName']} ${row['serviceNames']}`.toLowerCase();
-      return statusMatch && bucketMatch && clientMatch && (!query || haystack.includes(query));
+      const haystack = `${row['invoiceNumber']} ${row['clientName']} ${row['clientPhone']} ${row['staffName']} ${row['serviceNames']} ${row['paymentMode']} ${row['receivedBy']} ${row['recoveryOwnerName']} ${row['callFollowUpStatus']}`.toLowerCase();
+      return statusMatch && bucketMatch && clientMatch && branchMatch && staffMatch && modeMatch && receiverMatch && ownerMatch && followUpMatch && (!query || haystack.includes(query));
     });
   }
 
@@ -2759,6 +2868,77 @@ export class InvoiceReportsComponent implements OnInit {
       },
       error: (error) => this.error.set(this.api.errorText(error, 'Unable to send payment reminder'))
     });
+  }
+
+  dueRecoveryActionKey(row: ApiRecord, action: string): string {
+    return `${row['invoiceId'] || ''}:${action}`;
+  }
+
+  assignDueRecoveryManager(row: ApiRecord): void {
+    const invoiceId = String(row['invoiceId'] || '');
+    const managerId = String(this.recoveryOwnerDrafts[invoiceId] || row['recoveryOwnerId'] || '').trim();
+    if (!invoiceId) return;
+    if (!managerId) {
+      this.error.set('Select recovery owner first.');
+      return;
+    }
+    const key = this.dueRecoveryActionKey(row, 'assign');
+    this.error.set('');
+    this.notice.set('');
+    this.actionLoading.set(key);
+    this.api.post<ApiRecord>(`reports/invoices/due-recovery/${invoiceId}/assign-manager`, { managerId }).pipe(
+      finalize(() => this.actionLoading.set(''))
+    ).subscribe({
+      next: (result) => this.applyDueRecoveryFollowUpResult(invoiceId, result, 'Manager assigned.'),
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to assign manager'))
+    });
+  }
+
+  markDueRecoveryCallDone(row: ApiRecord): void {
+    const invoiceId = String(row['invoiceId'] || '');
+    if (!invoiceId) return;
+    const key = this.dueRecoveryActionKey(row, 'call');
+    this.error.set('');
+    this.notice.set('');
+    this.actionLoading.set(key);
+    this.api.post<ApiRecord>(`reports/invoices/due-recovery/${invoiceId}/mark-call-done`, {
+      managerId: row['recoveryOwnerId'] || this.recoveryOwnerDrafts[invoiceId] || '',
+      note: 'Call completed from Due Recovery'
+    }).pipe(
+      finalize(() => this.actionLoading.set(''))
+    ).subscribe({
+      next: (result) => this.applyDueRecoveryFollowUpResult(invoiceId, result, 'Call follow-up marked done.'),
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to mark call done'))
+    });
+  }
+
+  addDueRecoveryFollowUpNote(row: ApiRecord): void {
+    const invoiceId = String(row['invoiceId'] || '');
+    if (!invoiceId) return;
+    const note = String(window.prompt('Follow-up note') || '').trim();
+    if (!note) return;
+    const key = this.dueRecoveryActionKey(row, 'note');
+    this.error.set('');
+    this.notice.set('');
+    this.actionLoading.set(key);
+    this.api.post<ApiRecord>(`reports/invoices/due-recovery/${invoiceId}/follow-up-note`, {
+      managerId: row['recoveryOwnerId'] || this.recoveryOwnerDrafts[invoiceId] || '',
+      note
+    }).pipe(
+      finalize(() => this.actionLoading.set(''))
+    ).subscribe({
+      next: (result) => this.applyDueRecoveryFollowUpResult(invoiceId, result, 'Follow-up note saved.'),
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to save follow-up note'))
+    });
+  }
+
+  private applyDueRecoveryFollowUpResult(invoiceId: string, result: ApiRecord, message: string): void {
+    const refreshed = (result['row'] || {}) as ApiRecord;
+    if (Object.keys(refreshed).length) {
+      this.dueRecoveryReportRows.update((rows) => rows.map((entry) => String(entry['invoiceId']) === invoiceId ? { ...entry, ...refreshed } : entry));
+    }
+    this.notice.set(message);
+    this.refreshDueRecoveryReport();
   }
 
   private safeList(resource: string, params: ApiRecord = {}) {

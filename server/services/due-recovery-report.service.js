@@ -1,10 +1,11 @@
 import { db, DEFAULT_TENANT_ID, listRows } from "../db.js";
-import { conflict } from "../utils/app-error.js";
+import { badRequest, conflict } from "../utils/app-error.js";
 import { invoicePaymentCollectionService } from "./invoice-payment-collection.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const closedStatuses = new Set(["closed", "waived", "written_off", "voided", "cancelled", "deleted"]);
+const followupStatuses = new Set(["reminder_stage", "call_pending", "call_done", "daily_due", "daily_done", "follow_up_note", "recovered"]);
 
 function dateMs(value = "") {
   const time = new Date(String(value || "")).getTime();
@@ -68,6 +69,31 @@ function paymentInvoiceId(payment = {}) {
   return String(payment.invoiceId || payment.invoice_id || "");
 }
 
+function paymentMode(payment = {}) {
+  return String(payment.mode || payment.paymentMode || payment.payment_mode || "cash");
+}
+
+function paymentReference(payment = {}) {
+  return String(payment.referenceNo || payment.reference_no || payment.reference || payment.paymentReference || payment.payment_reference || payment.providerPaymentId || payment.provider_payment_id || "");
+}
+
+function paymentSettlementId(payment = {}) {
+  return String(payment.id || payment.paymentId || payment.payment_id || payment.providerPaymentId || payment.provider_payment_id || payment.providerOrderId || payment.provider_order_id || "");
+}
+
+function paymentReceiverId(payment = {}) {
+  return String(payment.createdBy || payment.created_by || payment.receivedBy || payment.received_by || payment.cashierId || payment.cashier_id || payment.staffId || payment.staff_id || payment.userId || payment.user_id || "").trim();
+}
+
+function paymentReceiver(payment = {}, staffById = new Map()) {
+  const receiverId = paymentReceiverId(payment);
+  return String(payment.receivedByName || payment.received_by_name || payment.cashierName || payment.cashier_name || staffById.get(receiverId)?.name || receiverId || "Counter");
+}
+
+function paymentAmount(payment = {}) {
+  return money(payment.amount || payment.paidAmount || payment.paid_amount || 0);
+}
+
 function lineItemsFor(invoice = {}, sale = {}) {
   const rows = Array.isArray(invoice.lineItems) ? invoice.lineItems : Array.isArray(invoice.line_items) ? invoice.line_items : [];
   if (rows.length) return rows;
@@ -82,8 +108,12 @@ function serviceNames(items = []) {
   return names.join(", ") || "-";
 }
 
+function staffIdFor(invoice = {}, sale = {}, items = []) {
+  return String(invoice.staffId || invoice.staff_id || sale.staffId || sale.staff_id || items.find((item) => item.staffId || item.staff_id)?.staffId || items.find((item) => item.staff_id)?.staff_id || "");
+}
+
 function staffNameFor(invoice = {}, sale = {}, staffById = new Map(), items = []) {
-  const staffId = String(invoice.staffId || invoice.staff_id || sale.staffId || sale.staff_id || items.find((item) => item.staffId || item.staff_id)?.staffId || items.find((item) => item.staff_id)?.staff_id || "");
+  const staffId = staffIdFor(invoice, sale, items);
   return String(invoice.staffName || invoice.staff_name || sale.staffName || sale.staff_name || staffById.get(staffId)?.name || staffId || "Unassigned");
 }
 
@@ -127,6 +157,79 @@ function isRecoveredThisMonth(row = {}) {
   return status === "recovered" && latest.startsWith(month);
 }
 
+function makeFollowupId() {
+  return `due_follow_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function rowToFollowup(row = {}) {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    branchId: row.branchId || "",
+    invoiceId: row.invoiceId,
+    clientId: row.clientId || "",
+    managerId: row.managerId || "",
+    status: row.status || "pending",
+    note: row.note || "",
+    actionType: row.actionType || "",
+    createdBy: row.createdBy || "",
+    createdAt: row.createdAt || ""
+  };
+}
+
+function todayKey() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+function followupStatusFor(row = {}, followups = []) {
+  if (Number(row.dueAmount || 0) <= 0) return "recovered";
+  const latest = followups[0] || null;
+  if (latest?.status === "call_done") return row.agingBucket === "21+" && dateKey(latest.createdAt) === todayKey() ? "daily_done" : "call_done";
+  if (row.agingBucket === "21+") return latest && dateKey(latest.createdAt) === todayKey() ? "daily_done" : "daily_due";
+  if (row.agingBucket === "11-20") return latest?.status || "call_pending";
+  return latest?.status || "reminder_stage";
+}
+
+function latestManagerId(followups = []) {
+  return followups.find((row) => row.managerId)?.managerId || "";
+}
+
+function partialPaymentHistory(payments = [], staffById = new Map()) {
+  return payments
+    .map((payment) => {
+      const paidAt = paymentDate(payment);
+      const amount = paymentAmount(payment).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+      const mode = paymentMode(payment).toUpperCase();
+      const receiver = paymentReceiver(payment, staffById);
+      const settlement = paymentSettlementId(payment);
+      return `${dateKey(paidAt)} ${timeLabel(paidAt)} · ${amount} · ${mode} · ${receiver}${settlement ? ` · ${settlement}` : ""}`;
+    })
+    .join(" ; ");
+}
+
+function createdBy(access = {}) {
+  return String(access.userId || access.user?.id || access.actorUserId || access.staffId || access.role || "system");
+}
+
+function followupRowsFor(tenantId, branchId, invoiceIds = []) {
+  if (!invoiceIds.length || !tableExists("due_recovery_followups")) return new Map();
+  const invoiceSet = new Set(invoiceIds.map(String));
+  const rows = db.prepare(`
+    SELECT *
+      FROM due_recovery_followups
+     WHERE tenantId = @tenantId
+       AND (@branchId = '' OR branchId = @branchId)
+     ORDER BY createdAt DESC, id DESC
+  `).all({ tenantId, branchId });
+  const map = new Map();
+  for (const row of rows.map(rowToFollowup)) {
+    const invoiceId = String(row.invoiceId || "");
+    if (!invoiceSet.has(invoiceId)) continue;
+    map.set(invoiceId, [...(map.get(invoiceId) || []), row]);
+  }
+  return map;
+}
+
 class DueRecoveryReportService {
   report(query = {}, access = {}) {
     const tenantId = access.tenantId || DEFAULT_TENANT_ID;
@@ -148,7 +251,9 @@ class DueRecoveryReportService {
       if (!invoiceId) continue;
       paymentsByInvoice.set(invoiceId, [...(paymentsByInvoice.get(invoiceId) || []), payment]);
     }
-    const linksByInvoice = latestLink(tenantId, invoices.map(invoiceIdOf).filter(Boolean));
+    const invoiceIds = invoices.map(invoiceIdOf).filter(Boolean);
+    const linksByInvoice = latestLink(tenantId, invoiceIds);
+    const followupsByInvoice = followupRowsFor(tenantId, branchId, invoiceIds);
 
     const rows = invoices.map((invoice) => {
       const invoiceId = invoiceIdOf(invoice);
@@ -165,7 +270,11 @@ class DueRecoveryReportService {
       const status = String(invoice.status || invoice.payment_status || "").toLowerCase();
       const recoveryStatus = dueAmount > 0 ? (paidAmount > 0 ? "partial" : "pending") : (lastPayment ? "recovered" : "paid");
       const age = daysSince(createdAt);
-      return {
+      const staffId = staffIdFor(invoice, sale, items);
+      const followups = followupsByInvoice.get(invoiceId) || [];
+      const latestFollowup = followups[0] || {};
+      const recoveryOwnerId = latestManagerId(followups);
+      const row = {
         invoiceId,
         invoiceNumber: String(invoice.invoiceNumber || invoice.invoice_number || invoiceId),
         invoiceDate: dateKey(createdAt),
@@ -175,6 +284,7 @@ class DueRecoveryReportService {
         clientId: String(invoice.clientId || invoice.client_id || ""),
         clientName: clientNameFor(invoice, client),
         clientPhone: clientPhoneFor(invoice, client),
+        staffId,
         staffName: staffNameFor(invoice, sale, staffById, items),
         serviceNames: serviceNames(items),
         totalAmount,
@@ -186,12 +296,23 @@ class DueRecoveryReportService {
         invoiceStatus: status,
         closed: closedStatuses.has(status),
         lastPaymentAt: lastPayment ? paymentDate(lastPayment) : "",
+        receivedBy: lastPayment ? paymentReceiver(lastPayment, staffById) : "",
+        receiverId: lastPayment ? paymentReceiverId(lastPayment) : "",
+        paymentMode: lastPayment ? paymentMode(lastPayment) : "",
+        settlementPaymentId: lastPayment ? paymentSettlementId(lastPayment) : "",
+        paymentReference: lastPayment ? paymentReference(lastPayment) : "",
+        partialPaymentHistory: partialPaymentHistory(invoicePayments, staffById),
         lastReminderSentAt: String(link.sent_at || ""),
         reminderChannel: String(link.sent_channel || ""),
         paymentLinkStatus: String(link.status || (dueAmount > 0 ? "not_sent" : "paid")),
         paymentLinkUrl: String(link.link_url || ""),
-        paymentLinkId: String(link.id || "")
+        paymentLinkId: String(link.id || ""),
+        recoveryOwnerId,
+        recoveryOwnerName: recoveryOwnerId ? String(staffById.get(recoveryOwnerId)?.name || recoveryOwnerId) : "",
+        lastFollowUpAt: String(latestFollowup.createdAt || ""),
+        lastFollowUpNote: String(latestFollowup.note || "")
       };
+      return { ...row, callFollowUpStatus: followupStatusFor(row, followups) };
     }).filter((row) => this.matches(row, { ...query, from, to }))
       .filter((row) => row.dueAmount > 0 || row.recoveryStatus === "recovered")
       .sort((a, b) => b.dueAmount - a.dueAmount || b.agingDays - a.agingDays);
@@ -202,10 +323,15 @@ class DueRecoveryReportService {
   matches(row, query = {}) {
     if (query.from && row.invoiceDate < query.from) return false;
     if (query.to && row.invoiceDate > query.to) return false;
+    if (query.branchId && String(row.branchId || "") !== String(query.branchId)) return false;
     if (query.clientId && String(row.clientId) !== String(query.clientId)) return false;
-    if (query.staffId && !String(row.staffName || "").toLowerCase().includes(String(query.staffId).toLowerCase())) return false;
+    if (query.staffId && ![row.staffId, row.staffName].map(String).includes(String(query.staffId))) return false;
     if (query.agingBucket && row.agingBucket !== query.agingBucket) return false;
     if (query.status && query.status !== "all" && row.recoveryStatus !== query.status) return false;
+    if (query.paymentMode && String(row.paymentMode || "").toLowerCase() !== String(query.paymentMode).toLowerCase()) return false;
+    if (query.receivedBy && String(row.receiverId || "") !== String(query.receivedBy)) return false;
+    if (query.recoveryOwner && String(row.recoveryOwnerId || "") !== String(query.recoveryOwner)) return false;
+    if (query.followUpStatus && String(row.callFollowUpStatus || "") !== String(query.followUpStatus)) return false;
     const q = String(query.q || query.query || "").trim().toLowerCase();
     if (q) {
       const haystack = `${row.invoiceNumber} ${row.clientName} ${row.clientPhone} ${row.staffName} ${row.serviceNames}`.toLowerCase();
@@ -222,7 +348,9 @@ class DueRecoveryReportService {
       bucket0To10: money(pendingRows.filter((row) => row.agingBucket === "0-10").reduce((sum, row) => sum + row.dueAmount, 0)),
       bucket11To20: money(pendingRows.filter((row) => row.agingBucket === "11-20").reduce((sum, row) => sum + row.dueAmount, 0)),
       bucket21Plus: money(pendingRows.filter((row) => row.agingBucket === "21+").reduce((sum, row) => sum + row.dueAmount, 0)),
-      recoveredThisMonth: money(rows.filter(isRecoveredThisMonth).reduce((sum, row) => sum + row.paidAmount, 0))
+      recoveredThisMonth: money(rows.filter(isRecoveredThisMonth).reduce((sum, row) => sum + row.paidAmount, 0)),
+      callFollowUpPending: pendingRows.filter((row) => ["call_pending", "daily_due"].includes(String(row.callFollowUpStatus || ""))).length,
+      dailyFollowUpDueToday: pendingRows.filter((row) => row.callFollowUpStatus === "daily_due").length
     };
   }
 
@@ -249,6 +377,59 @@ class DueRecoveryReportService {
       queuedAt: new Date().toISOString(),
       dueAmount: current.dueAmount
     };
+  }
+
+  assignManager(invoiceId, payload = {}, access = {}) {
+    return this.recordFollowup(invoiceId, payload, access, "assign_manager");
+  }
+
+  markCallDone(invoiceId, payload = {}, access = {}) {
+    return this.recordFollowup(invoiceId, payload, access, "mark_call_done");
+  }
+
+  addFollowupNote(invoiceId, payload = {}, access = {}) {
+    return this.recordFollowup(invoiceId, payload, access, "follow_up_note");
+  }
+
+  recordFollowup(invoiceId, payload = {}, access = {}, actionType = "follow_up_note") {
+    if (!tableExists("due_recovery_followups")) throw conflict("Due recovery follow-up ledger is not ready");
+    const current = this.report({ limit: 10000, branchId: payload.branchId || access.branchId || "" }, access).rows.find((row) => row.invoiceId === invoiceId);
+    if (!current) throw conflict("Invoice is not available in due recovery");
+    if (current.closed) throw conflict("Closed invoices cannot receive follow-up actions");
+    if (current.dueAmount <= 0 && actionType !== "follow_up_note") throw conflict("Invoice is already paid. Follow-up action was not saved.");
+
+    const managerId = String(payload.managerId || payload.recoveryOwnerId || current.recoveryOwnerId || "").trim();
+    if (actionType === "assign_manager" && !managerId) throw badRequest("managerId is required");
+    const requestedStatus = String(payload.status || "").trim();
+    const status = actionType === "assign_manager"
+      ? "call_pending"
+      : actionType === "mark_call_done"
+        ? "call_done"
+        : followupStatuses.has(requestedStatus)
+          ? requestedStatus
+          : "follow_up_note";
+    const now = new Date().toISOString();
+    const row = {
+      id: makeFollowupId(),
+      tenantId: access.tenantId || DEFAULT_TENANT_ID,
+      branchId: current.branchId || payload.branchId || access.branchId || "",
+      invoiceId: current.invoiceId,
+      clientId: current.clientId || "",
+      managerId,
+      status,
+      note: String(payload.note || ""),
+      actionType,
+      createdBy: createdBy(access),
+      createdAt: now
+    };
+    db.prepare(`
+      INSERT INTO due_recovery_followups
+        (id, tenantId, branchId, invoiceId, clientId, managerId, status, note, actionType, createdBy, createdAt)
+      VALUES
+        (@id, @tenantId, @branchId, @invoiceId, @clientId, @managerId, @status, @note, @actionType, @createdBy, @createdAt)
+    `).run(row);
+    const refreshed = this.report({ limit: 10000, branchId: row.branchId }, access).rows.find((item) => item.invoiceId === invoiceId) || current;
+    return { invoiceId, followUpId: row.id, status, actionType, createdAt: now, row: refreshed };
   }
 }
 
