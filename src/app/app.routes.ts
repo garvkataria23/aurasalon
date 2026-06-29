@@ -197,6 +197,7 @@ export const routes: Routes = [
   { path: 'reports/invoices', loadComponent: () => import('./pages/invoice-reports.component').then(m => m.InvoiceReportsComponent), title: 'Invoice Reports Command Center' },
   { path: 'reports/pending-packages', loadComponent: () => import('./pages/pending-packages-report.component').then(m => m.PendingPackagesReportComponent), title: 'Pending Packages' },
   { path: 'reports/expired-packages', loadComponent: () => import('./pages/expired-packages-report.component').then(m => m.ExpiredPackagesReportComponent), title: 'Expired Packages' },
+  { path: 'reports/completed-packages', loadComponent: () => import('./pages/completed-packages-report.component').then(m => m.CompletedPackagesReportComponent), title: 'Completed Packages' },
   { path: 'reports/inward-revenue', loadComponent: () => import('./pages/inward-revenue-report.component').then(m => m.InwardRevenueReportComponent), title: 'Inward Revenue Report' },
   { path: 'reports/financial-summary', loadComponent: () => import('./pages/financial-summary-report.component').then(m => m.FinancialSummaryReportComponent), title: 'Financial Summary' },
   { path: 'reports', loadComponent: () => import('./pages/reports.component').then(m => m.ReportsComponent), title: 'Reports & Analytics' },

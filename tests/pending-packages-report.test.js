@@ -11,6 +11,7 @@ test("pending packages backend route and report logic are wired", () => {
 
   assert.match(route, /"\/reports\/pending-packages"/, "route should expose reports/pending-packages");
   assert.match(route, /"\/reports\/expired-packages"/, "route should expose reports/expired-packages");
+  assert.match(route, /"\/reports\/completed-packages"/, "route should expose reports/completed-packages");
   assert.match(route, /requirePermission\("read",\s*\(\) => "reports"\)/, "route should require reports read permission");
   assert.match(app, /pendingPackagesReportRouter/, "app should import pending packages report router");
   assert.match(app, /app\.use\("\/api\/v1",\s*pendingPackagesReportRouter\)/, "v1 API should mount pending packages report");
@@ -24,6 +25,9 @@ test("pending packages backend route and report logic are wired", () => {
   assert.match(service, /status === "expiring"/, "expiring status filter should exist");
   assert.match(service, /status === "expired"/, "expired status filter should exist");
   assert.match(service, /buildExpiredSummary/, "expired package report should summarize package rows");
+  assert.match(service, /completed\(query = \{\}, access = \{\}\)/, "completed package report method should exist");
+  assert.match(service, /if \(pendingQty > 0\) return;/, "completed package rows should require zero pending quantity");
+  assert.match(service, /buildCompletedSummary/, "completed package report should summarize completed rows");
 });
 
 test("pending packages frontend page exposes Salonist-style report controls", () => {
@@ -98,4 +102,40 @@ test("expired packages frontend page matches the package expiry report shape", (
   assert.match(page, /placeholder="Customer, contact, package"/, "search input should cover expired report fields");
   assert.match(page, /report<ExpiredPackagesReport>\('expired-packages'/, "page should call expired packages API report");
   assert.match(page, /expired-packages-report\.csv/, "download should export expired packages CSV");
+});
+
+test("completed packages frontend page matches the completed package report shape", () => {
+  const routes = read("src/app/app.routes.ts");
+  const page = read("src/app/pages/completed-packages-report.component.ts");
+
+  assert.match(routes, /reports\/completed-packages/, "Angular route should exist");
+
+  for (const label of [
+    "Completed Packages",
+    "Run Report",
+    "Download CSV",
+    "Total completed services",
+    "Total service amount",
+    "Completed package count",
+    "Redeemed quantity",
+    "Name",
+    "Contact",
+    "Package",
+    "Service Name",
+    "Price",
+    "Total Qty",
+    "Redeemed Qty",
+    "Pending Qty",
+    "Date",
+    "Expired On",
+    "No data found"
+  ]) {
+    assert.match(page, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `missing UI label ${label}`);
+  }
+
+  assert.match(page, /placeholder="Client, contact, package, service"/, "search input should cover completed report fields");
+  assert.match(page, /report<CompletedPackagesReport>\('completed-packages'/, "page should call completed packages API report");
+  assert.match(page, /completed-packages-report\.csv/, "download should export completed packages CSV");
+  assert.match(page, /\/pos\/invoices/, "invoice action should deep-link to invoice register");
+  assert.match(page, /\/clients/, "client action should deep-link to client profile");
 });

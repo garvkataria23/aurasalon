@@ -20,3 +20,11 @@ pendingPackagesReportRouter.get(
     res.json(pendingPackagesReportService.expired(req.query, req.access));
   })
 );
+
+pendingPackagesReportRouter.get(
+  "/reports/completed-packages",
+  requirePermission("read", () => "reports"),
+  asyncHandler((req, res) => {
+    res.json(pendingPackagesReportService.completed(req.query, req.access));
+  })
+);

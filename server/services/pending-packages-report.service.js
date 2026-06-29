@@ -234,6 +234,24 @@ function buildExpiredSummary(rows = []) {
   });
 }
 
+function buildCompletedSummary(rows = []) {
+  const packageIds = new Set();
+  const summary = rows.reduce((summary, row) => {
+    summary.totalCompletedServices = money(summary.totalCompletedServices + row.totalQty);
+    summary.totalServiceAmount = money(summary.totalServiceAmount + row.price * row.totalQty);
+    summary.redeemedQty = money(summary.redeemedQty + row.redeemedQty);
+    if (row.membershipId || row.id) packageIds.add(row.membershipId || row.id);
+    return summary;
+  }, {
+    totalCompletedServices: 0,
+    totalServiceAmount: 0,
+    completedPackageCount: 0,
+    redeemedQty: 0
+  });
+  summary.completedPackageCount = packageIds.size;
+  return summary;
+}
+
 class PendingPackagesReportService {
   report(query = {}, access = {}) {
     const from = dayKey(query.from);
@@ -380,10 +398,90 @@ class PendingPackagesReportService {
       offset
     };
   }
+
+  completed(query = {}, access = {}) {
+    const from = dayKey(query.from);
+    const to = dayKey(query.to);
+    const search = text(query.search);
+    const limit = Math.min(500, Math.max(1, Number(query.limit || 25)));
+    const offset = Math.max(0, Number(query.offset || 0));
+    const branchId = text(query.branchId || access.branchId);
+
+    const listQuery = { limit: 10000, branchId };
+    const memberships = resourceService.list("memberships", listQuery, access);
+    const packages = resourceService.list("packages", listQuery, access);
+    const clients = resourceService.list("clients", { limit: 10000, branchId, compact: 1 }, access);
+
+    const clientsById = new Map(clients.map((client) => [recordId(client), client]));
+    const packagesById = new Map(packages.map((pkg) => [recordId(pkg), pkg]));
+    const packagesByName = new Map(packages.map((pkg) => [lower(packageName(pkg)), pkg]));
+    const rows = [];
+
+    for (const membership of memberships) {
+      if (!isPackageMembership(membership)) continue;
+      const date = saleDate(membership);
+      if (!inDateRange(date, from, to)) continue;
+
+      const pkg = packageForMembership(membership, packagesById, packagesByName);
+      const credits = packageCredits(membership).length ? packageCredits(membership) : packageCredits(pkg);
+      if (!credits.length) continue;
+
+      const totalCredits = credits.reduce((sum, credit) => sum + totalCreditQty(credit), 0);
+      const history = redemptionHistory(membership);
+      const client = clientsById.get(clientId(membership)) || {};
+      const expiredOn = expiryDate(membership);
+      const statusValue = rowStatus(expiredOn);
+      const membershipId = recordId(membership);
+
+      credits.forEach((credit, index) => {
+        const totalQty = totalCreditQty(credit);
+        if (totalQty <= 0) return;
+        const redeemedQty = Math.min(totalQty, redeemedQtyForCredit(credit, history, credits.length));
+        const pendingQty = money(Math.max(0, totalQty - redeemedQty));
+        if (pendingQty > 0) return;
+        const price = creditPrice(credit, membership, pkg, totalCredits);
+        const row = {
+          id: `${membershipId}:${creditServiceId(credit) || index}`,
+          membershipId,
+          clientId: clientId(membership),
+          clientName: clientName(client) || text(membership.clientName || membership.customerName) || "Walk-in Client",
+          contact: clientPhone(client) || text(membership.contact || membership.phone || membership.clientPhone),
+          packageId: recordId(pkg) || text(membership.packageId || membership.package_id),
+          packageName: packageName(membership) || packageName(pkg),
+          serviceId: creditServiceId(credit),
+          serviceName: creditServiceName(credit),
+          invoiceId: invoiceId(membership),
+          price,
+          totalQty,
+          redeemedQty,
+          pendingQty,
+          date,
+          expiredOn,
+          status: statusValue
+        };
+        if (searchMatch(row, search)) rows.push(row);
+      });
+    }
+
+    rows.sort((left, right) => {
+      const byDate = dateMs(right.date) - dateMs(left.date);
+      if (byDate) return byDate;
+      return String(left.clientName || "").localeCompare(String(right.clientName || ""));
+    });
+
+    return {
+      summary: buildCompletedSummary(rows),
+      rows: rows.slice(offset, offset + limit),
+      total: rows.length,
+      limit,
+      offset
+    };
+  }
 }
 
 export const pendingPackagesReportService = new PendingPackagesReportService();
 export {
+  buildCompletedSummary,
   buildExpiredSummary,
   buildSummary,
   creditPrice,
