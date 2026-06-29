@@ -1,7 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -186,10 +186,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </div>
 
         <nav class="report-tabs" aria-label="Staff sales report sections">
-          <button type="button" [class.active]="activeTab() === 'leaderboard'" (click)="activeTab.set('leaderboard')">Staff Leaderboard</button>
-          <button type="button" [class.active]="activeTab() === 'services'" (click)="activeTab.set('services')">Services By Staff</button>
-          <button type="button" [class.active]="activeTab() === 'products'" (click)="activeTab.set('products')">Products By Staff</button>
-          <button type="button" [class.active]="activeTab() === 'commission'" (click)="activeTab.set('commission')">Commission / Payout</button>
+          <button type="button" [class.active]="activeTab() === 'leaderboard'" (click)="setActiveTab('leaderboard')">Staff Leaderboard</button>
+          <button type="button" [class.active]="activeTab() === 'services'" (click)="setActiveTab('services')">Services By Staff</button>
+          <button type="button" [class.active]="activeTab() === 'products'" (click)="setActiveTab('products')">Products By Staff</button>
+          <button type="button" [class.active]="activeTab() === 'commission'" (click)="setActiveTab('commission')">Commission / Payout</button>
         </nav>
 
         <section class="panel" *ngIf="activeTab() === 'leaderboard'">
@@ -243,7 +243,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                     <td>{{ row.tips | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td>{{ row.estimatedCommission | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td><span class="score-pill" [class.good]="row.performanceScore >= 75" [class.warn]="row.performanceScore < 45">{{ row.performanceScore || 0 }}</span></td>
-                    <td><a class="ghost-button mini" routerLink="/staff-os/employee-masters" [queryParams]="{ q: row.staffName }">Open</a></td>
+                    <td><a class="ghost-button mini" routerLink="/staff-os/staff-profile" [queryParams]="staffProfileParams(row)">Open</a></td>
                   </tr>
                   <tr class="expanded-row" *ngIf="isExpanded(row)">
                     <td colspan="18">
@@ -374,7 +374,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                     <td>{{ row.pendingDue | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td>{{ row.discountGiven | currency: 'INR':'symbol':'1.0-0' }}</td>
                     <td>{{ row.estimatedCommission | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td><a class="ghost-button mini" routerLink="/staff-os/employee-masters" [queryParams]="{ q: row.staffName }">Open</a></td>
+                    <td><a class="ghost-button mini" routerLink="/staff-os/staff-profile" [queryParams]="staffProfileParams(row)">Open</a></td>
                   </tr>
                   <tr class="expanded-row" *ngIf="isExpanded(row)">
                     <td colspan="15">
@@ -468,7 +468,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <td>{{ row.productCount || 0 }}</td>
                   <td>{{ (row.productBreakdown || []).length }}</td>
                   <td><span class="badge warning" *ngIf="hasMissingCost(row.productBreakdown)">Missing cost</span><span class="badge" *ngIf="!hasMissingCost(row.productBreakdown)">OK</span></td>
-                  <td><a class="ghost-button mini" routerLink="/staff-os/employee-masters" [queryParams]="{ q: row.staffName }">Open</a></td>
+                  <td><a class="ghost-button mini" routerLink="/staff-os/staff-profile" [queryParams]="staffProfileParams(row)">Open</a></td>
                 </tr>
                 <tr *ngIf="!(data.staff || []).length"><td colspan="6">No product sales found.</td></tr>
               </tbody>
@@ -843,7 +843,11 @@ export class StaffSalesReportComponent implements OnInit {
   query = '';
   private initialized = false;
 
-  constructor(private readonly api: ApiService) {
+  constructor(
+    private readonly api: ApiService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router
+  ) {
     effect(() => {
       this.api.selectedBranchId();
       if (this.initialized) this.load();
@@ -852,8 +856,19 @@ export class StaffSalesReportComponent implements OnInit {
 
   ngOnInit(): void {
     this.initialized = true;
+    this.applyReportTabFromQuery();
     this.loadBranches();
     this.load();
+  }
+
+  setActiveTab(tab: 'leaderboard' | 'services' | 'products' | 'commission'): void {
+    this.activeTab.set(tab);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { report: this.reportParamForTab(tab) },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   load(): void {
@@ -899,6 +914,12 @@ export class StaffSalesReportComponent implements OnInit {
 
   isExpanded(row: ApiRecord): boolean {
     return this.expandedStaff() === String(row['staffId'] || row['staffName'] || '');
+  }
+
+  staffProfileParams(row: ApiRecord): ApiRecord {
+    const staffId = String(row['staffId'] || '');
+    if (staffId && !staffId.startsWith('name:')) return { staffId, q: row['staffName'] || '' };
+    return { q: row['staffName'] || '' };
   }
 
   discountModeLabel(): string {
@@ -1016,6 +1037,21 @@ export class StaffSalesReportComponent implements OnInit {
       next: (branches) => this.branches.set(branches || []),
       error: () => this.branches.set([])
     });
+  }
+
+  private applyReportTabFromQuery(): void {
+    const report = String(this.route.snapshot.queryParamMap.get('report') || '').toLowerCase();
+    if (report === 'services' || report === 'services-by-staff') this.activeTab.set('services');
+    else if (report === 'products' || report === 'products-by-staff') this.activeTab.set('products');
+    else if (report === 'commission' || report === 'commission-payout') this.activeTab.set('commission');
+    else this.activeTab.set('leaderboard');
+  }
+
+  private reportParamForTab(tab: 'leaderboard' | 'services' | 'products' | 'commission'): string {
+    if (tab === 'services') return 'services-by-staff';
+    if (tab === 'products') return 'products-by-staff';
+    if (tab === 'commission') return 'commission-payout';
+    return 'staff-leaderboard';
   }
 
   private money(value: unknown): string {
