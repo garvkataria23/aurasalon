@@ -24,7 +24,13 @@ test("staff sales API stays backward-compatible while exposing performance field
     "serviceSaleRows",
     "serviceQty",
     "serviceClientsCount",
-    "serviceInvoiceCount"
+    "serviceInvoiceCount",
+    "grossServiceSale",
+    "finalServiceSale",
+    "serviceDiscountAmount",
+    "serviceDiscountPercent",
+    "staffServiceShareBeforeDiscount",
+    "staffServiceShareAfterDiscount"
   ]) {
     assert.match(service, new RegExp(analyticsField), `${analyticsField} should be calculated by staff report service`);
   }
@@ -34,9 +40,10 @@ test("staff sales service supports additive filters and breakdown calculations",
   for (const helper of ["matchesItemFilters", "breakdownRows", "commissionEstimate", "performanceScore", "paymentInvoiceId", "serviceSaleRow"]) {
     assert.match(service, new RegExp(`function ${helper}\\(`), `${helper} helper should exist`);
   }
-  for (const filter of ["staffId", "saleType", "serviceSaleType", "dueStatus", "client", "service", "product", "category", "commissionStatus", "performanceBucket", "q"]) {
+  for (const filter of ["staffId", "saleType", "serviceSaleType", "discountMode", "dueStatus", "client", "service", "product", "category", "commissionStatus", "performanceBucket", "q"]) {
     assert.match(service, new RegExp(filter), `${filter} filter should be supported`);
   }
+  assert.match(service, /normalizedDiscountMode/, "discount mode query should be normalized");
   assert.match(service, /costSignal: "ok"/, "COGS confidence signal should be present");
   assert.match(service, /missing_cost/, "missing product consume cost should be surfaced");
 });
@@ -55,6 +62,14 @@ test("staff sales service exposes service invoice drilldown fields", () => {
     "branchName",
     "saleType",
     "staffSharePercent",
+    "grossPrice",
+    "discountAmount",
+    "finalPrice",
+    "serviceShareBeforeDiscount",
+    "serviceShareAfterDiscount",
+    "discountPercent",
+    "paymentMode",
+    "transactionId",
     "discount",
     "gst",
     "dueAmount"
@@ -87,11 +102,22 @@ test("staff sales UI exposes leaderboard, exports, expandable details, and Staff
     "Estimated commission",
     "Staff summary",
     "Services sales by staff",
+    "Discount mode",
+    "With Discount",
+    "Without Discount",
+    "Compare Both",
+    "Gross service sale",
+    "Final service sale",
+    "Share before discount",
+    "Share after discount",
+    "Gross price",
+    "Final price",
+    "Transaction ID",
     "Line item audit"
   ]) {
     assert.match(component, new RegExp(label), `${label} should render in the staff sales report`);
   }
-  for (const method of ["exportCsv", "exportServiceRowsCsv", "exportOwnerPdf", "exportPayoutPdf", "toggleStaff", "isExpanded", "staffOptions", "hasMissingCost"]) {
+  for (const method of ["exportCsv", "exportServiceRowsCsv", "exportOwnerPdf", "exportPayoutPdf", "toggleStaff", "isExpanded", "staffOptions", "hasMissingCost", "discountModeLabel", "serviceAmountFor"]) {
     assert.match(component, new RegExp(`${method}\\(`), `${method} should exist in staff sales component`);
   }
   assert.match(component, /serviceBreakdown/, "expanded service detail should render");

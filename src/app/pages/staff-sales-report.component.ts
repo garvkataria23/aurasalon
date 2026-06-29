@@ -63,6 +63,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </select>
         </label>
         <label class="field">
+          <span>Discount mode</span>
+          <select [(ngModel)]="discountMode">
+            <option value="with_discount">With Discount</option>
+            <option value="without_discount">Without Discount</option>
+            <option value="compare">Compare Both</option>
+          </select>
+        </label>
+        <label class="field">
           <span>Due status</span>
           <select [(ngModel)]="dueStatus">
             <option value="">All due status</option>
@@ -301,6 +309,33 @@ import { StateComponent } from '../shared/ui/state/state.component';
             </div>
             <button class="ghost-button mini" type="button" (click)="exportCsv()">Services CSV</button>
           </div>
+          <div class="metrics-grid compact">
+            <article class="metric-card">
+              <span>Gross service sale</span>
+              <strong>{{ data.totals?.grossServiceSale || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Before discount</small>
+            </article>
+            <article class="metric-card">
+              <span>Final service sale</span>
+              <strong>{{ data.totals?.finalServiceSale || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>After discount</small>
+            </article>
+            <article class="metric-card">
+              <span>Discount amount</span>
+              <strong>{{ data.totals?.serviceDiscountAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>{{ data.totals?.serviceDiscountPercent || 0 }}% leakage</small>
+            </article>
+            <article class="metric-card">
+              <span>Share before discount</span>
+              <strong>{{ data.totals?.staffServiceShareBeforeDiscount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Staff attribution</small>
+            </article>
+            <article class="metric-card">
+              <span>Share after discount</span>
+              <strong>{{ data.totals?.staffServiceShareAfterDiscount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>{{ discountModeLabel() }}</small>
+            </article>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -311,6 +346,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   <th>Contact</th>
                   <th>Total service qty</th>
                   <th>Total service amount</th>
+                  <th>Gross</th>
+                  <th>Final</th>
+                  <th>Discount %</th>
                   <th>Clients</th>
                   <th>Invoices</th>
                   <th>Pending due</th>
@@ -327,7 +365,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
                     <td>{{ row.staffCode || row.staffId }}</td>
                     <td>{{ row.contact || '-' }}</td>
                     <td>{{ row.serviceQty || 0 }}</td>
-                    <td>{{ row.serviceRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ serviceAmountFor(row) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.grossServiceSale | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.finalServiceSale | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.serviceDiscountPercent || 0 }}%</td>
                     <td>{{ row.serviceClientsCount || 0 }}</td>
                     <td>{{ row.serviceInvoiceCount || 0 }}</td>
                     <td>{{ row.pendingDue | currency: 'INR':'symbol':'1.0-0' }}</td>
@@ -336,14 +377,19 @@ import { StateComponent } from '../shared/ui/state/state.component';
                     <td><a class="ghost-button mini" routerLink="/staff-os/employee-masters" [queryParams]="{ q: row.staffName }">Open</a></td>
                   </tr>
                   <tr class="expanded-row" *ngIf="isExpanded(row)">
-                    <td colspan="12">
+                    <td colspan="15">
                       <div class="service-drilldown">
                         <table>
                           <thead>
                             <tr>
                               <th>Service name</th>
                               <th>Qty</th>
-                              <th>Total</th>
+                              <th *ngIf="discountMode !== 'with_discount'">Gross price</th>
+                              <th>Discount</th>
+                              <th *ngIf="discountMode === 'compare'">Discount %</th>
+                              <th *ngIf="discountMode !== 'without_discount'">Final price</th>
+                              <th *ngIf="discountMode !== 'with_discount'">Share before discount</th>
+                              <th *ngIf="discountMode !== 'without_discount'">Share after discount</th>
                               <th>Invoice number</th>
                               <th>Invoice date</th>
                               <th>Appointment date</th>
@@ -353,7 +399,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
                               <th>Branch</th>
                               <th>Sale type</th>
                               <th>Staff share %</th>
-                              <th>Discount</th>
+                              <th>Payment mode</th>
+                              <th>Transaction ID</th>
                               <th>GST</th>
                               <th>Due amount</th>
                               <th>Action</th>
@@ -363,7 +410,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
                             <tr *ngFor="let serviceRow of row.serviceSaleRows || []">
                               <td><strong>{{ serviceRow.serviceName }}</strong><small>{{ serviceRow.serviceGroup }}</small></td>
                               <td>{{ serviceRow.qty }}</td>
-                              <td>{{ serviceRow.total | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td *ngIf="discountMode !== 'with_discount'">{{ serviceRow.grossPrice | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td>{{ serviceRow.discountAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td *ngIf="discountMode === 'compare'">{{ serviceRow.discountPercent || 0 }}%</td>
+                              <td *ngIf="discountMode !== 'without_discount'">{{ serviceRow.finalPrice | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td *ngIf="discountMode !== 'with_discount'">{{ serviceRow.serviceShareBeforeDiscount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td *ngIf="discountMode !== 'without_discount'">{{ serviceRow.serviceShareAfterDiscount | currency: 'INR':'symbol':'1.0-0' }}</td>
                               <td>{{ serviceRow.invoiceNumber || '-' }}</td>
                               <td>{{ serviceRow.invoiceDate || '-' }} <small>{{ serviceRow.invoiceTime || '' }}</small></td>
                               <td>{{ serviceRow.appointmentDate || '-' }}</td>
@@ -373,7 +425,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
                               <td>{{ serviceRow.branchName || serviceRow.branchId || '-' }}</td>
                               <td><span class="badge">{{ serviceRow.saleType }}</span></td>
                               <td>{{ serviceRow.staffSharePercent || 100 }}%</td>
-                              <td>{{ serviceRow.discount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td>{{ serviceRow.paymentMode || '-' }}</td>
+                              <td>{{ serviceRow.transactionId || '-' }}</td>
                               <td>{{ serviceRow.gst | currency: 'INR':'symbol':'1.0-0' }}</td>
                               <td>{{ serviceRow.dueAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
                               <td class="row-actions">
@@ -382,7 +435,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                               </td>
                             </tr>
                             <tr *ngIf="!(row.serviceSaleRows || []).length">
-                              <td colspan="16">No service invoice rows for this staff/filter.</td>
+                              <td colspan="22">No service invoice rows for this staff/filter.</td>
                             </tr>
                           </tbody>
                         </table>
@@ -391,7 +444,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                   </tr>
                 </ng-container>
                 <tr *ngIf="!(data.staff || []).length">
-                  <td colspan="12">No service sales found for selected filters.</td>
+                  <td colspan="15">No service sales found for selected filters.</td>
                 </tr>
               </tbody>
             </table>
@@ -671,6 +724,7 @@ export class StaffSalesReportComponent implements OnInit {
   staffId = '';
   saleType = '';
   serviceSaleType = '';
+  discountMode: 'with_discount' | 'without_discount' | 'compare' = 'with_discount';
   dueStatus = '';
   service = '';
   product = '';
@@ -704,6 +758,7 @@ export class StaffSalesReportComponent implements OnInit {
       staffId: this.staffId,
       saleType: this.saleType,
       serviceSaleType: this.serviceSaleType,
+      discountMode: this.discountMode,
       dueStatus: this.dueStatus,
       service: this.service,
       product: this.product,
@@ -750,6 +805,17 @@ export class StaffSalesReportComponent implements OnInit {
     return this.expandedStaff() === String(row['staffId'] || row['staffName'] || '');
   }
 
+  discountModeLabel(): string {
+    if (this.discountMode === 'without_discount') return 'Without Discount';
+    if (this.discountMode === 'compare') return 'Compare Both';
+    return 'With Discount';
+  }
+
+  serviceAmountFor(row: ApiRecord): number {
+    if (this.discountMode === 'without_discount') return Number(row['staffServiceShareBeforeDiscount'] || row['grossServiceSale'] || row['serviceRevenue'] || 0);
+    return Number(row['staffServiceShareAfterDiscount'] || row['finalServiceSale'] || row['serviceRevenue'] || 0);
+  }
+
   exportCsv(): void {
     if (this.activeTab() === 'services') {
       this.exportServiceRowsCsv();
@@ -780,14 +846,20 @@ export class StaffSalesReportComponent implements OnInit {
 
   exportServiceRowsCsv(): void {
     const rows = (this.report()?.serviceSaleRows || []) as ApiRecord[];
-    const headers = ['Staff', 'Staff ID', 'Service group', 'Service name', 'Qty', 'Total', 'Invoice number', 'Invoice date', 'Appointment date', 'Created date', 'Customer name', 'Customer contact', 'Branch', 'Sale type', 'Staff share %', 'Discount', 'GST', 'Due amount'];
+    const headers = ['Discount mode', 'Staff', 'Staff ID', 'Service group', 'Service name', 'Qty', 'Gross price', 'Discount', 'Discount %', 'Final price', 'Share before discount', 'Share after discount', 'Invoice number', 'Invoice date', 'Appointment date', 'Created date', 'Customer name', 'Customer contact', 'Branch', 'Sale type', 'Staff share %', 'Payment mode', 'Transaction ID', 'GST', 'Due amount'];
     const csvRows = rows.map((row) => [
+      this.discountModeLabel(),
       row['staffName'],
       row['staffId'],
       row['serviceGroup'],
       row['serviceName'],
       row['qty'],
-      row['total'],
+      row['grossPrice'],
+      row['discountAmount'],
+      row['discountPercent'],
+      row['finalPrice'],
+      row['serviceShareBeforeDiscount'],
+      row['serviceShareAfterDiscount'],
       row['invoiceNumber'],
       row['invoiceDate'],
       row['appointmentDate'],
@@ -797,7 +869,8 @@ export class StaffSalesReportComponent implements OnInit {
       row['branchName'] || row['branchId'],
       row['saleType'],
       row['staffSharePercent'],
-      row['discount'],
+      row['paymentMode'],
+      row['transactionId'],
       row['gst'],
       row['dueAmount']
     ].map((value) => this.csvCell(value)).join(','));

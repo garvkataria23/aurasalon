@@ -166,7 +166,13 @@ function blankStaff(staffId, staffName = "") {
     serviceSaleRows: [],
     serviceQty: 0,
     serviceClientsCount: 0,
-    serviceInvoiceCount: 0
+    serviceInvoiceCount: 0,
+    grossServiceSale: 0,
+    finalServiceSale: 0,
+    serviceDiscountAmount: 0,
+    serviceDiscountPercent: 0,
+    staffServiceShareBeforeDiscount: 0,
+    staffServiceShareAfterDiscount: 0
   };
 }
 
@@ -243,7 +249,7 @@ function addDocumentItems({
   paymentsByInvoice = new Map()
 }) {
   let itemCount = 0;
-  for (const item of items) {
+  for (const [itemIndex, item] of items.entries()) {
     const type = normalizedItemType(item);
     const quantity = Number(item.quantity || item.qty || 1);
     const amount = lineAmount(item);
@@ -268,6 +274,15 @@ function addDocumentItems({
     const createdParts = dateTimeParts(invoiceCreatedAt);
     const dueAmount = invoiceDue(Object.keys(invoice).length ? invoice : source, paymentsByInvoice.get(String(invoiceId)) || []);
     const saleType = appointmentId || appointmentDateOf(appointment, source, invoice) ? "Appointment" : "Quick Sale";
+    const invoicePayments = paymentsByInvoice.get(String(invoiceId)) || [];
+    const paymentMode = paymentModeFor(Object.keys(invoice).length ? invoice : source, invoicePayments);
+    const transactionId = transactionIdFor(Object.keys(invoice).length ? invoice : source, invoicePayments);
+    const lineKey = [
+      sourceType,
+      source.id || invoiceId || source.saleId || "source",
+      item.id || item.itemId || item.item_id || item.serviceId || item.service_id || item.productId || item.product_id || itemIndex
+    ].join(":");
+    const discountPercent = grossSale > 0 ? money((discount / grossSale) * 100) : 0;
 
     for (const split of splits) {
       const key = split.staffId && split.staffId !== "unassigned"
@@ -321,6 +336,15 @@ function addDocumentItems({
         gst: money(gst * (split.sharePercent / 100)),
         cogs: money(cogs * (split.sharePercent / 100)),
         dueAmount: money(dueAmount * (split.sharePercent / 100)),
+        lineKey,
+        lineGrossAmount: grossSale,
+        lineDiscountAmount: discount,
+        lineFinalAmount: amount,
+        serviceShareBeforeDiscount: money(grossSale * (split.sharePercent / 100)),
+        serviceShareAfterDiscount: split.amount,
+        discountPercent,
+        paymentMode,
+        transactionId,
         lineAmount: amount,
         amount: split.amount,
         sharePercent: split.sharePercent,
@@ -336,6 +360,38 @@ function addDocumentItems({
 
 function paymentInvoiceId(payment = {}) {
   return String(payment.invoiceId || payment.invoice_id || "");
+}
+
+function firstPresent(row = {}, keys = []) {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && value !== "") return String(value);
+  }
+  return "";
+}
+
+function uniqueJoined(values = []) {
+  const clean = values.map((value) => String(value || "").trim()).filter(Boolean);
+  return [...new Set(clean)].join(", ") || "-";
+}
+
+function paymentModeFor(invoice = {}, payments = []) {
+  return uniqueJoined([
+    ...payments.map((payment) => firstPresent(payment, ["paymentMode", "payment_mode", "mode", "method", "type", "channel"])),
+    firstPresent(invoice, ["paymentMode", "payment_mode", "mode", "paymentMethod", "payment_method"])
+  ]);
+}
+
+function transactionIdFor(invoice = {}, payments = []) {
+  return uniqueJoined([
+    ...payments.map((payment) => firstPresent(payment, ["transactionId", "transaction_id", "paymentId", "payment_id", "referenceNo", "reference_no", "reference", "utr", "id"])),
+    firstPresent(invoice, ["transactionId", "transaction_id", "paymentReference", "payment_reference", "referenceNo", "reference_no"])
+  ]);
+}
+
+function normalizedDiscountMode(value = "") {
+  const mode = String(value || "").trim();
+  return ["with_discount", "without_discount", "compare"].includes(mode) ? mode : "with_discount";
 }
 
 function matchesItemFilters(row = {}, query = {}) {
@@ -374,14 +430,30 @@ function matchesItemFilters(row = {}, query = {}) {
   return true;
 }
 
-function serviceSaleRow(row = {}) {
+function serviceSaleRow(row = {}, discountMode = "with_discount") {
+  const grossPrice = money(row.lineGrossAmount || row.grossSale || 0);
+  const discountAmount = money(row.lineDiscountAmount || row.discount || 0);
+  const finalPrice = money(row.lineFinalAmount || row.lineAmount || row.amount || row.netSale || 0);
+  const serviceShareBeforeDiscount = money(row.serviceShareBeforeDiscount || row.grossSale || 0);
+  const serviceShareAfterDiscount = money(row.serviceShareAfterDiscount || row.amount || row.netSale || 0);
+  const displayTotal = discountMode === "without_discount" ? serviceShareBeforeDiscount : serviceShareAfterDiscount;
   return {
     serviceName: row.itemName || "Service",
     serviceId: row.itemId || "",
     serviceGroup: row.serviceGroup || row.itemCategory || "Service",
     qty: Number(row.quantity || 0),
     quantity: Number(row.quantity || 0),
-    total: money(row.amount || row.netSale || 0),
+    total: displayTotal,
+    displayTotal,
+    grossPrice,
+    discountAmount,
+    finalPrice,
+    serviceShareBeforeDiscount,
+    serviceShareAfterDiscount,
+    discountPercent: Number(row.discountPercent || (grossPrice > 0 ? money((discountAmount / grossPrice) * 100) : 0)),
+    paymentMode: row.paymentMode || "-",
+    transactionId: row.transactionId || "-",
+    lineKey: row.lineKey || "",
     invoiceId: row.invoiceId || "",
     invoiceNumber: row.invoiceNumber || "",
     invoiceDate: row.invoiceDate || row.date || "",
@@ -407,6 +479,26 @@ function serviceSaleRow(row = {}) {
     actionInvoiceId: row.invoiceId || "",
     actionClientId: row.clientId || ""
   };
+}
+
+function serviceDiscountTotals(rows = []) {
+  const totals = rows.reduce((acc, row) => {
+    acc.grossServiceSale = money(acc.grossServiceSale + Number(row.serviceShareBeforeDiscount || row.grossPrice || 0));
+    acc.finalServiceSale = money(acc.finalServiceSale + Number(row.serviceShareAfterDiscount || row.finalPrice || row.total || 0));
+    acc.serviceDiscountAmount = money(acc.serviceDiscountAmount + Math.max(0, Number(row.serviceShareBeforeDiscount || 0) - Number(row.serviceShareAfterDiscount || 0)));
+    acc.staffServiceShareBeforeDiscount = money(acc.staffServiceShareBeforeDiscount + Number(row.serviceShareBeforeDiscount || 0));
+    acc.staffServiceShareAfterDiscount = money(acc.staffServiceShareAfterDiscount + Number(row.serviceShareAfterDiscount || 0));
+    return acc;
+  }, {
+    grossServiceSale: 0,
+    finalServiceSale: 0,
+    serviceDiscountAmount: 0,
+    serviceDiscountPercent: 0,
+    staffServiceShareBeforeDiscount: 0,
+    staffServiceShareAfterDiscount: 0
+  });
+  totals.serviceDiscountPercent = totals.grossServiceSale > 0 ? money((totals.serviceDiscountAmount / totals.grossServiceSale) * 100) : 0;
+  return totals;
 }
 
 function breakdownRows(rows = [], type = "service") {
@@ -517,10 +609,11 @@ export class StaffSalesReportService {
       addDocumentItems({ source: invoice, items, sourceType: "invoice", staffMap, itemRows, staffById, invoicesById, clientsById, branchesById, appointmentsById, paymentsByInvoice });
     }
 
+    const discountMode = normalizedDiscountMode(query.discountMode);
     const filteredItems = itemRows.filter((row) => matchesItemFilters(row, query));
     const serviceSaleRows = filteredItems
       .filter((row) => row.itemType === "service")
-      .map(serviceSaleRow)
+      .map((row) => serviceSaleRow(row, discountMode))
       .sort((a, b) => String(b.invoiceDate || b.createdDate).localeCompare(String(a.invoiceDate || a.createdDate)) || String(b.invoiceTime || "").localeCompare(String(a.invoiceTime || "")));
     const filteredStaffMap = new Map();
     for (const item of filteredItems) {
@@ -581,6 +674,7 @@ export class StaffSalesReportService {
       row.serviceQty = money(row.serviceSaleRows.reduce((sum, serviceRow) => sum + Number(serviceRow.qty || 0), 0));
       row.serviceClientsCount = new Set(row.serviceSaleRows.map((serviceRow) => serviceRow.clientId || serviceRow.clientPhone || serviceRow.clientName).filter(Boolean)).size;
       row.serviceInvoiceCount = new Set(row.serviceSaleRows.map((serviceRow) => serviceRow.invoiceId || serviceRow.invoiceNumber).filter(Boolean)).size;
+      Object.assign(row, serviceDiscountTotals(row.serviceSaleRows));
       row.performanceScore = performanceScore(row);
       delete row._clientIds;
       delete row._invoiceIds;
@@ -615,6 +709,11 @@ export class StaffSalesReportService {
       acc.serviceSaleRows += Number(row.serviceSaleRows?.length || 0);
       acc.serviceClientsCount += Number(row.serviceClientsCount || 0);
       acc.serviceInvoiceCount += Number(row.serviceInvoiceCount || 0);
+      acc.grossServiceSale = money(acc.grossServiceSale + Number(row.grossServiceSale || 0));
+      acc.finalServiceSale = money(acc.finalServiceSale + Number(row.finalServiceSale || 0));
+      acc.serviceDiscountAmount = money(acc.serviceDiscountAmount + Number(row.serviceDiscountAmount || 0));
+      acc.staffServiceShareBeforeDiscount = money(acc.staffServiceShareBeforeDiscount + Number(row.staffServiceShareBeforeDiscount || 0));
+      acc.staffServiceShareAfterDiscount = money(acc.staffServiceShareAfterDiscount + Number(row.staffServiceShareAfterDiscount || 0));
       return acc;
     }, {
       totalRevenue: 0,
@@ -635,9 +734,16 @@ export class StaffSalesReportService {
       serviceQty: 0,
       serviceSaleRows: 0,
       serviceClientsCount: 0,
-      serviceInvoiceCount: 0
+      serviceInvoiceCount: 0,
+      grossServiceSale: 0,
+      finalServiceSale: 0,
+      serviceDiscountAmount: 0,
+      serviceDiscountPercent: 0,
+      staffServiceShareBeforeDiscount: 0,
+      staffServiceShareAfterDiscount: 0
     });
     totals.averageBill = totals.invoiceCount ? money(totals.totalRevenue / totals.invoiceCount) : 0;
+    totals.serviceDiscountPercent = totals.grossServiceSale > 0 ? money((totals.serviceDiscountAmount / totals.grossServiceSale) * 100) : 0;
 
     return {
       filters: {
@@ -650,6 +756,7 @@ export class StaffSalesReportService {
         category: query.category || "",
         saleType: query.saleType || "",
         serviceSaleType: query.serviceSaleType || "",
+        discountMode,
         dueStatus: query.dueStatus || "",
         client: query.client || query.clientId || "",
         commissionStatus: query.commissionStatus || "",
