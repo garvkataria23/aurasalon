@@ -20,6 +20,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <div class="hero-actions">
           <a class="ghost-button" routerLink="/reports">Reports</a>
           <a class="ghost-button" routerLink="/reports/commission-preview">Commission preview</a>
+          <a class="ghost-button" routerLink="/pos/tips">Tip Register</a>
           <button class="ghost-button" type="button" (click)="exportCsv()">Export CSV</button>
           <button class="ghost-button" type="button" (click)="exportOwnerPdf()">Owner PDF</button>
           <button class="ghost-button" type="button" (click)="exportPayoutPdf()">Payout PDF</button>
@@ -176,7 +177,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <article class="metric-card">
             <span>Staff tips</span>
             <strong>{{ data.totals?.tips || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
-            <small>Tip attribution</small>
+            <small><a routerLink="/pos/tips">Open payout register</a></small>
           </article>
           <article class="metric-card">
             <span>Estimated commission</span>

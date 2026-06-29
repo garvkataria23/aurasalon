@@ -1,100 +1,264 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule, CurrencyPipe } from '@angular/common';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { PosPaymentMode, PosSettingsService } from '../core/pos-settings.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type TipLedgerRow = {
   id: string;
+  tipId: string;
+  date: string;
+  time: string;
   invoiceId: string;
   invoiceNumber: string;
+  saleType: string;
+  clientId: string;
+  clientPhone: string;
   saleId: string;
   clientName: string;
+  staffId: string;
   staffName: string;
+  staffPhone: string;
+  receiverStaff: string;
   paymentMode: string;
-  paymentModeLabel: string;
+  tipPaymentMode: string;
+  collectedBy: string;
+  settlementPaymentId: string;
+  paymentReference: string;
   branchName: string;
+  branchId: string;
   amount: number;
+  tipAmount: number;
   createdAt: string;
   invoiceStatus: string;
+  invoiceTotal: number;
+  paidAmount: number;
+  dueAmount: number;
+  tipStatus: string;
+  payoutDate: string;
+  payoutReference: string;
+  source: string;
+};
+type StaffTipSummaryRow = {
+  staffId: string;
+  staffName: string;
+  tipCount: number;
+  totalTips: number;
+  cashTips: number;
+  digitalTips: number;
+  pendingPayout: number;
+  paidOut: number;
+  averageTip: number;
+  serviceRevenue: number;
+  tipToSalePercent: number;
+  clients: number;
+};
+type TipAlert = {
+  alertType: string;
+  invoiceNumber: string;
+  clientName: string;
+  staffName: string;
+  amount: number;
+  riskLevel: string;
+  suggestedAction: string;
+};
+type TipsReport = {
+  summary: ApiRecord;
+  rows: TipLedgerRow[];
+  staffSummary: StaffTipSummaryRow[];
+  alerts: TipAlert[];
 };
 
 @Component({
   selector: 'app-pos-tips',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, StateComponent],
   template: `
     <section class="page-stack">
       <div class="module-hero">
         <div>
-          <span class="eyebrow">POS / tip ledger</span>
-          <h2>Client tips register</h2>
-          <p>Every tip saved from POS appears here with client, invoice, staff, payment mode and branch context.</p>
+          <span class="eyebrow">POS / tips payout intelligence</span>
+          <h2>Staff Tips / Tip Payout Register</h2>
+          <p>Invoice tips, staff payout status, cash/digital split, audit alerts and payout action in one register.</p>
         </div>
         <div class="hero-actions">
           <a class="ghost-button" routerLink="/pos">Back to POS</a>
-          <a class="ghost-button" routerLink="/pos/payment-modes">Payment modes</a>
+          <a class="ghost-button" routerLink="/reports/staff-sales">Staff Sales</a>
+          <a class="ghost-button" routerLink="/reports/financial-summary">Financial Summary</a>
+          <button class="ghost-button" type="button" (click)="exportCsv()" [disabled]="!rows().length">Ledger CSV</button>
+          <button class="ghost-button" type="button" (click)="exportPayoutPdf()" [disabled]="!rows().length">Payout PDF</button>
           <button class="primary-button" type="button" (click)="load()">Refresh</button>
         </div>
       </div>
+
+      <section class="panel filter-panel">
+        <label class="field">
+          <span>From</span>
+          <input type="date" [(ngModel)]="from" />
+        </label>
+        <label class="field">
+          <span>To</span>
+          <input type="date" [(ngModel)]="to" />
+        </label>
+        <label class="field">
+          <span>Staff</span>
+          <input [(ngModel)]="staffId" placeholder="Staff ID" />
+        </label>
+        <label class="field">
+          <span>Client</span>
+          <input [(ngModel)]="client" placeholder="Client name or phone" />
+        </label>
+        <label class="field">
+          <span>Invoice no</span>
+          <input [(ngModel)]="invoice" placeholder="Invoice no" />
+        </label>
+        <label class="field">
+          <span>Payment mode</span>
+          <select [(ngModel)]="paymentMode">
+            <option value="">All modes</option>
+            <option *ngFor="let mode of paymentModes()" [value]="mode.id">{{ mode.label }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Tip status</span>
+          <select [(ngModel)]="tipStatus">
+            <option value="">All statuses</option>
+            <option value="pending_payout">Pending payout</option>
+            <option value="paid_out">Paid out</option>
+            <option value="reversed">Reversed</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Sale type</span>
+          <select [(ngModel)]="saleType">
+            <option value="">All sale types</option>
+            <option value="quick_sale">Quick Sale</option>
+            <option value="appointment">Appointment</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Cashier / collected by</span>
+          <input [(ngModel)]="cashier" placeholder="Cashier or user" />
+        </label>
+        <label class="field">
+          <span>Branch</span>
+          <input [(ngModel)]="branchId" placeholder="Branch ID" />
+        </label>
+        <label class="field search-field">
+          <span>Search</span>
+          <input [(ngModel)]="query" placeholder="Invoice, client, phone, staff" />
+        </label>
+        <button class="primary-button" type="button" (click)="load()">Apply filters</button>
+      </section>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <ng-container *ngIf="!loading()">
         <div class="metrics-grid">
-          <article class="metric-card"><span>Total tips</span><strong>{{ totalTips() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ filteredRows().length }} records</small></article>
-          <article class="metric-card"><span>Cash tips</span><strong>{{ totalByMode('cash') | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Cash drawer impact</small></article>
-          <article class="metric-card"><span>Digital tips</span><strong>{{ digitalTips() | currency: 'INR':'symbol':'1.0-0' }}</strong><small>UPI, card and custom modes</small></article>
-          <article class="metric-card"><span>Top staff</span><strong>{{ topStaffName() }}</strong><small>{{ topStaffAmount() | currency: 'INR':'symbol':'1.0-0' }}</small></article>
+          <article class="metric-card"><span>Total tips</span><strong>{{ (summary().totalTips || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ summary().tipCount || 0 }} tips</small></article>
+          <article class="metric-card"><span>Cash tips</span><strong>{{ (summary().cashTips || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Cash drawer payout</small></article>
+          <article class="metric-card"><span>Digital tips</span><strong>{{ (summary().digitalTips || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>UPI, card, wallet</small></article>
+          <article class="metric-card"><span>Pending payout</span><strong>{{ (summary().pendingPayout || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Needs staff payout</small></article>
+          <article class="metric-card"><span>Paid out tips</span><strong>{{ (summary().paidOutTips || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Settled</small></article>
+          <article class="metric-card"><span>Reversed tips</span><strong>{{ (summary().reversedTips || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Void/dispute</small></article>
+          <article class="metric-card"><span>Top tipped staff</span><strong>{{ summary().topTippedStaff || '-' }}</strong><small>{{ (summary().topTippedStaffAmount || 0) | currency: 'INR':'symbol':'1.0-0' }}</small></article>
+          <article class="metric-card"><span>Avg tip / invoice</span><strong>{{ (summary().averageTipPerInvoice || 0) | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Tip intensity</small></article>
+          <article class="metric-card"><span>Tip % of service revenue</span><strong>{{ summary().tipPercentOfServiceRevenue || 0 }}%</strong><small>Service revenue basis</small></article>
+          <article class="metric-card"><span>Audit alerts</span><strong>{{ summary().alerts || 0 }}</strong><small>Needs review</small></article>
         </div>
 
+        <section class="panel" *ngIf="alerts().length">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Audit / abuse checks</span>
+              <h2>Tip payout alerts</h2>
+            </div>
+          </div>
+          <div class="alert-grid">
+            <article class="alert-card" *ngFor="let alert of alerts()">
+              <strong>{{ alert.alertType }}</strong>
+              <span>{{ alert.clientName }} · {{ alert.staffName }} · {{ alert.amount | currency: 'INR':'symbol':'1.0-0' }}</span>
+              <small>{{ alert.riskLevel }} risk · {{ alert.suggestedAction }}</small>
+            </article>
+          </div>
+        </section>
+
         <section class="panel">
-          <div class="table-toolbar">
-            <label class="search-field">
-              <span>Search client, staff or invoice</span>
-              <input [(ngModel)]="query" placeholder="Riya, AURA-2026, staff name" />
-            </label>
-            <label class="field fit-field">
-              <span>Payment mode</span>
-              <select [(ngModel)]="modeFilter">
-                <option value="">All modes</option>
-                <option *ngFor="let mode of paymentModes()" [value]="mode.id">{{ mode.label }}</option>
-              </select>
-            </label>
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Tip ledger</span>
+              <h2>Invoice tip payout queue</h2>
+            </div>
+            <div class="section-actions">
+              <input [(ngModel)]="payoutReference" placeholder="Payout reference" />
+              <input [(ngModel)]="payoutNote" placeholder="Payout note" />
+              <button class="primary-button mini" type="button" (click)="markSelectedPaidOut()" [disabled]="!selectedTipIds().size">Mark payout</button>
+            </div>
           </div>
 
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
+                  <th><input type="checkbox" [checked]="allSelected()" (change)="toggleAll($event)" /></th>
                   <th>Date</th>
+                  <th>Time</th>
+                  <th>Invoice no</th>
+                  <th>Sale type</th>
                   <th>Client</th>
-                  <th>Invoice</th>
+                  <th>Phone</th>
                   <th>Staff</th>
-                  <th>Payment mode</th>
-                  <th>Branch</th>
+                  <th>Staff ID</th>
                   <th class="right">Tip amount</th>
+                  <th>Mode</th>
+                  <th>Collected by</th>
+                  <th>Receiver staff</th>
+                  <th>Payment ID</th>
+                  <th class="right">Invoice total</th>
+                  <th class="right">Paid</th>
+                  <th class="right">Due</th>
                   <th>Status</th>
+                  <th>Payout</th>
+                  <th>Branch</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of filteredRows()" (click)="selected.set(row)" class="click-row">
-                  <td>{{ row.createdAt | date: 'short' }}</td>
+                <tr *ngFor="let row of rows()" (click)="selected.set(row)" class="click-row">
+                  <td><input type="checkbox" [checked]="isSelected(row.tipId)" (click)="$event.stopPropagation()" (change)="toggleTip(row.tipId)" /></td>
+                  <td>{{ row.date }}</td>
+                  <td>{{ row.time }}</td>
+                  <td><a routerLink="/pos/invoices" [queryParams]="{ q: row.invoiceNumber }">{{ row.invoiceNumber }}</a></td>
+                  <td>{{ row.saleType }}</td>
                   <td><strong>{{ row.clientName }}</strong></td>
-                  <td><a [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row.invoiceId }">{{ row.invoiceNumber }}</a></td>
+                  <td>{{ row.clientPhone }}</td>
                   <td>{{ row.staffName }}</td>
-                  <td><span class="badge">{{ row.paymentModeLabel }}</span></td>
-                  <td>{{ row.branchName }}</td>
+                  <td>{{ row.staffId || '-' }}</td>
                   <td class="right"><strong>{{ row.amount | currency: 'INR':'symbol':'1.0-0' }}</strong></td>
-                  <td>{{ row.invoiceStatus }}</td>
+                  <td><span class="badge">{{ modeLabel(row.paymentMode) }}</span></td>
+                  <td>{{ row.collectedBy }}</td>
+                  <td>{{ row.receiverStaff }}</td>
+                  <td>{{ row.settlementPaymentId }}</td>
+                  <td class="right">{{ row.invoiceTotal | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ row.paidAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ row.dueAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><span class="badge" [class.warn]="row.tipStatus === 'pending_payout'" [class.danger]="row.tipStatus === 'reversed'">{{ statusLabel(row.tipStatus) }}</span></td>
+                  <td>{{ row.payoutDate || '-' }} <span *ngIf="row.payoutReference">· {{ row.payoutReference }}</span></td>
+                  <td>{{ row.branchName }}</td>
+                  <td class="action-cell">
+                    <a class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: row.invoiceNumber }">Invoice</a>
+                    <a class="ghost-button mini" routerLink="/clients" [queryParams]="{ q: row.clientPhone || row.clientName }">Client</a>
+                    <a class="ghost-button mini" routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: row.staffId }">Staff</a>
+                    <button class="ghost-button mini" type="button" (click)="markPaidOut(row); $event.stopPropagation()" [disabled]="row.tipStatus === 'paid_out'">Payout</button>
+                    <button class="ghost-button mini danger-text" type="button" (click)="markReversed(row); $event.stopPropagation()" [disabled]="row.tipStatus === 'reversed'">Reverse</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p class="inline-hint" *ngIf="!filteredRows().length">No tip records yet. Add tip inside POS checkout and save invoice.</p>
+          <p class="inline-hint" *ngIf="!rows().length">No tips recorded. Add tips from POS checkout.</p>
         </section>
 
         <section class="panel" *ngIf="selected() as row">
@@ -103,13 +267,57 @@ type TipLedgerRow = {
               <span class="eyebrow">Selected tip</span>
               <h2>{{ row.clientName }} paid {{ row.amount | currency: 'INR':'symbol':'1.0-0' }}</h2>
             </div>
-            <a class="ghost-button mini" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row.invoiceId }">Open invoice</a>
+            <a class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: row.invoiceNumber }">Open invoice</a>
           </div>
           <div class="info-grid">
             <div><span>Invoice</span><strong>{{ row.invoiceNumber }}</strong></div>
             <div><span>Staff</span><strong>{{ row.staffName }}</strong></div>
-            <div><span>Payment mode</span><strong>{{ row.paymentModeLabel }}</strong></div>
+            <div><span>Payment mode</span><strong>{{ modeLabel(row.paymentMode) }}</strong></div>
+            <div><span>Status</span><strong>{{ statusLabel(row.tipStatus) }}</strong></div>
             <div><span>Branch</span><strong>{{ row.branchName }}</strong></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Staff tip breakdown</span>
+              <h2>Staff payout summary</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Staff name</th>
+                  <th>Tip count</th>
+                  <th class="right">Total tips</th>
+                  <th class="right">Cash tips</th>
+                  <th class="right">Digital tips</th>
+                  <th class="right">Pending payout</th>
+                  <th class="right">Paid out</th>
+                  <th class="right">Average tip</th>
+                  <th class="right">Service revenue</th>
+                  <th class="right">Tip-to-sale %</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let staff of staffSummary()">
+                  <td><strong>{{ staff.staffName }}</strong><small>{{ staff.staffId }}</small></td>
+                  <td>{{ staff.tipCount }}</td>
+                  <td class="right">{{ staff.totalTips | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.cashTips | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.digitalTips | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.pendingPayout | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.paidOut | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.averageTip | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.serviceRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td class="right">{{ staff.tipToSalePercent }}%</td>
+                  <td><a class="ghost-button mini" routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.staffId }">Staff 360</a></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </ng-container>
@@ -118,12 +326,28 @@ type TipLedgerRow = {
 })
 export class PosTipsComponent implements OnInit {
   readonly rows = signal<TipLedgerRow[]>([]);
+  readonly staffSummary = signal<StaffTipSummaryRow[]>([]);
+  readonly alerts = signal<TipAlert[]>([]);
+  readonly summary = signal<ApiRecord>({});
   readonly paymentModes = signal<PosPaymentMode[]>([]);
   readonly selected = signal<TipLedgerRow | null>(null);
+  readonly selectedTipIds = signal<Set<string>>(new Set());
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly hasSelection = computed(() => this.selectedTipIds().size > 0);
+  from = '';
+  to = '';
+  staffId = '';
+  client = '';
+  invoice = '';
+  paymentMode = '';
+  tipStatus = '';
+  saleType = '';
+  cashier = '';
+  branchId = '';
   query = '';
-  modeFilter = '';
+  payoutReference = '';
+  payoutNote = '';
 
   constructor(private readonly api: ApiService, private readonly settings: PosSettingsService) {}
 
@@ -136,108 +360,127 @@ export class PosTipsComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    forkJoin({
-      sales: this.api.list<ApiRecord[]>('sales', { limit: 1000 }),
-      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000 }),
-      clients: this.api.list<ApiRecord[]>('clients', { limit: 1000 }),
-      staff: this.api.list<ApiRecord[]>('staff', { limit: 1000 }),
-      branches: this.api.list<ApiRecord[]>('branches', { limit: 1000 })
-    }).subscribe({
-      next: ({ sales, invoices, clients, staff, branches }) => {
-        this.rows.set(this.buildRows(sales || [], invoices || [], clients || [], staff || [], branches || []));
+    this.api.list<TipsReport>('tips/report', this.params()).subscribe({
+      next: (report) => {
+        this.summary.set(report.summary || {});
+        this.rows.set(report.rows || []);
+        this.staffSummary.set(report.staffSummary || []);
+        this.alerts.set(report.alerts || []);
+        this.selectedTipIds.set(new Set());
         this.selected.set(this.rows()[0] || null);
         this.loading.set(false);
       },
       error: (error) => {
-        this.error.set(error?.error?.error || error?.message || 'Unable to load tip register');
+        this.error.set(this.api.errorText(error, 'Unable to load tip register'));
         this.loading.set(false);
       }
     });
   }
 
-  filteredRows(): TipLedgerRow[] {
-    const query = this.query.trim().toLowerCase();
-    return this.rows().filter((row) => {
-      const modeMatch = !this.modeFilter || row.paymentMode === this.modeFilter;
-      const queryMatch = !query || `${row.clientName} ${row.staffName} ${row.invoiceNumber} ${row.branchName}`.toLowerCase().includes(query);
-      return modeMatch && queryMatch;
+  params(): ApiRecord {
+    return {
+      from: this.from,
+      to: this.to,
+      staffId: this.staffId,
+      client: this.client,
+      invoice: this.invoice,
+      paymentMode: this.paymentMode,
+      tipStatus: this.tipStatus,
+      saleType: this.saleType,
+      cashier: this.cashier,
+      branchId: this.branchId,
+      q: this.query
+    };
+  }
+
+  toggleTip(tipId: string): void {
+    const next = new Set(this.selectedTipIds());
+    next.has(tipId) ? next.delete(tipId) : next.add(tipId);
+    this.selectedTipIds.set(next);
+  }
+
+  toggleAll(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selectedTipIds.set(checked ? new Set(this.rows().map((row) => row.tipId)) : new Set());
+  }
+
+  allSelected(): boolean {
+    return Boolean(this.rows().length) && this.selectedTipIds().size === this.rows().length;
+  }
+
+  isSelected(tipId: string): boolean {
+    return this.selectedTipIds().has(tipId);
+  }
+
+  markSelectedPaidOut(): void {
+    this.sendPayout([...this.selectedTipIds()]);
+  }
+
+  markPaidOut(row: TipLedgerRow): void {
+    this.sendPayout([row.tipId]);
+  }
+
+  markReversed(row: TipLedgerRow): void {
+    this.api.post(`tips/${row.tipId}/mark-reversed`, { note: this.payoutNote || 'Manual reverse from Tip Register' }).subscribe({
+      next: () => this.load(),
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to reverse tip'))
     });
   }
 
-  totalTips(): number {
-    return this.money(this.filteredRows().reduce((sum, row) => sum + row.amount, 0));
+  sendPayout(tipIds: string[]): void {
+    if (!tipIds.length) return;
+    this.api.post('tips/payout', { tipIds, payoutReference: this.payoutReference, note: this.payoutNote }).subscribe({
+      next: () => {
+        this.payoutReference = '';
+        this.payoutNote = '';
+        this.load();
+      },
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to mark payout'))
+    });
   }
 
-  totalByMode(modeId: string): number {
-    return this.money(this.filteredRows().filter((row) => row.paymentMode === modeId).reduce((sum, row) => sum + row.amount, 0));
-  }
-
-  digitalTips(): number {
-    return this.money(this.filteredRows().filter((row) => row.paymentMode !== 'cash').reduce((sum, row) => sum + row.amount, 0));
-  }
-
-  topStaffName(): string {
-    const top = this.staffTotals()[0];
-    return top?.staffName || 'No tips';
-  }
-
-  topStaffAmount(): number {
-    return this.staffTotals()[0]?.amount || 0;
-  }
-
-  private buildRows(sales: ApiRecord[], invoices: ApiRecord[], clients: ApiRecord[], staff: ApiRecord[], branches: ApiRecord[]): TipLedgerRow[] {
-    const clientMap = new Map(clients.map((client) => [client.id, client]));
-    const staffMap = new Map(staff.map((person) => [person.id, person]));
-    const branchMap = new Map(branches.map((branch) => [branch.id, branch]));
-    const invoiceBySale = new Map(invoices.map((invoice) => [invoice.saleId, invoice]));
-    return sales.flatMap((sale) => {
-      const invoice = invoiceBySale.get(sale.id) || {};
-      const tips = this.tipLines(sale);
-      return tips.map((tip, index) => {
-        const client = clientMap.get(invoice.clientId || sale.clientId) || {};
-        const person = staffMap.get(tip.staffId) || {};
-        const branch = branchMap.get(sale.branchId || invoice.branchId) || {};
-        return {
-          id: `${sale.id}_${tip.id || index}`,
-          invoiceId: invoice.id || '',
-          invoiceNumber: invoice.invoiceNumber || invoice.invoice_no || 'No invoice',
-          saleId: sale.id,
-          clientName: client.name || invoice.clientName || 'Walk-in client',
-          staffName: tip.staffName || person.name || tip.staffId || 'Staff',
-          paymentMode: tip.paymentMode || 'cash',
-          paymentModeLabel: this.modeLabel(tip.paymentMode || 'cash'),
-          branchName: branch.name || sale.branchId || 'Branch',
-          amount: this.money(tip.amount || 0),
-          createdAt: invoice.createdAt || sale.createdAt || '',
-          invoiceStatus: invoice.status || invoice.payment_status || 'saved'
-        };
-      });
-    }).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-  }
-
-  private tipLines(sale: ApiRecord): ApiRecord[] {
-    const membershipRedeem = this.readJson(sale.membershipRedeem, {});
-    return Array.isArray(membershipRedeem.tips) ? membershipRedeem.tips : [];
-  }
-
-  private staffTotals(): { staffName: string; amount: number }[] {
-    const totals = new Map<string, number>();
-    for (const row of this.filteredRows()) totals.set(row.staffName, (totals.get(row.staffName) || 0) + row.amount);
-    return [...totals.entries()].map(([staffName, amount]) => ({ staffName, amount: this.money(amount) })).sort((a, b) => b.amount - a.amount);
-  }
-
-  private modeLabel(modeId: string): string {
+  modeLabel(modeId: string): string {
     return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
   }
 
-  private readJson(value: unknown, fallback: ApiRecord): ApiRecord {
-    if (!value) return fallback;
-    if (typeof value === 'object') return value as ApiRecord;
-    try {
-      return JSON.parse(String(value));
-    } catch {
-      return fallback;
-    }
+  statusLabel(status: string): string {
+    return String(status || 'collected').replace(/_/g, ' ');
+  }
+
+  exportCsv(): void {
+    const headers = ['Date', 'Time', 'Invoice no', 'Sale type', 'Client', 'Phone', 'Staff', 'Staff ID', 'Tip amount', 'Payment mode', 'Cashier', 'Payment ID', 'Invoice total', 'Paid', 'Due', 'Status', 'Payout date', 'Payout reference', 'Branch'];
+    const rows = this.rows().map((row) => [
+      row.date, row.time, row.invoiceNumber, row.saleType, row.clientName, row.clientPhone, row.staffName, row.staffId,
+      row.amount, row.paymentMode, row.collectedBy, row.settlementPaymentId, row.invoiceTotal, row.paidAmount, row.dueAmount,
+      row.tipStatus, row.payoutDate, row.payoutReference, row.branchName
+    ]);
+    this.downloadFile('tips-ledger.csv', [headers, ...rows].map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv;charset=utf-8');
+  }
+
+  exportPayoutPdf(): void {
+    const summary = this.summary();
+    const lines = [
+      'Staff Tips Payout Summary',
+      `Total tips: ${this.money(summary.totalTips || 0)}`,
+      `Pending payout: ${this.money(summary.pendingPayout || 0)}`,
+      `Paid out tips: ${this.money(summary.paidOutTips || 0)}`,
+      `Reversed tips: ${this.money(summary.reversedTips || 0)}`,
+      `Alerts: ${summary.alerts || 0}`,
+      '',
+      'Top staff',
+      ...this.staffSummary().slice(0, 10).map((staff) => `${staff.staffName}: ${staff.totalTips} (${staff.tipCount} tips)`)
+    ];
+    this.downloadFile('tip-payout-summary.pdf', lines.join('\n'), 'application/pdf');
+  }
+
+  private downloadFile(filename: string, content: string, type: string): void {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   private money(value: number | string): number {

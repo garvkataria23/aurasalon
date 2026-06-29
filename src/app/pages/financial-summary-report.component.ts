@@ -139,6 +139,7 @@ type WalletLedgerRow = ApiRecord & {
           <a class="ghost-button" routerLink="/reports">Reports</a>
           <a class="ghost-button" routerLink="/reports/invoices">Invoice reports</a>
           <a class="ghost-button" routerLink="/finance">Finance</a>
+          <a class="ghost-button" routerLink="/pos/tips">Tip Register</a>
           <button class="ghost-button" type="button" (click)="exportCsv()" [disabled]="exportDisabled()">Export</button>
           <button class="ghost-button icon-action" type="button" (click)="printReport()" title="Print financial summary">Print</button>
         </div>
