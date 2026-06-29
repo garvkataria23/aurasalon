@@ -55,6 +55,26 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <strong>{{ genderCount('female') }}</strong>
           <small>Female Clients</small>
         </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Membership')">
+          <span class="kpi-icon">MB</span>
+          <strong>{{ memberClientCount() }}</strong>
+          <small>Member Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Non-member')">
+          <span class="kpi-icon">NM</span>
+          <strong>{{ nonMemberClientCount() }}</strong>
+          <small>Non-member Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Unpaid Client')">
+          <span class="kpi-icon">UP</span>
+          <strong>{{ unpaidClientCount() }}</strong>
+          <small>Unpaid Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Wallet Client')">
+          <span class="kpi-icon">WA</span>
+          <strong>{{ walletClientCount() }}</strong>
+          <small>Wallet Clients</small>
+        </button>
       </section>
 
       <section class="panel client-database-panel">
@@ -1005,6 +1025,9 @@ export class ClientsComponent implements OnInit {
     'Active',
     'Inactive',
     'Membership',
+    'Non-member',
+    'Unpaid Client',
+    'Wallet Client',
     'Client Group',
     'New Client Visits',
     'Old Client Visits'
@@ -1110,6 +1133,22 @@ export class ClientsComponent implements OnInit {
   genderCount(gender: string): number {
     const key = gender.toLowerCase();
     return this.clients().filter((client) => String(client.gender || '').toLowerCase() === key).length;
+  }
+
+  memberClientCount(): number {
+    return this.clients().filter((client) => this.isMemberClient(client)).length;
+  }
+
+  nonMemberClientCount(): number {
+    return this.clients().filter((client) => !this.isMemberClient(client)).length;
+  }
+
+  unpaidClientCount(): number {
+    return this.clients().filter((client) => this.money(client.unpaidBalance || 0) > 0).length;
+  }
+
+  walletClientCount(): number {
+    return this.clients().filter((client) => this.money(client.walletBalance || client.wallet || 0) > 0).length;
   }
 
   applyClientTypeFilter(type: string): void {
@@ -1714,11 +1753,23 @@ export class ClientsComponent implements OnInit {
     if (normalizedType === 'male' || normalizedType === 'female') return gender === normalizedType;
     if (normalizedType === 'active') return status !== 'inactive' && status !== 'blocked' && !tags.includes('inactive');
     if (normalizedType === 'inactive') return status === 'inactive' || status === 'blocked' || tags.includes('inactive');
-    if (normalizedType === 'membership') return tags.some((tag) => tag.includes('membership')) || this.clientGroups(client).length > 0;
+    if (normalizedType === 'membership') return this.isMemberClient(client);
+    if (normalizedType === 'non-member') return !this.isMemberClient(client);
+    if (normalizedType === 'unpaid client') return this.money(client.unpaidBalance || 0) > 0;
+    if (normalizedType === 'wallet client') return this.money(client.walletBalance || client.wallet || 0) > 0;
     if (normalizedType === 'client group') return this.clientGroups(client).length > 0;
     if (normalizedType === 'new client visits') return this.isNewClient(client);
     if (normalizedType === 'old client visits') return !this.isNewClient(client);
     return true;
+  }
+
+  private isMemberClient(client: ApiRecord): boolean {
+    const tags = Array.isArray(client.tags) ? client.tags.map((tag) => String(tag).toLowerCase()) : [];
+    return tags.some((tag) => tag.includes('membership') || tag.includes('member'))
+      || this.clientGroups(client).length > 0
+      || !!client.membershipId
+      || !!client.membershipPlanId
+      || String(client.membershipStatus || '').toLowerCase() === 'active';
   }
 
   private clientCountry(client: ApiRecord): string {

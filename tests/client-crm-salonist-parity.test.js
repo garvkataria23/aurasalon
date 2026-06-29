@@ -9,6 +9,10 @@ test("client CRM exposes Salonist-style KPI, action, and column controls", () =>
   assert.match(page, /Total Clients/);
   assert.match(page, /Old Client Visits This Month/);
   assert.match(page, /New Client Visits This Month/);
+  assert.match(page, /Member Clients/);
+  assert.match(page, /Non-member Clients/);
+  assert.match(page, /Unpaid Clients/);
+  assert.match(page, /Wallet Clients/);
   assert.match(page, /Client Groups/);
   assert.match(page, /Sample File Download/);
   assert.match(page, /Import Client/);
@@ -35,4 +39,18 @@ test("client CRM row action menu includes Salonist actions", () => {
   assert.match(page, /Reset Password/);
   assert.match(page, /Add Notes/);
   assert.match(page, /blockClient/);
+});
+
+test("client KPI clicks filter member, unpaid, and wallet views", () => {
+  assert.match(page, /applyClientTypeFilter\('Membership'\)/);
+  assert.match(page, /applyClientTypeFilter\('Non-member'\)/);
+  assert.match(page, /applyClientTypeFilter\('Unpaid Client'\)/);
+  assert.match(page, /applyClientTypeFilter\('Wallet Client'\)/);
+  assert.match(page, /memberClientCount/);
+  assert.match(page, /nonMemberClientCount/);
+  assert.match(page, /unpaidClientCount/);
+  assert.match(page, /walletClientCount/);
+  assert.match(page, /normalizedType === 'non-member'/);
+  assert.match(page, /normalizedType === 'unpaid client'/);
+  assert.match(page, /normalizedType === 'wallet client'/);
 });
