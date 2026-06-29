@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -77,7 +78,9 @@ interface EngagementDetail extends ApiRecord {
       </div>
 
       <div class="zenoti-shortcuts">
-        <button type="button" class="active" (click)="openRecoveryDrawer()" [disabled]="loading()">Recovery board</button>
+        <button type="button" [class.active]="activeWorkspace() === 'inbox'" (click)="openInboxWorkspace()" [disabled]="loading()">Inbox</button>
+        <button type="button" [class.active]="activeWorkspace() === 'leads'" (click)="openLeadIntelligence()" [disabled]="leadLoading()">Lead Intelligence</button>
+        <button type="button" (click)="openRecoveryDrawer()" [disabled]="loading()">Recovery board</button>
         <button type="button" (click)="openReviewDrawer()" [disabled]="loading()">Review center</button>
         <button type="button" (click)="openRiskDrawer()" [disabled]="loading()">Risk signals</button>
         <button type="button" (click)="openSlaDrawer()" [disabled]="loading()">SLA board</button>
@@ -96,7 +99,158 @@ interface EngagementDetail extends ApiRecord {
         {{ pendingApprovalCount() }} draft{{ pendingApprovalCount() === 1 ? '' : 's' }} pending approval.
       </div>
 
-      <section class="action-queue-strip" *ngIf="engagementActionQueue().length">
+      <section class="lead-intelligence-panel" *ngIf="activeWorkspace() === 'leads'">
+        <div class="section-title-row">
+          <div>
+            <span class="eyebrow">Lead Pipeline</span>
+            <h3>Lead Intelligence</h3>
+            <p>Source, lead score, follow-up, owner, conversion revenue and missed accountability in one report.</p>
+          </div>
+          <div class="reports-actions">
+            <button class="ghost-button" type="button" (click)="loadLeadReport()" [disabled]="leadLoading()">Refresh</button>
+            <button class="ghost-button" type="button" (click)="exportLeadCsv()" [disabled]="!leadRows().length">Lead CSV</button>
+          </div>
+        </div>
+
+        <section class="reports-toolbar">
+          <label>
+            <span>From date</span>
+            <input type="date" [(ngModel)]="leadFromDate" />
+          </label>
+          <label>
+            <span>To date</span>
+            <input type="date" [(ngModel)]="leadToDate" />
+          </label>
+          <label>
+            <span>Source</span>
+            <select [(ngModel)]="leadSourceFilter">
+              <option value="">All sources</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Website">Website</option>
+              <option value="Google Call">Google Call</option>
+              <option value="Walk-in">Walk-in</option>
+              <option value="Referral">Referral</option>
+            </select>
+          </label>
+          <label>
+            <span>Status</span>
+            <select [(ngModel)]="leadStatusFilter">
+              <option value="">All status</option>
+              <option value="new">New</option>
+              <option value="open">Open</option>
+              <option value="pending">Pending</option>
+              <option value="follow_up">Follow-up</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+            </select>
+          </label>
+          <label>
+            <span>Lead score</span>
+            <select [(ngModel)]="leadScoreFilter">
+              <option value="">All scores</option>
+              <option value="hot">Hot</option>
+              <option value="warm">Warm</option>
+              <option value="cold">Cold</option>
+            </select>
+          </label>
+          <label>
+            <span>Follow-up due</span>
+            <select [(ngModel)]="leadFollowUpFilter">
+              <option value="">All follow-ups</option>
+              <option value="today">Today</option>
+              <option value="overdue">Overdue</option>
+              <option value="upcoming">Upcoming</option>
+            </select>
+          </label>
+          <label>
+            <span>Owner</span>
+            <input [(ngModel)]="leadAssignedFilter" placeholder="Staff/user id" />
+          </label>
+          <label>
+            <span>Service interest</span>
+            <input [(ngModel)]="leadServiceFilter" placeholder="Hair, facial, bridal" />
+          </label>
+          <label>
+            <span>Branch</span>
+            <input [(ngModel)]="leadBranchFilter" placeholder="Current branch or branch id" />
+          </label>
+          <label>
+            <span>Search</span>
+            <input [(ngModel)]="leadSearch" placeholder="Name, phone, source, invoice" />
+          </label>
+          <div class="reports-actions">
+            <button class="primary-button" type="button" (click)="loadLeadReport()" [disabled]="leadLoading()">Run Report</button>
+          </div>
+        </section>
+
+        <app-state [loading]="leadLoading()" [error]="leadError()"></app-state>
+        <div class="state info" *ngIf="leadNotice()">{{ leadNotice() }}</div>
+
+        <section class="reports-kpis" *ngIf="leadReport() as report">
+          <article><small>Total leads</small><strong>{{ report.summary?.totalLeads || 0 }}</strong></article>
+          <article><small>Hot leads</small><strong>{{ report.summary?.hotLeads || 0 }}</strong></article>
+          <article><small>Pending follow-up</small><strong>{{ report.summary?.pendingFollowUps || 0 }}</strong></article>
+          <article><small>Won leads</small><strong>{{ report.summary?.wonLeads || 0 }}</strong></article>
+          <article><small>Lost leads</small><strong>{{ report.summary?.lostLeads || 0 }}</strong></article>
+          <article><small>Conversion rate</small><strong>{{ report.summary?.conversionRate || 0 }}%</strong></article>
+          <article><small>Lead revenue</small><strong>{{ reportCurrency(report.summary?.revenueFromLeads) }}</strong></article>
+          <article><small>Avg response</small><strong>{{ minutesLabel(report.summary?.averageResponseMinutes) }}</strong></article>
+          <article><small>Overdue</small><strong>{{ report.summary?.overdueFollowUps || 0 }}</strong></article>
+          <article><small>Top source</small><strong>{{ report.summary?.topLeadSource || '-' }}</strong></article>
+        </section>
+
+        <section class="lead-table-wrap">
+          <div class="lead-table-head">
+            <span>Lead date</span>
+            <span>Source</span>
+            <span>Client</span>
+            <span>Phone</span>
+            <span>Interest</span>
+            <span>Score</span>
+            <span>Status</span>
+            <span>Owner</span>
+            <span>Response</span>
+            <span>Follow-up</span>
+            <span>Won invoice</span>
+            <span>Revenue</span>
+            <span>Lost reason</span>
+            <span>Actions</span>
+          </div>
+          <article class="lead-table-row" *ngFor="let row of leadRows()">
+            <span>{{ row.leadDateTime | date:'short' }}</span>
+            <strong>{{ row.source || 'Unknown' }}</strong>
+            <span>{{ row.clientName || 'Lead' }}</span>
+            <span>{{ row.phone || '-' }}</span>
+            <span>{{ row.interestService || 'Not captured' }}</span>
+            <span [class]="'risk-pill ' + leadScoreTone(row)">{{ row.leadTemperature || 'cold' }} · {{ row.leadScore || 0 }}</span>
+            <span class="badge">{{ row.status || 'pending' }}</span>
+            <span>{{ row.assignedName || row.assignedTo || 'Unassigned' }}</span>
+            <span>{{ minutesLabel(row.firstResponseMinutes) }}</span>
+            <span>{{ row.followUpStatus || 'upcoming' }}<br /><small>{{ row.lastFollowUpAt ? (row.lastFollowUpAt | date:'short') : '-' }}</small></span>
+            <span>{{ row.wonInvoiceNumber || '-' }}</span>
+            <span>{{ reportCurrency(row.convertedRevenue) }}</span>
+            <span>{{ row.lostReason || row.lastFollowUpNote || '-' }}</span>
+            <span class="lead-actions">
+              <button class="ghost-button mini" type="button" (click)="callLead(row)" [disabled]="!row.phone">Call</button>
+              <button class="ghost-button mini" type="button" (click)="whatsappLead(row)" [disabled]="!row.phone">WhatsApp</button>
+              <button class="ghost-button mini" type="button" (click)="bookLead(row)">Book</button>
+              <button class="ghost-button mini" type="button" (click)="assignLead(row)" [disabled]="leadSaving()">Assign</button>
+              <button class="ghost-button mini" type="button" (click)="addLeadFollowUp(row)" [disabled]="leadSaving()">Note</button>
+              <button class="ghost-button mini" type="button" (click)="markLeadWon(row)" [disabled]="leadSaving()">Won</button>
+              <button class="ghost-button mini" type="button" (click)="markLeadLost(row)" [disabled]="leadSaving()">Lost</button>
+              <button class="ghost-button mini" type="button" (click)="openLeadClient(row)" [disabled]="!row.clientId">Client</button>
+              <button class="ghost-button mini" type="button" (click)="openLeadInvoice(row)" [disabled]="!row.wonInvoiceId && !row.wonInvoiceNumber">Invoice</button>
+            </span>
+          </article>
+          <div class="empty-state compact" *ngIf="!leadRows().length && !leadLoading()">
+            <strong>No leads found</strong>
+            <span>WhatsApp, engagement, campaign or lead widget activity will populate this report.</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="action-queue-strip" *ngIf="activeWorkspace() === 'inbox' && engagementActionQueue().length">
         <div class="section-title-row">
           <div>
             <span class="eyebrow">WhatsApp operations</span>
@@ -124,7 +278,7 @@ interface EngagementDetail extends ApiRecord {
         </div>
       </section>
 
-      <section class="engagement-shell" *ngIf="!loading()">
+      <section class="engagement-shell" *ngIf="activeWorkspace() === 'inbox' && !loading()">
         <aside class="thread-rail">
           <div class="rail-section">
             <span class="rail-title">Channels</span>
@@ -1513,6 +1667,13 @@ interface EngagementDetail extends ApiRecord {
     .report-table-row span { color: #26364b; }
     .report-table-head.five, .report-table-row.five { grid-template-columns: minmax(170px, 1.3fr) repeat(4, minmax(82px, 1fr)); }
     .report-table-head.six, .report-table-row.six { grid-template-columns: minmax(170px, 1.4fr) repeat(5, minmax(95px, 1fr)); }
+    .lead-intelligence-panel { background: #fff; border-top: 1px solid #d8e1ea; border-bottom: 1px solid #d8e1ea; padding: 16px; display: grid; gap: 14px; }
+    .lead-table-wrap { overflow-x: auto; border: 1px solid #d8e3df; border-radius: 4px; background: #fff; }
+    .lead-table-head, .lead-table-row { display: grid; grid-template-columns: 130px 110px 150px 120px 170px 120px 110px 140px 100px 140px 130px 110px 170px 300px; gap: 10px; align-items: center; min-width: 2100px; padding: 10px 12px; border-bottom: 1px solid #edf2f0; }
+    .lead-table-head { background: #f5f8f7; color: #53657d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .lead-table-row:last-child { border-bottom: 0; }
+    .lead-table-row span { overflow-wrap: anywhere; }
+    .lead-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .audit-toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 12px; align-items: end; }
     .audit-table { border: 1px solid #e1ebe7; border-radius: 8px; overflow: auto; background: #fff; }
     .audit-table-head, .audit-table-row { display: grid; grid-template-columns: 150px minmax(190px, 1.2fr) minmax(160px, 1fr) minmax(120px, .8fr) minmax(190px, 1fr) minmax(120px, .8fr); gap: 10px; align-items: center; min-width: 930px; padding: 11px 12px; border-bottom: 1px solid #edf2f0; }
@@ -1692,6 +1853,12 @@ export class EngagementCommandCenterComponent implements OnInit {
   readonly reviewError = signal('');
   readonly reviewNotice = signal('');
   readonly reviewProviderStatus = signal('');
+  readonly activeWorkspace = signal<'inbox' | 'leads'>('inbox');
+  readonly leadReport = signal<ApiRecord | null>(null);
+  readonly leadLoading = signal(false);
+  readonly leadSaving = signal(false);
+  readonly leadError = signal('');
+  readonly leadNotice = signal('');
   readonly loading = signal(true);
   readonly detailLoading = signal(false);
   readonly saving = signal(false);
@@ -1734,8 +1901,19 @@ export class EngagementCommandCenterComponent implements OnInit {
   reviewTone = 'warm';
   reviewResponseText = '';
   reviewReplyId = '';
+  leadFromDate = '';
+  leadToDate = '';
+  leadSourceFilter = '';
+  leadStatusFilter = '';
+  leadScoreFilter = '';
+  leadAssignedFilter = '';
+  leadFollowUpFilter = '';
+  leadServiceFilter = '';
+  leadBranchFilter = '';
+  leadSearch = '';
 
   readonly selectedThread = computed(() => this.selectedDetail()?.thread || this.threads().find((thread) => thread.id === this.selectedThreadId()) || null);
+  readonly leadRows = computed(() => ((this.leadReport()?.['rows'] as ApiRecord[] | undefined) || []));
   readonly pinnedThreads = computed(() => this.threads().filter((thread) => this.isPinned(thread)).slice(0, 8));
   readonly lastDraft = computed(() => {
     const detail = this.selectedDetail();
@@ -1750,11 +1928,14 @@ export class EngagementCommandCenterComponent implements OnInit {
     return ((actionQueue['items'] || []) as ApiRecord[]).slice(0, 6);
   });
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.loadTemplates();
     this.load();
+    this.route.queryParamMap.subscribe((params) => {
+      if (params.get('tab') === 'leads') this.openLeadIntelligence();
+    });
   }
 
   load(): void {
@@ -2193,6 +2374,171 @@ export class EngagementCommandCenterComponent implements OnInit {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount)) return '₹0';
     return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+  }
+
+  openInboxWorkspace(): void {
+    this.activeWorkspace.set('inbox');
+  }
+
+  openLeadIntelligence(): void {
+    this.activeWorkspace.set('leads');
+    if (!this.leadReport() && !this.leadLoading()) this.loadLeadReport();
+  }
+
+  loadLeadReport(): void {
+    this.leadLoading.set(true);
+    this.leadError.set('');
+    this.leadNotice.set('');
+    this.api.list<ApiRecord>('engagement/leads/report', this.leadFilterParams())
+      .pipe(finalize(() => this.leadLoading.set(false)))
+      .subscribe({
+        next: (report) => {
+          this.leadReport.set(report || null);
+          this.leadNotice.set(report?.['generatedAt'] ? `Generated ${new Date(String(report['generatedAt'])).toLocaleString()}` : '');
+        },
+        error: (error) => this.leadError.set(error?.error?.error || error?.message || 'Unable to load lead intelligence.')
+      });
+  }
+
+  leadFilterParams(): ApiRecord {
+    return {
+      fromDate: this.leadFromDate,
+      toDate: this.leadToDate,
+      branchId: this.leadBranchFilter || this.api.selectedBranchId(),
+      source: this.leadSourceFilter,
+      status: this.leadStatusFilter,
+      score: this.leadScoreFilter,
+      assignedTo: this.leadAssignedFilter,
+      followUp: this.leadFollowUpFilter,
+      service: this.leadServiceFilter,
+      q: this.leadSearch,
+      limit: 500
+    };
+  }
+
+  leadScoreTone(row: ApiRecord): string {
+    const score = String(row['leadTemperature'] || '').toLowerCase();
+    if (score === 'hot') return 'high';
+    if (score === 'warm') return 'medium';
+    return 'low';
+  }
+
+  private leadActionPayload(row: ApiRecord, extra: ApiRecord = {}): ApiRecord {
+    return {
+      branchId: row['branchId'] || this.api.selectedBranchId(),
+      threadId: row['threadId'] || '',
+      whatsappThreadId: row['whatsappThreadId'] || '',
+      clientId: row['clientId'] || '',
+      invoiceId: row['wonInvoiceId'] || '',
+      invoiceNumber: row['wonInvoiceNumber'] || '',
+      convertedRevenue: row['convertedRevenue'] || 0,
+      ...extra
+    };
+  }
+
+  private runLeadAction(row: ApiRecord, endpoint: string, payload: ApiRecord, success: string): void {
+    const leadId = String(row['id'] || '');
+    if (!leadId) return;
+    this.leadSaving.set(true);
+    this.leadError.set('');
+    this.api.post<ApiRecord>(`engagement/leads/${encodeURIComponent(leadId)}/${endpoint}`, payload)
+      .pipe(finalize(() => this.leadSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.leadNotice.set(success);
+          this.loadLeadReport();
+        },
+        error: (error) => this.leadError.set(error?.error?.error || error?.message || 'Unable to update lead.')
+      });
+  }
+
+  assignLead(row: ApiRecord): void {
+    const assignedTo = window.prompt('Assign lead to staff/user id', String(row['assignedTo'] || ''));
+    if (!assignedTo) return;
+    this.runLeadAction(row, 'assign', this.leadActionPayload(row, { assignedTo, note: 'Assigned from Lead Intelligence' }), 'Lead assigned.');
+  }
+
+  addLeadFollowUp(row: ApiRecord): void {
+    const note = window.prompt('Follow-up note', '');
+    if (!note) return;
+    this.runLeadAction(row, 'follow-up-note', this.leadActionPayload(row, { note }), 'Follow-up note added.');
+  }
+
+  markLeadWon(row: ApiRecord): void {
+    const invoiceNumber = window.prompt('Won invoice number', String(row['wonInvoiceNumber'] || ''));
+    if (invoiceNumber === null) return;
+    const convertedRevenue = window.prompt('Converted revenue', String(row['convertedRevenue'] || 0));
+    if (convertedRevenue === null) return;
+    this.runLeadAction(row, 'mark-won', this.leadActionPayload(row, {
+      invoiceNumber,
+      convertedRevenue: Number(convertedRevenue || row['convertedRevenue'] || 0),
+      note: 'Marked won from Lead Intelligence'
+    }), 'Lead marked won.');
+  }
+
+  markLeadLost(row: ApiRecord): void {
+    const reason = window.prompt('Lost reason', String(row['lostReason'] || ''));
+    if (!reason) return;
+    this.runLeadAction(row, 'mark-lost', this.leadActionPayload(row, { note: reason, lostReason: reason }), 'Lead marked lost.');
+  }
+
+  callLead(row: ApiRecord): void {
+    const phone = String(row['phone'] || '').replace(/\D/g, '');
+    if (phone) window.location.href = `tel:${phone}`;
+  }
+
+  whatsappLead(row: ApiRecord): void {
+    const phone = String(row['phone'] || '').replace(/\D/g, '');
+    if (phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener,noreferrer');
+  }
+
+  bookLead(row: ApiRecord): void {
+    const clientId = String(row['clientId'] || '');
+    if (!clientId) {
+      this.leadError.set('Client link missing for this lead. Open WhatsApp/call first, then link the client.');
+      return;
+    }
+    this.bookingForm = {
+      ...this.defaultBookingForm(),
+      clientId,
+      branchId: String(row['branchId'] || this.api.selectedBranchId() || ''),
+      notes: `Lead follow-up: ${row['clientName'] || row['phone'] || 'lead'} · ${row['interestService'] || 'service interest'}`
+    };
+    this.bookingError.set('');
+    this.bookingSuccess.set('');
+    this.clearBookingPreview();
+    this.bookingDrawerOpen.set(true);
+    this.loadBookingCatalog();
+  }
+
+  openLeadClient(row: ApiRecord): void {
+    const clientId = String(row['clientId'] || '');
+    if (clientId) window.open(`/clients/${encodeURIComponent(clientId)}`, '_blank', 'noopener,noreferrer');
+  }
+
+  openLeadInvoice(row: ApiRecord): void {
+    const invoice = String(row['wonInvoiceNumber'] || row['wonInvoiceId'] || '');
+    if (invoice) window.open(`/pos/invoices?q=${encodeURIComponent(invoice)}`, '_blank', 'noopener,noreferrer');
+  }
+
+  exportLeadCsv(): void {
+    const keys = ['leadDateTime', 'source', 'clientName', 'phone', 'interestService', 'leadTemperature', 'leadScore', 'status', 'assignedName', 'firstResponseMinutes', 'followUpStatus', 'lastFollowUpAt', 'wonInvoiceNumber', 'convertedRevenue', 'lostReason'];
+    const lines = [keys.join(',')];
+    for (const row of this.leadRows()) {
+      lines.push(keys.map((key) => this.csvCell(row[key])).join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lead-intelligence-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private csvCell(value: unknown): string {
+    const text = String(value ?? '').replace(/"/g, '""');
+    return `"${text}"`;
   }
 
   loadManagerActions(): void {
