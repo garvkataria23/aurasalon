@@ -503,6 +503,7 @@ export class AppComponent {
         { path: '/saas', label: 'SaaS', icon: 'X', keywords: 'saas onboarding tenant' },
         { path: '/branches', label: 'Branches', icon: 'B', keywords: 'branch location' },
         { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
+        { path: '/setting/calendar', label: 'Calendar Settings', icon: 'CS', keywords: 'calendar settings time slot color appointment status' },
         { path: '/permissions', label: 'Permissions', icon: 'PM', keywords: 'role rbac permission' },
         { path: '/security', label: 'Security', icon: 'SL', keywords: 'security auth sessions' },
         { path: '/enterprise-security-shield', label: 'Security Shield', icon: 'ES', keywords: 'enterprise security shield detect alert block audit recover' },

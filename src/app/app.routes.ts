@@ -227,6 +227,8 @@ export const routes: Routes = [
       ]
     }
   },
+  { path: 'setting/calendar', loadComponent: () => import('./pages/calendar-settings.component').then(m => m.CalendarSettingsComponent), title: 'Calendar Settings' },
+  { path: 'settings/calendar', loadComponent: () => import('./pages/calendar-settings.component').then(m => m.CalendarSettingsComponent), title: 'Calendar Settings' },
   {
     path: 'settings',
     component: ModulePageComponent,
