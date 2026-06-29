@@ -2175,7 +2175,10 @@ function validatePreparedRow(row, context, seen) {
   if (payload.branchId?.startsWith?.(UNMAPPED_BRANCH_PREFIX)) errors.push(`Unmapped branch value ${unmappedBranchName(payload.branchId)}`);
   else if (payload.branchId && !context.branches.some((branch) => branch.id === payload.branchId)) errors.push(`Unknown branchId ${payload.branchId}`);
   const duplicate = duplicateFor(row, context, seen);
-  if (duplicate) warnings.push(`Possible duplicate: ${duplicate}`);
+  if (duplicate) {
+    if (isBlockingClientPhoneDuplicate(row, duplicate)) errors.push(duplicate);
+    else warnings.push(`Possible duplicate: ${duplicate}`);
+  }
   validateReferences(row, context, warnings, errors);
   if (errors.length) return { status: "error", errors, warnings, message: errors.join(", "), duplicate: Boolean(duplicate) };
   if (warnings.length) return { status: "warning", errors, warnings, message: warnings.join(", "), duplicate: Boolean(duplicate) };
@@ -2201,6 +2204,10 @@ function validateReferences(row, context, warnings, errors) {
 
 function duplicateFor(row, context, seen) {
   const payload = row.payload;
+  if (row.resource === "clients") {
+    const phoneDuplicate = duplicateClientPhoneFor(row, context, seen);
+    if (phoneDuplicate) return phoneDuplicate;
+  }
   const fileKey = `${row.resource}:${cleanText(row.sourceExternalId || payload.invoiceNumber || payload.phone || payload.sku || payload.name).toLowerCase()}`;
   if (seen.has(fileKey)) return "duplicate row in uploaded file";
   seen.add(fileKey);
@@ -2212,6 +2219,22 @@ function duplicateFor(row, context, seen) {
   if (row.resource === "vendors" && context.vendors.some((item) => same(item.name, payload.name))) return "vendor already exists";
   if (row.resource === "invoices" && liveContext.invoices.some((item) => same(item.invoiceNumber, payload.invoiceNumber))) return "invoice number already exists";
   return "";
+}
+
+function duplicateClientPhoneFor(row, context, seen) {
+  const phoneKey = accountPhoneKey(row.payload?.phone);
+  if (!phoneKey) return "";
+  const filePhoneKey = `clients:phone:${phoneKey}`;
+  if (seen.has(filePhoneKey)) return "duplicate phone in uploaded file";
+  seen.add(filePhoneKey);
+  if (findClientByAccountPhone(row.payload, { ...context, clients: liveOnly(context.clients) })) {
+    return "client phone already exists in this account";
+  }
+  return "";
+}
+
+function isBlockingClientPhoneDuplicate(row, duplicate) {
+  return row.resource === "clients" && /phone/i.test(cleanText(duplicate));
 }
 
 function importPreviewRows(preview, options) {
@@ -2280,6 +2303,10 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
   const payload = resolveMigrationRelations(row.payload, row, { access, jobId });
   const meta = { ...(migrationMode ? migrationMeta(row, batchId, sourceSoftware) : {}), tenantId: access.tenantId };
   if (row.resource === "clients") {
+    const accountPhoneConflict = findClientByAccountPhone(payload, context);
+    if (accountPhoneConflict) {
+      throw badRequest(`Client phone already exists in this account (${accountPhoneConflict.id})`);
+    }
     const existing = findClient({ ...payload, sourceExternalId: row.sourceExternalId }, context, { strongOnly: true });
     if (existing) {
       const decision = duplicateDecisionFor(row, duplicateDecisions);
@@ -3092,6 +3119,8 @@ function resolveClient(payload, context) {
     const direct = context.clientIndex?.id.get(explicitClientId) || context.clientIndex?.original.get(explicitClientId);
     if (direct) return direct;
   }
+  const accountPhoneMatch = findClientByAccountPhone(payload, context);
+  if (accountPhoneMatch) return accountPhoneMatch;
   return findClient(payload, context, { ignoreOriginalRecordId: Boolean(explicitClientId) });
 }
 
@@ -3175,6 +3204,23 @@ function findClient(payload, context, options = {}) {
 
 function sameClientBranch(client, branchId) {
   return !branchId || !client.branchId || client.branchId === branchId;
+}
+
+function findClientByAccountPhone(payload, context) {
+  const phoneKey = accountPhoneKey(payload.phone || payload.clientPhone);
+  if (!phoneKey) return null;
+  return (context.clients || []).find((client) => isActiveClientRecord(client) && accountPhoneKey(client.phone) === phoneKey) || null;
+}
+
+function isActiveClientRecord(client = {}) {
+  const status = cleanKey(client.status || "");
+  return !cleanText(client.deletedAt) && !cleanText(client.archivedAt) && !["deleted", "archived"].includes(status);
+}
+
+function accountPhoneKey(value) {
+  const digits = cleanText(value).replace(/\D/g, "");
+  if (digits.length < 7) return "";
+  return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
 function resolveStaff(payload, context) {

@@ -5,10 +5,11 @@ import { deflateRawSync } from "node:zlib";
 import { createApp } from "../server/app.js";
 import { columnsFor, db } from "../server/db.js";
 
-// Clean migration staging data to prevent UUID collision
-db.prepare("DELETE FROM migration_staging_rows").run();
-db.prepare("DELETE FROM migration_file_chunks").run();
-db.prepare("DELETE FROM migration_large_jobs").run();
+// Clean migration staging data to prevent UUID collision when the schema is already present.
+for (const table of ["migration_staging_rows", "migration_file_chunks", "migration_large_jobs"]) {
+  const exists = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = @name").get({ name: table });
+  if (exists) db.prepare(`DELETE FROM ${table}`).run();
+}
 
 function listen(app) {
   return new Promise((resolve) => {
@@ -191,6 +192,68 @@ test("migration client import does not skip new clients on name-only match", asy
   }
 });
 
+test("migration blocks client import when phone already exists in account", async () => {
+  const server = await listen(createApp());
+  const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
+  try {
+    const stamp = Date.now();
+    const suffix = String(stamp).slice(-5);
+    const existingPhone = `+91 98989 ${suffix}`;
+    const existing = await request(baseUrl, "/clients", {
+      method: "POST",
+      body: {
+        name: `Existing Migration Phone ${stamp}`,
+        phone: existingPhone,
+        branchId: "branch_hyd"
+      }
+    });
+    assert.equal(existing.response.status, 201);
+
+    const duplicatePhone = `0${digits(existingPhone).slice(-10)}`;
+    const row = {
+      name: `Duplicate Migration Phone ${stamp}`,
+      phone: duplicatePhone,
+      branchId: "branch_hyd",
+      originalRecordId: `dup-phone-${stamp}`
+    };
+
+    const dryRun = await request(baseUrl, "/migration/dry-run", {
+      method: "POST",
+      body: {
+        sourceSoftware: "excel",
+        resource: "clients",
+        rows: [row]
+      }
+    });
+    assert.equal(dryRun.response.status, 201);
+    assert.equal(dryRun.body.summary.errorRows, 1);
+    assert.equal(dryRun.body.summary.duplicateRows, 1);
+    assert.equal(dryRun.body.rows[0].status, "error");
+    assert.match(dryRun.body.rows[0].message, /client phone already exists in this account/i);
+
+    const importResult = await request(baseUrl, "/migration/import", {
+      method: "POST",
+      body: {
+        sourceSoftware: "excel",
+        resource: "clients",
+        skipApprovalGate: true,
+        rows: [row]
+      }
+    });
+    assert.equal(importResult.response.status, 201);
+    assert.equal(importResult.body.summary.importedRows, 0);
+    assert.equal(importResult.body.summary.errorRows, 1);
+
+    const duplicateDigits = digits(existingPhone).slice(-10);
+    const matchingClients = db
+      .prepare("SELECT id, phone FROM clients WHERE tenantId = @tenantId")
+      .all({ tenantId: "tenant_aura" })
+      .filter((client) => digits(client.phone).slice(-10) === duplicateDigits);
+    assert.deepEqual(matchingClients.map((client) => client.id), [existing.body.id]);
+  } finally {
+    await close(server);
+  }
+});
 test("migration approval workflow submits, lists and approves latest request", async () => {
   const server = await listen(createApp());
   const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
