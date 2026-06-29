@@ -461,20 +461,87 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <span class="eyebrow">Products by staff</span>
               <h2>Products By Staff</h2>
             </div>
+            <button class="ghost-button mini" type="button" (click)="exportProductRowsCsv()">Products CSV</button>
+          </div>
+          <div class="metrics-grid compact">
+            <article class="metric-card">
+              <span>Product sales</span>
+              <strong>{{ productStats().productRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Retail seller revenue</small>
+            </article>
+            <article class="metric-card">
+              <span>Product units</span>
+              <strong>{{ productStats().productCount }}</strong>
+              <small>Sold quantity</small>
+            </article>
+            <article class="metric-card">
+              <span>Staff selling products</span>
+              <strong>{{ productStats().staffCount }}</strong>
+              <small>Non-zero product rows</small>
+            </article>
+            <article class="metric-card">
+              <span>Product SKUs</span>
+              <strong>{{ productStats().skuCount }}</strong>
+              <small>Unique product rows</small>
+            </article>
+            <article class="metric-card">
+              <span>Missing cost</span>
+              <strong>{{ productStats().missingCostCount }}</strong>
+              <small>Needs COGS setup</small>
+            </article>
+            <article class="metric-card">
+              <span>Product commission</span>
+              <strong>{{ productStats().estimatedCommission | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              <small>Preview basis</small>
+            </article>
+          </div>
+          <div class="report-info-strip">
+            <strong>Product staff view</strong>
+            <span>Staff-wise retail sale with product detail, COGS signal, margin and client accountability.</span>
           </div>
           <div class="table-wrap scroll-wrap">
-            <table>
-              <thead><tr><th>Staff</th><th>Product sales</th><th>Product count</th><th>Products</th><th>COGS signal</th><th>Staff 360</th></tr></thead>
+            <table class="products-table">
+              <thead><tr><th>Action</th><th>Staff</th><th>Contact</th><th>Product sales</th><th>Product count</th><th>Products</th><th>COGS signal</th><th>Est. commission</th><th>Staff 360</th></tr></thead>
               <tbody>
-                <tr *ngFor="let row of data.staff || []">
+                <ng-container *ngFor="let row of productStaffRows()">
+                <tr>
+                  <td><button class="ghost-button mini" type="button" (click)="toggleStaff(row)">{{ isExpanded(row) ? 'Hide' : 'Expand' }}</button></td>
                   <td><strong>{{ row.staffName }}</strong><small>{{ row.staffCode || row.staffId }}</small></td>
+                  <td>{{ row.contact || '-' }}</td>
                   <td>{{ row.productRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
                   <td>{{ row.productCount || 0 }}</td>
                   <td>{{ (row.productBreakdown || []).length }}</td>
                   <td><span class="badge warning" *ngIf="hasMissingCost(row.productBreakdown)">Missing cost</span><span class="badge" *ngIf="!hasMissingCost(row.productBreakdown)">OK</span></td>
+                  <td>{{ productCommission(row) | currency: 'INR':'symbol':'1.0-0' }}</td>
                   <td><a class="ghost-button mini" routerLink="/staff-os/staff-profile" [queryParams]="staffProfileParams(row)">Open</a></td>
                 </tr>
-                <tr *ngIf="!(data.staff || []).length"><td colspan="6">No product sales found.</td></tr>
+                <tr class="expanded-row" *ngIf="isExpanded(row)">
+                  <td colspan="9">
+                    <div class="product-drilldown">
+                      <div class="mini-title"><span>Product detail</span><strong>{{ row.productBreakdown?.length || 0 }} products</strong></div>
+                      <table>
+                        <thead><tr><th>Product</th><th>Qty</th><th>Net sale</th><th>COGS</th><th>Gross margin</th><th>Margin %</th><th>Clients</th><th>Repeat clients</th><th>Last sold</th><th>Cost signal</th></tr></thead>
+                        <tbody>
+                          <tr *ngFor="let product of row.productBreakdown || []">
+                            <td>{{ product.productName }}</td>
+                            <td>{{ product.quantity }}</td>
+                            <td>{{ product.netSale | currency: 'INR':'symbol':'1.0-0' }}</td>
+                            <td>{{ product.cogs | currency: 'INR':'symbol':'1.0-0' }}</td>
+                            <td>{{ product.grossMargin | currency: 'INR':'symbol':'1.0-0' }}</td>
+                            <td>{{ product.marginPercent }}%</td>
+                            <td>{{ product.clientCount }}</td>
+                            <td>{{ product.repeatClientCount }}</td>
+                            <td>{{ product.lastSoldAt || '-' }}</td>
+                            <td><span class="badge warning" *ngIf="product.costSignal === 'missing_cost'">Missing cost</span><span class="badge" *ngIf="product.costSignal !== 'missing_cost'">OK</span></td>
+                          </tr>
+                          <tr *ngIf="!(row.productBreakdown || []).length"><td colspan="10">No product detail found for this staff/filter.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+                </ng-container>
+                <tr *ngIf="!productStaffRows().length"><td colspan="9">No product sales found for selected filters.</td></tr>
               </tbody>
             </table>
           </div>
@@ -778,6 +845,19 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .service-drilldown table {
       min-width: 1480px;
     }
+    .products-table {
+      min-width: 1120px;
+    }
+    .product-drilldown {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+      padding: 10px;
+    }
+    .product-drilldown table {
+      min-width: 1060px;
+    }
     .row-actions {
       display: flex;
       gap: 8px;
@@ -876,6 +956,29 @@ export class StaffSalesReportComponent implements OnInit {
     const branchId = this.api.selectedBranchId();
     if (!branchId) return 'Header branch not selected';
     return this.branches().find((branch) => branch.id === branchId)?.name || branchId;
+  });
+  readonly productStaffRows = computed(() => ((this.report()?.staff || []) as ApiRecord[]).filter((row) => {
+    const productBreakdown = Array.isArray(row['productBreakdown']) ? row['productBreakdown'] as ApiRecord[] : [];
+    return Number(row['productRevenue'] || 0) > 0 || Number(row['productCount'] || 0) > 0 || productBreakdown.length > 0;
+  }));
+  readonly productStats = computed(() => {
+    const rows = this.productStaffRows();
+    return rows.reduce((acc, row) => {
+      const productBreakdown = Array.isArray(row['productBreakdown']) ? row['productBreakdown'] as ApiRecord[] : [];
+      acc.productRevenue += Number(row['productRevenue'] || 0);
+      acc.productCount += Number(row['productCount'] || 0);
+      acc.skuCount += productBreakdown.length;
+      acc.missingCostCount += this.hasMissingCost(productBreakdown) ? 1 : 0;
+      acc.estimatedCommission += this.productCommission(row);
+      return acc;
+    }, {
+      productRevenue: 0,
+      productCount: 0,
+      staffCount: rows.length,
+      skuCount: 0,
+      missingCostCount: 0,
+      estimatedCommission: 0
+    });
   });
 
   from = '';
@@ -1056,6 +1159,48 @@ export class StaffSalesReportComponent implements OnInit {
     this.downloadFile(`services-by-staff-${Date.now()}.csv`, [headers.map((value) => this.csvCell(value)).join(','), ...csvRows].join('\n'), 'text/csv;charset=utf-8');
   }
 
+  exportProductRowsCsv(): void {
+    const headers = ['Staff', 'Staff ID', 'Contact', 'Product', 'Qty', 'Net sale', 'COGS', 'Gross margin', 'Margin %', 'Clients', 'Repeat clients', 'Last sold', 'Cost signal', 'Estimated commission'];
+    const csvRows = this.productStaffRows().flatMap((row) => {
+      const productBreakdown = Array.isArray(row['productBreakdown']) ? row['productBreakdown'] as ApiRecord[] : [];
+      if (!productBreakdown.length) {
+        return [[
+          row['staffName'],
+          row['staffCode'] || row['staffId'],
+          row['contact'],
+          '-',
+          row['productCount'],
+          row['productRevenue'],
+          0,
+          0,
+          0,
+          0,
+          0,
+          '-',
+          'missing_detail',
+          this.productCommission(row)
+        ].map((value) => this.csvCell(value)).join(',')];
+      }
+      return productBreakdown.map((product) => [
+        row['staffName'],
+        row['staffCode'] || row['staffId'],
+        row['contact'],
+        product['productName'],
+        product['quantity'],
+        product['netSale'],
+        product['cogs'],
+        product['grossMargin'],
+        product['marginPercent'],
+        product['clientCount'],
+        product['repeatClientCount'],
+        product['lastSoldAt'],
+        product['costSignal'],
+        this.productCommission(row)
+      ].map((value) => this.csvCell(value)).join(','));
+    });
+    this.downloadFile(`products-by-staff-${Date.now()}.csv`, [headers.map((value) => this.csvCell(value)).join(','), ...csvRows].join('\n'), 'text/csv;charset=utf-8');
+  }
+
   exportOwnerPdf(): void {
     const report = this.report();
     const totals = report?.totals || {};
@@ -1092,6 +1237,10 @@ export class StaffSalesReportComponent implements OnInit {
 
   hasMissingCost(rows: unknown): boolean {
     return Array.isArray(rows) && rows.some((row) => (row as ApiRecord)['costSignal'] === 'missing_cost');
+  }
+
+  productCommission(row: ApiRecord): number {
+    return Number(row['productRevenue'] || 0) * 0.05;
   }
 
   private loadBranches(): void {
