@@ -88,14 +88,14 @@ const DEFAULT_FIELDS: ClientCustomField[] = [
                     <small *ngIf="field.lockedDefault || field.lockedMandatory">Core client field</small>
                   </td>
                   <td>
-                    <label class="check-cell" [class.locked]="field.lockedDefault">
-                      <input type="checkbox" [(ngModel)]="field.default" [disabled]="field.lockedDefault" (ngModelChange)="normalizeLockedFields()" />
+                    <label class="check-cell" [class.locked]="field.lockedDefault === true">
+                      <input type="checkbox" [(ngModel)]="field.default" [disabled]="field.lockedDefault === true" (ngModelChange)="normalizeLockedFields()" />
                       <span aria-hidden="true"></span>
                     </label>
                   </td>
                   <td>
-                    <label class="check-cell" [class.locked]="field.lockedMandatory">
-                      <input type="checkbox" [(ngModel)]="field.mandatory" [disabled]="field.lockedMandatory" (ngModelChange)="normalizeLockedFields()" />
+                    <label class="check-cell" [class.locked]="field.lockedMandatory === true">
+                      <input type="checkbox" [(ngModel)]="field.mandatory" [disabled]="field.lockedMandatory === true" (ngModelChange)="normalizeLockedFields()" />
                       <span aria-hidden="true"></span>
                     </label>
                   </td>

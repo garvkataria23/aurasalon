@@ -57,7 +57,7 @@ test("client custom form settings frontend exposes Salonist-style field controls
   }
 
   assert.match(page, /settings\/clients\/custom-form/, "page should call custom form settings API");
-  assert.match(page, /\[disabled\]="field\.lockedDefault"/, "default lock should disable protected default toggle");
-  assert.match(page, /\[disabled\]="field\.lockedMandatory"/, "mandatory lock should disable protected mandatory toggle");
+  assert.match(page, /\[disabled\]="field\.lockedDefault === true"/, "default lock should disable protected default toggle");
+  assert.match(page, /\[disabled\]="field\.lockedMandatory === true"/, "mandatory lock should disable protected mandatory toggle");
   assert.match(page, /overflow-x:\s*auto/, "table overflow should stay contained");
 });
