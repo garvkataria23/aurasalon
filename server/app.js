@@ -150,6 +150,7 @@ import { legacyRevenueRouter } from "./routes/legacy-revenue.routes.js";
 import { locationSharingRouter } from "./routes/location-sharing.routes.js";
 import { localizationPreferenceRouter } from "./routes/localization-preference.routes.js";
 import { membershipEnterpriseRouter } from "./routes/membership-enterprise.routes.js";
+import { messageHistoryReportRouter } from "./routes/message-history-report.routes.js";
 import { migrationRouter } from "./routes/migration.routes.js";
 import { mobileRouter } from "./routes/mobile.routes.js";
 import { offlineRouter } from "./routes/offline.routes.js";
@@ -405,6 +406,7 @@ export function createApp() {
   app.use("/api/v1", authenticateJwt(), engagementRouter);
   app.use("/api/v1", authenticateJwt(), inventoryIntelligenceRouter);
   app.use("/api/v1", authenticateJwt(), membershipEnterpriseRouter);
+  app.use("/api/v1", authenticateJwt(), messageHistoryReportRouter);
   app.use("/api/v1", authenticateJwt(), staffSalesReportRouter);
   app.use("/api/v1", authenticateJwt(), clientReportsRouter);
   app.use("/api/v1", authenticateJwt(), operationsRouter);
@@ -554,6 +556,7 @@ export function createApp() {
   app.use("/api", engagementRouter);
   app.use("/api", inventoryIntelligenceRouter);
   app.use("/api", membershipEnterpriseRouter);
+  app.use("/api", messageHistoryReportRouter);
   app.use("/api", staffSalesReportRouter);
   app.use("/api", clientReportsRouter);
   app.use("/api", operationsRouter);

@@ -158,36 +158,7 @@ export const routes: Routes = [
   { path: 'marketing', loadComponent: () => import('./pages/ai-marketing-automation.component').then(m => m.AiMarketingAutomationComponent), title: 'AI Marketing Automation' },
   { path: 'growth-rank-bot', loadComponent: () => import('./pages/growth-rank-bot.component').then(m => m.GrowthRankBotComponent), title: 'AI Rank Bot' },
   { path: 'whatsapp', loadComponent: () => import('./pages/whatsapp-automation.component').then(m => m.WhatsAppAutomationComponent), title: 'WhatsApp Automation' },
-  {
-    path: 'message-logs',
-    component: ModulePageComponent,
-    title: 'Message Logs',
-    data: {
-      entity: 'messageLogs',
-      title: 'Message Logs',
-      subtitle: 'Track SMS, email and WhatsApp messages with delivery status and provider payloads.',
-      createLabel: 'Add message log',
-      variant: 'zenoti',
-      columns: [
-        { key: 'channel', label: 'Channel' },
-        { key: 'recipient', label: 'Recipient' },
-        { key: 'direction', label: 'Direction' },
-        { key: 'status', label: 'Status', type: 'badge' },
-        { key: 'createdAt', label: 'Created' }
-      ],
-      fields: [
-        { key: 'channel', label: 'Channel', required: true, defaultValue: 'WhatsApp' },
-        { key: 'recipient', label: 'Recipient', required: true },
-        { key: 'message', label: 'Message', required: true },
-        { key: 'branchId', label: 'Branch ID' },
-        { key: 'clientId', label: 'Client ID' },
-        { key: 'campaignId', label: 'Campaign ID' },
-        { key: 'direction', label: 'Direction', defaultValue: 'outbound' },
-        { key: 'payload', label: 'Payload JSON', type: 'json', defaultValue: {} },
-        { key: 'providerResponse', label: 'Provider response JSON', type: 'json', defaultValue: {} }
-      ]
-    }
-  },
+  { path: 'message-logs', loadComponent: () => import('./pages/message-history-report.component').then(m => m.MessageHistoryReportComponent), title: 'Message History' },
   { path: 'business-details', loadComponent: () => import('./pages/business-details.component').then(m => m.BusinessDetailsComponent), title: 'Business Details' },
   { path: 'reports/account-ledger', loadComponent: () => import('./pages/account-ledger.component').then(m => m.AccountLedgerComponent), title: 'Account Ledger' },
   { path: 'reports/commission-preview', loadComponent: () => import('./pages/commission-preview-report.component').then(m => m.CommissionPreviewReportComponent), title: 'Commission Preview' },
