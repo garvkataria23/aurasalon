@@ -1121,6 +1121,7 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
   resource = '';
   selectedMappingId = '';
   approvalNote = '';
+  private resumeFinalImportAfterApproval = false;
   rowFilter = signal<'all' | 'error' | 'warning' | 'duplicate'>('all');
   fileBase64 = signal('');
   fileRef = signal('');
@@ -1768,7 +1769,7 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     await this.loadJobs();
   }
 
-  async runImport(): Promise<void> {
+  async runImport(options: { skipConfirmation?: boolean } = {}): Promise<void> {
     if (this.alreadyImportedCurrentFile()) {
       const job = this.currentFileImportJob();
       this.error.set(`This file was already imported${job?.id ? ` in job ${job.id}` : ''}. Rollback that job before importing again.`);
@@ -1780,7 +1781,8 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.importApprovalReady()) {
-      this.error.set('Final import blocked: Approval required for this exact upload/job.');
+      this.resumeFinalImportAfterApproval = true;
+      this.error.set('Final import blocked: Approval required for this exact upload/job. Approve latest to continue import automatically.');
       return;
     }
     if (this.shouldUseLargeMigrationFlow() && (!this.largeJob()?.id || this.largeJobIsTerminal())) {
@@ -1793,10 +1795,11 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     }
     if (!this.validateRequiredMapping()) return;
     const partialNote = criticalErrors ? ` ${criticalErrors} critical rows will be skipped.` : '';
-    if (!confirm(`${this.sandboxMode() ? 'Sandbox' : 'Live'} final import database me data save karega.${partialNote} Continue?`)) return;
+    if (!options.skipConfirmation && !confirm(`${this.sandboxMode() ? 'Sandbox' : 'Live'} final import database me data save karega.${partialNote} Continue?`)) return;
     const success = criticalErrors
       ? (this.sandboxMode() ? 'Sandbox partial import complete. Critical rows were skipped.' : 'Partial import complete. Valid rows saved; critical rows skipped.')
       : (this.sandboxMode() ? 'Sandbox import complete. Review results before live migration.' : 'Final import complete. Data saved in live modules.');
+    this.resumeFinalImportAfterApproval = false;
     await this.callMigration('migration/import', success, { allowPartialImport: this.allowPartialLargeImport() });
     await this.loadJobs();
   }
@@ -2895,6 +2898,15 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
       this.approvals.update((current) => current.map((item) => item.id === id ? approval : item));
       this.message.set(`Approval ${approval?.status || decision}.`);
       await this.loadApprovals();
+
+      const shouldResumeFinalImport = decision === 'approved' && this.resumeFinalImportAfterApproval && this.importApprovalReady();
+      if (decision === 'rejected') this.resumeFinalImportAfterApproval = false;
+      if (shouldResumeFinalImport) {
+        this.resumeFinalImportAfterApproval = false;
+        this.loading.set(false);
+        this.message.set('Approval approved. Starting final import...');
+        await this.runImport({ skipConfirmation: true });
+      }
     } catch (err: any) {
       const text = this.api.errorText(err, 'Unable to update approval.');
       this.error.set(text);
