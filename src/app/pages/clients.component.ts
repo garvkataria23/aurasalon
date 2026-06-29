@@ -313,13 +313,17 @@ import { StateComponent } from '../shared/ui/state/state.component';
   styles: [`
     :host {
       display: block;
+      width: 100%;
+      max-width: calc(100vw - 104px);
       min-width: 0;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .page-stack {
       --client-edge-safe: clamp(14px, 1.6vw, 28px);
-      width: 100%;
-      max-width: none;
+      width: min(100%, calc(100vw - 118px));
+      max-width: calc(100vw - 118px);
       min-width: 0;
       padding-inline-end: var(--client-edge-safe);
       box-sizing: border-box;
@@ -393,7 +397,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
     .salonist-kpis {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
       gap: 14px;
       width: 100%;
       min-width: 0;
@@ -542,6 +546,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
       flex-wrap: wrap;
       align-items: end;
       gap: 12px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
       overflow: visible;
       padding: 12px;
       border: 1px solid color-mix(in srgb, var(--line) 75%, white);
@@ -591,6 +598,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .column-editor,
     .client-database-panel .table-toolbar > .primary-button {
       flex: 0 0 auto;
+      max-width: 100%;
     }
 
     .dropdown-panel,
@@ -905,6 +913,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     @media (max-width: 760px) {
+      :host {
+        max-width: 100vw;
+      }
+
       .page-stack {
         width: 100%;
         max-width: 100%;
