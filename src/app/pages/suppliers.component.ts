@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -111,7 +111,11 @@ interface SupplierCommandRow {
 
         <div class="state success" *ngIf="success()">{{ success() }}</div>
 
-        <div class="table-wrap zenoti-table-wrap">
+        <div class="supplier-scroll-rail" #supplierScrollRail (scroll)="syncSupplierTableScroll('rail')" aria-label="Supplier table side scroll">
+          <div [style.width.px]="supplierScrollWidth()"></div>
+        </div>
+
+        <div class="table-wrap zenoti-table-wrap" #supplierTableWrap (scroll)="syncSupplierTableScroll('table')">
           <table>
             <thead>
               <tr>
@@ -381,6 +385,25 @@ interface SupplierCommandRow {
       line-height: 1;
       padding: 6px 10px;
       white-space: nowrap;
+    }
+
+    .supplier-scroll-rail {
+      position: sticky;
+      top: 0;
+      z-index: 6;
+      height: 18px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-bottom: 1px solid #d8e1ea;
+      background: #fff;
+    }
+
+    .supplier-scroll-rail > div {
+      height: 1px;
+    }
+
+    .zenoti-table-wrap {
+      scrollbar-gutter: stable;
     }
 
     .zenoti-table-wrap table {
@@ -792,7 +815,10 @@ interface SupplierCommandRow {
     }
   `]
 })
-export class SuppliersComponent implements OnInit {
+export class SuppliersComponent implements OnInit, AfterViewInit {
+  @ViewChild('supplierTableWrap') private supplierTableWrap?: ElementRef<HTMLDivElement>;
+  @ViewChild('supplierScrollRail') private supplierScrollRail?: ElementRef<HTMLDivElement>;
+
   readonly suppliers = signal<ApiRecord[]>([]);
   readonly products = signal<ApiRecord[]>([]);
   readonly batches = signal<ApiRecord[]>([]);
@@ -809,6 +835,8 @@ export class SuppliersComponent implements OnInit {
   readonly editingId = signal('');
   readonly activeFilter = signal<SupplierFilter>('all');
   readonly whatsappDraft = signal('');
+  readonly supplierScrollWidth = signal(1420);
+  private syncingSupplierScroll = false;
   query = '';
 
   readonly activeSuppliers = computed(() => this.suppliers().filter((supplier) => this.supplierStatus(supplier) === 'active'));
@@ -860,6 +888,10 @@ export class SuppliersComponent implements OnInit {
     this.load();
   }
 
+  ngAfterViewInit(): void {
+    this.refreshSupplierScrollWidth();
+  }
+
   load(): void {
     this.loading.set(true);
     this.error.set('');
@@ -883,6 +915,7 @@ export class SuppliersComponent implements OnInit {
       this.intelligence.set(intelligence || null);
       this.inventoryReport.set(inventoryReport || null);
       this.loading.set(false);
+      this.refreshSupplierScrollWidth();
     }).catch((error) => {
       this.error.set(error?.error?.error || error?.message || 'Unable to load suppliers');
       this.loading.set(false);
@@ -965,6 +998,32 @@ export class SuppliersComponent implements OnInit {
 
   filterCount(filter: SupplierFilter): number {
     return this.supplierRows().filter((row) => this.matchesFilter(row, filter)).length;
+  }
+
+  syncSupplierTableScroll(source: 'rail' | 'table'): void {
+    if (this.syncingSupplierScroll) return;
+    const tableWrap = this.supplierTableWrap?.nativeElement;
+    const rail = this.supplierScrollRail?.nativeElement;
+    if (!tableWrap || !rail) return;
+    this.syncingSupplierScroll = true;
+    if (source === 'rail') {
+      tableWrap.scrollLeft = rail.scrollLeft;
+    } else {
+      rail.scrollLeft = tableWrap.scrollLeft;
+    }
+    requestAnimationFrame(() => {
+      this.syncingSupplierScroll = false;
+    });
+  }
+
+  private refreshSupplierScrollWidth(): void {
+    setTimeout(() => {
+      const tableWrap = this.supplierTableWrap?.nativeElement;
+      const rail = this.supplierScrollRail?.nativeElement;
+      if (!tableWrap) return;
+      this.supplierScrollWidth.set(Math.max(tableWrap.scrollWidth, tableWrap.clientWidth, 1420));
+      if (rail) rail.scrollLeft = tableWrap.scrollLeft;
+    });
   }
 
   buildWhatsAppDraft(row: SupplierCommandRow): void {
