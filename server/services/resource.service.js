@@ -113,7 +113,8 @@ export class ResourceService {
   }
 
   deleteClient(id, access) {
-    const existing = this.repository("clients").getById(id, tenantService.accessScope(access, "clients"));
+    const scope = tenantService.accessScope(access, "clients");
+    const existing = this.repository("clients").getById(id, scope);
     if (!existing) {
       return { id, deleted: true, alreadyDeleted: true };
     }
@@ -121,12 +122,7 @@ export class ResourceService {
     if (existing.deletedAt) {
       return { id, archived: true, alreadyDeleted: true };
     }
-    try {
-      return this.repository("clients").delete(id, tenantService.accessScope(access, "clients"));
-    } catch (error) {
-      if (!isForeignKeyConstraint(error)) throw error;
-      return this.archiveClient(existing, "Archived instead of hard delete because this client has linked invoices, payments, appointments or wallet history.", access);
-    }
+    return this.archiveClient(existing, "Archived from client CRM delete action. Backend row retained for audit, recovery and linked history.", access, scope);
   }
 
   duplicateClients(query = {}, access = {}) {
@@ -235,7 +231,7 @@ export class ResourceService {
     };
     const safePayload = Object.fromEntries(Object.entries(payload).filter(([key]) => columns.includes(key)));
     if (!Object.keys(safePayload).length) {
-      return this.repository("clients").delete(client.id, scope);
+      throw conflict("Client archive columns are missing. Hard delete is blocked for client records.");
     }
     const archived = this.repository("clients").update(client.id, safePayload, scope);
     return { id: archived.id, archived: true };
@@ -532,11 +528,6 @@ function safeIdentifier(value) {
 }
 function truthy(value) {
   return value === true || value === "true" || value === "1" || value === 1;
-}
-
-function isForeignKeyConstraint(error) {
-  return String(error?.code || "").includes("SQLITE_CONSTRAINT_FOREIGNKEY")
-    || String(error?.message || "").includes("FOREIGN KEY constraint failed");
 }
 
 function normalizeAppointmentPayload(payload, req) {

@@ -1,0 +1,958 @@
+{
+  "ok": true,
+  "applied": true,
+  "generatedAt": "2026-06-29T10:59:04.088Z",
+  "summary": {
+    "totalClientRowsBefore": 16685,
+    "archivedClientRowsBefore": 14343,
+    "visibleClientRowsBefore": 2342,
+    "missingClientIdsBefore": 123,
+    "recoverableFromMigrationBefore": 50,
+    "unrecoverableBefore": 73,
+    "restoredClientRows": 50,
+    "skippedRecoverableRows": 0,
+    "missingClientIdsAfter": 73,
+    "totalClientRowsAfter": 16735,
+    "archivedClientRowsAfter": 14393,
+    "visibleClientRowsAfter": 2342
+  },
+  "restoredClients": [
+    {
+      "clientId": "clie_c6ce0eb1-1",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 2394,
+      "deletedAt": "2026-06-29T10:37:33.107Z"
+    },
+    {
+      "clientId": "clie_468b9bdc-9",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 2719,
+      "deletedAt": "2026-06-29T10:37:05.220Z"
+    },
+    {
+      "clientId": "clie_518ed9eb-4",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 2740,
+      "deletedAt": "2026-06-29T10:37:03.946Z"
+    },
+    {
+      "clientId": "clie_86c70b81-e",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 2843,
+      "deletedAt": "2026-06-29T10:36:38.298Z"
+    },
+    {
+      "clientId": "clie_c101620a-9",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 2880,
+      "deletedAt": "2026-06-29T10:36:36.235Z"
+    },
+    {
+      "clientId": "clie_bf063604-6",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_e00741fb-3",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:11.071Z"
+    },
+    {
+      "clientId": "clie_3d0610db-4",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_90db2b6f-9",
+      "sourceRowNumber": 3,
+      "deletedAt": "2026-06-29T10:36:11.068Z"
+    },
+    {
+      "clientId": "clie_80304421-1",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_90db2b6f-9",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:11.037Z"
+    },
+    {
+      "clientId": "clie_1aa4a188-b",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_f3ea31e8-8",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:11.034Z"
+    },
+    {
+      "clientId": "clie_38e36663-c",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_07cfc894-2",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:10.750Z"
+    },
+    {
+      "clientId": "clie_d2ee60be-f",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_b50d923b-4",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:10.748Z"
+    },
+    {
+      "clientId": "clie_c369a8b9-1",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_f1120021-f",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:10.746Z"
+    },
+    {
+      "clientId": "clie_ac3f84e6-7",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_f1120021-f",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:10.713Z"
+    },
+    {
+      "clientId": "clie_662c409f-8",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_72c06372-1",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:10.712Z"
+    },
+    {
+      "clientId": "clie_04a0a04c-7",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_361ba997-a",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:10.711Z"
+    },
+    {
+      "clientId": "clie_6be52220-6",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_f92dbc99-7",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:08.812Z"
+    },
+    {
+      "clientId": "clie_8e2de0d6-8",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_0a4cd0dc-f",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:08.509Z"
+    },
+    {
+      "clientId": "clie_9123c7ff-4",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_1e9be7c0-f",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:08.497Z"
+    },
+    {
+      "clientId": "clie_2342fc83-a",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_f93f984f-c",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:08.194Z"
+    },
+    {
+      "clientId": "clie_d8f9d522-8",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_17e4c44d-c",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:08.179Z"
+    },
+    {
+      "clientId": "clie_662118d2-e",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_0cea7c25-f",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:07.878Z"
+    },
+    {
+      "clientId": "clie_9426e2c6-9",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_42a90669-d",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:07.867Z"
+    },
+    {
+      "clientId": "clie_32bcf67c-4",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_0cd9b9fc-6",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:07.557Z"
+    },
+    {
+      "clientId": "clie_6f692058-9",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_6569e853-a",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:07.549Z"
+    },
+    {
+      "clientId": "clie_b2bb1061-b",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_eefd57c9-5",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:07.233Z"
+    },
+    {
+      "clientId": "clie_4f24387c-d",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_4de187e3-7",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:07.223Z"
+    },
+    {
+      "clientId": "clie_eef1f275-b",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_1cdbf44e-9",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:06.910Z"
+    },
+    {
+      "clientId": "clie_30a89997-7",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_f0a9972f-0",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:06.899Z"
+    },
+    {
+      "clientId": "clie_3b0e359a-1",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_3448aa73-1",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:06.589Z"
+    },
+    {
+      "clientId": "clie_824886b1-a",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_bcf66ea4-d",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:06.574Z"
+    },
+    {
+      "clientId": "clie_e0043bbb-f",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a9bd3123-4",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:06.279Z"
+    },
+    {
+      "clientId": "clie_7de06240-3",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_d46f545fb5c7489c",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:06.266Z"
+    },
+    {
+      "clientId": "clie_cd8fa4e0-0",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_222d72c8671245a0",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:05.965Z"
+    },
+    {
+      "clientId": "clie_8dba54d7-8",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_28b1a73976994832",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:05.948Z"
+    },
+    {
+      "clientId": "clie_ba8751e4-3",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_717cff642c54427b",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:05.653Z"
+    },
+    {
+      "clientId": "clie_ad7af417-7",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_15d6d4f4c80847ac",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:05.634Z"
+    },
+    {
+      "clientId": "clie_f4e2451d-6",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mlg_ccbcc3ea-e56",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:05.318Z"
+    },
+    {
+      "clientId": "clie_7b0126a4-6",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_367613d8346f4bed",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:05.025Z"
+    },
+    {
+      "clientId": "clie_b3f8c125-f",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_311bd5e4145d4ee3",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.996Z"
+    },
+    {
+      "clientId": "clie_b70eee8a-2",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_756b1d8d2dd84ecb",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.709Z"
+    },
+    {
+      "clientId": "clie_597f0e4e-a",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_dea1caaf7ee2443d",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.679Z"
+    },
+    {
+      "clientId": "clie_2fae3933-f",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_b4a00310e8b942b0",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.396Z"
+    },
+    {
+      "clientId": "clie_9b6ad25e-7",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a8e022391afe4ee8",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.357Z"
+    },
+    {
+      "clientId": "clie_9c6fe3fc-5",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_16ea87554b234b8c",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.072Z"
+    },
+    {
+      "clientId": "clie_930b39e0-f",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_b74c44ba52614e69",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:04.044Z"
+    },
+    {
+      "clientId": "clie_efaf4165-c",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_0bbd743eec2b4c34",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:36:03.763Z"
+    },
+    {
+      "clientId": "clie_66b64e25-3",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 3106,
+      "deletedAt": "2026-06-29T10:35:50.905Z"
+    },
+    {
+      "clientId": "clie_73641a48-e",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 3157,
+      "deletedAt": "2026-06-29T10:35:48.188Z"
+    },
+    {
+      "clientId": "clie_1dc8729f-f",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_a16648b4-8",
+      "sourceRowNumber": 3204,
+      "deletedAt": "2026-06-29T10:35:45.583Z"
+    },
+    {
+      "clientId": "clie_cc85bb0a-d",
+      "branchId": "branch_hyd",
+      "sourceJobId": "mig_2cbadf92-1",
+      "sourceRowNumber": 2,
+      "deletedAt": "2026-06-29T10:35:37.824Z"
+    }
+  ],
+  "skippedRecoverable": [],
+  "unrecoverableMissingClientIds": [
+    {
+      "clientId": "clie_6870d137-1",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:37.779Z",
+      "lastDeletedAt": "2026-06-29T10:36:11.072Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_356c7c4e-5",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:37.648Z",
+      "lastDeletedAt": "2026-06-29T10:36:11.040Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_cc5a835a-1",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:37.083Z",
+      "lastDeletedAt": "2026-06-29T10:36:10.422Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_e573f0f2-1",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.488Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.826Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_0ab6fc0d-d",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.451Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.824Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_2b126ace-5",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.432Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.822Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_b0c6263d-e",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.355Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.811Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_5eb300f0-b",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.212Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.809Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_0591cc85-e",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.128Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.507Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_fdc900b4-0",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.112Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.504Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_36dc7560-c",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:35.033Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.495Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_17b8371a-c",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.882Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.491Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_d6abbda1-1",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.798Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.191Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_65580724-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.782Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.189Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_b74f98a7-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.703Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.177Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_e19f72c6-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.554Z",
+      "lastDeletedAt": "2026-06-29T10:36:08.175Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_55ede844-9",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.465Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.877Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_c157978f-c",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.449Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.875Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_f858434e-e",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.379Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.865Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_10c6026b-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.212Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.860Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_5f7e0fee-b",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.143Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.552Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_a584fb28-4",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.125Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.550Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_5967c219-9",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:34.058Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.547Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_de32c788-8",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.882Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.544Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_54cc4508-8",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.810Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.232Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_57508523-d",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.793Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.226Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_ef98e0c5-0",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.729Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.221Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_38dfe85f-b",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.534Z",
+      "lastDeletedAt": "2026-06-29T10:36:07.217Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_c1179bf2-f",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.482Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.909Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_ccf3269c-9",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.464Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.901Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_e63410f9-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.399Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.897Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_1866f7bd-4",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.216Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.895Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_6e54c069-c",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.155Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.587Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_a0d6d249-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.138Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.579Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_e7982a81-8",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:33.080Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.569Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_d6d733e7-8",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.884Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.565Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_6bd7626b-0",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.825Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.274Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_31983dfd-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.807Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.270Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_e9fe2b88-d",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.754Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.256Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_5950230e-9",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.555Z",
+      "lastDeletedAt": "2026-06-29T10:36:06.253Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_14be0b15-5",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.501Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.958Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_df5fb742-2",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.483Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.953Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_251791da-b",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.434Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.941Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_94eaa810-4",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.236Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.938Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_d90a1b9b-8",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.171Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.650Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_19c8e3a5-d",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.155Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.640Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_9e79bc3a-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:32.114Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.628Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_5452adbd-2",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.905Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.627Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_9b29a9df-3",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.889Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.341Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_26f1e1ad-b",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.836Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.335Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_67f28ff9-9",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.819Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.329Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_8600eb31-2",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.803Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.320Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_d7bc0287-f",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.577Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.316Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_8bae8025-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.538Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.030Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_1cba5187-3",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.499Z",
+      "lastDeletedAt": "2026-06-29T10:36:05.021Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_194cd531-4",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.480Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.998Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_bdcfa783-f",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.238Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.992Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_d3cfff6b-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.220Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.715Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_80c3383b-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.163Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.707Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_7d80d86c-5",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:31.147Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.680Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_c6a506fb-0",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.911Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.676Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_cc3a1b28-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.894Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.398Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_ca4609fb-c",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.834Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.394Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_26d3699a-3",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.823Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.361Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_da972df2-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.586Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.353Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_ebecd4a8-7",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.568Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.077Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_f946be3d-7",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.519Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.071Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_42c4bf10-2",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.502Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.048Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_fc9227cd-3",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.255Z",
+      "lastDeletedAt": "2026-06-29T10:36:04.038Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_2d26dd31-a",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.237Z",
+      "lastDeletedAt": "2026-06-29T10:36:03.766Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "clie_0b1f2c00-6",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:30.200Z",
+      "lastDeletedAt": "2026-06-29T10:36:03.754Z",
+      "deleteEvents": 2
+    },
+    {
+      "clientId": "cust_61abd462-9",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:38.039Z",
+      "lastDeletedAt": "2026-06-29T10:35:38.039Z",
+      "deleteEvents": 1
+    },
+    {
+      "clientId": "clie_94d27951-c",
+      "tenantId": "tenant_aura",
+      "branchId": "branch_hyd",
+      "firstDeletedAt": "2026-06-29T10:35:37.969Z",
+      "lastDeletedAt": "2026-06-29T10:35:37.969Z",
+      "deleteEvents": 1
+    }
+  ]
+}
