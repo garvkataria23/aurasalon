@@ -218,6 +218,7 @@ export const routes: Routes = [
   { path: 'reports/commission-preview', loadComponent: () => import('./pages/commission-preview-report.component').then(m => m.CommissionPreviewReportComponent), title: 'Commission Preview' },
   { path: 'reports/staff-sales', loadComponent: () => import('./pages/staff-sales-report.component').then(m => m.StaffSalesReportComponent), title: 'Staff Sales Report' },
   { path: 'reports/invoices', loadComponent: () => import('./pages/invoice-reports.component').then(m => m.InvoiceReportsComponent), title: 'Invoice Reports Command Center' },
+  { path: 'reports/invoices/:reportId', loadComponent: () => import('./pages/invoice-reports.component').then(m => m.InvoiceReportsComponent), title: 'Invoice Report Detail' },
   { path: 'reports/inward-revenue', loadComponent: () => import('./pages/inward-revenue-report.component').then(m => m.InwardRevenueReportComponent), title: 'Inward Revenue Report' },
   { path: 'reports', loadComponent: () => import('./pages/reports.component').then(m => m.ReportsComponent), title: 'Reports & Analytics' },
   { path: 'reports/enterprise', loadComponent: () => import('./pages/reports-enterprise/reports-enterprise.component').then(m => m.ReportsEnterpriseComponent), title: 'Enterprise Reports' },
