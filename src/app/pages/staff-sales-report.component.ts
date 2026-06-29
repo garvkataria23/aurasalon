@@ -44,7 +44,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </select>
         </label>
         <label class="field">
-          <span>Sale type</span>
+          <span>Item type</span>
           <select [(ngModel)]="saleType">
             <option value="">All sales</option>
             <option value="service">Services</option>
@@ -52,6 +52,22 @@ import { StateComponent } from '../shared/ui/state/state.component';
             <option value="membership">Memberships</option>
             <option value="package">Packages</option>
             <option value="gift_card">Gift cards</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Service sale type</span>
+          <select [(ngModel)]="serviceSaleType">
+            <option value="">All service sales</option>
+            <option value="quick_sale">Quick Sale</option>
+            <option value="appointment">Appointment</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Due status</span>
+          <select [(ngModel)]="dueStatus">
+            <option value="">All due status</option>
+            <option value="pending">Pending due</option>
+            <option value="clear">Clear</option>
           </select>
         </label>
         <label class="field">
@@ -85,7 +101,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </label>
         <label class="field">
           <span>Search</span>
-          <input [(ngModel)]="query" placeholder="Staff, item, invoice" />
+          <input [(ngModel)]="query" placeholder="Invoice, client, phone, service" />
         </label>
         <div class="branch-context-card">
           <span>Header branch</span>
@@ -161,7 +177,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </article>
         </div>
 
-        <section class="panel">
+        <nav class="report-tabs" aria-label="Staff sales report sections">
+          <button type="button" [class.active]="activeTab() === 'leaderboard'" (click)="activeTab.set('leaderboard')">Staff Leaderboard</button>
+          <button type="button" [class.active]="activeTab() === 'services'" (click)="activeTab.set('services')">Services By Staff</button>
+          <button type="button" [class.active]="activeTab() === 'products'" (click)="activeTab.set('products')">Products By Staff</button>
+          <button type="button" [class.active]="activeTab() === 'commission'" (click)="activeTab.set('commission')">Commission / Payout</button>
+        </nav>
+
+        <section class="panel" *ngIf="activeTab() === 'leaderboard'">
           <div class="section-title">
             <div>
               <span class="eyebrow">Leaderboard</span>
@@ -270,7 +293,165 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" *ngIf="activeTab() === 'services'">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Services sales by staff</span>
+              <h2>Services By Staff</h2>
+            </div>
+            <button class="ghost-button mini" type="button" (click)="exportCsv()">Services CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Staff name</th>
+                  <th>Staff ID</th>
+                  <th>Contact</th>
+                  <th>Total service qty</th>
+                  <th>Total service amount</th>
+                  <th>Clients</th>
+                  <th>Invoices</th>
+                  <th>Pending due</th>
+                  <th>Discount</th>
+                  <th>Estimated commission</th>
+                  <th>Staff 360</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngFor="let row of data.staff || []">
+                  <tr>
+                    <td><button class="ghost-button mini" type="button" (click)="toggleStaff(row)">{{ isExpanded(row) ? 'Hide' : 'Expand' }}</button></td>
+                    <td><strong>{{ row.staffName }}</strong><small>{{ row.serviceSaleRows?.length || 0 }} service rows</small></td>
+                    <td>{{ row.staffCode || row.staffId }}</td>
+                    <td>{{ row.contact || '-' }}</td>
+                    <td>{{ row.serviceQty || 0 }}</td>
+                    <td>{{ row.serviceRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.serviceClientsCount || 0 }}</td>
+                    <td>{{ row.serviceInvoiceCount || 0 }}</td>
+                    <td>{{ row.pendingDue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.discountGiven | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.estimatedCommission | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td><a class="ghost-button mini" routerLink="/staff-os/employee-masters" [queryParams]="{ q: row.staffName }">Open</a></td>
+                  </tr>
+                  <tr class="expanded-row" *ngIf="isExpanded(row)">
+                    <td colspan="12">
+                      <div class="service-drilldown">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Service name</th>
+                              <th>Qty</th>
+                              <th>Total</th>
+                              <th>Invoice number</th>
+                              <th>Invoice date</th>
+                              <th>Appointment date</th>
+                              <th>Created date</th>
+                              <th>Customer name</th>
+                              <th>Customer contact</th>
+                              <th>Branch</th>
+                              <th>Sale type</th>
+                              <th>Staff share %</th>
+                              <th>Discount</th>
+                              <th>GST</th>
+                              <th>Due amount</th>
+                              <th>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let serviceRow of row.serviceSaleRows || []">
+                              <td><strong>{{ serviceRow.serviceName }}</strong><small>{{ serviceRow.serviceGroup }}</small></td>
+                              <td>{{ serviceRow.qty }}</td>
+                              <td>{{ serviceRow.total | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td>{{ serviceRow.invoiceNumber || '-' }}</td>
+                              <td>{{ serviceRow.invoiceDate || '-' }} <small>{{ serviceRow.invoiceTime || '' }}</small></td>
+                              <td>{{ serviceRow.appointmentDate || '-' }}</td>
+                              <td>{{ serviceRow.createdDate || '-' }} <small>{{ serviceRow.createdTime || '' }}</small></td>
+                              <td>{{ serviceRow.customerName || 'Walk-in' }}</td>
+                              <td>{{ serviceRow.customerContact || '-' }}</td>
+                              <td>{{ serviceRow.branchName || serviceRow.branchId || '-' }}</td>
+                              <td><span class="badge">{{ serviceRow.saleType }}</span></td>
+                              <td>{{ serviceRow.staffSharePercent || 100 }}%</td>
+                              <td>{{ serviceRow.discount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td>{{ serviceRow.gst | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td>{{ serviceRow.dueAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+                              <td class="row-actions">
+                                <a class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: serviceRow.invoiceNumber }">Invoice</a>
+                                <a class="ghost-button mini" routerLink="/clients" [queryParams]="{ q: serviceRow.customerContact || serviceRow.customerName }">Client</a>
+                              </td>
+                            </tr>
+                            <tr *ngIf="!(row.serviceSaleRows || []).length">
+                              <td colspan="16">No service invoice rows for this staff/filter.</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+                <tr *ngIf="!(data.staff || []).length">
+                  <td colspan="12">No service sales found for selected filters.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="activeTab() === 'products'">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Products by staff</span>
+              <h2>Products By Staff</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Staff</th><th>Product sales</th><th>Product count</th><th>Products</th><th>COGS signal</th><th>Staff 360</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of data.staff || []">
+                  <td><strong>{{ row.staffName }}</strong><small>{{ row.staffCode || row.staffId }}</small></td>
+                  <td>{{ row.productRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.productCount || 0 }}</td>
+                  <td>{{ (row.productBreakdown || []).length }}</td>
+                  <td><span class="badge warning" *ngIf="hasMissingCost(row.productBreakdown)">Missing cost</span><span class="badge" *ngIf="!hasMissingCost(row.productBreakdown)">OK</span></td>
+                  <td><a class="ghost-button mini" routerLink="/staff-os/employee-masters" [queryParams]="{ q: row.staffName }">Open</a></td>
+                </tr>
+                <tr *ngIf="!(data.staff || []).length"><td colspan="6">No product sales found.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="activeTab() === 'commission'">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Commission / payout</span>
+              <h2>Staff payout preview</h2>
+            </div>
+            <button class="ghost-button mini" type="button" (click)="exportPayoutPdf()">Payout PDF</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Staff</th><th>Service sales</th><th>Product sales</th><th>Membership/package</th><th>Tips</th><th>Estimated commission</th><th>Pending due</th><th>Score</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of data.staff || []">
+                  <td><strong>{{ row.staffName }}</strong><small>{{ row.staffCode || row.staffId }}</small></td>
+                  <td>{{ row.serviceRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.productRevenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ membershipPackageRevenue({ totals: row }) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.tips | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.estimatedCommission | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.pendingDue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td><span class="score-pill" [class.good]="row.performanceScore >= 75" [class.warn]="row.performanceScore < 45">{{ row.performanceScore || 0 }}</span></td>
+                </tr>
+                <tr *ngIf="!(data.staff || []).length"><td colspan="8">No commission rows found.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="activeTab() === 'leaderboard'">
           <div class="section-title">
             <div>
               <span class="eyebrow">Line item audit</span>
@@ -335,6 +516,31 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .table-wrap table {
       min-width: 1460px;
     }
+    .report-tabs {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      padding: 8px;
+    }
+    .report-tabs button {
+      background: #f8fafc;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 800;
+      min-height: 42px;
+      padding: 9px 12px;
+    }
+    .report-tabs button.active {
+      background: #ecfdf5;
+      border-color: rgba(16, 185, 129, .35);
+      color: #047857;
+      box-shadow: inset 0 -3px 0 #10b981;
+    }
     td strong,
     td small {
       display: block;
@@ -367,6 +573,21 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .detail-grid table {
       min-width: 860px;
+    }
+    .service-drilldown {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+      padding: 12px;
+    }
+    .service-drilldown table {
+      min-width: 1680px;
+    }
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      min-width: 160px;
     }
     .mini-title {
       align-items: center;
@@ -431,6 +652,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
       .detail-grid {
         grid-template-columns: 1fr;
       }
+      .report-tabs {
+        grid-template-columns: 1fr;
+      }
     }
   `]
 })
@@ -440,11 +664,14 @@ export class StaffSalesReportComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly expandedStaff = signal('');
+  readonly activeTab = signal<'leaderboard' | 'services' | 'products' | 'commission'>('leaderboard');
 
   from = '';
   to = '';
   staffId = '';
   saleType = '';
+  serviceSaleType = '';
+  dueStatus = '';
   service = '';
   product = '';
   category = '';
@@ -476,6 +703,8 @@ export class StaffSalesReportComponent implements OnInit {
       to: this.to,
       staffId: this.staffId,
       saleType: this.saleType,
+      serviceSaleType: this.serviceSaleType,
+      dueStatus: this.dueStatus,
       service: this.service,
       product: this.product,
       category: this.category,
@@ -522,6 +751,10 @@ export class StaffSalesReportComponent implements OnInit {
   }
 
   exportCsv(): void {
+    if (this.activeTab() === 'services') {
+      this.exportServiceRowsCsv();
+      return;
+    }
     const rows = (this.report()?.staff || []) as ApiRecord[];
     const headers = ['Staff', 'Staff ID', 'Contact', 'Service sales', 'Product sales', 'Membership/package', 'Gift cards', 'Total sales', 'Clients', 'Invoices', 'Average bill', 'Pending due', 'Discount', 'Tips', 'Estimated commission', 'Performance score'];
     const csvRows = rows.map((row) => [
@@ -543,6 +776,32 @@ export class StaffSalesReportComponent implements OnInit {
       row['performanceScore']
     ].map((value) => this.csvCell(value)).join(','));
     this.downloadFile(`staff-sales-${Date.now()}.csv`, [headers.map((value) => this.csvCell(value)).join(','), ...csvRows].join('\n'), 'text/csv;charset=utf-8');
+  }
+
+  exportServiceRowsCsv(): void {
+    const rows = (this.report()?.serviceSaleRows || []) as ApiRecord[];
+    const headers = ['Staff', 'Staff ID', 'Service group', 'Service name', 'Qty', 'Total', 'Invoice number', 'Invoice date', 'Appointment date', 'Created date', 'Customer name', 'Customer contact', 'Branch', 'Sale type', 'Staff share %', 'Discount', 'GST', 'Due amount'];
+    const csvRows = rows.map((row) => [
+      row['staffName'],
+      row['staffId'],
+      row['serviceGroup'],
+      row['serviceName'],
+      row['qty'],
+      row['total'],
+      row['invoiceNumber'],
+      row['invoiceDate'],
+      row['appointmentDate'],
+      row['createdDate'],
+      row['customerName'],
+      row['customerContact'],
+      row['branchName'] || row['branchId'],
+      row['saleType'],
+      row['staffSharePercent'],
+      row['discount'],
+      row['gst'],
+      row['dueAmount']
+    ].map((value) => this.csvCell(value)).join(','));
+    this.downloadFile(`services-by-staff-${Date.now()}.csv`, [headers.map((value) => this.csvCell(value)).join(','), ...csvRows].join('\n'), 'text/csv;charset=utf-8');
   }
 
   exportOwnerPdf(): void {
@@ -583,6 +842,10 @@ export class StaffSalesReportComponent implements OnInit {
     const branchId = this.api.selectedBranchId();
     if (!branchId) return 'Header branch not selected';
     return this.branches().find((branch) => branch.id === branchId)?.name || branchId;
+  }
+
+  hasMissingCost(rows: unknown): boolean {
+    return Array.isArray(rows) && rows.some((row) => (row as ApiRecord)['costSignal'] === 'missing_cost');
   }
 
   private loadBranches(): void {

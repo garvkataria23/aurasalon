@@ -20,21 +20,49 @@ test("staff sales API stays backward-compatible while exposing performance field
     "estimatedCommission",
     "performanceScore",
     "serviceBreakdown",
-    "productBreakdown"
+    "productBreakdown",
+    "serviceSaleRows",
+    "serviceQty",
+    "serviceClientsCount",
+    "serviceInvoiceCount"
   ]) {
     assert.match(service, new RegExp(analyticsField), `${analyticsField} should be calculated by staff report service`);
   }
 });
 
 test("staff sales service supports additive filters and breakdown calculations", () => {
-  for (const helper of ["matchesItemFilters", "breakdownRows", "commissionEstimate", "performanceScore", "paymentInvoiceId"]) {
+  for (const helper of ["matchesItemFilters", "breakdownRows", "commissionEstimate", "performanceScore", "paymentInvoiceId", "serviceSaleRow"]) {
     assert.match(service, new RegExp(`function ${helper}\\(`), `${helper} helper should exist`);
   }
-  for (const filter of ["staffId", "saleType", "service", "product", "category", "commissionStatus", "performanceBucket", "q"]) {
+  for (const filter of ["staffId", "saleType", "serviceSaleType", "dueStatus", "client", "service", "product", "category", "commissionStatus", "performanceBucket", "q"]) {
     assert.match(service, new RegExp(filter), `${filter} filter should be supported`);
   }
   assert.match(service, /costSignal: "ok"/, "COGS confidence signal should be present");
   assert.match(service, /missing_cost/, "missing product consume cost should be surfaced");
+});
+
+test("staff sales service exposes service invoice drilldown fields", () => {
+  for (const drilldownField of [
+    "serviceName",
+    "serviceGroup",
+    "qty",
+    "invoiceNumber",
+    "invoiceDate",
+    "appointmentDate",
+    "createdDate",
+    "customerName",
+    "customerContact",
+    "branchName",
+    "saleType",
+    "staffSharePercent",
+    "discount",
+    "gst",
+    "dueAmount"
+  ]) {
+    assert.match(service, new RegExp(drilldownField), `${drilldownField} should be present in service sale drilldown rows`);
+  }
+  assert.match(service, /Quick Sale/, "quick sale label should be present");
+  assert.match(service, /Appointment/, "appointment label should be present");
 });
 
 test("staff sales route remains permissioned on the existing endpoint", () => {
@@ -45,6 +73,10 @@ test("staff sales route remains permissioned on the existing endpoint", () => {
 
 test("staff sales UI exposes leaderboard, exports, expandable details, and Staff 360 link", () => {
   for (const label of [
+    "Staff Leaderboard",
+    "Services By Staff",
+    "Products By Staff",
+    "Commission / Payout",
     "Total attributed sales",
     "Total clients",
     "Total invoices",
@@ -54,14 +86,18 @@ test("staff sales UI exposes leaderboard, exports, expandable details, and Staff
     "Staff tips",
     "Estimated commission",
     "Staff summary",
+    "Services sales by staff",
     "Line item audit"
   ]) {
     assert.match(component, new RegExp(label), `${label} should render in the staff sales report`);
   }
-  for (const method of ["exportCsv", "exportOwnerPdf", "exportPayoutPdf", "toggleStaff", "isExpanded", "staffOptions"]) {
+  for (const method of ["exportCsv", "exportServiceRowsCsv", "exportOwnerPdf", "exportPayoutPdf", "toggleStaff", "isExpanded", "staffOptions", "hasMissingCost"]) {
     assert.match(component, new RegExp(`${method}\\(`), `${method} should exist in staff sales component`);
   }
   assert.match(component, /serviceBreakdown/, "expanded service detail should render");
+  assert.match(component, /serviceSaleRows/, "services by staff exact invoice rows should render");
   assert.match(component, /productBreakdown/, "expanded product detail should render");
   assert.match(component, /routerLink="\/staff-os\/employee-masters"/, "Staff 360 link should point to Staff OS");
+  assert.match(component, /routerLink="\/pos\/invoices"/, "invoice action should open POS invoices");
+  assert.match(component, /routerLink="\/clients"/, "client action should open client search");
 });

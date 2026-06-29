@@ -15,6 +15,14 @@ const categoryLabels = {
   custom: "Custom"
 };
 
+function dateTimeParts(value = "") {
+  const text = String(value || "");
+  return {
+    date: text.slice(0, 10),
+    time: text.length > 10 ? text.slice(11, 16) : ""
+  };
+}
+
 function inDateRange(row, from, to) {
   const key = dayKey(row.createdAt || row.created_at || row.invoiceDate || row.invoice_date || row.updatedAt || row.updated_at);
   if (from && key < from) return false;
@@ -102,6 +110,29 @@ function clientIdOf(row = {}, fallback = {}) {
   return String(row.clientId || row.client_id || row.customerId || row.customer_id || fallback.clientId || fallback.client_id || "");
 }
 
+function clientDisplayName(row = {}) {
+  return row.name || row.fullName || [row.firstName, row.lastName].filter(Boolean).join(" ") || row.clientName || row.customerName || "";
+}
+
+function clientPhone(row = {}) {
+  return String(row.phone || row.mobile || row.contact || row.whatsapp || row.clientPhone || row.customerPhone || "");
+}
+
+function branchDisplayName(row = {}) {
+  return row.name || row.branchName || row.title || row.id || "";
+}
+
+function appointmentIdOf(row = {}, fallback = {}) {
+  return String(row.appointmentId || row.appointment_id || row.bookingId || row.booking_id || fallback.appointmentId || fallback.appointment_id || fallback.bookingId || fallback.booking_id || "");
+}
+
+function appointmentDateOf(appointment = {}, source = {}, invoice = {}) {
+  return dayKey(
+    appointment.startAt || appointment.start_at || appointment.date || appointment.appointmentDate || appointment.appointment_date ||
+    source.appointmentDate || source.appointment_date || invoice.appointmentDate || invoice.appointment_date
+  );
+}
+
 function blankStaff(staffId, staffName = "") {
   return {
     staffId: staffId || "unassigned",
@@ -131,7 +162,11 @@ function blankStaff(staffId, staffName = "") {
     estimatedCommission: 0,
     performanceScore: 0,
     serviceBreakdown: [],
-    productBreakdown: []
+    productBreakdown: [],
+    serviceSaleRows: [],
+    serviceQty: 0,
+    serviceClientsCount: 0,
+    serviceInvoiceCount: 0
   };
 }
 
@@ -194,7 +229,19 @@ function attributionRows(item = {}, sale = {}, amount = 0, staffById = new Map()
   }];
 }
 
-function addDocumentItems({ source, items, sourceType, staffMap, itemRows, staffById, invoicesById = new Map() }) {
+function addDocumentItems({
+  source,
+  items,
+  sourceType,
+  staffMap,
+  itemRows,
+  staffById,
+  invoicesById = new Map(),
+  clientsById = new Map(),
+  branchesById = new Map(),
+  appointmentsById = new Map(),
+  paymentsByInvoice = new Map()
+}) {
   let itemCount = 0;
   for (const item of items) {
     const type = normalizedItemType(item);
@@ -210,6 +257,17 @@ function addDocumentItems({ source, items, sourceType, staffMap, itemRows, staff
     const invoiceId = sourceType === "invoice" ? source.id : source.invoiceId || source.invoice_id || "";
     const invoiceNumber = source.invoiceNumber || source.invoice_number || invoice.invoiceNumber || invoice.invoice_number || invoiceId;
     const clientId = clientIdOf(source, invoice);
+    const client = clientsById.get(String(clientId)) || {};
+    const branchId = source.branchId || source.branch_id || invoice.branchId || invoice.branch_id || "";
+    const branch = branchesById.get(String(branchId)) || {};
+    const appointmentId = appointmentIdOf(source, invoice);
+    const appointment = appointmentsById.get(String(appointmentId)) || {};
+    const invoiceCreatedAt = source.createdAt || source.created_at || invoice.createdAt || invoice.created_at || source.invoiceDate || source.invoice_date || invoice.invoiceDate || invoice.invoice_date || source.updatedAt || source.updated_at || invoice.updatedAt || invoice.updated_at;
+    const invoiceDateValue = source.invoiceDate || source.invoice_date || invoice.invoiceDate || invoice.invoice_date || invoiceCreatedAt;
+    const invoiceParts = dateTimeParts(invoiceDateValue || invoiceCreatedAt);
+    const createdParts = dateTimeParts(invoiceCreatedAt);
+    const dueAmount = invoiceDue(Object.keys(invoice).length ? invoice : source, paymentsByInvoice.get(String(invoiceId)) || []);
+    const saleType = appointmentId || appointmentDateOf(appointment, source, invoice) ? "Appointment" : "Quick Sale";
 
     for (const split of splits) {
       const key = split.staffId && split.staffId !== "unassigned"
@@ -234,16 +292,27 @@ function addDocumentItems({ source, items, sourceType, staffMap, itemRows, staff
         saleId: sourceType === "sale" ? source.id : source.saleId || "",
         invoiceId,
         invoiceNumber,
-        date: dayKey(source.createdAt || source.created_at || source.invoiceDate || source.invoice_date || source.updatedAt || source.updated_at),
-        branchId: source.branchId || source.branch_id || "",
+        date: invoiceParts.date || createdParts.date,
+        time: invoiceParts.time || createdParts.time,
+        invoiceDate: invoiceParts.date || createdParts.date,
+        invoiceTime: invoiceParts.time || createdParts.time,
+        appointmentId,
+        appointmentDate: appointmentDateOf(appointment, source, invoice),
+        createdDate: createdParts.date,
+        createdTime: createdParts.time,
+        branchId,
+        branchName: branchDisplayName(branch) || branchId || "-",
         staffId: key,
         staffName: split.staffName,
         clientId,
+        clientName: clientDisplayName(client) || source.clientName || source.customerName || invoice.clientName || invoice.customerName || "Walk-in",
+        clientPhone: clientPhone(client) || source.clientPhone || source.customerPhone || invoice.clientPhone || invoice.customerPhone || "-",
         itemType: type,
         itemTypeLabel: categoryLabels[type] || "Item",
         itemId: item.id || item.itemId || item.item_id || item.serviceId || item.service_id || item.productId || item.product_id || "",
         itemName: item.name || item.itemName || item.item_name || item.id || "Item",
         itemCategory: item.category || item.group || item.serviceGroup || item.service_group || item.productCategory || item.product_category || type,
+        serviceGroup: item.category || item.group || item.serviceGroup || item.service_group || type,
         quantity,
         price: Number(item.price || item.rate || item.unitPrice || item.unit_price || 0),
         grossSale: money(grossSale * (split.sharePercent / 100)),
@@ -251,9 +320,11 @@ function addDocumentItems({ source, items, sourceType, staffMap, itemRows, staff
         netSale: split.amount,
         gst: money(gst * (split.sharePercent / 100)),
         cogs: money(cogs * (split.sharePercent / 100)),
+        dueAmount: money(dueAmount * (split.sharePercent / 100)),
         lineAmount: amount,
         amount: split.amount,
         sharePercent: split.sharePercent,
+        saleType,
         sourceStaffId: split.sourceStaffId,
         sourceType
       });
@@ -272,6 +343,21 @@ function matchesItemFilters(row = {}, query = {}) {
   if (staffId && ![row.staffId, row.staffName].map(String).includes(staffId)) return false;
   const saleType = String(query.saleType || "").trim();
   if (saleType && row.itemType !== saleType) return false;
+  const serviceSaleType = String(query.serviceSaleType || "").trim();
+  if (serviceSaleType) {
+    if (row.itemType !== "service") return false;
+    const normalizedSaleType = String(row.saleType || "").toLowerCase().includes("appointment") ? "appointment" : "quick_sale";
+    if (serviceSaleType !== "all" && normalizedSaleType !== serviceSaleType) return false;
+  }
+  const dueStatus = String(query.dueStatus || "").trim();
+  if (dueStatus) {
+    if (row.itemType !== "service") return false;
+    const hasDue = Number(row.dueAmount || 0) > 0;
+    if (dueStatus === "pending" && !hasDue) return false;
+    if (dueStatus === "clear" && hasDue) return false;
+  }
+  const client = String(query.client || query.clientId || "").trim().toLowerCase();
+  if (client && !`${row.clientId} ${row.clientName} ${row.clientPhone}`.toLowerCase().includes(client)) return false;
   const service = String(query.service || query.serviceId || "").trim().toLowerCase();
   if (service && row.itemType === "service" && !`${row.itemId} ${row.itemName}`.toLowerCase().includes(service)) return false;
   if (service && row.itemType !== "service") return false;
@@ -282,10 +368,45 @@ function matchesItemFilters(row = {}, query = {}) {
   if (category && !`${row.itemCategory} ${row.itemType}`.toLowerCase().includes(category)) return false;
   const q = String(query.q || query.query || "").trim().toLowerCase();
   if (q) {
-    const haystack = `${row.staffName} ${row.itemName} ${row.itemCategory} ${row.invoiceNumber} ${row.clientId} ${row.itemTypeLabel}`.toLowerCase();
+    const haystack = `${row.staffName} ${row.itemName} ${row.itemCategory} ${row.invoiceNumber} ${row.clientId} ${row.clientName} ${row.clientPhone} ${row.branchName} ${row.saleType} ${row.itemTypeLabel}`.toLowerCase();
     if (!haystack.includes(q)) return false;
   }
   return true;
+}
+
+function serviceSaleRow(row = {}) {
+  return {
+    serviceName: row.itemName || "Service",
+    serviceId: row.itemId || "",
+    serviceGroup: row.serviceGroup || row.itemCategory || "Service",
+    qty: Number(row.quantity || 0),
+    quantity: Number(row.quantity || 0),
+    total: money(row.amount || row.netSale || 0),
+    invoiceId: row.invoiceId || "",
+    invoiceNumber: row.invoiceNumber || "",
+    invoiceDate: row.invoiceDate || row.date || "",
+    invoiceTime: row.invoiceTime || row.time || "",
+    appointmentId: row.appointmentId || "",
+    appointmentDate: row.appointmentDate || "",
+    createdDate: row.createdDate || "",
+    createdTime: row.createdTime || "",
+    customerName: row.clientName || "Walk-in",
+    customerContact: row.clientPhone || "-",
+    clientId: row.clientId || "",
+    clientName: row.clientName || "Walk-in",
+    clientPhone: row.clientPhone || "-",
+    branchId: row.branchId || "",
+    branchName: row.branchName || "-",
+    saleType: row.saleType || "Quick Sale",
+    staffId: row.staffId || "",
+    staffName: row.staffName || "Unassigned",
+    staffSharePercent: Number(row.sharePercent || 100),
+    discount: money(row.discount || 0),
+    gst: money(row.gst || 0),
+    dueAmount: money(row.dueAmount || 0),
+    actionInvoiceId: row.invoiceId || "",
+    actionClientId: row.clientId || ""
+  };
 }
 
 function breakdownRows(rows = [], type = "service") {
@@ -364,6 +485,10 @@ export class StaffSalesReportService {
       .list({ limit: Number(query.limit || 10000) }, salesScope)
       .filter((invoice) => inDateRange(invoice, from, to));
     const invoicesById = new Map(invoices.map((invoice) => [String(invoice.id || ""), invoice]));
+    const branchQuery = branchId ? { branchId, limit: 10000 } : { limit: 10000 };
+    const clientsById = new Map(repositories.clients.list(branchQuery, scope).map((client) => [String(client.id || ""), client]));
+    const branchesById = new Map(repositories.branches.list({ limit: 10000 }, scope).map((branch) => [String(branch.id || ""), branch]));
+    const appointmentsById = new Map(repositories.appointments.list(branchQuery, salesScope).map((appointment) => [String(appointment.id || ""), appointment]));
     const payments = repositories.payments
       .list({ limit: Number(query.limit || 10000) }, salesScope);
     const paymentsByInvoice = new Map();
@@ -379,7 +504,7 @@ export class StaffSalesReportService {
 
     for (const sale of sales) {
       const saleItems = Array.isArray(sale.items) ? sale.items : [];
-      if (addDocumentItems({ source: sale, items: saleItems, sourceType: "sale", staffMap, itemRows, staffById, invoicesById })) {
+      if (addDocumentItems({ source: sale, items: saleItems, sourceType: "sale", staffMap, itemRows, staffById, invoicesById, clientsById, branchesById, appointmentsById, paymentsByInvoice })) {
         if (sale.invoiceId) coveredInvoices.add(sale.invoiceId);
       }
     }
@@ -389,10 +514,14 @@ export class StaffSalesReportService {
       const items = readArray(invoice.lineItems).length
         ? readArray(invoice.lineItems)
         : readArray(invoice.items || invoice.line_items || invoice.invoiceItems || invoice.invoice_items);
-      addDocumentItems({ source: invoice, items, sourceType: "invoice", staffMap, itemRows, staffById, invoicesById });
+      addDocumentItems({ source: invoice, items, sourceType: "invoice", staffMap, itemRows, staffById, invoicesById, clientsById, branchesById, appointmentsById, paymentsByInvoice });
     }
 
     const filteredItems = itemRows.filter((row) => matchesItemFilters(row, query));
+    const serviceSaleRows = filteredItems
+      .filter((row) => row.itemType === "service")
+      .map(serviceSaleRow)
+      .sort((a, b) => String(b.invoiceDate || b.createdDate).localeCompare(String(a.invoiceDate || a.createdDate)) || String(b.invoiceTime || "").localeCompare(String(a.invoiceTime || "")));
     const filteredStaffMap = new Map();
     for (const item of filteredItems) {
       if (!filteredStaffMap.has(item.staffId)) {
@@ -448,6 +577,10 @@ export class StaffSalesReportService {
       row.estimatedCommission = commissionEstimate(row);
       row.serviceBreakdown = breakdownRows(staffItems, "service");
       row.productBreakdown = breakdownRows(staffItems, "product");
+      row.serviceSaleRows = serviceSaleRows.filter((serviceRow) => serviceRow.staffId === row.staffId);
+      row.serviceQty = money(row.serviceSaleRows.reduce((sum, serviceRow) => sum + Number(serviceRow.qty || 0), 0));
+      row.serviceClientsCount = new Set(row.serviceSaleRows.map((serviceRow) => serviceRow.clientId || serviceRow.clientPhone || serviceRow.clientName).filter(Boolean)).size;
+      row.serviceInvoiceCount = new Set(row.serviceSaleRows.map((serviceRow) => serviceRow.invoiceId || serviceRow.invoiceNumber).filter(Boolean)).size;
       row.performanceScore = performanceScore(row);
       delete row._clientIds;
       delete row._invoiceIds;
@@ -478,6 +611,10 @@ export class StaffSalesReportService {
       acc.discountGiven = money(acc.discountGiven + row.discountGiven);
       acc.tips = money(acc.tips + row.tips);
       acc.estimatedCommission = money(acc.estimatedCommission + row.estimatedCommission);
+      acc.serviceQty = money(acc.serviceQty + Number(row.serviceQty || 0));
+      acc.serviceSaleRows += Number(row.serviceSaleRows?.length || 0);
+      acc.serviceClientsCount += Number(row.serviceClientsCount || 0);
+      acc.serviceInvoiceCount += Number(row.serviceInvoiceCount || 0);
       return acc;
     }, {
       totalRevenue: 0,
@@ -494,7 +631,11 @@ export class StaffSalesReportService {
       pendingDue: 0,
       discountGiven: 0,
       tips: 0,
-      estimatedCommission: 0
+      estimatedCommission: 0,
+      serviceQty: 0,
+      serviceSaleRows: 0,
+      serviceClientsCount: 0,
+      serviceInvoiceCount: 0
     });
     totals.averageBill = totals.invoiceCount ? money(totals.totalRevenue / totals.invoiceCount) : 0;
 
@@ -508,12 +649,16 @@ export class StaffSalesReportService {
         product: query.product || query.productId || "",
         category: query.category || "",
         saleType: query.saleType || "",
+        serviceSaleType: query.serviceSaleType || "",
+        dueStatus: query.dueStatus || "",
+        client: query.client || query.clientId || "",
         commissionStatus: query.commissionStatus || "",
         performanceBucket: query.performanceBucket || "",
         q: query.q || query.query || ""
       },
       totals,
       staff: rows,
+      serviceSaleRows,
       items: filteredItems.sort((a, b) => String(b.date).localeCompare(String(a.date)))
     };
   }
