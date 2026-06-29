@@ -3,53 +3,72 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
-import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent, AuraKpiCardComponent],
+  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent],
   template: `
     <section class="page-stack">
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <div class="metrics-grid" *ngIf="report() as data">
-        <aura-kpi-card tone="teal" target="/kpi-details/dashboard/revenue-today">
-          <span>Revenue today</span>
-          <strong>{{ data.revenueToday | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>From saved sales</small>
-        </aura-kpi-card>
-        <aura-kpi-card tone="blue" target="/kpi-details/dashboard/revenue-this-month">
-          <span>Revenue this month</span>
-          <strong>{{ data.revenueMonth | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>Branch aware</small>
-        </aura-kpi-card>
-        <aura-kpi-card tone="amber" target="/kpi-details/dashboard/total-bookings">
-          <span>Total bookings</span>
-          <strong>{{ data.totalBookings }}</strong>
-          <small>Online, walk-in, front desk</small>
-        </aura-kpi-card>
-        <aura-kpi-card tone="green" target="/pos/invoices" [queryParams]="{ filter: 'received-due' }">
-          <span>Received due</span>
-          <strong>{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>Old balance collections</small>
-        </aura-kpi-card>
-        <aura-kpi-card tone="red" target="/kpi-details/dashboard/pending-payments">
-          <span>Pending payments</span>
-          <strong>{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }}</strong>
-          <small>Open invoice balance</small>
-        </aura-kpi-card>
-        <aura-kpi-card tone="violet" target="/clients">
-          <span>New clients</span>
-          <strong>{{ data.newClients }}</strong>
-          <small>Acquired this month</small>
-        </aura-kpi-card>
-        <aura-kpi-card tone="rose" target="/customer-360">
-          <span>Client retention</span>
-          <strong>{{ data.clientRetention }}%</strong>
-          <small>Repeat vs new mix</small>
-        </aura-kpi-card>
+      <div class="topbar dashboard-greeting" *ngIf="report()">
+        <div>
+          <span class="eyebrow">Owner Command</span>
+          <h1>{{ greeting() }} 👋</h1>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" routerLink="/reports">📥 Export</a>
+          <a class="primary-button" routerLink="/appointments">+ New Booking</a>
+        </div>
       </div>
+
+      <section class="panel dashboard-panel" *ngIf="report() as data">
+        <div class="section-title compact-title">
+          <div>
+            <span class="eyebrow">Today's Pulse</span>
+            <h2>Key Metrics</h2>
+          </div>
+          <span class="muted-text">{{ today() }}</span>
+        </div>
+        <div class="metrics-grid">
+          <a class="metric-card" style="border-top:3px solid #0f766e" routerLink="/kpi-details/dashboard/revenue-today">
+            <span class="metric-label">Revenue today</span>
+            <strong class="metric-value" style="color:#0f766e">{{ data.revenueToday | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <span class="metric-change">From saved sales</span>
+          </a>
+          <a class="metric-card" style="border-top:3px solid #7c3aed" routerLink="/kpi-details/dashboard/revenue-this-month">
+            <span class="metric-label">Revenue this month</span>
+            <strong class="metric-value" style="color:#7c3aed">{{ data.revenueMonth | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <span class="metric-change">Branch aware</span>
+          </a>
+          <a class="metric-card" style="border-top:3px solid #2563eb" routerLink="/kpi-details/dashboard/total-bookings">
+            <span class="metric-label">Total bookings</span>
+            <strong class="metric-value" style="color:#2563eb">{{ data.totalBookings }}</strong>
+            <span class="metric-change">Online, walk-in, front desk</span>
+          </a>
+          <a class="metric-card" style="border-top:3px solid #059669" routerLink="/pos/invoices" [queryParams]="{ filter: 'received-due' }">
+            <span class="metric-label">Received due</span>
+            <strong class="metric-value" style="color:#059669">{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <span class="metric-change up">↑ collections</span>
+          </a>
+          <a class="metric-card" style="border-top:3px solid #dc2626" routerLink="/kpi-details/dashboard/pending-payments">
+            <span class="metric-label">Pending payments</span>
+            <strong class="metric-value" style="color:#dc2626">{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <span class="metric-change down">Open invoice balance</span>
+          </a>
+          <a class="metric-card" style="border-top:3px solid #d97706" routerLink="/clients">
+            <span class="metric-label">New clients</span>
+            <strong class="metric-value" style="color:#d97706">{{ data.newClients }}</strong>
+            <span class="metric-change up">↑ this month</span>
+          </a>
+          <a class="metric-card" style="border-top:3px solid #059669" routerLink="/customer-360">
+            <span class="metric-label">Client retention</span>
+            <strong class="metric-value" style="color:#059669">{{ data.clientRetention }}%</strong>
+            <span class="metric-change">Repeat vs new mix</span>
+          </a>
+        </div>
+      </section>
 
       <section class="panel dashboard-command-panel" *ngIf="report() as data">
         <div class="section-title compact-title">
@@ -63,42 +82,49 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         </div>
         <div class="dashboard-hub-grid">
           <a class="dashboard-hub-card" routerLink="/appointments">
+            <span class="hub-icon">📅</span>
             <span class="eyebrow">Calendar</span>
             <strong>{{ data.totalBookings }} bookings</strong>
             <small>Quick booking, status board and appointment actions</small>
             <b>Open calendar</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/pos">
+            <span class="hub-icon">🧾</span>
             <span class="eyebrow">POS</span>
             <strong>{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }} received due</strong>
             <small>{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }} still pending</small>
             <b>Open POS</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/inventory">
+            <span class="hub-icon">📦</span>
             <span class="eyebrow">Inventory</span>
             <strong>{{ data.lowStockAlerts.length || 0 }} alerts</strong>
             <small>{{ data.lowStockAlerts[0]?.name || 'Stock is healthy' }}</small>
             <b>Open stock</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/staff-os/employee-masters">
+            <span class="hub-icon">🧑‍💼</span>
             <span class="eyebrow">Staff</span>
             <strong>{{ data.staffPerformance[0]?.name || 'No ranking yet' }}</strong>
             <small>{{ (data.staffPerformance[0]?.revenue || 0) | currency: 'INR':'symbol':'1.0-0' }} top revenue</small>
             <b>Open Staff OS</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/customer-360">
+            <span class="hub-icon">👤</span>
             <span class="eyebrow">Customers</span>
             <strong>{{ data.repeatCustomerRate }}% repeat</strong>
             <small>{{ data.newClients }} new clients this month</small>
             <b>Open customer intelligence</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/smart-booking">
+            <span class="hub-icon">🌐</span>
             <span class="eyebrow">Online booking</span>
             <strong>Workflow</strong>
             <small>Requested → confirmed → arrived → completed → billed</small>
             <b>Open workflow</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/memberships">
+            <span class="hub-icon">💎</span>
             <span class="eyebrow">Memberships</span>
             <strong>{{ data.membershipRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>Plans, renewals and prepaid balance</small>
@@ -189,14 +215,30 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: 12px;
-      padding: 20px;
+    }
+
+    .dashboard-greeting { margin-bottom: 0; }
+    .dashboard-greeting h1 { display: flex; align-items: center; gap: 8px; }
+    .muted-text { color: var(--muted); font-size: 0.82rem; font-weight: 600; }
+
+    .dashboard-panel {
+      padding: 0 20px 20px;
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 16px;
-      box-shadow: 0 1px 3px rgba(15,23,42,0.03);
+      border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.04);
     }
+
+    .metric-label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .metric-value { font-size: 1.35rem; font-weight: 800; line-height: 1.2; margin-top: 2px; }
+    .metric-change { font-size: 0.72rem; font-weight: 700; color: var(--muted); margin-top: auto; }
+    .metric-change.up { color: #16a34a; }
+    .metric-change.down { color: #dc2626; }
+
+    .hub-icon { font-size: 1.3rem; line-height: 1; margin-bottom: 2px; }
+    .action-icon { font-size: 1.1rem; line-height: 1; margin-bottom: 2px; }
 
     .dashboard-command-panel {
       padding: 8px 20px 16px;
@@ -223,7 +265,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
     .dashboard-hub-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(138px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(162px, 1fr));
       gap: 12px;
     }
 
@@ -382,6 +424,17 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  greeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  today(): string {
+    return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   load(): void {

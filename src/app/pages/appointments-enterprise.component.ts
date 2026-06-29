@@ -789,8 +789,8 @@ const STATUS_TONES: Record<string, string> = {
     .month-strip span, .month-strip small { display: block; font-size: 11px; }
     label { display: grid; gap: 6px; color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     input, select, textarea { width: 100%; min-height: 42px; border: 1px solid #d5e2df; border-radius: 10px; padding: 9px 11px; font: inherit; background: white; color: #172033; }
-    .summary-strip { display: grid; grid-template-columns: repeat(6, minmax(120px, 220px)); justify-content: start; gap: 12px; min-height: 54px; padding: 8px 12px; border-radius: 16px; }
-    .summary-strip article, .summary-strip button, .pulse-grid div { border: 1px solid #d8e7e3; border-radius: 12px; padding: 8px 12px; background: linear-gradient(135deg, #ffffff, #f5fbfa); }
+    .summary-strip { display: flex; flex-wrap: wrap; gap: 12px; min-height: 54px; padding: 8px 12px; border-radius: 16px; }
+    .summary-strip article, .summary-strip button, .pulse-grid div { flex: 1 1 120px; min-width: 120px; border: 1px solid #d8e7e3; border-radius: 12px; padding: 8px 12px; background: linear-gradient(135deg, #ffffff, #f5fbfa); }
     .summary-strip button { cursor: pointer; text-align: left; font: inherit; color: #172033; }
     .summary-strip .waitlist-summary-action { border-color: #5eead4; background: linear-gradient(135deg, #ecfdf5, #ffffff); box-shadow: inset 0 0 0 1px rgba(15, 143, 127, 0.12); }
     .summary-strip .waitlist-summary-action small { color: var(--teal); font-weight: 900; }

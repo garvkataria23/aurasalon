@@ -1,13 +1,14 @@
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type ReportColumn = { key: string; label: string; type?: 'currency' | 'number' | 'percent' | 'date' | 'badge' };
 type ReportDefinition = { id: string; title: string; description: string; badge: string };
+type ReportKpi = { label: string; value: string; caption: string; accent?: boolean };
 
 type InvoiceLine = {
   invoiceId: string;
@@ -39,121 +40,132 @@ type InvoiceLine = {
 @Component({
   selector: 'app-invoice-reports',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, FormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StateComponent],
   template: `
     <section class="page-stack">
-      <div class="module-hero invoice-report-hero">
-        <div>
-          <span class="eyebrow">Reports / Invoice command center</span>
-          <h2>10x Enterprise Invoice Reports</h2>
-          <p>Service, product, membership, GST, payment, wallet, due, discount, staff and audit intelligence from real POS invoices.</p>
+      <!-- LANDING (/reports/invoices): only the 18 connected report boxes. -->
+      <section class="panel report-command-panel" *ngIf="!detailMode()">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">18 connected reports</span>
+            <h2>Choose a report</h2>
+            <p>Click any box to open it on its own page with related cards and a data table.</p>
+          </div>
         </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/pos/invoices">POS invoices</a>
-          <a class="ghost-button" routerLink="/pos/invoice-activity">Invoice activity</a>
-          <a class="ghost-button" routerLink="/reports">Reports</a>
-          <button class="primary-button" type="button" (click)="load()">Refresh</button>
-        </div>
-      </div>
 
-      <section class="panel report-filter-panel">
-        <label class="field">
-          <span>From</span>
-          <input type="date" [(ngModel)]="from" />
-        </label>
-        <label class="field">
-          <span>To</span>
-          <input type="date" [(ngModel)]="to" />
-        </label>
-        <label class="field">
-          <span>Status</span>
-          <select [(ngModel)]="status">
-            <option value="">All</option>
-            <option value="paid">Paid</option>
-            <option value="partial">Partial</option>
-            <option value="unpaid">Unpaid / due</option>
-          </select>
-        </label>
-        <label class="field span-2">
-          <span>Search</span>
-          <input [(ngModel)]="query" placeholder="Invoice, client, staff, service, product, payment mode" />
-        </label>
-        <div class="branch-context-card">
-          <span>Header branch</span>
-          <strong>{{ branchLabel() }}</strong>
-          <small>Change branch from top header.</small>
+        <div class="report-tab-grid">
+          <button
+            type="button"
+            *ngFor="let report of reportDefinitions"
+            [routerLink]="['/reports/invoices', report.id]"
+          >
+            <span>{{ report.badge }}</span>
+            <strong>{{ report.title }}</strong>
+            <small>{{ report.description }}</small>
+          </button>
         </div>
-        <button class="primary-button" type="button" (click)="load()">Apply</button>
       </section>
 
-      <app-state [loading]="loading()" [error]="error()"></app-state>
-
-      <ng-container *ngIf="!loading() && !error()">
-        <div class="metrics-grid invoice-report-kpis">
-          <article class="metric-card"><span>Gross billed</span><strong>{{ summary().gross | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Before discount</small></article>
-          <article class="metric-card"><span>Discount</span><strong>{{ summary().discount | currency: 'INR':'symbol':'1.0-0' }}</strong><small>{{ summary().discountRate }}% leakage watch</small></article>
-          <article class="metric-card"><span>Net taxable</span><strong>{{ summary().taxable | currency: 'INR':'symbol':'1.0-0' }}</strong><small>GST base</small></article>
-          <article class="metric-card"><span>GST</span><strong>{{ summary().gst | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Tax collected</small></article>
-          <article class="metric-card"><span>Final sale</span><strong>{{ summary().final | currency: 'INR':'symbol':'1.0-0' }}</strong><small>After tax</small></article>
-          <article class="metric-card"><span>Due</span><strong>{{ summary().due | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Open recovery</small></article>
-          <article class="metric-card"><span>Product sales</span><strong>{{ summary().products | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Retail revenue</small></article>
-          <article class="metric-card"><span>Membership sales</span><strong>{{ summary().memberships | currency: 'INR':'symbol':'1.0-0' }}</strong><small>Plans + packages</small></article>
+      <!-- DETAIL (/reports/invoices/:reportId): full focused report view. -->
+      <ng-container *ngIf="detailMode()">
+        <div class="module-hero invoice-report-hero">
+          <div>
+            <span class="eyebrow">Reports / Invoice command center</span>
+            <h2>10x Enterprise Invoice Reports</h2>
+            <p>Service, product, membership, GST, payment, wallet, due, discount, staff and audit intelligence from real POS invoices.</p>
+          </div>
+          <div class="hero-actions">
+            <a class="ghost-button" routerLink="/reports/invoices">← All reports</a>
+            <a class="ghost-button" routerLink="/pos/invoices">POS invoices</a>
+            <button class="primary-button" type="button" (click)="load()">Refresh</button>
+          </div>
         </div>
 
-        <section class="panel report-command-panel">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">18 connected reports</span>
-              <h2>{{ activeDefinition().title }}</h2>
-              <p>{{ activeDefinition().description }}</p>
-            </div>
-            <div class="hero-actions">
-              <span class="badge">{{ filteredLines().length }} line(s)</span>
-              <button class="ghost-button" type="button" (click)="exportCsv()">Export CSV</button>
-            </div>
+        <section class="panel report-filter-panel">
+          <label class="field">
+            <span>From</span>
+            <input type="date" [(ngModel)]="from" />
+          </label>
+          <label class="field">
+            <span>To</span>
+            <input type="date" [(ngModel)]="to" />
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select [(ngModel)]="status">
+              <option value="">All</option>
+              <option value="paid">Paid</option>
+              <option value="partial">Partial</option>
+              <option value="unpaid">Unpaid / due</option>
+            </select>
+          </label>
+          <label class="field span-2">
+            <span>Search</span>
+            <input [(ngModel)]="query" placeholder="Invoice, client, staff, service, product, payment mode" />
+          </label>
+          <div class="branch-context-card">
+            <span>Header branch</span>
+            <strong>{{ branchLabel() }}</strong>
+            <small>Change branch from top header.</small>
           </div>
+          <button class="primary-button" type="button" (click)="load()">Apply</button>
+        </section>
 
-          <div class="report-tab-grid">
-            <button
-              type="button"
-              *ngFor="let report of reportDefinitions"
-              [class.active]="activeReport() === report.id"
-              (click)="activeReport.set(report.id)"
-            >
-              <span>{{ report.badge }}</span>
-              <strong>{{ report.title }}</strong>
-              <small>{{ report.description }}</small>
-            </button>
-          </div>
+        <app-state [loading]="loading()" [error]="error()"></app-state>
 
-          <div class="insight-strip">
-            <article *ngFor="let insight of executiveInsights()">
-              <span>{{ insight.label }}</span>
-              <strong>{{ insight.value }}</strong>
-              <small>{{ insight.detail }}</small>
+        <ng-container *ngIf="!loading() && !error()">
+          <div class="metrics-grid invoice-report-kpis">
+            <article class="metric-card" *ngFor="let kpi of kpiCards()" [class.accent]="kpi.accent">
+              <span>{{ kpi.label }}</span>
+              <strong>{{ kpi.value }}</strong>
+              <small>{{ kpi.caption }}</small>
             </article>
           </div>
+          <p class="kpi-context-note">Cards above and the table below show only <strong>{{ activeDefinition().title }}</strong>. Use <strong>← All reports</strong> to go back.</p>
 
-          <div class="table-wrap enterprise-report-table">
-            <table>
-              <thead>
-                <tr>
-                  <th *ngFor="let column of activeColumns()" [class.right]="isRight(column)">{{ column.label }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of activeRows()">
-                  <td *ngFor="let column of activeColumns()" [class.right]="isRight(column)">
-                    <span [class.badge]="column.type === 'badge'">{{ formatCell(row, column) }}</span>
-                  </td>
-                </tr>
-                <tr *ngIf="!activeRows().length">
-                  <td [attr.colspan]="activeColumns().length">No data found for selected filters.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+          <section class="panel report-command-panel">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Report {{ activeDefinition().badge }} / focused page</span>
+                <h2>{{ activeDefinition().title }}</h2>
+                <p>{{ activeDefinition().description }}</p>
+              </div>
+              <div class="hero-actions">
+                <a class="ghost-button" routerLink="/reports/invoices">← All reports</a>
+                <span class="badge">{{ filteredLines().length }} line(s)</span>
+                <button class="ghost-button" type="button" (click)="exportCsv()">Export CSV</button>
+              </div>
+            </div>
+
+            <div class="insight-strip">
+              <article *ngFor="let insight of executiveInsights()">
+                <span>{{ insight.label }}</span>
+                <strong>{{ insight.value }}</strong>
+                <small>{{ insight.detail }}</small>
+              </article>
+            </div>
+
+            <div class="table-wrap enterprise-report-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th *ngFor="let column of activeColumns()" [class.right]="isRight(column)">{{ column.label }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of activeRows()">
+                    <td *ngFor="let column of activeColumns()" [class.right]="isRight(column)">
+                      <span [class.badge]="column.type === 'badge'">{{ formatCell(row, column) }}</span>
+                    </td>
+                  </tr>
+                  <tr *ngIf="!activeRows().length">
+                    <td [attr.colspan]="activeColumns().length">No data found for selected filters.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </ng-container>
       </ng-container>
     </section>
   `,
@@ -188,6 +200,19 @@ type InvoiceLine = {
       min-height: 116px;
       border-top: 4px solid var(--primary);
     }
+
+    .invoice-report-kpis .metric-card.accent {
+      border-top-color: var(--teal);
+      background: color-mix(in srgb, var(--teal) 7%, #fff);
+    }
+
+    .kpi-context-note {
+      margin: -6px 2px 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .kpi-context-note strong { color: var(--ink); }
 
     .report-command-panel {
       display: grid;
@@ -309,6 +334,7 @@ export class InvoiceReportsComponent implements OnInit {
   readonly walletTransactions = signal<ApiRecord[]>([]);
   readonly auditLogs = signal<ApiRecord[]>([]);
   readonly activeReport = signal('staff-services');
+  readonly detailMode = signal(false);
 
   from = this.monthStart();
   to = this.today();
@@ -393,10 +419,19 @@ export class InvoiceReportsComponent implements OnInit {
     ]
   };
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.load();
+    this.route.paramMap.subscribe((params) => {
+      const reportId = params.get('reportId');
+      if (reportId && this.reportDefinitions.some((report) => report.id === reportId)) {
+        this.activeReport.set(reportId);
+        this.detailMode.set(true);
+      } else {
+        this.detailMode.set(false);
+      }
+    });
   }
 
   load(): void {
@@ -463,6 +498,70 @@ export class InvoiceReportsComponent implements OnInit {
       products,
       memberships
     };
+  }
+
+  kpiCards(): ReportKpi[] {
+    return this.detailMode() ? this.reportKpis() : this.overviewKpis();
+  }
+
+  reportKpis(): ReportKpi[] {
+    const report = this.activeReport();
+    if (report === 'payments') return this.paymentKpis();
+    if (report === 'overview') return this.overviewKpis();
+    return this.genericKpis();
+  }
+
+  private overviewKpis(): ReportKpi[] {
+    const s = this.summary();
+    return [
+      { label: 'Gross billed', value: this.inr(Number(s['gross'])), caption: 'Before discount' },
+      { label: 'Discount', value: this.inr(Number(s['discount'])), caption: `${s['discountRate']}% leakage watch` },
+      { label: 'Net taxable', value: this.inr(Number(s['taxable'])), caption: 'GST base' },
+      { label: 'GST', value: this.inr(Number(s['gst'])), caption: 'Tax collected' },
+      { label: 'Final sale', value: this.inr(Number(s['final'])), caption: 'After tax' },
+      { label: 'Due', value: this.inr(Number(s['due'])), caption: 'Open recovery' },
+      { label: 'Product sales', value: this.inr(Number(s['products'])), caption: 'Retail revenue' },
+      { label: 'Membership sales', value: this.inr(Number(s['memberships'])), caption: 'Plans + packages' }
+    ];
+  }
+
+  private paymentKpis(): ReportKpi[] {
+    const rows = this.paymentRows();
+    const total = rows.reduce((sum, row) => sum + Number(row['amount'] || 0), 0);
+    const txns = rows.reduce((sum, row) => sum + Number(row['splitCount'] || 0), 0);
+    const cards: ReportKpi[] = [
+      { label: 'Total collected', value: this.inr(total), caption: `${rows.length} payment source(s) · ${txns} txn`, accent: true }
+    ];
+    for (const row of rows) {
+      const share = total ? Math.round((Number(row['amount'] || 0) / total) * 100) : 0;
+      cards.push({
+        label: String(row['mode']),
+        value: this.inr(Number(row['amount'] || 0)),
+        caption: `${share}% of mix · ${row['invoices']} invoice(s)`
+      });
+    }
+    if (!rows.length) {
+      cards.push({ label: 'No payments', value: '₹0', caption: 'No payment records in this range' });
+    }
+    return cards;
+  }
+
+  private genericKpis(): ReportKpi[] {
+    const rows = this.activeRows();
+    const columns = this.activeColumns();
+    const cards: ReportKpi[] = [
+      { label: this.activeDefinition().title, value: rows.length.toLocaleString('en-IN'), caption: 'Rows in view', accent: true }
+    ];
+    for (const column of columns) {
+      if (column.type !== 'currency') continue;
+      const totalColumn = rows.reduce((sum, row) => sum + Number(row[column.key] || 0), 0);
+      cards.push({ label: column.label, value: this.inr(totalColumn), caption: `Total ${column.label.toLowerCase()}` });
+    }
+    return cards.slice(0, 8);
+  }
+
+  private inr(value: number): string {
+    return `₹${this.money(Number(value || 0)).toLocaleString('en-IN')}`;
   }
 
   activeDefinition(): ReportDefinition {
