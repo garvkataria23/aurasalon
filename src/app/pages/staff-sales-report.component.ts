@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, effect, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
@@ -718,6 +718,23 @@ export class StaffSalesReportComponent implements OnInit {
   readonly error = signal('');
   readonly expandedStaff = signal('');
   readonly activeTab = signal<'leaderboard' | 'services' | 'products' | 'commission'>('leaderboard');
+  readonly staffOptions = computed(() => {
+    const map = new Map<string, string>();
+    for (const row of (this.report()?.staff || []) as ApiRecord[]) {
+      const id = String(row['staffId'] || row['staffName'] || '');
+      if (id) map.set(id, String(row['staffName'] || id));
+    }
+    for (const item of (this.report()?.items || []) as ApiRecord[]) {
+      const id = String(item['staffId'] || item['staffName'] || '');
+      if (id) map.set(id, String(item['staffName'] || id));
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
+  });
+  readonly branchLabel = computed(() => {
+    const branchId = this.api.selectedBranchId();
+    if (!branchId) return 'Header branch not selected';
+    return this.branches().find((branch) => branch.id === branchId)?.name || branchId;
+  });
 
   from = '';
   to = '';
@@ -781,19 +798,6 @@ export class StaffSalesReportComponent implements OnInit {
   membershipPackageRevenue(report: ApiRecord): number {
     const totals = report.totals || {};
     return Number(totals.membershipRevenue || 0) + Number(totals.packageRevenue || 0);
-  }
-
-  staffOptions(): Array<{ id: string; label: string }> {
-    const map = new Map<string, string>();
-    for (const row of (this.report()?.staff || []) as ApiRecord[]) {
-      const id = String(row['staffId'] || row['staffName'] || '');
-      if (id) map.set(id, String(row['staffName'] || id));
-    }
-    for (const item of (this.report()?.items || []) as ApiRecord[]) {
-      const id = String(item['staffId'] || item['staffName'] || '');
-      if (id) map.set(id, String(item['staffName'] || id));
-    }
-    return [...map.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
   }
 
   toggleStaff(row: ApiRecord): void {
@@ -909,12 +913,6 @@ export class StaffSalesReportComponent implements OnInit {
     if (source === 'split_attribution') return 'Split staff';
     if (source === 'line_item') return 'Item staff';
     return 'Invoice fallback';
-  }
-
-  branchLabel(): string {
-    const branchId = this.api.selectedBranchId();
-    if (!branchId) return 'Header branch not selected';
-    return this.branches().find((branch) => branch.id === branchId)?.name || branchId;
   }
 
   hasMissingCost(rows: unknown): boolean {
