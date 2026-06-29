@@ -318,8 +318,8 @@ type WalletLedgerRow = ApiRecord & {
                   <td>{{ row.addedBy || '-' }}</td>
                   <td>{{ row.source || '-' }}</td>
                   <td>
-                    <a class="row-action" *ngIf="row.clientId" [routerLink]="['/clients', row.clientId]">Client</a>
-                    <a class="row-action" *ngIf="row.invoiceId || row.invoiceNumber" [routerLink]="['/pos/invoices']" [queryParams]="{ q: row.invoiceNumber || row.invoiceId }">Invoice</a>
+                    <a class="row-action" *ngIf="row.clientId" [routerLink]="'/clients/' + row.clientId">Client</a>
+                    <a class="row-action" *ngIf="row.invoiceId || row.invoiceNumber" routerLink="/pos/invoices" [queryParams]="invoiceQueryParams(row.invoiceNumber || row.invoiceId)">Invoice</a>
                   </td>
                 </tr>
               </tbody>
@@ -526,7 +526,7 @@ type WalletLedgerRow = ApiRecord & {
                     <td>{{ row.paymentDate }}</td>
                     <td>{{ row.notes || '-' }}</td>
                     <td>
-                      <a class="row-action" [routerLink]="['/pos/invoices']" [queryParams]="{ q: row.invoiceNo || row.invoiceId }">Open</a>
+                      <a class="row-action" routerLink="/pos/invoices" [queryParams]="invoiceQueryParams(row.invoiceNo || row.invoiceId)">Open</a>
                     </td>
                   </tr>
                   <tr *ngIf="!visiblePaymentDistributionRows().length">
@@ -2003,6 +2003,7 @@ export class FinancialSummaryReportComponent implements OnInit {
   private dailyRevenueDrilldownCache = new Map<string, ApiRecord>();
   private salesTaxRowsCache: { key: string; rows: SalesTaxRow[] } = { key: '', rows: [] };
   private salesTaxSummaryCache: { key: string; value: ApiRecord } = { key: '', value: {} };
+  private readonly invoiceQueryParamsCache = new Map<string, { q: string }>();
   private salesTaxClientDataLoaded = false;
   private financialControlDataLoaded = false;
   private memberSalesDataLoaded = false;
@@ -2319,6 +2320,15 @@ export class FinancialSummaryReportComponent implements OnInit {
     const branchId = this.api.selectedBranchId();
     if (!branchId) return 'All branches';
     return this.branches().find((branch) => String(branch.id) === String(branchId))?.['name'] || branchId;
+  }
+
+  invoiceQueryParams(value: unknown): { q: string } {
+    const key = String(value || '').trim();
+    const cached = this.invoiceQueryParamsCache.get(key);
+    if (cached) return cached;
+    const params = { q: key };
+    this.invoiceQueryParamsCache.set(key, params);
+    return params;
   }
 
   dateLabel(value: string): string {
