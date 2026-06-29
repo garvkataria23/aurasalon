@@ -1219,15 +1219,40 @@ export class MembershipEnterpriseService {
   }
 
   ledgerList(query = {}, access) {
+    const params = {
+      tenantId: access.tenantId,
+      branchId: text(query.branchId || ""),
+      clientId: text(query.clientId || ""),
+      membershipId: text(query.membershipId || ""),
+      search: `%${text(query.search || "").toLowerCase()}%`,
+      limit: Math.min(Number(query.limit || 250), 1000)
+    };
     const rows = db.prepare(
-      `SELECT * FROM client_membership_ledger
-       WHERE tenant_id = ?
-         AND (? = '' OR branch_id = ?)
-         AND (? = '' OR client_id = ?)
-         AND (? = '' OR membership_id = ?)
-       ORDER BY created_at DESC
-       LIMIT ?`
-    ).all(access.tenantId, query.branchId || "", query.branchId || "", query.clientId || "", query.clientId || "", query.membershipId || "", query.membershipId || "", Math.min(Number(query.limit || 250), 1000));
+      `SELECT l.*
+       FROM client_membership_ledger l
+       LEFT JOIN clients c ON c.id = l.client_id
+       WHERE l.tenant_id = @tenantId
+         AND (@branchId = '' OR l.branch_id = @branchId)
+         AND (@clientId = '' OR l.client_id = @clientId)
+         AND (@membershipId = '' OR l.membership_id = @membershipId)
+         AND (
+           @search = '%%'
+           OR LOWER(COALESCE(l.action, '')) LIKE @search
+           OR LOWER(COALESCE(l.invoice_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.membership_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.plan_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.note, '')) LIKE @search
+           OR LOWER(COALESCE(l.actor_user_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.snapshot_json, '')) LIKE @search
+           OR LOWER(COALESCE(c.name, '')) LIKE @search
+           OR LOWER(COALESCE(c.phone, '')) LIKE @search
+           OR CAST(l.amount AS TEXT) LIKE @search
+           OR CAST(l.paid_amount AS TEXT) LIKE @search
+           OR CAST(l.discount_amount AS TEXT) LIKE @search
+         )
+       ORDER BY l.created_at DESC
+       LIMIT @limit`
+    ).all(params);
     return rows.map(rowToLedger);
   }
 

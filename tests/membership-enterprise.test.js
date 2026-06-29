@@ -68,6 +68,23 @@ test("membership enterprise routes expose full lifecycle APIs", () => {
   assert.match(routes, /requirePermission\("write", \(\) => "memberships"\)/);
 });
 
+test("membership desk KPI filters and backend audit search are wired", () => {
+  const service = read("server/services/membership-enterprise.service.js");
+  const memberships = read("src/app/pages/memberships.component.ts");
+  assert.match(service, /ledgerList\(query = \{\}, access\)/);
+  assert.match(service, /query\.search/);
+  assert.match(service, /LEFT JOIN clients c ON c\.id = l\.client_id/);
+  assert.match(service, /LOWER\(COALESCE\(l\.action/);
+  assert.match(service, /LOWER\(COALESCE\(c\.name/);
+  assert.match(service, /CAST\(l\.paid_amount AS TEXT\) LIKE @search/);
+  assert.match(memberships, /openMembershipKpi/);
+  assert.match(memberships, /visibleMemberships/);
+  assert.match(memberships, /isRenewalRiskMembership/);
+  assert.match(memberships, /auditLedgerSearchDraft/);
+  assert.match(memberships, /searchAuditLedger/);
+  assert.match(memberships, /clearAuditLedgerSearch/);
+});
+
 test("membership commission integration is staff-wise and double-count guarded", () => {
   const routes = read("server/routes/membership-enterprise.routes.js");
   const service = read("server/services/membership-enterprise.service.js");

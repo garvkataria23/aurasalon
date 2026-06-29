@@ -54,6 +54,8 @@ type RewardReport = {
 };
 
 type MembershipDeskTab = 'overview' | 'plans' | 'active' | 'audit' | 'commission' | 'risk' | 'reports' | 'rewards' | 'reminders' | 'autoRenew';
+type MembershipListFilter = 'all' | 'active' | 'renewalRisk';
+type MembershipKpiTarget = MembershipListFilter | 'plans';
 type PlanWorkspaceView = 'plans' | 'packages' | 'giftcards';
 type MembershipReportTab = 'actionQueue' | 'activeMembers' | 'expiringSoon' | 'renewalRevenue' | 'cancelledMemberships' | 'staffWiseSales' | 'planWiseProfitability' | 'creditLiability' | 'autoRenewFailedPayments' | 'upgradeDowngrade' | 'discountLeakage' | 'membershipRedeem' | 'membershipSalesByCustomer';
 type RewardDeskTab = 'ledger' | 'roi' | 'expiring' | 'abuse';
@@ -116,27 +118,27 @@ type PlanLifecycleDialog = {
         <button class="refresh-tab" type="button" (click)="load()">Refresh</button>
       </nav>
 
-      <section class="member-count-strip" aria-label="Membership totals">
-        <article>
+      <section class="member-count-strip membership-summary-strip" aria-label="Membership totals">
+        <button type="button" [class.active]="membershipListFilter() === 'all' && activeTab() === 'active'" (click)="openMembershipKpi('all')">
           <span>Total members</span>
           <strong>{{ totalMemberCount() }}</strong>
           <small>{{ report().metrics?.totalMemberships || memberships().length }} total memberships</small>
-        </article>
-        <article>
+        </button>
+        <button type="button" [class.active]="membershipListFilter() === 'active' && activeTab() === 'active'" (click)="openMembershipKpi('active')">
           <span>Active members</span>
           <strong>{{ activeMemberCount() }}</strong>
           <small>{{ report().metrics?.active || activeMemberships().length }} active plans</small>
-        </article>
-        <article>
+        </button>
+        <button type="button" [class.active]="activeTab() === 'plans'" (click)="openMembershipKpi('plans')">
           <span>Plans</span>
           <strong>{{ membershipPlans().length }}</strong>
           <small>{{ activeMembershipPlans().length }} visible in POS</small>
-        </article>
-        <article>
+        </button>
+        <button type="button" [class.active]="membershipListFilter() === 'renewalRisk' && activeTab() === 'active'" (click)="openMembershipKpi('renewalRisk')">
           <span>Renewal risk</span>
           <strong>{{ report().expiringSoon?.length || 0 }}</strong>
           <small>Expiring in 30 days</small>
-        </article>
+        </button>
       </section>
 
       <section class="stats-grid membership-stats" *ngIf="activeTab() === 'overview'">
@@ -499,9 +501,10 @@ type PlanLifecycleDialog = {
         <div class="section-title">
           <div>
             <span class="eyebrow">Lifecycle controls</span>
-            <h2>All members and active memberships</h2>
+            <h2>{{ memberListTitle() }}</h2>
           </div>
           <div class="inline-actions">
+            <span class="badge">{{ visibleMemberships().length }} row(s)</span>
             <select [(ngModel)]="quickLifecyclePlanId">
               <option value="">Plan for upgrade/downgrade</option>
               <option *ngFor="let plan of activeMembershipPlans()" [value]="plan.id">{{ plan.name }}</option>
@@ -525,7 +528,7 @@ type PlanLifecycleDialog = {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let membership of memberships()">
+              <tr *ngFor="let membership of visibleMemberships()">
                 <td>{{ clientName(membership.clientId) }}</td>
                 <td><strong>{{ membership.planName }}</strong><small>{{ membership.status }}</small></td>
                 <td>{{ membershipTakenDate(membership) | date: 'mediumDate' }}</td>
@@ -548,6 +551,9 @@ type PlanLifecycleDialog = {
                     <button class="ghost-button mini danger-text" type="button" (click)="cancelMembership(membership)">Cancel</button>
                   </div>
                 </td>
+              </tr>
+              <tr *ngIf="!visibleMemberships().length">
+                <td class="empty-row" colspan="10">No memberships found for selected KPI.</td>
               </tr>
             </tbody>
           </table>
@@ -700,7 +706,23 @@ type PlanLifecycleDialog = {
       </section>
 
       <section class="panel" *ngIf="activeTab() === 'audit'">
-        <div class="section-title"><h2>Membership audit ledger</h2></div>
+        <div class="section-title">
+          <div>
+            <h2>Membership audit ledger</h2>
+            <p>{{ ledger().length }} backend-filtered row(s)</p>
+          </div>
+          <div class="inline-actions audit-search-actions">
+            <input
+              type="search"
+              [(ngModel)]="auditLedgerSearchDraft"
+              (keydown.enter)="searchAuditLedger()"
+              placeholder="Search client, action, invoice, payment or note"
+              aria-label="Search membership audit ledger"
+            />
+            <button class="ghost-button mini" type="button" (click)="searchAuditLedger()" [disabled]="saving()">Search</button>
+            <button class="ghost-button mini" type="button" (click)="clearAuditLedgerSearch()" [disabled]="saving() || (!auditLedgerSearch && !auditLedgerSearchDraft)">Clear</button>
+          </div>
+        </div>
         <div class="table-wrap compact-table">
           <table>
             <thead><tr><th>When</th><th>Client</th><th>Action</th><th>Amount</th><th>Discount</th><th>Credits</th><th>Payment</th><th>Invoice</th><th>Note</th></tr></thead>
@@ -1702,7 +1724,8 @@ type PlanLifecycleDialog = {
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.045);
     }
 
-    .member-count-strip article {
+    .member-count-strip article,
+    .member-count-strip button {
       display: grid;
       gap: 2px;
       min-height: 76px;
@@ -1710,6 +1733,24 @@ type PlanLifecycleDialog = {
       border-radius: 12px;
       background: #f8fbfb;
       border: 1px solid rgba(15, 23, 42, 0.06);
+      color: inherit;
+      font: inherit;
+      text-align: left;
+    }
+
+    .member-count-strip button {
+      cursor: pointer;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+    }
+
+    .membership-summary-strip button:hover,
+    .membership-summary-strip button:focus-visible,
+    .membership-summary-strip button.active {
+      border-color: rgba(13, 148, 136, 0.42);
+      background: #ecfdf5;
+      box-shadow: 0 10px 22px rgba(13, 148, 136, 0.12);
+      outline: none;
+      transform: translateY(-1px);
     }
 
     .compact-count-strip article {
@@ -1972,6 +2013,17 @@ type PlanLifecycleDialog = {
       border-radius: 999px;
       padding: 8px 34px 8px 14px;
       background: #fff;
+    }
+
+    .audit-search-actions input {
+      width: min(360px, 64vw);
+      min-height: 38px;
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: #fff;
+      color: #0f172a;
+      font: inherit;
     }
 
     .plan-table-wrap {
@@ -2738,6 +2790,7 @@ export class MembershipsComponent implements OnInit, OnDestroy {
   readonly error = signal('');
   readonly message = signal('');
   readonly activeTab = signal<MembershipDeskTab>('overview');
+  readonly membershipListFilter = signal<MembershipListFilter>('all');
   readonly activeReportTab = signal<MembershipReportTab>('actionQueue');
   readonly activeRewardTab = signal<RewardDeskTab>('ledger');
   readonly planWorkspaceView = signal<PlanWorkspaceView>('plans');
@@ -2751,6 +2804,8 @@ export class MembershipsComponent implements OnInit, OnDestroy {
   readonly prorationLoading = signal(false);
   quickLifecyclePlanId = '';
   riskFilter = 'all';
+  auditLedgerSearch = '';
+  auditLedgerSearchDraft = '';
   selfServiceClientId = '';
   selfServiceMembershipId = '';
   selfServiceCancelReason = '';
@@ -2885,6 +2940,12 @@ export class MembershipsComponent implements OnInit, OnDestroy {
     ].join(' ').toLowerCase().includes(term));
   });
   readonly visibleMembershipPlans = computed(() => this.filteredMembershipPlans().slice(0, Math.max(1, this.planShowLimit())));
+  readonly visibleMemberships = computed(() => {
+    const filter = this.membershipListFilter();
+    if (filter === 'active') return this.memberships().filter((membership) => this.isActiveMembershipRecord(membership));
+    if (filter === 'renewalRisk') return this.memberships().filter((membership) => this.isRenewalRiskMembership(membership));
+    return this.memberships();
+  });
   readonly rewardLedgerRows = computed(() => this.rewardReport().ledger || []);
   readonly rewardRoiRows = computed(() => ((this.rewardReport().roi as ApiRecord | undefined)?.['rows'] as ApiRecord[] | undefined) || []);
   readonly expiringRewardRows = computed(() => this.rewardReport().expiring || []);
@@ -2923,7 +2984,7 @@ export class MembershipsComponent implements OnInit, OnDestroy {
       clients: this.safeList<ApiRecord[]>('clients', { limit: 1000 }),
       staff: this.quietList<ApiRecord[]>('staff', { limit: 1000 }),
       giftCards: this.safeList<ApiRecord[]>('giftCards', { limit: 1000 }),
-      ledger: this.safeList<ApiRecord[]>('membership-enterprise/ledger', { limit: 200 }),
+      ledger: this.safeList<ApiRecord[]>('membership-enterprise/ledger', this.auditLedgerParams()),
       reminders: this.safeList<ApiRecord[]>('membership-enterprise/reminders', { limit: 100 }),
       autoRenew: this.safeList<ApiRecord>('membership-enterprise/auto-renew/queue', { limit: 100 }),
       report: this.safeList<MembershipReport>('membership-enterprise/reports/revenue'),
@@ -2982,6 +3043,21 @@ export class MembershipsComponent implements OnInit, OnDestroy {
     this.activeTab.set('plans');
     this.planWorkspaceView.set(view);
     this.stopReportLiveRefresh();
+  }
+
+  openMembershipKpi(target: MembershipKpiTarget): void {
+    if (target === 'plans') {
+      this.setTab('plans');
+      return;
+    }
+    this.membershipListFilter.set(target);
+    this.setTab('active');
+  }
+
+  memberListTitle(): string {
+    if (this.membershipListFilter() === 'active') return 'Active members';
+    if (this.membershipListFilter() === 'renewalRisk') return 'Renewal risk members';
+    return 'All members and active memberships';
   }
 
   setReportTab(tab: MembershipReportTab): void {
@@ -3744,7 +3820,21 @@ export class MembershipsComponent implements OnInit, OnDestroy {
 
   activeMemberships(): ApiRecord[] {
     const today = new Date().toISOString().slice(0, 10);
-    return this.memberships().filter((membership) => membership.status === 'active' && (!membership.validityDate || membership.validityDate >= today));
+    return this.memberships().filter((membership) => this.isActiveMembershipRecord(membership, today));
+  }
+
+  isActiveMembershipRecord(membership: ApiRecord, today = new Date().toISOString().slice(0, 10)): boolean {
+    const status = String(membership['status'] || '').toLowerCase();
+    const validityDate = String(membership['validityDate'] || membership['validity_date'] || '');
+    return status === 'active' && (!validityDate || validityDate >= today);
+  }
+
+  isRenewalRiskMembership(membership: ApiRecord): boolean {
+    const status = String(membership['status'] || '').toLowerCase();
+    if (status.includes('cancel')) return false;
+    const validityDate = String(membership['validityDate'] || membership['validity_date'] || '');
+    if (!validityDate) return false;
+    return this.membershipDaysLeft(membership) <= 30;
   }
 
   selectedClient(): ApiRecord | null {
@@ -3826,6 +3916,31 @@ export class MembershipsComponent implements OnInit, OnDestroy {
     return this.enterpriseReport().reports?.[key] || [];
   }
 
+  searchAuditLedger(): void {
+    this.auditLedgerSearch = this.auditLedgerSearchDraft.trim();
+    this.loadAuditLedger();
+  }
+
+  clearAuditLedgerSearch(): void {
+    this.auditLedgerSearch = '';
+    this.auditLedgerSearchDraft = '';
+    this.loadAuditLedger();
+  }
+
+  loadAuditLedger(): void {
+    this.saving.set(true);
+    this.error.set('');
+    this.api.list<ApiRecord[]>('membership-enterprise/ledger', this.auditLedgerParams()).pipe(
+      catchError((error) => {
+        this.error.set(error?.error?.error || error?.message || 'Unable to search membership audit ledger');
+        return of([] as ApiRecord[]);
+      })
+    ).subscribe((rows) => {
+      this.ledger.set(rows || []);
+      this.saving.set(false);
+    });
+  }
+
   rewardMetric(key: string): number {
     return Number(((this.rewardReport().roi as ApiRecord | undefined)?.['metrics'] as ApiRecord | undefined)?.[key] || 0);
   }
@@ -3846,6 +3961,13 @@ export class MembershipsComponent implements OnInit, OnDestroy {
       walletBalance: this.reportFilters.walletBalance || '',
       paymentMode: this.reportFilters.paymentMode || '',
       riskLevel: this.reportFilters.riskLevel === 'all' ? '' : this.reportFilters.riskLevel
+    };
+  }
+
+  private auditLedgerParams(): ApiRecord {
+    return {
+      limit: 200,
+      search: this.auditLedgerSearch || ''
     };
   }
 
