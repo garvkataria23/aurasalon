@@ -206,6 +206,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
               </tr>
             </tbody>
           </table>
+          <div class="client-empty-state" *ngIf="!filteredClients.length">
+            <strong>No clients found</strong>
+            <span>Filter/search change karo ya All Clients select karo.</span>
+            <button class="ghost-button mini" type="button" (click)="clearClientFilters()">Show all clients</button>
+          </div>
           <div class="client-list-footer">
             <span>{{ clients().length }} clients loaded</span>
             <button class="ghost-button mini" type="button" (click)="loadMoreClients()" [disabled]="!clientListHasMore() || clientListLoadingMore()">
@@ -494,7 +499,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       background:
         linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 92%, white)),
         var(--surface);
-      overflow: hidden;
+      overflow: visible;
     }
 
     .client-notice {
@@ -593,9 +598,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       top: calc(100% + 6px);
       right: 0;
       width: 260px;
-      max-height: 380px;
+      max-height: min(420px, 48vh);
       padding: 8px;
       overflow: auto;
+      z-index: 60;
     }
 
     .column-popover label {
@@ -640,6 +646,23 @@ import { StateComponent } from '../shared/ui/state/state.component';
       border-radius: var(--radius-md);
       background: var(--surface);
       box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 4%, transparent);
+    }
+
+    .client-empty-state {
+      position: sticky;
+      left: 0;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      min-height: 150px;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .client-empty-state strong {
+      color: var(--ink);
+      font-size: 18px;
     }
 
     .client-database-panel .clients-crm-table {
@@ -1079,6 +1102,18 @@ export class ClientsComponent implements OnInit {
 
   setClientTypeFilter(type: string): void {
     this.clientTypeFilter.set(type || '');
+  }
+
+  clearClientFilters(): void {
+    this.clientTypeFilter.set('');
+    this.countryFilter.set('');
+    this.dateFromFilter.set('');
+    this.dateToFilter.set('');
+    this.tagFilter.set('');
+    if (this.query) {
+      this.query = '';
+      this.load();
+    }
   }
 
   countryOptions(): string[] {
