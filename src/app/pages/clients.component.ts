@@ -293,7 +293,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </table>
           <div class="client-load-more" *ngIf="hasMoreClients()">
             <button class="ghost-button" type="button" (click)="loadMoreClients()" [disabled]="loading()">Load more clients</button>
-            <span>Showing {{ totalClientCount }}. Next batch loads {{ clientBatchSize }} more.</span>
+            <span>Showing {{ totalClientCount }}. Next batch loads {{ clientBatchSize }} more. Duplicate scan still checks all clients.</span>
           </div>
         </div>
       </section>
@@ -741,7 +741,7 @@ export class ClientsComponent implements OnInit, OnDestroy {
     'rebooking-rate'
   ]);
   private pendingEditClientId = '';
-  readonly clientBatchSize = 25000;
+  readonly clientBatchSize = 5000;
   private clientLimit = this.clientBatchSize;
   private clientBatchTimer: ReturnType<typeof setTimeout> | undefined;
   private clientLoadInFlight = false;
@@ -856,16 +856,11 @@ export class ClientsComponent implements OnInit, OnDestroy {
       this.error.set('');
     }
     const listParams = { includeAllBranches: true, limit: this.clientLimit };
-    forkJoin({
-      clients: this.api.list<ApiRecord[]>('clients', listParams),
-      invoices: this.api.list<ApiRecord[]>('invoices', listParams),
-      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', listParams)
-    }).subscribe({
-      next: ({ clients, invoices, walletTransactions }) => {
+    this.api.list<ApiRecord[]>('clients', listParams).subscribe({
+      next: (clients) => {
         const loadedClients = this.normalizeClients(clients || []);
         this.hasMoreClients.set(loadedClients.length >= this.clientLimit);
-        const linkedWalletClients = this.withWalletBalances(loadedClients, walletTransactions || []);
-        this.clients.set(this.withUnpaidBalances(linkedWalletClients, invoices || []));
+        this.clients.set(loadedClients);
         this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => this.clientId(client) === id)));
         this.openPendingEditClient();
         this.clientLoadInFlight = false;
