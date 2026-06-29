@@ -56,6 +56,7 @@ type RedemptionLine = {
               Boost revenue with treatment packages, turning clients into loyal regulars. Manage package history for seamless
               administration, increased profitability <a href="#" (click)="$event.preventDefault()">Learn more</a>
             </p>
+            <a class="report-link" routerLink="/reports/pending-packages">Pending Packages Report</a>
           </header>
 
           <div class="list-controls">
@@ -261,6 +262,19 @@ type RedemptionLine = {
       color: #2563eb;
       font-weight: 800;
       text-decoration: none;
+    }
+
+    .packages-title .report-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      margin-top: 14px;
+      padding: 0 16px;
+      border: 1px solid #b7e5d8;
+      border-radius: 6px;
+      background: #ecfdf5;
+      color: #075e4b;
+      font-weight: 900;
     }
 
     .floating-add {

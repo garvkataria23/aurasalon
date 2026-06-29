@@ -584,6 +584,7 @@ export class ReportsComponent implements OnInit {
     { label: 'Financial Summary', path: '/reports/financial-summary', module: 'Owner accounting' },
     { label: 'Inward Revenue', path: '/reports/inward-revenue', module: 'FlexiSalon import' },
     { label: 'Sale Summary', path: '/reports/invoices', module: 'Sale list with bill' },
+    { label: 'Expired Packages', path: '/reports/expired-packages', module: 'Packages' },
     { label: 'Service Trends', path: '/reports/invoices', queryParams: { report: 'service-trends' }, module: 'Service performance' },
     { label: 'Service Clients', path: '/reports/invoices', queryParams: { report: 'service-clients' }, module: 'Service client detail' },
     { label: 'Invoice Reports', path: '/reports/invoices', module: 'Invoice intelligence' },

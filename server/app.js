@@ -152,6 +152,7 @@ import { offlineRouter } from "./routes/offline.routes.js";
 import { offlineSyncRouter } from "./routes/offline-sync.routes.js";
 import { operationsRouter } from "./routes/operations.routes.js";
 import { paymentPublicRouter, paymentRouter } from "./routes/payment.routes.js";
+import { pendingPackagesReportRouter } from "./routes/pending-packages-report.routes.js";
 import { posSettingsRouter } from "./routes/pos-settings.routes.js";
 import { profitIntelligenceRouter } from "./routes/profit-intelligence.routes.js";
 import { printDeviceRouter } from "./routes/print-device.routes.js";
@@ -302,6 +303,7 @@ export function createApp() {
   app.use("/api/v1", billingRouter);
   app.use("/api/v1", billingAnalyticsRouter);
   app.use("/api/v1", dueRecoveryReportRouter);
+  app.use("/api/v1", pendingPackagesReportRouter);
   app.use("/api/v1", serviceTrendsReportRouter);
   app.use("/api/v1", commissionRouter);
   app.use("/api/v1", dailyClosingRouter);
@@ -485,6 +487,7 @@ export function createApp() {
   app.use("/api", billingRouter);
   app.use("/api", billingAnalyticsRouter);
   app.use("/api", dueRecoveryReportRouter);
+  app.use("/api", pendingPackagesReportRouter);
   app.use("/api", serviceTrendsReportRouter);
   app.use("/api", commissionRouter);
   app.use("/api", dailyClosingRouter);
