@@ -455,9 +455,14 @@ function clientReferenceTargets() {
 function reassignClientReferences(duplicateId, primaryId, tenantId) {
   const updates = [];
   for (const { table, column, tenantColumn } of clientReferenceTargets()) {
-    const statement = db.prepare(`UPDATE ${table} SET ${column} = @primaryId WHERE ${tenantColumn} = @tenantId AND ${column} = @duplicateId`);
+    const statement = db.prepare(`UPDATE OR IGNORE ${table} SET ${column} = @primaryId WHERE ${tenantColumn} = @tenantId AND ${column} = @duplicateId`);
     const result = statement.run({ primaryId, duplicateId, tenantId });
-    if (result.changes) updates.push({ table, column, rows: result.changes });
+    if (result.changes) {
+      updates.push({ table, column, rows: result.changes });
+      continue;
+    }
+    const duplicateStillExists = db.prepare(`SELECT 1 FROM ${table} WHERE ${tenantColumn} = @tenantId AND ${column} = @duplicateId LIMIT 1`).get({ tenantId, duplicateId });
+    if (duplicateStillExists) updates.push({ table, column, rows: 0, conflictIgnored: true });
   }
   return updates;
 }
