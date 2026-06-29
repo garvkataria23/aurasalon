@@ -186,7 +186,7 @@ type NavGroup = {
               <button
                 class="topbar-ctx-chip"
                 type="button"
-                (click)="contextPanelOpen.set(!contextPanelOpen())"
+                (click)="toggleContextPanel()"
                 [attr.aria-expanded]="contextPanelOpen()"
                 title="Workspace context settings"
               >
@@ -206,35 +206,35 @@ type NavGroup = {
             <div class="topbar-detail-inner">
               <div class="topbar-detail-group">
                 <span class="topbar-detail-label">{{ i18n.t('shell.country', 'Country') }}</span>
-                <select [ngModel]="i18n.countryCode()" (ngModelChange)="selectCountry($event)">
+                <select [ngModel]="draftCountryCode()" (ngModelChange)="draftCountryCode.set($event)">
                   <option *ngFor="let country of i18n.countries" [value]="country.code">{{ country.label }}</option>
                 </select>
               </div>
               <div class="topbar-detail-divider" aria-hidden="true"></div>
               <div class="topbar-detail-group">
                 <span class="topbar-detail-label">{{ i18n.t('shell.language', 'Language') }}</span>
-                <select [ngModel]="i18n.languageCode()" (ngModelChange)="selectLanguage($event)">
+                <select [ngModel]="draftLanguageCode()" (ngModelChange)="draftLanguageCode.set($event)">
                   <option *ngFor="let language of i18n.languages" [value]="language.code">{{ language.label }}</option>
                 </select>
               </div>
               <div class="topbar-detail-divider" aria-hidden="true"></div>
               <div class="topbar-detail-group">
                 <span class="topbar-detail-label">{{ i18n.t('shell.tenant', 'Tenant') }}</span>
-                <select [ngModel]="state.selectedTenantId()" (ngModelChange)="selectTenant($event)">
+                <select [ngModel]="draftTenantId()" (ngModelChange)="draftTenantId.set($event)">
                   <option *ngFor="let tenant of tenants()" [value]="tenant.id">{{ tenant.name || tenant.id }}</option>
                 </select>
               </div>
               <div class="topbar-detail-divider" aria-hidden="true"></div>
               <div class="topbar-detail-group">
                 <span class="topbar-detail-label">{{ i18n.t('shell.branch', 'Branch') }}</span>
-                <select [ngModel]="state.selectedBranchId()" (ngModelChange)="selectBranch($event)">
+                <select [ngModel]="draftBranchId()" (ngModelChange)="draftBranchId.set($event)">
                   <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name || branch.id }}</option>
                 </select>
               </div>
               <div class="topbar-detail-divider" aria-hidden="true"></div>
               <div class="topbar-detail-group">
                 <span class="topbar-detail-label">{{ i18n.t('shell.role', 'Role') }}</span>
-                <select [ngModel]="state.userRole()" (ngModelChange)="selectRole($event)">
+                <select [ngModel]="draftRole()" (ngModelChange)="selectDraftRole($event)">
                   <option value="owner">Owner</option>
                   <option value="superAdmin">Super admin</option>
                   <option value="admin">Admin</option>
@@ -248,7 +248,7 @@ type NavGroup = {
                   <option value="customMarketingLead">Custom marketing lead</option>
                 </select>
               </div>
-              <button class="topbar-detail-apply" type="button" (click)="contextPanelOpen.set(false)">
+              <button class="topbar-detail-apply" type="button" (click)="applyContextPanel()">
                 Apply
               </button>
             </div>
@@ -289,6 +289,11 @@ export class AppComponent {
   readonly sidebarCompact = signal(this.readInitialSidebarCompact());
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   readonly contextPanelOpen = signal(false);
+  readonly draftCountryCode = signal(this.i18n.countryCode());
+  readonly draftLanguageCode = signal(this.i18n.languageCode());
+  readonly draftTenantId = signal(this.state.selectedTenantId());
+  readonly draftBranchId = signal(this.state.selectedBranchId());
+  readonly draftRole = signal<UserRole>(this.state.userRole());
   private loadedLocalizationTenantId = '';
 
   readonly favoriteNavItems: NavItem[] = [
@@ -710,6 +715,36 @@ export class AppComponent {
     });
   }
 
+  toggleContextPanel(): void {
+    const next = !this.contextPanelOpen();
+    if (next) this.syncContextDraft();
+    this.contextPanelOpen.set(next);
+  }
+
+  applyContextPanel(): void {
+    const countryChanged = this.draftCountryCode() !== this.i18n.countryCode();
+    const languageChanged = this.draftLanguageCode() !== this.i18n.languageCode();
+    const tenantChanged = this.draftTenantId() !== this.state.selectedTenantId();
+    const branchChanged = this.draftBranchId() !== this.state.selectedBranchId();
+    const roleChanged = this.draftRole() !== this.state.userRole();
+
+    if (countryChanged) this.i18n.setCountry(this.draftCountryCode());
+    if (languageChanged) this.i18n.setLanguage(this.draftLanguageCode());
+    if (countryChanged || languageChanged) this.saveLocalizationPreference();
+    if (tenantChanged) {
+      this.state.setTenant(this.draftTenantId());
+      this.loadBranches();
+    }
+    if (tenantChanged || branchChanged) this.state.setBranch(this.draftBranchId());
+    if (roleChanged) this.state.setRole(this.draftRole());
+
+    this.contextPanelOpen.set(false);
+  }
+
+  selectDraftRole(role: UserRole): void {
+    this.draftRole.set(role);
+  }
+
   selectTenant(tenantId: string): void {
     this.state.setTenant(tenantId);
   }
@@ -730,6 +765,14 @@ export class AppComponent {
   selectLanguage(languageCode: string): void {
     this.i18n.setLanguage(languageCode);
     this.saveLocalizationPreference();
+  }
+
+  private syncContextDraft(): void {
+    this.draftCountryCode.set(this.i18n.countryCode());
+    this.draftLanguageCode.set(this.i18n.languageCode());
+    this.draftTenantId.set(this.state.selectedTenantId());
+    this.draftBranchId.set(this.state.selectedBranchId());
+    this.draftRole.set(this.state.userRole());
   }
 
   private loadLocalizationPreference(tenantId: string): void {

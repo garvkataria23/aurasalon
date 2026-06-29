@@ -4013,7 +4013,9 @@ body::before {
   background: #162032;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   animation: topbarSlideDown 0.18s ease;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 30;
 }
 
 @keyframes topbarSlideDown {
@@ -4054,6 +4056,7 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 7px;
   color: #e2e8f0;
+  color-scheme: light;
   font-size: 0.8rem;
   padding: 5px 10px;
   min-height: 32px;
@@ -4075,8 +4078,9 @@ body::before {
 }
 
 .topbar-detail-group select option {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: #ffffff;
+  color: #18283a;
+  color-scheme: light;
 }
 
 .topbar-detail-divider {
@@ -4990,12 +4994,16 @@ body {
 .topbar-detail-panel {
   border-top: 1px solid #DEE8E2;
   background: #F2F7F4;
+  overflow: visible;
+  position: relative;
+  z-index: 30;
 }
 
 .topbar-detail-group select {
   border-color: #DEE8E2;
   color: #18283A;
   background: #FFFFFF;
+  color-scheme: light;
 }
 
 .topbar-detail-group select:hover,
@@ -5007,6 +5015,7 @@ body {
 .topbar-detail-group select option {
   color: #18283A;
   background: #FFFFFF;
+  color-scheme: light;
 }
 
 .topbar-detail-divider {
