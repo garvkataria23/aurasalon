@@ -25,6 +25,10 @@ function normalizeClient(client = {}) {
   };
 }
 
+function activeClient(client = {}) {
+  return client && typeof client === "object" && !cleanText(client.deletedAt || client.deleted_at);
+}
+
 function safeObjectList(value) {
   if (Array.isArray(value)) return value.filter((item) => item && typeof item === "object");
   if (typeof value === "string" && value.trim()) {
@@ -167,7 +171,7 @@ export class Customer360Service {
     const limit = boundedLimit(query.limit, 10000, 50000);
     const clientQuery = branchId ? { branchId, limit } : { limit };
     const snapshotQuery = branchId ? { branchId, limit: 50 } : { limit: 50 };
-    const clients = repositories.clients.list(clientQuery, scope(access, branchId, { allBranches: includeAllBranches })).filter(Boolean).map(normalizeClient);
+    const clients = repositories.clients.list(clientQuery, scope(access, branchId, { allBranches: includeAllBranches })).filter(activeClient).map(normalizeClient);
     const profiles = clients.map((client) => this.summaryProfile(client));
     return {
       metrics: {

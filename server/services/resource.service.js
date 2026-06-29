@@ -128,12 +128,13 @@ export class ResourceService {
   duplicateClients(query = {}, access = {}) {
     const scope = this.listScope("clients", { includeAllBranches: truthy(query.includeAllBranches) || truthy(query.allBranches) }, access);
     const clients = listClientsForDuplicateScan(scope);
-    return buildDuplicateClientGroups(clients);
+    return buildDuplicateClientGroups(clients, { matchType: query.matchType });
   }
 
   mergeAllDuplicateClients(payload = {}, access = {}) {
     const query = {
-      includeAllBranches: truthy(payload.includeAllBranches) || truthy(payload.allBranches)
+      includeAllBranches: truthy(payload.includeAllBranches) || truthy(payload.allBranches),
+      matchType: String(payload.matchType || "phone").trim().toLowerCase()
     };
     const skippedGroupKeys = new Set((payload.skipGroupKeys || []).map((key) => String(key || "")).filter(Boolean));
     const limit = Math.max(1, Math.min(100, Number(payload.limit || 25) || 25));
@@ -365,12 +366,14 @@ function listClientsForDuplicateScan(scope = {}) {
   return db.prepare(`SELECT * FROM clients WHERE ${where.join(" AND ")}`).all(params).map((row) => deserialize("clients", row));
 }
 
-function buildDuplicateClientGroups(clients = []) {
+function buildDuplicateClientGroups(clients = [], options = {}) {
   const groups = new Map();
+  const matchType = String(options.matchType || "").trim().toLowerCase();
   for (const client of clients) {
     const id = String(client.id || "");
     if (!id) continue;
     for (const key of duplicateKeysForClient(client)) {
+      if (matchType && key.type !== matchType) continue;
       if (!groups.has(key.value)) groups.set(key.value, { key, clients: [] });
       groups.get(key.value).clients.push(client);
     }
@@ -380,13 +383,18 @@ function buildDuplicateClientGroups(clients = []) {
     .map((group) => duplicateClientGroup(group.key, group.clients))
     .sort((left, right) => right.clients.length - left.clients.length || left.matchLabel.localeCompare(right.matchLabel));
 }
-
 function duplicateClientGroup(key, clients) {
   const primary = [...clients].sort((left, right) => clientMergeRank(right) - clientMergeRank(left))[0] || clients[0];
+  const labels = {
+    phone: "Same phone",
+    email: "Same email",
+    name: "Same name",
+    "import-ref": "Same import reference"
+  };
   return {
     groupKey: key.value,
     matchType: key.type,
-    matchLabel: "Same phone",
+    matchLabel: labels[key.type] || "Potential duplicate",
     matchValues: [key.label],
     suggestedPrimaryId: String(primary?.id || ""),
     duplicateCount: clients.length,
@@ -394,8 +402,17 @@ function duplicateClientGroup(key, clients) {
   };
 }
 function duplicateKeysForClient(client) {
+  const keys = [];
   const phone = normalizeDuplicatePhone(client.phone || client.mobile || client.mobileNumber || client.contactNumber);
-  return phone ? [{ type: "phone", value: `phone:${phone}`, label: phone }] : [];
+  if (phone) keys.push({ type: "phone", value: `phone:${phone}`, label: phone });
+  const email = normalizeDuplicateEmail(client.email);
+  if (email) keys.push({ type: "email", value: `email:${email}`, label: email });
+  for (const reference of duplicateImportReferencesForClient(client)) {
+    keys.push({ type: "import-ref", value: `import-ref:${reference}`, label: reference });
+  }
+  const name = normalizeDuplicateName(client.name || client.fullName || client.full_name || client.clientName || client.customerName);
+  if (name) keys.push({ type: "name", value: `name:${name}`, label: client.name || client.fullName || client.clientName || client.customerName || name });
+  return keys;
 }
 function normalizeDuplicatePhone(value) {
   const digits = String(value || "").replace(/\D/g, "");
@@ -406,6 +423,35 @@ function normalizeDuplicatePhone(value) {
 function normalizeDuplicateEmail(value) {
   const email = String(value || "").trim().toLowerCase();
   return email.includes("@") ? email : "";
+}
+
+function duplicateImportReferencesForClient(client) {
+  const source = [
+    client.name,
+    client.fullName,
+    client.full_name,
+    client.clientName,
+    client.customerName,
+    client.importId,
+    client.importReference,
+    client.sourceExternalId,
+    client.externalId,
+    client.legacyId
+  ].filter(Boolean).join(" ");
+  return [...new Set(String(source).match(/\b\d{8,}\b/g) || [])];
+}
+
+function normalizeDuplicateName(value) {
+  const name = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = name.split(" ").filter(Boolean);
+  if (name.length < 8 || words.length < 2 || /^\d+$/.test(name)) return "";
+  if (["client", "customer", "guest", "walk in", "walkin", "unknown", "no name"].includes(name)) return "";
+  return name;
 }
 
 function clientMergeRank(client) {

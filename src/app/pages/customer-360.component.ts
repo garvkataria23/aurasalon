@@ -30,16 +30,16 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
         <div class="duplicate-panel-header">
           <div>
             <h3>Duplicate contacts</h3>
-            <p>{{ phoneDuplicateGroupCount() }} group(s) from same phone number</p>
+            <p>{{ duplicateGroups().length }} possible group(s) · {{ phoneDuplicateGroupCount() }} exact phone auto-merge group(s)</p>
           </div>
           <div class="duplicate-panel-actions">
-            <button class="primary-button mini" type="button" *ngIf="phoneDuplicateGroupCount()" (click)="mergeAllDuplicateGroups()" [disabled]="duplicateMergeAllLoading() || duplicateSaving()">{{ duplicateMergeAllLoading() ? 'Merging...' : 'Merge all' }}</button>
+            <button class="primary-button mini" type="button" *ngIf="phoneDuplicateGroupCount()" (click)="mergeAllDuplicateGroups()" [disabled]="duplicateMergeAllLoading() || duplicateSaving()">{{ duplicateMergeAllLoading() ? 'Merging...' : 'Merge phone groups' }}</button>
             <button class="ghost-button mini" type="button" (click)="loadDuplicateGroups()" [disabled]="duplicateLoading()">Scan again</button>
           </div>
         </div>
         <app-state [loading]="duplicateLoading()" [error]="duplicateError()"></app-state>
         <p class="duplicate-message" *ngIf="duplicateMessage()">{{ duplicateMessage() }}</p>
-        <p class="duplicate-message" *ngIf="phoneDuplicateGroupCount() > visibleDuplicateGroups().length">Showing first {{ visibleDuplicateGroups().length }} groups. Merge all still processes all {{ phoneDuplicateGroupCount() }} phone groups.</p>
+        <p class="duplicate-message" *ngIf="duplicateGroups().length > visibleDuplicateGroups().length">Showing first {{ visibleDuplicateGroups().length }} groups. Merge phone groups only processes exact-phone groups.</p>
         <div class="duplicate-group-list" *ngIf="!duplicateLoading() && duplicateGroups().length">
           <article class="duplicate-group" *ngFor="let group of visibleDuplicateGroups()" [class.active]="activeDuplicateGroupKey() === group.groupKey">
             <div class="duplicate-group-header">
@@ -483,7 +483,7 @@ export class Customer360Component implements OnInit, OnDestroy {
     if (!successMessage) this.duplicateMessage.set('');
     this.api.list<ApiRecord[]>('clients/duplicates', { includeAllBranches: true }).subscribe({
       next: (groups) => {
-        const duplicateGroups = (Array.isArray(groups) ? groups : []).filter((group) => this.isPhoneDuplicateGroup(group));
+        const duplicateGroups = Array.isArray(groups) ? groups : [];
         this.duplicateGroups.set(duplicateGroups);
         const selection: Record<string, string> = {};
         for (const group of duplicateGroups) {
@@ -492,7 +492,7 @@ export class Customer360Component implements OnInit, OnDestroy {
           selection[key] = String(group.suggestedPrimaryId || this.duplicateGroupClients(group)[0]?.id || '');
         }
         this.duplicatePrimarySelection.set(selection);
-        this.duplicateMessage.set(successMessage || (duplicateGroups.length ? '' : 'No duplicate contacts found from same phone number.'));
+        this.duplicateMessage.set(successMessage || (duplicateGroups.length ? '' : 'No duplicate contacts found.'));
         this.duplicateLoading.set(false);
       },
       error: (error) => {
@@ -503,7 +503,7 @@ export class Customer360Component implements OnInit, OnDestroy {
   }
 
   visibleDuplicateGroups(): ApiRecord[] {
-    return this.phoneDuplicateGroups().slice(0, 100);
+    return this.duplicateGroups().slice(0, 100);
   }
 
   phoneDuplicateGroupCount(): number {
