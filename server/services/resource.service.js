@@ -139,23 +139,31 @@ export class ResourceService {
     const query = {
       includeAllBranches: truthy(payload.includeAllBranches) || truthy(payload.allBranches)
     };
-    const groups = this.duplicateClients(query, access);
+    const skippedGroupKeys = new Set((payload.skipGroupKeys || []).map((key) => String(key || "")).filter(Boolean));
+    const limit = Math.max(1, Math.min(100, Number(payload.limit || 25) || 25));
+    const groups = this.duplicateClients(query, access).filter((group) => !skippedGroupKeys.has(String(group.groupKey || "")));
+    const batchGroups = groups.slice(0, limit);
     const summary = {
-      scannedGroups: groups.length,
+      scannedGroups: batchGroups.length,
+      totalGroups: groups.length,
+      processedGroups: 0,
       mergedGroups: 0,
       mergedClients: 0,
       archivedClientIds: [],
       remainingGroups: 0,
       skippedGroups: 0,
-      errors: []
+      errors: [],
+      skippedGroupKeys: []
     };
 
-    for (const group of groups) {
+    for (const group of batchGroups) {
+      summary.processedGroups += 1;
       const groupClients = Array.isArray(group.clients) ? group.clients : [];
       const primaryId = String(group.suggestedPrimaryId || groupClients[0]?.id || "");
       const duplicateClientIds = groupClients.map((client) => String(client.id || "")).filter((id) => id && id !== primaryId);
       if (!primaryId || !duplicateClientIds.length) {
         summary.skippedGroups += 1;
+        if (group.groupKey) summary.skippedGroupKeys.push(String(group.groupKey));
         continue;
       }
       try {
@@ -170,12 +178,14 @@ export class ResourceService {
         if (summary.archivedClientIds.length < 200) summary.archivedClientIds.push(...archivedIds.slice(0, 200 - summary.archivedClientIds.length));
       } catch (error) {
         summary.skippedGroups += 1;
+        if (group.groupKey) summary.skippedGroupKeys.push(String(group.groupKey));
         if (summary.errors.length < 20) summary.errors.push({ groupKey: group.groupKey || "", message: error?.message || "Unable to merge duplicate group" });
       }
     }
 
     summary.archivedClientIds = [...new Set(summary.archivedClientIds)];
-    summary.remainingGroups = Math.max(0, summary.scannedGroups - summary.mergedGroups - summary.skippedGroups);
+    summary.skippedGroupKeys = [...new Set(summary.skippedGroupKeys)];
+    summary.remainingGroups = Math.max(0, groups.length - summary.processedGroups);
     return summary;
   }
   mergeDuplicateClients(primaryId, payload = {}, access = {}) {

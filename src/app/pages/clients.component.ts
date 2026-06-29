@@ -184,7 +184,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <p>{{ phoneDuplicateGroupCount() }} group(s) from same phone number</p>
             </div>
             <div class="duplicate-panel-actions">
-              <button class="primary-button mini" type="button" *ngIf="phoneDuplicateGroupCount()" (click)="mergeAllDuplicateGroups()">{{ duplicateMergeAllLoading() ? 'Retry merge all' : 'Merge all' }}</button>
+              <button class="primary-button mini" type="button" *ngIf="phoneDuplicateGroupCount()" (click)="mergeAllDuplicateGroups()" [disabled]="duplicateMergeAllLoading()">{{ duplicateMergeAllLoading() ? 'Merging...' : 'Merge all' }}</button>
               <button class="ghost-button mini" type="button" (click)="loadDuplicateGroups()" [disabled]="duplicateLoading()">Scan again</button>
             </div>
           </div>
@@ -1023,30 +1023,53 @@ export class ClientsComponent implements OnInit, OnDestroy {
   }
 
   mergeAllDuplicateGroups(): void {
-    this.duplicateMergeAllLoading.set(false);
+    if (this.duplicateMergeAllLoading()) return;
     const groupCount = this.phoneDuplicateGroupCount();
     if (!groupCount) {
       this.duplicateMessage.set('No same-phone duplicate groups to merge.');
       return;
     }
-    const visibleDuplicateGroups = this.duplicateGroups();
+    const totals = {
+      mergedClients: 0,
+      mergedGroups: 0,
+      skippedGroups: 0,
+      processedGroups: 0,
+      skippedGroupKeys: [] as string[]
+    };
     this.saving.set(true);
     this.duplicateMergeAllLoading.set(true);
     this.duplicateError.set('');
-    this.duplicateMessage.set('Merging duplicate contacts...');
-    this.duplicateGroups.set([]);
+    this.duplicateMessage.set(`Merging duplicate contacts... 0 clients merged across 0 groups. ${groupCount} groups remaining.`);
+    this.runDuplicateMergeBatch(totals);
+  }
+
+  private runDuplicateMergeBatch(totals: { mergedClients: number; mergedGroups: number; skippedGroups: number; processedGroups: number; skippedGroupKeys: string[] }): void {
     this.api.post<ApiRecord>('clients/duplicates/merge-all', {
       includeAllBranches: true,
       allBranches: true,
       matchType: 'phone',
+      limit: 25,
+      skipGroupKeys: totals.skippedGroupKeys,
       reason: 'Merged by frontdesk duplicate merge all'
     }).subscribe({
       next: (result) => {
         const mergedClients = Number(result?.mergedClients || 0);
         const mergedGroups = Number(result?.mergedGroups || 0);
+        const skippedGroups = Number(result?.skippedGroups || 0);
+        const processedGroups = Number(result?.processedGroups || result?.scannedGroups || 0);
         const remainingGroups = Number(result?.remainingGroups || 0);
-        const successMessage = `Merged ${mergedClients} duplicate client(s) across ${mergedGroups} group(s). ${remainingGroups} group(s) remaining.`;
-        this.duplicateMessage.set(successMessage);
+        const skippedGroupKeys = Array.isArray(result?.skippedGroupKeys) ? result.skippedGroupKeys.map(String).filter(Boolean) : [];
+        totals.mergedClients += mergedClients;
+        totals.mergedGroups += mergedGroups;
+        totals.skippedGroups += skippedGroups;
+        totals.processedGroups += processedGroups;
+        totals.skippedGroupKeys = [...new Set([...totals.skippedGroupKeys, ...skippedGroupKeys])];
+        this.duplicateMessage.set(`Merging duplicate contacts... ${totals.mergedClients} clients merged across ${totals.mergedGroups} groups. ${remainingGroups} groups remaining.`);
+        if (remainingGroups > 0 && processedGroups > 0) {
+          this.runDuplicateMergeBatch(totals);
+          return;
+        }
+        this.duplicateMessage.set(`Merge complete: ${totals.mergedClients} duplicate client(s) merged across ${totals.mergedGroups} group(s). ${totals.skippedGroups} group(s) skipped.`);
         this.saving.set(false);
         this.duplicateMergeAllLoading.set(false);
         this.load(false);
@@ -1055,7 +1078,6 @@ export class ClientsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.duplicateError.set(this.api.errorText(error, 'Unable to merge all duplicate clients'));
-        this.duplicateGroups.set(visibleDuplicateGroups);
         this.saving.set(false);
         this.duplicateMergeAllLoading.set(false);
       }
