@@ -108,6 +108,7 @@ function normalizeStat(row = {}) {
     : 999;
   return {
     ...row,
+    name: clientDisplayName(row),
     frequency: Number(row.frequency || 0),
     monetary: money(row.monetary),
     paidAmount: money(row.paidAmount),
@@ -187,6 +188,11 @@ function daysSinceDate(value) {
 function compactText(value, fallback = "Not captured") {
   const text = String(value || "").trim();
   return text || fallback;
+}
+
+function clientDisplayName(client = {}) {
+  if (!client || typeof client !== "object") return "Client";
+  return compactText(client.name || client.fullName || client.full_name || client.clientName || client.customerName || client.phone || client.email || client.id, "Client");
 }
 
 function titleText(value) {
@@ -511,6 +517,7 @@ export class ClientReportsService {
     ).get(params);
     if (!client) throw notFound("Client not found");
     if (client.branchId) tenantService.assertBranchAccess(access, client.branchId);
+    const clientProfile = { ...client, name: clientDisplayName(client) };
 
     const metrics = normalizeStat(db.prepare(
       `${statsCte(branchId)}
@@ -660,7 +667,7 @@ export class ClientReportsService {
     const lapsedProfile = this.lapsed({ ...scopedReportQuery, minDays: 1, maxDays: 3650, limit: 200 }, access)
       .find((row) => String(row.id) === String(clientId));
     const client360Cards = buildClient360Cards({
-      client,
+      client: clientProfile,
       metrics,
       favoriteServices,
       invoices: allInvoices,
@@ -677,7 +684,7 @@ export class ClientReportsService {
     });
 
     return {
-      client,
+      client: clientProfile,
       metrics: {
         totalVisits: metrics.frequency,
         totalSpend: metrics.monetary,
@@ -847,7 +854,7 @@ export class ClientReportsService {
         return {
           id: `${client.id}-${occasion.type}`,
           clientId: client.id,
-          name: client.name,
+          name: clientDisplayName(client),
           phone: client.phone,
           email: client.email,
           branchId: client.branchId,
@@ -857,7 +864,7 @@ export class ClientReportsService {
           daysUntil: next.daysUntil
         };
       }).filter(Boolean);
-    }).sort((a, b) => a.daysUntil - b.daysUntil || a.name.localeCompare(b.name)).slice(0, limit);
+    }).sort((a, b) => a.daysUntil - b.daysUntil || String(a.name || "").localeCompare(String(b.name || ""))).slice(0, limit);
   }
 
   byService(query = {}, access = {}) {

@@ -1,29 +1,23 @@
-import { createHmac, createPublicKey, randomInt, randomUUID, verify as verifySignature } from "node:crypto";
+import { createHmac, randomInt, randomUUID } from "node:crypto";
 import { db, DEFAULT_TENANT_ID, tableHasColumn } from "../db.js";
 import { env } from "../config/env.js";
 import { badRequest, conflict, unauthorized } from "../utils/app-error.js";
 import { authService } from "./auth.service.js";
+import { verifyCustomerFirebaseIdToken } from "./firebase-admin.service.js";
 import { ensureCustomerAuthSchema } from "./customer-auth-schema.service.js";
 import { jobQueueService } from "./job-queue.service.js";
 import { tenantService } from "./tenant.service.js";
 import { whatsappAutomationService } from "./whatsapp-automation.service.js";
 
-const FIREBASE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
 const CODE_TTL_MINUTES = 10;
 const CODE_RESEND_SECONDS = 30;
 const MAX_CODE_ATTEMPTS = 5;
-let firebaseCertCache = { expiresAt: 0, certs: {} };
-
 ensureCustomerAuthSchema();
 
 function hashToken(token) {
   return createHmac("sha256", env.jwtSecret).update(String(token || "")).digest("hex");
-}
-
-function base64UrlJson(value = "") {
-  return JSON.parse(Buffer.from(String(value), "base64url").toString("utf8"));
 }
 
 function phoneDigits(value = "") {
@@ -50,23 +44,28 @@ function splitName(name = "") {
 
 function rowToCustomer(row = {}) {
   const { firstName, lastName } = splitName(row.name || "");
+  const firebaseUid = row.firebaseUid || row.firebase_uid || "";
   const hasCompleteProfile = Boolean(firstName && lastName && row.email && row.phone);
   return {
     id: row.id,
+    uid: firebaseUid,
     name: row.name || "",
+    displayName: row.name || "",
     firstName,
     lastName,
     phone: row.phone || "",
+    phoneNumber: row.phone || "",
     email: row.email || "",
-    firebaseUid: row.firebaseUid || row.firebase_uid || "",
+    firebaseUid,
     authProvider: row.authProvider || row.auth_provider || "",
     isLoggedIn: true,
     bookingCount: Number(row.visitCount || 0),
     loyaltyPoints: Number(row.loyaltyPoints || 0),
     profileComplete: hasCompleteProfile,
     createdAt: row.createdAt || "",
-    phoneVerifiedAt: row.phone ? row.updatedAt || row.createdAt || "" : "",
-    emailVerifiedAt: row.email ? row.updatedAt || row.createdAt || "" : ""
+    lastLoginAt: row.lastLoginAt || row.last_login_at || "",
+    phoneVerifiedAt: row.phoneVerifiedAt || (row.phone ? row.updatedAt || row.createdAt || "" : ""),
+    emailVerifiedAt: row.emailVerifiedAt || (row.email ? row.updatedAt || row.createdAt || "" : "")
   };
 }
 
@@ -99,22 +98,37 @@ function defaultBranchId(tenantId, preferredBranchId = "") {
 }
 
 function findClient({ tenantId, firebaseUid = "", email = "", phone = "" }) {
-  const tenantClause = clientWhereClause();
-  if (firebaseUid && tableHasColumn("clients", "firebaseUid")) {
-    const row = db.prepare(`SELECT * FROM clients WHERE ${tenantClause}firebaseUid = @firebaseUid LIMIT 1`).get({ tenantId, firebaseUid });
-    if (row) return row;
-  }
-  if (email) {
-    const row = db.prepare(`SELECT * FROM clients WHERE ${tenantClause}LOWER(COALESCE(email, '')) = @email LIMIT 1`).get({ tenantId, email });
-    if (row) return row;
-  }
-  if (phone) {
-    const last10 = phoneDigits(phone).slice(-10);
-    const rows = db.prepare(`SELECT * FROM clients WHERE ${tenantClause}COALESCE(phone, '') != ''`).all({ tenantId });
-    const row = rows.find((item) => phoneDigits(item.phone).slice(-10) === last10);
-    if (row) return row;
-  }
-  return null;
+  return findClientByFirebaseUid(tenantId, firebaseUid)
+    || findClientByEmail(tenantId, email)
+    || findClientByPhone(tenantId, phone);
+}
+
+function findClientByFirebaseUid(tenantId, firebaseUid = "") {
+  if (!firebaseUid || !tableHasColumn("clients", "firebaseUid")) return null;
+  return db.prepare("SELECT * FROM clients WHERE " + clientWhereClause() + "firebaseUid = @firebaseUid LIMIT 1").get({ tenantId, firebaseUid }) || null;
+}
+
+function findClientByEmail(tenantId, email = "") {
+  if (!email) return null;
+  return db.prepare("SELECT * FROM clients WHERE " + clientWhereClause() + "LOWER(COALESCE(email, '')) = @email LIMIT 1").get({ tenantId, email }) || null;
+}
+
+function findClientByPhone(tenantId, phone = "") {
+  const last10 = phoneDigits(phone).slice(-10);
+  if (!last10) return null;
+  const rows = db.prepare("SELECT * FROM clients WHERE " + clientWhereClause() + "COALESCE(phone, '') != ''").all({ tenantId });
+  return rows.find((item) => phoneDigits(item.phone).slice(-10) === last10) || null;
+}
+
+function resolveFirebaseClient({ tenantId, firebaseUid = "", email = "", phone = "" }) {
+  const byUid = findClientByFirebaseUid(tenantId, firebaseUid);
+  const byEmail = findClientByEmail(tenantId, email);
+  const byPhone = findClientByPhone(tenantId, phone);
+  const primary = byUid || byPhone || byEmail || null;
+  if (byUid && byEmail && byUid.id !== byEmail.id) throw conflict("This email is already linked to another customer account.");
+  if (byUid && byPhone && byUid.id !== byPhone.id) throw conflict("This mobile number is already linked to another customer account.");
+  if (byEmail && byPhone && byEmail.id !== byPhone.id) throw conflict("This mobile number is already linked to another customer account.");
+  return primary;
 }
 
 function insertClient({ tenantId, branchId, name, email, phone, firebaseUid, provider }) {
@@ -146,6 +160,9 @@ function insertClient({ tenantId, branchId, name, email, phone, firebaseUid, pro
   setColumn(row, "tenantId", tenantId);
   setColumn(row, "firebaseUid", firebaseUid);
   setColumn(row, "authProvider", provider);
+  setColumn(row, "lastLoginAt", stamp);
+  setColumn(row, "phoneVerifiedAt", phone ? stamp : "");
+  setColumn(row, "emailVerifiedAt", email ? stamp : "");
   setColumn(row, "preferences", JSON.stringify({ accountCreatedNotifiedAt: "" }));
   const columns = Object.keys(row).filter((column) => tableHasColumn("clients", column));
   db.prepare(`INSERT INTO clients (${columns.join(", ")}) VALUES (${columns.map((column) => `@${column}`).join(", ")})`).run(row);
@@ -153,12 +170,22 @@ function insertClient({ tenantId, branchId, name, email, phone, firebaseUid, pro
 }
 
 function updateClient(existing, { name, email, phone, firebaseUid, provider }) {
-  const updates = { updatedAt: now() };
+  const stamp = now();
+  const updates = { updatedAt: stamp };
   if (name && (!existing.name || existing.name === "Customer")) updates.name = name;
-  if (email && !existing.email) updates.email = email;
-  if (phone && !existing.phone) updates.phone = phone;
+  if (email && !existing.email) {
+    updates.email = email;
+    setColumn(updates, "emailVerifiedAt", stamp);
+  }
+  if (phone && !existing.phone) {
+    updates.phone = phone;
+    setColumn(updates, "phoneVerifiedAt", stamp);
+  }
+  if (email && existing.email && cleanEmail(existing.email) === email) setColumn(updates, "emailVerifiedAt", existing.emailVerifiedAt || stamp);
+  if (phone && existing.phone && phoneDigits(existing.phone).slice(-10) === phoneDigits(phone).slice(-10)) setColumn(updates, "phoneVerifiedAt", existing.phoneVerifiedAt || stamp);
   setColumn(updates, "firebaseUid", firebaseUid || existing.firebaseUid || "");
   setColumn(updates, "authProvider", provider || existing.authProvider || "");
+  setColumn(updates, "lastLoginAt", stamp);
   const columns = Object.keys(updates).filter((column) => tableHasColumn("clients", column));
   if (columns.length) {
     db.prepare(`UPDATE clients SET ${columns.map((column) => `${column} = @${column}`).join(", ")} WHERE ${clientWhereClause()}id = @id`).run({
@@ -342,29 +369,22 @@ function queueAccountCreatedNotifications(customer, tenant, access) {
   return { queued: queued.length > 0, channels: queued };
 }
 
-async function firebaseCerts() {
-  if (firebaseCertCache.expiresAt > Date.now()) return firebaseCertCache.certs;
-  const response = await fetch(FIREBASE_CERTS_URL);
-  if (!response.ok) throw unauthorized("Unable to verify Firebase token");
-  const cacheControl = response.headers.get("cache-control") || "";
-  const maxAge = Number(cacheControl.match(/max-age=(\d+)/)?.[1] || 3600);
-  firebaseCertCache = { expiresAt: Date.now() + maxAge * 1000, certs: await response.json() };
-  return firebaseCertCache.certs;
+function canonicalFirebaseProvider(value = "") {
+  const provider = String(value || "").toLowerCase();
+  if (provider === "google.com" || provider === "google") return "google";
+  if (provider === "facebook.com" || provider === "facebook") return "facebook";
+  if (provider === "phone") return "phone";
+  if (provider === "password") return "password";
+  if (provider === "apple.com" || provider === "apple") return "apple";
+  return provider || "firebase";
 }
 
-async function verifyFirebaseIdToken(idToken) {
-  const parts = String(idToken || "").split(".");
-  if (parts.length !== 3) throw unauthorized("Firebase token is malformed");
-  const header = base64UrlJson(parts[0]);
-  const payload = base64UrlJson(parts[1]);
-  const projectId = process.env.CUSTOMER_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "aurashineclient";
-  if (payload.aud !== projectId || payload.iss !== `https://securetoken.google.com/${projectId}`) throw unauthorized("Firebase token audience is invalid");
-  if (!payload.sub || Number(payload.exp || 0) <= Math.floor(Date.now() / 1000)) throw unauthorized("Firebase token is expired");
-  const cert = (await firebaseCerts())[header.kid];
-  if (!cert) throw unauthorized("Firebase token key is unknown");
-  const verified = verifySignature("RSA-SHA256", Buffer.from(`${parts[0]}.${parts[1]}`), createPublicKey(cert), Buffer.from(parts[2], "base64url"));
-  if (!verified) throw unauthorized("Firebase token signature is invalid");
-  return payload;
+function assertFirebaseIdentity(decoded = {}, provider = "") {
+  if (!(decoded.uid || decoded.sub)) throw unauthorized("Firebase token is missing a user id");
+  if (provider === "phone" && !decoded.phone_number) throw unauthorized("Firebase phone number is required");
+  if ((provider === "google" || provider === "facebook" || provider === "password") && !decoded.email && !decoded.phone_number) {
+    throw unauthorized("Firebase token is missing customer identity details");
+  }
 }
 
 function issueCustomerSession({ tenant, customer, provider, device = {} }) {
@@ -494,15 +514,17 @@ export const customerAuthService = {
 
   async exchangeFirebaseToken(payload = {}, request = {}) {
     const tenant = resolveCustomerTenant(payload, request);
-    const decoded = await verifyFirebaseIdToken(payload.idToken);
-    const provider = payload.provider || decoded.firebase?.sign_in_provider || "firebase";
+    const decoded = await verifyCustomerFirebaseIdToken(payload.idToken);
+    const firebaseUid = String(decoded.uid || decoded.sub || "");
+    const provider = canonicalFirebaseProvider(decoded.firebase?.sign_in_provider || payload.provider || "firebase");
+    assertFirebaseIdentity(decoded, provider);
     const email = cleanEmail(decoded.email || "");
-    const phone = normalizePhone(decoded.phone_number || payload.phone || "");
+    const phone = normalizePhone(decoded.phone_number || "");
     const name = decoded.name || payload.name || email || phone || "Customer";
-    const existing = findClient({ tenantId: tenant.id, firebaseUid: decoded.sub, email, phone });
+    const existing = resolveFirebaseClient({ tenantId: tenant.id, firebaseUid, email, phone });
     const customer = existing
-      ? updateClient(existing, { name, email, phone, firebaseUid: decoded.sub, provider })
-      : insertClient({ tenantId: tenant.id, branchId: payload.branchId || request.branchId || "", name, email, phone, firebaseUid: decoded.sub, provider });
+      ? updateClient(existing, { name, email, phone, firebaseUid, provider })
+      : insertClient({ tenantId: tenant.id, branchId: payload.branchId || request.branchId || "", name, email, phone, firebaseUid, provider });
     customer.isNewCustomer = !existing;
     if (customer.isNewCustomer) {
       queueAccountCreatedNotifications(rowToCustomer(customer), tenant, { tenantId: tenant.id, role: "owner", userId: "customer-auth", branchId: customer.branchId || "", branchIds: customer.branchId ? [customer.branchId] : [] });

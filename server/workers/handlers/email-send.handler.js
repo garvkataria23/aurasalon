@@ -38,7 +38,9 @@ export async function run(job) {
   if (!recipient) return { success: true, skipped: true, reason: "missing_email_recipient" };
 
   const subject = payload.subject || `Aura Salon update${invoice?.invoice_no || invoice?.invoiceNumber ? ` - ${invoice.invoice_no || invoice.invoiceNumber}` : ""}`;
-  const message = payload.message || payload.body || `${subject}\n\nThis email is queued for ${recipient}.`;
+  const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
+  const attachmentLine = attachments.length ? `\n\nAttachments: ${attachments.map((item) => item.filename || "report.pdf").join(", ")}` : "";
+  const message = `${payload.message || payload.body || `${subject}\n\nThis email is queued for ${recipient}.`}${attachmentLine}`;
   const notificationId = id("email");
   db.prepare(
     `INSERT INTO notifications (id, clientId, type, channel, message, status, createdAt)
@@ -58,7 +60,7 @@ export async function run(job) {
     branchId: payload.branchId || invoice?.branch_id || invoice?.branchId || "",
     entityType: payload.invoiceId || payload.invoice_id ? "invoice" : "notification",
     entityId: payload.invoiceId || payload.invoice_id || notificationId,
-    details: JSON.stringify({ to: recipient, subject, notificationId })
+    details: JSON.stringify({ to: recipient, subject, notificationId, attachments: attachments.map((item) => ({ filename: item.filename, contentType: item.contentType })) })
   });
   return { success: true, notificationId, recipient, status: "queued" };
 }

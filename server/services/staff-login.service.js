@@ -20,7 +20,7 @@ function parseJsonArray(value) {
 }
 
 function normalizeLoginId(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
 }
 
 function hashPassword(password) {

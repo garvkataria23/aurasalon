@@ -61,6 +61,38 @@ securityRouter.get(
   })
 );
 
+securityRouter.get(
+  "/security/user-management",
+  requirePermission("read", () => "security"),
+  asyncHandler((req, res) => {
+    res.json(securityService.userManagement(req.access));
+  })
+);
+
+securityRouter.post(
+  "/security/users",
+  requirePermission("write", () => "security"),
+  asyncHandler((req, res) => {
+    res.status(201).json(securityService.createTenantUser(req.body, req.access, req));
+  })
+);
+
+securityRouter.patch(
+  "/security/users/:id",
+  requirePermission("write", () => "security"),
+  asyncHandler((req, res) => {
+    res.json(securityService.updateTenantUser(req.params.id, req.body, req.access, req));
+  })
+);
+
+securityRouter.delete(
+  "/security/users/:id",
+  requirePermission("write", () => "security"),
+  asyncHandler((req, res) => {
+    res.json(securityService.disableTenantUser(req.params.id, req.access, req));
+  })
+);
+
 securityRouter.post(
   "/security/roles",
   requirePermission("write", () => "security"),

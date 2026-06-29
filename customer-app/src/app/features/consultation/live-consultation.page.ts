@@ -18,10 +18,9 @@ import {
   shieldCheckmarkOutline,
   sparklesOutline
 } from "ionicons/icons";
-import { Business, LiveConsultationBusinessContext, LiveConsultationPhoto, LiveConsultationResponse } from "../../core/api.types";
+import { Business, LiveConsultationBusinessContext, LiveConsultationPhoto, LiveConsultationProblemProfile, LiveConsultationResponse } from "../../core/api.types";
 import { CustomerApiService } from "../../core/customer-api.service";
 import { MarketplaceService } from "../../core/marketplace.service";
-import { BusinessCardComponent } from "../../shared/business-card.component";
 
 interface ConsultationChatMessage {
   role: "customer" | "assistant";
@@ -30,84 +29,250 @@ interface ConsultationChatMessage {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink, IonButton, IonContent, IonIcon, IonTextarea, BusinessCardComponent],
+  imports: [FormsModule, RouterLink, IonButton, IonContent, IonIcon, IonTextarea],
   template: `
     <ion-content>
-      <main class="page consultation-page">
-        <section class="consultation-hero">
-          <button type="button" class="back-button" routerLink="/tabs/home" aria-label="Back to home">
-            <ion-icon name="arrow-back-outline"></ion-icon>
-          </button>
-          <div class="hero-copy">
-            <p class="eyebrow">Aura Shine live consultation</p>
-            <h1 class="page-title">Chat, upload photos, and get the right salon plan</h1>
-            <p class="muted">Groq-powered guidance now, Gemini-ready later. Aura uses your concern, photo context, goals, location and live marketplace data to suggest salons, services, prep and booking next steps.</p>
-            <div class="hero-actions">
-              <ion-button class="primary-gradient" (click)="focusComposer()">
-                <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-                Start consult
-              </ion-button>
-              <ion-button fill="outline" class="secondary-button" (click)="useCurrentLocation()" [disabled]="locating()">
-                <ion-icon name="navigate-outline" slot="start"></ion-icon>
-                {{ locating() ? "Detecting" : "Use location" }}
-              </ion-button>
+      <main class="page consultation-page chat-page">
+        <section class="chat-bot-shell premium-card">
+          <header class="chat-bot-header">
+            <button type="button" class="back-button" routerLink="/tabs/home" aria-label="Back to home">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <div class="bot-mark" aria-hidden="true">
+              <ion-icon name="sparkles-outline"></ion-icon>
             </div>
-          </div>
-          <aside class="hero-panel premium-card">
-            <span><ion-icon name="sparkles-outline"></ion-icon> {{ providerLabel() }}</span>
-            <strong>{{ matchedBusinesses().length }} salons in context</strong>
-            <small>{{ areaLabel() }} · {{ consultationPhotos().length }} photo{{ consultationPhotos().length === 1 ? "" : "s" }} attached</small>
-          </aside>
-        </section>
+            <div class="chat-title">
+              <p class="eyebrow">Powered by AuraShine</p>
+              <h1>Aura Consult</h1>
+              <span>{{ areaLabel() }} · {{ matchedBusinesses().length }} salons in context · {{ consultationPhotos().length }} photo{{ consultationPhotos().length === 1 ? "" : "s" }}</span>
+            </div>
+            <button type="button" class="location-chip" (click)="useCurrentLocation()" [disabled]="locating()">
+              <ion-icon name="navigate-outline"></ion-icon>
+              {{ locating() ? "Detecting" : areaLabel() }}
+            </button>
+          </header>
 
-        <section class="consultation-shell">
-          <article class="consultation-workspace premium-card">
-            <header class="panel-header">
-              <div>
-                <p class="eyebrow">Live chat</p>
-                <h2>Tell Aura what you need</h2>
-              </div>
-              <button type="button" class="location-chip" (click)="useCurrentLocation()">
-                <ion-icon name="location-outline"></ion-icon>
-                {{ areaLabel() }}
+          <div class="goal-grid" aria-label="Quick consultation prompts">
+            @for (goal of consultationGoals; track goal) {
+              <button type="button" [class.active]="selectedConsultationGoals().includes(goal)" (click)="toggleGoal(goal)">
+                {{ goal }}
               </button>
-            </header>
+            }
+          </div>
 
-            <div class="goal-grid" aria-label="Consultation goals">
-              @for (goal of consultationGoals; track goal) {
-                <button type="button" [class.active]="selectedConsultationGoals().includes(goal)" (click)="toggleGoal(goal)">
-                  {{ goal }}
-                </button>
-              }
-            </div>
+          <section class="chat-thread" aria-live="polite">
+            @for (message of consultationMessages(); track message.role + message.text) {
+              <div class="chat-message" [class.customer]="message.role === 'customer'">
+                <strong>{{ message.role === "customer" ? "You" : "Aura AI" }}</strong>
+                <span>{{ message.text }}</span>
+              </div>
+            }
 
-            <div class="chat-thread" aria-live="polite">
-              @for (message of consultationMessages(); track message.role + message.text) {
-                <div class="chat-message" [class.customer]="message.role === 'customer'">
-                  <strong>{{ message.role === "customer" ? "You" : "Aura AI" }}</strong>
-                  <span>{{ message.text }}</span>
+            @if (!consultationResponse() && matchedBusinesses().length) {
+              <div class="chat-message system-message">
+                <strong>Nearby context</strong>
+                <span>I can use {{ matchedBusinesses().length }} salon profiles near {{ areaLabel() }} while planning.</span>
+                <div class="compact-cards">
+                  @for (business of matchedBusinesses().slice(0, 3); track business.id) {
+                    <button type="button" (click)="openBusiness(business.slug)">
+                      <b>{{ business.businessName }}</b>
+                      <small>{{ locationLine(business) }} · {{ money(business.startingPricePaise) }}</small>
+                    </button>
+                  }
                 </div>
-              }
-            </div>
+              </div>
+            }
 
-            <label class="composer-label" id="consultation-composer">
-              Consultation details
+            @if (consultationResponse(); as response) {
+              <div class="chat-message plan-message">
+                <strong>Aura plan</strong>
+                @if (response.providerWarning) {
+                  <span class="notice-text">{{ response.providerWarning }}</span>
+                }
+                <span class="answer-copy">{{ response.answer }}</span>
+
+                <div class="consult-summary-grid">
+                  <article>
+                    <span>Concern</span>
+                    <strong>{{ response.concernSummary || consultationText || "Beauty consultation" }}</strong>
+                  </article>
+                  <article>
+                    <span>Stage</span>
+                    <strong>{{ response.consultationStage || "Planning" }}</strong>
+                  </article>
+                  <article>
+                    <span>Confidence</span>
+                    <strong>{{ response.confidence || "Needs confirmation" }}</strong>
+                  </article>
+                </div>
+
+                @if (response.missingInfo?.length) {
+                  <div class="suggested-replies" aria-label="Aura needs">
+                    @for (item of response.missingInfo; track item) {
+                      <button type="button" (click)="appendPrompt(item)">{{ item }}</button>
+                    }
+                  </div>
+                }
+
+                @if (response.suggestedReplies?.length) {
+                  <div class="suggested-replies" aria-label="Suggested replies">
+                    @for (reply of response.suggestedReplies; track reply) {
+                      <button type="button" (click)="sendSuggestedReply(reply)">{{ reply }}</button>
+                    }
+                  </div>
+                }
+
+                <details class="plan-details">
+                  <summary>View full plan</summary>
+                  <div class="result-grid">
+                    @if (response.visualAssessment?.length) {
+                      <section>
+                        <h3><ion-icon name="camera-outline"></ion-icon> Visual read</h3>
+                        <ul>
+                          @for (item of response.visualAssessment; track item) {
+                            <li>{{ item }}</li>
+                          }
+                        </ul>
+                      </section>
+                    }
+                    @if (response.hairPlan?.length) {
+                      <section>
+                        <h3><ion-icon name="sparkles-outline"></ion-icon> Service call</h3>
+                        <ul>
+                          @for (item of response.hairPlan; track item) {
+                            <li>{{ item }}</li>
+                          }
+                        </ul>
+                      </section>
+                    }
+                    <section>
+                      <h3><ion-icon name="checkmark-circle-outline"></ion-icon> Action plan</h3>
+                      <ol>
+                        @for (step of response.actionPlan; track step) {
+                          <li>{{ step }}</li>
+                        }
+                      </ol>
+                    </section>
+                    <section>
+                      <h3><ion-icon name="location-outline"></ion-icon> Location</h3>
+                      <ul>
+                        @for (item of response.locationInsights; track item) {
+                          <li>{{ item }}</li>
+                        }
+                      </ul>
+                    </section>
+                    @if (response.preparationChecklist?.length) {
+                      <section>
+                        <h3><ion-icon name="shield-checkmark-outline"></ion-icon> Before visit</h3>
+                        <ul>
+                          @for (item of response.preparationChecklist; track item) {
+                            <li>{{ item }}</li>
+                          }
+                        </ul>
+                      </section>
+                    }
+                    @if (response.afterCare?.length) {
+                      <section>
+                        <h3><ion-icon name="checkmark-circle-outline"></ion-icon> After-care</h3>
+                        <ul>
+                          @for (item of response.afterCare; track item) {
+                            <li>{{ item }}</li>
+                          }
+                        </ul>
+                      </section>
+                    }
+                    @if (response.budgetInsights?.length) {
+                      <section>
+                        <h3><ion-icon name="compass-outline"></ion-icon> Budget fit</h3>
+                        <ul>
+                          @for (item of response.budgetInsights; track item) {
+                            <li>{{ item }}</li>
+                          }
+                        </ul>
+                      </section>
+                    }
+                    <section>
+                      <h3><ion-icon name="chatbubbles-outline"></ion-icon> Follow-up</h3>
+                      <ul>
+                        @for (question of response.followUpQuestions; track question) {
+                          <li>{{ question }}</li>
+                        }
+                      </ul>
+                    </section>
+                    <section>
+                      <h3><ion-icon name="shield-checkmark-outline"></ion-icon> Safety</h3>
+                      <p>{{ response.safetyNote }}</p>
+                    </section>
+                  </div>
+                </details>
+
+                @if (response.recommendedSalons.length) {
+                  <div class="compact-cards">
+                    @for (salon of response.recommendedSalons.slice(0, 3); track salon.slug || salon.businessName) {
+                      <button type="button" (click)="openBusiness(salon.slug)">
+                        <b>{{ salon.businessName }}</b>
+                        <small>{{ salon.location }}{{ salon.distanceKm ? " · " + salon.distanceKm + " km" : "" }}</small>
+                      </button>
+                    }
+                  </div>
+                }
+
+                @if (response.recommendedServices.length) {
+                  <div class="compact-cards">
+                    @for (service of response.recommendedServices.slice(0, 3); track service.name + service.businessName) {
+                      <button type="button" (click)="openBusiness(service.slug)">
+                        <b>{{ service.name }}</b>
+                        <small>{{ service.businessName }} · {{ service.priceLabel }}</small>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </section>
+
+          <section class="composer-card" id="consultation-composer">
+            <label class="composer-label">
+              <span>Message Aura</span>
               <ion-textarea
-                rows="6"
+                rows="3"
                 autoGrow="true"
                 [(ngModel)]="consultationText"
-                placeholder="Example: I need hair color correction before a wedding next week. Budget INR 4000. Prefer nearby salons and safe patch-test advice.">
+                placeholder="Ask about hair, skin, nails, spa, budget, timing, allergy, or upload a photo.">
               </ion-textarea>
             </label>
 
-            <div class="photo-uploader">
-              <input #photoInput type="file" accept="image/*" multiple hidden (change)="addPhotos($event)" />
-              <button type="button" class="upload-button" (click)="photoInput.click()">
-                <ion-icon name="camera-outline"></ion-icon>
-                Add photos
-              </button>
-              <span>Up to 5 images, 2 MB each</span>
-            </div>
+            <details class="chat-options">
+              <summary>Details, budget and safety</summary>
+              <section class="problem-grid" aria-label="Consultation problem details">
+                <label>
+                  <span>Time / event</span>
+                  <input [(ngModel)]="problemProfile.timeframe" placeholder="Today, weekend, wedding" />
+                </label>
+                <label>
+                  <span>Budget</span>
+                  <input [(ngModel)]="problemProfile.budget" placeholder="Under INR 5000" />
+                </label>
+                <label>
+                  <span>History</span>
+                  <input [(ngModel)]="problemProfile.history" placeholder="Color, keratin, acne actives" />
+                </label>
+                <label>
+                  <span>Sensitivity</span>
+                  <input [(ngModel)]="problemProfile.sensitivities" placeholder="Allergy, itch, pregnancy, none" />
+                </label>
+              </section>
+              <div class="context-list compact-context">
+                @for (item of contextItems; track item.title) {
+                  <div>
+                    <ion-icon [name]="item.icon"></ion-icon>
+                    <span><strong>{{ item.title }}</strong><small>{{ item.copy }}</small></span>
+                  </div>
+                }
+              </div>
+            </details>
+
+            <input #photoInput type="file" accept="image/*" multiple hidden (change)="addPhotos($event)" />
 
             @if (consultationPhotos().length) {
               <div class="photo-strip" aria-label="Attached consultation photos">
@@ -130,179 +295,54 @@ interface ConsultationChatMessage {
             <footer class="workspace-actions">
               <ion-button class="primary-gradient" (click)="sendConsultation()" [disabled]="consultationLoading()">
                 <ion-icon name="sparkles-outline" slot="start"></ion-icon>
-                {{ consultationLoading() ? "Consulting" : "Get salon plan" }}
+                {{ consultationLoading() ? "Thinking" : consultationResponse() ? "Send" : "Ask Aura" }}
               </ion-button>
+              <button type="button" class="upload-button" (click)="photoInput.click()">
+                <ion-icon name="camera-outline"></ion-icon>
+                Photos
+              </button>
               <ion-button fill="outline" class="secondary-button" routerLink="/tabs/search">
                 <ion-icon name="search-outline" slot="start"></ion-icon>
                 Discover
               </ion-button>
             </footer>
-          </article>
-
-          <aside class="consultation-side">
-            <section class="premium-card context-card">
-              <p class="eyebrow">A to Z context</p>
-              <h2>What Aura checks</h2>
-              <div class="context-list">
-                @for (item of contextItems; track item.title) {
-                  <div>
-                    <ion-icon [name]="item.icon"></ion-icon>
-                    <span>
-                      <strong>{{ item.title }}</strong>
-                      <small>{{ item.copy }}</small>
-                    </span>
-                  </div>
-                }
-              </div>
-            </section>
-
-            <section class="premium-card context-card">
-              <p class="eyebrow">Nearby salon context</p>
-              <h2>{{ matchedBusinesses().length }} matched places</h2>
-              <div class="mini-salon-list">
-                @for (business of matchedBusinesses().slice(0, 4); track business.id) {
-                  <button type="button" (click)="openBusiness(business.slug)">
-                    <strong>{{ business.businessName }}</strong>
-                    <small>{{ locationLine(business) }} · {{ money(business.startingPricePaise) }}</small>
-                    <ion-icon name="chevron-forward-outline"></ion-icon>
-                  </button>
-                } @empty {
-                  <p class="muted">Marketplace data is loading. Consultation still works with your message and photos.</p>
-                }
-              </div>
-            </section>
-          </aside>
-        </section>
-
-        @if (consultationResponse(); as response) {
-          <section class="results-panel premium-card">
-            <header class="panel-header">
-              <div>
-                <p class="eyebrow">{{ response.mode === "groq" ? "Groq AI result" : "Smart local result" }}</p>
-                <h2>Your consultation plan</h2>
-              </div>
-              <span class="result-id">{{ response.consultationId }}</span>
-            </header>
-            @if (response.providerWarning) {
-              <p class="notice-text inline-notice">{{ response.providerWarning }}</p>
-            }
-            <p class="answer-copy">{{ response.answer }}</p>
-            <div class="result-grid">
-              <section>
-                <h3><ion-icon name="checkmark-circle-outline"></ion-icon> Action plan</h3>
-                <ol>
-                  @for (step of response.actionPlan; track step) {
-                    <li>{{ step }}</li>
-                  }
-                </ol>
-              </section>
-              <section>
-                <h3><ion-icon name="location-outline"></ion-icon> Location details</h3>
-                <ul>
-                  @for (item of response.locationInsights; track item) {
-                    <li>{{ item }}</li>
-                  }
-                </ul>
-              </section>
-              <section>
-                <h3><ion-icon name="chatbubbles-outline"></ion-icon> Follow-up questions</h3>
-                <ul>
-                  @for (question of response.followUpQuestions; track question) {
-                    <li>{{ question }}</li>
-                  }
-                </ul>
-              </section>
-              <section>
-                <h3><ion-icon name="shield-checkmark-outline"></ion-icon> Safety</h3>
-                <p>{{ response.safetyNote }}</p>
-              </section>
-            </div>
           </section>
-
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Recommended salons</p>
-              <h2 class="section-title">Best matches for this consult</h2>
-            </div>
-          </div>
-          <div class="recommendation-grid">
-            @for (salon of response.recommendedSalons; track salon.slug || salon.businessName) {
-              <article class="recommendation-card premium-card">
-                <span>{{ salon.openStatus || "Check slots" }}</span>
-                <h3>{{ salon.businessName }}</h3>
-                <p>{{ salon.reason }}</p>
-                <small>{{ salon.location }}{{ salon.distanceKm ? " · " + salon.distanceKm + " km" : "" }}</small>
-                <ion-button size="small" class="primary-gradient" (click)="openBusiness(salon.slug)">
-                  View salon
-                </ion-button>
-              </article>
-            }
-          </div>
-
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Recommended services</p>
-              <h2 class="section-title">Service plan</h2>
-            </div>
-          </div>
-          <div class="service-grid">
-            @for (service of response.recommendedServices; track service.name + service.businessName) {
-              <article class="service-plan-card premium-card">
-                <strong>{{ service.name }}</strong>
-                <span>{{ service.businessName }}</span>
-                <small>{{ service.priceLabel }} · {{ service.durationLabel }}</small>
-                <p>{{ service.reason }}</p>
-                <button type="button" (click)="openBusiness(service.slug)">
-                  Check availability
-                  <ion-icon name="chevron-forward-outline"></ion-icon>
-                </button>
-              </article>
-            }
-          </div>
-        }
-
-        @if (!consultationResponse()) {
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Live marketplace</p>
-              <h2 class="section-title">Salons Aura can recommend</h2>
-            </div>
-          </div>
-          <div class="business-grid recommended">
-            @for (business of matchedBusinesses().slice(0, 6); track business.id) {
-              <aura-business-card [business]="business" [userLocation]="currentLocation()"></aura-business-card>
-            }
-          </div>
-        }
+        </section>
       </main>
     </ion-content>
   `,
   styles: [`
     .consultation-page {
-      display: grid;
-      gap: 22px;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding-bottom: 96px;
     }
 
-    .consultation-hero {
-      position: relative;
+    .chat-bot-shell {
       display: grid;
-      gap: 22px;
-      min-height: 430px;
-      padding: 28px;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 12px;
+      height: min(780px, calc(100vh - 142px));
+      min-height: 620px;
+      padding: 16px;
       overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      background:
-        radial-gradient(circle at 10% 14%, rgba(214, 169, 74, 0.26), transparent 32%),
-        linear-gradient(135deg, rgba(255, 251, 241, 0.98), rgba(246, 228, 193, 0.94));
-      box-shadow: 0 28px 74px rgba(92, 65, 28, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255, 251, 241, 0.98), rgba(246, 228, 193, 0.92));
+    }
+
+    .chat-bot-header {
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(214, 169, 74, 0.18);
     }
 
     .back-button,
     .location-chip,
     .upload-button,
-    .mini-salon-list button,
-    .service-plan-card button {
+    .compact-cards button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -313,106 +353,83 @@ interface ConsultationChatMessage {
       font-weight: 900;
     }
 
-    .back-button {
-      width: 46px;
-      height: 46px;
+    .back-button,
+    .bot-mark {
+      width: 42px;
+      height: 42px;
       border-radius: 999px;
-      font-size: 1.25rem;
     }
 
-    .hero-copy {
+    .bot-mark {
       display: grid;
-      align-content: center;
-      gap: 16px;
-      max-width: 780px;
+      place-items: center;
+      color: #120D05;
+      background: linear-gradient(135deg, #F4D58D, #D6A94A);
+      box-shadow: 0 10px 24px rgba(214, 169, 74, 0.2);
     }
 
-    .hero-copy .muted {
-      max-width: 700px;
+    .chat-title {
+      min-width: 0;
+    }
+
+    .chat-title h1,
+    .chat-title p,
+    .chat-title span {
       margin: 0;
-      color: #7E6E55;
-      font-size: 1.06rem;
     }
 
-    .hero-actions,
-    .workspace-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    .chat-title h1 {
+      color: var(--text);
+      font-size: clamp(1.25rem, 2.2vw, 1.8rem);
+      line-height: 1;
+      letter-spacing: 0;
     }
 
-    .hero-panel {
-      align-self: end;
-      display: grid;
-      gap: 8px;
-      padding: 18px;
-    }
-
-    .hero-panel span {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--primary);
-      font-weight: 900;
-    }
-
-    .hero-panel strong {
-      font-size: 1.4rem;
-    }
-
-    .consultation-shell {
-      display: grid;
-      gap: 18px;
-    }
-
-    .consultation-workspace,
-    .context-card,
-    .results-panel {
-      display: grid;
-      gap: 16px;
-      padding: 18px;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 14px;
-    }
-
-    .panel-header h2,
-    .context-card h2,
-    .recommendation-card h3 {
-      margin: 0;
-      font-size: clamp(1.35rem, 2vw, 1.95rem);
-      line-height: 1.08;
+    .chat-title span {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .location-chip {
-      min-height: 42px;
+      min-height: 40px;
+      max-width: 240px;
       padding: 0 12px;
       border-radius: 999px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .goal-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
     }
 
-    .goal-grid button {
-      min-height: 46px;
-      padding: 10px 12px;
-      border: 1px solid rgba(214, 169, 74, 0.22);
-      border-radius: 16px;
+    .goal-grid button,
+    .suggested-replies button {
+      flex: 0 0 auto;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(214, 169, 74, 0.28);
+      border-radius: 999px;
       color: var(--text);
-      background: rgba(255, 249, 236, 0.92);
+      background: rgba(255, 249, 236, 0.9);
+      font-size: 0.82rem;
       font-weight: 900;
-      text-align: left;
+      white-space: nowrap;
     }
 
-    .goal-grid button.active {
+    .goal-grid button.active,
+    .suggested-replies button:hover {
       color: #120D05;
       border-color: transparent;
       background: linear-gradient(135deg, #F4D58D, #D6A94A 58%, #9B6B22);
@@ -420,95 +437,172 @@ interface ConsultationChatMessage {
 
     .chat-thread {
       display: grid;
-      gap: 10px;
-      max-height: 360px;
-      overflow: auto;
-      padding: 12px;
-      border: 1px solid rgba(214, 169, 74, 0.18);
-      border-radius: 22px;
-      background: rgba(255, 249, 236, 0.72);
+      align-content: start;
+      gap: 12px;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 14px;
+      border: 1px solid rgba(214, 169, 74, 0.16);
+      border-radius: 24px;
+      background: rgba(255, 249, 236, 0.62);
+      scroll-behavior: smooth;
     }
 
     .chat-message {
       justify-self: start;
       display: grid;
-      gap: 4px;
-      max-width: min(92%, 680px);
+      gap: 8px;
+      width: fit-content;
+      max-width: min(76%, 720px);
       padding: 12px 14px;
       border: 1px solid rgba(214, 169, 74, 0.2);
-      border-radius: 18px 18px 18px 6px;
+      border-radius: 20px 20px 20px 8px;
       color: var(--text);
-      background: rgba(255, 255, 255, 0.82);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 22px rgba(92, 65, 28, 0.06);
       font-weight: 800;
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
     .chat-message.customer {
       justify-self: end;
-      border-radius: 18px 18px 6px 18px;
+      border-color: transparent;
+      border-radius: 20px 20px 8px 20px;
       color: #120D05;
-      background: linear-gradient(135deg, rgba(244, 213, 141, 0.92), rgba(214, 169, 74, 0.7));
+      background: linear-gradient(135deg, rgba(244, 213, 141, 0.96), rgba(214, 169, 74, 0.72));
     }
 
     .chat-message strong {
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
 
+    .system-message,
+    .plan-message {
+      width: min(100%, 820px);
+      max-width: min(92%, 820px);
+    }
+
+    .answer-copy,
+    .result-grid p {
+      margin: 0;
+      color: var(--text);
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .composer-card {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(214, 169, 74, 0.18);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 -8px 28px rgba(92, 65, 28, 0.06);
+    }
+
     .composer-label {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       color: var(--text);
+      font-size: 0.84rem;
       font-weight: 900;
     }
 
     ion-textarea {
       --background: rgba(255, 249, 236, 0.94);
-      --border-radius: 20px;
+      --border-radius: 18px;
       --color: var(--text);
-      --placeholder-color: rgba(126, 110, 85, 0.66);
-      padding: 12px;
+      --placeholder-color: rgba(126, 110, 85, 0.64);
+      min-height: 82px;
+      padding: 8px;
       border: 1px solid rgba(214, 169, 74, 0.24);
-      border-radius: 20px;
+      border-radius: 18px;
     }
 
-    .photo-uploader {
+    .workspace-actions,
+    .photo-uploader,
+    .suggested-replies {
       display: flex;
       flex-wrap: wrap;
+      gap: 8px;
       align-items: center;
-      gap: 10px;
+    }
+
+    .workspace-actions ion-button,
+    .workspace-actions button {
+      min-height: 38px;
     }
 
     .upload-button {
-      min-height: 46px;
-      padding: 0 14px;
+      min-height: 38px;
+      padding: 0 13px;
       border-radius: 999px;
     }
 
-    .photo-uploader span,
-    .hero-panel small,
-    .result-id {
-      color: var(--muted);
-      font-size: 0.78rem;
+    .chat-options {
+      border: 1px solid rgba(214, 169, 74, 0.18);
+      border-radius: 18px;
+      background: rgba(255, 249, 236, 0.54);
+      padding: 8px 10px;
+    }
+
+    .chat-options summary,
+    .plan-details summary {
+      cursor: pointer;
+      color: var(--text);
+      font-size: 0.84rem;
       font-weight: 900;
     }
 
-    .photo-strip {
+    .problem-grid {
       display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: 92px;
-      gap: 10px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .problem-grid label {
+      display: grid;
+      gap: 5px;
+      color: #6f614b;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .problem-grid input {
+      min-height: 38px;
+      min-width: 0;
+      border: 1px solid rgba(214, 169, 74, 0.24);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text);
+      padding: 0 10px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      outline: none;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .photo-strip {
+      display: flex;
+      gap: 8px;
       overflow-x: auto;
     }
 
     .photo-strip button {
       position: relative;
-      height: 92px;
+      width: 64px;
+      height: 64px;
+      flex: 0 0 auto;
       padding: 0;
       overflow: hidden;
       border: 1px solid rgba(214, 169, 74, 0.24);
-      border-radius: 18px;
+      border-radius: 14px;
       background: rgba(255, 249, 236, 0.92);
     }
 
@@ -520,198 +614,207 @@ interface ConsultationChatMessage {
 
     .photo-strip ion-icon {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      padding: 4px;
+      top: 4px;
+      right: 4px;
+      padding: 3px;
       border-radius: 999px;
       color: #120D05;
       background: rgba(255, 249, 236, 0.9);
     }
 
-    .inline-notice {
+    .inline-notice,
+    .notice-text {
       margin: 0;
-      padding: 10px 12px;
-      border: 1px solid;
-      border-radius: 16px;
-      font-weight: 800;
-      line-height: 1.4;
-    }
-
-    .consultation-side {
-      display: grid;
-      gap: 14px;
-      align-content: start;
-    }
-
-    .context-list,
-    .mini-salon-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .context-list div {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 10px;
-      align-items: start;
-      padding: 12px;
-      border: 1px solid rgba(214, 169, 74, 0.18);
-      border-radius: 18px;
-      background: rgba(255, 249, 236, 0.72);
-    }
-
-    .context-list ion-icon {
-      width: 38px;
-      height: 38px;
-      padding: 9px;
+      padding: 8px 10px;
+      border: 1px solid rgba(214, 169, 74, 0.24);
       border-radius: 14px;
-      color: #120D05;
-      background: linear-gradient(135deg, #F4D58D, #D6A94A);
-    }
-
-    .context-list small,
-    .mini-salon-list small,
-    .recommendation-card small,
-    .service-plan-card small {
-      display: block;
-      color: var(--muted);
+      color: #7E5F17;
+      background: rgba(255, 242, 199, 0.72);
+      font-size: 0.84rem;
       font-weight: 800;
-      line-height: 1.42;
+      line-height: 1.35;
     }
 
-    .mini-salon-list button,
-    .service-plan-card button {
-      justify-content: space-between;
-      width: 100%;
-      min-height: 62px;
-      padding: 12px;
-      border-radius: 18px;
-      text-align: left;
-    }
-
-    .answer-copy {
-      margin: 0;
-      color: var(--text);
-      font-size: 1.03rem;
-      font-weight: 800;
-      line-height: 1.6;
-    }
-
+    .consult-summary-grid,
     .result-grid,
-    .recommendation-grid,
-    .service-grid {
+    .compact-cards,
+    .context-list {
       display: grid;
-      gap: 12px;
+      gap: 8px;
     }
 
+    .consult-summary-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .consult-summary-grid article,
     .result-grid section {
-      padding: 14px;
+      display: grid;
+      gap: 6px;
+      padding: 10px;
       border: 1px solid rgba(214, 169, 74, 0.18);
-      border-radius: 20px;
-      background: rgba(255, 249, 236, 0.72);
+      border-radius: 16px;
+      background: rgba(255, 249, 236, 0.74);
+    }
+
+    .consult-summary-grid span {
+      color: #7E6E55;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .consult-summary-grid strong {
+      color: var(--text);
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+
+    .plan-details {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid rgba(214, 169, 74, 0.18);
+      border-radius: 16px;
+      background: rgba(255, 249, 236, 0.52);
+    }
+
+    .result-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 10px;
     }
 
     .result-grid h3 {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin: 0 0 10px;
-      font-size: 1rem;
+      gap: 7px;
+      margin: 0;
+      font-size: 0.92rem;
     }
 
     .result-grid ol,
     .result-grid ul {
       margin: 0;
-      padding-left: 20px;
+      padding-left: 18px;
       color: var(--muted);
+      font-size: 0.86rem;
       font-weight: 800;
-      line-height: 1.5;
+      line-height: 1.42;
     }
 
-    .result-grid p,
-    .recommendation-card p,
-    .service-plan-card p {
-      margin: 0;
+    .compact-cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .compact-cards button {
+      justify-content: start;
+      min-height: 56px;
+      padding: 10px;
+      border-radius: 16px;
+      text-align: left;
+    }
+
+    .compact-cards b,
+    .compact-cards small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .compact-cards small,
+    .context-list small {
       color: var(--muted);
-      font-weight: 800;
-      line-height: 1.5;
-    }
-
-    .recommendation-card,
-    .service-plan-card {
-      display: grid;
-      gap: 10px;
-      padding: 16px;
-    }
-
-    .recommendation-card span,
-    .service-plan-card span {
-      width: fit-content;
-      padding: 5px 9px;
-      border-radius: 999px;
-      color: #120D05;
-      background: rgba(244, 213, 141, 0.78);
       font-size: 0.76rem;
-      font-weight: 900;
+      font-weight: 800;
+      line-height: 1.3;
     }
 
-    .business-grid {
+    .compact-context {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 10px;
+    }
+
+    .context-list div {
       display: grid;
-      gap: 14px;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      padding: 9px;
+      border: 1px solid rgba(214, 169, 74, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.62);
     }
 
-    @media (min-width: 860px) {
-      .consultation-hero {
-        grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    .context-list ion-icon {
+      width: 30px;
+      height: 30px;
+      padding: 7px;
+      border-radius: 12px;
+      color: #120D05;
+      background: linear-gradient(135deg, #F4D58D, #D6A94A);
+    }
+
+    .context-list strong {
+      display: block;
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 860px) {
+      .consultation-page {
+        padding: 0 12px 92px;
       }
 
-      .consultation-shell {
-        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-        align-items: start;
+      .chat-bot-shell {
+        height: calc(100vh - 104px);
+        min-height: 560px;
+        border-radius: 22px;
+        padding: 12px;
       }
 
-      .goal-grid,
+      .chat-bot-header {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+      }
+
+      .bot-mark {
+        display: none;
+      }
+
+      .location-chip {
+        max-width: 150px;
+      }
+
+      .chat-message,
+      .system-message,
+      .plan-message {
+        max-width: 94%;
+      }
+
+      .problem-grid,
+      .compact-context,
+      .consult-summary-grid,
       .result-grid,
-      .recommendation-grid,
-      .service-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .business-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
-
-    @media (min-width: 1280px) {
-      .goal-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .recommendation-grid,
-      .service-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+      .compact-cards {
+        grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 599px) {
-      .consultation-hero,
-      .consultation-workspace,
-      .context-card,
-      .results-panel {
-        padding: 16px;
+      .chat-bot-shell {
+        height: calc(100vh - 92px);
+        min-height: 520px;
       }
 
-      .panel-header {
-        display: grid;
+      .chat-title span,
+      .location-chip {
+        font-size: 0.76rem;
       }
 
-      .goal-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-actions ion-button,
-      .workspace-actions ion-button {
-        width: 100%;
+      .workspace-actions ion-button,
+      .workspace-actions button {
+        flex: 1 1 auto;
       }
     }
   `]
@@ -726,8 +829,9 @@ export class LiveConsultationPage implements OnInit {
   ];
 
   consultationText = "";
+  problemProfile: LiveConsultationProblemProfile = {};
   readonly currentLocation = signal<{ lat: number; lng: number } | null>(this.savedLocation());
-  readonly areaLabel = signal(localStorage.getItem("aura_customer_area_label") || "Near me");
+  readonly areaLabel = signal(this.savedAreaLabel());
   readonly locating = signal(false);
   readonly locationNotice = signal("");
   readonly selectedConsultationGoals = signal<string[]>(["Near me"]);
@@ -746,9 +850,9 @@ export class LiveConsultationPage implements OnInit {
     .slice(0, 12));
   readonly providerLabel = computed(() => {
     const response = this.consultationResponse();
-    if (response?.mode === "groq") return "Groq AI live";
-    if (response?.mode === "gemini") return "Gemini AI live";
-    return "AI consultation ready";
+    if (response?.mode === "openai") return "Powered by AuraShine";
+    if (response?.mode === "gemini") return "Powered by AuraShine";
+    return "Powered by AuraShine";
   });
 
   constructor(
@@ -837,17 +941,21 @@ export class LiveConsultationPage implements OnInit {
     }
     this.consultationLoading.set(true);
     this.consultationError.set("");
-    this.consultationMessages.update((items) => [...items, {
+    const customerTurn: ConsultationChatMessage = {
       role: "customer",
       text: message || `Need help with ${goals.join(", ")}`
-    }]);
+    };
+    const conversation = [...this.consultationMessages(), customerTurn].slice(-10);
+    this.consultationMessages.set(conversation);
     try {
       const response = await firstValueFrom(this.api.createLiveConsultation({
         message,
         goals,
         location: this.currentLocation() ? { ...this.currentLocation(), label: this.areaLabel() } : { label: this.areaLabel() },
         photos: this.consultationPhotos(),
-        businesses: this.consultationBusinessContext()
+        businesses: this.consultationBusinessContext(),
+        conversation,
+        problemProfile: this.normalizedProblemProfile(message)
       }));
       this.consultationResponse.set(response);
       this.consultationMessages.update((items) => [...items, { role: "assistant", text: response.answer }]);
@@ -859,6 +967,25 @@ export class LiveConsultationPage implements OnInit {
     }
   }
 
+
+  appendPrompt(text: string) {
+    const current = this.consultationText.trim();
+    this.consultationText = current ? `${current}\n${text}: ` : `${text}: `;
+    this.focusComposer();
+  }
+
+  async sendSuggestedReply(reply: string) {
+    this.consultationText = reply;
+    await this.sendConsultation();
+  }
+
+  private normalizedProblemProfile(message: string): LiveConsultationProblemProfile {
+    return {
+      ...this.problemProfile,
+      concern: message || this.problemProfile.concern || this.selectedConsultationGoals().join(", "),
+      desiredOutcome: this.selectedConsultationGoals().filter((goal) => goal !== "Near me").join(", ")
+    };
+  }
   useCurrentLocation() {
     if (!navigator.geolocation) {
       this.locationNotice.set("Location is not supported in this browser.");
@@ -872,8 +999,7 @@ export class LiveConsultationPage implements OnInit {
         const label = await this.resolveAreaLabel(coordinates);
         this.currentLocation.set(coordinates);
         this.areaLabel.set(label);
-        localStorage.setItem("aura_customer_area_label", label);
-        localStorage.setItem("aura_customer_location", JSON.stringify(coordinates));
+        this.persistCustomerLocation(coordinates, label);
         this.locating.set(false);
         this.locationNotice.set(`Using ${label} for salon, service and travel suggestions.`);
       },
@@ -953,12 +1079,46 @@ export class LiveConsultationPage implements OnInit {
     }
   }
 
-  private async resolveAreaLabel(coordinates: { lat: number; lng: number }): Promise<string> {
-    const nearest = this.nearestBusiness(coordinates);
-    if (nearest) return nearest.area || nearest.city || nearest.businessName;
-    return "Detected area";
+  private savedAreaLabel(): string {
+    try {
+      const label = (localStorage.getItem("aura_customer_area_label") || "").trim();
+      if (label && !["near me", "detected area"].includes(label.toLowerCase())) return label;
+    } catch {
+      // Fall through to the current coordinate label.
+    }
+    const location = this.currentLocation();
+    return location ? "Current location " + this.coordinateLabel(location) : "Current location";
   }
 
+  private persistCustomerLocation(coordinates: { lat: number; lng: number }, label: string) {
+    try {
+      localStorage.setItem("aura_customer_area_label", label);
+      localStorage.setItem("aura_customer_location", JSON.stringify(coordinates));
+      window.dispatchEvent(new CustomEvent("aura:customer-location-updated", { detail: { label, location: coordinates } }));
+    } catch {
+      // Local storage can be unavailable in private or restricted browser modes.
+    }
+  }
+  private async resolveAreaLabel(coordinates: { lat: number; lng: number }): Promise<string> {
+    try {
+      const response = await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" + encodeURIComponent(String(coordinates.lat)) + "&lon=" + encodeURIComponent(String(coordinates.lng)));
+      if (!response.ok) throw new Error("reverse geocode failed");
+      const data = await response.json() as { address?: Record<string, string>; display_name?: string };
+      const address = data.address || {};
+      const primary = address["suburb"] || address["neighbourhood"] || address["quarter"] || address["city_district"] || address["village"] || address["town"] || address["city"];
+      const secondary = address["city"] || address["town"] || address["state_district"] || address["state"];
+      const label = [primary, secondary].filter((part, index, parts) => !!part && parts.indexOf(part) === index).slice(0, 2).join(", ");
+      if (label) return label;
+      if (data.display_name) return data.display_name.split(",").slice(0, 2).join(",").trim();
+    } catch {
+      return "Current location " + this.coordinateLabel(coordinates);
+    }
+    return "Current location " + this.coordinateLabel(coordinates);
+  }
+
+  private coordinateLabel(coordinates: { lat: number; lng: number }): string {
+    return "(" + coordinates.lat.toFixed(3) + ", " + coordinates.lng.toFixed(3) + ")";
+  }
   private nearestBusiness(coordinates: { lat: number; lng: number }): Business | null {
     return this.marketplace.businesses()
       .map((business) => {
@@ -985,3 +1145,7 @@ export class LiveConsultationPage implements OnInit {
     return Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
   }
 }
+
+
+
+

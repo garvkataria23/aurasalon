@@ -1,3 +1,9 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+loadLocalEnv();
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   host: process.env.HOST || "127.0.0.1",
@@ -19,5 +25,41 @@ export const env = {
   openaiApiKey: process.env.OPENAI_API_KEY || "",
   openaiModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
-  anthropicModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest"
+  anthropicModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
+  liveConsultationProvider: process.env.AI_CONSULTATION_PROVIDER || process.env.LIVE_CONSULTATION_PROVIDER || "",
+  geminiApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  firebaseProjectId: process.env.CUSTOMER_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "",
+  firebaseClientEmail: process.env.CUSTOMER_FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_CLIENT_EMAIL || "",
+  firebasePrivateKey: process.env.CUSTOMER_FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY || "",
+  firebaseServiceAccountJson: process.env.CUSTOMER_FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON || ""
 };
+
+function loadLocalEnv() {
+  const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  [".env.local", ".env"].forEach((fileName) => {
+    const filePath = resolve(rootDir, fileName);
+    if (!existsSync(filePath)) return;
+    readFileSync(filePath, "utf8").split(/\r?\n/).forEach(applyEnvLine);
+  });
+}
+
+function applyEnvLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) return;
+  const source = trimmed.startsWith("export ") ? trimmed.slice(7).trim() : trimmed;
+  const equalsAt = source.indexOf("=");
+  if (equalsAt <= 0) return;
+  const key = source.slice(0, equalsAt).trim();
+  if (!/^[A-Z_][A-Z0-9_]*$/i.test(key) || process.env[key]) return;
+  process.env[key] = unquoteEnvValue(source.slice(equalsAt + 1).trim());
+}
+
+function unquoteEnvValue(value) {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+

@@ -129,6 +129,8 @@ export function ensureMigrationStagingSchema() {
       ON migration_file_chunks (tenantId, jobId, chunkNumber);
     CREATE INDEX IF NOT EXISTS idx_migration_staging_rows_job
       ON migration_staging_rows (tenantId, jobId, chunkNumber, sourceRowNumber);
+    CREATE INDEX IF NOT EXISTS idx_migration_staging_rows_chunk
+      ON migration_staging_rows (tenantId, jobId, chunkId, sourceRowNumber);
     CREATE INDEX IF NOT EXISTS idx_migration_id_map_lookup
       ON migration_id_map (tenantId, resource, sourceExternalId);
     CREATE INDEX IF NOT EXISTS idx_migration_recon_job

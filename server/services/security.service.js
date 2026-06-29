@@ -5,12 +5,64 @@ import { dataDir, db, dbPath } from "../db.js";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { builtinRoles, can, staticGrantsForRole } from "../middleware/rbac.js";
-import { badRequest, notFound } from "../utils/app-error.js";
+import { badRequest, forbidden, notFound } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
 
 const backupDir = join(dataDir, "backups");
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
+const ownerControlRoles = new Set(["owner", "admin", "superAdmin"]);
+const tenantUserStatuses = new Set(["active", "hidden", "disabled", "suspended"]);
+const permissionResources = [
+  "dashboard",
+  "appointments",
+  "clients",
+  "services",
+  "packages",
+  "memberships",
+  "gift-cards",
+  "staff",
+  "payroll",
+  "products",
+  "inventory",
+  "inventory-intelligence",
+  "pos",
+  "sales",
+  "invoices",
+  "payments",
+  "appointment_deposits",
+  "finance",
+  "cash-drawer",
+  "outgoing-funds",
+  "refunds",
+  "suppliers",
+  "reports",
+  "analytics",
+  "marketing",
+  "whatsapp",
+  "reviews",
+  "loyalty",
+  "branches",
+  "booking-portal",
+  "online-booking",
+  "coupons",
+  "notifications",
+  "settings",
+  "security",
+  "workflows",
+  "customer-360",
+  "smart-booking",
+  "ai",
+  "quality",
+  "deployment",
+  "migration",
+  "marketplace-integrations",
+  "plugins",
+  "developer-api",
+  "webhooks",
+  "localization",
+  "franchise"
+];
 
 function scope(access, branchId = "") {
   const scoped = tenantService.accessScope(access || {});
@@ -20,6 +72,59 @@ function scope(access, branchId = "") {
 
 function key() {
   return scryptSync(env.encryptionSecret || env.jwtSecret, "aura-salon-security", 32);
+}
+
+function passwordHashFor(password, salt) {
+  return scryptSync(String(password || ""), salt, 64).toString("hex");
+}
+
+function safeJsonArray(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed.map((item) => String(item || "").trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeBranchIds(value) {
+  if (Array.isArray(value)) return safeJsonArray(value);
+  return String(value || "")
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function publicTenantUser(row, sessionsByUser = {}, activityByUser = {}) {
+  const branchIds = safeJsonArray(row.branchIds);
+  const locked = Boolean(row.lockedUntil && row.lockedUntil > now());
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    name: row.name,
+    loginId: row.loginId || "",
+    email: row.email,
+    role: row.role,
+    branchIds,
+    branchCount: branchIds.length,
+    staffId: row.staffId || "",
+    failedLoginCount: Number(row.failedLoginCount || 0),
+    lockedUntil: row.lockedUntil || "",
+    isLocked: locked,
+    status: row.status || "active",
+    lastLoginAt: row.lastLoginAt || "",
+    activeSessions: sessionsByUser[row.id] || 0,
+    lastActivityAt: activityByUser[row.id] || "",
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+}
+
+function assertOwnerControl(access) {
+  if (!ownerControlRoles.has(access?.role || "")) {
+    throw forbidden("Only owner, admin or super admin can manage users and roles");
+  }
 }
 
 export class SecurityService {
@@ -68,28 +173,6 @@ export class SecurityService {
   }
 
   permissionMatrix(access) {
-    const matrixResources = [
-      "dashboard",
-      "appointments",
-      "clients",
-      "sales",
-      "invoices",
-      "payments",
-      "finance",
-      "products",
-      "inventory",
-      "inventory-intelligence",
-      "staff",
-      "reports",
-      "analytics",
-      "marketing",
-      "whatsapp",
-      "workflows",
-      "customer-360",
-      "booking-portal",
-      "settings",
-      "security"
-    ];
     const roleDefinitions = repositories.roleDefinitions.list({ limit: 1000 }, scope(access));
     const permissionRows = repositories.securityPermissions.list({ limit: 5000 }, scope(access));
     const roles = [...new Set([...builtinRoles(), ...roleDefinitions.map((item) => item.role), ...permissionRows.map((item) => item.role)])].sort();
@@ -102,12 +185,12 @@ export class SecurityService {
         isSystem: roleDefinitions.find((item) => item.role === role)?.isSystem ?? (builtinRoles().includes(role) ? 1 : 0),
         staticGrants: staticGrantsForRole(role)
       })),
-      resources: matrixResources,
+      resources: permissionResources,
       actions,
       matrix: roles.map((role) => ({
         role,
         resources: Object.fromEntries(
-          matrixResources.map((resource) => [
+          permissionResources.map((resource) => [
             resource,
             Object.fromEntries(actions.map((action) => [action, can(role, action, resource, access)]))
           ])
@@ -116,6 +199,195 @@ export class SecurityService {
       permissionRows,
       customRoles: roleDefinitions.filter((item) => !Number(item.isSystem))
     };
+  }
+
+  userManagement(access) {
+    const base = this.permissionMatrix(access);
+    const userRows = db.prepare(
+      `SELECT id, tenantId, name, loginId, email, role, branchIds, staffId,
+              failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+         FROM tenant_users
+        WHERE tenantId = @tenantId
+        ORDER BY CASE WHEN role IN ('owner', 'superAdmin', 'admin') THEN 0 ELSE 1 END, name COLLATE NOCASE`
+    ).all({ tenantId: access.tenantId });
+    const sessions = repositories.securitySessions.list({ limit: 5000 }, scope(access));
+    const activities = repositories.securityActivityEvents.list({ limit: 5000 }, scope(access));
+    const sessionsByUser = sessions.reduce((acc, item) => {
+      if (item.status === "active" && !item.revokedAt) acc[item.userId] = (acc[item.userId] || 0) + 1;
+      return acc;
+    }, {});
+    const activityByUser = activities.reduce((acc, item) => {
+      if (!item.userId) return acc;
+      if (!acc[item.userId] || item.createdAt > acc[item.userId]) acc[item.userId] = item.createdAt;
+      return acc;
+    }, {});
+    const users = userRows.map((row) => publicTenantUser(row, sessionsByUser, activityByUser));
+    return {
+      ...base,
+      users,
+      metrics: {
+        users: users.length,
+        activeUsers: users.filter((item) => item.status === "active").length,
+        ownerUsers: users.filter((item) => ownerControlRoles.has(item.role)).length,
+        lockedUsers: users.filter((item) => item.isLocked).length,
+        customRoles: base.customRoles.length,
+        resources: base.resources.length
+      },
+      activity: activities.slice(0, 40),
+      sessions: sessions.slice(0, 40)
+    };
+  }
+
+  createTenantUser(payload = {}, access, req = null) {
+    assertOwnerControl(access);
+    const name = String(payload.name || "").trim();
+    const email = String(payload.email || "").trim().toLowerCase();
+    const role = String(payload.role || "").trim();
+    const password = String(payload.password || payload.tempPassword || "").trim();
+    if (!name || !email || !role || !password) throw badRequest("name, email, role and temporary password are required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw badRequest("Valid email is required");
+    if (password.length < 10) throw badRequest("Temporary password must be at least 10 characters");
+    this.assertRoleExists(role, access);
+    const duplicate = db.prepare(
+      `SELECT id FROM tenant_users
+        WHERE tenantId = @tenantId
+          AND (lower(email) = lower(@email) OR (@loginId <> '' AND lower(loginId) = lower(@loginId)))`
+    ).get({ tenantId: access.tenantId, email, loginId: String(payload.loginId || "").trim() });
+    if (duplicate) throw badRequest("A user with this email or login ID already exists");
+    const stamp = now();
+    const salt = randomBytes(16).toString("base64url");
+    const user = {
+      id: makeId("tuser"),
+      tenantId: access.tenantId,
+      name,
+      loginId: String(payload.loginId || "").trim(),
+      email,
+      role,
+      branchIds: JSON.stringify(normalizeBranchIds(payload.branchIds || payload.branchIdsText)),
+      staffId: String(payload.staffId || "").trim(),
+      passwordSalt: salt,
+      passwordHash: passwordHashFor(password, salt),
+      failedLoginCount: 0,
+      lockedUntil: "",
+      lastLoginAt: "",
+      status: tenantUserStatuses.has(payload.status) ? payload.status : "active",
+      createdAt: stamp,
+      updatedAt: stamp
+    };
+    db.prepare(
+      `INSERT INTO tenant_users (
+        id, tenantId, name, loginId, email, role, branchIds, staffId,
+        passwordSalt, passwordHash, failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+      ) VALUES (
+        @id, @tenantId, @name, @loginId, @email, @role, @branchIds, @staffId,
+        @passwordSalt, @passwordHash, @failedLoginCount, @lockedUntil, @lastLoginAt, @status, @createdAt, @updatedAt
+      )`
+    ).run(user);
+    this.audit({ action: "tenant_user.created", targetType: "tenant_user", targetId: user.id, details: { name, email, role, branchIds: safeJsonArray(user.branchIds), status: user.status } }, access, req);
+    return { user: publicTenantUser(user), management: this.userManagement(access) };
+  }
+
+  updateTenantUser(userId, payload = {}, access, req = null) {
+    assertOwnerControl(access);
+    if (!userId) throw badRequest("userId is required");
+    const existing = db.prepare(
+      `SELECT id, tenantId, name, loginId, email, role, branchIds, staffId,
+              passwordSalt, passwordHash, failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+         FROM tenant_users
+        WHERE tenantId = @tenantId AND id = @id`
+    ).get({ tenantId: access.tenantId, id: userId });
+    if (!existing) throw notFound("User not found");
+    const next = {
+      id: existing.id,
+      tenantId: existing.tenantId,
+      name: payload.name === undefined ? existing.name : String(payload.name || "").trim(),
+      loginId: payload.loginId === undefined ? existing.loginId || "" : String(payload.loginId || "").trim(),
+      email: payload.email === undefined ? existing.email : String(payload.email || "").trim().toLowerCase(),
+      role: payload.role === undefined ? existing.role : String(payload.role || "").trim(),
+      branchIds: payload.branchIds === undefined && payload.branchIdsText === undefined ? existing.branchIds : JSON.stringify(normalizeBranchIds(payload.branchIds || payload.branchIdsText)),
+      staffId: payload.staffId === undefined ? existing.staffId || "" : String(payload.staffId || "").trim(),
+      passwordSalt: existing.passwordSalt || "",
+      passwordHash: existing.passwordHash || "",
+      failedLoginCount: payload.resetFailedLoginCount ? 0 : Number(existing.failedLoginCount || 0),
+      lockedUntil: payload.unlock ? "" : existing.lockedUntil || "",
+      lastLoginAt: existing.lastLoginAt || "",
+      status: payload.status === undefined ? existing.status || "active" : String(payload.status || "active").trim(),
+      createdAt: existing.createdAt,
+      updatedAt: now()
+    };
+    if (!next.name || !next.email || !next.role) throw badRequest("name, email and role are required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.email)) throw badRequest("Valid email is required");
+    if (!tenantUserStatuses.has(next.status)) throw badRequest("Invalid user status");
+    this.assertRoleExists(next.role, access);
+    const duplicate = db.prepare(
+      `SELECT id FROM tenant_users
+        WHERE tenantId = @tenantId
+          AND id <> @id
+          AND (lower(email) = lower(@email) OR (@loginId <> '' AND lower(loginId) = lower(@loginId)))`
+    ).get({ tenantId: access.tenantId, id: userId, email: next.email, loginId: next.loginId });
+    if (duplicate) throw badRequest("A user with this email or login ID already exists");
+    if (payload.lockMinutes || payload.lockedUntil) {
+      const lockMinutes = Number(payload.lockMinutes || 15);
+      next.lockedUntil = payload.lockedUntil || new Date(Date.now() + Math.max(1, lockMinutes) * 60000).toISOString();
+    }
+    const newPassword = String(payload.password || payload.tempPassword || "").trim();
+    if (newPassword) {
+      if (newPassword.length < 10) throw badRequest("Temporary password must be at least 10 characters");
+      next.passwordSalt = randomBytes(16).toString("base64url");
+      next.passwordHash = passwordHashFor(newPassword, next.passwordSalt);
+      next.failedLoginCount = 0;
+      next.lockedUntil = "";
+    }
+    this.assertNotLastOwner(existing, next, access);
+    db.prepare(
+      `UPDATE tenant_users
+          SET name = @name,
+              loginId = @loginId,
+              email = @email,
+              role = @role,
+              branchIds = @branchIds,
+              staffId = @staffId,
+              passwordSalt = @passwordSalt,
+              passwordHash = @passwordHash,
+              failedLoginCount = @failedLoginCount,
+              lockedUntil = @lockedUntil,
+              lastLoginAt = @lastLoginAt,
+              status = @status,
+              updatedAt = @updatedAt
+        WHERE tenantId = @tenantId AND id = @id`
+    ).run(next);
+    this.audit({
+      action: "tenant_user.updated",
+      targetType: "tenant_user",
+      targetId: userId,
+      details: { name: next.name, email: next.email, role: next.role, branchIds: safeJsonArray(next.branchIds), status: next.status, lockedUntil: next.lockedUntil, passwordReset: Boolean(newPassword) }
+    }, access, req);
+    return { user: publicTenantUser(next), management: this.userManagement(access) };
+  }
+
+  disableTenantUser(userId, access, req = null) {
+    return this.updateTenantUser(userId, { status: "disabled", unlock: true }, access, req);
+  }
+
+  assertRoleExists(role, access) {
+    const found = builtinRoles().includes(role) || Boolean(db.prepare("SELECT id FROM role_definitions WHERE tenantId = @tenantId AND role = @role").get({ tenantId: access.tenantId, role }));
+    if (!found) throw badRequest("Role does not exist");
+  }
+
+  assertNotLastOwner(existing, next, access) {
+    const wasOwner = ownerControlRoles.has(existing.role);
+    const willRemainActiveOwner = ownerControlRoles.has(next.role) && next.status === "active" && !(next.lockedUntil && next.lockedUntil > now());
+    if (!wasOwner || willRemainActiveOwner) return;
+    const activeOwners = db.prepare(
+      `SELECT COUNT(*) AS total
+         FROM tenant_users
+        WHERE tenantId = @tenantId
+          AND id <> @id
+          AND role IN ('owner', 'admin', 'superAdmin')
+          AND status = 'active'
+          AND (lockedUntil = '' OR lockedUntil <= @stamp)`
+    ).get({ tenantId: access.tenantId, id: existing.id, stamp: now() });
+    if (Number(activeOwners?.total || 0) === 0) throw badRequest("At least one active owner/admin must remain");
   }
 
   upsertRoleDefinition(payload = {}, access, req = null) {

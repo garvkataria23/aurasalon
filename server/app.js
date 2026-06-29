@@ -3,7 +3,7 @@ import express from "express";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { dataDir } from "./db.js";
-import "./migrations/add-happy-hours-to-invoices.js";
+import { ensureHappyHoursInvoiceColumns } from "./migrations/add-happy-hours-to-invoices.js";
 import "./jobs/flash-sale-monitor.js";
 import "./jobs/demand-snapshot.job.js";
 import "./jobs/offer-auto-sunset.job.js";
@@ -40,6 +40,12 @@ import { ensureSecurityAlertsSchema } from "./services/security-alerts-schema.se
 import { ensureSecurityBlocklistSchema } from "./services/security-blocklist-schema.service.js";
 import { ensureSecurityAdvancedSchema } from "./services/security-advanced-schema.service.js";
 import { ensureMigrationStagingSchema } from "./services/migration-staging-schema.service.js";
+import { ensureMigrationTargetMetadataSchema } from "./services/migration-target-metadata-schema.service.js";
+import { ensureMigrationUploadSchema } from "./services/migration-upload-schema.service.js";
+import { ensureMigrationApprovalSchema } from "./services/migration.service.js";
+import { getSchemaMigrationHealth, initializeSchemaMigrationHealth } from "./services/schema-migration-health.service.js";
+import { ensureDashboardSchema } from "./services/dashboard-schema.service.js";
+import { ensureCustomerAuthSchema } from "./services/customer-auth-schema.service.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import { authenticateJwt } from "./middleware/auth.js";
 import { mobileApiContext } from "./middleware/mobile-response.js";
@@ -137,6 +143,7 @@ import { localizationPreferenceRouter } from "./routes/localization-preference.r
 import { liveConsultationRouter } from "./routes/live-consultation.routes.js";
 import { membershipEnterpriseRouter } from "./routes/membership-enterprise.routes.js";
 import { migrationRouter } from "./routes/migration.routes.js";
+import { migrationService } from "./services/migration.service.js";
 import { mobileRouter } from "./routes/mobile.routes.js";
 import { offlineRouter } from "./routes/offline.routes.js";
 import { offlineSyncRouter } from "./routes/offline-sync.routes.js";
@@ -171,6 +178,10 @@ import { whiteLabelRouter } from "./routes/white-label.routes.js";
 import { workflowEngineRouter } from "./routes/workflow-engine.routes.js";
 import { zReportRouter } from "./routes/z-report.routes.js";
 
+function healthPayload(version = "legacy") {
+  return { ok: true, service: "Aura Salon CRM/POS API", version, timestamp: new Date().toISOString() };
+}
+
 export function createApp() {
   initializeDatabaseRuntime();
   ensureAppointmentSystemSchema();
@@ -193,15 +204,22 @@ export function createApp() {
   ensurePurchaseBillDraftSchema();
   ensureProductUnitSchema();
   ensureInvoicePaymentCollectionSchema();
+  ensureHappyHoursInvoiceColumns();
   ensureCashDrawerEodSchema();
   ensureGrowthRankBotSchema();
   ensureLegacyRevenueSchema();
+  ensureDashboardSchema();
+  ensureCustomerAuthSchema();
   ensureWaitlistSchema();
   ensureTwoFactorSchema();
   ensureSecurityAlertsSchema();
   ensureSecurityBlocklistSchema();
   ensureSecurityAdvancedSchema();
   ensureMigrationStagingSchema();
+  ensureMigrationTargetMetadataSchema();
+  ensureMigrationUploadSchema();
+  ensureMigrationApprovalSchema();
+  initializeSchemaMigrationHealth();
   const app = express();
   app.disable("x-powered-by");
   app.set("etag", false);
@@ -217,6 +235,22 @@ export function createApp() {
     })
   );
   app.use("/uploads", express.static(join(dataDir, "uploads"), { maxAge: "7d" }));
+  const migrationJsonParser = express.json({
+    limit: "96mb",
+    verify: (req, _res, buf) => {
+      req.rawBody = buf?.length ? buf.toString("utf8") : "";
+    }
+  });
+  app.use([
+    "/api/v1/migration/normalize-source",
+    "/api/migration/normalize-source",
+    "/api/v1/migration/uploads",
+    "/api/migration/uploads"
+  ], (req, res, next) => {
+    const path = req.path || "";
+    if (path.includes("/uploads/binary") || path.includes("/uploads/sessions/")) return next();
+    return migrationJsonParser(req, res, next);
+  });
   app.use(express.json({
     limit: env.requestBodyLimit,
     verify: (req, _res, buf) => {
@@ -238,6 +272,13 @@ export function createApp() {
     next();
   });
 
+  // Public, no-auth probe to confirm the running API has the new analyzer code.
+  // Open http://127.0.0.1:4000/api/migration-analyzer-version in a browser:
+  // if it returns the version below, the API was restarted with the fixes.
+  app.get("/api/migration-analyzer-version", (_req, res) => {
+    res.json(migrationService.analyzerVersion());
+  });
+
   app.get("/api/versions", (_req, res) => {
     res.json({
       current: "v1",
@@ -248,8 +289,14 @@ export function createApp() {
     });
   });
   app.use("/api/v1", mobileApiContext);
+  app.get("/health", (_req, res) => {
+    res.json(healthPayload("root"));
+  });
+  app.get("/api/health", (_req, res) => {
+    res.json(healthPayload("legacy"));
+  });
   app.get("/api/v1/health", (_req, res) => {
-    res.json({ ok: true, service: "Aura Salon CRM/POS API", version: "v1", timestamp: new Date().toISOString() });
+    res.json(healthPayload("v1"));
   });
   app.use("/api/v1", authRouter);
   app.use("/api/v1", twoFactorRouter);
@@ -272,6 +319,14 @@ export function createApp() {
   app.use("/api/v1", subscriptionGuardMiddleware);
   app.use("/api/v1", idempotencyMiddleware);
   app.use("/api/v1", exportProtectionMiddleware);
+  app.get("/api/v1/admin/schema-health", (req, res) => {
+    const role = String(req.access?.role || req.headers["x-user-role"] || "").toLowerCase();
+    if (!["owner", "admin", "superadmin"].includes(role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    res.json(getSchemaMigrationHealth());
+  });
   app.use("/api/v1", dashboardRouter);
   app.use("/api/v1", bookingAnalyticsRouter);
   app.use("/api/v1", bookingIntelligenceRouter);
@@ -369,9 +424,6 @@ export function createApp() {
   app.use("/api/v1", authenticateJwt(), resourceRouter);
   app.use("/api/v1", notFoundHandler);
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, service: "Aura Salon CRM/POS API", timestamp: new Date().toISOString() });
-  });
   app.get("/", (_req, res) => {
     res.json({
       ok: true,
@@ -495,7 +547,7 @@ export function createApp() {
   app.use("/api", deploymentRouter);
   app.use("/api", ecosystemRouter);
   app.use("/api", analyticsRouter);
-  app.use("/api", migrationRouter);
+  app.use("/api", authenticateJwt(), migrationRouter);
   app.use("/api", aiRouter);
   app.use("/api", aiMarketingRouter);
   app.use("/api", growthRankBotRouter);

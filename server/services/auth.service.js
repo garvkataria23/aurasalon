@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
+import { staticGrantsForRole } from "../middleware/rbac.js";
 import { AppError, badRequest, forbidden, unauthorized } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
 import { twoFactorService } from "./two-factor.service.js";
@@ -52,6 +53,44 @@ function recoveryCodesFor(value) {
   }
 }
 
+function safeActions(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed.map((item) => String(item || "").trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addResourceGrant(grants, resource, grant) {
+  if (!resource) return;
+  if (resource === "*") {
+    grants.add(`${grant}:*`);
+    return;
+  }
+  grants.add(`${grant}:${resource}`);
+}
+
+function applyActionGrant(grants, resource, action) {
+  const normalized = String(action || "").trim().toLowerCase();
+  if (!normalized) return;
+  if (normalized === "*" || normalized === "all" || normalized === "admin") {
+    addResourceGrant(grants, resource, "read");
+    addResourceGrant(grants, resource, "write");
+    addResourceGrant(grants, resource, "admin");
+    return;
+  }
+  if (["read", "access", "back", "print", "export"].includes(normalized)) {
+    addResourceGrant(grants, resource, "read");
+    return;
+  }
+  if (["write", "add", "edit", "delete", "create", "update", "remove"].includes(normalized)) {
+    addResourceGrant(grants, resource, "read");
+    addResourceGrant(grants, resource, "write");
+  }
+}
+
 export class AuthService {
   login(payload = {}, request = {}) {
     const tenant = tenantService.resolveTenant({ tenantId: payload.tenantId || request.tenantId || "", host: request.host || "" });
@@ -60,14 +99,14 @@ export class AuthService {
     const users = repositories.tenantUsers.list({ limit: 10000 }, { tenantId: tenant.id });
     const userId = String(payload.userId || "").trim();
     const emailIdentity = String(payload.email || "").trim().toLowerCase();
-    const loginIdIdentity = String(payload.loginId || "").trim().toLowerCase();
+    const loginIdIdentity = String(payload.loginId || "").trim().toLowerCase().replace(/\s+/g, "");
     const loginIdentity = emailIdentity || loginIdIdentity || userId;
     let user = userId ? users.find((item) => item.id === userId) : null;
     if (!user && emailIdentity) {
       user = users.find((item) => String(item.email || "").toLowerCase() === emailIdentity);
     }
     if (!user && loginIdIdentity) {
-      user = users.find((item) => String(item.loginId || "").toLowerCase() === loginIdIdentity);
+      user = users.find((item) => String(item.loginId || "").toLowerCase().replace(/\s+/g, "") === loginIdIdentity);
     }
     if (!user) {
       intrusionDetectionService.recordFailedLogin({ tenantId: tenant.id, email: loginIdentity, ip: request.ip || "", userAgent: request.userAgent || "" });
@@ -136,7 +175,22 @@ export class AuthService {
     return { revoked: true };
   }
 
+  permissionsForUser(user, tenantId) {
+    const grants = new Set(staticGrantsForRole(user.role || ""));
+    if (grants.has("*")) return ["*"];
+    const permissionRows = repositories.securityPermissions.list({ limit: 5000 }, { tenantId })
+      .filter((row) => row.role === user.role && (row.status || "active") === "active");
+    const denied = new Set();
+    permissionRows.forEach((row) => {
+      const target = row.effect === "deny" ? denied : grants;
+      safeActions(row.actions).forEach((action) => applyActionGrant(target, row.resource, action));
+    });
+    denied.forEach((grant) => grants.delete(grant));
+    return Array.from(grants).sort();
+  }
+
   issueTokenPair({ tenant, user, branchId = "", deviceId = "" }) {
+    const permissions = this.permissionsForUser(user, tenant.id);
     const accessPayload = {
       iss: "aura-salon-api",
       aud: "aura-mobile",
@@ -178,7 +232,8 @@ export class AuthService {
         role: user.role,
         staffId: user.staffId || "",
         branchId,
-        branchIds: user.branchIds || []
+        branchIds: user.branchIds || [],
+        permissions
       },
       tenant: {
         id: tenant.id,

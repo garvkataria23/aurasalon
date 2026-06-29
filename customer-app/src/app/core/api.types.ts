@@ -165,12 +165,29 @@ export interface LiveConsultationBusinessContext {
   services: Pick<ServiceItem, "id" | "name" | "category" | "description" | "pricePaise" | "durationMinutes">[];
 }
 
+export interface LiveConsultationChatTurn {
+  role: "customer" | "assistant";
+  text: string;
+}
+
+export interface LiveConsultationProblemProfile {
+  concern?: string;
+  timeframe?: string;
+  budget?: string;
+  event?: string;
+  history?: string;
+  sensitivities?: string;
+  desiredOutcome?: string;
+}
+
 export interface LiveConsultationRequest {
   message: string;
   goals: string[];
   location?: { label?: string; lat?: number; lng?: number } | null;
   photos: LiveConsultationPhoto[];
   businesses: LiveConsultationBusinessContext[];
+  conversation?: LiveConsultationChatTurn[];
+  problemProfile?: LiveConsultationProblemProfile;
 }
 
 export interface LiveConsultationSalonRecommendation {
@@ -196,14 +213,24 @@ export interface LiveConsultationServiceRecommendation {
 export interface LiveConsultationResponse {
   consultationId: string;
   createdAt: string;
-  mode: "groq" | "local" | string;
-  provider: "groq" | "local_rules" | string;
+  mode: "openai" | "gemini" | "local" | string;
+  provider: "openai" | "gemini" | "local_rules" | string;
   providerWarning?: string;
   answer: string;
+  concernSummary?: string;
+  consultationStage?: string;
+  confidence?: string;
+  missingInfo?: string[];
+  suggestedReplies?: string[];
+  visualAssessment?: string[];
+  hairPlan?: string[];
   actionPlan: string[];
   recommendedSalons: LiveConsultationSalonRecommendation[];
   recommendedServices: LiveConsultationServiceRecommendation[];
   locationInsights: string[];
+  preparationChecklist?: string[];
+  afterCare?: string[];
+  budgetInsights?: string[];
   followUpQuestions: string[];
   safetyNote: string;
 }
@@ -248,10 +275,13 @@ export interface OtpRequestResponse {
 
 export interface CustomerProfile {
   id?: string;
+  uid?: string;
   name: string;
+  displayName?: string;
   firstName?: string;
   lastName?: string;
   phone: string;
+  phoneNumber?: string;
   email?: string;
   avatarUrl?: string;
   isLoggedIn: boolean;
@@ -263,6 +293,7 @@ export interface CustomerProfile {
   facebookUserId?: string;
   authProvider?: string;
   createdAt?: string;
+  lastLoginAt?: string;
   phoneVerifiedAt?: string;
   emailVerifiedAt?: string;
   profileComplete?: boolean;
@@ -551,3 +582,4 @@ export type CustomerAccountModule =
   | CustomerInvoice[]
   | CustomerPayment[]
   | CustomerNotification[];
+

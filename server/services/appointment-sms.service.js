@@ -2,6 +2,7 @@ import { db } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { badRequest, notFound } from "../utils/app-error.js";
 import { invoiceNotificationService } from "./invoice-notification.service.js";
+import { jobQueueService } from "./job-queue.service.js";
 import { securityService } from "./security.service.js";
 import { tenantService } from "./tenant.service.js";
 
@@ -25,6 +26,11 @@ function normalizeIndianPhone(value) {
 function phonesFrom(values = []) {
   const source = Array.isArray(values) ? values : String(values || "").split(/[\n,;]/);
   return compactUnique(source.map(normalizeIndianPhone)).filter((item) => /^\+\d{7,15}$/.test(item));
+}
+
+function emailsFrom(values = []) {
+  const source = Array.isArray(values) ? values : String(values || "").split(/[\n,;]/);
+  return compactUnique(source).filter((item) => item.includes("@"));
 }
 
 function normalizeServiceIds(value) {
@@ -72,7 +78,8 @@ class AppointmentSmsService {
 
     const context = this.contextForAppointment(appointment, access, branchId);
     const recipients = this.recipientsForTarget(target, context);
-    if (!recipients.length) throw badRequest(`${target} mobile number is missing`);
+    const ownerEmailRecipients = target === "owner" ? this.ownerEmailRecipients(context, access) : [];
+    if (!recipients.length && !ownerEmailRecipients.length) throw badRequest(target === "owner" ? "Owner mobile or verified owner email is missing" : `${target} mobile number is missing`);
 
     const rows = recipients.map((recipient) => repositories.messageLogs.create({
       branchId,
@@ -92,19 +99,21 @@ class AppointmentSmsService {
         source: "appointment-sms-service"
       }
     }, tenantService.accessScope(access, "messageLogs")));
+    const emailJobs = target === "owner" ? this.queueOwnerAppointmentEmails(ownerEmailRecipients, context, access) : [];
 
     securityService.audit({
       action: "appointment.sms.queued",
       targetType: "message_logs",
       targetId: rows.map((row) => row.id).join(","),
-      details: { appointmentId, target, count: rows.length, branchId }
+      details: { appointmentId, target, count: rows.length, emailCount: emailJobs.length, branchId }
     }, access);
 
     return {
       queued: true,
       target,
-      count: rows.length,
+      count: rows.length + emailJobs.length,
       recipients: recipients.map((recipient) => ({ name: recipient.name, phone: recipient.phone })),
+      emailRecipients: ownerEmailRecipients.map((recipient) => ({ name: recipient.name, email: recipient.email })),
       messageLogs: rows
     };
   }
@@ -165,6 +174,35 @@ class AppointmentSmsService {
 
   recipientRows(name, values) {
     return phonesFrom(values).map((phone) => ({ name, phone }));
+  }
+
+  ownerEmailRecipients(context, access) {
+    const verifiedOwnerEmails = invoiceNotificationService.verifiedProfileContactValues(context.profile, access, "ownerEmail", "email");
+    return emailsFrom([
+      context.profile.adminEmail,
+      ...verifiedOwnerEmails
+    ]).map((email) => ({ name: "Owner", email }));
+  }
+
+  queueOwnerAppointmentEmails(recipients, context, access) {
+    if (!recipients.length || !context.profile.ownerChannels?.includes("email")) return [];
+    const message = this.messageForTarget("owner", context);
+    return recipients.map((recipient) => jobQueueService.enqueue({
+      tenantId: access.tenantId,
+      jobType: "email_send",
+      priority: 3,
+      payload: {
+        to: recipient.email,
+        branchId: context.appointment.branchId || access.branchId || "",
+        type: "owner_appointment_alert",
+        subject: `${context.salonName} appointment alert - ${context.clientName}`,
+        message,
+        metadata: {
+          source: "appointment-owner-alert",
+          appointmentId: context.appointment.id
+        }
+      }
+    }));
   }
 
   messageForTarget(target, context) {

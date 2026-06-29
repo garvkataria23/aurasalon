@@ -49,6 +49,22 @@
           <small>vs last period</small>
         </div>
       </div>
+      <div class="metric-card payment-mode-card" *ngIf="!paymentModeLoading()">
+        <div class="kpi-top">
+          <span>Payment Mode Summary</span>
+          <span class="kpi-icon">💳</span>
+        </div>
+        <div class="payment-mode-list">
+          <div *ngFor="let pm of paymentModeSummary()" class="payment-mode-row">
+            <span class="pm-label">{{ pm.mode }}</span>
+            <span class="pm-amount">₹{{ pm.amount.toLocaleString('en-IN') }}</span>
+          </div>
+        </div>
+        <div class="payment-mode-total">
+          <span>Total Received</span>
+          <span>₹{{ paymentModeSummary().reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN') }}</span>
+        </div>
+      </div>
     </div>
     <ng-template #kpiSkeleton>
       <div class="metrics-grid">

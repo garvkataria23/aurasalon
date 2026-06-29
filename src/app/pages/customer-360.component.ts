@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
@@ -32,20 +32,20 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
       <div class="dashboard-grid">
         <section class="panel">
-          <div class="section-title"><h2>Customer intelligence list</h2></div>
+          <div class="section-title"><h2>Customer intelligence list</h2><span class="badge">{{ totalClients() }} total clients</span></div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>Client</th><th>LTV</th><th>Favorite</th><th>Risk</th><th>Next action</th><th></th></tr></thead>
               <tbody>
-                <tr *ngFor="let profile of summary()?.profiles || []">
-                  <td><strong>{{ profile.client.name }}</strong><small>{{ profile.client.phone }}</small></td>
-                  <td>{{ profile.metrics.lifetimeValue | currency: 'INR':'symbol':'1.0-0' }}</td>
-                  <td>{{ profile.metrics.favoriteService }}</td>
-                  <td>{{ profile.metrics.riskScore }}</td>
-                  <td>{{ profile.nextBestAction.action }}</td>
-                  <td><button class="ghost-button mini" type="button" (click)="select(profile.client.id)">Open</button></td>
+                <tr *ngFor="let profile of customerProfiles()">
+                  <td><strong>{{ clientName(profile.client) }}</strong><small>{{ clientPhone(profile.client) }}</small></td>
+                  <td>{{ (profile.metrics?.lifetimeValue || 0) | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ profile.metrics?.favoriteService || "No favorite yet" }}</td>
+                  <td>{{ profile.metrics?.riskScore || 0 }}</td>
+                  <td>{{ profile.nextBestAction?.action || "Open client profile" }}</td>
+                  <td><button class="ghost-button mini" type="button" (click)="select(clientId(profile.client))" [disabled]="!clientId(profile.client)">Open</button></td>
                 </tr>
-                <tr *ngIf="!(summary()?.profiles || []).length"><td colspan="6"><div class="empty-state"><strong>No clients found</strong><span>Create a client or booking to generate customer intelligence.</span></div></td></tr>
+                <tr *ngIf="!customerProfiles().length"><td colspan="6"><div class="empty-state"><strong>No clients found</strong><span>Create a client or booking to generate customer intelligence.</span></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -67,12 +67,12 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
 
       <ng-container *ngIf="profile() as profileData">
         <section class="profile-header">
-          <span class="avatar large">{{ profileData.client.name.slice(0, 1) }}</span>
+          <span class="avatar large">{{ clientInitial(profileData.client) }}</span>
           <div>
             <span class="eyebrow">Selected customer</span>
-            <h2>{{ profileData.client.name }}</h2>
-            <p>{{ profileData.client.phone }} · {{ profileData.client.email || 'No email' }}</p>
-            <div class="chip-row"><span class="badge" *ngFor="let tag of profileData.client.tags || []">{{ tag }}</span></div>
+            <h2>{{ clientName(profileData.client) }}</h2>
+            <p>{{ clientContactLine(profileData.client) }}</p>
+            <div class="chip-row"><span class="badge" *ngFor="let tag of clientTags(profileData.client)">{{ tag }}</span></div>
           </div>
           <div class="profile-stats">
             <span>LTV</span><strong>{{ profileData.metrics.lifetimeValue | currency: 'INR':'symbol':'1.0-0' }}</strong>
@@ -210,12 +210,21 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     </section>
   `
 })
-export class Customer360Component implements OnInit {
+export class Customer360Component implements OnInit, OnDestroy {
   readonly summary = signal<ApiRecord | null>(null);
   readonly profile = signal<ApiRecord | null>(null);
   readonly result = signal<ApiRecord | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
+  private summaryLoadInFlight = false;
+  private readonly summaryBatchSize = 500;
+  private summaryLimit = this.summaryBatchSize;
+  private summaryBatchTimer: ReturnType<typeof setTimeout> | undefined;
+  private refreshTimer: ReturnType<typeof setInterval> | undefined;
+  private readonly refreshOnFocus = () => this.refreshSummary(false);
+  private readonly refreshOnVisibility = () => {
+    if (document.visibilityState === 'visible') this.refreshSummary(false);
+  };
 
   readonly noteForm = this.fb.group({
     title: ['Consultation note', Validators.required],
@@ -233,29 +242,128 @@ export class Customer360Component implements OnInit {
     return ((current - previous) / previous) * 100;
   }
 
-  ngOnInit(): void {
-    this.load();
+  customerProfiles(): ApiRecord[] {
+    const summary = this.summary();
+    const profiles = Array.isArray(summary?.profiles) ? summary.profiles.filter((profile: ApiRecord) => profile && typeof profile === 'object') : [];
+    if (profiles.length) return profiles;
+    const clientList = Array.isArray(summary?.clientList) ? summary.clientList.filter((client: ApiRecord) => client && typeof client === 'object') : [];
+    return clientList.map((client: ApiRecord) => ({
+      client,
+      metrics: {
+        lifetimeValue: Number(client.totalSpend || client.lifetimeValue || 0),
+        favoriteService: client.favoriteService || client.preferredService || 'No favorite yet',
+        riskScore: 0
+      },
+      nextBestAction: { action: 'Open client profile' }
+    }));
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.api.list<ApiRecord>('customer-360/summary').subscribe({
+  totalClients(): number {
+    const metrics = this.summary()?.metrics || {};
+    const metricCount = Number(metrics.clients || metrics.totalClients || 0);
+    if (metricCount) return metricCount;
+    const clientList = this.summary()?.clientList;
+    return Array.isArray(clientList) ? clientList.length : this.customerProfiles().length;
+  }
+
+  clientId(client: ApiRecord | null | undefined): string {
+    return String(client?.id || '');
+  }
+
+  clientName(client: ApiRecord | null | undefined): string {
+    if (!client) return 'Client';
+    return String(client.name || client.fullName || client.full_name || client.clientName || client.customerName || client.phone || client.email || client.id || 'Client').trim() || 'Client';
+  }
+
+  clientPhone(client: ApiRecord | null | undefined): string {
+    return String(client?.phone || client?.mobile || client?.mobileNumber || client?.contactNumber || '').trim();
+  }
+
+  clientContactLine(client: ApiRecord | null | undefined): string {
+    const phone = this.clientPhone(client) || 'No phone';
+    const email = String(client?.email || '').trim() || 'No email';
+    return `${phone} · ${email}`;
+  }
+
+  clientInitial(client: ApiRecord | null | undefined): string {
+    return this.clientName(client).slice(0, 1).toUpperCase() || 'C';
+  }
+
+  clientTags(client: ApiRecord | null | undefined): string[] {
+    const tags = client?.tags;
+    if (Array.isArray(tags)) return tags.filter(Boolean).map(String);
+    return tags ? [String(tags)] : [];
+  }
+
+  ngOnInit(): void {
+    this.load();
+    this.startAutoRefresh();
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this.summaryBatchTimer) clearTimeout(this.summaryBatchTimer);
+    window.removeEventListener('focus', this.refreshOnFocus);
+    document.removeEventListener('visibilitychange', this.refreshOnVisibility);
+  }
+
+  load(showSpinner = true): void {
+    this.refreshSummary(showSpinner);
+  }
+
+  private refreshSummary(showSpinner = true): void {
+    if (this.summaryLoadInFlight) return;
+    this.summaryLoadInFlight = true;
+    if (showSpinner) {
+      this.loading.set(true);
+      this.error.set('');
+    }
+    this.api.list<ApiRecord>('customer-360/summary', { includeAllBranches: true, limit: this.summaryLimit }).subscribe({
       next: (summary) => {
         this.summary.set(summary);
-        if (!this.profile() && summary.profiles?.[0]) this.select(summary.profiles[0].client.id);
+        const profiles = Array.isArray(summary.profiles) ? summary.profiles.filter((item: ApiRecord) => item && typeof item === 'object') : [];
+        const currentClientId = String(this.profile()?.client?.id || '');
+        const currentStillVisible = currentClientId && profiles.some((item: ApiRecord) => String(item.client?.id || '') === currentClientId);
+        const firstProfileWithClient = profiles.find((item: ApiRecord) => String(item.client?.id || ''));
+        const nextClientId = currentStillVisible ? currentClientId : String(firstProfileWithClient?.client?.id || '');
+        this.scheduleNextSummaryBatch(profiles.length);
+        if (nextClientId) {
+          this.select(nextClientId);
+        } else {
+          this.profile.set(null);
+        }
+        this.summaryLoadInFlight = false;
         this.loading.set(false);
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load customer 360');
+        this.summaryLoadInFlight = false;
         this.loading.set(false);
       }
     });
   }
-
-  select(clientId: string): void {
-    this.api.list<ApiRecord>(`customer-360/clients/${clientId}`).subscribe((profile) => this.profile.set(profile));
+  private scheduleNextSummaryBatch(loadedCount: number): void {
+    if (loadedCount < this.summaryLimit || this.summaryBatchTimer) return;
+    this.summaryBatchTimer = setTimeout(() => {
+      this.summaryBatchTimer = undefined;
+      this.summaryLimit += this.summaryBatchSize;
+      this.refreshSummary(false);
+    }, 1000);
   }
 
+  select(clientId: string): void {
+    if (!clientId) return;
+    this.api.list<ApiRecord>(`customer-360/clients/${encodeURIComponent(clientId)}`, { includeAllBranches: true }).subscribe({
+      next: (profile) => this.profile.set(profile),
+      error: (error) => this.error.set(this.api.errorText(error, 'Unable to load customer profile'))
+    });
+  }
+  private startAutoRefresh(): void {
+    if (this.refreshTimer) return;
+    this.refreshTimer = setInterval(() => this.refreshSummary(false), 30000);
+    window.addEventListener('focus', this.refreshOnFocus);
+    document.addEventListener('visibilitychange', this.refreshOnVisibility);
+  }
   addNote(): void {
     const clientId = this.profile()?.client?.id;
     if (!clientId) return;

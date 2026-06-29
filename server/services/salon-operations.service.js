@@ -1351,6 +1351,14 @@ export class SalonOperationsService {
           .filter((item) => !["cash", "upi", "card"].includes(String(item.mode || "").toLowerCase()))
           .reduce((sum, item) => sum + Number(item.amount || 0), 0))
       },
+      paymentModeSummary: Object.entries(
+        payments.reduce((acc, p) => {
+          const mode = String(p.mode || "Other").trim() || "Other";
+          acc[mode] = (acc[mode] || 0) + Number(p.amount || 0);
+          return acc;
+        }, {})
+      ).map(([mode, amount]) => ({ mode, amount: money(amount) }))
+        .sort((a, b) => b.amount - a.amount),
       profitLoss: { revenue: money(revenue), estimatedInventoryCost: money(cost), grossProfit: money(revenue - cost) },
       quickLinks: [
         { label: "Staff Sales", path: "/reports/staff-sales", module: "POS attribution" },

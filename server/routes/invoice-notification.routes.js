@@ -30,6 +30,22 @@ invoiceNotificationRouter.post(
   })
 );
 
+invoiceNotificationRouter.post(
+  "/invoice-notifications/contact-verifications/request",
+  requirePermission("write", () => "settings"),
+  asyncHandler((req, res) => {
+    res.status(201).json(invoiceNotificationService.requestContactVerification(req.body, req.access));
+  })
+);
+
+invoiceNotificationRouter.post(
+  "/invoice-notifications/contact-verifications/verify",
+  requirePermission("write", () => "settings"),
+  asyncHandler((req, res) => {
+    res.json(invoiceNotificationService.verifyContactVerification(req.body, req.access));
+  })
+);
+
 invoiceNotificationRouter.get(
   "/invoice-notifications/queue",
   requirePermission("read", () => "notifications"),

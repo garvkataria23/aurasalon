@@ -1110,7 +1110,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .command-cards button.strong { background: var(--teal); color: #fff; }
     .command-cards button.strong span { color: rgba(255, 255, 255, 0.82); }
     .command-cards button span { color: var(--muted); font-size: 0.8rem; font-weight: 500; }
-    .linked-flash { box-shadow: 0 0 0 3px rgba(15, 143, 127, .22), 0 14px 30px rgba(15, 143, 127, .16) !important; }
     .action-message { color: var(--teal-deep); font-weight: 700; }
 
     /* ---- Advanced AI workbench ---- */
@@ -1205,13 +1204,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .chart-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
     .report-table div { grid-template-columns: 1fr auto auto; }
     .calendar-board em { color: var(--teal-deep); font-size: .7rem; font-style: normal; font-weight: 850; text-transform: capitalize; }
-    .audit-cta, .score-gauge button, .post-actions button { background: linear-gradient(90deg, #b64ee8, #f97316); border: 0; border-radius: 12px; color: #fff; cursor: pointer; font-weight: 850; padding: .85rem 1rem; }
     .score-gauge, .rating-card, .calendar-card, .request-stats article, .customer-row, .chart-card, .empty-posts, .planner-list article { background: #fff; border: 1px solid #e5edf3; border-radius: 16px; padding: 1rem; }
-    .score-gauge { display: grid; gap: .75rem; justify-items: center; }
-    .score-gauge > span, .rating-card span { color: #4b5563; font-weight: 800; }
-    .gauge-ring { align-items: center; background: conic-gradient(#22c55e var(--score), #facc15 0 78%, #ef4444 0); border-radius: 999px; display: flex; height: 148px; justify-content: center; position: relative; width: 148px; }
-    .gauge-ring::after { background: #fff; border-radius: inherit; content: ''; inset: 18px; position: absolute; }
-    .gauge-ring strong { color: #111827; font-family: var(--font-display); font-size: 2rem; font-weight: 900; position: relative; z-index: 1; }
     .phone-kpis, .report-metrics { display: grid; gap: .55rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .phone-kpis article, .report-metrics article { background: #fff; border: 1px solid #e5edf3; border-radius: 14px; padding: .8rem; }
     .phone-kpis small, .report-metrics small, .calendar-card small, .chart-card small, .planner-list small { color: #64748b; display: block; font-size: .72rem; }
@@ -1221,42 +1214,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .mini-table div:last-child { border-bottom: 0; }
     .mini-table span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mini-table strong { color: #111827; }
-    .growth-tasks { display: grid; gap: .65rem; }
-    .growth-tasks article { align-items: center; background: #fff; border: 1px solid #e5edf3; border-radius: 16px; box-shadow: 0 8px 18px rgba(15,23,42,.08); display: grid; gap: .7rem; grid-template-columns: auto 1fr auto; padding: .75rem; }
-    .growth-tasks article > span { align-items: center; border-radius: 999px; color: #fff; display: inline-flex; font-weight: 900; height: 42px; justify-content: center; width: 42px; }
-    .growth-tasks strong { display: block; font-size: .9rem; }
-    .growth-tasks small { color: #8b5cf6; display: block; font-size: .72rem; }
-    .growth-tasks button { background: #ecfeff; border: 0; border-radius: 999px; color: #0f766e; cursor: pointer; font-size: .72rem; font-weight: 850; padding: .45rem .65rem; }
-    .calendar-days { display: grid; gap: .3rem; grid-template-columns: repeat(7, 1fr); margin: .7rem 0; text-align: center; }
-    .calendar-days span { border-radius: 999px; color: #334155; font-size: .76rem; padding: .35rem 0; }
     .calendar-days span.active { background: #e0f2fe; color: #0284c7; font-weight: 850; }
-    .calendar-card b { background: #22c55e; border-radius: 999px; display: inline-block; height: 8px; margin: 0 .25rem; width: 8px; }
-    .pill-tabs, .filter-pills { display: flex; gap: .5rem; overflow-x: auto; }
-    .pill-tabs button, .filter-pills span { background: #fff; border: 1px solid #e5edf3; border-radius: 999px; color: #334155; flex: 0 0 auto; font-weight: 800; padding: .65rem .9rem; }
     .pill-tabs button.active { background: #071036; color: #fff; }
-    .pill-tabs.two button { border-radius: 12px; flex: 1; }
-    .rating-card { display: grid; gap: .35rem; justify-items: center; }
-    .rating-card strong { color: #f59e0b; font-family: var(--font-display); font-size: 2.1rem; font-weight: 900; }
-    .review-list { display: grid; gap: .7rem; }
-    .review-list article { background: #fff; border: 1px solid #e5edf3; border-radius: 16px; display: grid; gap: .55rem; padding: .9rem; }
-    .review-list article > div { align-items: center; display: grid; gap: .45rem; grid-template-columns: auto 1fr auto; }
-    .review-list span, .customer-row > span { align-items: center; background: linear-gradient(135deg, #ec4899, #f97316); border-radius: 999px; color: #fff; display: inline-flex; font-weight: 900; height: 36px; justify-content: center; width: 36px; }
-    .review-list p { color: #475569; line-height: 1.45; margin: 0; }
-    .review-list button { background: #fff; border: 1px solid #f97316; border-radius: 10px; color: #c2410c; font-weight: 850; justify-self: end; padding: .55rem .8rem; }
-    .request-stats { display: grid; gap: .65rem; grid-template-columns: 1fr 1fr; }
-    .request-stats strong, .request-stats span { display: block; }
-    .customer-row { align-items: center; display: grid; gap: .7rem; grid-template-columns: auto 1fr auto; }
-    .customer-row strong, .customer-row small { display: block; }
-    .customer-row small { color: #64748b; }
-    .customer-row button { background: #dff5ee; border: 0; border-radius: 999px; color: #0f766e; font-weight: 850; padding: .5rem .75rem; }
-    .empty-posts { align-items: center; color: #8b95a7; display: flex; justify-content: center; min-height: 220px; text-align: center; }
-    .post-actions { display: grid; gap: 1px; grid-template-columns: 1fr 1fr; overflow: hidden; border-radius: 14px; }
-    .post-actions button:first-child { background: #071036; border-radius: 0; }
-    .post-actions button:last-child { border-radius: 0; }
-    .planner-list { display: grid; gap: .55rem; }
-    .report-head { align-items: center; display: flex; justify-content: space-between; }
-    .report-head h4 { margin: 0; }
-    .report-head button { background: transparent; border: 1px solid #e5edf3; border-radius: 999px; color: #111827; font-weight: 850; padding: .55rem .8rem; }
     .report-metrics span { color: #16a34a; display: block; font-size: .72rem; font-weight: 850; }
     .report-metrics span.down { color: #dc2626; }
     .chart-card { display: grid; gap: .65rem; }
@@ -1264,15 +1223,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .line-chart { align-items: end; display: flex; gap: .45rem; height: 112px; padding-top: .5rem; }
     .line-chart span { background: #4f7bea; border-radius: 999px 999px 4px 4px; flex: 1; min-height: 10%; }
     .chart-card p { background: #4f7bea; border-radius: 12px; color: #fff; line-height: 1.45; margin: 0; padding: .75rem; }
-    .growth-fab { align-items: center; background: linear-gradient(90deg, #c45be8, #f97316); border: 0; border-radius: 999px; bottom: 78px; box-shadow: 0 10px 24px rgba(249,115,22,.3); color: #fff; cursor: pointer; display: grid; gap: .1rem; grid-template-columns: auto 1fr; left: 50%; max-width: calc(100% - 56px); padding: .75rem 1rem; position: absolute; transform: translateX(-50%); width: 280px; z-index: 2; }
-    .growth-fab span, .growth-fab small { text-align: left; }
-    .growth-fab span { font-weight: 900; }
-    .growth-fab small { color: rgba(255,255,255,.86); font-size: .68rem; grid-column: 2; }
-    .portal-control-room { display: grid; gap: 1rem; }
-    .portal-control-room > article { background: var(--soft); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: .75rem; padding: 1rem; }
-    .portal-control-room header { align-items: center; display: flex; justify-content: space-between; gap: .75rem; }
-    .portal-control-room h4 { color: var(--ink); font-family: var(--font-display); font-size: 1rem; font-weight: 850; margin: 0; }
-    .portal-control-room header span { color: var(--muted); font-size: .78rem; }
     .calendar-board { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
     .calendar-board span { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; display: grid; gap: .2rem; padding: .65rem; }
     .calendar-board span.approved { background: #eff6ff; border-color: #bfdbfe; }

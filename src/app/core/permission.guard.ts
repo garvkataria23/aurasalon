@@ -1,8 +1,9 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { AuthSessionService } from './auth-session.service';
 import { AppStateService } from './state/app-state.service';
 
-const GRANTS: Record<string, string[]> = {
+export const GRANTS: Record<string, string[]> = {
   superAdmin: ['*'],
   owner: ['*'],
   admin: ['*'],
@@ -44,21 +45,31 @@ const GRANTS: Record<string, string[]> = {
   analyst: ['read:*', 'write:analytics']
 };
 
-function allows(role: string, perm: string): boolean {
-  const grants = GRANTS[role] || [];
+export function grantsAllow(grants: string[], perm: string): boolean {
   if (grants.includes('*')) return true;
   if (grants.includes(perm)) return true;
-  const [action] = perm.split(':');
-  return grants.includes(`${action}:*`);
+  const [action, resource] = perm.split(':');
+  return grants.includes(`${action}:*`) || grants.includes('admin:*') || (resource ? grants.includes(`admin:${resource}`) : false);
+}
+
+export function staticGrantsForRole(role: string): string[] {
+  return GRANTS[role] || [];
+}
+
+function grantsForSession(role: string, session: AuthSessionService): string[] {
+  const dynamicGrants = session.currentUser()?.permissions || [];
+  return dynamicGrants.length ? dynamicGrants : staticGrantsForRole(role);
 }
 
 export const permissionGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const state = inject(AppStateService);
+  const session = inject(AuthSessionService);
   const required = route.data?.['permission'];
   const role = state.userRole();
+  const grants = grantsForSession(role, session);
   const perms = Array.isArray(required) ? required : required ? [required] : [];
   if (perms.length === 0) return true;
-  const ok = perms.every((permission: string) => allows(role, permission));
+  const ok = perms.every((permission: string) => grantsAllow(grants, permission));
   return ok ? true : router.createUrlTree(['/dashboard']);
 };

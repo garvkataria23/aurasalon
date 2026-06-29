@@ -1,14 +1,18 @@
+import { createHash, randomInt, randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dataDir, db } from "../db.js";
 import { badRequest, notFound } from "../utils/app-error.js";
+import { jobQueueService } from "./job-queue.service.js";
 import { realtimeService } from "./realtime.service.js";
 import { securityService } from "./security.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const now = () => new Date().toISOString();
-const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
+const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
 const money = (value) => Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+const CONTACT_OTP_TTL_MINUTES = 10;
+const CONTACT_OTP_MAX_ATTEMPTS = 5;
 const MAX_BUSINESS_MEDIA_BYTES = 5 * 1024 * 1024;
 const BUSINESS_MEDIA_MIME_EXTENSIONS = new Map([
   ["image/jpeg", ".jpg"],
@@ -70,6 +74,82 @@ function normalizeRecipientAddress(channel, address) {
     : String(address || "").trim();
 }
 
+function hashContactOtp({ tenantId, branchId, contactRole, contactType, contactValue, otp }) {
+  return createHash("sha256")
+    .update([tenantId, branchId || "", contactRole, contactType, contactValue, otp].join(":"))
+    .digest("hex");
+}
+
+function verificationExpiresAt() {
+  return new Date(Date.now() + CONTACT_OTP_TTL_MINUTES * 60 * 1000).toISOString();
+}
+
+function devOtp(code) {
+  return process.env.NODE_ENV === "production" ? undefined : code;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function pdfText(value) {
+  return String(value ?? "").replace(/[()\\]/g, "\\$&").replace(/[^\x20-\x7e]/g, "?");
+}
+
+function tableColumns(table) {
+  try {
+    return new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name));
+  } catch {
+    return new Set();
+  }
+}
+
+function firstColumn(columns, candidates, fallback = "") {
+  return candidates.find((column) => columns.has(column)) || fallback;
+}
+
+function numberValue(row, keys) {
+  const value = keys.map((key) => row?.[key]).find((item) => item !== undefined && item !== null && item !== "");
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function localDateParts(date = new Date(), timeZone = "Asia/Kolkata") {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).formatToParts(date);
+  const value = (type) => parts.find((part) => part.type === type)?.value || "";
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    time: `${value("hour")}:${value("minute")}`
+  };
+}
+
+function validReportTime(value) {
+  const candidate = String(value || "").trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(candidate) ? candidate : "21:00";
+}
+
+function validTimezone(value) {
+  const timezone = String(value || "Asia/Kolkata").trim() || "Asia/Kolkata";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
+    return timezone;
+  } catch {
+    return "Asia/Kolkata";
+  }
+}
+
 function scope(access = {}) {
   return { tenantId: access.tenantId || "tenant_aura" };
 }
@@ -102,6 +182,10 @@ function profileRowToDto(row, fallback = {}) {
     providerMode: target.provider_mode || fallback.providerMode || "queued",
     invoiceClientEnabled: Number(target.invoice_client_enabled ?? fallback.invoiceClientEnabled ?? 1) === 1,
     invoiceOwnerEnabled: Number(target.invoice_owner_enabled ?? fallback.invoiceOwnerEnabled ?? 1) === 1,
+    reportEmailEnabled: Number(target.report_email_enabled ?? fallback.reportEmailEnabled ?? 0) === 1,
+    reportEmailTime: validReportTime(target.report_email_time || fallback.reportEmailTime || "21:00"),
+    reportEmailTimezone: validTimezone(target.report_email_timezone || fallback.reportEmailTimezone || "Asia/Kolkata"),
+    reportLastSentDate: target.report_last_sent_date || fallback.reportLastSentDate || "",
     version: Number(target.version || 1),
     createdAt: target.created_at || "",
     updatedAt: target.updated_at || ""
@@ -256,7 +340,11 @@ export class InvoiceNotificationService {
       businessHours: {},
       providerMode: "queued",
       invoiceClientEnabled: true,
-      invoiceOwnerEnabled: true
+      invoiceOwnerEnabled: true,
+      reportEmailEnabled: false,
+      reportEmailTime: "21:00",
+      reportEmailTimezone: "Asia/Kolkata",
+      reportLastSentDate: ""
     };
   }
 
@@ -267,7 +355,131 @@ export class InvoiceNotificationService {
     const row = db
       .prepare("SELECT * FROM business_notification_profiles WHERE tenant_id = ? AND branch_id = ?")
       .get(access.tenantId, branchId);
-    return profileRowToDto(row, fallback);
+    const profile = profileRowToDto(row, fallback);
+    return {
+      ...profile,
+      contactVerifications: this.profileContactVerificationSummary(profile, access)
+    };
+  }
+
+  requestContactVerification(payload = {}, access = {}) {
+    const tenantId = access.tenantId;
+    const branchId = payload.branchId || access.branchId || "";
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+    const contactRole = this.normalizeContactRole(payload.contactRole);
+    const contactType = this.normalizeContactType(payload.contactType || (contactRole === "ownerMobile" ? "phone" : "email"));
+    const contactValue = this.normalizeContactValue(contactType, payload.contactValue || payload.value);
+    const otp = String(randomInt(100000, 1000000));
+    const requestedAt = now();
+    const row = {
+      id: makeId("bcv"),
+      tenantId,
+      branchId,
+      contactRole,
+      contactType,
+      contactValue,
+      status: "pending",
+      otpHash: hashContactOtp({ tenantId, branchId, contactRole, contactType, contactValue, otp }),
+      requestedChannel: contactType === "phone" ? String(payload.channel || "sms") : "email",
+      deliveryChannel: process.env.NODE_ENV === "production" ? (contactType === "phone" ? String(payload.channel || "sms") : "email") : "local",
+      attemptCount: 0,
+      maxAttempts: CONTACT_OTP_MAX_ATTEMPTS,
+      requestedAt,
+      expiresAt: verificationExpiresAt(),
+      verifiedAt: "",
+      createdAt: requestedAt,
+      updatedAt: requestedAt
+    };
+    db.prepare(`
+      INSERT INTO businessNotificationContactVerifications (
+        id, tenantId, branchId, contactRole, contactType, contactValue, status, otpHash,
+        requestedChannel, deliveryChannel, attemptCount, maxAttempts, requestedAt, expiresAt,
+        verifiedAt, createdAt, updatedAt
+      ) VALUES (
+        @id, @tenantId, @branchId, @contactRole, @contactType, @contactValue, @status, @otpHash,
+        @requestedChannel, @deliveryChannel, @attemptCount, @maxAttempts, @requestedAt, @expiresAt,
+        @verifiedAt, @createdAt, @updatedAt
+      )
+      ON CONFLICT(tenantId, branchId, contactRole, contactType, contactValue)
+      DO UPDATE SET
+        status = 'pending',
+        otpHash = excluded.otpHash,
+        requestedChannel = excluded.requestedChannel,
+        deliveryChannel = excluded.deliveryChannel,
+        attemptCount = 0,
+        maxAttempts = excluded.maxAttempts,
+        requestedAt = excluded.requestedAt,
+        expiresAt = excluded.expiresAt,
+        verifiedAt = '',
+        updatedAt = excluded.updatedAt
+    `).run(row);
+    this.queueContactOtp(row, otp);
+    securityService.audit({
+      action: "invoice.notification_contact_otp.requested",
+      targetType: "businessNotificationContactVerification",
+      targetId: row.id,
+      details: { branchId, contactRole, contactType, contactValue }
+    }, access);
+    return {
+      requestId: row.id,
+      contactRole,
+      contactType,
+      contactValue,
+      status: "pending",
+      expiresAt: row.expiresAt,
+      deliveryChannel: row.deliveryChannel,
+      devOtp: devOtp(otp)
+    };
+  }
+
+  verifyContactVerification(payload = {}, access = {}) {
+    const tenantId = access.tenantId;
+    const branchId = payload.branchId || access.branchId || "";
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+    const contactRole = this.normalizeContactRole(payload.contactRole);
+    const contactType = this.normalizeContactType(payload.contactType || (contactRole === "ownerMobile" ? "phone" : "email"));
+    const contactValue = this.normalizeContactValue(contactType, payload.contactValue || payload.value);
+    const otp = String(payload.otp || payload.code || "").trim();
+    if (!/^\d{6}$/.test(otp)) throw badRequest("Valid 6 digit OTP is required");
+    const row = db.prepare(`
+      SELECT *
+        FROM businessNotificationContactVerifications
+       WHERE tenantId = @tenantId
+         AND branchId = @branchId
+         AND contactRole = @contactRole
+         AND contactType = @contactType
+         AND contactValue = @contactValue
+       LIMIT 1
+    `).get({ tenantId, branchId, contactRole, contactType, contactValue });
+    if (!row || row.expiresAt < now()) throw badRequest("OTP expired. Send a new OTP.");
+    if (Number(row.attemptCount || 0) >= Number(row.maxAttempts || CONTACT_OTP_MAX_ATTEMPTS)) throw badRequest("OTP attempts exceeded. Send a new OTP.");
+    const expected = hashContactOtp({ tenantId, branchId, contactRole, contactType, contactValue, otp });
+    if (row.otpHash !== expected) {
+      db.prepare(`
+        UPDATE businessNotificationContactVerifications
+           SET attemptCount = attemptCount + 1,
+               status = 'pending',
+               updatedAt = @updatedAt
+         WHERE id = @id
+      `).run({ id: row.id, updatedAt: now() });
+      throw badRequest("Invalid OTP");
+    }
+    const verifiedAt = now();
+    db.prepare(`
+      UPDATE businessNotificationContactVerifications
+         SET status = 'verified',
+             otpHash = '',
+             verifiedAt = @verifiedAt,
+             updatedAt = @verifiedAt
+       WHERE id = @id
+    `).run({ id: row.id, verifiedAt });
+    securityService.audit({
+      action: "invoice.notification_contact_otp.verified",
+      targetType: "businessNotificationContactVerification",
+      targetId: row.id,
+      details: { branchId, contactRole, contactType, contactValue }
+    }, access);
+    return { contactRole, contactType, contactValue, status: "verified", verifiedAt };
   }
 
   saveProfile(payload = {}, access = {}) {
@@ -303,6 +515,9 @@ export class InvoiceNotificationService {
       provider_mode: payload.providerMode || "queued",
       invoice_client_enabled: payload.invoiceClientEnabled === false ? 0 : 1,
       invoice_owner_enabled: payload.invoiceOwnerEnabled === false ? 0 : 1,
+      report_email_enabled: payload.reportEmailEnabled === true ? 1 : 0,
+      report_email_time: validReportTime(payload.reportEmailTime),
+      report_email_timezone: validTimezone(payload.reportEmailTimezone),
       updated_at: now()
     };
     if (current) {
@@ -330,6 +545,9 @@ export class InvoiceNotificationService {
                provider_mode = @provider_mode,
                invoice_client_enabled = @invoice_client_enabled,
                invoice_owner_enabled = @invoice_owner_enabled,
+               report_email_enabled = @report_email_enabled,
+               report_email_time = @report_email_time,
+               report_email_timezone = @report_email_timezone,
                version = version + 1,
                updated_at = @updated_at
          WHERE tenant_id = @tenant_id AND branch_id = @branch_id
@@ -341,19 +559,116 @@ export class InvoiceNotificationService {
           owner_emails_json, owner_mobiles_json, client_channels_json, owner_channels_json,
           mobile_number, telephone_number, appointment_number, address, country, state, city,
           postal_code, about_us, social_links_json, business_hours_json, provider_mode,
-          invoice_client_enabled, invoice_owner_enabled, updated_at
+          invoice_client_enabled, invoice_owner_enabled, report_email_enabled, report_email_time,
+          report_email_timezone, updated_at
         ) VALUES (
           @id, @tenant_id, @branch_id, @business_name, @logo_url, @admin_email, @reporting_emails_json,
           @owner_emails_json, @owner_mobiles_json, @client_channels_json, @owner_channels_json,
           @mobile_number, @telephone_number, @appointment_number, @address, @country, @state, @city,
           @postal_code, @about_us, @social_links_json, @business_hours_json, @provider_mode,
-          @invoice_client_enabled, @invoice_owner_enabled, @updated_at
+          @invoice_client_enabled, @invoice_owner_enabled, @report_email_enabled, @report_email_time,
+          @report_email_timezone, @updated_at
         )
       `).run(next);
     }
     securityService.audit({ action: "invoice.notification_profile.saved", targetType: "business_notification_profile", targetId: next.id, details: { branchId } }, access);
     realtimeService.broadcast("invoice:notification_profile_updated", { branchId }, { tenantId, branchId });
     return this.getProfile({ branchId }, access);
+  }
+
+  normalizeContactRole(value) {
+    const role = String(value || "").trim();
+    const allowed = new Set(["reportingEmail", "ownerEmail", "ownerMobile"]);
+    if (!allowed.has(role)) throw badRequest("Valid contact role is required");
+    return role;
+  }
+
+  normalizeContactType(value) {
+    const type = String(value || "").trim().toLowerCase();
+    if (!["email", "phone"].includes(type)) throw badRequest("Valid contact type is required");
+    return type;
+  }
+
+  normalizeContactValue(contactType, value) {
+    const normalized = contactType === "phone" ? phonesFrom(value)[0] : emailsFrom(value)[0];
+    if (!normalized) throw badRequest(contactType === "phone" ? "Valid phone number is required" : "Valid email is required");
+    return normalized;
+  }
+
+  queueContactOtp(row, otp) {
+    if (row.contactType === "email") {
+      return jobQueueService.enqueue({
+        tenantId: row.tenantId,
+        jobType: "email_send",
+        priority: 2,
+        payload: {
+          to: row.contactValue,
+          branchId: row.branchId,
+          type: "owner_contact_verification",
+          subject: "Verify AuraSalon owner alert contact",
+          message: `Your AuraSalon owner alert verification code is ${otp}. It expires in ${CONTACT_OTP_TTL_MINUTES} minutes.`
+        }
+      });
+    }
+    return jobQueueService.enqueue({
+      tenantId: row.tenantId,
+      jobType: "whatsapp_send",
+      priority: 2,
+      payload: {
+        template: "otp_send",
+        phone: row.contactValue,
+        branchId: row.branchId,
+        language: "en",
+        variables: { otp, purpose: "owner_contact_verification" }
+      }
+    });
+  }
+
+  profileContactVerificationSummary(profile = {}, access = {}) {
+    const branchId = profile.branchId || access.branchId || "";
+    const stored = this.contactVerificationRows({ branchId }, access);
+    const byKey = new Map(stored.map((row) => [`${row.contactRole}:${row.contactType}:${row.contactValue}`, row]));
+    const expected = [
+      ...emailsFrom(profile.reportingEmails).map((value) => ({ contactRole: "reportingEmail", contactType: "email", contactValue: value })),
+      ...emailsFrom(profile.ownerEmails).map((value) => ({ contactRole: "ownerEmail", contactType: "email", contactValue: value })),
+      ...phonesFrom(profile.ownerMobiles).map((value) => ({ contactRole: "ownerMobile", contactType: "phone", contactValue: value }))
+    ];
+    return expected.map((item) => {
+      const row = byKey.get(`${item.contactRole}:${item.contactType}:${item.contactValue}`);
+      return {
+        ...item,
+        status: row?.status === "verified" ? "verified" : "unverified",
+        verifiedAt: row?.verifiedAt || "",
+        requestedAt: row?.requestedAt || "",
+        expiresAt: row?.expiresAt || ""
+      };
+    });
+  }
+
+  contactVerificationRows(query = {}, access = {}) {
+    const branchId = query.branchId || access.branchId || "";
+    return db.prepare(`
+      SELECT id, tenantId, branchId, contactRole, contactType, contactValue, status,
+             requestedChannel, deliveryChannel, requestedAt, expiresAt, verifiedAt, updatedAt
+        FROM businessNotificationContactVerifications
+       WHERE tenantId = @tenantId
+         AND branchId = @branchId
+       ORDER BY updatedAt DESC
+    `).all({ tenantId: access.tenantId, branchId });
+  }
+
+  verifiedProfileContactValues(profile = {}, access = {}, role, type) {
+    const branchId = profile.branchId || access.branchId || "";
+    return db.prepare(`
+      SELECT contactValue
+        FROM businessNotificationContactVerifications
+       WHERE tenantId = @tenantId
+         AND branchId = @branchId
+         AND contactRole = @role
+         AND contactType = @type
+         AND status = 'verified'
+         AND COALESCE(verifiedAt, '') != ''
+    `).all({ tenantId: access.tenantId, branchId, role, type }).map((row) => row.contactValue);
   }
 
   uploadProfileMedia(payload = {}, access = {}, options = {}) {
@@ -641,15 +956,16 @@ export class InvoiceNotificationService {
     const tenant = db.prepare("SELECT * FROM tenants WHERE id = ?").get(ctx.access.tenantId) || {};
     const users = db.prepare("SELECT * FROM tenant_users WHERE tenantId = ? AND status != 'inactive'").all(ctx.access.tenantId);
     const ownerUsers = users.filter((user) => ["owner", "admin"].includes(String(user.role || "").toLowerCase()));
+    const verifiedOwnerEmails = this.verifiedProfileContactValues(ctx.profile, ctx.access, "ownerEmail", "email");
+    const verifiedOwnerMobiles = this.verifiedProfileContactValues(ctx.profile, ctx.access, "ownerMobile", "phone");
     const emails = compactUnique([
       ...emailsFrom(ctx.profile.adminEmail),
-      ...emailsFrom(ctx.profile.reportingEmails),
-      ...emailsFrom(ctx.profile.ownerEmails),
+      ...emailsFrom(verifiedOwnerEmails),
       ...emailsFrom(tenant.ownerEmail),
       ...ownerUsers.map((user) => user.email)
     ]);
     const phones = compactUnique([
-      ...phonesFrom(ctx.profile.ownerMobiles),
+      ...phonesFrom(verifiedOwnerMobiles),
       ...phonesFrom(ctx.profile.mobileNumber),
       ...phonesFrom(ctx.profile.telephoneNumber)
     ]);
@@ -698,6 +1014,167 @@ export class InvoiceNotificationService {
     } catch {
       return [];
     }
+  }
+
+  queueDueDailyReports(date = new Date()) {
+    const profiles = db.prepare(`
+      SELECT * FROM business_notification_profiles
+       WHERE report_email_enabled = 1
+    `).all();
+    return profiles.flatMap((row) => {
+      const access = { tenantId: row.tenant_id, branchId: row.branch_id, role: "system", userId: "daily-report-scheduler" };
+      const profile = profileRowToDto(row, this.defaultProfile(access, row.branch_id));
+      const local = localDateParts(date, profile.reportEmailTimezone);
+      if (profile.reportLastSentDate === local.date || local.time < profile.reportEmailTime) return [];
+      return [this.queueDailyReportEmail(profile, access, local.date)];
+    }).filter(Boolean);
+  }
+
+  queueDailyReportEmail(profile = {}, access = {}, businessDate = "") {
+    const date = businessDate || localDateParts(new Date(), profile.reportEmailTimezone).date;
+    const recipients = this.verifiedProfileContactValues(profile, access, "reportingEmail", "email");
+    if (!profile.reportEmailEnabled || !recipients.length) return { queued: false, reason: "reporting_email_missing_or_disabled", businessDate: date };
+    const report = this.dailyReport(profile, access, date);
+    const pdf = this.dailyReportPdf(report);
+    const jobs = recipients.map((email) => jobQueueService.enqueue({
+      tenantId: access.tenantId,
+      jobType: "email_send",
+      priority: 3,
+      payload: {
+        to: email,
+        branchId: profile.branchId || access.branchId || "",
+        type: "daily_business_report",
+        subject: `${profile.businessName || "AuraSalon"} daily report - ${date}`,
+        message: report.text,
+        html: report.html,
+        attachments: [{
+          filename: `daily-report-${date}.pdf`,
+          contentType: "application/pdf",
+          contentBase64: pdf.toString("base64")
+        }],
+        metadata: {
+          source: "daily-report-scheduler",
+          businessDate: date,
+          reportEmailTime: profile.reportEmailTime,
+          reportEmailTimezone: profile.reportEmailTimezone
+        }
+      }
+    }));
+    db.prepare(`
+      UPDATE business_notification_profiles
+         SET report_last_sent_date = @date,
+             updated_at = @updatedAt
+       WHERE tenant_id = @tenantId AND branch_id = @branchId
+    `).run({ date, updatedAt: now(), tenantId: access.tenantId, branchId: profile.branchId || access.branchId || "" });
+    securityService.audit({
+      action: "reports.daily_email.queued",
+      targetType: "business_notification_profile",
+      targetId: profile.id || "",
+      details: { branchId: profile.branchId || access.branchId || "", businessDate: date, recipientCount: recipients.length }
+    }, access);
+    return { queued: true, businessDate: date, recipientCount: recipients.length, jobs };
+  }
+
+  dailyReport(profile = {}, access = {}, businessDate = "") {
+    const branchId = profile.branchId || access.branchId || "";
+    const invoiceColumns = tableColumns("invoices");
+    const invoiceTenantColumn = firstColumn(invoiceColumns, ["tenant_id", "tenantId"]);
+    const invoiceBranchColumn = firstColumn(invoiceColumns, ["branch_id", "branchId"]);
+    const invoiceDateColumn = firstColumn(invoiceColumns, ["created_at", "createdAt"], "created_at");
+    const invoiceWhere = [
+      invoiceTenantColumn ? `${invoiceTenantColumn} = @tenantId` : "1 = 1",
+      invoiceBranchColumn ? "(@branchId = '' OR " + invoiceBranchColumn + " = @branchId)" : "1 = 1",
+      `date(${invoiceDateColumn}) = date(@businessDate)`
+    ].join(" AND ");
+    const invoiceRows = db.prepare(`SELECT * FROM invoices WHERE ${invoiceWhere}`).all({ tenantId: access.tenantId, branchId, businessDate });
+
+    const appointmentColumns = tableColumns("appointments");
+    const appointmentTenantColumn = firstColumn(appointmentColumns, ["tenantId", "tenant_id"]);
+    const appointmentBranchColumn = firstColumn(appointmentColumns, ["branchId", "branch_id"]);
+    const appointmentDateColumn = firstColumn(appointmentColumns, ["startAt", "start_at", "createdAt", "created_at"], "startAt");
+    const appointmentWhere = [
+      appointmentTenantColumn ? `${appointmentTenantColumn} = @tenantId` : "1 = 1",
+      appointmentBranchColumn ? "(@branchId = '' OR " + appointmentBranchColumn + " = @branchId)" : "1 = 1",
+      `date(${appointmentDateColumn}) = date(@businessDate)`
+    ].join(" AND ");
+    const appointmentRows = db.prepare(`SELECT * FROM appointments WHERE ${appointmentWhere}`).all({ tenantId: access.tenantId, branchId, businessDate });
+
+    const total = invoiceRows.reduce((sum, row) => sum + numberValue(row, ["grand_total", "total"]), 0);
+    const paid = invoiceRows.reduce((sum, row) => sum + numberValue(row, ["paid", "paid_amount"]), 0);
+    const due = invoiceRows.reduce((sum, row) => {
+      const storedDue = numberValue(row, ["balance", "due_amount"]);
+      if (storedDue) return sum + storedDue;
+      return sum + Math.max(0, numberValue(row, ["grand_total", "total"]) - numberValue(row, ["paid", "paid_amount"]));
+    }, 0);
+    const completedAppointments = appointmentRows.filter((row) => ["completed", "billed", "paid"].includes(String(row.status || "").toLowerCase())).length;
+    const cancelledAppointments = appointmentRows.filter((row) => ["cancelled", "no-show"].includes(String(row.status || "").toLowerCase())).length;
+    const lines = [
+      `${profile.businessName || "AuraSalon"} daily report`,
+      `Business date: ${businessDate}`,
+      `Branch: ${branchId || "All branches"}`,
+      `Invoices: ${invoiceRows.length}`,
+      `Sales total: INR ${money(total)}`,
+      `Paid: INR ${money(paid)}`,
+      `Due: INR ${money(due)}`,
+      `Appointments: ${appointmentRows.length}`,
+      `Completed appointments: ${completedAppointments}`,
+      `Cancelled/no-show appointments: ${cancelledAppointments}`
+    ];
+    const htmlRows = [
+      ["Business date", businessDate],
+      ["Invoices", invoiceRows.length],
+      ["Sales total", `INR ${money(total)}`],
+      ["Paid", `INR ${money(paid)}`],
+      ["Due", `INR ${money(due)}`],
+      ["Appointments", appointmentRows.length],
+      ["Completed appointments", completedAppointments],
+      ["Cancelled/no-show appointments", cancelledAppointments]
+    ].map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join("");
+    return {
+      businessDate,
+      branchId,
+      invoiceCount: invoiceRows.length,
+      appointmentCount: appointmentRows.length,
+      total,
+      paid,
+      due,
+      text: lines.join("\n"),
+      html: `<!doctype html><html><body><h1>${escapeHtml(profile.businessName || "AuraSalon")} daily report</h1><table>${htmlRows}</table></body></html>`
+    };
+  }
+
+  dailyReportPdf(report = {}) {
+    const lines = String(report.text || "Daily report").split("\n").slice(0, 30);
+    const content = [
+      "BT",
+      "/F1 18 Tf",
+      "50 780 Td",
+      ...lines.flatMap((line, index) => [
+        index === 0 ? "" : "0 -24 Td",
+        `(${pdfText(line)}) Tj`
+      ]).filter(Boolean),
+      "ET"
+    ].join("\n");
+    const objects = [
+      "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+      "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
+      "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj",
+      "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
+      `5 0 obj << /Length ${Buffer.byteLength(content)} >> stream\n${content}\nendstream endobj`
+    ];
+    let body = "%PDF-1.4\n";
+    const offsets = [0];
+    objects.forEach((object) => {
+      offsets.push(Buffer.byteLength(body));
+      body += `${object}\n`;
+    });
+    const xrefOffset = Buffer.byteLength(body);
+    body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    offsets.slice(1).forEach((offset) => {
+      body += `${String(offset).padStart(10, "0")} 00000 n \n`;
+    });
+    body += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    return Buffer.from(body);
   }
 
   invoicePdfItemSummary(items = []) {

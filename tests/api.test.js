@@ -14,14 +14,26 @@ function close(server) {
 
 test("API health and permission matrix endpoints respond with live data", async () => {
   const server = await listen(createApp());
-  const baseUrl = `http://127.0.0.1:${server.address().port}/api`;
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const baseUrl = `${origin}/api`;
   try {
+    const rootHealth = await fetch(`${origin}/health`);
+    assert.equal(rootHealth.status, 200);
+    assert.equal((await rootHealth.json()).ok, true);
+
     const health = await fetch(`${baseUrl}/health`);
     assert.equal(health.status, 200);
     assert.equal((await health.json()).ok, true);
 
+    const login = await fetch(`${origin}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tenantId: "tenant_aura", email: "owner@aurasalon.example", password: process.env.DEMO_ADMIN_PASSWORD || "AuraOwner#2026" })
+    }).then((response) => response.json());
+
     const matrix = await fetch(`${baseUrl}/security/permission-matrix`, {
       headers: {
+        authorization: `Bearer ${login.data.accessToken}`,
         "x-tenant-id": "tenant_aura",
         "x-user-role": "owner"
       }
@@ -412,3 +424,4 @@ test("level 27-50 ecosystem exposes persisted coverage resources", async () => {
     await close(server);
   }
 });
+
