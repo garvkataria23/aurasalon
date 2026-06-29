@@ -1,7 +1,7 @@
 import { applyInventoryDelta, db } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { badRequest, conflict, notFound } from "../utils/app-error.js";
-import { assertBranch, auditDecision, camel, emitEvent, makeId, now, number, parseJson, requireManager, toJson } from "./enterprise-command-utils.js";
+import { assertBranch, auditDecision, camel, emitEvent, makeId, now, number, ownerRoles, parseJson, requireManager, toJson } from "./enterprise-command-utils.js";
 import { balanceSheetConnector } from "./balance-sheet-connector.service.js";
 import { backbarProductConsumptionService } from "./backbar-product-consumption.service.js";
 import { intelligentInventoryService } from "./intelligent-inventory.service.js";
@@ -12,6 +12,8 @@ const RECIPE_UNITS = new Set(["ml", "gm", "g", "kg", "l", "ltr", "liter", "pcs",
 const MEASURE_EQUIVALENTS = new Map([["gm", "g"], ["ltr", "l"], ["liter", "l"], ["nos", "pcs"]]);
 const CONSUMABLE_TYPES = new Set(["consumable", "both"]);
 const OVERUSE_TOLERANCE_PCT = 15;
+const PRODUCT_CONSUME_WASTAGE_WARN_PCT = 10;
+const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
 const DEFAULT_USAGE_MODIFIERS = [
   { key: "short", label: "Short hair", multiplier: 1 },
   { key: "medium", label: "Medium hair", multiplier: 1.5 },
@@ -32,6 +34,34 @@ function overuseNeedsReason(line = {}) {
   const overMax = maxQty > 0 && actualQty > maxQty;
   const overExpected = expectedQty > 0 && actualQty > expectedQty * (1 + OVERUSE_TOLERANCE_PCT / 100);
   return (overMax || overExpected) && !reason;
+}
+
+function productConsumeWastageGuard(lines = [], draft = {}, access = {}, payload = {}) {
+  const flaggedLines = safeArray(lines)
+    .map((line) => ({
+      productId: line.productId || line.product_id || "",
+      productName: line.productName || line.product_name || line.productId || line.product_id || "Product",
+      wastagePct: number(line.wastagePct ?? line.wastage_pct, 0),
+      actualQty: number(line.actualQty ?? line.actual_qty ?? line.quantity, 0),
+      expectedQty: number(line.expectedQty ?? line.expected_qty, 0),
+      reason: String(line.reason || line.overuseReason || line.overuse_reason || "").trim()
+    }))
+    .filter((line) => line.wastagePct >= PRODUCT_CONSUME_WASTAGE_WARN_PCT || (line.expectedQty > 0 && line.actualQty > line.expectedQty * (1 + OVERUSE_TOLERANCE_PCT / 100)));
+  const approvalLines = flaggedLines.filter((line) => line.wastagePct > PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT);
+  return {
+    warnPct: PRODUCT_CONSUME_WASTAGE_WARN_PCT,
+    approvalPct: PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT,
+    approvalRequired: approvalLines.length > 0,
+    ownerApproved: Boolean(payload.ownerApproval || payload.owner_approval) && ownerRoles.has(access.role),
+    maxWastagePct: flaggedLines.reduce((max, line) => Math.max(max, line.wastagePct), 0),
+    lines: flaggedLines,
+    approvalLines,
+    draftId: draft.id || "",
+    invoiceId: draft.invoice_id || "",
+    invoiceNumber: draft.invoice_number || draft.invoice_no || "",
+    staffId: draft.staff_id || "",
+    staffName: draft.staff_name || ""
+  };
 }
 
 let productConsumeDraftSchemaReady = false;
@@ -1914,6 +1944,26 @@ export class InventoryEnterpriseService {
     if (missingReason) {
       throw conflict(`Overuse reason required for ${missingReason.productName || missingReason.product_name || missingReason.productId || missingReason.product_id}`);
     }
+    const wastageGuard = productConsumeWastageGuard(lines, draft, access, payload);
+    if (wastageGuard.approvalRequired && !wastageGuard.ownerApproved) {
+      updateSnake("product_consume_drafts", id, access, {
+        line_items_json: toJson(lines),
+        actual_cost: money(lines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
+        status: "draft",
+        notes: payload.notes ?? draft.notes,
+        updated_by: access.userId || ""
+      });
+      emitEvent("inventory:product_consume_wastage_approval_required", access, draft.branch_id, id, {
+        invoiceId: draft.invoice_id,
+        invoiceNumber: draft.invoice_number,
+        staffId: draft.staff_id,
+        staffName: draft.staff_name,
+        maxWastagePct: wastageGuard.maxWastagePct,
+        approvalPct: wastageGuard.approvalPct,
+        lines: wastageGuard.approvalLines
+      });
+      throw conflict(`Owner approval required: wastage ${wastageGuard.maxWastagePct}% is above ${wastageGuard.approvalPct}% limit.`);
+    }
     const confirmation = db.transaction(() => {
       const backbar = backbarProductConsumptionService.applyDraftConsumption({
         draft,
@@ -1968,6 +2018,12 @@ export class InventoryEnterpriseService {
       };
     })();
     auditDecision("inventory.product_consume.confirmed", "product_consume_drafts", id, access, { branchId: draft.branch_id, details: { invoiceId: draft.invoice_id, serviceId: draft.service_id } });
+    if (wastageGuard.approvalRequired) {
+      auditDecision("inventory.product_consume.wastage_owner_approved", "product_consume_drafts", id, access, {
+        branchId: draft.branch_id,
+        details: { invoiceId: draft.invoice_id, staffId: draft.staff_id, maxWastagePct: wastageGuard.maxWastagePct, lines: wastageGuard.approvalLines }
+      });
+    }
     emitEvent("inventory:product_consume_confirmed", access, draft.branch_id, id, { invoiceId: draft.invoice_id, serviceId: draft.service_id });
     return {
       draft: this.productConsumeDraftRow(confirmation.updated),

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { AppStateService } from '../core/state/app-state.service';
 import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 
 interface ConsumeLine {
@@ -51,6 +52,8 @@ interface ProductRow extends ApiRecord {
 }
 
 const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle', 'jar', 'can', 'tin', 'pack', 'box', 'nos'];
+const PRODUCT_CONSUME_WASTAGE_WARN_PCT = 10;
+const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
 
 @Component({
   selector: 'app-product-consume',
@@ -354,6 +357,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
           <article><span>Anomalies</span><strong>{{ report['summary']?.usageAnomalies || 0 }}</strong><small>spike/waste</small></article>
           <article><span>Expiry priority</span><strong>{{ report['summary']?.expiryPriorityRows || 0 }}</strong><small>FEFO control</small></article>
           <article><span>Cost drift</span><strong>{{ report['summary']?.costDriftRows || 0 }}</strong><small>unit variance</small></article>
+          <article><span>Staff waste hits</span><strong>{{ report['summary']?.staffWastageRepeats || 0 }}</strong><small>owner review</small></article>
           <article><span>Manager actions</span><strong>{{ report['summary']?.managerActions || 0 }}</strong><small>to review</small></article>
         </div>
         <div class="report-grid">
@@ -776,6 +780,19 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
             <label><span>Cost</span><strong>{{ money(draft.actualCost || draft.expectedCost) }}</strong></label>
           </div>
 
+          <section class="wastage-guard" *ngIf="draftWastageGuard(draft) as guard" [class.warn]="guard.warn" [class.blocked]="guard.approvalRequired">
+            <div>
+              <span class="eyebrow">Waste lock</span>
+              <strong>{{ guard.status }}</strong>
+              <small>{{ guard.detail }}</small>
+            </div>
+            <div class="guard-metrics">
+              <span>Normal {{ wasteWarnLimit }}%</span>
+              <span>Owner approval {{ wasteApprovalLimit }}%</span>
+              <span>Current {{ guard.maxWastagePct }}%</span>
+            </div>
+          </section>
+
           <div class="consume-table">
             <div class="row head">
               <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Reason</span><span>Substitutes</span><span>Cost</span>
@@ -797,7 +814,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
                   <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
                 </select>
               </span>
-              <span><input type="number" min="0" step="0.01" [ngModel]="line.wastagePct || 0" (ngModelChange)="updateLine(i, { wastagePct: $event })" [disabled]="draft.status === 'confirmed'"></span>
+              <span><input type="number" min="0" step="0.01" [class.waste-warn]="lineWasteWarn(line)" [class.waste-block]="lineWasteApprovalRequired(line)" [ngModel]="line.wastagePct || 0" (ngModelChange)="updateLine(i, { wastagePct: $event })" [disabled]="draft.status === 'confirmed'"></span>
               <span class="range-fields">
                 <input type="number" min="0" step="0.01" placeholder="Min" [ngModel]="line.minQty || 0" (ngModelChange)="updateLine(i, { minQty: $event })" [disabled]="draft.status === 'confirmed'">
                 <input type="number" min="0" step="0.01" placeholder="Max" [ngModel]="line.maxQty || 0" (ngModelChange)="updateLine(i, { maxQty: $event })" [disabled]="draft.status === 'confirmed'">
@@ -927,7 +944,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
             </label>
             <label>
               <span>Waste</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="productForm.wastagePct">
+              <input type="number" min="0" step="0.01" [class.waste-warn]="productForm.wastagePct >= wasteWarnLimit" [class.waste-block]="productForm.wastagePct > wasteApprovalLimit" [(ngModel)]="productForm.wastagePct">
             </label>
             <label>
               <span>Min</span>
@@ -951,8 +968,11 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
 
           <div class="action-row">
             <button type="button" class="ghost" (click)="saveDraft()" [disabled]="saving() || draft.status === 'confirmed'">Save draft</button>
-            <button type="button" class="primary" (click)="confirmDraft()" [disabled]="saving() || draft.status !== 'draft' || !draft.lineItems.length">Confirm consume</button>
+            <button type="button" class="primary" (click)="confirmDraft()" [disabled]="saving() || draft.status !== 'draft' || !draft.lineItems.length || draftConfirmBlocked(draft)">
+              {{ confirmButtonLabel(draft) }}
+            </button>
           </div>
+          <small class="confirm-lock" *ngIf="draftConfirmBlocked(draft)">{{ draftWastageGuard(draft).detail }}</small>
         </section>
         <ng-template #noSelection>
           <section class="editor empty-editor">Select invoice draft to edit product consumption.</section>
@@ -1106,6 +1126,16 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .product-results button:hover { background: #e8f4f2; }
     .product-results small, .selected-stock { color: #0f766e; font-weight: 900; }
     .reason-needed { border-color: #f97316; background: #fff7ed; }
+    .waste-warn { border-color: #f59e0b; background: #fffbeb; }
+    .waste-block { border-color: #dc2626; background: #fef2f2; }
+    .wastage-guard { border: 1px solid #cfe1df; border-radius: 12px; padding: 12px; background: #f8fbfa; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+    .wastage-guard.warn { border-color: #facc15; background: #fffbeb; }
+    .wastage-guard.blocked { border-color: #fecaca; background: #fff1f2; }
+    .wastage-guard strong { display: block; font-size: 15px; }
+    .wastage-guard small { color: #64748b; }
+    .guard-metrics { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .guard-metrics span { border: 1px solid #dcebea; border-radius: 999px; padding: 6px 9px; background: white; color: #0f172a; font-size: 12px; font-weight: 900; }
+    .confirm-lock { color: #991b1b; font-weight: 900; }
     .alert, .success { border-radius: 14px; padding: 12px 16px; font-weight: 800; }
     .alert { background: #fee2e2; color: #991b1b; }
     .success { background: #dcfce7; color: #166534; }
@@ -1115,18 +1145,21 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
       .consume-kpi-strip, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .zenoti-toolbar, .zenoti-footer { display: grid; }
       .audit-filters, .audit-layout, .dashboard-layout, .report-filters, .report-grid, .report-feed, .product-360-grid, .risk-grid, .next-control-grid, .deep-control-grid, .owner-control-grid { grid-template-columns: 1fr; }
-      .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override, .container-scan, .scan-result { grid-template-columns: 1fr 1fr; }
+      .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override, .container-scan, .scan-result, .wastage-guard { grid-template-columns: 1fr 1fr; }
       .active-container { display: grid; }
       .manual-product-add { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
       .consume-kpi-strip, .info-grid { grid-template-columns: 1fr; }
+      .wastage-guard { grid-template-columns: 1fr; }
+      .guard-metrics { justify-content: flex-start; }
       .module-hero { padding: 18px; }
     }
   `]
 })
 export class ProductConsumeComponent {
   private readonly api = inject(ApiService);
+  private readonly appState = inject(AppStateService);
 
   readonly drafts = signal<ConsumeDraft[]>([]);
   readonly selectedId = signal('');
@@ -1144,6 +1177,8 @@ export class ProductConsumeComponent {
   readonly product360 = signal<ApiRecord | null>(null);
   readonly staffUsageAudit = signal<ApiRecord | null>(null);
   readonly units = RECIPE_UNITS;
+  readonly wasteWarnLimit = PRODUCT_CONSUME_WASTAGE_WARN_PCT;
+  readonly wasteApprovalLimit = PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT;
   productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
   adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
   auditFilters = { branchId: '', staffId: '', startDate: '', endDate: '' };
@@ -1159,6 +1194,7 @@ export class ProductConsumeComponent {
   readonly confirmedCount = computed(() => this.drafts().filter((draft) => draft.status === 'confirmed').length);
   readonly totalExpected = computed(() => this.drafts().reduce((sum, draft) => sum + Number(draft.expectedCost || 0), 0));
   readonly totalActual = computed(() => this.drafts().reduce((sum, draft) => sum + Number(draft.actualCost || draft.expectedCost || 0), 0));
+  readonly isOwnerApprover = computed(() => ['owner', 'admin', 'superAdmin'].includes(this.appState.userRole()));
 
   constructor() {
     this.auditFilters.branchId = this.api.selectedBranchId();
@@ -1258,7 +1294,7 @@ export class ProductConsumeComponent {
       const line = { ...lineItems[index], ...patch };
       if (patch.unit !== undefined) line.unitCost = this.consumeUnitCostForLine(line, String(line.unit || 'pcs'));
       line.actualQty = Number(line.actualQty || 0);
-      line.wastagePct = Number(line.wastagePct || 0);
+      line.wastagePct = Math.max(0, Number(line.wastagePct || 0));
       line.minQty = Number(line.minQty || 0);
       line.maxQty = Number(line.maxQty || 0);
       line.actualCost = this.lineActualCost(line);
@@ -1274,6 +1310,11 @@ export class ProductConsumeComponent {
       this.error.set('Select a product and keep quantity above 0.');
       return;
     }
+    const wastagePct = Math.max(0, Number(this.productForm.wastagePct || 0));
+    if (wastagePct > this.wasteApprovalLimit && !this.isOwnerApprover()) {
+      this.error.set(`Waste ${wastagePct}% owner approval limit se above hai. Save/approval owner se karwana hoga.`);
+      return;
+    }
     const unit = String(this.productForm.unit || this.defaultConsumeUnit(product));
     const stockUnitCost = Number(product.unitCost || product['costPrice'] || product['purchasePrice'] || 0);
     const unitCost = this.consumeUnitCost(product, unit);
@@ -1283,7 +1324,7 @@ export class ProductConsumeComponent {
       unit,
       expectedQty: qty,
       actualQty: qty,
-      wastagePct: Number(this.productForm.wastagePct || 0),
+      wastagePct,
       minQty: Number(this.productForm.minQty || 0),
       maxQty: Number(this.productForm.maxQty || 0),
       substitutes: this.productForm.substitutes || '',
@@ -1322,9 +1363,15 @@ export class ProductConsumeComponent {
   confirmDraft(): void {
     const draft = this.selected();
     if (!draft) return;
+    const guard = this.draftWastageGuard(draft);
+    if (this.draftConfirmBlocked(draft)) {
+      this.error.set(guard.detail);
+      return;
+    }
     this.persist('Product consume confirmed. Backbar ledger updated.', this.api.post<{ draft: ConsumeDraft; backbarLedger?: ApiRecord }>(`inventory-intelligence/product-consume-drafts/${draft.id}/confirm`, {
       lineItems: draft.lineItems,
-      notes: draft.notes || ''
+      notes: draft.notes || '',
+      ownerApproval: guard.approvalRequired && this.isOwnerApprover()
     }), true);
   }
 
@@ -1509,6 +1556,61 @@ export class ProductConsumeComponent {
 
   lineActualCost(line: ConsumeLine): number {
     return Math.round(Number(line.actualQty || 0) * Number(line.unitCost || 0) * 100) / 100;
+  }
+
+  lineWastePct(line: ConsumeLine): number {
+    return Math.max(0, Math.round(Number(line.wastagePct || 0) * 100) / 100);
+  }
+
+  lineWasteWarn(line: ConsumeLine): boolean {
+    return this.lineWastePct(line) >= this.wasteWarnLimit;
+  }
+
+  lineWasteApprovalRequired(line: ConsumeLine): boolean {
+    return this.lineWastePct(line) > this.wasteApprovalLimit;
+  }
+
+  draftWastageGuard(draft: ConsumeDraft): { warn: boolean; approvalRequired: boolean; maxWastagePct: number; status: string; detail: string } {
+    const maxWastagePct = Math.max(0, ...draft.lineItems.map((line) => this.lineWastePct(line)));
+    const approvalRequired = maxWastagePct > this.wasteApprovalLimit;
+    const warn = maxWastagePct >= this.wasteWarnLimit;
+    if (approvalRequired) {
+      return {
+        warn,
+        approvalRequired,
+        maxWastagePct,
+        status: this.isOwnerApprover() ? 'Owner approval required' : 'Confirm locked',
+        detail: this.isOwnerApprover()
+          ? `Waste ${maxWastagePct}% hai. Owner approve & confirm se audit ke saath confirm hoga.`
+          : `Waste ${maxWastagePct}% owner approval limit ${this.wasteApprovalLimit}% se above hai.`
+      };
+    }
+    if (warn) {
+      return {
+        warn,
+        approvalRequired,
+        maxWastagePct,
+        status: 'High waste warning',
+        detail: `Waste ${maxWastagePct}% hai. Reason/range verify karke confirm karein.`
+      };
+    }
+    return {
+      warn,
+      approvalRequired,
+      maxWastagePct,
+      status: 'Within limit',
+      detail: `Waste ${maxWastagePct}% hai. Normal limit ${this.wasteWarnLimit}% tak clean rahega.`
+    };
+  }
+
+  draftConfirmBlocked(draft: ConsumeDraft): boolean {
+    const guard = this.draftWastageGuard(draft);
+    return guard.approvalRequired && !this.isOwnerApprover();
+  }
+
+  confirmButtonLabel(draft: ConsumeDraft): string {
+    const guard = this.draftWastageGuard(draft);
+    return guard.approvalRequired && this.isOwnerApprover() ? 'Owner approve & confirm' : 'Confirm consume';
   }
 
   ledgerProducts(): ApiRecord[] {
