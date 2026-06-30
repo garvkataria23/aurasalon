@@ -56,7 +56,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
       [class.staff-roster-mode]="section === 'roster-calendar'"
       [class.staff-payroll-mode]="section === 'payroll-dashboard'"
     >
-      <header class="topbar" *ngIf="section !== 'staff-profile'">
+      <header class="topbar" *ngIf="section !== 'staff-profile' && !isStaffRegisterSection()">
         <div>
           <p class="eyebrow">Staff Operating System</p>
           <h1>{{ title }}</h1>
@@ -69,7 +69,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </div>
       </header>
 
-      <nav class="staff-shell-nav" *ngIf="section !== 'workspace'" aria-label="Staff OS command links">
+      <nav class="staff-shell-nav" *ngIf="section !== 'workspace' && !isStaffRegisterSection()" aria-label="Staff OS command links">
         <a *ngFor="let link of staffShellLinks" [routerLink]="link.to" [class.active]="isShellLinkActive(link)">
           <span>{{ link.icon }}</span>
           <strong>{{ link.label }}</strong>
@@ -77,7 +77,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </a>
       </nav>
 
-      <section class="staff-control-room" *ngIf="section !== 'workspace'" aria-label="Staff owner control room">
+      <section class="staff-control-room" *ngIf="section !== 'workspace' && !isStaffRegisterSection()" aria-label="Staff owner control room">
         <div class="control-heading">
           <div>
             <p class="eyebrow">Owner control room</p>
@@ -106,7 +106,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </nav>
       </section>
 
-      <div class="metrics" *ngIf="section !== 'workspace'" aria-label="Staff OS metrics">
+      <div class="metrics" *ngIf="section !== 'workspace' && !isStaffRegisterSection()" aria-label="Staff OS metrics">
         <article *ngFor="let metric of store.metrics()" class="metric" [class]="metric.tone">
           <span>{{ metric.label }}</span>
           <strong>{{ metric.value }}</strong>
@@ -441,138 +441,151 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </div>
       </section>
 
-      <section class="panel" [class.staff-register-panel]="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
-        <div class="panel-heading staff-register-heading">
-          <div>
-            <p class="eyebrow">{{ section === 'training-center' ? 'Training register' : section === 'staff-profile' ? 'Staff profile register' : 'Staff directory' }}</p>
-            <h2>{{ section === 'training-center' ? 'Training Center' : section === 'staff-profile' ? 'Employee profiles' : 'Manage employees' }}</h2>
-          </div>
-          <div class="staff-register-actions">
-            <span>{{ staffListFilteredRows().length }} of {{ staffDirectoryRows().length }} records</span>
-            <input #attendanceUploadInput class="hidden-file" type="file" accept=".csv,text/csv" (change)="uploadAttendanceCsv($event)" />
-            <button type="button" class="refresh" (click)="store.load()">Refresh</button>
-            <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
-            <details class="staff-action-menu">
-              <summary>Action</summary>
+      <section class="panel" [class.staff-register-panel]="isStaffRegisterSection()" *ngIf="isStaffRegisterSection()">
+        <div class="staff-register-layout">
+          <input #attendanceUploadInput class="hidden-file" type="file" accept=".csv,text/csv" (change)="uploadAttendanceCsv($event)" />
+          <aside class="staff-register-side" aria-label="Staff quick menu">
+            <a routerLink="/staff-os/staff-list" [class.active]="section === 'staff-list' && staffListStatusFilter() !== 'inactive'" (click)="setStaffListStatusFilter('all')">Staff List</a>
+            <button type="button" (click)="openAddStaff()">Add Staff</button>
+            <a routerLink="/staff-os/roster-calendar">Staff Schedule</a>
+            <a routerLink="/staff-os/commission-dashboard">Commission</a>
+            <a routerLink="/permissions">Roles</a>
+            <button type="button" (click)="attendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">{{ attendanceUploadSaving() ? 'Uploading...' : 'Upload Attendance' }}</button>
+            <a routerLink="/staff-os/staff-list" [class.active]="section === 'staff-list' && staffListStatusFilter() === 'inactive'" (click)="setStaffListStatusFilter('inactive')">Inactive Staff</a>
+            <div class="staff-register-side-group">
+              <span>More staff tools</span>
+              <a routerLink="/staff-os/attendance-dashboard">Attendance Dashboard</a>
+              <a routerLink="/staff-os/payroll-dashboard">Payroll</a>
+              <a routerLink="/staff-os/bulk-employee-update">Bulk Update</a>
+            </div>
+          </aside>
+
+          <div class="staff-register-main">
+            <div class="panel-heading staff-register-heading">
               <div>
-                <button type="button" (click)="exportStaffCsv()" [disabled]="!staffListFilteredRows().length">Export CSV</button>
-                <button type="button" (click)="attendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">{{ attendanceUploadSaving() ? 'Uploading...' : 'Upload Attendance' }}</button>
-                <a routerLink="/staff-os/bulk-employee-update">Bulk employee update</a>
-                <a routerLink="/permissions">Roles</a>
+                <p class="eyebrow">{{ staffRegisterEyebrow() }}</p>
+                <h2>{{ staffRegisterTitle() }}</h2>
+                <span>{{ staffRegisterSubtitle() }}</span>
               </div>
-            </details>
-          </div>
-        </div>
-
-        <div class="staff-register-kpis" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
-          <article><span>Total staff</span><strong>{{ staffDirectoryRows().length }}</strong><small>employee master records</small></article>
-          <article><span>Active</span><strong>{{ activeStaffForAttendance().length }}</strong><small>attendance ready</small></article>
-          <article><span>Inactive</span><strong>{{ inactiveStaffCount() }}</strong><small>paused / archived</small></article>
-          <article><span>Login linked</span><strong>{{ loginLinkedCount() }}</strong><small>staff app access</small></article>
-        </div>
-
-        <nav class="staff-list-quick-nav" *ngIf="section === 'staff-list'" aria-label="Staff list quick actions">
-          <button type="button" class="active">Staff List</button>
-          <button type="button" (click)="openAddStaff()">Add Staff</button>
-          <a routerLink="/staff-os/roster-calendar">Staff Schedule</a>
-          <a routerLink="/staff-os/commission-dashboard">Commission</a>
-          <a routerLink="/permissions">Roles</a>
-          <button type="button" (click)="attendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">Upload Attendance</button>
-          <button type="button" [class.active]="staffListStatusFilter() === 'inactive'" (click)="setStaffListStatusFilter('inactive')">Inactive Staff</button>
-        </nav>
-
-        <div class="staff-list-toolbar" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
-          <label>
-            <span>Show</span>
-            <select [ngModel]="staffListPageSize()" (ngModelChange)="setStaffListPageSize($event)">
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="25">25</option>
-              <option [ngValue]="50">50</option>
-              <option [ngValue]="100">100</option>
-            </select>
-          </label>
-          <label>
-            <span>Status</span>
-            <select [ngModel]="staffListStatusFilter()" (ngModelChange)="setStaffListStatusFilter($event)">
-              <option value="all">All staff</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </label>
-          <label class="staff-search-field">
-            <span>Search</span>
-            <input [ngModel]="staffListQuery()" (ngModelChange)="setStaffListQuery($event)" placeholder="Name, phone, staff ID, email, designation" />
-          </label>
-        </div>
-        <div class="staff-register-scroll">
-          <table class="staff-register-table">
-            <thead>
-              <tr>
-                <th class="name-column"><button type="button" (click)="sortStaffList('name')">Name {{ staffSortMark('name') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('contact')">Contact {{ staffSortMark('contact') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('employeeCode')">Staff ID {{ staffSortMark('employeeCode') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('email')">Email {{ staffSortMark('email') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('salary')">Salary {{ staffSortMark('salary') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('designation')">Designation {{ staffSortMark('designation') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('status')">Status {{ staffSortMark('status') }}</button></th>
-                <th><button type="button" (click)="sortStaffList('joiningDate')">Joining Date {{ staffSortMark('joiningDate') }}</button></th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let staff of staffListPagedRows(); trackBy: trackStaffById">
-                <td>
-                  <div class="staff-name-cell">
-                    <img *ngIf="staff.profilePhoto; else staffAvatar" [src]="staff.profilePhoto" [alt]="staff.fullName" />
-                    <ng-template #staffAvatar><span class="staff-avatar">{{ staffInitials(staff) }}</span></ng-template>
-                    <div>
-                      <strong>{{ staff.fullName }}</strong>
-                      <small>{{ staff.staffCategoryName || staff.department || 'Staff' }}</small>
-                    </div>
+              <div class="staff-register-actions">
+                <span>{{ staffListFilteredRows().length }} of {{ staffDirectoryRows().length }} records</span>
+                <button type="button" class="refresh" (click)="store.load()">Refresh</button>
+                <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
+                <details class="staff-action-menu">
+                  <summary>Action</summary>
+                  <div>
+                    <button type="button" (click)="exportStaffCsv()" [disabled]="!staffListFilteredRows().length">Export CSV</button>
+                    <button type="button" (click)="attendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">{{ attendanceUploadSaving() ? 'Uploading...' : 'Upload Attendance' }}</button>
+                    <a routerLink="/staff-os/bulk-employee-update">Bulk employee update</a>
+                    <a routerLink="/permissions">Roles</a>
                   </div>
-                </td>
-                <td>{{ staff.mobile || '-' }}</td>
-                <td>{{ staff.employeeCode || staff.id }}</td>
-                <td>{{ staff.email || staff.loginEmail || '-' }}</td>
-                <td>{{ salaryAmount(staff) | currency:'INR':'symbol-narrow':'1.0-0' }}</td>
-                <td>{{ staff.designation || staff.staffCategoryName || staff.department || '-' }}</td>
-                <td><span class="badge" [class.good]="isStaffActive(staff)" [class.warn]="!isStaffActive(staff)">{{ statusLabelForStaff(staff) }}</span></td>
-                <td>{{ displayDate(staff.joiningDate) }}</td>
-                <td>
-                  <details class="staff-row-menu">
-                    <summary aria-label="Open staff actions">...</summary>
-                    <div>
-                      <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
-                      <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
-                      <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
-                      <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
-                      <button type="button" (click)="openSalaryEditor(staff)">Salary</button>
-                      <button type="button" (click)="prefillManualAttendance(staff)">Manual attendance</button>
-                      <button type="button" [disabled]="statusChanging() === staff.id" (click)="toggleStaffStatus(staff)">{{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}</button>
-                    </div>
-                  </details>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div *ngIf="!staffListFilteredRows().length && !store.loading()" class="empty action-empty">
-            <strong>No staff records found.</strong>
-            <span>Add staff first to unlock attendance, payroll and commission reports.</span>
-            <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
-          </div>
-        </div>
-        <div class="staff-register-footer" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
-          <span>{{ staffListStart() }} to {{ staffListEnd() }} of {{ staffListFilteredRows().length }}</span>
-          <div class="staff-pagination">
-            <button type="button" class="refresh" [disabled]="staffListPageSafe() <= 1" (click)="moveStaffListPage(-1)">Previous</button>
-            <span>Page {{ staffListPageSafe() }} of {{ staffListPageCount() }}</span>
-            <button type="button" class="refresh" [disabled]="staffListPageSafe() >= staffListPageCount()" (click)="moveStaffListPage(1)">Next</button>
-          </div>
-        </div>
-        <div class="state success" *ngIf="staffActionMessage()">{{ staffActionMessage() }}</div>
-        <div class="state error" *ngIf="staffActionError()">{{ staffActionError() }}</div>
-      </section>
+                </details>
+              </div>
+            </div>
 
+            <div class="staff-register-kpis" *ngIf="isStaffRegisterSection()">
+              <article><span>Total staff</span><strong>{{ staffDirectoryRows().length }}</strong><small>employee master records</small></article>
+              <article><span>Active</span><strong>{{ activeStaffForAttendance().length }}</strong><small>attendance ready</small></article>
+              <article><span>Inactive</span><strong>{{ inactiveStaffCount() }}</strong><small>paused / archived</small></article>
+              <article><span>Login linked</span><strong>{{ loginLinkedCount() }}</strong><small>staff app access</small></article>
+            </div>
+
+            <div class="staff-list-toolbar" *ngIf="isStaffRegisterSection()">
+              <label>
+                <span>Show</span>
+                <select [ngModel]="staffListPageSize()" (ngModelChange)="setStaffListPageSize($event)">
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="25">25</option>
+                  <option [ngValue]="50">50</option>
+                  <option [ngValue]="100">100</option>
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select [ngModel]="staffListStatusFilter()" (ngModelChange)="setStaffListStatusFilter($event)">
+                  <option value="all">All staff</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <label class="staff-search-field">
+                <span>Search</span>
+                <input [ngModel]="staffListQuery()" (ngModelChange)="setStaffListQuery($event)" placeholder="Name, phone, staff ID, email, designation" />
+              </label>
+            </div>
+            <div class="staff-register-scroll">
+              <table class="staff-register-table">
+                <thead>
+                  <tr>
+                    <th class="name-column"><button type="button" (click)="sortStaffList('name')">Name {{ staffSortMark('name') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('contact')">Contact {{ staffSortMark('contact') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('employeeCode')">Staff ID {{ staffSortMark('employeeCode') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('email')">Email {{ staffSortMark('email') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('salary')">Salary {{ staffSortMark('salary') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('designation')">Designation {{ staffSortMark('designation') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('status')">Status {{ staffSortMark('status') }}</button></th>
+                    <th><button type="button" (click)="sortStaffList('joiningDate')">Joining Date {{ staffSortMark('joiningDate') }}</button></th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let staff of staffListPagedRows(); trackBy: trackStaffById">
+                    <td>
+                      <div class="staff-name-cell">
+                        <img *ngIf="staff.profilePhoto; else staffAvatar" [src]="staff.profilePhoto" [alt]="staff.fullName" />
+                        <ng-template #staffAvatar><span class="staff-avatar">{{ staffInitials(staff) }}</span></ng-template>
+                        <div>
+                          <strong>{{ staff.fullName }}</strong>
+                          <small>{{ staff.staffCategoryName || staff.department || 'Staff' }}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ staff.mobile || '-' }}</td>
+                    <td>{{ staff.employeeCode || staff.id }}</td>
+                    <td>{{ staff.email || staff.loginEmail || '-' }}</td>
+                    <td>{{ salaryAmount(staff) | currency:'INR':'symbol-narrow':'1.0-0' }}</td>
+                    <td>{{ staff.designation || staff.staffCategoryName || staff.department || '-' }}</td>
+                    <td><span class="badge" [class.good]="isStaffActive(staff)" [class.warn]="!isStaffActive(staff)">{{ statusLabelForStaff(staff) }}</span></td>
+                    <td>{{ displayDate(staff.joiningDate) }}</td>
+                    <td>
+                      <button *ngIf="staffListStatusFilter() === 'inactive'; else staffRowMenu" type="button" class="row-action compact-action" [disabled]="statusChanging() === staff.id" (click)="toggleStaffStatus(staff)">{{ statusChanging() === staff.id ? 'Saving...' : inactiveStaffActionLabel(staff) }}</button>
+                      <ng-template #staffRowMenu>
+                        <details class="staff-row-menu">
+                          <summary aria-label="Open staff actions">...</summary>
+                          <div>
+                            <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
+                            <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
+                            <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
+                            <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
+                            <button type="button" (click)="openSalaryEditor(staff)">Salary</button>
+                            <button type="button" (click)="prefillManualAttendance(staff)">Manual attendance</button>
+                            <button type="button" [disabled]="statusChanging() === staff.id" (click)="toggleStaffStatus(staff)">{{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}</button>
+                          </div>
+                        </details>
+                      </ng-template>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div *ngIf="!staffListFilteredRows().length && !store.loading()" class="empty action-empty">
+                <strong>No staff records found.</strong>
+                <span>Add staff first to unlock attendance, payroll and commission reports.</span>
+                <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
+              </div>
+            </div>
+            <div class="staff-register-footer" *ngIf="isStaffRegisterSection()">
+              <span>{{ staffListStart() }} to {{ staffListEnd() }} of {{ staffListFilteredRows().length }}</span>
+              <div class="staff-pagination">
+                <button type="button" class="refresh" [disabled]="staffListPageSafe() <= 1" (click)="moveStaffListPage(-1)">Previous</button>
+                <span>Page {{ staffListPageSafe() }} of {{ staffListPageCount() }}</span>
+                <button type="button" class="refresh" [disabled]="staffListPageSafe() >= staffListPageCount()" (click)="moveStaffListPage(1)">Next</button>
+              </div>
+            </div>
+            <div class="state success" *ngIf="staffActionMessage()">{{ staffActionMessage() }}</div>
+            <div class="state error" *ngIf="staffActionError()">{{ staffActionError() }}</div>
+          </div>
+        </div>
+      </section>
       <div class="drawer-shell" *ngIf="addStaffOpen()" role="dialog" aria-modal="true" aria-label="Add staff">
         <div class="drawer-scrim" (click)="closeAddStaff()"></div>
         <aside class="drawer">
@@ -2210,6 +2223,15 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .staff-list-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
     .staff-list-mode .metric:last-child { border-right: 0; }
     .staff-register-panel { overflow: hidden; padding: 0; }
+    .staff-register-layout { align-items: start; display: grid; grid-template-columns: 204px minmax(0, 1fr); min-width: 0; }
+    .staff-register-main { border-left: 1px solid #e5edf4; min-width: 0; }
+    .staff-register-side { align-content: start; background: #fff; display: grid; gap: 4px; min-width: 0; padding: 14px 12px; position: sticky; top: 12px; }
+    .staff-register-side a, .staff-register-side button { background: transparent; border: 0; border-radius: 6px; color: #111827; cursor: pointer; font: inherit; font-size: 14px; font-weight: 800; min-height: 34px; padding: 8px 12px; text-align: left; text-decoration: none; width: 100%; }
+    .staff-register-side a:hover, .staff-register-side button:hover, .staff-register-side .active { background: #e9e9e9; color: #05070d; }
+    .staff-register-side button:disabled { cursor: wait; opacity: .65; }
+    .staff-register-side-group { border-top: 1px solid #eef2f6; display: grid; gap: 4px; margin-top: 8px; padding-top: 10px; }
+    .staff-register-side-group > span { color: #64748b; font-size: 11px; font-weight: 900; padding: 0 12px 4px; text-transform: uppercase; }
+    .staff-register-main .state { border-left: 0; border-radius: 0; border-right: 0; }
     .staff-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
     .staff-register-actions { align-items: center; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     .staff-register-actions > span { color: #5b6b81; font-weight: 900; margin: 0 8px 0 0; }
@@ -2235,6 +2257,9 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .staff-register-table th button { background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; font-size: 12px; font-weight: 900; padding: 0; text-align: left; text-transform: uppercase; }
     .staff-row-menu summary { background: transparent; border: 0; color: #111827; font-size: 20px; justify-content: center; min-width: 40px; padding: 3px 8px; }
     .staff-row-menu div { min-width: 170px; }
+    .staff-register-table .badge.good { background: #08a210; color: #fff; }
+    .staff-register-table .badge.warn { background: #ff1515; color: #fff; }
+    .staff-register-table .compact-action { background: #202633; border-color: #202633; color: #fff; min-width: 58px; }
     .staff-pagination { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
     .staff-register-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
     .staff-register-kpis article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; padding: 10px 16px; }
@@ -2619,6 +2644,24 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .live-panel-links a { border: 1px solid #cbd8d2; border-radius: 4px; color: #0f6eb3; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
+    @media (max-width: 900px) {
+      .staff-register-layout { grid-template-columns: 1fr; }
+      .staff-register-main { border-left: 0; border-top: 1px solid #e5edf4; }
+      .staff-register-side { border-bottom: 1px solid #e5edf4; grid-template-columns: repeat(2, minmax(0, 1fr)); position: static; }
+      .staff-register-side-group { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .staff-register-side-group > span { grid-column: 1 / -1; }
+      .staff-list-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .staff-search-field { grid-column: 1 / -1; }
+      .staff-register-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .staff-register-kpis article:nth-child(2n) { border-right: 0; }
+    }
+    @media (max-width: 640px) {
+      .staff-register-side, .staff-register-side-group, .staff-list-toolbar, .staff-register-kpis { grid-template-columns: 1fr; }
+      .staff-register-kpis article { border-right: 0; }
+      .staff-register-actions { justify-content: flex-start; }
+      .staff-register-actions > span, .staff-register-actions .refresh, .staff-register-actions .primary, .staff-action-menu { width: 100%; }
+      .staff-action-menu summary { justify-content: center; width: 100%; }
+    }
     @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-attendance-mode .attendance-stats, .attendance-live-strip, .attendance-ops-grid, .roster-kpi-strip, .payroll-kpi-strip, .payroll-risk-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-attendance-mode .attendance-stats article:nth-child(2n), .attendance-live-strip article:nth-child(2n), .roster-kpi-strip article:nth-child(2n), .payroll-kpi-strip article:nth-child(2n) { border-right: 0; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision, .salary-quick-panel { grid-column: 1 / -1; } .salary-quick-panel { grid-template-columns: 1fr; } .salary-quick-actions { justify-content: flex-start; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
     @media (max-width: 640px) {
       .staff-os { gap: 12px; padding: 0; }
@@ -3249,16 +3292,36 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   }
 
   inactiveStaffCount(): number {
-    return this.staffDirectoryRows().filter((staff) => {
-      const status = String(staff.status || '').toLowerCase();
-      return status && status !== 'active' && status !== 'working';
-    }).length;
+    return this.staffDirectoryRows().filter((staff) => this.isInactiveStaffStatus(staff)).length;
   }
 
   staffDirectoryRows(): StaffOsStaff[] {
     const selectedStaffId = this.section === 'staff-profile' ? this.route.snapshot.queryParamMap.get('staffId') : '';
     const rows = this.store.staff();
     return selectedStaffId ? rows.filter((staff) => staff.id === selectedStaffId) : rows;
+  }
+
+  isStaffRegisterSection(): boolean {
+    return this.section === 'staff-list' || this.section === 'staff-profile' || this.section === 'training-center';
+  }
+
+  staffRegisterEyebrow(): string {
+    if (this.section === 'training-center') return 'Training register';
+    if (this.section === 'staff-profile') return 'Staff profile register';
+    return this.staffListStatusFilter() === 'inactive' ? 'Inactive staff' : 'Staff directory';
+  }
+
+  staffRegisterTitle(): string {
+    if (this.section === 'training-center') return 'Training Center';
+    if (this.section === 'staff-profile') return 'Employee profiles';
+    return this.staffListStatusFilter() === 'inactive' ? 'Inactive Staff List' : 'Staff List';
+  }
+
+  staffRegisterSubtitle(): string {
+    if (this.section === 'training-center') return 'Training, performance and staff development records.';
+    if (this.section === 'staff-profile') return 'Profile, salary, attendance and access records.';
+    if (this.staffListStatusFilter() === 'inactive') return 'Paused, archived and deleted employees with one-click restore.';
+    return 'Active employee records with attendance, payroll, role and commission actions.';
   }
 
   setStaffListQuery(value: string): void {
@@ -3318,8 +3381,18 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   }
 
   isStaffActive(staff: StaffOsStaff): boolean {
-    const status = String(staff.status || '').toLowerCase();
+    const status = this.normalizedStaffStatus(staff);
     return !status || status === 'active' || status === 'working';
+  }
+
+  isInactiveStaffStatus(staff: StaffOsStaff): boolean {
+    const status = this.normalizedStaffStatus(staff);
+    return Boolean(status && status !== 'active' && status !== 'working');
+  }
+
+  inactiveStaffActionLabel(staff: StaffOsStaff): string {
+    const status = this.normalizedStaffStatus(staff);
+    return status === 'deleted' || status === 'archived' ? 'Undo' : 'Active';
   }
 
   statusLabelForStaff(staff: StaffOsStaff): string {
@@ -4748,11 +4821,11 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   }
 
   statusActionLabel(staff: StaffOsStaff): string {
-    return staff.status === 'archived' || staff.status === 'inactive' ? 'Restore' : 'Archive';
+    return this.isInactiveStaffStatus(staff) ? this.inactiveStaffActionLabel(staff) : 'Archive';
   }
 
   toggleStaffStatus(staff: StaffOsStaff): void {
-    const status = staff.status === 'archived' || staff.status === 'inactive' ? 'active' : 'archived';
+    const status = this.isInactiveStaffStatus(staff) ? 'active' : 'archived';
     this.staffActionError.set('');
     this.statusChanging.set(staff.id);
     this.store.updateStaffStatus(staff, status)
@@ -4763,6 +4836,10 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
           this.staffActionError.set(error?.error?.error || error?.error?.message || error?.message || 'Unable to update staff status');
         }
       });
+  }
+
+  private normalizedStaffStatus(staff: StaffOsStaff): string {
+    return String(staff.status || '').toLowerCase().trim();
   }
 
   private buildEmployeeDetails(value: Record<string, unknown>): Record<string, unknown> {
