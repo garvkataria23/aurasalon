@@ -52,8 +52,7 @@ type PanelId = 'notifications' | 'profile' | null;
           type="button"
           [class.is-open]="panel() === 'profile'"
           (click)="toggle('profile')"
-          aria-label="Profile menu"
-          title="Profile">
+          aria-label="Profile menu">
           <span class="hdr-avatar">{{ initials() }}</span>
         </button>
         <div class="hdr-menu hdr-menu-profile" *ngIf="panel() === 'profile'">
@@ -80,8 +79,8 @@ type PanelId = 'notifications' | 'profile' | null;
     </div>
   `,
   styles: [`
-    .hdr-actions { display: inline-flex; align-items: center; gap: 8px; }
-    .hdr-pop { position: relative; }
+    .hdr-actions { display: inline-flex; align-items: center; gap: 8px; position: relative; z-index: 2200; }
+    .hdr-pop { position: relative; isolation: isolate; }
 
     .hdr-icon-btn {
       position: relative; width: 42px; height: 42px;
@@ -134,12 +133,25 @@ type PanelId = 'notifications' | 'profile' | null;
     .hdr-chevron { font-size: 0.6rem; color: #98a1b4; }
 
     .hdr-menu {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 80;
-      width: 290px; padding: 8px; border-radius: 16px;
+      position: fixed; top: 64px; right: 16px; z-index: 2200;
+      width: min(290px, calc(100vw - 24px)); padding: 8px; border-radius: 16px;
       border: 1px solid rgba(99, 102, 241, 0.14);
       background: rgba(255, 255, 255, 0.98);
       box-shadow: var(--elev-3, 0 24px 60px rgba(15, 23, 42, 0.2));
       animation: hdr-pop 150ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+    .hdr-menu-notif {
+      right: 66px;
+    }
+
+    @media (max-width: 640px) {
+      .hdr-menu,
+      .hdr-menu-notif {
+        left: 12px;
+        right: 12px;
+        top: 60px;
+        width: auto;
+      }
     }
     .hdr-menu-head {
       display: flex; align-items: center; justify-content: space-between;
