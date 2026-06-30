@@ -6387,3 +6387,126 @@ app-staff-os-section .context-links { justify-content: flex-start; }
     flex: 1 1 140px;
   }
 }
+
+/* Layout polish: dense tables and row actions, no behavior changes. */
+.workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .aura-table, .compact-table-wrap, .ledger-table-wrap, .hours-table-wrap, .color-table-wrap, .form-table-wrap) {
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px !important;
+  border-color: var(--line) !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+  scrollbar-width: thin;
+}
+
+.workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .aura-table, .compact-table-wrap, .ledger-table-wrap, .hours-table-wrap, .color-table-wrap, .form-table-wrap) table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .aura-table, .compact-table-wrap, .ledger-table-wrap, .hours-table-wrap, .color-table-wrap, .form-table-wrap) :where(th, td) {
+  vertical-align: middle;
+}
+
+.workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .aura-table, .compact-table-wrap, .ledger-table-wrap, .hours-table-wrap, .color-table-wrap, .form-table-wrap) th {
+  background: var(--surface-2) !important;
+  color: var(--muted) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1.2;
+}
+
+.workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .aura-table, .compact-table-wrap, .ledger-table-wrap, .hours-table-wrap, .color-table-wrap, .form-table-wrap) td {
+  line-height: 1.35;
+}
+
+.workspace > router-outlet + * :where(.actions, .actions-cell, .action-cell, .invoice-action-cell, .table-actions, .row-actions, .button-row, .aura-table__row-actions) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(td.actions, td.actions-cell, td.action-cell, td.invoice-action-cell, td.row-actions, .aura-table__actions) {
+  width: 1%;
+  min-width: 132px;
+  white-space: normal !important;
+}
+
+.workspace > router-outlet + * :where(.actions, .actions-cell, .action-cell, .invoice-action-cell, .table-actions, .row-actions, .button-row, .aura-table__row-actions) :where(button, a, .primary-button, .dark-button, .danger-button, .ghost-button, .row-action) {
+  min-height: 30px !important;
+  padding: 5px 9px !important;
+  border-radius: 7px !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  box-shadow: none !important;
+  white-space: nowrap !important;
+}
+
+.workspace > router-outlet + * :where(.row-action, .ghost-button.mini, .primary-button.mini, .dark-button.mini, .danger-button.mini) {
+  min-height: 30px !important;
+  padding: 5px 9px !important;
+  border-radius: 7px !important;
+  font-size: 0.74rem !important;
+}
+
+.workspace > router-outlet + * :where(.row-action, .ghost-button, .primary-button, .dark-button, .danger-button):focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.72) !important;
+  outline-offset: 2px !important;
+}
+
+.workspace > router-outlet + * :where(.client-bulk-actions, .bulk-actions, .selected-actions, .active-filter-strip) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-radius: 8px !important;
+}
+
+.workspace > router-outlet + * :where(.pager, .pagination, .staff-pagination, .table-pagination) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.workspace > router-outlet + * :where(.pager, .pagination, .staff-pagination, .table-pagination) :where(button, a, .ghost-button, .primary-button) {
+  min-height: 32px !important;
+  padding: 5px 10px !important;
+  border-radius: 7px !important;
+}
+
+.workspace > router-outlet + * .aura-table__row-actions {
+  opacity: 1 !important;
+}
+
+.workspace > router-outlet + * .aura-table__actions {
+  min-width: 128px !important;
+}
+
+.workspace > router-outlet + * aura-table table {
+  min-width: 680px;
+}
+
+@media (max-width: 760px) {
+  .workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .aura-table, .compact-table-wrap, .ledger-table-wrap, .hours-table-wrap, .color-table-wrap, .form-table-wrap) {
+    margin-inline: -2px;
+  }
+
+  .workspace > router-outlet + * :where(.actions, .actions-cell, .action-cell, .invoice-action-cell, .table-actions, .row-actions, .button-row, .aura-table__row-actions) {
+    justify-content: flex-start !important;
+  }
+
+  .workspace > router-outlet + * :where(td.actions, td.actions-cell, td.action-cell, td.invoice-action-cell, td.row-actions, .aura-table__actions) {
+    min-width: 150px;
+  }
+
+  .workspace > router-outlet + * :where(.pager, .pagination, .staff-pagination, .table-pagination) {
+    justify-content: flex-start !important;
+  }
+}
