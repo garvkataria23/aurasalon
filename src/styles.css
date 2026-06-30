@@ -6798,3 +6798,135 @@ app-staff-os-section .context-links { justify-content: flex-start; }
     padding-right: 72px;
   }
 }
+
+/* Layout polish: shell controls and menus, no behavior changes. */
+.topbar-actions aura-workspace-switcher,
+.topbar-actions aura-header-actions {
+  min-width: 0;
+}
+
+aura-workspace-switcher .wsw,
+aura-header-actions .hdr-actions {
+  max-width: 100%;
+  min-width: 0;
+}
+
+aura-workspace-switcher .wsw-btn,
+aura-header-actions .hdr-icon-btn,
+aura-header-actions .hdr-profile-btn {
+  min-height: 40px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+aura-workspace-switcher .wsw-btn:focus-visible,
+aura-workspace-switcher .wsw-opt:focus-visible,
+aura-workspace-switcher .wsw-chip:focus-visible,
+aura-workspace-switcher .wsw-select:focus-visible,
+aura-header-actions .hdr-icon-btn:focus-visible,
+aura-header-actions .hdr-profile-btn:focus-visible,
+aura-header-actions .hdr-menu-links a:focus-visible,
+aura-header-actions .hdr-menu-foot:focus-visible,
+aura-header-actions .hdr-logout:focus-visible,
+aura-command-palette .cmdk-input:focus-visible,
+aura-command-palette .cmdk-item:focus-visible,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar :where(.sidebar-toggle, .sidebar-search-clear, .nav-section-trigger, .nav-subitem):focus-visible,
+.ai-fab:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.72) !important;
+  outline-offset: 2px !important;
+}
+
+aura-workspace-switcher .wsw-menu,
+aura-header-actions .hdr-menu {
+  max-width: min(340px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  border-radius: 8px !important;
+  scrollbar-width: thin;
+}
+
+aura-workspace-switcher .wsw-list.scroll {
+  max-height: min(220px, 36vh) !important;
+  scrollbar-width: thin;
+}
+
+aura-workspace-switcher .wsw-opt,
+aura-header-actions .hdr-menu-links a {
+  min-height: 38px;
+}
+
+aura-workspace-switcher .wsw-chip {
+  min-height: 30px;
+}
+
+aura-workspace-switcher .wsw-btn-copy,
+aura-workspace-switcher .wsw-opt-copy,
+aura-header-actions .hdr-profile-card-copy,
+aura-header-actions .hdr-scope div {
+  min-width: 0;
+}
+
+aura-header-actions .hdr-menu-head,
+aura-header-actions .hdr-scope,
+aura-workspace-switcher .wsw-grid2 {
+  min-width: 0;
+}
+
+aura-command-palette .cmdk-panel {
+  border-radius: 8px !important;
+  max-height: min(74vh, 680px) !important;
+}
+
+aura-command-palette .cmdk-search {
+  grid-template-columns: 22px minmax(0, 1fr) auto !important;
+}
+
+aura-command-palette .cmdk-input {
+  min-width: 0;
+}
+
+aura-command-palette .cmdk-item {
+  border-radius: 8px !important;
+}
+
+aura-command-palette .cmdk-item-copy small {
+  white-space: normal !important;
+}
+
+aura-command-palette .cmdk-foot {
+  flex-wrap: wrap;
+  gap: 8px 14px !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-clear {
+  min-height: 30px;
+  border-radius: 7px !important;
+}
+
+.ai-fab {
+  border-radius: 999px !important;
+}
+
+@media (max-width: 760px) {
+  .topbar-actions aura-workspace-switcher,
+  .topbar-actions aura-header-actions {
+    flex: 0 0 auto;
+  }
+
+  aura-workspace-switcher .wsw-menu,
+  aura-header-actions .hdr-menu {
+    position: fixed !important;
+    top: 72px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+  }
+
+  aura-command-palette .cmdk-root {
+    padding: 10vh 12px 0 !important;
+  }
+
+  aura-command-palette .cmdk-panel {
+    width: 100% !important;
+  }
+}
