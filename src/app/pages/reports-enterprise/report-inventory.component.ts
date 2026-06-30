@@ -1,13 +1,12 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, Input, OnInit, OnDestroy, signal } from '@angular/core';
-import { BaseChartComponent } from './base-chart.component';
 import { ReportsEnterpriseService, FilterState } from './reports-enterprise.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-report-inventory',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, BaseChartComponent],
+  imports: [CommonModule, CurrencyPipe],
   template: `
     <ng-container *ngIf="!loading(); else skeleton">
       <div class="inv-metrics">

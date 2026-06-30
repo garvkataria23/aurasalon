@@ -49,7 +49,7 @@ import { DataMigrationStore } from './data-migration.store';
         <span class="card-label">Approval history</span>
         <article class="approval-item" *ngFor="let approval of store.approvals()">
           <div class="approval-id">
-            <strong>#{{ approval.id?.slice(0,8) }}</strong>
+            <strong>#{{ approval.id.slice(0,8) }}</strong>
             <span class="status-pill" [class.good]="approval.status === 'approved'" [class.active]="approval.status === 'pending'" [class.blocked]="approval.status === 'rejected'">{{ approval.status }}</span>
           </div>
           <div class="approval-meta">

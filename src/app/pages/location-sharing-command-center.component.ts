@@ -40,11 +40,11 @@ type LocationSharingOverview = {
       </div>
 
       <section class="metric-strip" *ngIf="overview() as data">
-        <article><span>Enabled Modules</span><strong>{{ data.summary?.enabledModules || 0 }}</strong><small>{{ data.modules?.length || 0 }} governed modules</small></article>
-        <article><span>Branch Rules</span><strong>{{ data.summary?.rules || 0 }}</strong><small>source to target policies</small></article>
-        <article><span>Open Conflicts</span><strong>{{ data.summary?.openConflicts || 0 }}</strong><small>duplicate or mismatch signals</small></article>
-        <article><span>Pending Approvals</span><strong>{{ data.summary?.pendingApprovals || 0 }}</strong><small>owner action queue</small></article>
-        <article><span>Sync Health</span><strong>{{ data.reports?.summary?.syncHealth || 'healthy' }}</strong><small>{{ data.reports?.summary?.failedSyncCount || 0 }} failed events</small></article>
+        <article><span>Enabled Modules</span><strong>{{ data.summary.enabledModules || 0 }}</strong><small>{{ data.modules.length || 0 }} governed modules</small></article>
+        <article><span>Branch Rules</span><strong>{{ data.summary.rules || 0 }}</strong><small>source to target policies</small></article>
+        <article><span>Open Conflicts</span><strong>{{ data.summary.openConflicts || 0 }}</strong><small>duplicate or mismatch signals</small></article>
+        <article><span>Pending Approvals</span><strong>{{ data.summary.pendingApprovals || 0 }}</strong><small>owner action queue</small></article>
+        <article><span>Sync Health</span><strong>{{ data.reports.summary?.syncHealth || 'healthy' }}</strong><small>{{ data.reports.summary?.failedSyncCount || 0 }} failed events</small></article>
       </section>
 
       <nav class="tab-rail" aria-label="Location sharing tabs">

@@ -56,22 +56,22 @@ type ExpiredPackagesReport = {
         <section class="metrics-grid report-kpis">
           <article class="metric-card">
             <span>Total Packages</span>
-            <strong>{{ data.summary?.totalPackages || 0 }}</strong>
+            <strong>{{ data.summary.totalPackages || 0 }}</strong>
             <small>Expired package rows</small>
           </article>
           <article class="metric-card">
             <span>Packages Amount</span>
-            <strong>{{ data.summary?.packagesAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <strong>{{ data.summary.packagesAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>Total expired package value</small>
           </article>
           <article class="metric-card">
             <span>Total Services</span>
-            <strong>{{ numberValue(data.summary?.totalServices) }}</strong>
+            <strong>{{ numberValue(data.summary.totalServices) }}</strong>
             <small>Sold service credits</small>
           </article>
           <article class="metric-card">
             <span>Pending Services</span>
-            <strong>{{ numberValue(data.summary?.pendingServices) }}</strong>
+            <strong>{{ numberValue(data.summary.pendingServices) }}</strong>
             <small>Unused credits after expiry</small>
           </article>
         </section>

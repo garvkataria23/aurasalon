@@ -77,7 +77,7 @@ type AppointmentDetailReport = {
       <ng-container *ngIf="report() as data">
         <section class="status-strip">
           <article *ngFor="let card of statusCards" class="status-card" [ngClass]="card.tone">
-            <strong>{{ numberValue(data.summary?.[card.key]) }}</strong>
+            <strong>{{ numberValue(data.summary[card.key]) }}</strong>
             <span>{{ card.label }}</span>
           </article>
         </section>
@@ -102,7 +102,7 @@ type AppointmentDetailReport = {
 
           <div class="table-meta">
             <span>{{ dateLabel() }} · {{ total() }} appointment row(s)</span>
-            <span>Total price {{ data.summary?.appointmentPrice || 0 | currency: 'INR':'symbol':'1.0-0' }}</span>
+            <span>Total price {{ data.summary.appointmentPrice || 0 | currency: 'INR':'symbol':'1.0-0' }}</span>
           </div>
 
           <div class="table-wrap">

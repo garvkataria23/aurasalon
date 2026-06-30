@@ -72,37 +72,37 @@ type PendingPackageReport = {
         <section class="metrics-grid report-kpis">
           <article class="metric-card">
             <span>Total Service</span>
-            <strong>{{ numberValue(data.summary?.totalService) }}</strong>
+            <strong>{{ numberValue(data.summary.totalService) }}</strong>
             <small>Package service quantity</small>
           </article>
           <article class="metric-card">
             <span>Services Amount</span>
-            <strong>{{ data.summary?.servicesAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <strong>{{ data.summary.servicesAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>Total package service value</small>
           </article>
           <article class="metric-card">
             <span>Pending Services Amount</span>
-            <strong>{{ data.summary?.pendingServicesAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <strong>{{ data.summary.pendingServicesAmount || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>Unused package liability</small>
           </article>
           <article class="metric-card">
             <span>Pending Qty</span>
-            <strong>{{ numberValue(data.summary?.pendingQty) }}</strong>
+            <strong>{{ numberValue(data.summary.pendingQty) }}</strong>
             <small>Unredeemed credits</small>
           </article>
           <article class="metric-card">
             <span>Redeemed Qty</span>
-            <strong>{{ numberValue(data.summary?.redeemedQty) }}</strong>
+            <strong>{{ numberValue(data.summary.redeemedQty) }}</strong>
             <small>Consumed credits</small>
           </article>
           <article class="metric-card amber">
             <span>Expiring Packages</span>
-            <strong>{{ data.summary?.expiringPackages || 0 }}</strong>
+            <strong>{{ data.summary.expiringPackages || 0 }}</strong>
             <small>Expiry within 30 days</small>
           </article>
           <article class="metric-card red">
             <span>Expired Pending Packages</span>
-            <strong>{{ data.summary?.expiredPendingPackages || 0 }}</strong>
+            <strong>{{ data.summary.expiredPendingPackages || 0 }}</strong>
             <small>Expired with pending credits</small>
           </article>
         </section>

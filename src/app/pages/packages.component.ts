@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -41,7 +41,7 @@ type RedemptionLine = {
 @Component({
   selector: 'app-packages',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, DatePipe, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, StateComponent],
   template: `
     <section class="page-stack packages-page">
       <app-state [loading]="loading()" [error]="error()"></app-state>

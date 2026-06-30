@@ -56,23 +56,23 @@ type StaffAppointmentsReport = {
         <section class="metrics-grid report-kpis">
           <article class="metric-card">
             <span>Staff</span>
-            <strong>{{ numberValue(data.summary?.staffCount) }}</strong>
+            <strong>{{ numberValue(data.summary.staffCount) }}</strong>
             <small>All staff in branch</small>
           </article>
           <article class="metric-card">
             <span>Appointment Count</span>
-            <strong>{{ numberValue(data.summary?.totalAppointments) }}</strong>
+            <strong>{{ numberValue(data.summary.totalAppointments) }}</strong>
             <small>Booked appointments</small>
           </article>
           <article class="metric-card">
             <span>Appointment Price</span>
-            <strong>{{ data.summary?.appointmentPrice || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <strong>{{ data.summary.appointmentPrice || 0 | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>Sale or service-price total</small>
           </article>
           <article class="metric-card">
             <span>Active Staff</span>
-            <strong>{{ numberValue(data.summary?.activeStaff) }}</strong>
-            <small>{{ numberValue(data.summary?.zeroAppointmentStaff) }} with zero bookings</small>
+            <strong>{{ numberValue(data.summary.activeStaff) }}</strong>
+            <small>{{ numberValue(data.summary.zeroAppointmentStaff) }} with zero bookings</small>
           </article>
         </section>
 
