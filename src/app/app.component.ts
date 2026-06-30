@@ -252,8 +252,20 @@ type ActiveModuleTabs = {
         </div>
 
 
-        <section class="workspace-route-shell" [class.workspace-route-shell--with-local-nav]="activeLocalNav() !== null">
-          <aside class="workspace-local-rail" *ngIf="activeLocalNav() as localNav" [attr.aria-label]="localNav.groupLabel + ' local navigation'">
+        <section
+            class="workspace-route-shell"
+            [class.workspace-route-shell--with-local-nav]="activeLocalNav() !== null"
+            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null && !localRailExpanded()"
+          >
+          <aside
+            class="workspace-local-rail"
+            *ngIf="activeLocalNav() as localNav"
+            [attr.aria-label]="localNav.groupLabel + ' local navigation'"
+            (mouseenter)="openLocalRailPreview()"
+            (mouseleave)="closeLocalRailPreview()"
+            (focusin)="openLocalRailPreview()"
+            (focusout)="closeLocalRailPreview($event)"
+          >
             <div class="workspace-local-rail-head">
               <button
                 class="ghost-button workspace-local-back-button"
@@ -330,6 +342,51 @@ type ActiveModuleTabs = {
       background: #fff;
     }
 
+    @media (min-width: 761px) {
+      .workspace-route-shell--with-local-nav {
+        transition: grid-template-columns 180ms ease;
+      }
+
+      .workspace-route-shell--local-rail-collapsed {
+        grid-template-columns: 64px minmax(0, 1fr);
+      }
+
+      .workspace-route-shell--local-rail-collapsed .workspace-local-rail {
+        padding: 12px 8px;
+        overflow: hidden;
+      }
+
+      .workspace-route-shell--local-rail-collapsed .workspace-local-rail-head {
+        grid-template-columns: 38px;
+        justify-content: center;
+        padding-inline: 0;
+      }
+
+      .workspace-route-shell--local-rail-collapsed .workspace-local-rail-head div {
+        display: none;
+      }
+
+      .workspace-route-shell--local-rail-collapsed .workspace-local-nav {
+        align-items: center;
+      }
+
+      .workspace-route-shell--local-rail-collapsed .workspace-local-nav a {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        min-height: 40px;
+        place-items: center;
+        padding: 0;
+      }
+
+      .workspace-route-shell--local-rail-collapsed .workspace-local-nav a span {
+        display: block;
+        width: 1ch;
+        overflow: hidden;
+        white-space: nowrap;
+        text-align: center;
+      }
+    }
     .workspace-route-content {
       min-width: 0;
     }
@@ -506,6 +563,8 @@ export class AppComponent implements OnDestroy {
   readonly sidebarCompact = signal(true);
   readonly sidebarHoverExpanded = signal(false);
   readonly sidebarUiCompact = computed(() => this.sidebarCompact() && !this.sidebarHoverExpanded());
+  readonly localRailHoverExpanded = signal(false);
+  readonly localRailExpanded = computed(() => this.localRailHoverExpanded());
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   private readonly maxBackHistory = 10;
   private readonly emptyNavItems: NavItem[] = [];
@@ -1337,6 +1396,16 @@ export class AppComponent implements OnDestroy {
     this.sidebarHoverExpanded.set(false);
   }
 
+  openLocalRailPreview(): void {
+    this.localRailHoverExpanded.set(true);
+  }
+
+  closeLocalRailPreview(event?: FocusEvent): void {
+    const currentTarget = event?.currentTarget;
+    const nextTarget = event?.relatedTarget;
+    if (currentTarget instanceof HTMLElement && nextTarget instanceof Node && currentTarget.contains(nextTarget)) return;
+    this.localRailHoverExpanded.set(false);
+  }
   ngOnDestroy(): void {
     if (this.navSearchTimer) clearTimeout(this.navSearchTimer);
   }
