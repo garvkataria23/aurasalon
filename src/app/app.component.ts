@@ -229,6 +229,16 @@ type ActiveModuleTabs = {
       <main class="workspace" id="main-content">
         <header class="topbar">
           <div class="topbar-brand-title">
+            <button
+              class="ghost-button topbar-back-button"
+              type="button"
+              *ngIf="activeLocalNav()"
+              (click)="goBack()"
+              [attr.aria-label]="backButtonLabel()"
+              [title]="backButtonLabel()"
+            >
+              <span aria-hidden="true">&larr;</span>
+            </button>
             <h1>Aura Shine OS</h1>
           </div>
           <div class="topbar-actions">
@@ -267,15 +277,6 @@ type ActiveModuleTabs = {
             (focusout)="closeLocalRailPreview($event)"
           >
             <div class="workspace-local-rail-head">
-              <button
-                class="ghost-button workspace-local-back-button"
-                type="button"
-                (click)="goBack()"
-                [attr.aria-label]="backButtonLabel()"
-                [title]="backButtonLabel()"
-              >
-                <span aria-hidden="true">&larr;</span>
-              </button>
               <div>
                 <span class="eyebrow">{{ localNav.groupLabel }}</span>
                 <strong>{{ localNav.label }}</strong>
@@ -333,6 +334,12 @@ type ActiveModuleTabs = {
       min-width: 0;
     }
 
+    .topbar-brand-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
     .workspace-route-shell--with-local-nav {
       display: grid;
       grid-template-columns: 204px minmax(0, 1fr);
@@ -357,12 +364,6 @@ type ActiveModuleTabs = {
       }
 
       .workspace-route-shell--local-rail-collapsed .workspace-local-rail-head {
-        grid-template-columns: 38px;
-        justify-content: center;
-        padding-inline: 0;
-      }
-
-      .workspace-route-shell--local-rail-collapsed .workspace-local-rail-head div {
         display: none;
       }
 
@@ -428,14 +429,14 @@ type ActiveModuleTabs = {
 
     .workspace-local-rail-head {
       display: grid;
-      grid-template-columns: 38px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       align-items: center;
       gap: 10px;
       padding: 8px 6px 10px;
       border-bottom: 1px solid #e4ecef;
     }
 
-    .workspace-local-back-button {
+    .topbar-back-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
