@@ -847,7 +847,7 @@ export class AppComponent {
   });
   readonly activePageTabs = computed<ActiveNavTabGroup | null>(() => {
     const route = this.routePath(this.activeRoute());
-    if (this.isStaffRegisterRoute(route)) return null;
+    if (this.isStaffOsRoute(route)) return null;
     const branch = this.navBranchForUrl(route);
     if (!branch?.item.children?.length) return null;
     return {
@@ -1141,8 +1141,8 @@ export class AppComponent {
     return items.flatMap((item) => item.children?.length ? item.children : [item]);
   }
 
-  private isStaffRegisterRoute(path: string): boolean {
-    return path === '/staff-os/staff-list' || path === '/staff-os/staff-profile' || path === '/staff-os/training-center';
+  private isStaffOsRoute(path: string): boolean {
+    return path === '/staff-os' || path.startsWith('/staff-os/');
   }
   private navBranchForUrl(url: string): { group: NavGroup; item: NavItem } | null {
     const cleanUrl = this.routePath(url);

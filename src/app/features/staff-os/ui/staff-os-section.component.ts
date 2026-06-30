@@ -51,12 +51,13 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
   template: `
     <section
       class="staff-os"
-      [class.staff-list-mode]="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'"
+      [class.staff-list-mode]="section !== 'workspace'"
+      [class.staff-clean-shell]="usesStaffCleanShell()"
       [class.staff-attendance-mode]="section === 'attendance-dashboard'"
       [class.staff-roster-mode]="section === 'roster-calendar'"
       [class.staff-payroll-mode]="section === 'payroll-dashboard'"
     >
-      <header class="topbar" *ngIf="section !== 'staff-profile' && !isStaffRegisterSection()">
+      <header class="topbar" *ngIf="section === 'workspace'">
         <div>
           <p class="eyebrow">Staff Operating System</p>
           <h1>{{ title }}</h1>
@@ -64,12 +65,12 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         <div class="topbar-actions">
           <button type="button" class="primary" *ngIf="section === 'workspace' || section === 'staff-list' || section === 'staff-profile'" (click)="openAddStaff()">Add Staff</button>
           <a class="refresh" routerLink="/staff-os/employee-masters">Employee Masters</a>
-          <a class="refresh" *ngIf="section === 'staff-list'" routerLink="/staff-os/staff-categories">Staff Categories</a>
+          <a class="refresh" *ngIf="showStaffCategoryHeaderAction()" routerLink="/staff-os/staff-categories">Staff Categories</a>
           <button type="button" class="refresh" (click)="store.load()">Refresh</button>
         </div>
       </header>
 
-      <nav class="staff-shell-nav" *ngIf="section !== 'workspace' && !isStaffRegisterSection()" aria-label="Staff OS command links">
+      <nav class="staff-shell-nav" *ngIf="section !== 'workspace' && !isStaffRegisterSection() && !usesStaffCleanShell()" aria-label="Staff OS command links">
         <a *ngFor="let link of staffShellLinks" [routerLink]="link.to" [class.active]="isShellLinkActive(link)">
           <span>{{ link.icon }}</span>
           <strong>{{ link.label }}</strong>
@@ -77,7 +78,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </a>
       </nav>
 
-      <section class="staff-control-room" *ngIf="section !== 'workspace' && !isStaffRegisterSection()" aria-label="Staff owner control room">
+      <section class="staff-control-room" *ngIf="section !== 'workspace' && !isStaffRegisterSection() && !usesStaffCleanShell()" aria-label="Staff owner control room">
         <div class="control-heading">
           <div>
             <p class="eyebrow">Owner control room</p>
@@ -106,13 +107,31 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </nav>
       </section>
 
-      <div class="metrics" *ngIf="section !== 'workspace' && !isStaffRegisterSection()" aria-label="Staff OS metrics">
+      <div class="metrics" *ngIf="section !== 'workspace' && !isStaffRegisterSection() && !usesStaffCleanShell()" aria-label="Staff OS metrics">
         <article *ngFor="let metric of store.metrics()" class="metric" [class]="metric.tone">
           <span>{{ metric.label }}</span>
           <strong>{{ metric.value }}</strong>
         </article>
       </div>
 
+      <input #cleanAttendanceUploadInput class="hidden-file" type="file" accept=".csv,text/csv" (change)="uploadAttendanceCsv($event)" />
+      <aside class="staff-register-side staff-unified-side" *ngIf="usesStaffCleanShell()" aria-label="Staff quick menu">
+        <a routerLink="/staff-os/staff-list">Staff List</a>
+        <a routerLink="/staff-os/roster-calendar" [class.active]="isStaffSideNavActive('schedule')">Staff Schedule</a>
+        <a routerLink="/staff-os/commission-dashboard" [class.active]="isStaffSideNavActive('commission')">Commission</a>
+        <a routerLink="/permissions">Roles</a>
+        <a routerLink="/staff-os/staff-list" [queryParams]="{ status: 'inactive' }">Inactive Staff</a>
+        <div class="staff-register-side-group attendance-tools">
+          <span>Attendance</span>
+          <a routerLink="/staff-os/attendance-dashboard" [class.active]="isStaffSideNavActive('attendance')">Dashboard</a>
+          <button type="button" (click)="cleanAttendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">{{ attendanceUploadSaving() ? 'Uploading...' : 'Upload CSV' }}</button>
+        </div>
+        <div class="staff-register-side-group">
+          <span>More tools</span>
+          <a routerLink="/staff-os/payroll-dashboard" [class.active]="isStaffSideNavActive('payroll')">Payroll</a>
+          <a routerLink="/staff-os/bulk-employee-update" [class.active]="isStaffSideNavActive('bulk')">Bulk Update</a>
+        </div>
+      </aside>
       <div *ngIf="store.loading()" class="state">Loading staff operations...</div>
       <div *ngIf="store.error()" class="state error">{{ store.error() }}</div>
 
@@ -449,7 +468,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
             <a routerLink="/staff-os/roster-calendar">Staff Schedule</a>
             <a routerLink="/staff-os/commission-dashboard">Commission</a>
             <a routerLink="/permissions">Roles</a>
-            <a routerLink="/staff-os/staff-list" [class.active]="section === 'staff-list' && staffListStatusFilter() === 'inactive'" (click)="setStaffListStatusFilter('inactive')">Inactive Staff</a>
+            <a routerLink="/staff-os/staff-list" [queryParams]="{ status: 'inactive' }" [class.active]="section === 'staff-list' && staffListStatusFilter() === 'inactive'" (click)="setStaffListStatusFilter('inactive')">Inactive Staff</a>
             <div class="staff-register-side-group attendance-tools">
               <span>Attendance</span>
               <a routerLink="/staff-os/attendance-dashboard">Dashboard</a>
@@ -2215,6 +2234,17 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .staff-list-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .staff-list-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
     .staff-list-mode .metric:last-child { border-right: 0; }
+    .staff-clean-shell { align-items: start; background: #fff; border: 1px solid #d8e1ea; display: grid; gap: 0; grid-template-columns: 204px minmax(0, 1fr); }
+    .staff-clean-shell > .staff-unified-side { grid-column: 1; grid-row: 1 / span 100; min-height: calc(100vh - 180px); }
+    .staff-clean-shell > :not(.staff-unified-side) { grid-column: 2; min-width: 0; }
+    .staff-clean-shell > .state { border-left: 1px solid #e5edf4; border-radius: 0; border-right: 0; }
+    .staff-clean-shell > .panel,
+    .staff-clean-shell > .attendance-ops-grid,
+    .staff-clean-shell > .attendance-workspace { border-left: 1px solid #e5edf4; border-radius: 0; box-shadow: none; }
+    .staff-clean-shell > .attendance-ops-grid,
+    .staff-clean-shell > .attendance-workspace { background: #fff; border-bottom: 1px solid #d8e1ea; border-right: 0; border-top: 0; padding: 12px 16px; }
+    .staff-clean-shell .staff-unified-side { border-right: 0; position: sticky; top: 12px; }
+    .staff-clean-shell .staff-unified-side a.active { background: #e9e9e9; color: #05070d; }
     .staff-register-panel { overflow: hidden; padding: 0; }
     .staff-register-layout { align-items: start; display: grid; grid-template-columns: 204px minmax(0, 1fr); min-width: 0; }
     .staff-register-main { border-left: 1px solid #e5edf4; min-width: 0; }
@@ -2641,6 +2671,14 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
     @media (max-width: 900px) {
+      .staff-clean-shell { grid-template-columns: 1fr; }
+      .staff-clean-shell > .staff-unified-side,
+      .staff-clean-shell > :not(.staff-unified-side) { grid-column: 1; grid-row: auto; }
+      .staff-clean-shell > .staff-unified-side { min-height: 0; position: static; }
+      .staff-clean-shell > .panel,
+      .staff-clean-shell > .attendance-ops-grid,
+      .staff-clean-shell > .attendance-workspace,
+      .staff-clean-shell > .state { border-left: 0; }
       .staff-register-layout { grid-template-columns: 1fr; }
       .staff-register-main { border-left: 0; border-top: 1px solid #e5edf4; }
       .staff-register-side { border-bottom: 1px solid #e5edf4; grid-template-columns: repeat(2, minmax(0, 1fr)); position: static; }
@@ -3073,8 +3111,10 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     if (this.section === 'leave-management') {
       this.refreshLeaveManagement();
     }
-    if (this.section === 'staff-list' && this.route.snapshot.queryParamMap.get('add') === '1') {
-      this.openAddStaff();
+    if (this.section === 'staff-list') {
+      const requestedStatus = this.route.snapshot.queryParamMap.get('status');
+      if (requestedStatus) this.setStaffListStatusFilter(requestedStatus);
+      if (this.route.snapshot.queryParamMap.get('add') === '1') this.openAddStaff();
     }
   }
 
@@ -3082,6 +3122,9 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.stopCamera();
   }
 
+  showStaffCategoryHeaderAction(): boolean {
+    return this.section === 'staff-list';
+  }
   isShellLinkActive(link: StaffShellLink): boolean {
     const target = link.to.split('/').pop() || '';
     return target === this.section;
@@ -3301,6 +3344,20 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     return this.section === 'staff-list' || this.section === 'staff-profile' || this.section === 'training-center';
   }
 
+  usesStaffCleanShell(): boolean {
+    return this.section !== 'workspace' && !this.isStaffRegisterSection();
+  }
+
+  isStaffSideNavActive(area: 'schedule' | 'commission' | 'attendance' | 'payroll' | 'bulk'): boolean {
+    switch (area) {
+      case 'schedule': return this.section === 'roster-calendar';
+      case 'commission': return this.section === 'commission-dashboard' || this.section === 'performance-dashboard' || this.section === 'leaderboard';
+      case 'attendance': return this.section === 'attendance-dashboard';
+      case 'payroll': return this.section === 'payroll-dashboard';
+      case 'bulk': return this.section === 'task-board' || this.section === 'mobile-staff-dashboard-preview';
+      default: return false;
+    }
+  }
   staffRegisterEyebrow(): string {
     if (this.section === 'training-center') return 'Training register';
     if (this.section === 'staff-profile') return 'Staff profile register';
