@@ -6634,3 +6634,83 @@ app-staff-os-section .context-links { justify-content: flex-start; }
     justify-content: flex-start !important;
   }
 }
+
+/* Layout polish: dense cards, headings and drawers, no behavior changes. */
+.workspace > router-outlet + * :where(.dashboard-grid, .quick-grid, .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .card-grid, .platform-grid, .ops-grid, .score-grid, .analysis-grid, .link-grid, .task-grid, .attendance-ops-grid, .catalog-mini-grid) {
+  min-width: 0;
+  gap: 12px !important;
+}
+
+.workspace > router-outlet + * :where(.dashboard-grid, .quick-grid, .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .card-grid, .platform-grid, .ops-grid, .score-grid, .analysis-grid, .link-grid, .task-grid, .attendance-ops-grid, .catalog-mini-grid) > * {
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(.panel, .form-panel, .content-card, .score-panel, .alerts-panel, .request-panel, .feed-panel, .analytics-panel, .detail-panel, .filter-panel, .action-card, .quick-card, .dashboard-hub-card, .metric-card, .kpi-card, .platform-card, .attendance-op-card, .salary-summary, .salary-quick-panel, .incentive-summary, .rule-card, .live-employee-panel, .summary-tile, .signal-tile) {
+  border-radius: 8px !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace > router-outlet + * :where(.panel-heading, .section-hd, .cc-panel-head, .drawer-header, .modal-header, .card-head, .card-header, .content-header) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(.panel-heading, .section-hd, .cc-panel-head, .drawer-header, .modal-header, .card-head, .card-header, .content-header) > :first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(.panel-heading, .section-hd, .cc-panel-head, .drawer-header, .modal-header, .card-head, .card-header, .content-header) :where(h2, h3, h4, p) {
+  overflow-wrap: anywhere;
+}
+
+.workspace > router-outlet + * :where(.heading-actions, .panel-actions, .staff-register-actions, .salary-quick-actions, .live-panel-links, .plan-actions, .request-actions, .quick-actions, .cc-actions) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(.heading-actions, .panel-actions, .staff-register-actions, .salary-quick-actions, .live-panel-links, .plan-actions, .request-actions, .quick-actions, .cc-actions) :where(button, a, .primary-button, .dark-button, .danger-button, .ghost-button) {
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  border-radius: 7px !important;
+  white-space: nowrap !important;
+}
+
+.workspace > router-outlet + * :where(.drawer, .subdrawer, .platform-setup-drawer, .bulk-preview-panel) {
+  max-width: min(760px, calc(100vw - 24px));
+  min-width: 0;
+  border-radius: 8px !important;
+}
+
+.workspace > router-outlet + * :where(.drawer-body, .subdrawer, .platform-setup-drawer, .bulk-preview-panel) {
+  scrollbar-width: thin;
+}
+
+.workspace > router-outlet + * :where(.empty, .empty-box, .empty-cell, .empty-command-row, .empty-text, .empty-note, .action-empty, .staff-empty-state, .cc-empty) {
+  border-radius: 8px !important;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .workspace > router-outlet + * :where(.metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .quick-grid, .card-grid, .platform-grid, .ops-grid, .analysis-grid, .link-grid, .task-grid, .attendance-ops-grid, .catalog-mini-grid) {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)) !important;
+  }
+
+  .workspace > router-outlet + * :where(.panel-heading, .section-hd, .cc-panel-head, .drawer-header, .modal-header, .card-head, .card-header, .content-header) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .workspace > router-outlet + * :where(.heading-actions, .panel-actions, .staff-register-actions, .salary-quick-actions, .live-panel-links, .plan-actions, .request-actions, .quick-actions, .cc-actions) {
+    justify-content: flex-start !important;
+  }
+}
