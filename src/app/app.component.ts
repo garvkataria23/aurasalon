@@ -265,7 +265,7 @@ type ActiveModuleTabs = {
         <section
             class="workspace-route-shell"
             [class.workspace-route-shell--with-local-nav]="activeLocalNav() !== null"
-            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null && !localRailExpanded()"
+            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null"
           >
           <aside
             class="workspace-local-rail"
@@ -289,9 +289,11 @@ type ActiveModuleTabs = {
                 [queryParams]="item.queryParams || null"
                 [class.active]="isLocalNavItemActive(item)"
                 [attr.aria-current]="isLocalNavItemActive(item) ? 'page' : null"
+                [title]="item.label"
                 (click)="rememberNavGroup(localNav.groupId)"
               >
-                <span>{{ item.label }}</span>
+                <span class="workspace-local-nav-icon" aria-hidden="true">{{ navItemInitials(item) }}</span>
+                <span class="workspace-local-nav-label">{{ item.label }}</span>
               </a>
             </nav>
           </aside>
@@ -1542,6 +1544,27 @@ export class AppComponent implements OnDestroy {
     return result;
   }
 
+  navItemInitials(item: NavItem): string {
+    const explicit = (item.icon || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+    if (explicit.length >= 2) return explicit.slice(0, 3);
+
+    const tokens = (item.label || '')
+      .replace(/&/g, ' ')
+      .split(/[^a-z0-9]+/i)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    let initials = '';
+    if (tokens.length >= 2) {
+      initials = `${tokens[0][0] || ''}${tokens[1][0] || ''}`;
+    } else if (tokens.length === 1) {
+      initials = tokens[0].slice(0, Math.max(2, Math.min(3, tokens[0].length)));
+    } else if (explicit.length === 1) {
+      initials = explicit + explicit;
+    }
+
+    return (initials || 'NA').slice(0, 3).toUpperCase();
+  }
   private navSearchText(item: NavItem, group: NavGroup): string {
     return `${item.label} ${item.path} ${item.icon} ${item.keywords || ''} ${group.label} ${group.id}`.toLowerCase();
   }
