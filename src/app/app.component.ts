@@ -129,8 +129,15 @@ type ActiveNavTabGroup = {
     </ng-container>
 
     <ng-template #adminShell>
-    <div class="app-shell" [class.sidebar-is-compact]="sidebarCompact()">
-      <aside class="sidebar enterprise-sidebar inline-app-sidebar" [class.sidebar-compact]="sidebarCompact()">
+    <div class="app-shell" [class.sidebar-is-compact]="sidebarUiCompact()">
+      <aside
+        class="sidebar enterprise-sidebar inline-app-sidebar"
+        [class.sidebar-compact]="sidebarUiCompact()"
+        (mouseenter)="openSidebarPreview()"
+        (mouseleave)="closeSidebarPreview()"
+        (focusin)="openSidebarPreview()"
+        (focusout)="closeSidebarPreview($event)"
+      >
         <div class="sidebar-brand-row">
           <a class="brand" routerLink="/home" aria-label="Aura Shine home">
             <span class="brand-mark" aria-hidden="true">AS</span>
@@ -144,7 +151,7 @@ type ActiveNavTabGroup = {
           </button>
         </div>
 
-        <label class="sidebar-search" *ngIf="!sidebarCompact()">
+        <label class="sidebar-search" *ngIf="!sidebarUiCompact()">
           <span>{{ i18n.t('shell.findModule', 'Find module') }}</span>
           <input [ngModel]="navQuery()" (ngModelChange)="navQuery.set($event)" [placeholder]="i18n.t('shell.searchPlaceholder', 'Search POS, staff, reports')" />
           <button class="sidebar-search-clear" type="button" *ngIf="navQuery()" (click)="navQuery.set('')">Clear</button>
@@ -160,7 +167,7 @@ type ActiveNavTabGroup = {
               </span>
               <span class="nav-count">{{ navLeafCount(group.items) }}</span>
             </button>
-            <div class="nav-section-items" *ngIf="!sidebarCompact() && (navQuery() || isGroupExpanded(group))">
+            <div class="nav-section-items" *ngIf="!sidebarUiCompact() && (navQuery() || isGroupExpanded(group))">
               <ng-container *ngFor="let item of group.items">
                 <div class="nav-subgroup" *ngIf="item.children?.length; else singleNavItem">
                   <a
@@ -202,7 +209,7 @@ type ActiveNavTabGroup = {
               </ng-container>
             </div>
           </section>
-          <div class="nav-empty" *ngIf="!visibleNavGroups().length && !sidebarCompact()">
+          <div class="nav-empty" *ngIf="!visibleNavGroups().length && !sidebarUiCompact()">
             <strong>{{ i18n.t('shell.noModule', 'No module found') }}</strong>
             <button class="ghost-button mini" type="button" (click)="navQuery.set('')">{{ i18n.t('shell.resetSearch', 'Reset search') }}</button>
           </div>
@@ -240,7 +247,12 @@ type ActiveNavTabGroup = {
           <button class="ghost-button mini" type="button" (click)="globalError.set('')">{{ i18n.t('shell.dismiss', 'Dismiss') }}</button>
         </div>
 
-        <section class="workspace-page-tabs" *ngIf="activePageTabs() as tabs" aria-label="Related pages">
+        <section
+          class="workspace-page-tabs"
+          [class.workspace-page-tabs--dense]="tabs.groupLabel === 'Staff OS'"
+          *ngIf="activePageTabs() as tabs"
+          aria-label="Related pages"
+        >
           <div class="workspace-page-tabs-head">
             <button
               class="ghost-button page-context-back-button"
@@ -318,6 +330,8 @@ export class AppComponent {
   readonly activeRoute = signal('');
   readonly previousRoute = signal('');
   readonly sidebarCompact = signal(this.readInitialSidebarCompact());
+  readonly sidebarHoverExpanded = signal(false);
+  readonly sidebarUiCompact = computed(() => this.sidebarCompact() && !this.sidebarHoverExpanded());
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   private loadedLocalizationTenantId = '';
   private readonly navPermissionRules: Array<{ pattern: RegExp; permission: string | string[] }> = [
@@ -1064,7 +1078,7 @@ export class AppComponent {
   }
 
   openNavGroup(group: NavGroup): void {
-    if (this.sidebarCompact()) {
+    if (this.sidebarUiCompact()) {
       this.router.navigateByUrl(group.primaryPath);
       return;
     }
@@ -1084,8 +1098,21 @@ export class AppComponent {
 
   toggleSidebarCompact(): void {
     const next = !this.sidebarCompact();
+    this.sidebarHoverExpanded.set(false);
     this.sidebarCompact.set(next);
     localStorage.setItem('aura.sidebarCompact', next ? '1' : '0');
+  }
+
+  openSidebarPreview(): void {
+    if (this.sidebarCompact()) this.sidebarHoverExpanded.set(true);
+  }
+
+  closeSidebarPreview(event?: FocusEvent): void {
+    if (!this.sidebarCompact()) return;
+    const currentTarget = event?.currentTarget;
+    const nextTarget = event?.relatedTarget;
+    if (currentTarget instanceof HTMLElement && nextTarget instanceof Node && currentTarget.contains(nextTarget)) return;
+    this.sidebarHoverExpanded.set(false);
   }
 
   isGroupExpanded(group: NavGroup): boolean {

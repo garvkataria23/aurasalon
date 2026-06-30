@@ -260,7 +260,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
     </section>
   `,
   styles: [`
-    .master-page { display: grid; gap: 18px; padding: 24px; color: #1e1b2e; }
+    .master-page { display: grid; gap: 14px; padding: 14px 24px 20px; color: #1e1b2e; }
     .topbar, .panel-heading, .form-title, .form-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
     .topbar h1, .panel-heading h2, .form-title h2, .sub-panel h3 { margin: 0; letter-spacing: 0; }
     .topbar h1 { font-size: 28px; }
@@ -275,17 +275,17 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
     .danger { background: #fff; color: #dc2626; border-color: #fca5a5; }
     .danger:hover { background: #fef2f2; }
     .danger:disabled { opacity: .55; cursor: not-allowed; }
-    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .metric-grid article, .list-panel, .editor-panel, .state { border: 1px solid #e0e7ff; border-radius: 10px; background: #fff; }
-    .metric-grid article { display: grid; gap: 4px; padding: 14px 16px; }
+    .metric-grid article { display: grid; gap: 4px; padding: 12px 14px; }
     .metric-grid article:hover { border-color: #c7d2fe; }
     .metric-grid span { color: #6b7280; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
     .metric-grid strong { font-size: 22px; color: #4f46e5; }
     .panel-heading span, .record-row small, .field small { color: #6b7280; }
     .state, .empty { padding: 14px; color: #6b7280; }
     .state.error { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
-    .master-shell { display: grid; grid-template-columns: 1fr; gap: 18px; }
-    .list-panel, .editor-panel { display: grid; gap: 14px; padding: 16px; }
+    .master-shell { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .list-panel, .editor-panel { display: grid; gap: 12px; padding: 14px; }
     .list-panel:hover, .editor-panel:hover { border-color: #c7d2fe; }
     .compact-filter, .search-box, .field { display: grid; gap: 5px; color: #374151; font-size: 13px; font-weight: 700; }
     .compact-filter { min-width: 180px; }
@@ -319,7 +319,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
       .metric-grid, .form-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 720px) {
-      .master-page { padding: 16px; }
+      .master-page { padding: 12px; }
       .topbar, .panel-heading, .form-title { flex-direction: column; }
       .metric-grid, form, .form-grid { grid-template-columns: 1fr; }
       .record-row { grid-template-columns: auto minmax(0, 1fr); }
