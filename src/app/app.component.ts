@@ -166,7 +166,7 @@ type ActiveModuleTabs = {
         </label>
 
         <nav class="nav-list nav-accordion" aria-label="Primary navigation">
-          <section class="nav-section" *ngFor="let group of visibleNavGroups()" [class.active-section]="isGroupActive(group)">
+          <section class="nav-section" *ngFor="let group of visibleNavGroups(); trackBy: trackNavGroup" [class.active-section]="isGroupActive(group)">
             <button class="nav-section-trigger" type="button" (click)="openNavGroup(group)" [title]="group.label">
               <span class="nav-icon nav-icon--module" aria-hidden="true">
                 <svg class="nav-icon-svg" viewBox="0 0 24 24" focusable="false">
@@ -179,38 +179,40 @@ type ActiveModuleTabs = {
               </span>
               <span class="nav-count">{{ navLeafCount(group.items) }}</span>
             </button>
-            <div class="nav-section-items" *ngIf="!sidebarUiCompact() && (navQuery() || isGroupExpanded(group)) && visibleSidebarItems(group).length">
-              <ng-container *ngFor="let item of visibleSidebarItems(group)">
-                <div class="nav-subgroup" *ngIf="item.children?.length; else singleNavItem">
-                  <a
-                    class="nav-subgroup-title"
-                    [class.active]="isSidebarNavItemActive(item)"
-                    [routerLink]="item.path"
-                    [queryParams]="item.queryParams || null"
-                    routerLinkActive="active"
-                    (click)="rememberNavGroup(group.id)"
-                  >
-                    <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                    <span>{{ item.label }}</span>
-                    <small>{{ item.children?.length }}</small>
-                  </a>
-                </div>
-                <ng-template #singleNavItem>
-                  <a
-                    class="nav-subitem"
-                    [class.active]="isSidebarNavItemActive(item)"
-                    [routerLink]="item.path"
-                    [queryParams]="item.queryParams || null"
-                    routerLinkActive="active"
-                    [routerLinkActiveOptions]="{ exact: item.path === '/home' || item.path === '/dashboard' }"
-                    (click)="rememberNavGroup(group.id)"
-                  >
-                    <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                    <span>{{ item.label }}</span>
-                  </a>
-                </ng-template>
-              </ng-container>
-            </div>
+            <ng-container *ngIf="visibleSidebarItems(group) as sidebarItems">
+              <div class="nav-section-items" *ngIf="!sidebarUiCompact() && (navQuery() || isGroupExpanded(group)) && sidebarItems.length">
+                <ng-container *ngFor="let item of sidebarItems; trackBy: trackNavItem">
+                  <div class="nav-subgroup" *ngIf="item.children?.length; else singleNavItem">
+                    <a
+                      class="nav-subgroup-title"
+                      [class.active]="isSidebarNavItemActive(item)"
+                      [routerLink]="item.path"
+                      [queryParams]="item.queryParams || null"
+                      routerLinkActive="active"
+                      (click)="rememberNavGroup(group.id)"
+                    >
+                      <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                      <span>{{ item.label }}</span>
+                      <small>{{ item.children?.length }}</small>
+                    </a>
+                  </div>
+                  <ng-template #singleNavItem>
+                    <a
+                      class="nav-subitem"
+                      [class.active]="isSidebarNavItemActive(item)"
+                      [routerLink]="item.path"
+                      [queryParams]="item.queryParams || null"
+                      routerLinkActive="active"
+                      [routerLinkActiveOptions]="{ exact: item.path === '/home' || item.path === '/dashboard' }"
+                      (click)="rememberNavGroup(group.id)"
+                    >
+                      <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                      <span>{{ item.label }}</span>
+                    </a>
+                  </ng-template>
+                </ng-container>
+              </div>
+            </ng-container>
           </section>
           <div class="nav-empty" *ngIf="!visibleNavGroups().length && !sidebarUiCompact()">
             <strong>{{ i18n.t('shell.noModule', 'No module found') }}</strong>
@@ -506,6 +508,7 @@ export class AppComponent {
   readonly sidebarUiCompact = computed(() => false);
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   private readonly maxBackHistory = 10;
+  private readonly emptyNavItems: NavItem[] = [];
   private isBackNavigation = false;
   private readonly navGroupIconFallback = 'M4 5h7v7H4z M13 5h7v7h-7z M4 14h7v5H4z M13 14h7v5h-7z';
   private readonly navGroupIconPaths: Record<string, string> = {
@@ -1027,15 +1030,27 @@ export class AppComponent {
     }
   ];
 
+  readonly sidebarSearchResultsByGroup = computed(() => {
+    const term = this.navQuery().trim().toLowerCase();
+    if (!term) return new Map<string, NavItem[]>();
+
+    const results = new Map<string, NavItem[]>();
+    for (const group of this.navGroups) {
+      const items = this.sidebarSearchItemsForGroup(group, term);
+      if (items.length) results.set(group.id, items);
+    }
+    return results;
+  });
+
   readonly visibleNavGroups = computed(() => {
     const term = this.navQuery().trim().toLowerCase();
+    const searchResults = this.sidebarSearchResultsByGroup();
     return this.navGroups
       .map((group) => {
-        const groupMatches = `${group.label} ${group.id}`.toLowerCase().includes(term);
-        const items = group.items
-          .map((item) => this.filterNavItem(item, group, term, groupMatches))
-          .filter((item): item is NavItem => Boolean(item));
-        return { ...group, items };
+        const items = group.items.filter((item) => this.hasAccessibleNavItem(item));
+        const groupMatches = term && `${group.label} ${group.id}`.toLowerCase().includes(term);
+        if (!term || groupMatches || searchResults.has(group.id)) return { ...group, items };
+        return { ...group, items: [] };
       })
       .filter((group) => group.items.length);
   });
@@ -1320,6 +1335,14 @@ export class AppComponent {
     this.sidebarHoverExpanded.set(false);
   }
 
+  trackNavGroup(_: number, group: NavGroup): string {
+    return group.id;
+  }
+
+  trackNavItem(_: number, item: NavItem): string {
+    return this.navItemRouteKey(item);
+  }
+
   isGroupExpanded(group: NavGroup): boolean {
     return Boolean(this.navQuery()) || this.expandedGroupIds().includes(group.id);
   }
@@ -1391,23 +1414,24 @@ export class AppComponent {
   }
 
   visibleSidebarItems(group: NavGroup): NavItem[] {
-    const term = this.navQuery().trim().toLowerCase();
-    if (!term) return [];
+    if (!this.navQuery().trim()) return this.emptyNavItems;
+    return this.sidebarSearchResultsByGroup().get(group.id) || this.emptyNavItems;
+  }
 
-    const sourceGroup = this.navGroups.find((candidate) => candidate.id === group.id) || group;
-    const groupMatches = `${sourceGroup.label} ${sourceGroup.id}`.toLowerCase().includes(term);
+  private sidebarSearchItemsForGroup(group: NavGroup, term: string): NavItem[] {
+    const groupMatches = `${group.label} ${group.id}`.toLowerCase().includes(term);
     const ranked = new Map<string, { item: NavItem; score: number; index: number }>();
     let index = 0;
 
-    for (const parent of sourceGroup.items) {
-      for (const candidate of [parent, ...this.localNavChildren(sourceGroup.id, parent)]) {
+    for (const parent of group.items) {
+      for (const candidate of [parent, ...this.localNavChildren(group.id, parent)]) {
         const candidateIndex = index++;
         if (!this.canAccessNavItem(candidate)) continue;
-        if (!groupMatches && !this.navSearchText(candidate, sourceGroup).includes(term)) continue;
+        if (!groupMatches && !this.navSearchText(candidate, group).includes(term)) continue;
 
         const item = this.sidebarSearchItem(candidate);
         const key = this.navItemRouteKey(item);
-        const score = this.navItemSearchScore(item, sourceGroup, term);
+        const score = this.navItemSearchScore(item, group, term);
         const existing = ranked.get(key);
         if (!existing) {
           ranked.set(key, { item, score, index: candidateIndex });
@@ -1507,6 +1531,10 @@ export class AppComponent {
       .filter((child): child is NavItem => Boolean(child));
     if (children.length) return { ...item, children };
     return textMatches && this.canAccessNavItem(item) ? { ...item, children: [] } : null;
+  }
+
+  private hasAccessibleNavItem(item: NavItem): boolean {
+    return this.canAccessNavItem(item) || (item.children || []).some((child) => this.hasAccessibleNavItem(child));
   }
 
   private canAccessNavItem(item: NavItem): boolean {
