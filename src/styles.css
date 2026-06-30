@@ -6930,3 +6930,85 @@ aura-command-palette .cmdk-foot {
     width: 100% !important;
   }
 }
+
+/* Layout polish: badges, chips and state messages, no behavior changes. */
+.workspace > router-outlet + * :where(.badge-row, .chip-row, .live-badges, .coverage-tags, .app-tags, .status-cell, .flag-cell, .tags, .tag-row) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(.badge, .pill, .status-pill, .state-pill, .status-badge, .score-pill, .mini-status, .mini-badge, .filter-chip, .event-chip, .ready-chip, .hh-tag, .slot-hh-badge, .tag, .eq-flag, .data-io-status) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  max-width: 100%;
+  min-height: 24px !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  line-height: 1.15 !important;
+  font-size: 0.72rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+
+.workspace > router-outlet + * :where(.filter-chip, .event-chip, .ready-chip, .status-pill, .state-pill, .status-badge):where(button, a),
+.workspace > router-outlet + * :where(button.filter-chip, a.filter-chip) {
+  min-height: 34px !important;
+  padding-inline: 10px !important;
+  cursor: pointer;
+}
+
+.workspace > router-outlet + * :where(.filter-chip, .event-chip, .ready-chip, .status-pill, .state-pill, .status-badge, .badge, .pill):focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.72) !important;
+  outline-offset: 2px !important;
+}
+
+.workspace > router-outlet + * :where(.state, .alert, .notice, .inline-hint, .tax-warning, .empty-state, .empty-well, .empty-box, .command-empty-state) {
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 8px !important;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.workspace > router-outlet + * :where(.state, .alert, .notice, .inline-hint, .tax-warning) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 12px !important;
+}
+
+.workspace > router-outlet + * :where(.state.success, .state.good, .inline-hint.success, .success-text) {
+  color: #166534 !important;
+  background: #ecfdf3 !important;
+  border-color: rgba(22, 101, 52, 0.18) !important;
+}
+
+.workspace > router-outlet + * :where(.state.error, .state.danger, .inline-hint.danger, .danger-text) {
+  color: #991b1b !important;
+  background: #fff1f2 !important;
+  border-color: rgba(153, 27, 27, 0.18) !important;
+}
+
+.workspace > router-outlet + * :where(.state.warning, .state.warn, .warning-text, .tax-warning) {
+  color: #854d0e !important;
+  background: #fffbeb !important;
+  border-color: rgba(133, 77, 14, 0.18) !important;
+}
+
+@media (max-width: 760px) {
+  .workspace > router-outlet + * :where(.badge-row, .chip-row, .live-badges, .coverage-tags, .app-tags, .status-cell, .flag-cell, .tags, .tag-row) {
+    align-items: flex-start !important;
+  }
+
+  .workspace > router-outlet + * :where(.filter-chip, button.filter-chip, a.filter-chip) {
+    flex: 1 1 140px;
+  }
+}
