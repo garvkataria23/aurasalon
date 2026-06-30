@@ -7095,3 +7095,386 @@ aura-command-palette .cmdk-foot {
     flex: 1 1 140px;
   }
 }
+
+/* Compact icon sidebar: permanent rail with search flyout. */
+.app-shell,
+.app-shell.sidebar-is-compact {
+  grid-template-columns: 64px minmax(0, 1fr) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar,
+.app-shell.sidebar-is-compact > aside.inline-app-sidebar.enterprise-sidebar {
+  width: 64px !important;
+  max-width: 64px !important;
+  padding: 10px 8px !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-brand-row {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  justify-items: center !important;
+  margin: 0 !important;
+  padding: 0 0 8px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .brand {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .brand span:not(.brand-mark),
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-copy,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-count,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-items,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-callout {
+  display: none !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .brand-mark {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  font-size: 0.8rem !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-slot {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  margin: 0 !important;
+  z-index: 90 !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-icon-button {
+  display: grid !important;
+  place-items: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+  cursor: pointer !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-icon-button:hover,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-slot.open .sidebar-search-icon-button {
+  background: linear-gradient(90deg, #fff8fb, #f8e5ec) !important;
+  border-color: rgba(232, 167, 184, 0.7) !important;
+  color: var(--color-primary) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-icon-svg,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout .search-icon {
+  width: 18px !important;
+  height: 18px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2.2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout {
+  position: absolute !important;
+  left: calc(100% + 12px) !important;
+  top: 0 !important;
+  width: min(340px, calc(100vw - 96px)) !important;
+  max-height: min(560px, calc(100vh - 24px)) !important;
+  overflow: auto !important;
+  padding: 12px !important;
+  border: 1px solid rgba(232, 167, 184, 0.5) !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: var(--color-text) !important;
+  box-shadow: 0 22px 52px rgba(75, 18, 56, 0.22) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout .sidebar-search {
+  position: sticky !important;
+  top: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 0 10px !important;
+  z-index: 2 !important;
+  background: #fff !important;
+  border-color: var(--color-border) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout .sidebar-search input {
+  min-height: 40px !important;
+  color: var(--color-text) !important;
+  background: #fff !important;
+  border-color: var(--color-border) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout .sidebar-search input::placeholder {
+  color: var(--color-muted) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout .search-icon {
+  position: absolute !important;
+  left: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--color-primary) !important;
+  pointer-events: none !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout .sidebar-search-clear {
+  position: absolute !important;
+  right: 7px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  min-height: 28px !important;
+  padding: 0 9px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(75, 18, 56, 0.12) !important;
+  color: var(--color-primary) !important;
+  background: rgba(75, 18, 56, 0.06) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-results,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-group {
+  display: grid !important;
+  gap: 7px !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-group + .sidebar-search-group {
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid var(--color-border) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-group-label {
+  color: var(--color-muted) !important;
+  font-size: 0.68rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-result {
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-height: 40px !important;
+  padding: 5px 8px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  color: var(--color-text) !important;
+  text-decoration: none !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-result:hover,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-result.active {
+  background: rgba(75, 18, 56, 0.08) !important;
+  border-color: rgba(75, 18, 56, 0.16) !important;
+  color: var(--color-primary) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-result .nav-icon {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  color: var(--color-primary) !important;
+  background: rgba(75, 18, 56, 0.08) !important;
+  border-color: rgba(75, 18, 56, 0.12) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-hint {
+  margin: 0 !important;
+  color: var(--color-muted) !important;
+  font-size: 0.82rem !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-list.nav-accordion {
+  display: grid !important;
+  align-content: start !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-trigger {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  place-items: center !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-trigger .nav-icon {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  color: #fff !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-icon-svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-trigger::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  z-index: 120;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid rgba(232, 167, 184, 0.48);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-text);
+  box-shadow: 0 14px 32px rgba(75, 18, 56, 0.18);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-trigger:hover::after,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section-trigger:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section.active-section > .nav-section-trigger {
+  background: linear-gradient(90deg, #fff8fb, #f8e5ec) !important;
+  border-color: rgba(232, 167, 184, 0.78) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-section.active-section > .nav-section-trigger .nav-icon {
+  color: var(--color-primary) !important;
+  background: rgba(75, 18, 56, 0.12) !important;
+  border-color: rgba(75, 18, 56, 0.16) !important;
+}
+
+@media (max-width: 760px) {
+  .app-shell,
+  .app-shell.sidebar-is-compact {
+    display: grid !important;
+    grid-template-columns: 64px minmax(0, 1fr) !important;
+  }
+
+  .app-shell > aside.inline-app-sidebar.enterprise-sidebar,
+  .app-shell.sidebar-is-compact > aside.inline-app-sidebar.enterprise-sidebar {
+    position: sticky !important;
+    top: 0 !important;
+    width: 64px !important;
+    max-width: 64px !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .app-shell > aside.inline-app-sidebar.enterprise-sidebar .nav-list.nav-accordion {
+    display: grid !important;
+    min-width: 0 !important;
+  }
+
+  .app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-search-flyout {
+    width: min(310px, calc(100vw - 88px)) !important;
+  }
+}
+/* Local module rail polish: fixed narrow width with readable circular initials. */
+.workspace-route-shell--local-rail-collapsed .workspace-local-rail {
+  background: linear-gradient(180deg, #fffaf6 0%, #ffffff 100%) !important;
+  border-right: 1px solid rgba(75, 18, 56, 0.14) !important;
+}
+
+.workspace-local-nav a {
+  grid-template-columns: 32px minmax(0, 1fr) !important;
+  gap: 9px !important;
+  border-radius: 10px !important;
+}
+
+.workspace-local-nav .workspace-local-nav-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  border-radius: 999px !important;
+  color: #4B1238 !important;
+  background: #fff8fb !important;
+  border: 1px solid #e8a7b8 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  box-shadow: 0 6px 14px rgba(75, 18, 56, 0.08) !important;
+}
+
+.workspace-local-nav .workspace-local-nav-label {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.workspace-local-nav a.active,
+.workspace-local-nav a:hover,
+.workspace-local-nav a:focus-visible {
+  background: #f8e5ec !important;
+  color: #4B1238 !important;
+  border-color: #e8a7b8 !important;
+}
+
+.workspace-local-nav a.active .workspace-local-nav-icon,
+.workspace-local-nav a:hover .workspace-local-nav-icon,
+.workspace-local-nav a:focus-visible .workspace-local-nav-icon {
+  color: #fff !important;
+  background: #4B1238 !important;
+  border-color: #4B1238 !important;
+}
+
+.workspace-route-shell--local-rail-collapsed .workspace-local-nav a {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+}
+
+.workspace-route-shell--local-rail-collapsed .workspace-local-nav a .workspace-local-nav-icon {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  display: grid !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+.workspace-route-shell--local-rail-collapsed .workspace-local-nav a .workspace-local-nav-label {
+  display: none !important;
+}
