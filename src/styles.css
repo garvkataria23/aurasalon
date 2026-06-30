@@ -6714,3 +6714,87 @@ app-staff-os-section .context-links { justify-content: flex-start; }
     justify-content: flex-start !important;
   }
 }
+
+/* Layout polish: secure auth entry, no behavior changes. */
+.auth-shell {
+  align-items: center;
+  justify-items: center;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  gap: 20px;
+  padding: clamp(22px, 4vw, 30px);
+}
+
+.auth-card-head {
+  gap: 14px;
+}
+
+.auth-brand-lockup {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.auth-brand-mark {
+  max-width: 100%;
+  line-height: 1.1;
+}
+
+.auth-brand-kicker {
+  line-height: 1.25;
+}
+
+.auth-card p {
+  max-width: 440px;
+}
+
+.auth-form-grid {
+  gap: 12px;
+}
+
+.auth-input-action {
+  display: grid;
+}
+
+.auth-input-action button {
+  line-height: 1;
+}
+
+.auth-checkline {
+  grid-template-columns: 18px minmax(0, 1fr);
+  line-height: 1.35;
+}
+
+.auth-card :where(input, button, .primary-button):focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.72);
+  outline-offset: 2px;
+}
+
+.auth-submit-button {
+  border-radius: 8px;
+}
+
+@media (max-width: 520px) {
+  .auth-shell {
+    place-items: stretch;
+  }
+
+  .auth-card {
+    align-self: center;
+    width: 100%;
+    padding: 20px;
+  }
+
+  .auth-brand-mark {
+    white-space: normal;
+  }
+
+  .auth-card h1 {
+    font-size: clamp(1.7rem, 10vw, 2rem);
+  }
+
+  .auth-input-action input {
+    padding-right: 72px;
+  }
+}
