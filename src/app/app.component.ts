@@ -18,6 +18,7 @@ type NavItem = {
   label: string;
   icon: string;
   keywords?: string;
+  queryParams?: Record<string, string>;
   permission?: string | string[];
   children?: NavItem[];
 };
@@ -32,6 +33,13 @@ type NavGroup = {
 
 type ActiveNavTabGroup = {
   groupLabel: string;
+  path: string;
+  label: string;
+  icon: string;
+  children: NavItem[];
+};
+
+type ActiveStaffLocalNav = {
   path: string;
   label: string;
   icon: string;
@@ -273,7 +281,31 @@ type ActiveNavTabGroup = {
           </nav>
         </section>
 
-        <router-outlet></router-outlet>
+        <section class="workspace-route-shell" [class.workspace-route-shell--staff]="activeStaffLocalNav() !== null">
+          <aside class="staff-local-rail" *ngIf="activeStaffLocalNav() as staffNav" aria-label="Staff OS local navigation">
+            <div class="staff-local-rail-head">
+              <span class="nav-icon" aria-hidden="true">{{ staffNav.icon }}</span>
+              <div>
+                <span class="eyebrow">Staff OS</span>
+                <strong>{{ staffNav.label }}</strong>
+              </div>
+            </div>
+            <nav class="staff-local-nav" aria-label="Staff OS route group">
+              <a
+                *ngFor="let item of staffNav.children"
+                [routerLink]="item.path"
+                [queryParams]="item.queryParams || null"
+                [class.active]="isStaffLocalNavItemActive(item)"
+              >
+                <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                <span>{{ item.label }}</span>
+              </a>
+            </nav>
+          </aside>
+          <div class="workspace-route-content">
+            <router-outlet></router-outlet>
+          </div>
+        </section>
       </main>
       <aura-command-palette></aura-command-palette>
       <a class="ai-fab" routerLink="/ai" aria-label="Ask Aura AI assistant" title="Ask Aura AI">
@@ -287,7 +319,99 @@ type ActiveNavTabGroup = {
     </div>
     </ng-template>
     </ng-template>
-  `
+  `,
+  styles: [`
+    .workspace-route-shell {
+      display: block;
+      min-width: 0;
+    }
+
+    .workspace-route-shell--staff {
+      display: grid;
+      grid-template-columns: 204px minmax(0, 1fr);
+      align-items: stretch;
+      min-height: calc(100vh - 150px);
+      border: 1px solid #d7e4ec;
+      background: #fff;
+    }
+
+    .workspace-route-content {
+      min-width: 0;
+    }
+
+    .staff-local-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+      border-right: 1px solid #d7e4ec;
+      min-width: 0;
+    }
+
+    .staff-local-rail-head {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 8px 6px 10px;
+      border-bottom: 1px solid #e4ecef;
+    }
+
+    .staff-local-rail-head strong {
+      display: block;
+      color: #123a36;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .staff-local-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .staff-local-nav a {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      min-height: 38px;
+      padding: 6px 8px;
+      color: #1f2a3d;
+      text-decoration: none;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .staff-local-nav a.active,
+    .staff-local-nav a:hover,
+    .staff-local-nav a:focus-visible {
+      background: #e8f7f4;
+      color: #005f58;
+      border-color: #a9d8d1;
+      outline: none;
+    }
+
+    @media (max-width: 760px) {
+      .workspace-route-shell--staff {
+        grid-template-columns: 1fr;
+      }
+
+      .staff-local-rail {
+        border-right: 0;
+        border-bottom: 1px solid #d7e4ec;
+      }
+
+      .staff-local-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+    }
+  `]
 })
 export class AppComponent {
   private readonly fb = inject(FormBuilder);
@@ -845,9 +969,23 @@ export class AppComponent {
   readonly activePageLabel = computed(() => {
     return this.pageLabelForUrl(this.activeRoute()) || 'Command workspace';
   });
+  readonly activeStaffLocalNav = computed<ActiveStaffLocalNav | null>(() => {
+    const branch = this.navBranchForUrl(this.activeRoute());
+    if (branch?.group.id !== 'staff' || !branch.item.children?.length) return null;
+
+    const children = this.staffLocalChildren(branch.item).filter((item) => this.canAccessNavItem(item));
+    if (!children.length) return null;
+
+    return {
+      path: branch.item.path,
+      label: branch.item.label,
+      icon: branch.item.icon,
+      children
+    };
+  });
   readonly activePageTabs = computed<ActiveNavTabGroup | null>(() => {
     const route = this.routePath(this.activeRoute());
-    if (this.isStaffOsRoute(route)) return null;
+    if (this.activeStaffLocalNav()) return null;
     const branch = this.navBranchForUrl(route);
     if (!branch?.item.children?.length) return null;
     return {
@@ -1120,6 +1258,26 @@ export class AppComponent {
     return this.isRouteActive(url, item.path) || (item.children || []).some((child) => this.isRouteActive(url, child.path));
   }
 
+  isStaffLocalNavItemActive(item: NavItem): boolean {
+    const currentUrl = this.activeRoute();
+    const currentPath = this.routePath(currentUrl);
+    const targetPath = this.routePath(item.path);
+    if (currentPath !== targetPath) return false;
+
+    const queryEntries = Object.entries(item.queryParams || {});
+    const currentQuery = this.router.parseUrl(currentUrl).queryParams;
+    if (queryEntries.length) {
+      return queryEntries.every(([key, value]) => String(currentQuery[key] ?? '') === value);
+    }
+
+    const querySpecificSiblingActive = this.activeStaffLocalNav()?.children.some((candidate) => {
+      if (candidate === item || this.routePath(candidate.path) !== targetPath || !candidate.queryParams) return false;
+      return Object.entries(candidate.queryParams).every(([key, value]) => String(currentQuery[key] ?? '') === value);
+    });
+
+    return !querySpecificSiblingActive;
+  }
+
   private ensureActiveGroupExpanded(url: string): void {
     const group = this.navGroups.find((item) => this.navLeaves(item.items).some((navItem) => this.isRouteActive(url, navItem.path)));
     if (!group || this.expandedGroupIds().includes(group.id)) return;
@@ -1135,6 +1293,20 @@ export class AppComponent {
 
   navLeafCount(items: NavItem[]): number {
     return items.length;
+  }
+
+  private staffLocalChildren(item: NavItem): NavItem[] {
+    const children = [...(item.children || [])];
+    if (item.path === '/staff-os/staff-list') {
+      children.push({
+        path: '/staff-os/staff-list',
+        label: 'Inactive Staff',
+        icon: 'IS',
+        keywords: 'inactive archived staff',
+        queryParams: { status: 'inactive' }
+      });
+    }
+    return children;
   }
 
   private navLeaves(items: NavItem[]): NavItem[] {

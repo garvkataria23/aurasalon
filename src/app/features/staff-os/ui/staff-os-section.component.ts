@@ -52,7 +52,6 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     <section
       class="staff-os"
       [class.staff-list-mode]="section !== 'workspace'"
-      [class.staff-clean-shell]="usesStaffCleanShell()"
       [class.staff-attendance-mode]="section === 'attendance-dashboard'"
       [class.staff-roster-mode]="section === 'roster-calendar'"
       [class.staff-payroll-mode]="section === 'payroll-dashboard'"
@@ -70,7 +69,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </div>
       </header>
 
-      <nav class="staff-shell-nav" *ngIf="section !== 'workspace' && !isStaffRegisterSection() && !usesStaffCleanShell()" aria-label="Staff OS command links">
+      <nav class="staff-shell-nav" *ngIf="false" aria-label="Staff OS command links">
         <a *ngFor="let link of staffShellLinks" [routerLink]="link.to" [class.active]="isShellLinkActive(link)">
           <span>{{ link.icon }}</span>
           <strong>{{ link.label }}</strong>
@@ -78,7 +77,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </a>
       </nav>
 
-      <section class="staff-control-room" *ngIf="section !== 'workspace' && !isStaffRegisterSection() && !usesStaffCleanShell()" aria-label="Staff owner control room">
+      <section class="staff-control-room" *ngIf="false" aria-label="Staff owner control room">
         <div class="control-heading">
           <div>
             <p class="eyebrow">Owner control room</p>
@@ -107,31 +106,13 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </nav>
       </section>
 
-      <div class="metrics" *ngIf="section !== 'workspace' && !isStaffRegisterSection() && !usesStaffCleanShell()" aria-label="Staff OS metrics">
+      <div class="metrics" *ngIf="false" aria-label="Staff OS metrics">
         <article *ngFor="let metric of store.metrics()" class="metric" [class]="metric.tone">
           <span>{{ metric.label }}</span>
           <strong>{{ metric.value }}</strong>
         </article>
       </div>
 
-      <input #cleanAttendanceUploadInput class="hidden-file" type="file" accept=".csv,text/csv" (change)="uploadAttendanceCsv($event)" />
-      <aside class="staff-register-side staff-unified-side" *ngIf="usesStaffCleanShell()" aria-label="Staff quick menu">
-        <a routerLink="/staff-os/staff-list">Staff List</a>
-        <a routerLink="/staff-os/roster-calendar" [class.active]="isStaffSideNavActive('schedule')">Staff Schedule</a>
-        <a routerLink="/staff-os/commission-dashboard" [class.active]="isStaffSideNavActive('commission')">Commission</a>
-        <a routerLink="/permissions">Roles</a>
-        <a routerLink="/staff-os/staff-list" [queryParams]="{ status: 'inactive' }">Inactive Staff</a>
-        <div class="staff-register-side-group attendance-tools">
-          <span>Attendance</span>
-          <a routerLink="/staff-os/attendance-dashboard" [class.active]="isStaffSideNavActive('attendance')">Dashboard</a>
-          <button type="button" (click)="cleanAttendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">{{ attendanceUploadSaving() ? 'Uploading...' : 'Upload CSV' }}</button>
-        </div>
-        <div class="staff-register-side-group">
-          <span>More tools</span>
-          <a routerLink="/staff-os/payroll-dashboard" [class.active]="isStaffSideNavActive('payroll')">Payroll</a>
-          <a routerLink="/staff-os/bulk-employee-update" [class.active]="isStaffSideNavActive('bulk')">Bulk Update</a>
-        </div>
-      </aside>
       <div *ngIf="store.loading()" class="state">Loading staff operations...</div>
       <div *ngIf="store.error()" class="state error">{{ store.error() }}</div>
 
@@ -463,24 +444,6 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
       <section class="panel" [class.staff-register-panel]="isStaffRegisterSection()" *ngIf="isStaffRegisterSection()">
         <div class="staff-register-layout">
           <input #attendanceUploadInput class="hidden-file" type="file" accept=".csv,text/csv" (change)="uploadAttendanceCsv($event)" />
-          <aside class="staff-register-side" aria-label="Staff quick menu">
-            <a routerLink="/staff-os/staff-list" [class.active]="section === 'staff-list' && staffListStatusFilter() !== 'inactive'" (click)="setStaffListStatusFilter('all')">Staff List</a>
-            <a routerLink="/staff-os/roster-calendar">Staff Schedule</a>
-            <a routerLink="/staff-os/commission-dashboard">Commission</a>
-            <a routerLink="/permissions">Roles</a>
-            <a routerLink="/staff-os/staff-list" [queryParams]="{ status: 'inactive' }" [class.active]="section === 'staff-list' && staffListStatusFilter() === 'inactive'" (click)="setStaffListStatusFilter('inactive')">Inactive Staff</a>
-            <div class="staff-register-side-group attendance-tools">
-              <span>Attendance</span>
-              <a routerLink="/staff-os/attendance-dashboard">Dashboard</a>
-              <button type="button" (click)="attendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">{{ attendanceUploadSaving() ? 'Uploading...' : 'Upload CSV' }}</button>
-            </div>
-            <div class="staff-register-side-group">
-              <span>More tools</span>
-              <a routerLink="/staff-os/payroll-dashboard">Payroll</a>
-              <a routerLink="/staff-os/bulk-employee-update">Bulk Update</a>
-            </div>
-          </aside>
-
           <div class="staff-register-main">
             <div class="panel-heading staff-register-heading">
               <div>
@@ -492,8 +455,11 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
                 <span>{{ staffListFilteredRows().length }} of {{ staffDirectoryRows().length }} records</span>
                 <button type="button" class="refresh" (click)="store.load()">Refresh</button>
                 <button type="button" class="refresh" (click)="exportStaffCsv()" [disabled]="!staffListFilteredRows().length">Export CSV</button>
+                <button type="button" class="refresh" *ngIf="section === 'staff-list'" (click)="attendanceUploadInput.click()" [disabled]="attendanceUploadSaving()">
+                  {{ attendanceUploadSaving() ? 'Uploading...' : 'Upload CSV' }}
+                </button>
                 <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
-</div>
+              </div>
             </div>
 
             <div class="staff-register-kpis" *ngIf="isStaffRegisterSection()">
@@ -1370,6 +1336,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
       </div>
 
       <section class="panel attendance-command" *ngIf="section === 'attendance-dashboard'">
+        <input #attendanceCommandUploadInput class="hidden-file" type="file" accept=".csv,text/csv" (change)="uploadAttendanceCsv($event)" />
         <div class="panel-heading">
           <div>
             <h2>Advanced Attendance Control</h2>
@@ -1382,6 +1349,9 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
             </select>
             <input type="date" [value]="attendanceDate()" (change)="setAttendanceDate($any($event.target).value)" />
             <button type="button" class="refresh" (click)="refreshAttendanceCenter()">Refresh</button>
+            <button type="button" class="refresh" (click)="attendanceCommandUploadInput.click()" [disabled]="attendanceUploadSaving()">
+              {{ attendanceUploadSaving() ? 'Uploading...' : 'Upload CSV' }}
+            </button>
             <button type="button" class="primary" [disabled]="queueProcessing()" (click)="processBiometricQueue()">
               {{ queueProcessing() ? 'Processing...' : 'Process biometric queue' }}
             </button>
@@ -2246,8 +2216,8 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .staff-clean-shell .staff-unified-side { border-right: 0; position: sticky; top: 12px; }
     .staff-clean-shell .staff-unified-side a.active { background: #e9e9e9; color: #05070d; }
     .staff-register-panel { overflow: hidden; padding: 0; }
-    .staff-register-layout { align-items: start; display: grid; grid-template-columns: 204px minmax(0, 1fr); min-width: 0; }
-    .staff-register-main { border-left: 1px solid #e5edf4; min-width: 0; }
+    .staff-register-layout { align-items: start; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+    .staff-register-main { border-left: 0; min-width: 0; }
     .staff-register-side { align-content: start; background: #fff; display: grid; gap: 4px; min-width: 0; padding: 14px 12px; position: sticky; top: 12px; }
     .staff-register-side a, .staff-register-side button { background: transparent; border: 0; border-radius: 6px; color: #111827; cursor: pointer; font: inherit; font-size: 14px; font-weight: 800; min-height: 34px; padding: 8px 12px; text-align: left; text-decoration: none; width: 100%; }
     .staff-register-side a:hover, .staff-register-side button:hover, .staff-register-side .active { background: #e9e9e9; color: #05070d; }
@@ -2680,7 +2650,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
       .staff-clean-shell > .attendance-workspace,
       .staff-clean-shell > .state { border-left: 0; }
       .staff-register-layout { grid-template-columns: 1fr; }
-      .staff-register-main { border-left: 0; border-top: 1px solid #e5edf4; }
+      .staff-register-main { border-left: 0; border-top: 0; }
       .staff-register-side { border-bottom: 1px solid #e5edf4; grid-template-columns: repeat(2, minmax(0, 1fr)); position: static; }
       .staff-register-side-group { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .staff-register-side-group > span { grid-column: 1 / -1; }
