@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, firstValueFrom, switchMap } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { finalize, switchMap } from 'rxjs';
 import { ApiRecord } from '../../../core/api.service';
 import { AppStateService } from '../../../core/state/app-state.service';
 import { StaffOsStore } from '../application/staff-os.store';
-import { StaffOsBranch, StaffOsLeaveMaster, StaffOsRiskScore, StaffOsSchedule, StaffOsShiftMaster, StaffOsStaff, StaffOsStaffCategory, StaffOsTask } from '../domain/staff-os.models';
+import { StaffOsBranch, StaffOsLeaveMaster, StaffOsRiskScore, StaffOsShiftMaster, StaffOsStaff, StaffOsStaffCategory, StaffOsTask } from '../domain/staff-os.models';
 
 type StaffDetailTab = 'core' | 'contact' | 'emergency' | 'native' | 'incentive' | 'attendance' | 'remarks';
 type StaffIntegrationLink = { label: string; to: string };
@@ -17,6 +17,8 @@ type StaffWorkspaceKey = 'overview' | 'directory' | 'attendance' | 'salary' | 'c
 type StaffWorkspaceCategory = { key: StaffWorkspaceKey; label: string; source: string };
 type EmployeeLiveCard = { label: string; value: string | number; hint: string; tone: string };
 type EmployeeCatalogCard = { label: string; value: string | number };
+type AttendanceDashboardCard = { label: string; value: string | number; hint: string; tone: string };
+type AttendanceExceptionItem = { title: unknown; meta: unknown; staff: string; impact: unknown; status: unknown; tone: string };
 type IncentiveRuleType = 'service_category' | 'service' | 'product' | 'membership' | 'package';
 type IncentiveCalcMode = 'percent' | 'fixed';
 type IncentiveOption = { id: string; name: string; meta?: string };
@@ -39,15 +41,20 @@ type IncentiveSlabDraft = {
   incentiveAmount: number;
 };
 type AttendancePunchType = 'clock_in' | 'clock_out' | 'full_day';
-type StaffPhotoUploadResponse = { url?: string };
 
 @Component({
   selector: 'app-staff-os-section',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   template: `
-    <section class="staff-os">
-      <header class="topbar">
+    <section
+      class="staff-os"
+      [class.staff-list-mode]="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'"
+      [class.staff-attendance-mode]="section === 'attendance-dashboard'"
+      [class.staff-roster-mode]="section === 'roster-calendar'"
+      [class.staff-payroll-mode]="section === 'payroll-dashboard'"
+    >
+      <header class="topbar" *ngIf="section !== 'staff-profile'">
         <div>
           <p class="eyebrow">Staff Operating System</p>
           <h1>{{ title }}</h1>
@@ -189,7 +196,6 @@ type StaffPhotoUploadResponse = { url?: string };
                     <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
                     <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
                     <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
-                    <a routerLink="/permissions" [queryParams]="staffPermissionParams(staff)">Permissions</a>
                   </span>
                   <span><button type="button" class="row-action" [disabled]="statusChanging() === staff.id" (click)="toggleStaffStatus(staff)">{{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}</button></span>
                 </div>
@@ -401,7 +407,6 @@ type StaffPhotoUploadResponse = { url?: string };
                   <span class="row-links">
                     <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
                     <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
-                    <a routerLink="/permissions" [queryParams]="staffPermissionParams(staff)">Permissions</a>
                   </span>
                   <span><button type="button" class="row-action" (click)="openAddStaff()">New</button></span>
                 </div>
@@ -434,50 +439,86 @@ type StaffPhotoUploadResponse = { url?: string };
         </div>
       </section>
 
-      <section class="panel" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
-        <div class="panel-heading">
-          <h2>Staff Directory</h2>
-          <span>{{ staffDirectoryRows().length }} records</span>
-        </div>
-        <div class="table">
-          <div class="row header"><span>Name</span><span>Branch</span><span>Category</span><span>Live data</span><span>Status</span><span>Links</span><span>Action</span></div>
-          <div class="row" *ngFor="let staff of staffDirectoryRows()">
-            <span>
-              <strong>{{ staff.fullName }}</strong>
-              <small *ngIf="staff.employeeDetails?.shortName || staff.employeeCode">
-                {{ staff.employeeDetails?.shortName || 'No short name' }} · {{ staff.employeeCode || 'No code' }}
-              </small>
-            </span>
-            <span>{{ staff.branchId }}</span>
-            <span>{{ staff.staffCategoryName || staff.designation || staff.department || 'Staff' }}</span>
-            <span class="live-badges">
-              <span class="mini-badge" *ngFor="let badge of staffLiveBadges(staff)">{{ badge }}</span>
-            </span>
-            <span class="badge">{{ staff.status }}</span>
-            <span class="row-links">
-              <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
-              <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
-              <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
-              <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
-              <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
-              <a routerLink="/permissions" [queryParams]="staffPermissionParams(staff)">Permissions</a>
-            </span>
-            <span>
-              <button
-                type="button"
-                class="row-action"
-                [disabled]="statusChanging() === staff.id"
-                (click)="toggleStaffStatus(staff)"
-              >
-                {{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}
-              </button>
-            </span>
+      <section class="panel" [class.staff-register-panel]="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
+        <div class="panel-heading staff-register-heading">
+          <div>
+            <p class="eyebrow">{{ section === 'training-center' ? 'Training register' : section === 'staff-profile' ? 'Staff profile register' : 'Staff directory' }}</p>
+            <h2>{{ section === 'training-center' ? 'Training Center' : section === 'staff-profile' ? 'Employee profiles' : 'Manage employees' }}</h2>
           </div>
+          <div class="staff-register-actions">
+            <span>{{ staffDirectoryRows().length }} records</span>
+            <button type="button" class="refresh" (click)="store.load()">Refresh</button>
+            <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
+          </div>
+        </div>
+
+        <div class="staff-register-kpis" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
+          <article><span>Total staff</span><strong>{{ staffDirectoryRows().length }}</strong><small>employee master records</small></article>
+          <article><span>Active</span><strong>{{ activeStaffForAttendance().length }}</strong><small>attendance ready</small></article>
+          <article><span>Inactive</span><strong>{{ inactiveStaffCount() }}</strong><small>paused / archived</small></article>
+          <article><span>Login linked</span><strong>{{ loginLinkedCount() }}</strong><small>staff app access</small></article>
+        </div>
+
+        <div class="staff-register-scroll">
+          <table class="staff-register-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Branch</th>
+                <th>Category</th>
+                <th>Live data</th>
+                <th>Status</th>
+                <th>Links</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let staff of staffDirectoryRows()">
+                <td>
+                  <strong>{{ staff.fullName }}</strong>
+                  <small *ngIf="staff.employeeDetails?.shortName || staff.employeeCode">
+                    {{ staff.employeeDetails?.shortName || 'No short name' }} · {{ staff.employeeCode || 'No code' }}
+                  </small>
+                </td>
+                <td>{{ staff.branchId }}</td>
+                <td>{{ staff.staffCategoryName || staff.designation || staff.department || 'Staff' }}</td>
+                <td>
+                  <span class="live-badges">
+                    <span class="mini-badge" *ngFor="let badge of staffLiveBadges(staff)">{{ badge }}</span>
+                  </span>
+                </td>
+                <td><span class="badge">{{ staff.status }}</span></td>
+                <td>
+                  <span class="row-links">
+                    <a routerLink="/staff-os/staff-profile" [queryParams]="{ staffId: staff.id }">Profile</a>
+                    <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
+                    <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
+                    <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
+                    <a routerLink="/staff-os/salary-generate" [queryParams]="{ staffId: staff.id }">Salary</a>
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="row-action"
+                    [disabled]="statusChanging() === staff.id"
+                    (click)="toggleStaffStatus(staff)"
+                  >
+                    {{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <div *ngIf="!staffDirectoryRows().length && !store.loading()" class="empty action-empty">
             <strong>No staff records found.</strong>
             <span>Add staff first to unlock attendance, payroll and commission reports.</span>
             <button type="button" class="primary" (click)="openAddStaff()">Add staff</button>
           </div>
+        </div>
+        <div class="staff-register-footer" *ngIf="section === 'staff-list' || section === 'staff-profile' || section === 'training-center'">
+          <span>{{ staffDirectoryRows().length ? 1 : 0 }} to {{ staffDirectoryRows().length }} of {{ staffDirectoryRows().length }}</span>
+          <span>Page 1 of 1</span>
         </div>
         <div class="state error" *ngIf="staffActionError()">{{ staffActionError() }}</div>
       </section>
@@ -522,7 +563,7 @@ type StaffPhotoUploadResponse = { url?: string };
               <strong>{{ selectedCategoryDefaultsText() }}</strong>
             </article>
             <div class="context-links">
-              <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to" [queryParams]="integrationLinkParams(link)">{{ link.label }}</a>
+              <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to">{{ link.label }}</a>
             </div>
           </section>
 
@@ -536,24 +577,6 @@ type StaffPhotoUploadResponse = { url?: string };
                 </select>
                 <small *ngIf="fieldInvalid('branchId')">Branch is required.</small>
               </label>
-
-              <section class="staff-photo-field full">
-                <div class="staff-photo-preview">
-                  <img *ngIf="staffPhotoPreview(); else staffPhotoFallback" [src]="staffPhotoPreview()" alt="Staff photo preview" />
-                  <ng-template #staffPhotoFallback><span>{{ staffInitialsPreview() }}</span></ng-template>
-                </div>
-                <div class="staff-photo-actions">
-                  <strong>Staff photo</strong>
-                  <span>Upload from gallery or file manager. JPG, PNG and common photo files.</span>
-                  <div class="photo-button-row">
-                    <input #staffPhotoInput type="file" [accept]="staffImageAccept" (change)="uploadStaffPhoto($event)" hidden />
-                    <button type="button" class="refresh" (click)="staffPhotoInput.click()" [disabled]="staffPhotoUploading()">
-                      {{ staffPhotoUploading() ? 'Uploading...' : 'Upload photo' }}
-                    </button>
-                    <button *ngIf="staffPhotoPreview()" type="button" class="refresh photo-remove" (click)="removeStaffPhoto()" [disabled]="staffPhotoUploading()">Remove photo</button>
-                  </div>
-                </div>
-              </section>
 
               <label class="field">
                 <span>First name</span>
@@ -599,7 +622,7 @@ type StaffPhotoUploadResponse = { url?: string };
                 </label>
                 <label class="field">
                   <span>Login ID</span>
-                  <input formControlName="loginId" autocomplete="username" placeholder="aftab01 or mobile/email" (blur)="normalizeStaffLoginId()" />
+                  <input formControlName="loginId" autocomplete="username" placeholder="aftab01 or mobile/email" />
                 </label>
                 <label class="field">
                   <span>Password</span>
@@ -615,7 +638,6 @@ type StaffPhotoUploadResponse = { url?: string };
                     <option value="manager">Manager</option>
                   </select>
                 </label>
-                <p class="login-ready-note" [class.ready]="staffLoginReady()">{{ staffLoginProvisionNote() }}</p>
               </section>
 
               <label class="field">
@@ -641,6 +663,28 @@ type StaffPhotoUploadResponse = { url?: string };
                   <a routerLink="/staff-os/staff-categories">Create Staff Category</a>
                 </small>
               </label>
+
+              <section class="salary-quick-panel full" aria-label="Salary setup shortcut">
+                <div>
+                  <span class="eyebrow">Salary setup</span>
+                  <strong>{{ staffForm.get('basicSalary')?.value || 0 | currency:'INR':'symbol-narrow':'1.0-0' }} basic salary</strong>
+                  <small>Salary Add Employee ke andar hi set hogi. Save Employee ke saath payroll profile save hota hai.</small>
+                </div>
+                <div class="salary-quick-meta">
+                  <article>
+                    <span>Payment</span>
+                    <strong>{{ staffForm.get('paymentMode')?.value || 'Not set' }}</strong>
+                  </article>
+                  <article>
+                    <span>Payroll</span>
+                    <strong>{{ staffForm.get('supportAttendancePayroll')?.value ? 'Enabled' : 'Off' }}</strong>
+                  </article>
+                </div>
+                <div class="salary-quick-actions">
+                  <button type="button" class="primary" (click)="detailTab.set('attendance')">Open Salary Setup</button>
+                  <a class="refresh" routerLink="/staff-os/salary-workspace" [queryParams]="staffContextParams()">Salary Workspace</a>
+                </div>
+              </section>
 
               <label class="field">
                 <span>Employment type</span>
@@ -710,7 +754,7 @@ type StaffPhotoUploadResponse = { url?: string };
               </label>
 
               <label class="field full">
-                <span>Skill / license assignment placeholder</span>
+                <span>Skills &amp; certifications</span>
                 <textarea formControlName="skillLicenseNotes" rows="3" placeholder="Example: Hair color certified, bridal makeup training pending"></textarea>
               </label>
             </ng-container>
@@ -1236,7 +1280,7 @@ type StaffPhotoUploadResponse = { url?: string };
                   </article>
                 </div>
                 <nav class="live-panel-links" aria-label="Employee connected modules">
-                  <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to" [queryParams]="integrationLinkParams(link)">{{ link.label }}</a>
+                  <a *ngFor="let link of activeIntegrationLinks()" [routerLink]="link.to" [queryParams]="staffContextParams()">{{ link.label }}</a>
                 </nav>
               </section>
               <div class="drawer-action-buttons">
@@ -1257,6 +1301,10 @@ type StaffPhotoUploadResponse = { url?: string };
             <span>Physical entry, biometric devices, camera punch and payroll attendance</span>
           </div>
           <div class="attendance-controls">
+            <select [ngModel]="attendanceBranchId()" (ngModelChange)="setAttendanceBranch($event)" aria-label="Attendance branch">
+              <option value="">Select branch</option>
+              <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+            </select>
             <input type="date" [value]="attendanceDate()" (change)="setAttendanceDate($any($event.target).value)" />
             <button type="button" class="refresh" (click)="refreshAttendanceCenter()">Refresh</button>
             <button type="button" class="primary" [disabled]="queueProcessing()" (click)="processBiometricQueue()">
@@ -1274,535 +1322,455 @@ type StaffPhotoUploadResponse = { url?: string };
           <article><span>Suspicious</span><strong>{{ attendanceSummary()['suspiciousEvents'] || 0 }}</strong><small>review required</small></article>
           <article><span>Payroll</span><strong>{{ attendanceSummary()['payrollPreviewRows'] || 0 }}</strong><small>{{ attendanceSummary()['ownerAlerts'] || 0 }} owner alerts</small></article>
         </div>
-        <nav class="attendance-module-nav">
-          <button type="button" [class.active]="activeAttendanceModule() === 'face-punch'" (click)="activeAttendanceModule.set('face-punch')">Face Punch Attendance</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'attendance-master'" (click)="activeAttendanceModule.set('attendance-master')">Attendance Master</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'salary-generate'" (click)="activeAttendanceModule.set('salary-generate')">Salary Generate</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'camera-punch'" (click)="activeAttendanceModule.set('camera-punch')">Camera Punch</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'biometric-devices'" (click)="activeAttendanceModule.set('biometric-devices')">Biometric Devices</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'staff-mapping'" (click)="activeAttendanceModule.set('staff-mapping')">Staff Mapping</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'privacy-consent'" (click)="activeAttendanceModule.set('privacy-consent')">Privacy &amp; Consent</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'payroll-risk'" (click)="activeAttendanceModule.set('payroll-risk')">Payroll Risk Review</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'reports'" (click)="activeAttendanceModule.set('reports')">Reports</button>
-          <button type="button" [class.active]="activeAttendanceModule() === 'settings'" (click)="activeAttendanceModule.set('settings')">Settings</button>
-        </nav>
+        <div class="attendance-live-strip">
+          <article>
+            <span>Branch</span>
+            <strong>{{ attendanceBranchLabel() }}</strong>
+            <small>{{ activeStaffForAttendance().length }} active staff</small>
+          </article>
+          <article>
+            <span>Coverage</span>
+            <strong>{{ attendanceCoveragePct() }}%</strong>
+            <small>{{ uniqueAttendanceStaffCount() }} of {{ activeStaffForAttendance().length }} punched</small>
+          </article>
+          <article>
+            <span>Open risks</span>
+            <strong>{{ openAttendanceRiskCount() }}</strong>
+            <small>{{ payrollHoldCount() }} payroll hold</small>
+          </article>
+          <article>
+            <span>Last sync</span>
+            <strong>{{ attendanceLastSyncLabel() }}</strong>
+            <small>{{ gatewayStatusLabel() }}</small>
+          </article>
+        </div>
         <div class="state error" *ngIf="attendanceError()">{{ attendanceError() }}</div>
         <div class="state success" *ngIf="attendanceMessage()">{{ attendanceMessage() }}</div>
       </section>
 
-      <div class="attendance-kpi-grid" *ngIf="section === 'attendance-dashboard'">
-        <article class="kpi-card present"><span>Today Present</span><strong>{{ attendanceSummary()['attendanceEvents'] || 0 }}</strong><small>checked in today</small></article>
-        <article class="kpi-card absent"><span>Today Absent</span><strong>{{ attendanceSummary()['suspiciousEvents'] || 0 }}</strong><small>no punch recorded</small></article>
-        <article class="kpi-card late"><span>Late Arrivals</span><strong>{{ attendanceSummary()['failedEvents'] || 0 }}</strong><small>past grace period</small></article>
-        <article class="kpi-card percent"><span>Attendance %</span><strong>{{ ((attendanceSummary()['attendanceEvents'] || 0) / ((attendanceSummary()['attendanceEvents'] || 0) + (attendanceSummary()['suspiciousEvents'] || 0) || 1) * 100).toFixed(1) }}%</strong><small>today</small></article>
-        <article class="kpi-card punches"><span>Total Punches</span><strong>{{ (attendanceSummary()['attendanceEvents'] || 0) + (attendanceSummary()['queuedEvents'] || 0) }}</strong><small>live + queued</small></article>
-      </div>
+      <section class="attendance-ops-grid" *ngIf="section === 'attendance-dashboard'">
+        <article class="attendance-op-card" *ngFor="let card of attendanceOpsCards()" [ngClass]="card.tone">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.value }}</strong>
+          <small>{{ card.hint }}</small>
+        </article>
+      </section>
 
-      <div class="attendance-module-content" *ngIf="section === 'attendance-dashboard'">
-
-        <div *ngIf="activeAttendanceModule() === 'face-punch'">
-          <nav class="face-punch-tabs">
-            <button type="button" [class.active]="activeFacePunchTab() === 'live-feed'" (click)="activeFacePunchTab.set('live-feed')">Live Feed</button>
-            <button type="button" [class.active]="activeFacePunchTab() === 'punches'" (click)="activeFacePunchTab.set('punches')">Punches</button>
-            <button type="button" [class.active]="activeFacePunchTab() === 'attendance-sheet'" (click)="activeFacePunchTab.set('attendance-sheet')">Attendance Sheet</button>
-            <button type="button" [class.active]="activeFacePunchTab() === 'summary'" (click)="activeFacePunchTab.set('summary')">Summary</button>
-            <button type="button" [class.active]="activeFacePunchTab() === 'exceptions'" (click)="activeFacePunchTab.set('exceptions')">Exceptions</button>
-          </nav>
-
-          <section class="attendance-workspace" *ngIf="activeFacePunchTab() === 'live-feed'">
-            <article class="panel camera-panel">
-              <div class="panel-heading">
-                <h2>Camera Punch</h2>
-                <span>{{ cameraActive() ? 'Camera active' : 'Camera off' }}</span>
-              </div>
-              <div class="camera-stage">
-                <video #attendanceVideo autoplay muted playsinline [class.hidden]="!cameraActive()"></video>
-                <div class="camera-placeholder" *ngIf="!cameraActive()">Camera preview</div>
-              </div>
-              <form class="staff-form camera-form" [formGroup]="cameraForm" (ngSubmit)="submitCameraPunch()">
-                <label class="field">
-                  <span>Branch</span>
-                  <select formControlName="branchId" (change)="refreshAttendanceCenter()">
-                    <option value="">Select branch</option>
-                    <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Staff</span>
-                  <select formControlName="staffId">
-                    <option value="">Select staff</option>
-                    <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }} {{ staff.employeeCode ? '(' + staff.employeeCode + ')' : '' }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Punch</span>
-                  <select formControlName="punchType">
-                    <option value="clock_in">Clock in</option>
-                    <option value="clock_out">Clock out</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Liveness</span>
-                  <input type="number" min="0" max="1" step="0.01" formControlName="livenessScore" />
-                </label>
-                <label class="field">
-                  <span>Face match</span>
-                  <input type="number" min="0" max="1" step="0.01" formControlName="matchScore" />
-                </label>
-                <label class="field full">
-                  <span>Notes</span>
-                  <input formControlName="notes" placeholder="Gate, reception, mobile punch" />
-                </label>
-                <div class="drawer-actions">
-                  <button type="button" class="refresh" [disabled]="cameraStarting()" (click)="startCamera()">{{ cameraStarting() ? 'Opening...' : 'Start camera' }}</button>
-                  <button type="button" class="refresh" (click)="stopCamera()">Stop</button>
-                  <button type="submit" class="primary" [disabled]="cameraForm.invalid || cameraSaving() || !cameraActive()">
-                    {{ cameraSaving() ? 'Saving...' : 'Save camera punch' }}
-                  </button>
-                </div>
-              </form>
-            </article>
-          </section>
-
-          <section class="attendance-workspace" *ngIf="activeFacePunchTab() === 'punches'">
-            <article class="panel physical-panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Physical Attendance Entry</h2>
-                  <span>Manual register entry writes into the same live attendance log.</span>
-                </div>
-                <span class="badge">Physical</span>
-              </div>
-              <form class="staff-form camera-form manual-form" [formGroup]="manualAttendanceForm" (ngSubmit)="submitManualAttendance()">
-                <label class="field">
-                  <span>Branch</span>
-                  <select formControlName="branchId" (change)="refreshAttendanceCenter()">
-                    <option value="">Select branch</option>
-                    <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Staff</span>
-                  <select formControlName="staffId">
-                    <option value="">Select staff</option>
-                    <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }} {{ staff.employeeCode ? '(' + staff.employeeCode + ')' : '' }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Entry type</span>
-                  <select formControlName="punchType">
-                    <option value="full_day">Full day present</option>
-                    <option value="clock_in">Clock in only</option>
-                    <option value="clock_out">Clock out only</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>In time</span>
-                  <input type="time" formControlName="clockInTime" />
-                </label>
-                <label class="field">
-                  <span>Out time</span>
-                  <input type="time" formControlName="clockOutTime" />
-                </label>
-                <label class="field">
-                  <span>OT minutes</span>
-                  <input type="number" min="0" step="1" formControlName="overtimeMinutes" />
-                </label>
-                <label class="field full">
-                  <span>Notes</span>
-                  <input formControlName="notes" placeholder="Physical register, manager entry, missed punch" />
-                </label>
-                <div class="drawer-actions">
-                  <button type="submit" class="primary" [disabled]="manualAttendanceForm.invalid || manualAttendanceSaving()">
-                    {{ manualAttendanceSaving() ? 'Saving...' : 'Save physical attendance' }}
-                  </button>
-                  <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Attendance Master</a>
-                  <a class="refresh" routerLink="/staff-os/salary-generate" [queryParams]="staffContextParams()">Salary Generate</a>
-                </div>
-              </form>
-            </article>
-          </section>
-
-          <section class="attendance-workspace attendance-wide" *ngIf="activeFacePunchTab() === 'attendance-sheet'">
-            <article class="panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Attendance Sheet</h2>
-                  <span>Live attendance log for selected date</span>
-                </div>
-                <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Full Attendance Master</a>
-              </div>
-              <div class="table compact evidence-table">
-                <div class="row header"><span>Staff</span><span>Source</span><span>Clock</span><span>Status</span></div>
-                <div class="row" *ngFor="let row of attendanceRows()">
-                  <span><strong>{{ displayStaffName(row) }}</strong><small>{{ row['businessDate'] || row['business_date'] }}</small></span>
-                  <span>{{ row['source'] || 'manual' }}</span>
-                  <span>{{ timeOnly(row['clockInAt'] || row['clock_in_at']) }} - {{ timeOnly(row['clockOutAt'] || row['clock_out_at']) || 'open' }}</span>
-                  <span class="badge">{{ row['status'] }}</span>
-                </div>
-                <div *ngIf="!attendanceRows().length && !store.loading()" class="empty action-empty">
-                  <strong>No attendance events for selected date.</strong>
-                  <span>Use physical entry, camera punch or biometric queue to create live attendance.</span>
-                  <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Attendance master</a>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section class="attendance-workspace attendance-wide" *ngIf="activeFacePunchTab() === 'summary'">
-            <article class="panel">
-              <div class="panel-heading">
-                <h2>Attendance Summary</h2>
-                <span>{{ attendanceDate() }}</span>
-              </div>
-              <div class="attendance-stats compact-summary">
-                <article><span>Devices</span><strong>{{ attendanceSummary()['activeDevices'] || 0 }}/{{ attendanceSummary()['devices'] || 0 }}</strong><small>active / total</small></article>
-                <article><span>Gateway</span><strong>{{ attendanceSummary()['onlineGateways'] || 0 }}/{{ attendanceSummary()['gateways'] || 0 }}</strong><small>Windows sync agents</small></article>
-                <article><span>Attendance</span><strong>{{ attendanceSummary()['attendanceEvents'] || 0 }}</strong><small>{{ attendanceDate() }}</small></article>
-                <article><span>Camera</span><strong>{{ attendanceSummary()['cameraCaptures'] || 0 }}</strong><small>verified captures</small></article>
-                <article><span>Consent</span><strong>{{ attendanceSummary()['consentGranted'] || 0 }}</strong><small>{{ attendanceSummary()['consentPending'] || 0 }} pending</small></article>
-                <article><span>Queue</span><strong>{{ attendanceSummary()['queuedEvents'] || 0 }}</strong><small>{{ attendanceSummary()['failedEvents'] || 0 }} failed</small></article>
-                <article><span>Suspicious</span><strong>{{ attendanceSummary()['suspiciousEvents'] || 0 }}</strong><small>review required</small></article>
-                <article><span>Payroll</span><strong>{{ attendanceSummary()['payrollPreviewRows'] || 0 }}</strong><small>{{ attendanceSummary()['ownerAlerts'] || 0 }} owner alerts</small></article>
-              </div>
-            </article>
-          </section>
-
-          <section class="attendance-workspace attendance-wide" *ngIf="activeFacePunchTab() === 'exceptions'">
-            <article class="panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Payroll Risk Review</h2>
-                  <span>Risk scan, owner alerts and attendance deduction preview from real punches</span>
-                </div>
-                <button type="button" class="refresh" [disabled]="fraudScanning()" (click)="runFraudScan()">{{ fraudScanning() ? 'Checking...' : 'Run risk check' }}</button>
-              </div>
-              <form class="device-form payroll-form" [formGroup]="payrollPreviewForm" (ngSubmit)="generatePayrollPreview()">
-                <label class="field"><span>From</span><input type="date" formControlName="periodStart" /></label>
-                <label class="field"><span>To</span><input type="date" formControlName="periodEnd" /></label>
-                <label class="field"><span>Shift start</span><input type="time" formControlName="defaultShiftStart" /></label>
-                <label class="field"><span>Late grace</span><input type="number" min="0" formControlName="lateGraceMinutes" /></label>
-                <label class="field"><span>Hold absent days</span><input type="number" min="0" formControlName="incentiveHoldAbsentDays" /></label>
-                <label class="field"><span>Default gross</span><input type="number" min="0" formControlName="defaultGrossAmount" /></label>
-                <button type="submit" class="primary" [disabled]="payrollPreviewForm.invalid || payrollPreviewSaving()">{{ payrollPreviewSaving() ? 'Generating...' : 'Payroll preview' }}</button>
-              </form>
-              <div class="table compact risk-table">
-                <div class="row header"><span>Risk / Payroll</span><span>Score</span><span>Amount</span><span>Status</span></div>
-                <div class="row" *ngFor="let risk of store.attendanceRisks()">
-                  <span><strong>{{ risk['riskType'] }}</strong><small>{{ risk['reason'] }}</small></span>
-                  <span>{{ risk['riskScore'] }}</span>
-                  <span>{{ risk['severity'] }}</span>
-                  <span class="badge">{{ risk['status'] }}</span>
-                </div>
-                <div class="row" *ngFor="let row of store.attendancePayrollPreview()">
-                  <span><strong>{{ displayStaffName(row) }}</strong><small>{{ row['presentDays'] || 0 }} present · {{ row['lateCount'] || 0 }} late</small></span>
-                  <span>{{ row['absentDays'] || 0 }} absent</span>
-                  <span>₹{{ row['netPreview'] || 0 }}</span>
-                  <span class="badge">{{ row['incentiveHold'] ? 'hold' : 'draft' }}</span>
-                </div>
-                <div *ngIf="!store.attendanceRisks().length && !store.attendancePayrollPreview().length && !store.loading()" class="empty action-empty"><strong>No payroll risk output yet.</strong><span>Run risk check or payroll preview to view results.</span></div>
-              </div>
-            </article>
-          </section>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'attendance-master'">
-          <div class="empty action-empty module-empty">
-            <strong>Attendance Master</strong>
-            <span>View and manage full attendance records.</span>
-            <a class="primary" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Open Attendance Master</a>
-          </div>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'salary-generate'">
-          <div class="empty action-empty module-empty">
-            <strong>Salary Generate</strong>
-            <span>Run payroll and generate salary for the selected period.</span>
-            <a class="primary" routerLink="/staff-os/salary-generate" [queryParams]="staffContextParams()">Open Salary Generate</a>
-          </div>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'camera-punch'">
-          <div class="empty action-empty module-empty">
-            <strong>Camera Punch</strong>
-            <span>Face punch with camera is available in the Live Feed tab.</span>
-            <button type="button" class="primary" (click)="activeAttendanceModule.set('face-punch'); activeFacePunchTab.set('live-feed')">Open Face Punch Attendance</button>
-          </div>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'biometric-devices'">
-          <section class="attendance-workspace">
-            <article class="panel">
-              <div class="panel-heading">
-                <h2>Biometric Device Hub</h2>
-                <span>{{ store.biometricDevices().length }} devices</span>
-              </div>
-              <form class="device-form" [formGroup]="deviceForm" (ngSubmit)="registerBiometricDevice()">
-                <label class="field">
-                  <span>Branch</span>
-                  <select formControlName="branchId">
-                    <option value="">Select branch</option>
-                    <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Provider</span>
-                  <select formControlName="provider">
-                    <option value="zkteco">ZKTeco</option>
-                    <option value="essl">eSSL</option>
-                    <option value="mantra">Mantra</option>
-                    <option value="suprema">Suprema</option>
-                    <option value="realtime_biometrics">Realtime Biometrics</option>
-                    <option value="camera">Camera</option>
-                    <option value="manual">Manual</option>
-                  </select>
-                </label>
-                <label class="field"><span>Device code</span><input formControlName="deviceCode" /></label>
-                <label class="field"><span>Name</span><input formControlName="deviceName" /></label>
-                <label class="field"><span>Location</span><input formControlName="locationLabel" /></label>
-                <label class="field">
-                  <span>Mode</span>
-                  <select formControlName="connectionMode">
-                    <option value="offline_sync">Offline sync</option>
-                    <option value="api">API</option>
-                    <option value="webhook">Webhook</option>
-                    <option value="browser_camera">Browser camera</option>
-                  </select>
-                </label>
-                <button type="submit" class="primary" [disabled]="deviceForm.invalid || deviceSaving()">{{ deviceSaving() ? 'Saving...' : 'Add device' }}</button>
-              </form>
-              <div class="table compact device-table">
-                <div class="row header"><span>Device</span><span>Provider</span><span>Mode</span><span>Status</span></div>
-                <div class="row" *ngFor="let device of store.biometricDevices()">
-                  <span><strong>{{ device['deviceName'] || device['deviceCode'] }}</strong><small>{{ device['locationLabel'] || device['deviceCode'] }}</small></span>
-                  <span>{{ device['provider'] }}</span>
-                  <span>{{ device['connectionMode'] }}</span>
-                  <span class="badge">{{ device['lastHealthStatus'] || device['status'] }}</span>
-                </div>
-                <div *ngIf="!store.biometricDevices().length && !store.loading()" class="empty action-empty"><strong>No biometric devices registered.</strong><span>Add a device or use camera punch for mobile-first attendance.</span></div>
-              </div>
-            </article>
-          </section>
-          <section class="attendance-workspace attendance-wide">
-            <article class="panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Real Biometric Gateway</h2>
-                  <span>ZKTeco, eSSL, Mantra, Suprema, RFID, QR, NFC and beacon punch sync</span>
-                </div>
-                <span class="badge">{{ gatewayRows().length }} agents</span>
-              </div>
-              <form class="device-form gateway-form" [formGroup]="gatewayForm" (ngSubmit)="registerGateway()">
-                <label class="field">
-                  <span>Branch</span>
-                  <select formControlName="branchId">
-                    <option value="">Select branch</option>
-                    <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
-                  </select>
-                </label>
-                <label class="field"><span>Gateway code</span><input formControlName="gatewayCode" placeholder="FRONT-DESK-PC-01" /></label>
-                <label class="field"><span>Name</span><input formControlName="displayName" placeholder="Front desk gateway" /></label>
-                <label class="field"><span>Machine</span><input formControlName="machineName" /></label>
-                <label class="field"><span>Version</span><input formControlName="versionLabel" placeholder="1.0.0" /></label>
-                <label class="field"><span>Providers</span><input formControlName="providers" /></label>
-                <button type="submit" class="primary" [disabled]="gatewayForm.invalid || gatewaySaving()">{{ gatewaySaving() ? 'Saving...' : 'Register gateway' }}</button>
-              </form>
-              <div class="table compact device-table">
-                <div class="row header"><span>Gateway</span><span>Machine</span><span>Status</span><span>Last seen</span></div>
-                <div class="row" *ngFor="let gateway of gatewayRows()">
-                  <span><strong>{{ gateway['displayName'] || gateway['gatewayCode'] }}</strong><small>{{ gateway['gatewayCode'] }}</small></span>
-                  <span>{{ gateway['machineName'] || 'Windows gateway' }}</span>
-                  <span class="badge">{{ gateway['healthStatus'] }}</span>
-                  <span>{{ timeOnly(gateway['lastSeenAt']) || 'not seen' }}</span>
-                </div>
-                <div *ngIf="!gatewayRows().length && !store.loading()" class="empty action-empty"><strong>No gateway registered for selected branch.</strong><span>Register a gateway to sync real biometric attendance.</span></div>
-              </div>
-            </article>
-          </section>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'staff-mapping'">
-          <section class="attendance-workspace attendance-wide">
-            <article class="panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Staff Mapping UI</h2>
-                  <span>Map biometric external user IDs to real staff records</span>
-                </div>
-                <span class="badge">{{ store.biometricMappings().length }} mappings</span>
-              </div>
-              <form class="device-form mapping-form" [formGroup]="mappingForm" (ngSubmit)="createBiometricMapping()">
-                <label class="field">
-                  <span>Device</span>
-                  <select formControlName="deviceId">
-                    <option value="">Select device</option>
-                    <option *ngFor="let device of store.biometricDevices()" [value]="device['id']">{{ device['deviceName'] || device['deviceCode'] }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Staff</span>
-                  <select formControlName="staffId">
-                    <option value="">Select staff</option>
-                    <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }}</option>
-                  </select>
-                </label>
-                <label class="field"><span>External user ID</span><input formControlName="externalUserId" placeholder="Device user id" /></label>
-                <label class="field"><span>Notes</span><input formControlName="notes" /></label>
-                <button type="submit" class="primary" [disabled]="mappingForm.invalid || mappingSaving()">{{ mappingSaving() ? 'Saving...' : 'Map staff' }}</button>
-              </form>
-              <div class="table compact mapping-table">
-                <div class="row header"><span>Staff</span><span>Device</span><span>External ID</span><span>Status</span><span>Action</span></div>
-                <div class="row" *ngFor="let mapping of store.biometricMappings()">
-                  <span>{{ mapping['staffName'] || mapping['staffId'] }}</span>
-                  <span>{{ mapping['deviceLabel'] || mapping['deviceId'] }}</span>
-                  <span>{{ mapping['externalUserId'] }}</span>
-                  <span class="badge">{{ mapping['status'] }}</span>
-                  <span>
-                    <button type="button" class="refresh mini" *ngIf="mapping['status'] !== 'approved'" (click)="approveBiometricMapping(mapping)">Approve</button>
-                  </span>
-                </div>
-                <div *ngIf="!store.biometricMappings().length && !store.loading()" class="empty action-empty"><strong>No staff biometric mappings yet.</strong><span>Map staff with device user IDs to connect attendance and salary.</span></div>
-              </div>
-            </article>
-          </section>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'privacy-consent'">
-          <section class="attendance-workspace attendance-wide">
-            <article class="panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Privacy And Consent Center</h2>
-                  <span>Biometric consent, retention and delete request controls</span>
-                </div>
-                <span class="badge">{{ store.biometricConsents().length }} records</span>
-              </div>
-              <form class="device-form consent-form" [formGroup]="consentForm" (ngSubmit)="saveBiometricConsent()">
-                <label class="field">
-                  <span>Staff</span>
-                  <select formControlName="staffId">
-                    <option value="">Select staff</option>
-                    <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }}</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Status</span>
-                  <select formControlName="consentStatus">
-                    <option value="granted">Granted</option>
-                    <option value="pending">Pending</option>
-                    <option value="revoked">Revoked</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Channel</span>
-                  <select formControlName="consentChannel">
-                    <option value="paper">Paper</option>
-                    <option value="digital">Digital</option>
-                    <option value="manager_verified">Manager verified</option>
-                  </select>
-                </label>
-                <label class="field"><span>Retention days</span><input type="number" min="30" formControlName="retentionDays" /></label>
-                <label class="field full"><span>Consent text</span><input formControlName="consentText" /></label>
-                <button type="submit" class="primary" [disabled]="consentForm.invalid || consentSaving()">{{ consentSaving() ? 'Saving...' : 'Save consent' }}</button>
-              </form>
-              <div class="table compact mapping-table">
-                <div class="row header"><span>Staff</span><span>Status</span><span>Retention</span><span>Delete</span><span>Action</span></div>
-                <div class="row" *ngFor="let consent of store.biometricConsents()">
-                  <span>{{ consent['staffName'] || consent['staffId'] }}</span>
-                  <span class="badge">{{ consent['consentStatus'] }}</span>
-                  <span>{{ consent['retentionDays'] }} days</span>
-                  <span>{{ consent['deleteRequested'] ? 'requested' : 'no' }}</span>
-                  <span><button type="button" class="refresh mini" (click)="requestConsentDeletion(consent)">Delete request</button></span>
-                </div>
-                <div *ngIf="!store.biometricConsents().length && !store.loading()" class="empty action-empty"><strong>No biometric consent captured yet.</strong><span>Capture consent before biometric attendance goes live.</span></div>
-              </div>
-            </article>
-          </section>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'payroll-risk'">
-          <section class="attendance-workspace attendance-wide">
-            <article class="panel">
-              <div class="panel-heading">
-                <div>
-                  <h2>Payroll Risk Review</h2>
-                  <span>Risk scan, owner alerts and attendance deduction preview from real punches</span>
-                </div>
-                <button type="button" class="refresh" [disabled]="fraudScanning()" (click)="runFraudScan()">{{ fraudScanning() ? 'Checking...' : 'Run risk check' }}</button>
-              </div>
-              <form class="device-form payroll-form" [formGroup]="payrollPreviewForm" (ngSubmit)="generatePayrollPreview()">
-                <label class="field"><span>From</span><input type="date" formControlName="periodStart" /></label>
-                <label class="field"><span>To</span><input type="date" formControlName="periodEnd" /></label>
-                <label class="field"><span>Shift start</span><input type="time" formControlName="defaultShiftStart" /></label>
-                <label class="field"><span>Late grace</span><input type="number" min="0" formControlName="lateGraceMinutes" /></label>
-                <label class="field"><span>Hold absent days</span><input type="number" min="0" formControlName="incentiveHoldAbsentDays" /></label>
-                <label class="field"><span>Default gross</span><input type="number" min="0" formControlName="defaultGrossAmount" /></label>
-                <button type="submit" class="primary" [disabled]="payrollPreviewForm.invalid || payrollPreviewSaving()">{{ payrollPreviewSaving() ? 'Generating...' : 'Payroll preview' }}</button>
-              </form>
-              <div class="table compact risk-table">
-                <div class="row header"><span>Risk / Payroll</span><span>Score</span><span>Amount</span><span>Status</span></div>
-                <div class="row" *ngFor="let risk of store.attendanceRisks()">
-                  <span><strong>{{ risk['riskType'] }}</strong><small>{{ risk['reason'] }}</small></span>
-                  <span>{{ risk['riskScore'] }}</span>
-                  <span>{{ risk['severity'] }}</span>
-                  <span class="badge">{{ risk['status'] }}</span>
-                </div>
-                <div class="row" *ngFor="let row of store.attendancePayrollPreview()">
-                  <span><strong>{{ displayStaffName(row) }}</strong><small>{{ row['presentDays'] || 0 }} present · {{ row['lateCount'] || 0 }} late</small></span>
-                  <span>{{ row['absentDays'] || 0 }} absent</span>
-                  <span>₹{{ row['netPreview'] || 0 }}</span>
-                  <span class="badge">{{ row['incentiveHold'] ? 'hold' : 'draft' }}</span>
-                </div>
-                <div *ngIf="!store.attendanceRisks().length && !store.attendancePayrollPreview().length && !store.loading()" class="empty action-empty"><strong>No payroll risk output yet.</strong><span>Run risk check or payroll preview to view results.</span></div>
-              </div>
-            </article>
-          </section>
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>Live Attendance Evidence</h2>
-              <span>{{ attendanceRows().length }} attendance rows</span>
-            </div>
-            <div class="table compact evidence-table">
-              <div class="row header"><span>Staff</span><span>Source</span><span>Clock</span><span>Status</span></div>
-              <div class="row" *ngFor="let row of attendanceRows()">
-                <span><strong>{{ displayStaffName(row) }}</strong><small>{{ row['businessDate'] || row['business_date'] }}</small></span>
-                <span>{{ row['source'] || 'manual' }}</span>
-                <span>{{ timeOnly(row['clockInAt'] || row['clock_in_at']) }} - {{ timeOnly(row['clockOutAt'] || row['clock_out_at']) || 'open' }}</span>
-                <span class="badge">{{ row['status'] }}</span>
-              </div>
-              <div *ngIf="!attendanceRows().length && !store.loading()" class="empty action-empty">
-                <strong>No attendance events for selected date.</strong>
-                <span>Use physical entry, camera punch or biometric queue to create live attendance.</span>
-                <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Attendance master</a>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'reports'">
-          <div class="empty action-empty module-empty">
-            <strong>Attendance Reports</strong>
-            <span>Generate and view attendance reports.</span>
-            <a class="primary" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Open Attendance Reports</a>
-          </div>
-        </div>
-
-        <div *ngIf="activeAttendanceModule() === 'settings'">
-          <div class="empty action-empty module-empty">
-            <strong>Attendance Settings</strong>
-            <span>Configure attendance rules, grace periods, and workflows.</span>
-            <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Configure Settings</a>
-          </div>
-        </div>
-
-      </div>
-
-      <section class="panel" *ngIf="section === 'roster-calendar'">
+      <section class="panel attendance-exception-panel" *ngIf="section === 'attendance-dashboard'">
         <div class="panel-heading">
-          <h2>Roster And Attendance</h2>
-          <span>{{ store.schedules().length }} shifts</span>
+          <div>
+            <p class="eyebrow">Owner queue</p>
+            <h2>Attendance Exceptions</h2>
+          </div>
+          <div class="attendance-controls">
+            <button type="button" class="refresh" [disabled]="fraudScanning()" (click)="runFraudScan()">{{ fraudScanning() ? 'Checking...' : 'Run risk check' }}</button>
+            <button type="button" class="primary" [disabled]="payrollPreviewForm.invalid || payrollPreviewSaving()" (click)="generatePayrollPreview()">{{ payrollPreviewSaving() ? 'Generating...' : 'Generate payroll preview' }}</button>
+          </div>
         </div>
-        <form class="staff-form camera-form task-create-form" [formGroup]="rosterForm" (ngSubmit)="assignRosterShift()">
+        <div class="table compact exception-table">
+          <div class="row header"><span>Signal</span><span>Staff</span><span>Impact</span><span>Status</span></div>
+          <div class="row" *ngFor="let item of attendanceExceptionRows()">
+            <span><strong>{{ item['title'] }}</strong><small>{{ item['meta'] }}</small></span>
+            <span>{{ item['staff'] }}</span>
+            <span>{{ item['impact'] }}</span>
+            <span><span class="badge" [ngClass]="item['tone']">{{ item['status'] }}</span></span>
+          </div>
+          <div *ngIf="!attendanceExceptionRows().length && !store.loading()" class="empty action-empty"><strong>No attendance exceptions.</strong><span>{{ attendanceDate() }} looks clean for payroll preview.</span></div>
+        </div>
+      </section>
+
+      <section class="attendance-workspace" *ngIf="section === 'attendance-dashboard'">
+        <article class="panel physical-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Physical Attendance Entry</h2>
+              <span>Manual register entry writes into the same live attendance log.</span>
+            </div>
+            <span class="badge">Physical</span>
+          </div>
+          <form class="staff-form camera-form manual-form" [formGroup]="manualAttendanceForm" (ngSubmit)="submitManualAttendance()">
+            <label class="field">
+              <span>Branch</span>
+              <select formControlName="branchId" (change)="refreshAttendanceCenter()">
+                <option value="">Select branch</option>
+                <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Staff</span>
+              <select formControlName="staffId">
+                <option value="">Select staff</option>
+                <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }} {{ staff.employeeCode ? '(' + staff.employeeCode + ')' : '' }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Entry type</span>
+              <select formControlName="punchType">
+                <option value="full_day">Full day present</option>
+                <option value="clock_in">Clock in only</option>
+                <option value="clock_out">Clock out only</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>In time</span>
+              <input type="time" formControlName="clockInTime" />
+            </label>
+            <label class="field">
+              <span>Out time</span>
+              <input type="time" formControlName="clockOutTime" />
+            </label>
+            <label class="field">
+              <span>OT minutes</span>
+              <input type="number" min="0" step="1" formControlName="overtimeMinutes" />
+            </label>
+            <label class="field full">
+              <span>Notes</span>
+              <input formControlName="notes" placeholder="Physical register, manager entry, missed punch" />
+            </label>
+            <div class="drawer-actions">
+              <button type="submit" class="primary" [disabled]="manualAttendanceForm.invalid || manualAttendanceSaving()">
+                {{ manualAttendanceSaving() ? 'Saving...' : 'Save physical attendance' }}
+              </button>
+              <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Attendance Master</a>
+              <a class="refresh" routerLink="/staff-os/salary-generate" [queryParams]="staffContextParams()">Salary Generate</a>
+            </div>
+          </form>
+        </article>
+
+        <article class="panel camera-panel">
+          <div class="panel-heading">
+            <h2>Camera Punch</h2>
+            <span>{{ cameraActive() ? 'Camera active' : 'Camera off' }}</span>
+          </div>
+          <div class="camera-stage">
+            <video #attendanceVideo autoplay muted playsinline [class.hidden]="!cameraActive()"></video>
+            <div class="camera-placeholder" *ngIf="!cameraActive()">Camera preview</div>
+          </div>
+          <form class="staff-form camera-form" [formGroup]="cameraForm" (ngSubmit)="submitCameraPunch()">
+            <label class="field">
+              <span>Branch</span>
+              <select formControlName="branchId" (change)="refreshAttendanceCenter()">
+                <option value="">Select branch</option>
+                <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Staff</span>
+              <select formControlName="staffId">
+                <option value="">Select staff</option>
+                <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }} {{ staff.employeeCode ? '(' + staff.employeeCode + ')' : '' }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Punch</span>
+              <select formControlName="punchType">
+                <option value="clock_in">Clock in</option>
+                <option value="clock_out">Clock out</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Liveness</span>
+              <input type="number" min="0" max="1" step="0.01" formControlName="livenessScore" />
+            </label>
+            <label class="field">
+              <span>Face match</span>
+              <input type="number" min="0" max="1" step="0.01" formControlName="matchScore" />
+            </label>
+            <label class="field full">
+              <span>Notes</span>
+              <input formControlName="notes" placeholder="Gate, reception, mobile punch" />
+            </label>
+            <div class="drawer-actions">
+              <button type="button" class="refresh" [disabled]="cameraStarting()" (click)="startCamera()">{{ cameraStarting() ? 'Opening...' : 'Start camera' }}</button>
+              <button type="button" class="refresh" (click)="stopCamera()">Stop</button>
+              <button type="submit" class="primary" [disabled]="cameraForm.invalid || cameraSaving() || !cameraActive()">
+                {{ cameraSaving() ? 'Saving...' : 'Save camera punch' }}
+              </button>
+            </div>
+          </form>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Biometric Device Hub</h2>
+            <span>{{ store.biometricDevices().length }} devices</span>
+          </div>
+          <form class="device-form" [formGroup]="deviceForm" (ngSubmit)="registerBiometricDevice()">
+            <label class="field">
+              <span>Branch</span>
+              <select formControlName="branchId">
+                <option value="">Select branch</option>
+                <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Provider</span>
+              <select formControlName="provider">
+                <option value="zkteco">ZKTeco</option>
+                <option value="essl">eSSL</option>
+                <option value="mantra">Mantra</option>
+                <option value="suprema">Suprema</option>
+                <option value="realtime_biometrics">Realtime Biometrics</option>
+                <option value="camera">Camera</option>
+                <option value="manual">Manual</option>
+              </select>
+            </label>
+            <label class="field"><span>Device code</span><input formControlName="deviceCode" /></label>
+            <label class="field"><span>Name</span><input formControlName="deviceName" /></label>
+            <label class="field"><span>Location</span><input formControlName="locationLabel" /></label>
+            <label class="field">
+              <span>Mode</span>
+              <select formControlName="connectionMode">
+                <option value="offline_sync">Offline sync</option>
+                <option value="api">API</option>
+                <option value="webhook">Webhook</option>
+                <option value="browser_camera">Browser camera</option>
+              </select>
+            </label>
+            <button type="submit" class="primary" [disabled]="deviceForm.invalid || deviceSaving()">{{ deviceSaving() ? 'Saving...' : 'Add device' }}</button>
+          </form>
+          <div class="table compact device-table">
+            <div class="row header"><span>Device</span><span>Provider</span><span>Mode</span><span>Status</span></div>
+            <div class="row" *ngFor="let device of store.biometricDevices()">
+              <span><strong>{{ device['deviceName'] || device['deviceCode'] }}</strong><small>{{ device['locationLabel'] || device['deviceCode'] }}</small></span>
+              <span>{{ device['provider'] }}</span>
+              <span>{{ device['connectionMode'] }}</span>
+              <span class="badge">{{ device['lastHealthStatus'] || device['status'] }}</span>
+            </div>
+            <div *ngIf="!store.biometricDevices().length && !store.loading()" class="empty action-empty"><strong>No biometric devices registered.</strong><span>Add a device or use camera punch for mobile-first attendance.</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="attendance-workspace attendance-wide" *ngIf="section === 'attendance-dashboard'">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Real Biometric Gateway</h2>
+              <span>ZKTeco, eSSL, Mantra, Suprema, RFID, QR, NFC and beacon punch sync</span>
+            </div>
+            <span class="badge">{{ gatewayRows().length }} agents</span>
+          </div>
+          <form class="device-form gateway-form" [formGroup]="gatewayForm" (ngSubmit)="registerGateway()">
+            <label class="field">
+              <span>Branch</span>
+              <select formControlName="branchId">
+                <option value="">Select branch</option>
+                <option *ngFor="let branch of branchOptions()" [value]="branch.id">{{ branch.name || branch.id }}</option>
+              </select>
+            </label>
+            <label class="field"><span>Gateway code</span><input formControlName="gatewayCode" placeholder="FRONT-DESK-PC-01" /></label>
+            <label class="field"><span>Name</span><input formControlName="displayName" placeholder="Front desk gateway" /></label>
+            <label class="field"><span>Machine</span><input formControlName="machineName" /></label>
+            <label class="field"><span>Version</span><input formControlName="versionLabel" placeholder="1.0.0" /></label>
+            <label class="field"><span>Providers</span><input formControlName="providers" /></label>
+            <button type="submit" class="primary" [disabled]="gatewayForm.invalid || gatewaySaving()">{{ gatewaySaving() ? 'Saving...' : 'Register gateway' }}</button>
+          </form>
+          <div class="table compact device-table">
+            <div class="row header"><span>Gateway</span><span>Machine</span><span>Status</span><span>Last seen</span></div>
+            <div class="row" *ngFor="let gateway of gatewayRows()">
+              <span><strong>{{ gateway['displayName'] || gateway['gatewayCode'] }}</strong><small>{{ gateway['gatewayCode'] }}</small></span>
+              <span>{{ gateway['machineName'] || 'Windows gateway' }}</span>
+              <span class="badge">{{ gateway['healthStatus'] }}</span>
+              <span>{{ timeOnly(gateway['lastSeenAt']) || 'not seen' }}</span>
+            </div>
+            <div *ngIf="!gatewayRows().length && !store.loading()" class="empty action-empty"><strong>No gateway registered for selected branch.</strong><span>Register a gateway to sync real biometric attendance.</span></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Staff Mapping UI</h2>
+              <span>Map biometric external user IDs to real staff records</span>
+            </div>
+            <span class="badge">{{ store.biometricMappings().length }} mappings</span>
+          </div>
+          <form class="device-form mapping-form" [formGroup]="mappingForm" (ngSubmit)="createBiometricMapping()">
+            <label class="field">
+              <span>Device</span>
+              <select formControlName="deviceId">
+                <option value="">Select device</option>
+                <option *ngFor="let device of store.biometricDevices()" [value]="device['id']">{{ device['deviceName'] || device['deviceCode'] }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Staff</span>
+              <select formControlName="staffId">
+                <option value="">Select staff</option>
+                <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }}</option>
+              </select>
+            </label>
+            <label class="field"><span>External user ID</span><input formControlName="externalUserId" placeholder="Device user id" /></label>
+            <label class="field"><span>Notes</span><input formControlName="notes" /></label>
+            <button type="submit" class="primary" [disabled]="mappingForm.invalid || mappingSaving()">{{ mappingSaving() ? 'Saving...' : 'Map staff' }}</button>
+          </form>
+          <div class="table compact mapping-table">
+            <div class="row header"><span>Staff</span><span>Device</span><span>External ID</span><span>Status</span><span>Action</span></div>
+            <div class="row" *ngFor="let mapping of store.biometricMappings()">
+              <span>{{ mapping['staffName'] || mapping['staffId'] }}</span>
+              <span>{{ mapping['deviceLabel'] || mapping['deviceId'] }}</span>
+              <span>{{ mapping['externalUserId'] }}</span>
+              <span class="badge">{{ mapping['status'] }}</span>
+              <span>
+                <button type="button" class="refresh mini" *ngIf="mapping['status'] !== 'approved'" (click)="approveBiometricMapping(mapping)">Approve</button>
+              </span>
+            </div>
+            <div *ngIf="!store.biometricMappings().length && !store.loading()" class="empty action-empty"><strong>No staff biometric mappings yet.</strong><span>Map staff with device user IDs to connect attendance and salary.</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="attendance-workspace attendance-wide" *ngIf="section === 'attendance-dashboard'">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Privacy And Consent Center</h2>
+              <span>Biometric consent, retention and delete request controls</span>
+            </div>
+            <span class="badge">{{ store.biometricConsents().length }} records</span>
+          </div>
+          <form class="device-form consent-form" [formGroup]="consentForm" (ngSubmit)="saveBiometricConsent()">
+            <label class="field">
+              <span>Staff</span>
+              <select formControlName="staffId">
+                <option value="">Select staff</option>
+                <option *ngFor="let staff of activeStaffForAttendance()" [value]="staff.id">{{ staff.fullName }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Status</span>
+              <select formControlName="consentStatus">
+                <option value="granted">Granted</option>
+                <option value="pending">Pending</option>
+                <option value="revoked">Revoked</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Channel</span>
+              <select formControlName="consentChannel">
+                <option value="paper">Paper</option>
+                <option value="digital">Digital</option>
+                <option value="manager_verified">Manager verified</option>
+              </select>
+            </label>
+            <label class="field"><span>Retention days</span><input type="number" min="30" formControlName="retentionDays" /></label>
+            <label class="field full"><span>Consent text</span><input formControlName="consentText" /></label>
+            <button type="submit" class="primary" [disabled]="consentForm.invalid || consentSaving()">{{ consentSaving() ? 'Saving...' : 'Save consent' }}</button>
+          </form>
+          <div class="table compact mapping-table">
+            <div class="row header"><span>Staff</span><span>Status</span><span>Retention</span><span>Delete</span><span>Action</span></div>
+            <div class="row" *ngFor="let consent of store.biometricConsents()">
+              <span>{{ consent['staffName'] || consent['staffId'] }}</span>
+              <span class="badge">{{ consent['consentStatus'] }}</span>
+              <span>{{ consent['retentionDays'] }} days</span>
+              <span>{{ consent['deleteRequested'] ? 'requested' : 'no' }}</span>
+              <span><button type="button" class="refresh mini" (click)="requestConsentDeletion(consent)">Delete request</button></span>
+            </div>
+            <div *ngIf="!store.biometricConsents().length && !store.loading()" class="empty action-empty"><strong>No biometric consent captured yet.</strong><span>Capture consent before biometric attendance goes live.</span></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Payroll Risk Review</h2>
+              <span>Risk scan, owner alerts and attendance deduction preview from real punches</span>
+            </div>
+            <button type="button" class="refresh" [disabled]="fraudScanning()" (click)="runFraudScan()">{{ fraudScanning() ? 'Checking...' : 'Run risk check' }}</button>
+          </div>
+          <form class="device-form payroll-form" [formGroup]="payrollPreviewForm" (ngSubmit)="generatePayrollPreview()">
+            <label class="field"><span>From</span><input type="date" formControlName="periodStart" /></label>
+            <label class="field"><span>To</span><input type="date" formControlName="periodEnd" /></label>
+            <label class="field"><span>Shift start</span><input type="time" formControlName="defaultShiftStart" /></label>
+            <label class="field"><span>Late grace</span><input type="number" min="0" formControlName="lateGraceMinutes" /></label>
+            <label class="field"><span>Hold absent days</span><input type="number" min="0" formControlName="incentiveHoldAbsentDays" /></label>
+            <label class="field"><span>Default gross</span><input type="number" min="0" formControlName="defaultGrossAmount" /></label>
+            <button type="submit" class="primary" [disabled]="payrollPreviewForm.invalid || payrollPreviewSaving()">{{ payrollPreviewSaving() ? 'Generating...' : 'Payroll preview' }}</button>
+          </form>
+          <div class="table compact risk-table">
+            <div class="row header"><span>Risk / Payroll</span><span>Score</span><span>Amount</span><span>Status</span></div>
+            <div class="row" *ngFor="let risk of store.attendanceRisks()">
+              <span><strong>{{ risk['riskType'] }}</strong><small>{{ risk['reason'] }}</small></span>
+              <span>{{ risk['riskScore'] }}</span>
+              <span>{{ risk['severity'] }}</span>
+              <span class="badge">{{ risk['status'] }}</span>
+            </div>
+            <div class="row" *ngFor="let row of store.attendancePayrollPreview()">
+              <span><strong>{{ displayStaffName(row) }}</strong><small>{{ row['presentDays'] || 0 }} present · {{ row['lateCount'] || 0 }} late</small></span>
+              <span>{{ row['absentDays'] || 0 }} absent</span>
+              <span>₹{{ row['netPreview'] || 0 }}</span>
+              <span class="badge">{{ row['incentiveHold'] ? 'hold' : 'draft' }}</span>
+            </div>
+            <div *ngIf="!store.attendanceRisks().length && !store.attendancePayrollPreview().length && !store.loading()" class="empty action-empty"><strong>No payroll risk output yet.</strong><span>Run risk check or payroll preview to view results.</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel attendance-register-panel" *ngIf="section === 'attendance-dashboard'">
+        <div class="panel-heading attendance-register-heading">
+          <div>
+            <p class="eyebrow">Attendance register</p>
+            <h2>Live Attendance Evidence</h2>
+          </div>
+          <span>{{ attendanceRows().length }} attendance rows</span>
+        </div>
+        <div class="attendance-register-scroll">
+          <table class="attendance-register-table">
+            <thead>
+              <tr>
+                <th>Staff</th>
+                <th>Business date</th>
+                <th>Source</th>
+                <th>Clock in</th>
+                <th>Clock out</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of attendanceRows()">
+                <td><strong>{{ displayStaffName(row) }}</strong></td>
+                <td>{{ row['businessDate'] || row['business_date'] }}</td>
+                <td>{{ row['source'] || 'manual' }}</td>
+                <td>{{ timeOnly(row['clockInAt'] || row['clock_in_at']) || '-' }}</td>
+                <td>{{ timeOnly(row['clockOutAt'] || row['clock_out_at']) || 'open' }}</td>
+                <td><span class="badge">{{ row['status'] }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="!attendanceRows().length && !store.loading()" class="empty action-empty">
+            <strong>No attendance events for selected date.</strong>
+            <span>Use physical entry, camera punch or biometric queue to create live attendance.</span>
+            <a class="refresh" routerLink="/staff-os/attendance-master" [queryParams]="staffContextParams()">Attendance master</a>
+          </div>
+        </div>
+        <div class="staff-register-footer">
+          <span>{{ attendanceRows().length ? 1 : 0 }} to {{ attendanceRows().length }} of {{ attendanceRows().length }}</span>
+          <span>Page 1 of 1</span>
+        </div>
+      </section>
+
+      <section class="panel roster-register-panel" *ngIf="section === 'roster-calendar'">
+        <div class="panel-heading roster-register-heading">
+          <div>
+            <p class="eyebrow">Roster register</p>
+            <h2>Roster And Attendance</h2>
+          </div>
+          <div class="staff-register-actions">
+            <span>{{ store.schedules().length }} shifts</span>
+            <a class="refresh" routerLink="/staff-os/shift-master" [queryParams]="staffContextParams()">Shift Master</a>
+            <button type="button" class="refresh" (click)="store.load()">Refresh</button>
+          </div>
+        </div>
+
+        <div class="roster-kpi-strip">
+          <article><span>Roster shifts</span><strong>{{ store.schedules().length }}</strong><small>live schedule rows</small></article>
+          <article><span>Available staff</span><strong>{{ activeStaffForRoster().length }}</strong><small>not hidden from roster</small></article>
+          <article><span>Shift templates</span><strong>{{ rosterShiftOptions().length }}</strong><small>branch setup</small></article>
+          <article><span>Today attendance</span><strong>{{ attendanceRows().length }}</strong><small>{{ attendanceDate() }}</small></article>
+        </div>
+
+        <form class="staff-form camera-form task-create-form roster-assign-form" [formGroup]="rosterForm" (ngSubmit)="assignRosterShift()">
           <label class="field">
             <span>Branch</span>
             <select formControlName="branchId">
@@ -1837,22 +1805,39 @@ type StaffPhotoUploadResponse = { url?: string };
             <span class="error-message" *ngIf="rosterError()">{{ rosterError() }}</span>
           </div>
         </form>
-        <div class="heatmap" aria-label="Roster heatmap">
+        <div class="heatmap roster-heatmap" aria-label="Roster heatmap">
           <span *ngFor="let cell of heatmapCells; let index = index" [style.opacity]="opacity(index)"></span>
         </div>
-        <div class="table compact">
-          <div class="row header"><span>Date</span><span>Staff</span><span>Timing</span><span>Status</span></div>
-          <div class="row" *ngFor="let shift of store.schedules()">
-            <span>{{ shift.scheduleDate }}</span>
-            <span>{{ shift.staffId }}</span>
-            <span>{{ shift.startTime }} - {{ shift.endTime }}</span>
-            <span class="badge">{{ shift.status }}</span>
-          </div>
+        <div class="roster-register-scroll">
+          <table class="roster-register-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Staff</th>
+                <th>Timing</th>
+                <th>Branch</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let shift of store.schedules()">
+                <td>{{ shift.scheduleDate }}</td>
+                <td>{{ staffNameById(shift.staffId) }}</td>
+                <td>{{ shift.startTime }} - {{ shift.endTime }}</td>
+                <td>{{ shift.branchId }}</td>
+                <td><span class="badge">{{ shift.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
           <div *ngIf="!store.schedules().length && !store.loading()" class="empty action-empty">
             <strong>No roster data for the selected branch.</strong>
             <span>Create shift master or roster entries to see staff availability.</span>
             <a class="refresh" routerLink="/staff-os/shift-master" [queryParams]="staffContextParams()">Create shift setup</a>
           </div>
+        </div>
+        <div class="staff-register-footer">
+          <span>{{ store.schedules().length ? 1 : 0 }} to {{ store.schedules().length }} of {{ store.schedules().length }}</span>
+          <span>Page 1 of 1</span>
         </div>
       </section>
 
@@ -1921,7 +1906,7 @@ type StaffPhotoUploadResponse = { url?: string };
         </div>
       </section>
 
-      <section class="panel" *ngIf="section === 'performance-dashboard' || section === 'leaderboard' || section === 'commission-dashboard' || section === 'payroll-dashboard'">
+      <section class="panel" *ngIf="section === 'performance-dashboard' || section === 'leaderboard' || section === 'commission-dashboard'">
         <div class="panel-heading">
           <h2>Performance Intelligence</h2>
           <span>Avg score {{ store.performance().summary.avgScore | number:'1.0-0' }}</span>
@@ -1961,6 +1946,76 @@ type StaffPhotoUploadResponse = { url?: string };
             <span>Connect invoices and staff assignment to generate seller ranking.</span>
             <a class="refresh" routerLink="/reports/staff-sales" [queryParams]="staffContextParams()">Open staff sales</a>
           </div>
+        </div>
+      </section>
+
+      <section class="panel payroll-register-panel" *ngIf="section === 'payroll-dashboard'">
+        <div class="panel-heading payroll-register-heading">
+          <div>
+            <p class="eyebrow">Payroll register</p>
+            <h2>Salary And Payroll Control</h2>
+          </div>
+          <div class="staff-register-actions">
+            <span>{{ staffDirectoryRows().length }} staff</span>
+            <a class="refresh" routerLink="/staff-os/payroll-history" [queryParams]="staffContextParams()">Payroll History</a>
+            <a class="refresh" routerLink="/staff-os/salary-generate" [queryParams]="staffContextParams()">Salary Generate</a>
+            <a class="refresh" routerLink="/staff-os/payroll-salary-structure">Salary Structure</a>
+            <button type="button" class="refresh" (click)="store.load()">Refresh</button>
+          </div>
+        </div>
+
+        <div class="payroll-kpi-strip">
+          <article><span>Salary profiles</span><strong>{{ salaryProfileCount() }}</strong><small>staff salary setup</small></article>
+          <article><span>Structures</span><strong>{{ store.payrollStructures().length }}</strong><small>payroll rules</small></article>
+          <article><span>Preview rows</span><strong>{{ store.attendancePayrollPreview().length }}</strong><small>attendance payroll</small></article>
+          <article><span>Risk signals</span><strong>{{ store.attendanceRisks().length }}</strong><small>hold / mismatch</small></article>
+        </div>
+
+        <div class="payroll-register-scroll">
+          <table class="payroll-register-table">
+            <thead>
+              <tr>
+                <th>Staff</th>
+                <th>Basic salary</th>
+                <th>Payment</th>
+                <th>Payroll sync</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let staff of staffDirectoryRows()">
+                <td>
+                  <strong>{{ staff.fullName }}</strong>
+                  <small>{{ staff.employeeCode || staff.designation || staff.department || staff.id }}</small>
+                </td>
+                <td>{{ salaryAmount(staff) | currency:'INR':'symbol-narrow':'1.0-0' }}</td>
+                <td>{{ salaryProfile(staff)['paymentMode'] || 'Not set' }}</td>
+                <td>{{ salaryProfile(staff)['supportAttendancePayroll'] ? 'Attendance sync' : 'Manual review' }}</td>
+                <td><span class="badge">{{ staff.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="!staffDirectoryRows().length && !store.loading()" class="empty action-empty">
+            <strong>No payroll staff found.</strong>
+            <span>Add employee salary details to start payroll preview.</span>
+            <a class="refresh" routerLink="/staff-os/staff-list" [queryParams]="{ add: 1 }">Add staff</a>
+          </div>
+        </div>
+
+        <div class="payroll-risk-strip" *ngIf="store.attendancePayrollPreview().length || store.attendanceRisks().length">
+          <article *ngFor="let row of store.attendancePayrollPreview().slice(0, 4)">
+            <strong>{{ displayStaffName(row) }}</strong>
+            <span>{{ row['presentDays'] || 0 }} present · {{ row['lateCount'] || 0 }} late · ₹{{ row['netPreview'] || 0 }}</span>
+          </article>
+          <article *ngFor="let risk of store.attendanceRisks().slice(0, 4)">
+            <strong>{{ risk['riskType'] || 'Risk' }}</strong>
+            <span>{{ risk['severity'] || 'review' }} · {{ risk['reason'] || 'Payroll check' }}</span>
+          </article>
+        </div>
+
+        <div class="staff-register-footer">
+          <span>{{ staffDirectoryRows().length ? 1 : 0 }} to {{ staffDirectoryRows().length }} of {{ staffDirectoryRows().length }}</span>
+          <span>Page 1 of 1</span>
         </div>
       </section>
 
@@ -2085,10 +2140,47 @@ type StaffPhotoUploadResponse = { url?: string };
     .panel-heading, .row, .split { display: grid; align-items: center; gap: 12px; }
     .panel-heading { grid-template-columns: 1fr auto; color: #40544c; }
     .panel-heading span { color: #60766d; display: block; margin-top: 4px; }
+    .staff-list-mode { gap: 10px; }
+    .staff-list-mode .topbar,
+    .staff-list-mode .staff-shell-nav,
+    .staff-list-mode .staff-control-room,
+    .staff-list-mode .metrics,
+    .staff-list-mode .staff-register-panel { border-radius: 0; box-shadow: none; }
+    .staff-list-mode .topbar { background: #fff; border: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-list-mode .refresh,
+    .staff-list-mode .primary,
+    .staff-list-mode .row-action { border-radius: 3px; min-height: 32px; padding: 7px 11px; }
+    .staff-list-mode .primary { background: #0b72b5; border-color: #0b72b5; }
+    .staff-list-mode .staff-shell-nav { background: #fff; border-color: #d8e1ea; padding: 7px; }
+    .staff-list-mode .staff-shell-nav a { border-radius: 3px; min-height: 44px; }
+    .staff-list-mode .staff-control-room { border-color: #d8e1ea; padding: 12px 16px; }
+    .staff-list-mode .control-card { border-radius: 3px; min-height: 76px; padding: 10px 12px; }
+    .staff-list-mode .control-card strong { font-size: 22px; }
+    .staff-list-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-list-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
+    .staff-list-mode .metric:last-child { border-right: 0; }
+    .staff-register-panel { overflow: hidden; padding: 0; }
+    .staff-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-register-actions { align-items: center; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .staff-register-actions > span { color: #5b6b81; font-weight: 900; margin: 0 8px 0 0; }
+    .staff-register-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
+    .staff-register-kpis article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; padding: 10px 16px; }
+    .staff-register-kpis article:last-child { border-right: 0; }
+    .staff-register-kpis span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .staff-register-kpis strong { color: #111827; font-size: 22px; line-height: 1; }
+    .staff-register-kpis small { color: #64748b; }
+    .staff-register-scroll { max-width: 100%; overflow: auto; }
+    .staff-register-table { border-collapse: collapse; min-width: 1160px; width: 100%; }
+    .staff-register-table th,
+    .staff-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    .staff-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .staff-register-table tbody tr:hover { background: #eef7fc; }
+    .staff-register-table td small { color: #60766d; display: block; font-size: 12px; margin-top: 3px; }
+    .staff-register-footer { color: #64748b; display: flex; gap: 12px; justify-content: flex-end; padding: 8px 16px; border-top: 1px solid #d8e1ea; font-size: 12px; }
     .staff-workspace-panel { background: #fbfdff; }
     .workspace-heading { align-items: end; }
-    .staff-workspace-shell { display: grid; gap: 14px; grid-template-columns: 300px minmax(0, 1fr); min-width: 0; }
-    .staff-category-rail { display: grid; gap: 8px; position: sticky; top: 12px; align-self: start; }
+    .staff-workspace-shell { align-items: start; display: grid; gap: 14px; grid-template-columns: 300px minmax(0, 1fr); min-width: 0; }
+    .staff-category-rail { display: grid; gap: 8px; position: sticky; top: 12px; }
     .staff-category-tile { align-content: center; background: #fff; border: 1px solid #d9e5de; border-left: 4px solid #0f766e; border-radius: 8px; color: #10201a; cursor: pointer; display: grid; gap: 4px; min-height: 82px; padding: 12px; text-align: left; width: 100%; }
     .staff-category-tile:hover, .staff-category-tile.active { background: #f4faf8; border-color: #b7d7cf; }
     .staff-category-tile.active { box-shadow: 0 10px 24px rgba(16, 32, 56, .08); }
@@ -2161,37 +2253,143 @@ type StaffPhotoUploadResponse = { url?: string };
     .success { color: #0f766e; border-color: #b6d8cf; background: #f0fbf7; }
     .attendance-command .panel-heading { align-items: end; }
     .attendance-command .panel-heading span { color: #60766d; display: block; margin-top: 4px; }
+    .staff-attendance-mode { gap: 10px; }
+    .staff-attendance-mode .topbar,
+    .staff-attendance-mode .staff-shell-nav,
+    .staff-attendance-mode .staff-control-room,
+    .staff-attendance-mode .metrics,
+    .staff-attendance-mode .attendance-command,
+    .staff-attendance-mode .attendance-workspace .panel,
+    .staff-attendance-mode .attendance-register-panel { border-radius: 0; box-shadow: none; }
+    .staff-attendance-mode .topbar { background: #fff; border: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-attendance-mode .refresh,
+    .staff-attendance-mode .primary,
+    .staff-attendance-mode .row-action { border-radius: 3px; min-height: 32px; padding: 7px 11px; }
+    .staff-attendance-mode .primary { background: #0b72b5; border-color: #0b72b5; }
+    .staff-attendance-mode .staff-shell-nav { background: #fff; border-color: #d8e1ea; padding: 7px; }
+    .staff-attendance-mode .staff-shell-nav a { border-radius: 3px; min-height: 44px; }
+    .staff-attendance-mode .staff-control-room { border-color: #d8e1ea; padding: 12px 16px; }
+    .staff-attendance-mode .control-card { border-radius: 3px; min-height: 76px; padding: 10px 12px; }
+    .staff-attendance-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-attendance-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
+    .staff-attendance-mode .metric:last-child { border-right: 0; }
+    .staff-attendance-mode .attendance-command { border-color: #d8e1ea; padding: 0; overflow: hidden; }
+    .staff-attendance-mode .attendance-command .panel-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-attendance-mode .attendance-stats { gap: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-attendance-mode .attendance-stats article { border: 0; border-right: 1px solid #e5edf4; border-bottom: 1px solid #e5edf4; border-radius: 0; min-height: 64px; padding: 10px 16px; }
+    .staff-attendance-mode .attendance-stats article:nth-child(4n) { border-right: 0; }
+    .attendance-live-strip { border-top: 1px solid #d8e1ea; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .attendance-live-strip article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; min-width: 0; padding: 10px 16px; }
+    .attendance-live-strip article:last-child { border-right: 0; }
+    .attendance-live-strip span,
+    .attendance-op-card span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .attendance-live-strip strong,
+    .attendance-op-card strong { color: #111827; font-size: 20px; line-height: 1.1; overflow-wrap: anywhere; }
+    .attendance-live-strip small,
+    .attendance-op-card small { color: #64748b; }
+    .attendance-ops-grid { display: grid; gap: 10px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .attendance-op-card { background: #fff; border: 1px solid #d8e1ea; display: grid; gap: 4px; min-height: 78px; min-width: 0; padding: 11px 12px; }
+    .attendance-op-card.green { border-left: 3px solid #0f766e; }
+    .attendance-op-card.blue { border-left: 3px solid #0b72b5; }
+    .attendance-op-card.amber { border-left: 3px solid #d97706; }
+    .attendance-op-card.bad { border-left: 3px solid #dc2626; }
+    .attendance-exception-panel { border-color: #d8e1ea; padding: 0; overflow: hidden; }
+    .attendance-exception-panel .panel-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .exception-table { padding: 0; }
+    .exception-table .row { grid-template-columns: minmax(0, 1.4fr) minmax(0, .8fr) minmax(0, .75fr) minmax(0, .6fr); min-height: 42px; padding: 8px 16px; }
+    .exception-table .row.header { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .badge.bad { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+    .badge.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .badge.good { background: #ecfdf5; border-color: #bbf7d0; color: #047857; }
+    .staff-attendance-mode .attendance-workspace { gap: 10px; }
+    .staff-attendance-mode .attendance-workspace .panel { border-color: #d8e1ea; padding: 13px; }
+    .staff-attendance-mode .attendance-register-panel { border-color: #d8e1ea; overflow: hidden; padding: 0; }
+    .attendance-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .attendance-register-scroll { max-width: 100%; overflow: auto; }
+    .attendance-register-table { border-collapse: collapse; min-width: 960px; width: 100%; }
+    .attendance-register-table th,
+    .attendance-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    .attendance-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .attendance-register-table tbody tr:hover { background: #eef7fc; }
+    .staff-roster-mode { gap: 10px; }
+    .staff-roster-mode .topbar,
+    .staff-roster-mode .staff-shell-nav,
+    .staff-roster-mode .staff-control-room,
+    .staff-roster-mode .metrics,
+    .staff-roster-mode .roster-register-panel { border-radius: 0; box-shadow: none; }
+    .staff-roster-mode .topbar { background: #fff; border: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-roster-mode .refresh,
+    .staff-roster-mode .primary,
+    .staff-roster-mode .row-action { border-radius: 3px; min-height: 32px; padding: 7px 11px; }
+    .staff-roster-mode .primary { background: #0b72b5; border-color: #0b72b5; }
+    .staff-roster-mode .staff-shell-nav { background: #fff; border-color: #d8e1ea; padding: 7px; }
+    .staff-roster-mode .staff-shell-nav a { border-radius: 3px; min-height: 44px; }
+    .staff-roster-mode .staff-control-room { border-color: #d8e1ea; padding: 12px 16px; }
+    .staff-roster-mode .control-card { border-radius: 3px; min-height: 76px; padding: 10px 12px; }
+    .staff-roster-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-roster-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
+    .staff-roster-mode .metric:last-child { border-right: 0; }
+    .roster-register-panel { border-color: #d8e1ea; overflow: hidden; padding: 0; }
+    .roster-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .roster-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
+    .roster-kpi-strip article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; padding: 10px 16px; }
+    .roster-kpi-strip article:last-child { border-right: 0; }
+    .roster-kpi-strip span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .roster-kpi-strip strong { color: #111827; font-size: 22px; line-height: 1; }
+    .roster-kpi-strip small { color: #64748b; }
+    .roster-assign-form.staff-form { border-bottom: 1px solid #d8e1ea; margin: 0; padding: 13px 16px; }
+    .roster-heatmap { border-bottom: 1px solid #d8e1ea; padding: 10px 16px; }
+    .roster-register-scroll { max-width: 100%; overflow: auto; }
+    .roster-register-table { border-collapse: collapse; min-width: 940px; width: 100%; }
+    .roster-register-table th,
+    .roster-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    .roster-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .roster-register-table tbody tr:hover { background: #eef7fc; }
+    .staff-payroll-mode { gap: 10px; }
+    .staff-payroll-mode .topbar,
+    .staff-payroll-mode .staff-shell-nav,
+    .staff-payroll-mode .staff-control-room,
+    .staff-payroll-mode .metrics,
+    .staff-payroll-mode .payroll-register-panel { border-radius: 0; box-shadow: none; }
+    .staff-payroll-mode .topbar { background: #fff; border: 1px solid #d8e1ea; padding: 13px 16px; }
+    .staff-payroll-mode .refresh,
+    .staff-payroll-mode .primary,
+    .staff-payroll-mode .row-action { border-radius: 3px; min-height: 32px; padding: 7px 11px; }
+    .staff-payroll-mode .primary { background: #0b72b5; border-color: #0b72b5; }
+    .staff-payroll-mode .staff-shell-nav { background: #fff; border-color: #d8e1ea; padding: 7px; }
+    .staff-payroll-mode .staff-shell-nav a { border-radius: 3px; min-height: 44px; }
+    .staff-payroll-mode .staff-control-room { border-color: #d8e1ea; padding: 12px 16px; }
+    .staff-payroll-mode .control-card { border-radius: 3px; min-height: 76px; padding: 10px 12px; }
+    .staff-payroll-mode .metrics { gap: 0; border: 1px solid #d8e1ea; background: #fff; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .staff-payroll-mode .metric { border: 0; border-right: 1px solid #e5edf4; border-radius: 0; min-height: 62px; padding: 10px 14px; }
+    .staff-payroll-mode .metric:last-child { border-right: 0; }
+    .payroll-register-panel { border-color: #d8e1ea; overflow: hidden; padding: 0; }
+    .payroll-register-heading { border-bottom: 1px solid #d8e1ea; padding: 13px 16px; }
+    .payroll-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
+    .payroll-kpi-strip article { border-right: 1px solid #e5edf4; display: grid; gap: 3px; padding: 10px 16px; }
+    .payroll-kpi-strip article:last-child { border-right: 0; }
+    .payroll-kpi-strip span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .payroll-kpi-strip strong { color: #111827; font-size: 22px; line-height: 1; }
+    .payroll-kpi-strip small { color: #64748b; }
+    .payroll-register-scroll { max-width: 100%; overflow: auto; }
+    .payroll-register-table { border-collapse: collapse; min-width: 980px; width: 100%; }
+    .payroll-register-table th,
+    .payroll-register-table td { border-bottom: 1px solid #dfe7ef; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    .payroll-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .payroll-register-table tbody tr:hover { background: #eef7fc; }
+    .payroll-register-table td small { color: #60766d; display: block; font-size: 12px; margin-top: 3px; }
+    .payroll-risk-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 16px; border-top: 1px solid #d8e1ea; }
+    .payroll-risk-strip article { border: 1px solid #dfe7ef; display: grid; gap: 4px; padding: 9px 10px; }
+    .payroll-risk-strip span { color: #64748b; font-size: 12px; }
     .attendance-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-    .attendance-controls input { width: 170px; min-height: 38px; }
+    .attendance-controls input,
+    .attendance-controls select { width: 170px; min-height: 38px; }
     .attendance-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
     .attendance-stats article { border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 4px; min-height: 78px; padding: 12px; }
     .attendance-stats span { color: #60766d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
     .attendance-stats strong { font-size: 24px; color: #10201a; }
     .attendance-stats small { color: #60766d; }
-    .attendance-module-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding: 0; }
-    .attendance-module-nav button { padding: 8px 14px; border: 1px solid #d9e5de; border-radius: 6px; background: #f7faf8; color: #3a5247; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
-    .attendance-module-nav button:hover { border-color: #b0c8bb; background: #edf2ef; }
-    .attendance-module-nav button.active { background: #10201a; color: #fff; border-color: #10201a; }
-    .attendance-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 14px 0; }
-    .attendance-kpi-grid .kpi-card { border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 4px; padding: 14px; }
-    .attendance-kpi-grid .kpi-card span { color: #60766d; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
-    .attendance-kpi-grid .kpi-card strong { font-size: 22px; color: #10201a; }
-    .attendance-kpi-grid .kpi-card small { color: #60766d; font-size: 11px; }
-    .attendance-kpi-grid .kpi-card.present { border-left: 3px solid #249e5e; }
-    .attendance-kpi-grid .kpi-card.absent { border-left: 3px solid #d9534f; }
-    .attendance-kpi-grid .kpi-card.late { border-left: 3px solid #f0ad4e; }
-    .attendance-kpi-grid .kpi-card.percent { border-left: 3px solid #5bc0de; }
-    .attendance-kpi-grid .kpi-card.punches { border-left: 3px solid #9270c7; }
-    .attendance-module-content { min-width: 0; }
-    .face-punch-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
-    .face-punch-tabs button { padding: 6px 16px; border: 0; border-radius: 20px; background: #edf2ef; color: #3a5247; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
-    .face-punch-tabs button:hover { background: #d9e5de; }
-    .face-punch-tabs button.active { background: #10201a; color: #fff; }
-    .compact-summary { margin-top: 0; }
-    .module-empty { text-align: center; padding: 60px 20px; grid-column: 1 / -1; }
-    .module-empty strong { font-size: 18px; display: block; margin-bottom: 8px; }
-    .module-empty span { display: block; color: #60766d; margin-bottom: 16px; }
-    .attendance-workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap: 14px; min-width: 0; }
+    .attendance-workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap: 14px; align-items: start; min-width: 0; }
     .attendance-wide { grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); }
     .attendance-command,
     .attendance-workspace,
@@ -2201,14 +2399,12 @@ type StaffPhotoUploadResponse = { url?: string };
     .attendance-workspace .field {
       min-width: 0;
     }
-    .camera-panel { display: flex; flex-direction: column; overflow: hidden; }
-    .physical-panel { display: flex; flex-direction: column; }
-    .camera-stage { border: 1px solid #d9e5de; border-radius: 8px; background: #f7faf8; width: 100%; max-width: 100%; min-height: 260px; overflow: hidden; display: grid; place-items: center; flex-shrink: 0; }
+    .camera-panel { align-content: start; overflow: hidden; }
+    .camera-stage { border: 1px solid #d9e5de; border-radius: 8px; background: #f7faf8; width: 100%; max-width: 100%; min-height: 260px; overflow: hidden; display: grid; place-items: center; }
     .camera-stage video { display: block; width: 100%; max-width: 100%; height: 100%; min-height: 260px; object-fit: cover; background: #10201a; }
     .camera-stage .hidden { display: none; }
     .camera-placeholder { color: #60766d; font-weight: 800; }
-    .camera-form { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); flex: 1; display: grid; align-content: start; }
-    .manual-form { flex: 1; display: grid; }
+    .camera-form { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
     .device-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; align-items: end; }
     .gateway-form, .mapping-form, .consent-form, .payroll-form { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
     .attendance-workspace .field,
@@ -2241,7 +2437,6 @@ type StaffPhotoUploadResponse = { url?: string };
       padding: 0;
       border: 0;
       background: transparent;
-      margin-top: auto;
     }
     .attendance-workspace .camera-form .drawer-actions .refresh,
     .attendance-workspace .camera-form .drawer-actions .primary {
@@ -2284,24 +2479,29 @@ type StaffPhotoUploadResponse = { url?: string };
     .detail-tabs { position: sticky; top: 76px; z-index: 2; display: flex; gap: 0; overflow-x: auto; background: #fff; border-bottom: 1px solid #d6dee0; padding-top: 12px; }
     .detail-tabs button { border: 1px solid #d6dee0; border-bottom: 0; background: #f8fafb; border-radius: 0; color: #4b5563; cursor: pointer; font-size: 12px; font-weight: 900; min-height: 34px; padding: 7px 11px; text-transform: uppercase; white-space: nowrap; }
     .detail-tabs button.active { background: #fff; border-top: 3px solid #f97316; color: #111827; padding-top: 5px; }
+    .live-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 10px; border: 1px solid #d9e5de; border-radius: 4px; background: #f8fbf9; margin-top: 14px; padding: 12px; }
+    .live-context article { display: grid; gap: 4px; min-width: 0; }
+    .live-context span { color: #60766d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .live-context strong { color: #10201a; font-size: 13px; overflow-wrap: anywhere; }
+    .context-links { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    .context-links a { background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #0f766e; font-size: 12px; font-weight: 800; min-height: 30px; padding: 6px 9px; text-decoration: none; }
     .staff-form { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr) 172px; gap: 12px 18px; padding-top: 18px; }
     .field { display: grid; grid-template-columns: 165px minmax(0, 1fr); align-items: center; gap: 10px; font-weight: 800; color: #34483f; font-size: 13px; }
     .field.full, .staff-form > .full, .staff-form .state { grid-column: 1 / 3; }
     .field.full { grid-template-columns: 165px minmax(0, 1fr); }
-    .staff-photo-field { align-items: center; background: #f7fbfa; border: 1px solid #d7e2df; border-radius: 8px; display: grid; gap: 14px; grid-template-columns: 92px minmax(0, 1fr); padding: 12px; }
-    .staff-photo-preview { align-items: center; background: #eaf5f2; border: 1px solid #cfe1dd; border-radius: 8px; color: #0f5f56; display: grid; font-size: 22px; font-weight: 900; height: 84px; justify-items: center; overflow: hidden; width: 84px; }
-    .staff-photo-preview img { display: block; height: 100%; object-fit: cover; width: 100%; }
-    .staff-photo-actions { display: grid; gap: 6px; min-width: 0; }
-    .staff-photo-actions strong { color: #0f172a; }
-    .staff-photo-actions > span { color: #526173; font-size: 12px; font-weight: 700; }
-    .photo-button-row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .photo-remove { background: #fff8f7; border-color: #f5b7b1; color: #b42318; }
     .login-provision { display: grid; grid-column: 1 / 3; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px; border: 1px solid #b6d8cf; border-radius: 8px; background: #f0fbf7; }
     .login-provision > div, .login-provision .check-field { grid-column: 1 / -1; }
-    .login-ready-note { grid-column: 1 / -1; margin: -2px 0 0; border: 1px solid #d9e5de; border-radius: 8px; background: #ffffff; color: #5e7168; font-size: 12px; font-weight: 800; line-height: 1.35; padding: 9px 10px; }
-    .login-ready-note.ready { background: #e9fff5; border-color: #8ad7b4; color: #12664c; }
     .check-field { align-items: center; border: 1px solid #edf2ef; border-radius: 8px; color: #34483f; display: grid; font-size: 13px; font-weight: 800; gap: 8px; grid-template-columns: auto 1fr; min-height: 43px; padding: 10px 11px; }
     .check-field input { width: 18px; height: 18px; padding: 0; }
+    .salary-quick-panel { align-items: center; background: #f6fbff; border: 1px solid #c8dff2; border-radius: 8px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; padding: 14px; }
+    .salary-quick-panel strong { color: #10201a; display: block; font-size: 16px; }
+    .salary-quick-panel small { color: #60766d; display: block; margin-top: 4px; }
+    .salary-quick-meta { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .salary-quick-meta article { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 4px; min-height: 54px; padding: 9px 10px; }
+    .salary-quick-meta span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .salary-quick-meta strong { font-size: 13px; overflow-wrap: anywhere; }
+    .salary-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .salary-quick-actions .primary, .salary-quick-actions .refresh { min-height: 34px; white-space: nowrap; }
     .incentive-command, .salary-command { align-items: center; background: #f0fbf7; border: 1px solid #b6d8cf; border-radius: 8px; display: grid; gap: 12px; grid-template-columns: 1fr auto; padding: 14px; }
     .salary-command { background: #f8fafc; border-color: #cbd5e1; }
     .incentive-command strong, .salary-command strong { display: block; font-size: 16px; }
@@ -2328,8 +2528,17 @@ type StaffPhotoUploadResponse = { url?: string };
     textarea { resize: vertical; min-height: 88px; }
     .field small { color: #a52828; font-weight: 700; }
     .drawer-actions { position: sticky; right: 0; top: 128px; grid-column: 3; grid-row: 1 / span 18; align-self: start; display: grid; justify-content: stretch; gap: 12px; padding: 0 0 0 12px; border-top: 0; border-left: 1px solid #e4ebe7; background: #fff; }
+    .live-employee-panel { display: grid; gap: 9px; }
     .live-panel-title { border-bottom: 1px solid #e4ebe7; display: grid; gap: 3px; padding-bottom: 9px; }
+    .live-panel-title span, .live-employee-panel article span, .catalog-mini-grid span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .live-panel-title strong { color: #111827; font-size: 13px; overflow-wrap: anywhere; }
+    .live-employee-panel > article { border: 1px solid #d9e5de; border-left: 4px solid #0f6eb3; border-radius: 4px; display: grid; gap: 3px; min-height: 64px; padding: 9px; }
+    .live-employee-panel > article.green { border-left-color: #16a34a; }
+    .live-employee-panel > article.amber { border-left-color: #f59e0b; }
+    .live-employee-panel > article.violet { border-left-color: #7c3aed; }
+    .live-employee-panel > article.neutral { border-left-color: #94a3b8; }
+    .live-employee-panel > article strong { color: #111827; font-size: 17px; overflow-wrap: anywhere; }
+    .live-employee-panel > article small { color: #60766d; font-size: 11px; font-weight: 700; }
     .catalog-mini-grid { display: grid; gap: 7px; grid-template-columns: 1fr 1fr; }
     .catalog-mini-grid article { border: 1px solid #e4ebe7; border-radius: 4px; display: grid; gap: 3px; padding: 8px; }
     .catalog-mini-grid strong { color: #111827; font-size: 15px; }
@@ -2337,14 +2546,14 @@ type StaffPhotoUploadResponse = { url?: string };
     .live-panel-links a { border: 1px solid #cbd8d2; border-radius: 4px; color: #0f6eb3; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
-    
+    @media (max-width: 900px) { .metrics, .task-grid, .split, .attendance-stats, .workspace-kpi-grid { grid-template-columns: 1fr 1fr; } .staff-attendance-mode .attendance-stats, .attendance-live-strip, .attendance-ops-grid, .roster-kpi-strip, .payroll-kpi-strip, .payroll-risk-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-attendance-mode .attendance-stats article:nth-child(2n), .attendance-live-strip article:nth-child(2n), .roster-kpi-strip article:nth-child(2n), .payroll-kpi-strip article:nth-child(2n) { border-right: 0; } .staff-workspace-shell, .commission-setup, .attendance-workspace, .attendance-wide { grid-template-columns: 1fr; } .commission-actions { justify-content: flex-start; } .staff-category-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .staff-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .attendance-workspace .device-form, .attendance-workspace .gateway-form, .attendance-workspace .mapping-form, .attendance-workspace .consent-form, .attendance-workspace .payroll-form, .attendance-workspace .camera-form, .attendance-workspace .camera-form.staff-form, .workspace-manual-form.staff-form { grid-template-columns: 1fr; } .attendance-workspace .camera-form .drawer-actions { grid-template-columns: 1fr; } .login-provision, .salary-quick-panel { grid-column: 1 / -1; } .salary-quick-panel { grid-template-columns: 1fr; } .salary-quick-actions { justify-content: flex-start; } .drawer-actions { position: static; grid-column: 1 / -1; grid-row: auto; border-left: 0; border-top: 1px solid #edf2ef; padding: 10px 0 0; } .live-employee-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } .live-panel-title, .catalog-mini-grid, .live-panel-links, .drawer-action-buttons { grid-column: 1 / -1; } }
     @media (max-width: 640px) {
       .staff-os { gap: 12px; padding: 0; }
       .drawer-shell { padding: 0; }
       .topbar { align-items: start; flex-direction: column; }
       .panel-heading { grid-template-columns: 1fr; align-items: start; }
       .topbar-actions, .attendance-controls, .drawer-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
-      .topbar-actions .refresh, .topbar-actions .primary, .attendance-controls .refresh, .attendance-controls .primary, .attendance-controls input, .drawer-actions .refresh, .drawer-actions .primary { width: 100%; }
+      .topbar-actions .refresh, .topbar-actions .primary, .attendance-controls .refresh, .attendance-controls .primary, .attendance-controls input, .attendance-controls select, .drawer-actions .refresh, .drawer-actions .primary { width: 100%; }
       .staff-shell-nav { margin: 0; padding: 8px; scroll-snap-type: x proximity; }
       .staff-shell-nav a { flex: 0 0 178px; scroll-snap-align: start; }
       .staff-control-room { padding: 13px; }
@@ -2355,6 +2564,13 @@ type StaffPhotoUploadResponse = { url?: string };
       .control-card { min-height: 86px; padding: 11px; }
       .control-card strong { font-size: 22px; }
       .metrics, .task-grid, .split, .attendance-stats, .staff-category-rail, .workspace-kpi-grid, .attendance-workspace, .attendance-wide, .camera-form, .device-form, .gateway-form, .mapping-form, .consent-form, .payroll-form, .salary-editor-form, .task-create-form.staff-form { grid-template-columns: 1fr; }
+      .staff-attendance-mode .attendance-stats, .attendance-live-strip, .attendance-ops-grid { grid-template-columns: 1fr; }
+      .staff-attendance-mode .attendance-stats article, .attendance-live-strip article { border-right: 0; }
+      .exception-table .row { grid-template-columns: 1fr; }
+      .roster-kpi-strip { grid-template-columns: 1fr; }
+      .roster-kpi-strip article { border-right: 0; }
+      .payroll-kpi-strip, .payroll-risk-strip { grid-template-columns: 1fr; }
+      .payroll-kpi-strip article { border-right: 0; }
       .metrics { gap: 9px; }
       .metric, .panel, .state { border-radius: 8px; }
       .panel { padding: 13px; }
@@ -2370,13 +2586,15 @@ type StaffPhotoUploadResponse = { url?: string };
       .heatmap { grid-template-columns: repeat(7, minmax(22px, 1fr)); }
       .action-empty .primary, .action-empty .refresh { width: 100%; }
       input, select, textarea { min-height: 44px; }
+      .live-context { grid-template-columns: 1fr; }
+      .context-links { justify-content: flex-start; }
       .drawer { width: 100%; height: 100%; border-radius: 0; padding: 0 14px 16px; }
       .drawer::before, .drawer::after { display: none; }
       .detail-tabs { top: 84px; }
       .staff-form { grid-template-columns: 1fr; }
       .field, .field.full { grid-template-columns: 1fr; }
       .field.full, .staff-form > .full, .staff-form .state { grid-column: 1 / -1; }
-      .advanced-grid, .incentive-command, .salary-command, .incentive-summary, .salary-summary, .rule-heading, .rule-row, .slab-row { grid-template-columns: 1fr; }
+      .advanced-grid, .incentive-command, .salary-command, .salary-quick-panel, .salary-quick-meta, .incentive-summary, .salary-summary, .rule-heading, .rule-row, .slab-row { grid-template-columns: 1fr; }
       .subdrawer { width: 100%; }
       .login-provision { grid-template-columns: 1fr; }
     }
@@ -2411,7 +2629,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   private cameraStream: MediaStream | null = null;
   readonly addStaffOpen = signal(false);
   readonly addStaffSaving = signal(false);
-  readonly staffPhotoUploading = signal(false);
   readonly addStaffError = signal('');
   readonly staffActionError = signal('');
   readonly statusChanging = signal('');
@@ -2422,8 +2639,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   readonly attendanceDate = signal(new Date().toISOString().slice(0, 10));
   readonly attendanceError = signal('');
   readonly attendanceMessage = signal('');
-  readonly activeAttendanceModule = signal('face-punch');
-  readonly activeFacePunchTab = signal('live-feed');
   readonly cameraActive = signal(false);
   readonly cameraStarting = signal(false);
   readonly cameraSaving = signal(false);
@@ -2457,15 +2672,15 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     { id: 'emergency', label: 'Emergency' },
     { id: 'native', label: 'Native Contact' },
     { id: 'incentive', label: 'Commissions' },
-    { id: 'attendance', label: 'Attendance & Salary' },
+    { id: 'attendance', label: 'Salary Setup' },
     { id: 'remarks', label: 'Remarks' }
   ];
   readonly integrationLinks: Record<StaffDetailTab, StaffIntegrationLink[]> = {
     core: [
       { label: 'Category Master', to: '/staff-os/staff-categories' },
+      { label: 'Salary Setup', to: '/staff-os/salary-workspace' },
       { label: 'Staff Profile', to: '/staff-os/staff-profile' },
-      { label: 'Roster', to: '/staff-os/roster-calendar' },
-      { label: 'Permissions', to: '/permissions' }
+      { label: 'Roster', to: '/staff-os/roster-calendar' }
     ],
     contact: [
       { label: 'Staff Profile', to: '/staff-os/staff-profile' },
@@ -2485,6 +2700,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       { label: 'Leaderboard', to: '/staff-os/leaderboard' }
     ],
     attendance: [
+      { label: 'Salary Setup', to: '/staff-os/salary-workspace' },
       { label: 'Attendance', to: '/staff-os/attendance-dashboard' },
       { label: 'Payroll', to: '/staff-os/payroll-dashboard' },
       { label: 'Salary Structure', to: '/staff-os/payroll-salary-structure' },
@@ -2497,11 +2713,8 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       { label: 'Training', to: '/staff-os/training-center' }
     ]
   };
-  readonly staffImageAccept = 'image/jpeg,image/jpg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/bmp,image/tiff';
-  private readonly maxStaffPhotoBytes = 5 * 1024 * 1024;
   readonly staffForm = this.fb.group({
     branchId: ['', Validators.required],
-    profilePhoto: [''],
     firstName: ['', [Validators.required, Validators.minLength(2)]],
     lastName: [''],
     shortName: [''],
@@ -2699,7 +2912,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     public readonly store: StaffOsStore,
     private readonly fb: UntypedFormBuilder,
     private readonly route: ActivatedRoute,
-    private readonly router: Router,
     private readonly appState: AppStateService
   ) {
     effect(() => {
@@ -2711,16 +2923,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     effect(() => {
       const branchId = this.defaultBranchId(this.branchOptions());
       if (!branchId) return;
-      if (!this.manualAttendanceForm.get('branchId')?.value) this.manualAttendanceForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.cameraForm.get('branchId')?.value) this.cameraForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.deviceForm.get('branchId')?.value) this.deviceForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.gatewayForm.get('branchId')?.value) this.gatewayForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.mappingForm.get('branchId')?.value) this.mappingForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.consentForm.get('branchId')?.value) this.consentForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.payrollPreviewForm.get('branchId')?.value) this.payrollPreviewForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.taskForm.get('branchId')?.value) this.taskForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.rosterForm.get('branchId')?.value) this.rosterForm.patchValue({ branchId }, { emitEvent: false });
-      if (!this.leaveForm.get('branchId')?.value) this.leaveForm.patchValue({ branchId }, { emitEvent: false });
+      if (!this.manualAttendanceForm.get('branchId')?.value) this.patchAttendanceBranch(branchId);
     });
     effect(() => {
       const leaveType = this.leaveTypeOptions()[0]?.code || '';
@@ -2731,6 +2934,8 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.applyWorkspaceRouteContext();
+    this.applyAttendanceRouteContext();
     this.store.load();
     if (this.section === 'workspace' || this.section === 'attendance-dashboard') {
       this.refreshAttendanceCenter();
@@ -2765,21 +2970,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     };
   }
 
-  staffPermissionParams(staff?: StaffOsStaff | null): ApiRecord {
-    const value = this.staffForm.getRawValue() as Record<string, unknown>;
-    return {
-      mode: 'rights',
-      userId: staff?.loginUserId || '',
-      staffId: staff?.id || this.route.snapshot.queryParamMap.get('staffId') || '',
-      role: String(value.loginRole || staff?.roleId || value.roleId || 'staff'),
-      branchId: staff?.branchId || String(value.branchId || this.attendanceBranchId() || this.appState.selectedBranchId() || '')
-    };
-  }
-
-  integrationLinkParams(link: StaffIntegrationLink): ApiRecord {
-    return link.to === '/permissions' ? this.staffPermissionParams() : this.staffContextParams();
-  }
-
   staffControlCards(): StaffControlCard[] {
     const summary = this.attendanceSummary();
     const performance = this.store.performance();
@@ -2809,6 +2999,18 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
 
   selectedStaffWorkspaceCategory(): StaffWorkspaceCategory {
     return this.staffWorkspaceCategories.find((item) => item.key === this.staffWorkspaceCategory()) || this.staffWorkspaceCategories[0];
+  }
+
+  private applyWorkspaceRouteContext(): void {
+    if (this.section !== 'workspace') return;
+    const requested = (
+      this.route.snapshot.queryParamMap.get('workspace')
+      || this.route.snapshot.queryParamMap.get('category')
+      || (this.route.snapshot.routeConfig?.path?.includes('salary') ? 'salary' : '')
+    ) as StaffWorkspaceKey;
+    if (this.staffWorkspaceCategories.some((item) => item.key === requested)) {
+      this.staffWorkspaceCategory.set(requested);
+    }
   }
 
   staffWorkspaceValue(key: StaffWorkspaceKey): string | number {
@@ -2975,6 +3177,13 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   setAttendanceDate(value: string): void {
     if (!value) return;
     this.attendanceDate.set(value);
+    this.payrollPreviewForm.patchValue({ periodStart: value, periodEnd: value }, { emitEvent: false });
+    this.refreshAttendanceCenter();
+  }
+
+  setAttendanceBranch(value: string): void {
+    const branchId = String(value || this.defaultBranchId(this.branchOptions()) || '');
+    this.patchAttendanceBranch(branchId);
     this.refreshAttendanceCenter();
   }
 
@@ -2991,6 +3200,99 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   attendanceRows(): ApiRecord[] {
     const centerRows = this.store.biometricCenter()?.['attendance'];
     return Array.isArray(centerRows) ? centerRows : this.store.attendance();
+  }
+
+  attendanceBranchLabel(): string {
+    const branchId = this.attendanceBranchId();
+    const branch = this.branchOptions().find((item) => item.id === branchId);
+    return branch?.name || branchId || 'No branch';
+  }
+
+  uniqueAttendanceStaffCount(): number {
+    const staffIds = new Set(
+      this.attendanceRows()
+        .map((row) => String(row['staffId'] || row['staff_id'] || '').trim())
+        .filter(Boolean)
+    );
+    return staffIds.size;
+  }
+
+  attendanceCoveragePct(): number {
+    const activeCount = this.activeStaffForAttendance().length;
+    if (!activeCount) return 0;
+    return Math.min(100, Math.round((this.uniqueAttendanceStaffCount() / activeCount) * 100));
+  }
+
+  openAttendanceRiskCount(): number {
+    return this.store.attendanceRisks().filter((risk) => {
+      const status = String(risk['status'] || '').toLowerCase();
+      return !status || !['closed', 'resolved', 'cleared'].includes(status);
+    }).length;
+  }
+
+  payrollHoldCount(): number {
+    return this.store.attendancePayrollPreview().filter((row) => row['incentiveHold'] || String(row['status'] || '').toLowerCase() === 'hold').length;
+  }
+
+  gatewayStatusLabel(): string {
+    const summary = this.attendanceSummary();
+    const gateways = Number(summary['gateways'] || this.gatewayRows().length || 0);
+    const online = Number(summary['onlineGateways'] || this.gatewayRows().filter((row) => String(row['healthStatus'] || '').toLowerCase() === 'online').length || 0);
+    return gateways ? `${online}/${gateways} gateway online` : 'No gateway';
+  }
+
+  attendanceLastSyncLabel(): string {
+    const timestamps = [
+      ...this.attendanceRows().flatMap((row) => [row['clockInAt'], row['clockOutAt'], row['capturedAt'], row['createdAt'], row['updatedAt']]),
+      ...this.gatewayRows().map((row) => row['lastSeenAt'])
+    ]
+      .map((value) => value ? new Date(String(value)).getTime() : 0)
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (!timestamps.length) return 'Not synced';
+    return this.timeOnly(new Date(Math.max(...timestamps)).toISOString());
+  }
+
+  attendanceOpsCards(): AttendanceDashboardCard[] {
+    const summary = this.attendanceSummary();
+    return [
+      { label: 'Manual log', value: this.attendanceRows().filter((row) => String(row['source'] || '').includes('manual')).length, hint: 'physical entries', tone: 'blue' },
+      { label: 'Camera proof', value: summary['cameraCaptures'] || 0, hint: 'verified captures', tone: 'green' },
+      { label: 'Device queue', value: summary['queuedEvents'] || 0, hint: `${summary['failedEvents'] || 0} failed`, tone: Number(summary['failedEvents'] || 0) ? 'bad' : 'amber' },
+      { label: 'Mappings', value: this.store.biometricMappings().length, hint: `${this.pendingMappingCount()} pending`, tone: this.pendingMappingCount() ? 'amber' : 'green' },
+      { label: 'Consent', value: summary['consentGranted'] || this.store.biometricConsents().length, hint: `${summary['consentPending'] || this.pendingConsentCount()} pending`, tone: this.pendingConsentCount() ? 'amber' : 'green' },
+      { label: 'Payroll draft', value: this.store.attendancePayrollPreview().length, hint: `${this.payrollHoldCount()} hold`, tone: this.payrollHoldCount() ? 'bad' : 'blue' }
+    ];
+  }
+
+  attendanceExceptionRows(): AttendanceExceptionItem[] {
+    const riskRows = this.store.attendanceRisks().slice(0, 8).map((risk) => ({
+      title: risk['riskType'] || 'Attendance risk',
+      meta: risk['reason'] || 'Needs owner review',
+      staff: this.displayStaffName(risk),
+      impact: risk['severity'] || risk['riskScore'] || 'review',
+      status: risk['status'] || 'open',
+      tone: String(risk['severity'] || '').toLowerCase() === 'high' ? 'bad' : 'warn'
+    }));
+    const payrollRows = this.store.attendancePayrollPreview()
+      .filter((row) => row['incentiveHold'] || Number(row['lateCount'] || 0) || Number(row['absentDays'] || 0))
+      .slice(0, 6)
+      .map((row) => ({
+        title: row['incentiveHold'] ? 'Payroll hold' : 'Payroll adjustment',
+        meta: `${row['presentDays'] || 0} present · ${row['lateCount'] || 0} late · ${row['absentDays'] || 0} absent`,
+        staff: this.displayStaffName(row),
+        impact: `₹${Number(row['netPreview'] || 0).toLocaleString('en-IN')}`,
+        status: row['incentiveHold'] ? 'hold' : 'draft',
+        tone: row['incentiveHold'] ? 'bad' : 'warn'
+      }));
+    const alertRows = this.store.ownerAlerts().slice(0, 4).map((alert) => ({
+      title: alert['title'] || alert['alertType'] || 'Owner alert',
+      meta: alert['message'] || alert['description'] || 'Attendance action',
+      staff: this.displayStaffName(alert),
+      impact: alert['severity'] || 'owner',
+      status: alert['status'] || 'open',
+      tone: 'warn'
+    }));
+    return [...riskRows, ...payrollRows, ...alertRows].slice(0, 12);
   }
 
   activeStaffForAttendance(): StaffOsStaff[] {
@@ -3079,7 +3381,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.registerGateway({ ...value, providers })
       .pipe(finalize(() => this.gatewaySaving.set(false)))
       .subscribe({
-        next: (result: ApiRecord) => {
+        next: (result) => {
           this.attendanceMessage.set(`Gateway registered. API key generated once: ${result['gatewayApiKey'] || 'stored'}`);
           const branchId = String(value['branchId'] || this.attendanceBranchId());
           this.gatewayForm.patchValue({ branchId, gatewayCode: '', displayName: '', machineName: '', versionLabel: '' });
@@ -3187,7 +3489,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.runAttendanceFraudScan({ branchId, date: this.attendanceDate() })
       .pipe(finalize(() => this.fraudScanning.set(false)))
       .subscribe({
-        next: (result: ApiRecord) => {
+        next: (result) => {
           const risks = Array.isArray(result['openRisks']) ? result['openRisks'].length : 0;
           this.attendanceMessage.set(`Fraud scan complete. ${risks} open risk event(s).`);
           this.store.loadAttendanceCenter({ branchId, date: this.attendanceDate() });
@@ -3211,7 +3513,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.generateAttendancePayrollPreview(value)
       .pipe(finalize(() => this.payrollPreviewSaving.set(false)))
       .subscribe({
-        next: (result: ApiRecord) => {
+        next: (result) => {
           const rows = Array.isArray(result['rows']) ? result['rows'].length : 0;
           this.attendanceMessage.set(`Payroll preview generated for ${rows} staff.`);
           this.store.loadAttendanceCenter({ branchId, date: this.attendanceDate(), periodStart: value['periodStart'], periodEnd: value['periodEnd'] });
@@ -3252,7 +3554,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
         ? this.store.manualClockIn({
             ...basePayload,
             clockInAt: this.attendanceTimestamp(businessDate, value['clockInTime'] || '10:00')
-          }).pipe(switchMap((attendance: ApiRecord) => this.store.manualClockOut({
+          }).pipe(switchMap((attendance) => this.store.manualClockOut({
             ...basePayload,
             attendanceId: attendance['id'],
             clockOutAt: this.attendanceTimestamp(businessDate, value['clockOutTime'] || '19:00'),
@@ -3297,7 +3599,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.createTask(payload)
       .pipe(finalize(() => this.taskSaving.set(false)))
       .subscribe({
-        next: (task: StaffOsTask) => {
+        next: (task) => {
           this.store.tasks.update((rows) => [task, ...rows.filter((row) => row.id !== task.id)]);
           this.taskForm.patchValue({
             branchId,
@@ -3361,7 +3663,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.createSchedule(payload)
       .pipe(finalize(() => this.rosterSaving.set(false)))
       .subscribe({
-        next: (schedule: StaffOsSchedule) => {
+        next: (schedule) => {
           this.store.schedules.update((rows) => [schedule, ...rows.filter((row) => row.id !== schedule.id)]);
           this.rosterForm.patchValue({ branchId, staffId: '', notes: '' });
           this.rosterMessage.set('Roster shift assigned.');
@@ -3409,7 +3711,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.requestLeave(payload)
       .pipe(finalize(() => this.leaveSaving.set(false)))
       .subscribe({
-        next: (leave: ApiRecord) => {
+        next: (leave) => {
           this.store.leaves.update((rows) => [leave, ...rows.filter((row) => row['id'] !== leave['id'])]);
           this.leaveForm.patchValue({ branchId, staffId: '', reason: '' });
           this.leaveMessage.set('Leave request saved. Approve karne ke baad heatmap aur payroll me live count aayega.');
@@ -3428,7 +3730,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     request
       .pipe(finalize(() => this.leaveDecisionChanging.set('')))
       .subscribe({
-        next: (updated: ApiRecord) => {
+        next: (updated) => {
           this.store.leaves.update((rows) => rows.map((row) => row['id'] === updated['id'] ? updated : row));
           this.leaveMessage.set(status === 'approved' ? 'Leave approved. Leave calendar heatmap refresh karo.' : 'Leave rejected.');
         },
@@ -3485,7 +3787,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.store.processBiometricQueue({ branchId, limit: 100 })
       .pipe(finalize(() => this.queueProcessing.set(false)))
       .subscribe({
-        next: (result: ApiRecord) => {
+        next: (result) => {
           this.attendanceMessage.set(`Biometric queue processed: ${result['processed'] || 0} ok, ${result['failed'] || 0} failed.`);
           this.store.loadAttendanceCenter({ branchId, date: this.attendanceDate() });
         },
@@ -3585,15 +3887,23 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  pendingMappingCount(): number {
+    return this.store.biometricMappings().filter((mapping) => String(mapping['status'] || '').toLowerCase() !== 'approved').length;
+  }
+
+  pendingConsentCount(): number {
+    return this.store.biometricConsents().filter((consent) => String(consent['consentStatus'] || '').toLowerCase() !== 'granted').length;
+  }
+
   openAddStaff(): void {
     const branchId = this.staffForm.get('branchId')?.value || this.defaultBranchId(this.branchOptions());
     this.addStaffError.set('');
-    this.staffForm.patchValue({ branchId, employeeCode: this.nextStaffEmployeeCode(branchId), profilePhoto: '' });
+    this.staffForm.patchValue({ branchId, employeeCode: this.nextStaffEmployeeCode(branchId) });
     this.detailTab.set('core');
     this.addStaffOpen.set(true);
   }
 
-  private attendanceBranchId(): string {
+  attendanceBranchId(): string {
     return String(
       this.manualAttendanceForm.get('branchId')?.value
       || this.cameraForm.get('branchId')?.value
@@ -3607,6 +3917,40 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       || this.branchOptions()[0]?.id
       || ''
     );
+  }
+
+  private applyAttendanceRouteContext(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const date = params.get('date') || params.get('businessDate') || '';
+    const branchId = params.get('branchId') || '';
+    const staffId = params.get('staffId') || '';
+    if (date) {
+      this.attendanceDate.set(date);
+      this.payrollPreviewForm.patchValue({ periodStart: date, periodEnd: date }, { emitEvent: false });
+    }
+    if (branchId) this.patchAttendanceBranch(branchId);
+    if (staffId) {
+      this.manualAttendanceForm.patchValue({ staffId }, { emitEvent: false });
+      this.cameraForm.patchValue({ staffId }, { emitEvent: false });
+      this.mappingForm.patchValue({ staffId }, { emitEvent: false });
+      this.consentForm.patchValue({ staffId }, { emitEvent: false });
+      this.taskForm.patchValue({ staffId }, { emitEvent: false });
+      this.rosterForm.patchValue({ staffId }, { emitEvent: false });
+      this.leaveForm.patchValue({ staffId }, { emitEvent: false });
+    }
+  }
+
+  private patchAttendanceBranch(branchId: string): void {
+    this.manualAttendanceForm.patchValue({ branchId }, { emitEvent: false });
+    this.cameraForm.patchValue({ branchId }, { emitEvent: false });
+    this.deviceForm.patchValue({ branchId }, { emitEvent: false });
+    this.gatewayForm.patchValue({ branchId }, { emitEvent: false });
+    this.mappingForm.patchValue({ branchId }, { emitEvent: false });
+    this.consentForm.patchValue({ branchId }, { emitEvent: false });
+    this.payrollPreviewForm.patchValue({ branchId }, { emitEvent: false });
+    this.taskForm.patchValue({ branchId }, { emitEvent: false });
+    this.rosterForm.patchValue({ branchId }, { emitEvent: false });
+    this.leaveForm.patchValue({ branchId }, { emitEvent: false });
   }
 
   private attendanceTimestamp(date: string, value: unknown): string {
@@ -3639,108 +3983,14 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     return Boolean(control && control.invalid && (control.dirty || control.touched));
   }
 
-  staffPhotoPreview(): string {
-    return String(this.staffForm.get('profilePhoto')?.value || '');
-  }
-
-  staffInitialsPreview(): string {
-    const first = String(this.staffForm.get('firstName')?.value || '').trim();
-    const last = String(this.staffForm.get('lastName')?.value || '').trim();
-    return `${first.charAt(0)}${last.charAt(0) || first.charAt(1) || ''}`.toUpperCase() || 'ST';
-  }
-
-  async uploadStaffPhoto(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-
-    const branchId = String(this.staffForm.get('branchId')?.value || '');
-    if (!branchId) {
-      this.addStaffError.set('Photo upload se pehle branch select karein.');
-      this.detailTab.set('core');
-      return;
-    }
-    if (!this.isSupportedStaffPhoto(file)) {
-      this.addStaffError.set('Only JPG, PNG and common photo files are allowed.');
-      return;
-    }
-    if (file.size > this.maxStaffPhotoBytes) {
-      this.addStaffError.set('Staff photo size must be 5 MB or less.');
-      return;
-    }
-
-    this.staffPhotoUploading.set(true);
-    this.addStaffError.set('');
-    try {
-      const dataUrl = await this.readFileAsDataUrl(file);
-      const response = await firstValueFrom(this.store.uploadStaffPhoto({
-        branchId,
-        fileName: file.name,
-        mimeType: file.type || this.mimeTypeFromFileName(file.name),
-        sizeBytes: file.size,
-        dataUrl
-      })) as StaffPhotoUploadResponse;
-      const url = String(response.url || '');
-      if (!url) throw new Error('Photo upload did not return a URL');
-      this.staffForm.patchValue({ profilePhoto: url });
-      this.staffForm.get('profilePhoto')?.markAsDirty();
-    } catch (error: unknown) {
-      this.addStaffError.set(this.staffPhotoError(error, 'Unable to upload staff photo'));
-    } finally {
-      this.staffPhotoUploading.set(false);
-    }
-  }
-
-  removeStaffPhoto(): void {
-    this.staffForm.patchValue({ profilePhoto: '' });
-    this.staffForm.get('profilePhoto')?.markAsDirty();
-  }
-
-  private isSupportedStaffPhoto(file: File): boolean {
-    const mimeType = file.type || this.mimeTypeFromFileName(file.name);
-    return this.staffImageAccept.split(',').includes(mimeType);
-  }
-
-  private mimeTypeFromFileName(fileName: string): string {
-    const extension = fileName.toLowerCase().match(/\.(jpe?g|png|webp|gif|avif|hei[cf]|bmp|tiff?)$/)?.[1] || '';
-    if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
-    if (extension === 'tif' || extension === 'tiff') return 'image/tiff';
-    return extension ? `image/${extension}` : '';
-  }
-
-  private readFileAsDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(reader.error || new Error('Unable to read photo file'));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  private openStaffPermissions(staff: StaffOsStaff, role: string): void {
-    void this.router.navigate(['/permissions'], {
-      queryParams: {
-        ...this.staffPermissionParams(staff),
-        role,
-        source: 'staff-created'
-      }
-    });
-  }
-
-  private staffPhotoError(error: unknown, fallback: string): string {
-    const apiError = error as { error?: { error?: string; message?: string }; message?: string };
-    return apiError?.error?.error || apiError?.error?.message || apiError?.message || fallback;
-  }
-
   saveStaff(): void {
     if (this.staffForm.invalid) {
       this.staffForm.markAllAsTouched();
       return;
     }
     const value = this.staffForm.getRawValue() as Record<string, unknown>;
-    const staffLogin = this.staffLoginPayload(value);
-    if (staffLogin && (!String(staffLogin['loginId'] || '').trim() || !String(staffLogin['password'] || '').trim())) {
+    const loginEnabled = Boolean(value.enableStaffLogin || value.loginId || value.loginPassword);
+    if (loginEnabled && (!String(value.loginId || '').trim() || !String(value.loginPassword || '').trim())) {
       this.addStaffError.set('Login ID and password are required when staff login is enabled.');
       this.detailTab.set('core');
       return;
@@ -3759,7 +4009,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       email: value.email || value.contactEmail,
       gender: value.gender,
       dob: value.birthDate,
-      profilePhoto: value.profilePhoto,
       joiningDate: value.joiningDate,
       roleId: value.roleId,
       staffCategoryId: value.staffCategoryId,
@@ -3773,47 +4022,27 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       state: value.state,
       pincode: value.pincode,
       employeeDetails,
-      enableStaffLogin: Boolean(staffLogin),
-      loginId: staffLogin?.['loginId'],
-      loginPassword: staffLogin?.['password'],
-      loginRole: staffLogin?.['role'],
-      staffLogin,
+      staffLogin: loginEnabled ? {
+        enabled: true,
+        loginId: value.loginId,
+        email: value.email || value.contactEmail,
+        password: value.loginPassword,
+        role: value.loginRole || 'staff'
+      } : undefined,
       notes
     }).pipe(finalize(() => this.addStaffSaving.set(false))).subscribe({
-      next: (staff) => {
+      next: () => {
         const branchId = String(value.branchId || '');
-        const permissionRole = String(staffLogin?.['role'] || value.roleId || 'staff');
         this.staffForm.reset(this.defaultStaffFormValue(branchId));
         this.resetIncentiveProfile();
         this.detailTab.set('core');
         this.addStaffOpen.set(false);
         this.store.load();
-        this.openStaffPermissions(staff, permissionRole);
       },
       error: (error: { error?: { error?: string; message?: string }; message?: string }) => {
         this.addStaffError.set(error?.error?.error || error?.error?.message || error?.message || 'Unable to save staff');
       }
     });
-  }
-
-  staffLoginReady(): boolean {
-    const value = this.staffForm.getRawValue() as Record<string, unknown>;
-    const login = this.staffLoginPayload(value);
-    return Boolean(login?.['loginId'] && login?.['password']);
-  }
-
-  staffLoginProvisionNote(): string {
-    const value = this.staffForm.getRawValue() as Record<string, unknown>;
-    const login = this.staffLoginPayload(value);
-    if (!login) return 'Enable only when this employee needs app login, live appointments, or own-work reports.';
-    if (!login['loginId']) return 'Enter the Login ID the staff will use on the main login screen.';
-    if (!login['password']) return 'Enter a password before saving; the employee and login are saved together.';
-    return `Ready: ${login['loginId']} will work on the main login screen after Save Employee.`;
-  }
-
-  normalizeStaffLoginId(): void {
-    const normalized = this.normalizeStaffLoginIdValue(this.staffForm.get('loginId')?.value);
-    this.staffForm.patchValue({ loginId: normalized }, { emitEvent: false });
   }
 
   activeCategoriesForSelectedBranch(): StaffOsStaffCategory[] {
@@ -4266,7 +4495,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   private defaultStaffFormValue(branchId = ''): Record<string, unknown> {
     return {
       branchId,
-      profilePhoto: '',
       firstName: '',
       lastName: '',
       shortName: '',
@@ -4366,24 +4594,6 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
       remarks: '',
       imeiNo: ''
     };
-  }
-
-  private staffLoginPayload(value: Record<string, unknown>): ApiRecord | undefined {
-    const loginId = this.normalizeStaffLoginIdValue(value['loginId']);
-    const password = String(value['loginPassword'] || '');
-    const enabled = Boolean(value['enableStaffLogin'] || loginId || password);
-    if (!enabled) return undefined;
-    return {
-      enabled: true,
-      loginId,
-      email: String(value['email'] || value['contactEmail'] || '').trim(),
-      password,
-      role: String(value['loginRole'] || 'staff')
-    };
-  }
-
-  private normalizeStaffLoginIdValue(value: unknown): string {
-    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
   }
 
   private nextStaffEmployeeCode(branchId = ''): string {

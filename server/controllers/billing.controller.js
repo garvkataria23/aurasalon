@@ -134,8 +134,9 @@ export const billingController = {
   },
 
   pdf(req, res) {
-    const rendered = invoicePdfService.renderPdfPlaceholder(req.params.id, req.access);
+    const rendered = invoicePdfService.renderPdf(req.params.id, req.access);
     res.setHeader("content-type", rendered.contentType);
+    res.setHeader("content-disposition", `inline; filename="${rendered.filename}"`);
     res.send(rendered.body);
   },
 

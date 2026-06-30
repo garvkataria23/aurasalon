@@ -17,14 +17,82 @@ function serviceDuration(serviceIds = []) {
   }, 0);
 }
 
+function compactClientRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    gender: row.gender,
+    birthday: row.birthday,
+    anniversary: row.anniversary,
+    tags: row.tags,
+    notes: row.notes,
+    walletBalance: row.walletBalance,
+    loyaltyPoints: row.loyaltyPoints,
+    membershipId: row.membershipId,
+    branchId: row.branchId,
+    totalSpend: row.totalSpend,
+    visitCount: row.visitCount,
+    lastVisitAt: row.lastVisitAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    tenantId: row.tenantId,
+    imported: row.imported,
+    originalSystem: row.originalSystem,
+    originalRecordId: row.originalRecordId,
+    importBatchId: row.importBatchId
+  };
+}
+
+function clientListNumber(value, fallback, max) {
+  const next = Number.parseInt(String(value || ""), 10);
+  if (!Number.isFinite(next) || next <= 0) return fallback;
+  return Math.min(next, max);
+}
+
 export class ResourceService {
   list(resource, query, access) {
     if (query?.branchId) tenantService.assertBranchAccess(access, query.branchId);
-    const rows = this.repository(resource).list(query, this.listScope(resource, query, access));
+    const listQuery = resource === "clients" && !query?.limit ? { ...query, limit: 10000 } : query;
+    if (resource === "clients" && truthy(listQuery?.compact)) {
+      return this.listCompactClients(listQuery, access);
+    }
+    const rows = this.repository(resource).list(listQuery, this.listScope(resource, listQuery, access));
     if (resource === "clients" && !truthy(query?.includeDeleted)) {
-      return rows.filter((row) => !row.deletedAt);
+      const activeRows = rows.filter((row) => !row.deletedAt);
+      return truthy(query?.compact) ? activeRows.map(compactClientRow) : activeRows;
     }
     return rows;
+  }
+
+  listCompactClients(query = {}, access = {}) {
+    const scope = this.listScope("clients", query, access);
+    const where = ["tenantId = @tenantId"];
+    const params = {
+      tenantId: scope.tenantId || access.tenantId,
+      limit: clientListNumber(query.limit, 150, 1000),
+      offset: Math.max(0, Number.parseInt(String(query.offset || 0), 10) || 0)
+    };
+    const branchId = query.branchId || scope.branchId || "";
+    if (branchId) {
+      where.push("branchId = @branchId");
+      params.branchId = branchId;
+    }
+    if (!truthy(query.includeDeleted)) {
+      where.push("(deletedAt IS NULL OR deletedAt = '')");
+    }
+    const search = String(query.q || query.search || "").trim();
+    if (search) {
+      where.push("(name LIKE @q OR phone LIKE @q OR email LIKE @q OR tags LIKE @q OR notes LIKE @q OR originalRecordId LIKE @q)");
+      params.q = `%${search}%`;
+    }
+    return db.prepare(`
+      SELECT * FROM clients
+      WHERE ${where.join(" AND ")}
+      ORDER BY createdAt DESC
+      LIMIT @limit OFFSET @offset
+    `).all(params).map((row) => compactClientRow(deserialize("clients", row)));
   }
 
   get(resource, id, access) {
@@ -92,6 +160,57 @@ export class ResourceService {
       });
     }
     return updated;
+  }
+
+  bulkUpdateServiceGst(payload, access) {
+    const gstRate = Number(payload?.gstRate);
+    if (!Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+      throw badRequest("GST rate must be between 0 and 100");
+    }
+
+    const scope = payload?.scope === "category" ? "category" : "all";
+    const serviceColumns = columnsFor("services");
+    const branchId = String(payload?.branchId || access.branchId || "");
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+
+    const where = ["tenantId = @tenantId"];
+    const params = {
+      tenantId: access.tenantId,
+      branchId,
+      gstRate,
+      category: String(payload?.category || "").trim()
+    };
+    if (branchId && serviceColumns.includes("branchId")) where.push("branchId = @branchId");
+    const serviceIds = Array.isArray(payload?.serviceIds)
+      ? payload.serviceIds.map((id) => String(id || "").trim()).filter(Boolean)
+      : [];
+    if (serviceIds.length) {
+      const idParams = serviceIds.map((id, index) => {
+        const key = `id${index}`;
+        params[key] = id;
+        return `@${key}`;
+      });
+      where.push(`id IN (${idParams.join(", ")})`);
+    }
+    if (scope === "category") {
+      if (!params.category) throw badRequest("Category is required for category GST update");
+      if (params.category === "Uncategorized") {
+        where.push("(category IS NULL OR TRIM(category) = '')");
+      } else {
+        where.push("category = @category");
+      }
+    }
+
+    const now = new Date().toISOString();
+    const run = db.transaction(() => {
+      const result = db.prepare(`
+        UPDATE services
+        SET gstRate = @gstRate, updatedAt = @updatedAt
+        WHERE ${where.join(" AND ")}
+      `).run({ ...params, updatedAt: now });
+      return { updated: result.changes, gstRate, scope, category: scope === "category" ? params.category : "" };
+    });
+    return run();
   }
 
   delete(resource, id, access) {

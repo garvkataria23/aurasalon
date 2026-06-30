@@ -70,6 +70,7 @@ const COMMISSION_RATES = {
   downgrade: 0.03,
   cancel: 0.03
 };
+const MEMBERSHIP_PLAN_TYPES = new Set(["discount", "prepaid_credit", "visit_pack", "service_credit", "combo", "unlimited", "family", "corporate", "tiered"]);
 
 function text(value) {
   return String(value || "").trim();
@@ -99,6 +100,50 @@ function compactPlan(plan = {}) {
     discountPercent: Number(plan.discountPercent || 0),
     productDiscountPercent: Number(plan.productDiscountPercent || 0)
   };
+}
+
+function nextAnnualDate(value) {
+  const raw = String(value || "").slice(5, 10);
+  if (!/^\d{2}-\d{2}$/.test(raw)) return "";
+  const year = Number(today().slice(0, 4));
+  const current = `${year}-${raw}`;
+  return current >= today() ? current : `${year + 1}-${raw}`;
+}
+
+function planTypeFromRules(plan = {}, payload = {}) {
+  const rules = plan?.benefitRules && typeof plan.benefitRules === "object" ? plan.benefitRules : {};
+  const type = String(payload.planType || plan.planType || rules.planType || (rules.prepaidCredit ? "prepaid_credit" : "discount"));
+  return MEMBERSHIP_PLAN_TYPES.has(type) ? type : "discount";
+}
+
+function planCreditUnit(planType) {
+  if (planType === "prepaid_credit") return "amount";
+  if (planType === "visit_pack") return "visit";
+  if (planType === "unlimited") return "unlimited";
+  return "service";
+}
+
+function includedServiceEntries(plan = {}, fallbackCredits = 1) {
+  const rows = Array.isArray(plan.includedServices) ? plan.includedServices : [];
+  return rows.map((item) => ({
+    serviceId: String(item?.serviceId || item?.id || item || ""),
+    serviceName: String(item?.serviceName || item?.name || item?.serviceId || item || "Service credit"),
+    credits: Math.max(1, Number(item?.credits || fallbackCredits || 1))
+  })).filter((item) => item.serviceId || item.serviceName);
+}
+
+function planBusinessLabel(plan = {}, planType = planTypeFromRules(plan)) {
+  const rules = plan.benefitRules || {};
+  const credits = Math.max(0, Number(plan.creditAmount || rules.creditAmount || 0));
+  if (planType === "prepaid_credit") return `Pay ₹${Math.round(Number(plan.price || 0)).toLocaleString("en-IN")} / Get ₹${Math.round(credits).toLocaleString("en-IN")} credit`;
+  if (planType === "visit_pack") return `${credits || 10} visits`;
+  if (planType === "service_credit") return `${credits || 1} service credits`;
+  if (planType === "combo") return `${credits || includedServiceEntries(plan).length || 1} combo credits`;
+  if (planType === "unlimited") return `Unlimited ${Number(rules.fairUsage?.monthlyCap || 4)} / month`;
+  if (planType === "family") return `Family ${Number(rules.family?.memberLimit || 4)} members`;
+  if (planType === "corporate") return `Corporate ${rules.corporate?.label || plan.name || ""} ${Number(plan.discountPercent || 0)}%`;
+  if (planType === "tiered") return `Tier ${rules.tier?.name || plan.name || ""} after ₹${Math.round(Number(rules.tier?.spendThreshold || 0)).toLocaleString("en-IN")}`;
+  return `${Number(plan.discountPercent || 0)}% service discount`;
 }
 
 function entitlementTypeFromMembership(membership = {}) {
@@ -341,6 +386,53 @@ export class MembershipEnterpriseService {
     return this.getPlan(id, access);
   }
 
+  planSaleCredits({ plan = {}, payload = {}, planType = "discount" } = {}) {
+    const planRules = plan?.benefitRules && typeof plan.benefitRules === "object" ? plan.benefitRules : {};
+    const price = money(payload.price ?? plan?.price ?? 0);
+    const requestedCredits = Number(payload.planCredits ?? planRules.creditAmount ?? 0);
+    const bonusAmount = Number(payload.bonusAmount ?? planRules.bonusAmount ?? 0);
+    const prepaidCredits = Math.max(0, Number(requestedCredits || (planType === "prepaid_credit" ? price + bonusAmount : 0)));
+    if (Array.isArray(payload.serviceCredits) && payload.serviceCredits.length) {
+      return payload.serviceCredits.map((credit) => ({
+        ...credit,
+        planId: credit.planId || plan?.id || "",
+        benefitRules: credit.benefitRules || planRules,
+        remaining: Number(credit.remaining ?? credit.credits ?? prepaidCredits ?? 0)
+      }));
+    }
+    if (planType === "prepaid_credit") {
+      return [{ type: "prepaid_credit", credits: prepaidCredits, remaining: prepaidCredits, planId: plan?.id || "", bonusAmount, benefitPercent: Number(planRules.benefitPercent || 0), benefitRules: planRules }];
+    }
+    if (["visit_pack", "service_credit", "combo"].includes(planType)) {
+      const credits = Math.max(1, Number(requestedCredits || planRules.creditAmount || 1));
+      const included = includedServiceEntries(plan, credits);
+      const rows = included.length ? included : [{ serviceId: "", serviceName: plan?.name || "Service credit", credits }];
+      return rows.map((row) => ({
+        type: planType,
+        serviceId: row.serviceId,
+        serviceName: row.serviceName,
+        credits: row.credits,
+        remaining: row.credits,
+        planId: plan?.id || "",
+        creditUnit: planCreditUnit(planType),
+        benefitRules: planRules
+      }));
+    }
+    if (planType === "unlimited") {
+      const monthlyCap = Math.max(1, Number(planRules.fairUsage?.monthlyCap || payload.monthlyCap || 4));
+      return [{ type: "unlimited_service", credits: monthlyCap, remaining: monthlyCap, planId: plan?.id || "", creditUnit: "unlimited", fairUsage: { monthlyCap }, benefitRules: planRules }];
+    }
+    return [
+      { type: "bill_discount", percent: Number(payload.discountPercent ?? plan?.discountPercent ?? 0), planId: plan?.id || "", benefitRules: planRules },
+      ...(Number(plan?.productDiscountPercent || 0) > 0 ? [{ type: "product_discount", percent: Number(plan.productDiscountPercent || 0), planId: plan?.id || "", benefitRules: planRules }] : [])
+    ];
+  }
+
+  totalCreditsForSale(serviceCredits = [], planType = "discount") {
+    if (planType === "discount" || planType === "family" || planType === "corporate" || planType === "tiered") return 0;
+    return Math.max(0, serviceCredits.reduce((sum, credit) => sum + Number(credit.remaining ?? credit.credits ?? 0), 0));
+  }
+
   sellMembership(payload = {}, access) {
     if (!payload.clientId) throw badRequest("clientId is required");
     const client = repositories.clients.getById(payload.clientId, scope(access));
@@ -353,7 +445,11 @@ export class MembershipEnterpriseService {
     const expiresOn = payload.validityDate || addDays(takenDate, validityDays);
     const planName = payload.planName || plan?.name || "Membership";
     const discountPercent = Number(payload.discountPercent ?? plan?.discountPercent ?? 0);
-    const credits = Number(payload.planCredits ?? 0);
+    const planRules = plan?.benefitRules && typeof plan.benefitRules === "object" ? plan.benefitRules : {};
+    const planType = planTypeFromRules(plan, payload);
+    const serviceCredits = this.planSaleCredits({ plan, payload: { ...payload, discountPercent }, planType });
+    const credits = this.totalCreditsForSale(serviceCredits, planType);
+    const bonusAmount = Number(payload.bonusAmount ?? (planType === "prepaid_credit" ? planRules.bonusAmount : 0) ?? 0);
     const membership = repositories.memberships.create({
       id: makeId("mem"),
       clientId: payload.clientId,
@@ -361,12 +457,12 @@ export class MembershipEnterpriseService {
       price: money(payload.price ?? plan?.price ?? 0),
       planCredits: credits,
       creditsRemaining: credits,
-      serviceCredits: payload.serviceCredits || [{ type: "bill_discount", percent: discountPercent, planId: plan?.id || "" }],
+      serviceCredits,
       validityDate: expiresOn,
       autoRenew: payload.autoRenew ? 1 : 0,
       loyaltyMultiplier: Number(payload.loyaltyMultiplier || 1),
       status: "active",
-      redeemHistory: [{ date: takenDate, type: "membership_sale", planId: plan?.id || "", invoiceId: payload.invoiceId || "", saleId: payload.saleId || "" }],
+      redeemHistory: [{ date: takenDate, type: "membership_sale", planId: plan?.id || "", planType, credits, bonusAmount, invoiceId: payload.invoiceId || "", saleId: payload.saleId || "", businessLabel: planBusinessLabel(plan, planType) }],
       branchId
     }, scope(access));
     this.ledger({
@@ -385,6 +481,8 @@ export class MembershipEnterpriseService {
       expiresOn,
       snapshot: {
         plan,
+        planType,
+        businessLabel: planBusinessLabel(plan, planType),
         membership,
         staffId: payload.staffId || payload.saleStaffId || "",
         staffName: payload.staffName || "",
@@ -427,6 +525,9 @@ export class MembershipEnterpriseService {
     if (!best && Number(client.totalSpend || 0) >= 1000) recommendations.push("Repeat/high spender client ko membership offer karo.");
     if (best && daysLeft !== null && daysLeft <= 30) recommendations.push("Membership renewal due hai, renewal offer WhatsApp queue me bhej sakte hain.");
     if (expired.length && !best) recommendations.push("Expired membership client hai, renewal recovery flow start karo.");
+    if (wallet.tierSuggestions?.length) recommendations.push(`${wallet.tierSuggestions[0].tierName || "Next tier"} eligibility ready hai, controlled upgrade action review karo.`);
+    if (wallet.fairUsage?.some((item) => item.status === "near_limit")) recommendations.push("Unlimited membership fair-usage cap near hai, front desk ko alert dikhao.");
+    if (wallet.occasionBenefits?.length) recommendations.push("Birthday/anniversary benefit configured hai; client date match par free-service reminder bhejo.");
     return {
       clientId,
       branchId,
@@ -481,6 +582,12 @@ export class MembershipEnterpriseService {
       activeLinks: familyRows.length,
       status: familyRows.length ? "shared" : "not_shared"
     };
+    const tierSuggestions = activeMemberships.map((item) => item.tierSuggestion).filter((item) => item?.eligible);
+    const fairUsage = activeMemberships
+      .filter((item) => Number(item.fairUsage?.monthlyCap || 0) > 0)
+      .map((item) => ({ membershipId: item.membershipId, planName: item.planName, ...item.fairUsage }));
+    const corporate = activeMemberships.map((item) => item.corporate).filter((item) => item && Object.keys(item).length);
+    const occasionBenefits = activeMemberships.map((item) => item.occasionBenefits).filter((item) => item && Object.keys(item).length);
     return {
       clientId,
       clientName: client.name || "",
@@ -529,6 +636,11 @@ export class MembershipEnterpriseService {
       autoRenew: Boolean(best?.autoRenew),
       renewDue: Boolean(daysLeft !== null && daysLeft <= 30),
       familySharing,
+      fairUsage,
+      corporate,
+      occasionBenefits,
+      tierSuggestions,
+      businessLabel: best?.businessLabel || "",
       discountAllowed: Boolean(best?.planBenefits.serviceDiscountPercent),
       bestDiscountPercent: Number(best?.planBenefits.serviceDiscountPercent || 0),
       productDiscountPercent: Number(best?.planBenefits.productDiscountPercent || 0),
@@ -1107,15 +1219,40 @@ export class MembershipEnterpriseService {
   }
 
   ledgerList(query = {}, access) {
+    const params = {
+      tenantId: access.tenantId,
+      branchId: text(query.branchId || ""),
+      clientId: text(query.clientId || ""),
+      membershipId: text(query.membershipId || ""),
+      search: `%${text(query.search || "").toLowerCase()}%`,
+      limit: Math.min(Number(query.limit || 250), 1000)
+    };
     const rows = db.prepare(
-      `SELECT * FROM client_membership_ledger
-       WHERE tenant_id = ?
-         AND (? = '' OR branch_id = ?)
-         AND (? = '' OR client_id = ?)
-         AND (? = '' OR membership_id = ?)
-       ORDER BY created_at DESC
-       LIMIT ?`
-    ).all(access.tenantId, query.branchId || "", query.branchId || "", query.clientId || "", query.clientId || "", query.membershipId || "", query.membershipId || "", Math.min(Number(query.limit || 250), 1000));
+      `SELECT l.*
+       FROM client_membership_ledger l
+       LEFT JOIN clients c ON c.id = l.client_id
+       WHERE l.tenant_id = @tenantId
+         AND (@branchId = '' OR l.branch_id = @branchId)
+         AND (@clientId = '' OR l.client_id = @clientId)
+         AND (@membershipId = '' OR l.membership_id = @membershipId)
+         AND (
+           @search = '%%'
+           OR LOWER(COALESCE(l.action, '')) LIKE @search
+           OR LOWER(COALESCE(l.invoice_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.membership_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.plan_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.note, '')) LIKE @search
+           OR LOWER(COALESCE(l.actor_user_id, '')) LIKE @search
+           OR LOWER(COALESCE(l.snapshot_json, '')) LIKE @search
+           OR LOWER(COALESCE(c.name, '')) LIKE @search
+           OR LOWER(COALESCE(c.phone, '')) LIKE @search
+           OR CAST(l.amount AS TEXT) LIKE @search
+           OR CAST(l.paid_amount AS TEXT) LIKE @search
+           OR CAST(l.discount_amount AS TEXT) LIKE @search
+         )
+       ORDER BY l.created_at DESC
+       LIMIT @limit`
+    ).all(params);
     return rows.map(rowToLedger);
   }
 
@@ -1129,6 +1266,61 @@ export class MembershipEnterpriseService {
         const dueOn = addDays(membership.validityDate, -daysBefore);
         if (dueOn < today()) continue;
         const reminder = this.createReminder(membership, null, client, daysBefore, dueOn, access);
+        if (reminder) created.push(reminder);
+      }
+      const snapshot = this.membershipWalletSnapshot(membership, membership.clientId, [], access);
+      if (snapshot.serviceCredits.remaining > 0 && snapshot.serviceCredits.remaining <= 2) {
+        const reminder = this.createTypedReminder({
+          membership,
+          plan: this.resolveMembershipPlan(membership, access),
+          client,
+          reminderType: "low_credits",
+          dueOn: today(),
+          message: `Hi ${client?.name || "there"}, your ${membership.planName} has only ${snapshot.serviceCredits.remaining} credit(s) left.`,
+          payload: { remainingCredits: snapshot.serviceCredits.remaining, planType: snapshot.planType }
+        }, access);
+        if (reminder) created.push(reminder);
+      }
+      if (snapshot.fairUsage.monthlyCap && snapshot.fairUsage.status === "near_limit") {
+        const reminder = this.createTypedReminder({
+          membership,
+          plan: this.resolveMembershipPlan(membership, access),
+          client,
+          reminderType: "fair_usage_near_limit",
+          dueOn: today(),
+          message: `${membership.planName} fair usage: ${snapshot.fairUsage.monthlyUsed}/${snapshot.fairUsage.monthlyCap} used this month.`,
+          payload: snapshot.fairUsage
+        }, access);
+        if (reminder) created.push(reminder);
+      }
+      if (snapshot.tierSuggestion?.eligible) {
+        const reminder = this.createTypedReminder({
+          membership,
+          plan: this.resolveMembershipPlan(membership, access),
+          client,
+          reminderType: "tier_upgrade_eligible",
+          dueOn: today(),
+          message: `${client?.name || "Client"} is eligible for ${snapshot.tierSuggestion.tierName || "next tier"} membership upgrade.`,
+          payload: snapshot.tierSuggestion
+        }, access);
+        if (reminder) created.push(reminder);
+      }
+      const occasionRules = snapshot.occasionBenefits || {};
+      for (const [reminderType, dateValue] of [
+        ["birthday_benefit", occasionRules.birthday ? client?.birthday : ""],
+        ["anniversary_benefit", occasionRules.anniversary ? client?.anniversary : ""]
+      ]) {
+        const dueOn = nextAnnualDate(dateValue);
+        if (!dueOn) continue;
+        const reminder = this.createTypedReminder({
+          membership,
+          plan: this.resolveMembershipPlan(membership, access),
+          client,
+          reminderType,
+          dueOn,
+          message: `Hi ${client?.name || "there"}, your ${membership.planName} ${reminderType.replace("_", " ")} is available on ${dueOn}.`,
+          payload: { occasionDate: dueOn, benefit: reminderType }
+        }, access);
         if (reminder) created.push(reminder);
       }
     }
@@ -1815,6 +2007,350 @@ export class MembershipEnterpriseService {
     return { low: 1, medium: 2, high: 3, critical: 4 }[level] || 0;
   }
 
+  rewardsLedger(query = {}, access) {
+    const filters = this.rewardReportFilters(query);
+    if (filters.branchId) tenantService.assertBranchAccess(access, filters.branchId);
+    const rows = db.prepare(
+      `SELECT *
+       FROM loyalty_transactions
+       WHERE tenant_id = @tenantId
+         AND (@clientId = '' OR customer_id = @clientId)
+         AND (@fromDate = '' OR date(created_at) >= date(@fromDate))
+         AND (@toDate = '' OR date(created_at) <= date(@toDate))
+       ORDER BY created_at DESC, id DESC
+       LIMIT @limit`
+    ).all({
+      tenantId: access.tenantId,
+      clientId: filters.clientId,
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+      limit: Math.min(Number(query.limit || 500), 2000)
+    });
+    const clients = repositories.clients.list({ limit: 10000 }, scope(access));
+    const invoices = repositories.invoices.list({ limit: 10000 }, scope(access, filters.branchId));
+    const clientById = new Map(clients.map((client) => [client.id, client]));
+    const invoiceById = new Map(invoices.flatMap((invoice) => [
+      [invoice.id, invoice],
+      [invoice.invoiceId, invoice],
+      [invoice.invoiceNumber, invoice],
+      [invoice.number, invoice]
+    ].filter(([key]) => key)));
+    return rows
+      .map((row) => this.rewardLedgerRow(row, clientById, invoiceById))
+      .filter((row) => this.rewardRowMatches(row, filters));
+  }
+
+  rewardRoiReport(query = {}, access) {
+    const filters = this.rewardReportFilters(query);
+    if (filters.branchId) tenantService.assertBranchAccess(access, filters.branchId);
+    const ledger = this.rewardsLedger({ ...query, limit: 2000 }, access);
+    const rewardClientIds = new Set(ledger.map((row) => row.clientId).filter(Boolean));
+    const invoices = repositories.invoices.list({ limit: 10000 }, scope(access, filters.branchId))
+      .filter((invoice) => this.rewardInvoiceMatches(invoice, filters));
+    const byClient = new Map();
+    for (const row of ledger) {
+      const current = byClient.get(row.clientId) || {
+        clientId: row.clientId,
+        clientName: row.clientName,
+        clientPhone: row.clientPhone,
+        visits: 0,
+        totalSale: 0,
+        rewardEarned: 0,
+        rewardRedeemed: 0,
+        pendingRewardBalance: Number(row.balanceAfter || 0),
+        repeatRevenue: 0
+      };
+      current.rewardEarned += Number(row.earnedPoints || 0);
+      current.rewardRedeemed += Number(row.redeemedPoints || 0);
+      if (row.balanceAfter !== undefined) current.pendingRewardBalance = Number(row.balanceAfter || 0);
+      byClient.set(row.clientId, current);
+    }
+    let rewardRevenue = 0;
+    let nonRewardRevenue = 0;
+    let rewardInvoiceCount = 0;
+    for (const invoice of invoices) {
+      const clientId = String(invoice.clientId || invoice.customerId || "");
+      const amount = this.rewardInvoiceAmount(invoice);
+      if (rewardClientIds.has(clientId)) {
+        rewardRevenue += amount;
+        rewardInvoiceCount += 1;
+        const row = byClient.get(clientId) || { clientId, clientName: invoice.clientName || clientId, visits: 0, totalSale: 0, rewardEarned: 0, rewardRedeemed: 0, pendingRewardBalance: 0, repeatRevenue: 0 };
+        row.visits += 1;
+        row.totalSale += amount;
+        if (row.visits > 1) row.repeatRevenue += amount;
+        byClient.set(clientId, row);
+      } else {
+        nonRewardRevenue += amount;
+      }
+    }
+    const rows = [...byClient.values()]
+      .map((row) => ({
+        ...row,
+        totalSale: money(row.totalSale),
+        repeatRevenue: money(row.repeatRevenue),
+        suggestedAction: row.pendingRewardBalance > 0 ? "Send redeem reminder" : row.rewardRedeemed > row.rewardEarned ? "Review leakage" : "Keep in loyalty nurture"
+      }))
+      .sort((a, b) => Number(b.totalSale || 0) - Number(a.totalSale || 0))
+      .slice(0, 250);
+    const totalEarned = ledger.reduce((sum, row) => sum + Number(row.earnedPoints || 0), 0);
+    const totalRedeemed = ledger.reduce((sum, row) => sum + Number(row.redeemedPoints || 0), 0);
+    const repeatClients = rows.filter((row) => Number(row.visits || 0) > 1).length;
+    return {
+      generatedAt: now(),
+      filters,
+      metrics: {
+        totalRewardClients: rewardClientIds.size,
+        totalPointsEarned: totalEarned,
+        totalPointsRedeemed: totalRedeemed,
+        redemptionValue: money(totalRedeemed),
+        revenueFromRewardUsers: money(rewardRevenue),
+        repeatRevenueFromRewardUsers: money(rows.reduce((sum, row) => sum + Number(row.repeatRevenue || 0), 0)),
+        rewardUsersRevenue: money(rewardRevenue),
+        nonRewardUsersRevenue: money(nonRewardRevenue),
+        discountLeakageFromRewards: money(Math.max(totalRedeemed - totalEarned, 0)),
+        averageBillOfRewardUsers: money(rewardInvoiceCount ? rewardRevenue / rewardInvoiceCount : 0),
+        repeatVisitRate: rows.length ? Math.round((repeatClients / rows.length) * 1000) / 10 : 0
+      },
+      rows
+    };
+  }
+
+  expiringRewards(query = {}, access) {
+    const filters = this.rewardReportFilters(query);
+    if (filters.branchId) tenantService.assertBranchAccess(access, filters.branchId);
+    const ledger = this.rewardsLedger({ ...query, limit: 2000 }, access);
+    const latestByClient = new Map();
+    const earnedByClient = new Map();
+    for (const row of ledger.slice().reverse()) {
+      if (row.transactionType === "earned") earnedByClient.set(row.clientId, row.createdAt);
+      latestByClient.set(row.clientId, row);
+    }
+    const invoices = repositories.invoices.list({ limit: 10000 }, scope(access, filters.branchId));
+    const lastVisitByClient = new Map();
+    for (const invoice of invoices) {
+      const clientId = String(invoice.clientId || invoice.customerId || "");
+      const visitDate = dateOnly(invoice.createdAt || invoice.invoiceDate || invoice.date || "");
+      if (clientId && (!lastVisitByClient.has(clientId) || visitDate > lastVisitByClient.get(clientId))) lastVisitByClient.set(clientId, visitDate);
+    }
+    return [...latestByClient.values()]
+      .filter((row) => Number(row.balanceAfter || 0) > 0)
+      .map((row) => {
+        const expiryDate = addDays(earnedByClient.get(row.clientId) || row.createdAt || today(), Number(query.expiryDays || 90));
+        const daysLeft = Math.ceil((dateMs(expiryDate) - dateMs(today())) / 86400000);
+        return {
+          clientId: row.clientId,
+          clientName: row.clientName,
+          phone: row.clientPhone,
+          pointsExpiring: Number(row.balanceAfter || 0),
+          expiryDate,
+          daysLeft,
+          estimatedValue: money(row.balanceAfter || 0),
+          lastVisitDate: lastVisitByClient.get(row.clientId) || "",
+          reminderStatus: this.latestRewardReminderStatus(row.clientId, access)
+        };
+      })
+      .filter((row) => row.daysLeft >= 0 && row.daysLeft <= Number(query.windowDays || 30))
+      .sort((a, b) => a.daysLeft - b.daysLeft || b.pointsExpiring - a.pointsExpiring);
+  }
+
+  rewardAbuseAlerts(query = {}, access) {
+    const filters = this.rewardReportFilters(query);
+    const ledger = this.rewardsLedger({ ...query, limit: 2000 }, access);
+    const invoices = repositories.invoices.list({ limit: 10000 }, scope(access, filters.branchId));
+    const invoiceById = new Map(invoices.flatMap((invoice) => [
+      [invoice.id, invoice],
+      [invoice.invoiceId, invoice],
+      [invoice.invoiceNumber, invoice],
+      [invoice.number, invoice]
+    ].filter(([key]) => key)));
+    const alerts = [];
+    const byClient = new Map();
+    for (const row of ledger) {
+      const list = byClient.get(row.clientId) || [];
+      list.push(row);
+      byClient.set(row.clientId, list);
+      const invoice = invoiceById.get(row.invoiceId);
+      const invoiceStatus = this.rewardInvoiceStatus(invoice);
+      if (row.transactionType === "earned" && ["cancelled", "canceled", "deleted", "void", "voided"].includes(invoiceStatus)) {
+        const reversed = ledger.some((item) => item.clientId === row.clientId && item.invoiceId === row.invoiceId && item.transactionType === "reversed");
+        if (!reversed) alerts.push(this.rewardAlert("Cancelled bill reward not reversed", row, "high", "Reverse reward points or review invoice audit."));
+      }
+      if (row.transactionType === "redeemed" && row.invoiceId && !invoice) {
+        alerts.push(this.rewardAlert("Reward redemption without matching invoice", row, "critical", "Match redemption to invoice or reverse manually."));
+      }
+      if (Number(row.balanceAfter || 0) < 0) {
+        alerts.push(this.rewardAlert("Negative reward balance", row, "critical", "Freeze loyalty redemption and correct ledger."));
+      }
+    }
+    for (const rows of byClient.values()) {
+      const redeemed = rows.reduce((sum, row) => sum + Number(row.redeemedPoints || 0), 0);
+      const earned = rows.reduce((sum, row) => sum + Number(row.earnedPoints || 0), 0);
+      const adjustments = rows.filter((row) => row.transactionType === "adjusted");
+      if (redeemed >= 1000 || (earned > 0 && redeemed > earned * 0.8)) {
+        alerts.push(this.rewardAlert("High redemption client", rows[0], redeemed >= 2000 ? "high" : "medium", "Check redemption pattern before next reward approval.", redeemed));
+      }
+      if (adjustments.length >= 2) {
+        alerts.push(this.rewardAlert("Same client repeated reward adjustment", adjustments[0], "medium", "Review manual adjustment reasons.", adjustments.length));
+      }
+    }
+    return alerts
+      .filter((alert) => !filters.riskLevel || filters.riskLevel === "all" || alert.riskLevel === filters.riskLevel)
+      .sort((a, b) => this.riskRank(b.riskLevel) - this.riskRank(a.riskLevel))
+      .slice(0, 250);
+  }
+
+  sendRewardExpiryReminder(clientId, payload = {}, access) {
+    if (!clientId) throw badRequest("clientId is required");
+    const client = repositories.clients.getById(clientId, scope(access));
+    if (!client) throw notFound("Client not found");
+    const expiring = this.expiringRewards({ clientId, windowDays: 365 }, access)[0];
+    const points = Number(payload.points || expiring?.pointsExpiring || 0);
+    if (points <= 0) throw badRequest("No active expiring reward balance for this client");
+    const expiryDate = payload.expiryDate || expiring?.expiryDate || addDays(today(), 30);
+    const salonName = payload.salonName || "Aura Salon";
+    const branchId = client.branchId || access.branchId || "";
+    const message = payload.message || `Hi ${client.name || "there"}, your ${points} reward points expire on ${expiryDate}. Visit us soon to redeem them. - ${salonName}`;
+    const row = {
+      id: makeId("mwa"),
+      tenant_id: access.tenantId,
+      branch_id: branchId,
+      client_id: clientId,
+      membership_id: makeId(`reward_${clientId}`),
+      plan_id: "",
+      reminder_type: "reward_expiry",
+      due_on: today(),
+      days_before: Number(expiring?.daysLeft || 0),
+      status: "queued",
+      message,
+      payload_json: stringify({ phone: client.phone || "", points, expiryDate, channel: payload.channel || "whatsapp", source: "rewards_ledger" }, {}),
+      approved_by: "",
+      sent_at: "",
+      created_at: now(),
+      updated_at: now()
+    };
+    db.prepare(
+      `INSERT INTO membership_whatsapp_reminders
+       (id, tenant_id, branch_id, client_id, membership_id, plan_id, reminder_type, due_on, days_before, status, message,
+        payload_json, approved_by, sent_at, created_at, updated_at)
+       VALUES
+       (@id, @tenant_id, @branch_id, @client_id, @membership_id, @plan_id, @reminder_type, @due_on, @days_before, @status, @message,
+        @payload_json, @approved_by, @sent_at, @created_at, @updated_at)`
+    ).run(row);
+    const reminder = rowToReminder(row);
+    this.audit("membership.rewards.expiry_reminder_queued", "loyalty_reward", clientId, {}, reminder, access, branchId);
+    return reminder;
+  }
+
+  rewardReportFilters(query = {}) {
+    return {
+      fromDate: text(query.fromDate || query.startDate || ""),
+      toDate: text(query.toDate || query.endDate || ""),
+      clientId: text(query.clientId || ""),
+      staffId: text(query.staffId || query.createdBy || ""),
+      branchId: text(query.branchId || ""),
+      transactionType: text(query.transactionType || ""),
+      riskLevel: text(query.riskLevel || "all"),
+      rewardStatus: text(query.rewardStatus || "")
+    };
+  }
+
+  rewardLedgerRow(row, clientById, invoiceById) {
+    const client = clientById.get(row.customer_id) || {};
+    const invoice = invoiceById.get(row.invoice_id) || {};
+    const transactionType = this.rewardTransactionType(row.type, row.points);
+    const createdAt = row.created_at || now();
+    const points = Math.abs(Number(row.points || 0));
+    return {
+      id: row.id,
+      date: dateOnly(createdAt),
+      time: String(createdAt).slice(11, 16) || "",
+      createdAt,
+      clientId: row.customer_id || "",
+      clientName: client.name || client.fullName || invoice.clientName || row.customer_id || "Client",
+      clientPhone: client.phone || client.contact || invoice.clientPhone || "",
+      invoiceId: row.invoice_id || "",
+      invoiceNumber: invoice.invoiceNumber || invoice.number || invoice.invoiceNo || row.invoice_id || "",
+      appointmentId: invoice.appointmentId || "",
+      transactionType,
+      earnedPoints: transactionType === "earned" ? points : 0,
+      redeemedPoints: transactionType === "redeemed" ? points : 0,
+      expiredPoints: transactionType === "expired" ? points : 0,
+      balanceAfter: Number(row.balance_after || 0),
+      reason: row.description || row.type || "",
+      createdBy: invoice.createdBy || invoice.addedBy || invoice.staffId || "system",
+      staffId: invoice.staffId || invoice.createdBy || invoice.addedBy || "",
+      branchId: invoice.branchId || client.branchId || "",
+      branch: invoice.branchName || invoice.branchId || client.branchId || "",
+      invoiceStatus: this.rewardInvoiceStatus(invoice),
+      reversalStatus: transactionType === "reversed" ? "reversed" : "",
+      openClientPath: `/clients/${row.customer_id || ""}`,
+      openInvoicePath: row.invoice_id ? `/pos/invoices?invoice=${encodeURIComponent(row.invoice_id)}` : ""
+    };
+  }
+
+  rewardRowMatches(row, filters) {
+    if (filters.branchId && row.branchId !== filters.branchId) return false;
+    if (filters.staffId && row.staffId !== filters.staffId && row.createdBy !== filters.staffId) return false;
+    if (filters.transactionType && row.transactionType !== filters.transactionType) return false;
+    if (filters.rewardStatus === "active" && Number(row.balanceAfter || 0) <= 0) return false;
+    if (filters.rewardStatus === "redeemed" && row.transactionType !== "redeemed") return false;
+    if (filters.rewardStatus === "expired" && row.transactionType !== "expired") return false;
+    if (filters.rewardStatus === "reversed" && row.transactionType !== "reversed") return false;
+    return true;
+  }
+
+  rewardTransactionType(type = "", points = 0) {
+    const value = String(type || "").toLowerCase();
+    if (value.includes("redeem")) return "redeemed";
+    if (value.includes("expire")) return "expired";
+    if (value.includes("reverse") || value.includes("void") || value.includes("cancel")) return "reversed";
+    if (value.includes("adjust")) return "adjusted";
+    if (Number(points || 0) < 0) return "redeemed";
+    return "earned";
+  }
+
+  rewardInvoiceMatches(invoice = {}, filters = {}) {
+    const createdAt = dateOnly(invoice.createdAt || invoice.invoiceDate || invoice.date || "");
+    if (filters.fromDate && createdAt < filters.fromDate) return false;
+    if (filters.toDate && createdAt > filters.toDate) return false;
+    if (filters.clientId && String(invoice.clientId || invoice.customerId || "") !== filters.clientId) return false;
+    return true;
+  }
+
+  rewardInvoiceAmount(invoice = {}) {
+    return money(invoice.totalAmount || invoice.total || invoice.grandTotal || invoice.finalAmount || invoice.netAmount || invoice.paidAmount || 0);
+  }
+
+  rewardInvoiceStatus(invoice = {}) {
+    return String(invoice.status || invoice.invoiceStatus || "").toLowerCase();
+  }
+
+  rewardAlert(alertType, row, riskLevel, suggestedAction, overridePoints = null) {
+    return {
+      id: stableId("reward-alert", alertType, row.clientId, row.invoiceId, row.createdAt),
+      alertType,
+      clientId: row.clientId,
+      client: row.clientName,
+      invoiceReference: row.invoiceNumber || row.invoiceId || "-",
+      amount: money(overridePoints ?? row.redeemedPoints ?? row.earnedPoints ?? row.balanceAfter ?? 0),
+      points: Number(overridePoints ?? row.redeemedPoints ?? row.earnedPoints ?? row.balanceAfter ?? 0),
+      staffUser: row.createdBy || "system",
+      riskLevel,
+      suggestedAction,
+      createdAt: row.createdAt
+    };
+  }
+
+  latestRewardReminderStatus(clientId, access) {
+    const row = db.prepare(
+      `SELECT * FROM membership_whatsapp_reminders
+       WHERE tenant_id = @tenantId AND client_id = @clientId AND reminder_type = 'reward_expiry'
+       ORDER BY created_at DESC
+       LIMIT 1`
+    ).get({ tenantId: access.tenantId, clientId });
+    return row ? rowToReminder(row) : { status: "not_sent" };
+  }
+
   membershipEnterpriseReports(query = {}, access) {
     const branchId = query.branchId || "";
     if (branchId) tenantService.assertBranchAccess(access, branchId);
@@ -1861,6 +2397,10 @@ export class MembershipEnterpriseService {
       .filter((item) => !filters.clientId || item.clientId === filters.clientId)
       .filter((item) => !filters.planId || item.planId === filters.planId);
     const discountLeakage = this.membershipDiscountLeakage(snapshotRows, risks);
+    const redeemReport = this.membershipRedeemReport(query, access);
+    const membershipRedeem = redeemReport.rows || [];
+    const salesByCustomerReport = this.membershipSalesByCustomerReport(query, access);
+    const membershipSalesByCustomer = salesByCustomerReport.rows || [];
     const actionQueue = this.membershipActionQueue({
       expiringSoon,
       autoRenewFailedPayments,
@@ -1879,8 +2419,12 @@ export class MembershipEnterpriseService {
       autoRenewFailedPayments,
       upgradeDowngrade,
       discountLeakage,
+      membershipRedeem,
+      membershipSalesByCustomer,
       actionQueue
     });
+    const redeemSummary = redeemReport.summary || {};
+    const salesByCustomerSummary = salesByCustomerReport.summary || {};
     return {
       generatedAt: now(),
       filters,
@@ -1895,6 +2439,22 @@ export class MembershipEnterpriseService {
         autoRenewFailedPayments: autoRenewFailedPayments.length,
         upgradeDowngrade: upgradeDowngrade.length,
         discountLeakage: money(discountLeakage.reduce((sum, row) => sum + Number(row.discountAmount || row.totalDiscount || 0), 0)),
+        totalMembership: Number(redeemSummary.totalMembership || 0),
+        totalEwallet: money(redeemSummary.totalEwallet || 0),
+        totalRedeemed: money(redeemSummary.totalRedeemed || 0),
+        redeemCount: Number(redeemSummary.redeemCount || 0),
+        clientsWithActiveWallet: Number(redeemSummary.clientsWithActiveWallet || 0),
+        lastRedeemedToday: Number(redeemSummary.lastRedeemedToday || 0),
+        membershipRedeem: membershipRedeem.length,
+        membershipSalesByCustomer: membershipSalesByCustomer.length,
+        membershipSalesTotalCount: Number(salesByCustomerSummary.totalCount || 0),
+        membershipSalesOfferPrice: money(salesByCustomerSummary.totalOfferPrice || 0),
+        membershipSalesTotalEwallet: money(salesByCustomerSummary.totalEwallet || 0),
+        membershipSalesPendingEwallet: money(salesByCustomerSummary.pendingEwallet || 0),
+        membershipSalesTotalRedeemed: money(salesByCustomerSummary.totalRedeemed || 0),
+        membershipSalesRenewalCount: Number(salesByCustomerSummary.renewalCount || 0),
+        membershipSalesActiveMemberships: Number(salesByCustomerSummary.activeMemberships || 0),
+        membershipSalesExpiredMemberships: Number(salesByCustomerSummary.expiredMemberships || 0),
         highRiskSignals: risks.filter((risk) => ["high", "critical"].includes(risk.riskLevel)).length,
         actionQueue: actionQueue.length
       },
@@ -1909,10 +2469,385 @@ export class MembershipEnterpriseService {
         autoRenewFailedPayments,
         upgradeDowngrade,
         discountLeakage,
+        membershipRedeem,
+        membershipSalesByCustomer,
         actionQueue
       },
       exportRows: exportRows.slice(0, 2000)
     };
+  }
+
+  membershipRedeemReport(query = {}, access) {
+    const branchId = query.branchId || "";
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+    const filters = this.membershipReportFilters(query);
+    const memberships = repositories.memberships.list({ limit: 10000 }, scope(access, branchId));
+    const clients = repositories.clients.list({ limit: 10000 }, scope(access));
+    const clientById = new Map(clients.map((client) => [client.id, client]));
+    const ledger = this.ledgerList({ branchId, limit: 1000 }, access);
+    const snapshots = db.prepare(
+      `SELECT * FROM membership_invoice_snapshots
+       WHERE tenant_id = @tenantId
+         AND (@branchId = '' OR branch_id = @branchId)
+       ORDER BY created_at DESC
+       LIMIT 1000`
+    ).all({ tenantId: access.tenantId, branchId }).map(rowToSnapshot);
+    const latestWalletByClient = this.latestWalletBalanceByClient(access, branchId);
+    const rows = memberships
+      .map((membership) => this.membershipRedeemReportRow(membership, clientById, ledger, snapshots, latestWalletByClient, access))
+      .filter((row) => this.membershipRedeemReportMatches(row, filters))
+      .sort((a, b) => String(b.lastRedeemedAt || b.takenOn || "").localeCompare(String(a.lastRedeemedAt || a.takenOn || "")));
+    const todayKey = today();
+    const activeWalletClients = new Set(rows.filter((row) => Number(row.ewalletBalance || 0) > 0).map((row) => row.clientId).filter(Boolean));
+    return {
+      generatedAt: now(),
+      filters,
+      summary: {
+        totalMembership: rows.length,
+        totalEwallet: money(rows.reduce((sum, row) => sum + Number(row.ewalletBalance || 0), 0)),
+        totalRedeemed: money(rows.reduce((sum, row) => sum + Number(row.totalRedeemedAmount || 0), 0)),
+        redeemCount: rows.reduce((sum, row) => sum + Number(row.redeemCount || 0), 0),
+        clientsWithActiveWallet: activeWalletClients.size,
+        lastRedeemedToday: rows.filter((row) => row.lastRedeemedDate === todayKey).length
+      },
+      rows
+    };
+  }
+
+  membershipSalesByCustomerReport(query = {}, access) {
+    const branchId = query.branchId || "";
+    if (branchId) tenantService.assertBranchAccess(access, branchId);
+    const filters = this.membershipReportFilters(query);
+    const memberships = repositories.memberships.list({ limit: 10000 }, scope(access, branchId));
+    const clients = repositories.clients.list({ limit: 10000 }, scope(access));
+    const clientById = new Map(clients.map((client) => [client.id, client]));
+    const ledger = this.ledgerList({ branchId, limit: 1000 }, access);
+    const snapshots = db.prepare(
+      `SELECT * FROM membership_invoice_snapshots
+       WHERE tenant_id = @tenantId
+         AND (@branchId = '' OR branch_id = @branchId)
+       ORDER BY created_at DESC
+       LIMIT 1000`
+    ).all({ tenantId: access.tenantId, branchId }).map(rowToSnapshot);
+    const latestWalletByClient = this.latestWalletBalanceByClient(access, branchId);
+    const rows = memberships
+      .map((membership) => this.membershipSalesByCustomerRow(membership, clientById, ledger, snapshots, latestWalletByClient, access))
+      .filter((row) => this.membershipSalesByCustomerMatches(row, filters))
+      .sort((a, b) => String(b.sortAt || b.date || "").localeCompare(String(a.sortAt || a.date || "")));
+    return {
+      generatedAt: now(),
+      filters,
+      summary: {
+        totalCount: rows.length,
+        totalOfferPrice: money(rows.reduce((sum, row) => sum + Number(row.offerPrice || 0), 0)),
+        totalEwallet: money(rows.reduce((sum, row) => sum + Number(row.totalEwallet || 0), 0)),
+        pendingEwallet: money(rows.reduce((sum, row) => sum + Number(row.pendingEwallet || 0), 0)),
+        totalRedeemed: money(rows.reduce((sum, row) => sum + Number(row.redeemedAmount || 0), 0)),
+        renewalCount: rows.filter((row) => row.saleType === "Renewal").length,
+        activeMemberships: rows.filter((row) => row.status === "active").length,
+        expiredMemberships: rows.filter((row) => row.status === "expired").length
+      },
+      rows
+    };
+  }
+
+  latestWalletBalanceByClient(access, branchId = "") {
+    const latest = new Map();
+    const rows = repositories.walletTransactions.list({ limit: 10000 }, scope(access, branchId))
+      .sort((a, b) => String(b.createdAt || b.created_at || "").localeCompare(String(a.createdAt || a.created_at || "")));
+    for (const row of rows) {
+      const clientId = row.clientId || row.client_id || "";
+      if (!clientId || latest.has(clientId)) continue;
+      const balance = row.balanceAfter ?? row.balance_after ?? row.balance ?? row.amount ?? 0;
+      latest.set(clientId, money(balance));
+    }
+    return latest;
+  }
+
+  membershipRedeemReportRow(membership, clientById, ledger = [], snapshots = [], latestWalletByClient = new Map(), access) {
+    const client = clientById.get(membership.clientId) || {};
+    const plan = this.safeResolveMembershipPlan(membership, access) || {};
+    const planId = this.membershipPlanId(membership) || plan.id || "";
+    const planType = this.membershipPlanType(membership, plan);
+    const events = this.membershipRedeemEvents(membership, planId, ledger, snapshots);
+    const last = events[0] || null;
+    const walletBalance = latestWalletByClient.has(membership.clientId)
+      ? latestWalletByClient.get(membership.clientId)
+      : money(client.walletBalance || client.wallet_balance || 0);
+    return {
+      membershipId: membership.id,
+      clientId: membership.clientId,
+      clientName: client.name || client.fullName || membership.clientId || "Walk-in",
+      phone: client.phone || client.mobile || client.contact || "",
+      planId,
+      planName: membership.planName || plan.name || "Membership",
+      planType,
+      businessLabel: plan.name ? planBusinessLabel(plan, planType) : "",
+      branchId: membership.branchId || client.branchId || "",
+      ewalletBalance: money(walletBalance),
+      lastRedeemedAmount: money(last?.amount || 0),
+      totalRedeemedAmount: money(events.reduce((sum, event) => sum + Number(event.amount || 0), 0)),
+      redeemCount: events.length,
+      lastRedeemedAt: last?.createdAt || "",
+      lastRedeemedDate: last?.date || "",
+      lastRedeemedTime: last?.time || "",
+      invoiceId: last?.invoiceId || "",
+      saleId: last?.saleId || "",
+      posReference: last?.invoiceId || last?.saleId || last?.referenceNo || "",
+      status: events.length ? "redeemed" : "not_redeemed",
+      takenOn: this.membershipStartDate(membership)
+    };
+  }
+
+  membershipSalesByCustomerRow(membership, clientById, ledger = [], snapshots = [], latestWalletByClient = new Map(), access) {
+    const client = clientById.get(membership.clientId) || {};
+    const plan = this.safeResolveMembershipPlan(membership, access) || {};
+    const planId = this.membershipPlanId(membership) || plan.id || "";
+    const planType = this.membershipPlanType(membership, plan);
+    const salesEvents = this.membershipSalesByCustomerEvents(membership, planId, ledger, snapshots);
+    const saleEvent = salesEvents[0] || {};
+    const redeemEvents = this.membershipRedeemEvents(membership, planId, ledger, snapshots);
+    const walletBalance = latestWalletByClient.has(membership.clientId)
+      ? latestWalletByClient.get(membership.clientId)
+      : money(client.walletBalance || client.wallet_balance || 0);
+    const offerPrice = money(saleEvent.amount ?? membership.price ?? plan.price ?? 0);
+    const paidAmount = money(saleEvent.paidAmount ?? offerPrice);
+    const status = this.membershipSalesStatus(membership);
+    const date = dateOnly(saleEvent.createdAt || this.membershipStartDate(membership));
+    return {
+      membershipId: membership.id,
+      clientId: membership.clientId,
+      clientName: client.name || client.fullName || membership.clientId || "Walk-in",
+      phone: client.phone || client.mobile || client.contact || "",
+      planId,
+      planName: membership.planName || plan.name || "Membership",
+      planType,
+      businessLabel: plan.name ? planBusinessLabel(plan, planType) : "",
+      saleType: saleEvent.saleType || "New Sale",
+      offerPrice,
+      paidAmount,
+      dueAmount: money(Math.max(0, offerPrice - paidAmount)),
+      totalEwallet: money(saleEvent.totalEwallet || saleEvent.bonusAmount || walletBalance || 0),
+      pendingEwallet: money(Math.max(0, Number(walletBalance || 0))),
+      redeemedAmount: money(redeemEvents.reduce((sum, event) => sum + Number(event.amount || 0), 0)),
+      staffId: saleEvent.staffId || "",
+      staffName: saleEvent.staffName || "System",
+      invoiceId: saleEvent.invoiceId || "",
+      invoiceNumber: saleEvent.invoiceNumber || saleEvent.invoiceId || "",
+      saleId: saleEvent.saleId || "",
+      branchId: membership.branchId || client.branchId || saleEvent.branchId || "",
+      expiryDate: membership.validityDate || saleEvent.expiresOn || "",
+      status,
+      date,
+      time: this.timeOnly(saleEvent.createdAt || ""),
+      sortAt: saleEvent.createdAt || this.membershipStartDate(membership)
+    };
+  }
+
+  membershipSalesByCustomerEvents(membership = {}, planId = "", ledger = [], snapshots = []) {
+    const events = new Map();
+    const membershipId = membership.id || "";
+    const clientId = membership.clientId || "";
+    const add = (event) => {
+      const createdAt = event.createdAt || event.date || "";
+      const type = String(event.type || event.action || "");
+      const key = [event.invoiceId || event.saleId || event.id || createdAt, type, event.saleType || ""].join("|");
+      if (!createdAt && events.has(key)) return;
+      if (events.has(key)) return;
+      events.set(key, {
+        ...event,
+        amount: money(event.amount || 0),
+        paidAmount: money(event.paidAmount ?? event.amount ?? 0),
+        totalEwallet: money(event.totalEwallet || event.ewalletAmount || event.bonusAmount || 0),
+        createdAt,
+        date: dateOnly(createdAt),
+        time: this.timeOnly(createdAt),
+        saleType: /renew/i.test(type) ? "Renewal" : "New Sale"
+      });
+    };
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    for (const item of history) {
+      const type = String(item?.type || "");
+      if (!/membership_sale|membership_renew|renew/i.test(type)) continue;
+      add({
+        id: item.id || "",
+        type,
+        amount: item.amount ?? item.offerPrice ?? membership.price ?? 0,
+        paidAmount: item.paidAmount ?? item.amount ?? item.offerPrice ?? membership.price ?? 0,
+        totalEwallet: item.ewalletAmount ?? item.bonusAmount ?? item.creditAmount ?? 0,
+        bonusAmount: item.bonusAmount || 0,
+        createdAt: item.createdAt || item.date || item.renewedAt || "",
+        invoiceId: item.invoiceId || "",
+        invoiceNumber: item.invoiceNumber || "",
+        saleId: item.saleId || "",
+        referenceNo: item.referenceNo || "",
+        staffId: item.staffId || item.saleStaffId || "",
+        staffName: item.staffName || ""
+      });
+    }
+    for (const row of ledger) {
+      if (membershipId && row.membershipId !== membershipId) continue;
+      if (!membershipId && row.clientId !== clientId) continue;
+      if (planId && row.planId && row.planId !== planId) continue;
+      if (!["sold", "renew"].includes(row.action)) continue;
+      add({
+        id: row.id,
+        type: row.action,
+        amount: row.amount,
+        paidAmount: row.paidAmount || row.amount,
+        totalEwallet: row.snapshot?.wallet?.amount || row.snapshot?.plan?.benefitRules?.creditAmount || row.snapshot?.plan?.benefitRules?.bonusAmount || 0,
+        createdAt: row.createdAt,
+        invoiceId: row.invoiceId,
+        invoiceNumber: row.snapshot?.invoice?.invoiceNumber || row.invoiceId || "",
+        saleId: row.saleId,
+        branchId: row.branchId,
+        expiresOn: row.expiresOn,
+        staffId: row.snapshot?.staffId || row.snapshot?.actor?.userId || row.actorUserId || "",
+        staffName: row.snapshot?.staffName || row.snapshot?.actor?.name || row.snapshot?.actor?.label || "System"
+      });
+    }
+    for (const snapshot of snapshots) {
+      const sameMembership = membershipId && snapshot.membershipId === membershipId;
+      const sameClientPlan = !snapshot.membershipId && snapshot.clientId === clientId && (!planId || !snapshot.planId || snapshot.planId === planId);
+      if (!sameMembership && !sameClientPlan) continue;
+      const type = snapshot.terms?.membershipSale?.type || snapshot.terms?.membershipRenewal?.type || "";
+      if (!type || !/sale|renew/i.test(type)) continue;
+      add({
+        id: snapshot.id,
+        type,
+        amount: snapshot.invoiceTotal || 0,
+        paidAmount: snapshot.invoiceTotal || 0,
+        createdAt: snapshot.createdAt,
+        invoiceId: snapshot.invoiceId,
+        invoiceNumber: snapshot.terms?.invoiceNumber || snapshot.invoiceId || "",
+        saleId: snapshot.saleId,
+        branchId: snapshot.branchId,
+        staffId: snapshot.terms?.membershipSale?.staffId || snapshot.terms?.membershipRenewal?.staffId || "",
+        staffName: snapshot.terms?.membershipSale?.staffName || snapshot.terms?.membershipRenewal?.staffName || ""
+      });
+    }
+    return [...events.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  }
+
+  membershipSalesStatus(membership = {}) {
+    const status = String(membership.status || "active").toLowerCase();
+    if (["cancelled", "canceled", "voided", "deleted"].includes(status)) return "cancelled";
+    if (membership.validityDate && membership.validityDate < today()) return "expired";
+    return status || "active";
+  }
+
+  membershipSalesByCustomerMatches(row, filters) {
+    const matchDate = row.date || "";
+    if (filters.fromDate && matchDate && matchDate < filters.fromDate) return false;
+    if (filters.toDate && matchDate && matchDate > filters.toDate) return false;
+    if (filters.branchId && row.branchId !== filters.branchId) return false;
+    if (filters.planId && row.planId !== filters.planId) return false;
+    if (filters.clientId && row.clientId !== filters.clientId) return false;
+    if (filters.planType && row.planType !== filters.planType) return false;
+    if (filters.staffId && row.staffId !== filters.staffId) return false;
+    if (filters.status && row.status !== filters.status) return false;
+    if (filters.saleType === "new" && row.saleType !== "New Sale") return false;
+    if (filters.saleType === "renewal" && row.saleType !== "Renewal") return false;
+    if (filters.walletBalance === "positive" && Number(row.pendingEwallet || 0) <= 0) return false;
+    if (filters.walletBalance === "zero" && Number(row.pendingEwallet || 0) !== 0) return false;
+    const search = String(filters.clientSearch || "").toLowerCase();
+    if (search && ![row.clientName, row.phone, row.planName, row.invoiceNumber, row.staffName].join(" ").toLowerCase().includes(search)) return false;
+    return true;
+  }
+
+  membershipPlanType(membership = {}, plan = {}) {
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    const fromHistory = history.find((item) => item?.planType)?.planType;
+    return planTypeFromRules(plan, { ...membership, planType: fromHistory || membership.planType });
+  }
+
+  membershipRedeemEvents(membership = {}, planId = "", ledger = [], snapshots = []) {
+    const events = new Map();
+    const membershipId = membership.id || "";
+    const clientId = membership.clientId || "";
+    const add = (event) => {
+      const amount = money(event.amount || 0);
+      if (amount <= 0 && !event.invoiceId && !event.createdAt) return;
+      const createdAt = event.createdAt || event.date || "";
+      const key = [event.invoiceId || event.saleId || event.id || createdAt, amount, event.type || ""].join("|");
+      if (events.has(key)) return;
+      events.set(key, {
+        ...event,
+        amount,
+        createdAt,
+        date: dateOnly(createdAt),
+        time: this.timeOnly(createdAt)
+      });
+    };
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    for (const item of history) {
+      const type = String(item?.type || "");
+      const amount = Number(item?.redeemedAmount || item?.discountAmount || item?.amount || item?.value || item?.creditsUsed || 0);
+      if (!/redeem|discount|credit_used|wallet_used/i.test(type) && amount <= 0) continue;
+      add({
+        id: item.id || "",
+        type,
+        amount,
+        createdAt: item.redeemedAt || item.createdAt || item.date || "",
+        invoiceId: item.invoiceId || "",
+        saleId: item.saleId || "",
+        referenceNo: item.referenceNo || ""
+      });
+    }
+    for (const row of ledger) {
+      if (membershipId && row.membershipId !== membershipId) continue;
+      if (!membershipId && row.clientId !== clientId) continue;
+      if (planId && row.planId && row.planId !== planId) continue;
+      if (!["redeemed", "discount_applied"].includes(row.action)) continue;
+      add({
+        id: row.id,
+        type: row.action,
+        amount: row.discountAmount || row.amount || Math.max(0, Number(row.creditsBefore || 0) - Number(row.creditsAfter || 0)),
+        createdAt: row.createdAt,
+        invoiceId: row.invoiceId,
+        saleId: row.saleId,
+        referenceNo: row.snapshot?.payment?.referenceNo || ""
+      });
+    }
+    for (const snapshot of snapshots) {
+      const sameMembership = membershipId && snapshot.membershipId === membershipId;
+      const sameClientPlan = !snapshot.membershipId && snapshot.clientId === clientId && (!planId || !snapshot.planId || snapshot.planId === planId);
+      if (!sameMembership && !sameClientPlan) continue;
+      add({
+        id: snapshot.id,
+        type: Number(snapshot.creditsUsed || 0) > 0 ? "redeemed" : "discount_applied",
+        amount: snapshot.discountAmount || snapshot.creditsUsed || 0,
+        createdAt: snapshot.createdAt,
+        invoiceId: snapshot.invoiceId,
+        saleId: snapshot.saleId
+      });
+    }
+    return [...events.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  }
+
+  membershipRedeemReportMatches(row, filters) {
+    const matchDate = row.lastRedeemedDate || row.takenOn || "";
+    if (filters.fromDate && matchDate && matchDate < filters.fromDate) return false;
+    if (filters.toDate && matchDate && matchDate > filters.toDate) return false;
+    if (filters.branchId && row.branchId !== filters.branchId) return false;
+    if (filters.planId && row.planId !== filters.planId) return false;
+    if (filters.clientId && row.clientId !== filters.clientId) return false;
+    if (filters.planType && row.planType !== filters.planType) return false;
+    if (filters.redeemStatus && row.status !== filters.redeemStatus) return false;
+    if (filters.walletBalance === "positive" && Number(row.ewalletBalance || 0) <= 0) return false;
+    if (filters.walletBalance === "zero" && Number(row.ewalletBalance || 0) !== 0) return false;
+    const search = String(filters.clientSearch || "").toLowerCase();
+    if (search && ![row.clientName, row.phone, row.planName, row.posReference].join(" ").toLowerCase().includes(search)) return false;
+    return true;
+  }
+
+  timeOnly(value) {
+    const raw = String(value || "");
+    if (!raw) return "";
+    const date = new Date(raw);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const match = raw.match(/T(\d{2}:\d{2})/);
+    return match ? match[1] : "";
   }
 
   membershipActionQueue({ expiringSoon = [], autoRenewFailedPayments = [], creditLiability = [], planWiseProfitability = [], risks = [] } = {}) {
@@ -2025,6 +2960,11 @@ export class MembershipEnterpriseService {
       `Auto-renew failed/missing payment: ${metrics.autoRenewFailedPayments || 0}`,
       `Upgrade/downgrade rows: ${metrics.upgradeDowngrade || 0}`,
       `Discount leakage: Rs ${metrics.discountLeakage || 0}`,
+      `Membership redeem count: ${metrics.redeemCount || 0}`,
+      `Membership redeemed: Rs ${metrics.totalRedeemed || 0}`,
+      `Membership ewallet: Rs ${metrics.totalEwallet || 0}`,
+      `Membership sales by customer: ${metrics.membershipSalesTotalCount || 0}`,
+      `Membership sales offer price: Rs ${metrics.membershipSalesOfferPrice || 0}`,
       `High risk signals: ${metrics.highRiskSignals || 0}`,
       ...report.exportRows.slice(0, 45).map((row) => `${row.report}: ${row.primary || row.clientName || row.planName || row.staffName || ""} ${row.amount || row.value || ""}`)
     ];
@@ -2037,9 +2977,14 @@ export class MembershipEnterpriseService {
       toDate: text(query.toDate || query.endDate || ""),
       branchId: text(query.branchId || ""),
       planId: text(query.planId || ""),
+      planType: text(query.planType || ""),
       staffId: text(query.staffId || ""),
       clientId: text(query.clientId || ""),
+      clientSearch: text(query.clientSearch || query.client || query.q || ""),
       status: text(query.status || ""),
+      saleType: text(query.saleType || ""),
+      redeemStatus: text(query.redeemStatus || ""),
+      walletBalance: text(query.walletBalance || ""),
       paymentMode: text(query.paymentMode || ""),
       riskLevel: text(query.riskLevel || "all")
     };
@@ -2239,10 +3184,22 @@ export class MembershipEnterpriseService {
       membershipId: row.membershipId || row.id || "",
       clientId: row.clientId || "",
       clientName: row.clientName || "",
+      phone: row.phone || "",
       planId: row.planId || "",
       planName: row.planName || "",
+      planType: row.planType || "",
       staffId: row.staffId || "",
       staffName: row.staffName || "",
+      saleType: row.saleType || "",
+      offerPrice: row.offerPrice ?? "",
+      paidAmount: row.paidAmount ?? "",
+      dueAmount: row.dueAmount ?? "",
+      totalEwallet: row.totalEwallet ?? row.ewalletBalance ?? "",
+      pendingEwallet: row.pendingEwallet ?? "",
+      redeemedAmount: row.redeemedAmount ?? row.totalRedeemedAmount ?? "",
+      invoiceNumber: row.invoiceNumber || row.invoiceId || "",
+      branchId: row.branchId || "",
+      expiryDate: row.expiryDate || row.expiresOn || "",
       status: row.status || row.action || row.riskLevel || "",
       amount,
       value: row.revenue ?? row.liabilityValue ?? row.discountAmount ?? row.amount ?? "",
@@ -2259,6 +3216,8 @@ export class MembershipEnterpriseService {
     for (const row of reportSets.autoRenewFailedPayments || []) push("auto_renew_failed_payments", row, row.clientName, row.price);
     for (const row of reportSets.upgradeDowngrade || []) push("upgrade_downgrade", row, row.clientName, row.amount || row.refundAmount);
     for (const row of reportSets.discountLeakage || []) push("discount_leakage", row, row.invoiceId, row.discountAmount);
+    for (const row of reportSets.membershipRedeem || []) push("membership_redeem", row, row.clientName, row.lastRedeemedAmount || row.ewalletBalance);
+    for (const row of reportSets.membershipSalesByCustomer || []) push("membership_sales_by_customer", row, row.clientName, row.offerPrice || row.totalEwallet || row.redeemedAmount);
     for (const row of reportSets.actionQueue || []) push("membership_action_queue", row, row.primary, row.amount || row.value);
     return rows;
   }
@@ -3152,6 +4111,34 @@ export class MembershipEnterpriseService {
     return records;
   }
 
+  currentMonthUsage(membership = {}) {
+    const prefix = today().slice(0, 7);
+    const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
+    return history
+      .filter((item) => String(item?.date || item?.createdAt || "").slice(0, 7) === prefix)
+      .reduce((sum, item) => sum + Math.max(1, Number(item?.creditsUsed || item?.credits || item?.quantity || 0)), 0);
+  }
+
+  tierSuggestionForClient(client = {}, plan = {}) {
+    const rules = plan?.benefitRules || {};
+    const tier = rules.tier || {};
+    const spendThreshold = Number(tier.spendThreshold || 0);
+    const visitThreshold = Number(tier.visitThreshold || 0);
+    const totalSpend = Number(client.totalSpend || client.total_spend || 0);
+    const visitCount = Number(client.visitCount || client.visit_count || 0);
+    const eligible = Boolean((spendThreshold > 0 && totalSpend >= spendThreshold) || (visitThreshold > 0 && visitCount >= visitThreshold));
+    return {
+      eligible,
+      tierName: tier.name || plan.name || "",
+      spendThreshold,
+      visitThreshold,
+      totalSpend,
+      visitCount,
+      gapSpend: Math.max(0, spendThreshold - totalSpend),
+      gapVisits: Math.max(0, visitThreshold - visitCount)
+    };
+  }
+
   discountPercent(membership = {}) {
     const credits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
     return Number(credits.find((item) => item?.type === "bill_discount")?.percent || 0);
@@ -3164,6 +4151,8 @@ export class MembershipEnterpriseService {
 
   membershipWalletSnapshot(membership = {}, viewerClientId = "", familyRows = [], access = {}) {
     const plan = this.resolveMembershipPlan(membership, access);
+    const client = repositories.clients.getById(membership.clientId, scope(access)) || {};
+    const planType = planTypeFromRules(plan);
     const history = Array.isArray(membership.redeemHistory) ? membership.redeemHistory : [];
     const totalCredits = Math.max(Number(membership.planCredits || 0), Number(membership.creditsRemaining || 0), 0);
     const remainingCredits = Math.max(Number(membership.creditsRemaining || 0), 0);
@@ -3172,12 +4161,24 @@ export class MembershipEnterpriseService {
     const ownedByViewer = membership.clientId === viewerClientId;
     const sharingRows = familyRows.filter((row) => row.primary_client_id === membership.clientId || row.member_client_id === membership.clientId);
     const entitlementType = entitlementTypeFromMembership(membership);
+    const prepaidCredit = Array.isArray(membership.serviceCredits)
+      ? membership.serviceCredits.find((credit) => credit?.type === "prepaid_credit")
+      : null;
+    const creditRules = prepaidCredit?.benefitRules && typeof prepaidCredit.benefitRules === "object" ? prepaidCredit.benefitRules : {};
+    const benefitRules = { ...(plan.benefitRules || {}), ...creditRules };
+    const fairUsage = benefitRules.fairUsage || {};
+    const monthlyCap = Math.max(0, Number(fairUsage.monthlyCap || 0));
+    const monthlyUsed = planType === "unlimited" ? this.currentMonthUsage(membership) : 0;
+    const monthlyRemaining = monthlyCap > 0 ? Math.max(0, monthlyCap - monthlyUsed) : remainingCredits;
+    const effectiveRemaining = planType === "unlimited" ? monthlyRemaining : remainingCredits;
     return {
       membershipId: membership.id,
       clientId: membership.clientId,
       ownedByViewer,
       shareSource: ownedByViewer ? "own" : "family",
       entitlementType,
+      planType,
+      businessLabel: planBusinessLabel(plan, planType),
       membership,
       planId: plan.id || this.membershipPlanId(membership),
       planName: membership.planName || plan.name || "Membership",
@@ -3189,14 +4190,25 @@ export class MembershipEnterpriseService {
         serviceDiscountPercent: Number(this.discountPercent(membership) || plan.discountPercent || 0),
         productDiscountPercent: Number(this.productDiscountPercent(membership) || plan.productDiscountPercent || 0),
         includedServices: plan.includedServices || [],
-        benefitRules: plan.benefitRules || {}
+        benefitRules
       },
       serviceCredits: {
         total: totalCredits,
         used: usedCredits,
-        remaining: remainingCredits,
+        remaining: effectiveRemaining,
+        rawRemaining: remainingCredits,
         history: history.filter((item) => Number(item?.credits || item?.creditsUsed || 0) > 0).slice(0, 10)
       },
+      fairUsage: {
+        monthlyCap,
+        monthlyUsed,
+        monthlyRemaining,
+        status: monthlyCap > 0 && monthlyRemaining <= 0 ? "limit_reached" : monthlyCap > 0 && monthlyRemaining <= 1 ? "near_limit" : "available"
+      },
+      corporate: benefitRules.corporate || {},
+      occasionBenefits: benefitRules.occasionBenefits || {},
+      priorityBooking: Boolean(benefitRules.priorityBooking),
+      tierSuggestion: this.tierSuggestionForClient(client, plan),
       familySharing: {
         enabled: sharingRows.length > 0,
         role: ownedByViewer ? "owner" : "shared_member",
@@ -3317,12 +4329,25 @@ export class MembershipEnterpriseService {
 
   createReminder(membership, plan, client, daysBefore, dueOn, access) {
     if (!membership?.validityDate || !client) return null;
+    return this.createTypedReminder({
+      membership,
+      plan,
+      client,
+      reminderType: "renewal",
+      dueOn,
+      daysBefore,
+      message: `Hi ${client.name || "there"}, your ${membership.planName} membership expires on ${membership.validityDate}. Reply to renew.`,
+      payload: { phone: client.phone || "", membershipName: membership.planName, expiresOn: membership.validityDate }
+    }, access);
+  }
+
+  createTypedReminder({ membership, plan, client, reminderType = "renewal", dueOn = today(), daysBefore = 0, message = "", payload = {} } = {}, access) {
+    if (!membership?.id || !client) return null;
     const existing = db.prepare(
       `SELECT id FROM membership_whatsapp_reminders
        WHERE tenant_id = ? AND client_id = ? AND membership_id = ? AND reminder_type = ? AND due_on = ?`
-    ).get(access.tenantId, client.id, membership.id, "renewal", dueOn);
+    ).get(access.tenantId, client.id, membership.id, reminderType, dueOn);
     if (existing) return null;
-    const message = `Hi ${client.name || "there"}, your ${membership.planName} membership expires on ${membership.validityDate}. Reply to renew.`;
     const row = {
       id: makeId("mwa"),
       tenant_id: access.tenantId,
@@ -3330,12 +4355,12 @@ export class MembershipEnterpriseService {
       client_id: client.id,
       membership_id: membership.id,
       plan_id: plan?.id || this.membershipPlanId(membership),
-      reminder_type: "renewal",
+      reminder_type: reminderType,
       due_on: dueOn,
       days_before: daysBefore,
       status: "queued",
       message,
-      payload_json: stringify({ phone: client.phone || "", membershipName: membership.planName, expiresOn: membership.validityDate }, {}),
+      payload_json: stringify({ phone: client.phone || "", membershipName: membership.planName, ...payload }, {}),
       approved_by: "",
       sent_at: "",
       created_at: now(),

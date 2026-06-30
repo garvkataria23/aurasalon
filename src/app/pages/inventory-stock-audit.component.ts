@@ -1,33 +1,111 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-stock-audit',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-enterprise-page">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Inventory / Audit</span>
-          <h2>Stock audit, leakage detection and branch transfer approval</h2>
-          <p>Expected stock vs actual stock variance, theft/leakage signals, and transfer recommendations before new purchase.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory</a>
+      <app-inventory-zenoti-chrome
+        title="Stock audit and leakage detection"
+        breadcrumb="Inventory > Audit"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="primary-button" type="button" (click)="runLeakageScan()" [disabled]="saving()">Run leakage scan</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>
 
-      <div class="audit-panels two">
+      <section class="zenoti-audit-workspace">
+        <div class="zenoti-result-bar">
+          <div>
+            <strong>{{ activeAuditCount() }}</strong><span>Results</span>
+            <small class="status-chip">Status: audit active in this center</small>
+          </div>
+          <div class="zenoti-totals">
+            <span>Counts <strong>{{ counts().length }}</strong></span>
+            <span>Leakage <strong>{{ leakage().length }}</strong></span>
+            <span>Transfers <strong>{{ recommendations().length }}</strong></span>
+            <span>Open variance <strong>{{ openVarianceValue() | currency:'INR':'symbol':'1.0-0' }}</strong></span>
+          </div>
+        </div>
+
+        <div class="zenoti-filter-row">
+          <div class="tab-strip">
+            <button type="button" [class.active]="activeView() === 'counts'" (click)="activeView.set('counts')">Counts</button>
+            <button type="button" [class.active]="activeView() === 'leakage'" (click)="activeView.set('leakage')">Leakage</button>
+            <button type="button" [class.active]="activeView() === 'transfers'" (click)="activeView.set('transfers')">Transfers</button>
+          </div>
+          <button class="primary-button" type="button" (click)="runLeakageScan()" [disabled]="saving()">Run leakage scan</button>
+        </div>
+
+        <div class="zenoti-table-wrap" *ngIf="activeView() === 'counts'">
+          <table>
+            <thead><tr><th>Count no</th><th>Status</th><th>Branch</th><th>Variance value</th><th>Lines</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let count of counts()">
+                <td><strong>{{ count.countNumber || count.id }}</strong><small>{{ count.createdAt || count.created_at || 'Stock count' }}</small></td>
+                <td><span class="audit-chip" [class.warn]="count.status !== 'submitted'">{{ count.status || 'draft' }}</span></td>
+                <td>{{ branchName(count.branchId) }}</td>
+                <td>{{ count.totalVarianceValue | currency:'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ lineCount(count) }}</td>
+                <td><button class="zenoti-mini-button" type="button" (click)="submitCount(count)" [disabled]="count.status === 'submitted' || saving()">Submit</button></td>
+              </tr>
+              <tr *ngIf="!counts().length"><td colspan="6" class="empty-cell">No stock counts yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="zenoti-table-wrap" *ngIf="activeView() === 'leakage'">
+          <table>
+            <thead><tr><th>Finding</th><th>Product</th><th>Severity</th><th>Estimated loss</th><th>Status</th><th>Reference</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let finding of leakage()">
+                <td><strong>{{ finding.findingType || 'Leakage' }}</strong><small>{{ finding.createdAt || finding.created_at || 'Finding' }}</small></td>
+                <td>{{ productName(finding.productId) }}</td>
+                <td><span class="audit-chip danger">{{ finding.severity || 'risk' }}</span></td>
+                <td>{{ finding.estimatedLoss | currency:'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ finding.status || 'open' }}</td>
+                <td>{{ finding.referenceType || '-' }} {{ finding.referenceId || '' }}</td>
+              </tr>
+              <tr *ngIf="!leakage().length"><td colspan="6" class="empty-cell">No leakage findings right now.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="zenoti-table-wrap" *ngIf="activeView() === 'transfers'">
+          <table>
+            <thead><tr><th>Product</th><th>Source</th><th>Target</th><th>Quantity</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let item of recommendations()">
+                <td><strong>{{ item.productName || productName(item.productId) }}</strong><small>{{ item.productId || item.sourceProductId || 'Transfer' }}</small></td>
+                <td>{{ branchName(item.sourceBranchId) }}</td>
+                <td>{{ branchName(item.targetBranchId) }}</td>
+                <td>{{ item.quantity || 0 }} units</td>
+                <td>{{ item.reason || 'Move stock before buying' }}</td>
+                <td><button class="zenoti-mini-button" type="button" (click)="useTransfer(item)">Use</button></td>
+              </tr>
+              <tr *ngIf="!recommendations().length"><td colspan="6" class="empty-cell">No branch transfer recommendation.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="zenoti-footer">
+          <span>1 to {{ activeAuditCount() }} of {{ activeAuditCount() }}</span>
+          <span>{{ countForm.value.branchId ? 'Branch scope active' : 'All branches' }}</span>
+        </div>
+      </section>
+
+      <div class="enterprise-grid two audit-workdesk">
         <section class="panel">
           <div class="section-title"><div><span class="eyebrow">Stock count</span><h2>Actual quantity entry</h2></div></div>
           <form [formGroup]="countForm" (ngSubmit)="createCount()" class="audit-form">
@@ -46,74 +124,161 @@ import { StateComponent } from '../shared/ui/state/state.component';
             <label class="field"><span>Target branch</span><select formControlName="targetBranchId"><option value="">Target</option><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
             <label class="field"><span>Product</span><select formControlName="sourceProductId"><option value="">Product</option><option *ngFor="let product of products()" [value]="product.id">{{ product.name }}</option></select></label>
             <label class="field"><span>Quantity</span><input type="number" formControlName="quantity" /></label>
-            <label class="field full"><span>Reason</span><input formControlName="reason" placeholder="Transfer recommended before purchase" /></label>
+            <label class="field full"><span>Reason</span><input formControlName="reason" /></label>
             <div class="form-actions full"><button class="primary-button" type="submit" [disabled]="transferForm.invalid || saving()">Request transfer approval</button></div>
           </form>
-        </section>
-      </div>
-
-      <div class="audit-panels three">
-        <section class="panel">
-          <div class="section-title"><div><span class="eyebrow">Counts</span><h2>Variance register</h2></div></div>
-          <div class="audit-list">
-            <article class="audit-row" *ngFor="let count of counts()">
-              <div class="audit-row-info">
-                <strong class="audit-row-title">{{ count.countNumber }}</strong>
-                <span class="audit-row-meta">{{ count.status }} · variance {{ count.totalVarianceValue | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-              <button class="ghost-button mini" type="button" (click)="submitCount(count)" [disabled]="count.status === 'submitted' || saving()">Submit</button>
-            </article>
-          </div>
-          <p class="muted" *ngIf="!counts().length">No stock counts yet.</p>
-        </section>
-
-        <section class="panel">
-          <div class="section-title"><div><span class="eyebrow">Leakage</span><h2>Theft / waste findings</h2></div></div>
-          <div class="audit-list">
-            <article class="audit-row danger" *ngFor="let finding of leakage()">
-              <div class="audit-row-info">
-                <strong class="audit-row-title">{{ finding.findingType }}</strong>
-                <span class="audit-row-meta">{{ productName(finding.productId) }} · loss {{ finding.estimatedLoss | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-              <span class="badge severity-{{ finding.severity }}">{{ finding.severity }}</span>
-            </article>
-          </div>
-          <p class="muted" *ngIf="!leakage().length">No leakage findings right now.</p>
-        </section>
-
-        <section class="panel">
-          <div class="section-title"><div><span class="eyebrow">Optimizer</span><h2>Transfer recommendations</h2></div></div>
-          <div class="audit-list">
-            <article class="audit-row" *ngFor="let item of recommendations()">
-              <div class="audit-row-info">
-                <strong class="audit-row-title">{{ item.productName }}</strong>
-                <span class="audit-row-meta">{{ branchName(item.sourceBranchId) }} → {{ branchName(item.targetBranchId) }} · {{ item.quantity }} units</span>
-              </div>
-              <button class="ghost-button mini" type="button" (click)="useTransfer(item)">Use</button>
-            </article>
-          </div>
-          <p class="muted" *ngIf="!recommendations().length">No branch transfer recommendation.</p>
         </section>
       </div>
     </section>
   `,
   styles: [`
-    .audit-panels { display: grid; gap: 14px; }
-    .audit-panels.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .audit-panels.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .inventory-enterprise-page { gap: 0; }
+    .section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .zenoti-audit-workspace {
+      background: #fff;
+      border: 1px solid #d8e1ea;
+      display: grid;
+      overflow: hidden;
+    }
+    .zenoti-result-bar,
+    .zenoti-filter-row,
+    .zenoti-footer {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+    .zenoti-result-bar,
+    .zenoti-filter-row { border-bottom: 1px solid #d8e1ea; }
+    .zenoti-result-bar > div,
+    .zenoti-totals {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .zenoti-result-bar strong {
+      color: #152033;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .zenoti-result-bar span,
+    .zenoti-footer {
+      color: #50637d;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .status-chip,
+    .audit-chip {
+      background: #eaf6ff;
+      border: 1px solid #b9d0e7;
+      border-radius: 999px;
+      color: #173f62;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    .audit-chip.warn { background: #fff3d8; border-color: #f7d48a; color: #7c4d00; }
+    .audit-chip.danger { background: #fff1f0; border-color: #ffc8c2; color: #a51d16; }
+    .tab-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab-strip button {
+      background: #fff;
+      border: 1px solid #b9d0e7;
+      border-radius: 3px;
+      color: #075f9e;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 8px 12px;
+    }
+    .tab-strip button.active { box-shadow: inset 0 -3px 0 #f25a1d; }
+    .zenoti-table-wrap { overflow: auto; }
+    table {
+      border-collapse: collapse;
+      min-width: 1120px;
+      width: 100%;
+    }
+    th,
+    td {
+      border-bottom: 1px solid #dfe6ee;
+      color: #243142;
+      font-size: 13px;
+      padding: 11px 14px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      background: #f5f8fb;
+      color: #5d6e84;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    td strong {
+      color: #075f9e;
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    td small {
+      color: #61738d;
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+    .zenoti-mini-button {
+      background: #fff;
+      border: 1px solid #b9d0e7;
+      border-radius: 3px;
+      color: #075f9e;
+      cursor: pointer;
+      display: inline-flex;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 7px 10px;
+      text-decoration: none;
+    }
+    .empty-cell {
+      color: #61738d;
+      font-weight: 800;
+      padding: 28px 14px;
+      text-align: center;
+    }
+    .zenoti-footer {
+      border-top: 1px solid #d8e1ea;
+      justify-content: flex-end;
+    }
+    .enterprise-grid { display: grid; gap: 14px; }
+    .enterprise-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .audit-workdesk {
+      background: #fff;
+      border: 1px solid #d8e1ea;
+      border-top: 0;
+      padding: 14px 16px;
+    }
+    .audit-workdesk .panel {
+      border: 1px solid #d8e1ea;
+      border-radius: 3px;
+      box-shadow: none;
+    }
     .audit-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .audit-form.transfer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .audit-form .field.full { grid-column: 1 / -1; }
-    .audit-list { display: grid; gap: 6px; }
-    .audit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid rgba(79, 70, 229, 0.1); border-radius: 18px; background: rgba(255, 255, 255, 0.92); }
-    .audit-row.danger { border-color: rgba(185, 28, 28, 0.2); background: #fff8f8; }
-    .audit-row-info { display: grid; gap: 2px; }
-    .audit-row-title { font-size: 0.92rem; font-weight: 650; color: var(--ink); }
-    .audit-row-meta { font-size: 0.78rem; color: var(--muted); }
-    .badge.severity-high { background: rgba(185, 28, 28, 0.1); color: var(--red); }
-    .badge.severity-medium { background: rgba(217, 119, 6, 0.1); color: var(--amber); }
-    .badge.severity-low { background: rgba(5, 150, 105, 0.1); color: var(--green); }
-    @media (max-width: 1100px) { .audit-panels.two, .audit-panels.three { grid-template-columns: 1fr; } .audit-form { grid-template-columns: 1fr; } }
+    .audit-form .full { grid-column: 1 / -1; }
+    @media (max-width: 1100px) {
+      .enterprise-grid.two,
+      .audit-form,
+      .audit-form.transfer { grid-template-columns: 1fr; }
+      .zenoti-result-bar,
+      .zenoti-filter-row,
+      .zenoti-footer { align-items: flex-start; display: grid; }
+    }
   `]
 })
 export class InventoryStockAuditComponent implements OnInit {
@@ -126,6 +291,7 @@ export class InventoryStockAuditComponent implements OnInit {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly success = signal('');
+  readonly activeView = signal<'counts' | 'leakage' | 'transfers'>('counts');
 
   readonly countForm = this.fb.group({
     branchId: ['', Validators.required],
@@ -209,6 +375,30 @@ export class InventoryStockAuditComponent implements OnInit {
       next: () => { this.success.set('Branch transfer request created for approval.'); this.saving.set(false); this.load(); },
       error: (error) => { this.error.set(error?.error?.error || error?.message || 'Unable to create transfer request'); this.saving.set(false); }
     });
+  }
+
+  activeAuditCount(): number {
+    if (this.activeView() === 'leakage') return this.leakage().length;
+    if (this.activeView() === 'transfers') return this.recommendations().length;
+    return this.counts().length;
+  }
+
+  openVarianceValue(): number {
+    return this.counts().reduce((total, count) => total + Number(count.totalVarianceValue || 0), 0);
+  }
+
+  lineCount(count: ApiRecord): number {
+    const raw = count.lines || count.items || count.varianceLines || count.variance_lines;
+    if (Array.isArray(raw)) return raw.length;
+    if (typeof raw === 'string' && raw.trim()) {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.length : 0;
+      } catch {
+        return 0;
+      }
+    }
+    return Number(count.lineCount || count.line_count || 0);
   }
 
   productName(id: string): string { return this.products().find((item) => item.id === id)?.name || id || 'Product'; }

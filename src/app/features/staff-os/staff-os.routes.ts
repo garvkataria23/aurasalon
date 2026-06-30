@@ -8,8 +8,8 @@ export const STAFF_OS_ROUTES: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'staff-list' },
       { path: 'workspace', loadComponent: () => import('./pages/staff-workspace.page').then((m) => m.StaffWorkspacePage), title: 'Staff Workspace' },
-      { path: 'salary-workspace', loadComponent: () => import('./pages/staff-salary-workspace.page').then((m) => m.StaffSalaryWorkspacePage), title: 'Staff OS - Salary Workspace' },
-      { path: 'staff-salary-workspace', pathMatch: 'full', redirectTo: 'salary-workspace' },
+      { path: 'salary-workspace', loadComponent: () => import('./pages/salary-workspace.page').then((m) => m.SalaryWorkspacePage), title: 'Staff OS - Salary Setup' },
+      { path: 'staff-salary-workspace', loadComponent: () => import('./pages/salary-workspace.page').then((m) => m.SalaryWorkspacePage), title: 'Staff OS - Salary Setup' },
       { path: 'employee-masters', loadComponent: () => import('./pages/employee-masters.page').then((m) => m.EmployeeMastersPage), title: 'Staff OS - Employee Masters' },
       { path: 'staff-list', loadComponent: () => import('./pages/staff-list.page').then((m) => m.StaffListPage), title: 'Staff OS - Staff List' },
       { path: 'staff-categories', loadComponent: () => import('./pages/staff-categories.page').then((m) => m.StaffCategoriesPage), title: 'Staff OS - Staff Categories' },
@@ -33,6 +33,7 @@ export const STAFF_OS_ROUTES: Routes = [
       { path: 'attendance-dashboard', loadComponent: () => import('./pages/attendance-dashboard.page').then((m) => m.AttendanceDashboardPage), title: 'Staff OS - Attendance' },
       { path: 'face-punch', loadComponent: () => import('./pages/face-punch.page').then((m) => m.FacePunchPage), title: 'Staff OS - Face Punch' },
       { path: 'payroll-dashboard', loadComponent: () => import('./pages/payroll-dashboard.page').then((m) => m.PayrollDashboardPage), title: 'Staff OS - Payroll' },
+      { path: 'payroll-history', loadComponent: () => import('./pages/payroll-history.page').then((m) => m.PayrollHistoryPage), title: 'Staff OS - Payroll History' },
       { path: 'payroll-rules', loadComponent: () => import('./pages/payroll-rules.page').then((m) => m.PayrollRulesPage), title: 'Staff OS - Payroll Rules' },
       { path: 'salary-generate', loadComponent: () => import('./pages/salary-generate.page').then((m) => m.SalaryGeneratePage), title: 'Staff OS - Salary Generate' },
       { path: 'generate-salary', pathMatch: 'full', redirectTo: 'salary-generate' },

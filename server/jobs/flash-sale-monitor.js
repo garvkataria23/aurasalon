@@ -1,5 +1,6 @@
 import { db } from "../db.js";
 import { flashSaleRepo } from "../repositories/flash-sale.repo.js";
+import { logger } from "../utils/logger.js";
 import { happyHoursEngine } from "../utils/happy-hours-engine.js";
 
 const TRIGGER_HOURS_BEFORE = 2;
@@ -14,7 +15,7 @@ function branchScopes() {
       .all()
       .filter((row) => row.tenantId && row.branchId);
   } catch (error) {
-    console.warn("[FlashSale] Scope lookup skipped", error.message);
+    logger.warn("flash_sale_scope_lookup_skipped", { error: error.message });
     return [];
   }
 }
@@ -42,7 +43,7 @@ function isBooked({ tenantId, branchId, slotDate, slotTime }) {
     `).get({ tenantId, branchId, slotDate, slotTime });
     return Number(row?.count || 0) > 0;
   } catch (error) {
-    console.warn("[FlashSale] Appointment lookup skipped", error.message);
+    logger.warn("flash_sale_appointment_lookup_skipped", { error: error.message });
     return true;
   }
 }
@@ -62,14 +63,16 @@ export function runFlashSaleCheck() {
           expiresAt: Math.floor(Date.now() / 1000) + FLASH_DURATION_MINS * 60,
           triggerReason: "empty_slot"
         });
-        console.log("[FlashSale] Created for slot", created.slotDate, created.slotTime, "branch", created.branchId);
+        logger.info("flash_sale_created", { slotDate: created.slotDate, slotTime: created.slotTime, branchId: created.branchId });
       }
     }
   } catch (error) {
-    console.warn("[FlashSale] Monitor skipped", error.message);
+    logger.warn("flash_sale_monitor_skipped", { error: error.message });
   }
 }
 
 const flashSaleTimer = setInterval(runFlashSaleCheck, CHECK_INTERVAL_MS);
 if (typeof flashSaleTimer.unref === "function") flashSaleTimer.unref();
 runFlashSaleCheck();
+
+

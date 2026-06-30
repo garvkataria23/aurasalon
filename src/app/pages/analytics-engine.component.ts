@@ -9,278 +9,625 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
   selector: 'app-analytics-engine',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe, StateComponent, AuraKpiCardComponent],
-  styles: [`
-    :host { display: block; padding: 4px 8px 28px; }
-    .page-stack { gap: 16px; }
-    .metrics-grid { gap: 12px; }
-    .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
-    .inline-form label { display: grid; gap: 3px; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #536173; min-width: 130px; flex: 1; }
-    .inline-form input, .inline-form select { border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; font: inherit; min-height: 36px; font-size: 13px; }
-    .inline-form .form-actions { display: flex; gap: 6px; }
-    .accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
-    .accordion-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; cursor: pointer; border: 0; background: none; width: 100%; font: inherit; text-align: left; color: var(--ink); }
-    .accordion-header:hover { background: rgba(79,70,229,0.04); }
-    .accordion-header .arrow { font-size: 14px; color: #8a9aa8; transition: transform 180ms; }
-    .accordion-header.open .arrow { transform: rotate(180deg); }
-    .accordion-body { padding: 0 16px 16px; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .two-col > section { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfdfc; }
-    .section-label { font-size: 13px; font-weight: 800; margin: 0 0 8px; }
-    .snapshot-scroll { max-height: 200px; overflow: auto; }
-    .meta-row { display: flex; flex-wrap: wrap; gap: 16px; color: #607083; font-size: 12px; }
-    .meta-row span { display: inline-flex; align-items: center; gap: 4px; }
-    @media (max-width: 768px) { :host { padding: 2px 4px 20px; } .page-stack { gap: 12px; } .inline-form { flex-direction: column; } .inline-form label { min-width: 100%; } .two-col { grid-template-columns: 1fr; } }
-  `],
   template: `
     <section class="page-stack">
       <div class="module-hero">
         <div>
-          <span class="eyebrow">Analytics engine</span>
-          <h2>Forecast, retention, productivity &amp; heatmaps</h2>
-          <p>Live metrics from appointments, sales, clients, memberships and staff data.</p>
+          <span class="eyebrow">Advanced analytics engine</span>
+          <h2>Forecasting, productivity, retention, churn, heatmaps and branch reports</h2>
+          <p>Analytics runs calculate from persisted appointments, sales, invoices, clients, memberships, staff, inventory and WhatsApp leads.</p>
         </div>
         <div class="form-actions">
           <button class="ghost-button" type="button" (click)="createSchedule()">Schedule digest</button>
-          <button class="ghost-button" type="button" (click)="run()">Run now</button>
+          <button class="ghost-button" type="button" (click)="runAnomalyScan()">Run anomaly scan</button>
+          <button class="ghost-button" type="button" (click)="run()">Generate snapshot</button>
         </div>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <div class="inline-form">
-        <label><span>From</span><input type="date" formControlName="periodStart" /></label>
-        <label><span>To</span><input type="date" formControlName="periodEnd" /></label>
-        <label><span>Branch</span>
-          <select formControlName="branchId">
-            <option value="">All branches</option>
-            <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option>
-          </select>
-        </label>
-        <div class="form-actions">
-          <button class="primary-button" type="button" (click)="run()" [disabled]="loading()">Refresh</button>
+      <section class="panel" *ngIf="commandCenter() as command">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">Analytics control room</span>
+            <h2>Insights, scheduled reports, export controls and anomaly detection</h2>
+          </div>
+          <span class="badge">{{ command.exportControls.allowed ? 'Export controlled' : 'Export blocked' }}</span>
         </div>
-      </div>
+        <div class="quick-grid">
+          <article class="action-card">
+            <strong>{{ command.anomalyDetection.open }}</strong>
+            <span>Open anomalies</span>
+            <small>{{ command.anomalyDetection.critical }} critical · {{ command.anomalyDetection.warning }} warning</small>
+          </article>
+          <article class="action-card">
+            <strong>{{ command.scheduledReports.length }}</strong>
+            <span>Scheduled reports</span>
+            <small>{{ command.exportControls.message }}</small>
+          </article>
+          <article class="action-card" *ngFor="let insight of command.aiInsights">
+            <strong>{{ insight.title }}</strong>
+            <span>{{ insight.recommendation }}</span>
+            <small>{{ insight.severity }}</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="form-panel">
+        <h3>Analysis scope</h3>
+        <form [formGroup]="filterForm" (ngSubmit)="run()">
+          <label class="field">
+            <span>Period start</span>
+            <input type="date" formControlName="periodStart" />
+          </label>
+          <label class="field">
+            <span>Period end</span>
+            <input type="date" formControlName="periodEnd" />
+          </label>
+          <label class="field">
+            <span>Branch</span>
+            <select formControlName="branchId">
+              <option value="">All branches</option>
+              <option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit" [disabled]="loading()">Run analytics</button>
+          </div>
+        </form>
+      </section>
 
       <ng-container *ngIf="metrics() as metrics">
         <div class="metrics-grid">
           <aura-kpi-card tone="teal" target="/kpi-details/analytics/14-day-forecast">
             <span>14-day forecast</span>
             <strong>{{ metrics.revenueForecast.projected14DayRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
-            <small>{{ metrics.revenueForecast.trendPercent | number: '1.0-1' }}% trend</small>
+            <small>{{ metrics.revenueForecast.trendPercent | number: '1.0-1' }}% recent trend</small>
           </aura-kpi-card>
           <aura-kpi-card tone="amber" target="/kpi-details/analytics/peak-hour">
             <span>Peak hour</span>
-            <strong>{{ metrics.peakHours.topHours?.[0]?.label || '—' }}</strong>
+            <strong>{{ metrics.peakHours.topHours?.[0]?.label || 'No data' }}</strong>
             <small>{{ metrics.peakHours.topHours?.[0]?.bookings || 0 }} bookings</small>
           </aura-kpi-card>
           <aura-kpi-card tone="green" target="/kpi-details/analytics/repeat-rate">
             <span>Repeat rate</span>
             <strong>{{ metrics.repeatCustomers.repeatRate | number: '1.0-1' }}%</strong>
-            <small>{{ metrics.repeatCustomers.repeatClients }} repeat</small>
+            <small>{{ metrics.repeatCustomers.repeatClients }} repeat clients</small>
           </aura-kpi-card>
           <aura-kpi-card tone="red" target="/kpi-details/analytics/high-churn-risk">
-            <span>Churn risk</span>
+            <span>High churn risk</span>
             <strong>{{ metrics.churn.highRisk }}</strong>
-            <small>Score {{ metrics.churn.averageRiskScore | number: '1.0-1' }}</small>
+            <small>Avg risk {{ metrics.churn.averageRiskScore | number: '1.0-1' }}</small>
           </aura-kpi-card>
           <aura-kpi-card tone="blue" target="/kpi-details/analytics/average-ltv">
-            <span>Avg LTV</span>
+            <span>Average LTV</span>
             <strong>{{ metrics.lifetimeValue.avgLtv | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>{{ metrics.lifetimeValue.totalLtv | currency: 'INR':'symbol':'1.0-0' }} total</small>
           </aura-kpi-card>
           <aura-kpi-card tone="violet" target="/kpi-details/analytics/membership-revenue">
-            <span>Membership rev</span>
+            <span>Membership revenue</span>
             <strong>{{ metrics.membershipPerformance.revenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <small>{{ metrics.membershipPerformance.activeCount }} active</small>
           </aura-kpi-card>
           <aura-kpi-card tone="slate" target="/kpi-details/analytics/funnel-paid">
             <span>Funnel paid</span>
             <strong>{{ funnelStage('Paid')?.conversionFromLead || 0 }}%</strong>
-            <small>Lead → invoice</small>
+            <small>From lead to paid invoice</small>
           </aura-kpi-card>
           <aura-kpi-card tone="rose" target="/kpi-details/analytics/branches">
             <span>Branches</span>
             <strong>{{ metrics.branchComparison.length }}</strong>
-            <small>{{ metrics.branchComparison[0]?.name || '—' }}</small>
+            <small>{{ metrics.branchComparison[0]?.name || 'No branch data' }}</small>
           </aura-kpi-card>
         </div>
 
-        <section class="accordion">
-          <button class="accordion-header" [class.open]="openSection() === 'forecast'" type="button" (click)="toggleSection('forecast')">
-            <span><strong>Revenue forecast &amp; funnel</strong><span class="meta-row" style="margin-top:4px"><span>14-day projection</span><span>Conversion stages</span></span></span>
-            <span class="arrow">▾</span>
-          </button>
-          <div class="accordion-body" *ngIf="openSection() === 'forecast'">
-            <div class="two-col">
-              <section>
-                <h3 class="section-label">Revenue forecast</h3>
-                <div class="chart-bars">
-                  <div *ngFor="let point of metrics.revenueForecast.forecast14Days">
-                    <span>{{ point.date | date: 'MMM d' }}</span>
-                    <i [style.height.%]="forecastHeight(point.projectedRevenue)"></i>
-                    <strong>{{ point.projectedRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
-                  </div>
-                </div>
-              </section>
-              <section>
-                <h3 class="section-label">Conversion funnel</h3>
-                <div class="summary-lines">
-                  <div *ngFor="let stage of metrics.conversionFunnel.stages">
-                    <span>{{ stage.stage }}</span>
-                    <strong>{{ stage.count }} · {{ stage.conversionFromLead | number: '1.0-1' }}%</strong>
-                  </div>
-                </div>
-              </section>
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Executive insights</span>
+              <h2>Generated snapshot {{ snapshot()?.id }}</h2>
             </div>
+          </div>
+          <div class="quick-grid">
+            <article class="action-card" *ngFor="let insight of insights()">
+              <strong>{{ insight }}</strong>
+              <span>Persisted analytics insight</span>
+            </article>
           </div>
         </section>
 
-        <section class="accordion">
-          <button class="accordion-header" [class.open]="openSection() === 'staff'" type="button" (click)="toggleSection('staff')">
-            <span><strong>Staff &amp; churn</strong><span class="meta-row" style="margin-top:4px"><span>Productivity scores</span><span>Risk analysis</span></span></span>
-            <span class="arrow">▾</span>
-          </button>
-          <div class="accordion-body" *ngIf="openSection() === 'staff'">
-            <div class="two-col">
-              <section>
-                <h3 class="section-label">Staff productivity</h3>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>Staff</th><th>Score</th><th>Revenue</th><th>Bookings</th><th>Completion</th></tr></thead>
-                    <tbody>
-                      <tr *ngFor="let person of metrics.staffProductivity">
-                        <td><strong>{{ person.name }}</strong><small>{{ person.role }}</small></td>
-                        <td>{{ person.productivityScore | number: '1.0-1' }}</td>
-                        <td>{{ person.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
-                        <td>{{ person.bookings }}</td>
-                        <td>{{ person.completionRate | number: '1.0-1' }}%</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-              <section>
-                <h3 class="section-label">Churn analysis</h3>
-                <div class="rank-list">
-                  <article *ngFor="let client of metrics.churn.clients">
-                    <div>
-                      <strong>{{ client.name }}</strong>
-                      <span>{{ client.risk }} risk · {{ client.inactiveDays }}d inactive</span>
-                    </div>
-                    <div class="right">
-                      <strong>{{ client.score }}</strong>
-                      <small>{{ client.recommendedAction }}</small>
-                    </div>
-                  </article>
-                </div>
-              </section>
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Revenue forecast</h2></div>
+            <div class="chart-bars">
+              <div *ngFor="let point of metrics.revenueForecast.forecast14Days">
+                <span>{{ point.date | date: 'MMM d' }}</span>
+                <i [style.height.%]="forecastHeight(point.projectedRevenue)"></i>
+                <strong>{{ point.projectedRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+              </div>
             </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Conversion funnel</h2></div>
+            <div class="summary-lines">
+              <div *ngFor="let stage of metrics.conversionFunnel.stages">
+                <span>{{ stage.stage }}</span>
+                <strong>{{ stage.count }} · {{ stage.conversionFromLead | number: '1.0-1' }}%</strong>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Heatmap</span>
+              <h2>Booking and revenue intensity by day and hour</h2>
+            </div>
+          </div>
+          <div class="heatmap-grid">
+            <article *ngFor="let cell of metrics.heatmaps.strongestCells" [style.background]="heatColor(cell.intensity)">
+              <strong>{{ cell.dayLabel }} {{ cell.hour }}:00</strong>
+              <span>{{ cell.bookings }} bookings · {{ cell.revenue | currency: 'INR':'symbol':'1.0-0' }}</span>
+            </article>
           </div>
         </section>
 
-        <section class="accordion">
-          <button class="accordion-header" [class.open]="openSection() === 'ltv'" type="button" (click)="toggleSection('ltv')">
-            <span><strong>LTV &amp; membership</strong><span class="meta-row" style="margin-top:4px"><span>Client lifetime value</span><span>Credit redemption</span></span></span>
-            <span class="arrow">▾</span>
-          </button>
-          <div class="accordion-body" *ngIf="openSection() === 'ltv'">
-            <div class="two-col">
-              <section>
-                <h3 class="section-label">Lifetime value</h3>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>Client</th><th>LTV</th><th>Avg ticket</th><th>Projected annual</th><th>Loyalty</th></tr></thead>
-                    <tbody>
-                      <tr *ngFor="let client of metrics.lifetimeValue.topClients">
-                        <td>{{ client.name }}</td>
-                        <td>{{ client.lifetimeValue | currency: 'INR':'symbol':'1.0-0' }}</td>
-                        <td>{{ client.avgTicket | currency: 'INR':'symbol':'1.0-0' }}</td>
-                        <td>{{ client.projectedAnnualValue | currency: 'INR':'symbol':'1.0-0' }}</td>
-                        <td>{{ client.loyaltyPoints }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-              <section>
-                <h3 class="section-label">Membership</h3>
-                <div class="summary-lines">
-                  <div><span>Credits sold</span><strong>{{ metrics.membershipPerformance.creditsSold }}</strong></div>
-                  <div><span>Credits redeemed</span><strong>{{ metrics.membershipPerformance.creditsRedeemed }}</strong></div>
-                  <div><span>Redemption rate</span><strong>{{ metrics.membershipPerformance.redemptionRate | number: '1.0-1' }}%</strong></div>
-                  <div><span>Auto renewals</span><strong>{{ metrics.membershipPerformance.autoRenewCount }}</strong></div>
-                </div>
-              </section>
-            </div>
-          </div>
-        </section>
-
-        <section class="accordion">
-          <button class="accordion-header" [class.open]="openSection() === 'heatmap'" type="button" (click)="toggleSection('heatmap')">
-            <span><strong>Heatmap &amp; branches</strong><span class="meta-row" style="margin-top:4px"><span>Booking intensity</span><span>Branch comparison</span></span></span>
-            <span class="arrow">▾</span>
-          </button>
-          <div class="accordion-body" *ngIf="openSection() === 'heatmap'">
-            <div class="heatmap-grid" style="margin-bottom:12px">
-              <article *ngFor="let cell of metrics.heatmaps.strongestCells" [style.background]="heatColor(cell.intensity)">
-                <strong>{{ cell.dayLabel }} {{ cell.hour }}:00</strong>
-                <span>{{ cell.bookings }} bks · {{ cell.revenue | currency: 'INR':'symbol':'1.0-0' }}</span>
-              </article>
-            </div>
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Staff productivity scoring</h2></div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Branch</th><th>Revenue</th><th>Sales</th><th>Bookings</th><th>Completion</th><th>Repeat</th><th>Stock</th></tr></thead>
+                <thead><tr><th>Staff</th><th>Score</th><th>Revenue</th><th>Bookings</th><th>Completion</th></tr></thead>
                 <tbody>
-                  <tr *ngFor="let branch of metrics.branchComparison">
-                    <td><strong>{{ branch.name }}</strong><small>{{ branch.city }}</small></td>
-                    <td>{{ branch.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
-                    <td>{{ branch.sales }}</td>
-                    <td>{{ branch.appointments }}</td>
-                    <td>{{ branch.completionRate | number: '1.0-1' }}%</td>
-                    <td>{{ branch.repeatRate | number: '1.0-1' }}%</td>
-                    <td>{{ branch.lowStock }}</td>
+                  <tr *ngFor="let person of metrics.staffProductivity">
+                    <td><strong>{{ person.name }}</strong><small>{{ person.role }}</small></td>
+                    <td>{{ person.productivityScore | number: '1.0-1' }}</td>
+                    <td>{{ person.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ person.bookings }}</td>
+                    <td>{{ person.completionRate | number: '1.0-1' }}%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="panel compact-panel" *ngIf="insights().length">
-          <div>
-            <span class="eyebrow">Executive insights</span>
-            <div class="quick-grid" style="margin-top:8px">
-              <article class="action-card" *ngFor="let insight of insights()">
-                <strong>{{ insight }}</strong>
-                <span>Persisted insight</span>
+          <section class="panel">
+            <div class="section-title"><h2>Churn analysis</h2></div>
+            <div class="rank-list">
+              <article *ngFor="let client of metrics.churn.clients">
+                <div>
+                  <strong>{{ client.name }}</strong>
+                  <span>{{ client.risk }} risk · {{ client.inactiveDays }} inactive days</span>
+                </div>
+                <div class="right">
+                  <strong>{{ client.score }}</strong>
+                  <small>{{ client.recommendedAction }}</small>
+                </div>
               </article>
             </div>
+          </section>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-title"><h2>Lifetime value</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Client</th><th>LTV</th><th>Avg ticket</th><th>Projected annual</th><th>Loyalty</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let client of metrics.lifetimeValue.topClients">
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.lifetimeValue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.avgTicket | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.projectedAnnualValue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                    <td>{{ client.loyaltyPoints }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><h2>Membership performance</h2></div>
+            <div class="summary-lines">
+              <div><span>Credits sold</span><strong>{{ metrics.membershipPerformance.creditsSold }}</strong></div>
+              <div><span>Credits redeemed</span><strong>{{ metrics.membershipPerformance.creditsRedeemed }}</strong></div>
+              <div><span>Redemption rate</span><strong>{{ metrics.membershipPerformance.redemptionRate | number: '1.0-1' }}%</strong></div>
+              <div><span>Auto renewals</span><strong>{{ metrics.membershipPerformance.autoRenewCount }}</strong></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="section-title"><h2>Branch comparison</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Branch</th><th>Revenue</th><th>Sales</th><th>Bookings</th><th>Completion</th><th>Repeat</th><th>Low stock</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let branch of metrics.branchComparison">
+                  <td><strong>{{ branch.name }}</strong><small>{{ branch.city }}</small></td>
+                  <td>{{ branch.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ branch.sales }}</td>
+                  <td>{{ branch.appointments }}</td>
+                  <td>{{ branch.completionRate | number: '1.0-1' }}%</td>
+                  <td>{{ branch.repeatRate | number: '1.0-1' }}%</td>
+                  <td>{{ branch.lowStock }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </ng-container>
 
-      <section class="panel compact-panel">
-        <div class="section-title" style="margin-bottom:8px">
-          <span class="eyebrow">Run history</span>
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">Persisted snapshots</span>
+            <h2>Analytics run history</h2>
+          </div>
         </div>
-        <div class="table-wrap snapshot-scroll">
+        <div class="table-wrap">
           <table>
             <thead><tr><th>Snapshot</th><th>Period</th><th>Branch</th><th>Status</th><th>Created</th></tr></thead>
             <tbody>
               <tr *ngFor="let item of snapshots()">
                 <td>{{ item.id }}</td>
                 <td>{{ item.periodStart }} to {{ item.periodEnd }}</td>
-                <td>{{ item.branchId || 'All' }}</td>
+                <td>{{ item.branchId || 'All branches' }}</td>
                 <td><span class="badge">{{ item.status }}</span></td>
                 <td>{{ item.createdAt | date: 'short' }}</td>
               </tr>
-              <tr *ngIf="!snapshots().length"><td colspan="5">No snapshots yet.</td></tr>
+              <tr *ngIf="!snapshots().length"><td colspan="5">No analytics snapshots yet.</td></tr>
             </tbody>
           </table>
         </div>
       </section>
     </section>
-  `
+  `,
+  styles: [`
+    :host {
+      display: block;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .page-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .module-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .module-hero h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1.35rem;
+      line-height: 1.18;
+    }
+
+    .module-hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .form-actions .ghost-button,
+    .form-actions .primary-button {
+      min-height: 34px;
+      border-radius: 6px;
+      padding: 0 12px;
+      box-shadow: none;
+    }
+
+    .panel,
+    .form-panel {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .section-title h2,
+    .form-panel h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border: 1px solid var(--success-border, #A7F3D0);
+      border-radius: 999px;
+      color: var(--success-text, #065F46);
+      background: var(--success-bg, #ECFDF5);
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    .quick-grid,
+    .metrics-grid,
+    .dashboard-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quick-grid {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .metrics-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    aura-kpi-card {
+      min-width: 0;
+    }
+
+    .action-card,
+    .summary-lines div,
+    .rank-list article,
+    .heatmap-grid article {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: none;
+    }
+
+    .action-card {
+      display: grid;
+      gap: 6px;
+      min-height: 94px;
+      padding: 12px;
+      border-top: 3px solid var(--color-primary);
+    }
+
+    .action-card strong {
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .action-card span,
+    .action-card small {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .form-panel form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    input,
+    select {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: var(--surface);
+      padding: 0 10px;
+    }
+
+    .chart-bars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+      gap: 8px;
+      align-items: end;
+      min-height: 220px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .chart-bars div {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 6px;
+      align-items: end;
+      height: 190px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-align: center;
+    }
+
+    .chart-bars i {
+      width: 100%;
+      min-height: 8px;
+      border-radius: 6px 6px 0 0;
+      background: linear-gradient(180deg, var(--color-primary), var(--color-primary-strong));
+    }
+
+    .chart-bars strong {
+      color: var(--ink);
+      font-size: 0.74rem;
+    }
+
+    .summary-lines {
+      display: grid;
+      gap: 8px;
+    }
+
+    .summary-lines div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+    }
+
+    .summary-lines span,
+    .rank-list span,
+    .rank-list small {
+      color: var(--muted);
+    }
+
+    .summary-lines strong,
+    .rank-list strong {
+      color: var(--ink);
+    }
+
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+    }
+
+    .heatmap-grid article {
+      min-height: 76px;
+      padding: 12px;
+      color: var(--ink);
+    }
+
+    .heatmap-grid strong,
+    .heatmap-grid span {
+      display: block;
+    }
+
+    .heatmap-grid span {
+      margin-top: 5px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: var(--muted);
+      background: var(--surface-2);
+      font-size: 0.75rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    td strong,
+    td small {
+      display: block;
+    }
+
+    td small {
+      color: var(--muted);
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rank-list article {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .rank-list .right {
+      text-align: right;
+    }
+
+    @media (max-width: 1180px) {
+      .metrics-grid,
+      .dashboard-grid,
+      .form-panel form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .module-hero,
+      .section-title,
+      .rank-list article {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .metrics-grid,
+      .dashboard-grid,
+      .form-panel form {
+        grid-template-columns: 1fr;
+      }
+
+      .form-actions {
+        justify-content: flex-start;
+      }
+    }
+  `]
 })
 export class AnalyticsEngineComponent implements OnInit {
   readonly snapshot = signal<ApiRecord | null>(null);
@@ -291,7 +638,6 @@ export class AnalyticsEngineComponent implements OnInit {
   readonly branches = signal<ApiRecord[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
-  readonly openSection = signal('');
 
   readonly filterForm = this.fb.group({
     periodStart: [this.defaultStart()],
@@ -375,10 +721,6 @@ export class AnalyticsEngineComponent implements OnInit {
       next: () => this.loadCommandCenter(),
       error: (error) => this.error.set(this.api.errorText(error))
     });
-  }
-
-  toggleSection(section: string): void {
-    this.openSection.set(this.openSection() === section ? '' : section);
   }
 
   funnelStage(stage: string): ApiRecord | null {

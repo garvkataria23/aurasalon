@@ -1,4 +1,5 @@
 import { happyHoursAutoSunsetRepo } from "../repositories/happy-hours-auto-sunset.repo.js";
+import { logger } from "../utils/logger.js";
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
@@ -8,11 +9,11 @@ export function runOfferAutoSunsetJob() {
       try {
         happyHoursAutoSunsetRepo.runAutoSunset({ ...scope, apply: true, source: "job" });
       } catch (error) {
-        console.warn("[OfferAutoSunset] Branch skipped", scope.branchId, error.message);
+        logger.warn("offer_auto_sunset_branch_skipped", { branchId: scope.branchId, error: error.message });
       }
     }
   } catch (error) {
-    console.warn("[OfferAutoSunset] Job skipped", error.message);
+    logger.warn("offer_auto_sunset_job_skipped", { error: error.message });
   }
 }
 

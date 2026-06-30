@@ -46,6 +46,79 @@ interface ClientHistory {
   timeline?: AppointmentActivityRow[];
 }
 
+interface AppointmentRegisterRow {
+  id: string;
+  appointmentId: string;
+  bookingGroupId: string;
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  branchId: string;
+  branchName: string;
+  staffId: string;
+  staffName: string;
+  bookingMode: string;
+  bookedAt: string;
+  appointmentStartAt: string;
+  appointmentEndAt: string;
+  durationMinutes: number;
+  serviceNames: string;
+  status: string;
+  cancelReason: string;
+  notes: string;
+  createdBy: string;
+  lastUpdatedBy: string;
+  lastUpdatedAt: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  total: number;
+  paid: number;
+  balance: number;
+  paymentStatus: string;
+  invoiceStatus: string;
+  messageStatus: { status: string; count: number; latestAt: string };
+  timeline: AppointmentActivityRow[];
+  timelineCount: number;
+  problemFlags: string[];
+}
+
+interface SmartAlert {
+  level: 'high' | 'medium' | 'low';
+  title: string;
+  detail: string;
+  action: string;
+  appointmentId: string;
+  clientName: string;
+}
+
+interface StaffPerformanceRow {
+  staffId: string;
+  staffName: string;
+  appointments: number;
+  completed: number;
+  cancelled: number;
+  noShows: number;
+  notBilled: number;
+  revenue: number;
+  due: number;
+  averageDuration: number;
+  completionRate: number;
+}
+
+interface ClientScoreRow {
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  appointments: number;
+  completed: number;
+  cancelled: number;
+  noShows: number;
+  due: number;
+  score: number;
+  label: string;
+  suggestion: string;
+}
+
 @Component({
   selector: 'app-appointment-activity',
   standalone: true,
@@ -54,12 +127,13 @@ interface ClientHistory {
     <section class="appointment-activity-page">
       <div class="module-hero">
         <div>
-          <span class="eyebrow">Appointments / activity</span>
-          <h2>Appointment Activity & Client Reliability Center</h2>
-          <p>Track booking changes, cancellations, reschedules, no-shows, completion history and client reliability in one audit view.</p>
+          <span class="eyebrow">Appointments / register</span>
+          <h2>Appointment Report & Full History Register</h2>
+          <p>Every appointment, booking time, status change, cancellation reason, POS invoice, payment balance and timeline in one page.</p>
         </div>
         <div class="hero-actions">
           <a class="ghost-button" routerLink="/appointments">Back to calendar</a>
+          <a class="ghost-button" routerLink="/appointment-reports">Appointment reports</a>
           <button class="primary-button" type="button" (click)="refreshAll()">Refresh</button>
         </div>
       </div>
@@ -73,6 +147,110 @@ interface ClientHistory {
           <small>{{ card.hint }}</small>
         </article>
       </div>
+
+      <section class="owner-command-grid" *ngIf="!loading()">
+        <article class="panel owner-summary-panel">
+          <div class="section-title activity-title">
+            <div>
+              <span class="eyebrow">Owner dashboard</span>
+              <h3>Live appointment control</h3>
+            </div>
+            <span>{{ filteredRegisterRows().length }} appointment(s)</span>
+          </div>
+          <div class="owner-summary-grid">
+            <article *ngFor="let card of ownerCards" [ngClass]="card.tone">
+              <span>{{ card.label }}</span>
+              <strong>{{ card.value }}</strong>
+              <small>{{ card.hint }}</small>
+            </article>
+          </div>
+        </article>
+
+        <article class="panel whatsapp-report-panel">
+          <div class="section-title activity-title">
+            <div>
+              <span class="eyebrow">WhatsApp daily report</span>
+              <h3>Owner summary ready</h3>
+            </div>
+            <button class="ghost-button mini" type="button" (click)="copyWhatsappSummary()">Copy</button>
+          </div>
+          <textarea readonly [value]="whatsappSummary"></textarea>
+          <small *ngIf="copyMessage()">{{ copyMessage() }}</small>
+        </article>
+      </section>
+
+      <section class="panel smart-alert-panel" *ngIf="!loading() && smartAlerts.length">
+        <div class="section-title activity-title">
+          <div>
+            <span class="eyebrow">Smart problem finder</span>
+            <h3>Live alerts to fix today</h3>
+          </div>
+          <span>{{ smartAlerts.length }} alert(s)</span>
+        </div>
+        <div class="alert-grid">
+          <article *ngFor="let alert of smartAlerts" [ngClass]="alert.level">
+            <span>{{ alert.title }}</span>
+            <strong>{{ alert.clientName }}</strong>
+            <p>{{ alert.detail }}</p>
+            <small>{{ alert.action }}</small>
+            <button class="ghost-button mini" type="button" (click)="openRegisterByAppointment(alert.appointmentId)">Open timeline</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="insight-grid" *ngIf="!loading()">
+        <article class="panel insight-panel">
+          <div class="section-title activity-title">
+            <div>
+              <span class="eyebrow">Staff performance</span>
+              <h3>Staff-wise live appointment view</h3>
+            </div>
+          </div>
+          <div class="compact-table-wrap">
+            <table class="compact-table">
+              <thead>
+                <tr>
+                  <th>Staff</th>
+                  <th>Appt</th>
+                  <th>Done</th>
+                  <th>Cancel</th>
+                  <th>Not billed</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of staffPerformance">
+                  <td><strong>{{ row.staffName }}</strong><small>{{ row.completionRate }}% completion · {{ row.averageDuration }} min avg</small></td>
+                  <td>{{ row.appointments }}</td>
+                  <td>{{ row.completed }}</td>
+                  <td>{{ row.cancelled }}</td>
+                  <td>{{ row.notBilled }}</td>
+                  <td>{{ row.revenue | currency: 'INR':'symbol':'1.0-0' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel insight-panel">
+          <div class="section-title activity-title">
+            <div>
+              <span class="eyebrow">Client reliability score</span>
+              <h3>Risky clients and follow-up</h3>
+            </div>
+          </div>
+          <div class="client-score-list">
+            <article *ngFor="let client of clientScores">
+              <div>
+                <strong>{{ client.clientName }}</strong>
+                <small>{{ client.clientPhone || client.clientId }} · {{ client.appointments }} appointment(s)</small>
+              </div>
+              <span class="risk-pill" [ngClass]="client.score < 55 ? 'high' : client.score < 75 ? 'medium' : 'low'">{{ client.score }}% {{ client.label }}</span>
+              <small>{{ client.suggestion }}</small>
+            </article>
+          </div>
+        </article>
+      </section>
 
       <section class="panel filter-panel" *ngIf="!loading()">
         <div class="section-title activity-title">
@@ -117,6 +295,30 @@ interface ClientHistory {
               <option value="NO_SHOW">No-show</option>
               <option value="COMPLETED">Completed</option>
               <option value="BILLED">Billed</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Appointment status</span>
+            <select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
+              <option value="">All status</option>
+              <option value="booked">Booked</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="arrived">Arrived</option>
+              <option value="in-service">In service</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no-show">No-show</option>
+              <option value="billed">Billed</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Payment status</span>
+            <select [(ngModel)]="paymentStatus" (ngModelChange)="applyFilters()">
+              <option value="">All payment</option>
+              <option value="not_billed">Not billed</option>
+              <option value="paid">Paid</option>
+              <option value="partial">Partial</option>
+              <option value="unpaid">Unpaid</option>
             </select>
           </label>
           <label class="field">
@@ -206,7 +408,85 @@ interface ClientHistory {
         </div>
       </section>
 
+      <section class="panel table-panel register-panel" *ngIf="!loading()">
+        <div class="section-title activity-title">
+          <div>
+            <span class="eyebrow">Appointment register</span>
+            <h3>Full appointment history</h3>
+          </div>
+          <div class="action-row">
+            <span>{{ filteredRegisterRows().length }} appointment(s)</span>
+            <button class="ghost-button mini" type="button" (click)="exportCsv()" [disabled]="!filteredRegisterRows().length">Export CSV</button>
+            <button class="ghost-button mini" type="button" (click)="exportPdf()" [disabled]="!filteredRegisterRows().length">Export PDF</button>
+          </div>
+        </div>
+        <div class="table-wrap" *ngIf="filteredRegisterRows().length; else emptyRegisterState">
+          <table class="register-table">
+            <thead>
+              <tr>
+                <th>Booked / appointment</th>
+                <th>Client</th>
+                <th>Staff / service</th>
+                <th>Status</th>
+                <th>Invoice / payment</th>
+                <th>SMS/WA</th>
+                <th>Problems</th>
+                <th>View</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of filteredRegisterRows(); trackBy: trackByRegister" [class.selected]="selectedRegister()?.id === row.id">
+                <td>
+                  <strong>{{ formatDateTime(row.appointmentStartAt) }}</strong>
+                  <small>Booked {{ formatDateTime(row.bookedAt) }} · {{ label(row.bookingMode) }}</small>
+                </td>
+                <td>
+                  <a [routerLink]="['/clients', row.clientId]" *ngIf="row.clientId; else plainClient">{{ row.clientName }}</a>
+                  <ng-template #plainClient><strong>{{ row.clientName }}</strong></ng-template>
+                  <small>{{ row.clientPhone || row.clientId }}</small>
+                </td>
+                <td>
+                  <strong>{{ row.staffName }}</strong>
+                  <small>{{ row.serviceNames || row.appointmentId }} · {{ row.durationMinutes }} min</small>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="statusClass(row.status)">{{ label(row.status) }}</span>
+                  <small>{{ row.cancelReason || row.notes || 'No note' }}</small>
+                </td>
+                <td>
+                  <a [routerLink]="['/pos/invoices']" [queryParams]="{ search: row.invoiceNumber }" *ngIf="row.invoiceNumber; else noInvoice">{{ row.invoiceNumber }}</a>
+                  <ng-template #noInvoice><strong>No invoice</strong></ng-template>
+                  <small>{{ label(row.paymentStatus) }} · {{ row.total | currency: 'INR':'symbol':'1.0-0' }} / {{ row.paid | currency: 'INR':'symbol':'1.0-0' }} / {{ row.balance | currency: 'INR':'symbol':'1.0-0' }}</small>
+                </td>
+                <td>
+                  <strong>{{ label(row.messageStatus.status) }}</strong>
+                  <small>{{ row.messageStatus.count }} message(s)</small>
+                </td>
+                <td>
+                  <span class="problem-pill" *ngFor="let flag of row.problemFlags">{{ flag }}</span>
+                  <small *ngIf="!row.problemFlags.length">Clear</small>
+                </td>
+                <td><button class="ghost-button mini" type="button" (click)="openRegisterDetail(row)">Timeline</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyRegisterState>
+          <div class="empty-state">
+            <strong>No appointments found</strong>
+            <span>Book an appointment or change the date/status filters.</span>
+          </div>
+        </ng-template>
+      </section>
+
       <section class="panel table-panel" *ngIf="!loading()">
+        <div class="section-title activity-title">
+          <div>
+            <span class="eyebrow">Audit trail</span>
+            <h3>Status and edit activity</h3>
+          </div>
+          <span>{{ filteredRows().length }} activity row(s)</span>
+        </div>
         <div class="table-wrap" *ngIf="filteredRows().length; else emptyState">
           <table>
             <thead>
@@ -260,7 +540,65 @@ interface ClientHistory {
         </ng-template>
       </section>
 
-      <aside class="detail-drawer" *ngIf="selected() as row">
+      <aside class="detail-drawer" *ngIf="selectedRegister() as register">
+        <header>
+          <div>
+            <span class="eyebrow">Appointment full history</span>
+            <h3>{{ register.clientName }} - {{ label(register.status) }}</h3>
+            <p>{{ register.serviceNames || register.appointmentId }} with {{ register.staffName }} at {{ formatDateTime(register.appointmentStartAt) }}</p>
+          </div>
+          <button class="ghost-button mini" type="button" (click)="selectedRegister.set(null)">Close</button>
+        </header>
+
+        <div class="detail-grid">
+          <article><span>Booked</span><strong>{{ formatDateTime(register.bookedAt) }}</strong><small>{{ label(register.bookingMode) }} · {{ register.createdBy }}</small></article>
+          <article><span>Appointment</span><strong>{{ formatDateTime(register.appointmentStartAt) }}</strong><small>{{ register.durationMinutes }} minutes</small></article>
+          <article><span>Invoice</span><strong>{{ register.invoiceNumber || 'No invoice' }}</strong><small>{{ label(register.paymentStatus) }} · Due {{ register.balance | currency: 'INR':'symbol':'1.0-0' }}</small></article>
+          <article><span>Last update</span><strong>{{ register.lastUpdatedBy }}</strong><small>{{ formatDateTime(register.lastUpdatedAt) }}</small></article>
+        </div>
+        <div class="drawer-actions">
+          <a class="ghost-button mini" routerLink="/appointments">Open calendar</a>
+          <a class="ghost-button mini" [routerLink]="['/clients', register.clientId]" *ngIf="register.clientId">Open client</a>
+          <a class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ search: register.invoiceNumber }" *ngIf="register.invoiceNumber">Open invoice</a>
+          <a class="ghost-button mini" routerLink="/pos" [queryParams]="{ appointmentId: register.appointmentId }" *ngIf="!register.invoiceNumber">Open POS</a>
+        </div>
+
+        <section>
+          <div class="section-title activity-title">
+            <div>
+              <span class="eyebrow">Timeline</span>
+              <h3>Booked to current status</h3>
+            </div>
+            <span>{{ register.timelineCount }} event(s)</span>
+          </div>
+          <div class="timeline-list" *ngIf="register.timeline.length; else noTimeline">
+            <article *ngFor="let event of register.timeline">
+              <span class="badge" [ngClass]="actionClass(event.action)">{{ actionLabel(event.action) }}</span>
+              <div>
+                <strong>{{ formatDateTime(event.createdAt) }}</strong>
+                <p>{{ event.reason || event.riskReason || 'Routine appointment update' }}</p>
+                <small>{{ event.changedBy }} · {{ event.changedByRole }} · {{ label(event.source) }}</small>
+              </div>
+            </article>
+          </div>
+          <ng-template #noTimeline><div class="empty-state compact"><strong>No timeline events captured yet</strong></div></ng-template>
+        </section>
+
+        <section>
+          <div class="section-title activity-title">
+            <div>
+              <span class="eyebrow">Problem finder</span>
+              <h3>Attention points</h3>
+            </div>
+          </div>
+          <div class="risk-reasons" *ngIf="register.problemFlags.length; else noProblems">
+            <span *ngFor="let flag of register.problemFlags">{{ flag }}</span>
+          </div>
+          <ng-template #noProblems><div class="empty-state compact"><strong>No problem found</strong></div></ng-template>
+        </section>
+      </aside>
+
+      <aside class="detail-drawer" *ngIf="!selectedRegister() && selected() as row">
         <header>
           <div>
             <span class="eyebrow">Activity detail</span>
@@ -311,7 +649,9 @@ interface ClientHistory {
   styles: [`
     .appointment-activity-page {
       display: grid;
-      gap: 18px;
+      gap: 12px;
+      color: var(--ink);
+      background: var(--bg);
     }
 
     .module-hero,
@@ -322,7 +662,7 @@ interface ClientHistory {
       border: 1px solid var(--line);
       border-radius: var(--radius-md);
       background: var(--surface);
-      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
     }
 
     .module-hero,
@@ -335,7 +675,11 @@ interface ClientHistory {
     }
 
     .module-hero {
-      padding: 20px 22px;
+      padding: 16px 18px;
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .module-hero h2,
@@ -343,6 +687,11 @@ interface ClientHistory {
     .detail-drawer h3 {
       margin: 0;
       color: var(--ink);
+    }
+
+    .module-hero h2 {
+      font-size: 1.35rem;
+      line-height: 1.18;
     }
 
     .module-hero p,
@@ -361,25 +710,38 @@ interface ClientHistory {
       flex-wrap: wrap;
     }
 
+    .hero-actions .ghost-button,
+    .hero-actions .primary-button,
+    .action-row .ghost-button {
+      min-height: 34px;
+      border-radius: 6px;
+      padding: 0 12px;
+      box-shadow: none;
+    }
+
     .metric-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(150px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
     }
 
     .metric-card,
+    .owner-summary-grid article,
+    .alert-grid article,
+    .client-score-list article,
     .report-grid article,
     .client-stats-grid article,
     .detail-grid article,
     .change-list article {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fff;
-      padding: 14px;
+      background: var(--surface);
+      padding: 12px;
     }
 
     .metric-card {
-      border-top: 4px solid var(--teal);
+      min-height: 94px;
+      border-top: 3px solid var(--teal);
     }
 
     .metric-card.red { border-top-color: var(--danger); }
@@ -401,27 +763,120 @@ interface ClientHistory {
 
     .metric-card strong {
       display: block;
-      margin: 8px 0 4px;
+      margin: 6px 0 3px;
       color: var(--ink);
-      font-size: 1.5rem;
+      font-size: 1.35rem;
     }
 
     .filter-panel,
     .table-panel,
     .report-panel,
+    .owner-summary-panel,
+    .whatsapp-report-panel,
+    .smart-alert-panel,
+    .insight-panel,
     .client-reliability-panel,
     .detail-drawer {
-      padding: 18px;
+      padding: 14px;
+    }
+
+    .owner-command-grid,
+    .insight-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+      gap: 12px;
+    }
+
+    .owner-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .owner-summary-grid article {
+      min-height: 82px;
+      border-top: 3px solid var(--teal);
+    }
+
+    .owner-summary-grid article.red,
+    .alert-grid article.high {
+      border-top-color: var(--danger);
+    }
+
+    .owner-summary-grid article.amber,
+    .alert-grid article.medium {
+      border-top-color: #b7791f;
+    }
+
+    .whatsapp-report-panel {
+      align-content: start;
+      display: grid;
+      gap: 10px;
+    }
+
+    .whatsapp-report-panel textarea {
+      min-height: 168px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .alert-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
+    }
+
+    .alert-grid article {
+      display: grid;
+      gap: 6px;
+      border-top: 3px solid var(--teal);
+    }
+
+    .alert-grid p {
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .compact-table-wrap {
+      overflow-x: auto;
+    }
+
+    .compact-table {
+      min-width: 720px;
+    }
+
+    .client-score-list {
+      display: grid;
+      gap: 10px;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .client-score-list article {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 10px;
+      align-items: center;
+    }
+
+    .client-score-list article > small {
+      grid-column: 1 / -1;
+    }
+
+    .drawer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .activity-title {
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     .filter-grid {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .span-2 {
@@ -435,10 +890,10 @@ interface ClientHistory {
 
     input,
     select {
-      min-height: 38px;
+      min-height: 34px;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
+      border-radius: 6px;
+      background: var(--surface);
       padding: 0 10px;
       color: var(--ink);
     }
@@ -458,10 +913,10 @@ interface ClientHistory {
 
     .suggestion-row span,
     .risk-reasons span {
-      border: 1px solid #cfe3df;
+      border: 1px solid var(--success-border, #A7F3D0);
       border-radius: 999px;
-      background: #f1fbf8;
-      color: #0f766e;
+      background: var(--success-bg, #ECFDF5);
+      color: var(--success-text, #065F46);
       padding: 6px 10px;
       font-weight: 800;
       font-size: 0.82rem;
@@ -469,6 +924,9 @@ interface ClientHistory {
 
     .table-wrap {
       overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
     }
 
     table {
@@ -480,7 +938,7 @@ interface ClientHistory {
     th,
     td {
       border-bottom: 1px solid var(--line);
-      padding: 12px 10px;
+      padding: 9px 10px;
       text-align: left;
       vertical-align: top;
     }
@@ -489,6 +947,10 @@ interface ClientHistory {
       color: var(--muted);
       font-size: 0.75rem;
       text-transform: uppercase;
+      background: var(--surface-2);
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     td strong,
@@ -497,11 +959,12 @@ interface ClientHistory {
     }
 
     tr.selected {
-      background: #f8fbff;
+      background: var(--surface-2);
     }
 
     .badge,
-    .risk-pill {
+    .risk-pill,
+    .problem-pill {
       display: inline-flex;
       align-items: center;
       min-height: 24px;
@@ -511,10 +974,16 @@ interface ClientHistory {
       font-weight: 900;
     }
 
+    .problem-pill {
+      margin: 2px 4px 2px 0;
+      background: var(--danger-bg, #FEF2F2);
+      color: var(--danger-text, #991B1B);
+    }
+
     .badge.booking,
     .risk-pill.low {
-      background: #e7f7f2;
-      color: #0f766e;
+      background: var(--success-bg, #ECFDF5);
+      color: var(--success-text, #065F46);
     }
 
     .badge.change,
@@ -526,8 +995,8 @@ interface ClientHistory {
     .badge.cancellation,
     .risk-pill.high,
     .risk-pill.critical {
-      background: #fff0ec;
-      color: #b42318;
+      background: var(--danger-bg, #FEF2F2);
+      color: var(--danger-text, #991B1B);
     }
 
     .badge.service,
@@ -545,6 +1014,27 @@ interface ClientHistory {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
+    }
+
+    .timeline-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-list article {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .timeline-list p {
+      margin: 4px 0;
+      color: var(--ink);
     }
 
     .change-list p {
@@ -589,7 +1079,9 @@ interface ClientHistory {
       }
 
       .metric-grid,
-      .filter-grid {
+      .filter-grid,
+      .owner-command-grid,
+      .insight-grid {
         grid-template-columns: 1fr;
       }
 
@@ -605,11 +1097,16 @@ export class AppointmentActivityComponent implements OnInit {
   rows = signal<AppointmentActivityRow[]>([]);
   filteredRows = signal<AppointmentActivityRow[]>([]);
   selected = signal<AppointmentActivityRow | null>(null);
+  registerRows = signal<AppointmentRegisterRow[]>([]);
+  filteredRegisterRows = signal<AppointmentRegisterRow[]>([]);
+  selectedRegister = signal<AppointmentRegisterRow | null>(null);
   report = signal<ApiRecord | null>(null);
+  registerReport = signal<ApiRecord | null>(null);
   clientHistory = signal<ClientHistory | null>(null);
   clients = signal<ApiRecord[]>([]);
   staff = signal<ApiRecord[]>([]);
   branches = signal<ApiRecord[]>([]);
+  copyMessage = signal('');
 
   search = '';
   clientId = '';
@@ -617,10 +1114,17 @@ export class AppointmentActivityComponent implements OnInit {
   branchId = '';
   action = '';
   riskLevel = '';
+  statusFilter = '';
+  paymentStatus = '';
   fromDate = '';
   toDate = '';
 
   kpiCards: Array<{ label: string; value: string | number; hint: string; tone: string }> = [];
+  ownerCards: Array<{ label: string; value: string | number; hint: string; tone: string }> = [];
+  smartAlerts: SmartAlert[] = [];
+  staffPerformance: StaffPerformanceRow[] = [];
+  clientScores: ClientScoreRow[] = [];
+  whatsappSummary = '';
   dailySummary: ApiRecord[] = [];
   staffRisk: ApiRecord[] = [];
   clientReliability: ApiRecord[] = [];
@@ -635,14 +1139,32 @@ export class AppointmentActivityComponent implements OnInit {
 
   refreshAll(): void {
     this.loadLookups();
+    this.loadRegister();
     this.loadActivity();
     this.loadReport();
   }
 
   loadLookups(): void {
     this.api.list<ApiRecord[]>('clients', { limit: 1000 }).subscribe({ next: (rows) => this.clients.set(rows || []), error: () => this.clients.set([]) });
-    this.api.list<ApiRecord[]>('staff', { limit: 1000 }).subscribe({ next: (rows) => this.staff.set(rows || []), error: () => this.staff.set([]) });
+    this.api.list<ApiRecord[]>('staff-os/staff', { limit: 1000, status: 'active' }).subscribe({ next: (rows) => this.staff.set(rows || []), error: () => this.staff.set([]) });
     this.api.list<ApiRecord[]>('branches', { limit: 1000 }).subscribe({ next: (rows) => this.branches.set(rows || []), error: () => this.branches.set([]) });
+  }
+
+  loadRegister(params: ApiRecord = {}): void {
+    this.api.list<ApiRecord>('appointment-activity/register', { limit: 1000, ...params }).subscribe({
+      next: (response) => {
+        this.registerReport.set(response || {});
+        const rows = Array.isArray(response?.rows) ? response.rows : [];
+        this.registerRows.set(rows.map((row) => this.normalizeRegisterRow(row)));
+        this.applyFilters();
+        this.rebuildKpis();
+      },
+      error: () => {
+        this.registerReport.set(null);
+        this.registerRows.set([]);
+        this.filteredRegisterRows.set([]);
+      }
+    });
   }
 
   loadActivity(params: ApiRecord = {}): void {
@@ -682,6 +1204,7 @@ export class AppointmentActivityComponent implements OnInit {
 
   applyServerFilters(): void {
     const params = this.filterParams();
+    this.loadRegister(params);
     this.loadActivity(params);
     this.loadReport(params);
   }
@@ -690,6 +1213,32 @@ export class AppointmentActivityComponent implements OnInit {
     const query = this.search.trim().toLowerCase();
     const from = this.fromDate ? new Date(`${this.fromDate}T00:00:00`).getTime() : 0;
     const to = this.toDate ? new Date(`${this.toDate}T23:59:59`).getTime() : 0;
+    this.filteredRegisterRows.set(this.registerRows().filter((row) => {
+      const haystack = [
+        row.appointmentId,
+        row.clientName,
+        row.clientPhone,
+        row.staffName,
+        row.branchName,
+        row.serviceNames,
+        row.bookingMode,
+        row.status,
+        row.cancelReason,
+        row.notes,
+        row.invoiceNumber,
+        row.paymentStatus,
+        row.problemFlags.join(' ')
+      ].join(' ').toLowerCase();
+      const appointmentTime = new Date(row.appointmentStartAt || row.bookedAt).getTime();
+      return (!query || haystack.includes(query))
+        && (!this.clientId || row.clientId === this.clientId)
+        && (!this.staffId || row.staffId === this.staffId)
+        && (!this.branchId || row.branchId === this.branchId)
+        && (!this.statusFilter || row.status.toLowerCase() === this.statusFilter)
+        && (!this.paymentStatus || row.paymentStatus === this.paymentStatus)
+        && (!from || appointmentTime >= from)
+        && (!to || appointmentTime <= to);
+    }));
     this.filteredRows.set(this.rows().filter((row) => {
       const haystack = [
         row.appointmentId,
@@ -722,6 +1271,8 @@ export class AppointmentActivityComponent implements OnInit {
     this.branchId = '';
     this.action = '';
     this.riskLevel = '';
+    this.statusFilter = '';
+    this.paymentStatus = '';
     this.fromDate = '';
     this.toDate = '';
     this.clientHistory.set(null);
@@ -740,6 +1291,7 @@ export class AppointmentActivityComponent implements OnInit {
   }
 
   openDetail(row: AppointmentActivityRow): void {
+    this.selectedRegister.set(null);
     this.selected.set(row);
     if (!this.clientId && row.clientId) {
       this.clientId = row.clientId;
@@ -747,14 +1299,33 @@ export class AppointmentActivityComponent implements OnInit {
     }
   }
 
+  openRegisterDetail(row: AppointmentRegisterRow): void {
+    this.selected.set(null);
+    this.selectedRegister.set(row);
+    if (!this.clientId && row.clientId) {
+      this.clientId = row.clientId;
+      this.loadClientHistory();
+    }
+  }
+
   exportCsv(): void {
+    const registerRows = this.filteredRegisterRows();
+    if (registerRows.length) {
+      const headers = ['bookedAt', 'appointmentStartAt', 'clientName', 'clientPhone', 'staffName', 'serviceNames', 'status', 'cancelReason', 'paymentStatus', 'invoiceNumber', 'total', 'paid', 'balance', 'bookingMode', 'createdBy', 'lastUpdatedBy', 'problemFlags'];
+      const csv = [
+        headers.join(','),
+        ...registerRows.map((row) => headers.map((header) => this.csvCell(header === 'problemFlags' ? row.problemFlags.join('; ') : (row as unknown as ApiRecord)[header])).join(','))
+      ].join('\n');
+      this.downloadFile(`appointment-register-${this.todayKey()}.csv`, csv, 'text/csv;charset=utf-8');
+      return;
+    }
     if (!this.exportRows.length) return;
     const headers = Object.keys(this.exportRows[0]);
     const csv = [
       headers.join(','),
       ...this.exportRows.map((row) => headers.map((header) => this.csvCell(row[header])).join(','))
     ].join('\n');
-    this.downloadFile(`appointment-activity-${this.todayKey()}.csv`, csv, 'text/csv;charset=utf-8');
+    this.downloadFile(`appointment-register-${this.todayKey()}.csv`, csv, 'text/csv;charset=utf-8');
   }
 
   exportPdf(): void {
@@ -763,6 +1334,8 @@ export class AppointmentActivityComponent implements OnInit {
     const lines = [
       'Aura Salon OS - Appointment Activity Report',
       `Generated: ${this.formatDateTime(report.generatedAt || new Date().toISOString())}`,
+      `Appointments: ${this.filteredRegisterRows().length}`,
+      `Unpaid amount: ${this.formatMoney(this.filteredRegisterRows().reduce((sum, row) => sum + row.balance, 0))}`,
       `Activities: ${report.summary?.totalActivities || 0}`,
       `Cancellations: ${report.summary?.cancellations || 0} | Reschedules: ${report.summary?.reschedules || 0} | No-shows: ${report.summary?.noShows || 0}`,
       '',
@@ -772,7 +1345,7 @@ export class AppointmentActivityComponent implements OnInit {
       'Daily activity',
       ...this.dailySummary.slice(0, 15).map((row) => `${row.date}: ${row.total} activity, ${row.cancellations} cancel, ${row.reschedules} reschedule`)
     ];
-    this.downloadFile(`appointment-activity-${this.todayKey()}.pdf`, this.simplePdf(lines), 'application/pdf');
+    this.downloadFile(`appointment-register-${this.todayKey()}.pdf`, this.simplePdf(lines), 'application/pdf');
   }
 
   private filterParams(): ApiRecord {
@@ -783,6 +1356,8 @@ export class AppointmentActivityComponent implements OnInit {
       branchId: this.branchId,
       action: this.action,
       riskLevel: this.riskLevel,
+      status: this.statusFilter,
+      paymentStatus: this.paymentStatus,
       from: this.fromDate,
       to: this.toDate
     };
@@ -790,15 +1365,203 @@ export class AppointmentActivityComponent implements OnInit {
 
   private rebuildKpis(): void {
     const rows = this.filteredRows();
+    const registerRows = this.filteredRegisterRows();
     const report = this.report();
+    const completed = registerRows.filter((row) => ['completed', 'billed', 'paid'].includes(row.status.toLowerCase())).length;
+    const cancelled = registerRows.filter((row) => ['cancelled', 'canceled', 'no-show'].includes(row.status.toLowerCase())).length;
+    const pending = registerRows.filter((row) => !['completed', 'billed', 'paid', 'cancelled', 'canceled', 'no-show', 'deleted'].includes(row.status.toLowerCase())).length;
     this.kpiCards = [
-      { label: 'Total activity', value: rows.length, hint: 'Booked, edited, rescheduled and lifecycle records', tone: 'blue' },
-      { label: 'Cancellations', value: rows.filter((row) => row.action === 'CANCELLED').length, hint: 'Client cancelled appointments', tone: 'red' },
-      { label: 'Reschedules', value: rows.filter((row) => row.action === 'RESCHEDULED').length, hint: 'Moved time, staff or resource', tone: 'amber' },
-      { label: 'No-shows', value: rows.filter((row) => row.action === 'NO_SHOW').length, hint: 'Recovery follow-up needed', tone: 'red' },
-      { label: 'Completed', value: rows.filter((row) => row.action === 'COMPLETED').length, hint: 'Successful service completions', tone: 'green' },
-      { label: 'High risk', value: report?.summary?.highRiskActivities || rows.filter((row) => ['high', 'critical'].includes(row.riskLevel)).length, hint: 'Smart review recommended', tone: 'red' }
+      { label: 'Appointments', value: registerRows.length, hint: 'One row per appointment', tone: 'blue' },
+      { label: 'Completed', value: completed, hint: 'Ready or already billed', tone: 'green' },
+      { label: 'Cancelled', value: cancelled, hint: 'Cancelled and no-show cases', tone: 'red' },
+      { label: 'Pending', value: pending, hint: 'Open appointments', tone: 'amber' },
+      { label: 'Unpaid', value: this.formatMoney(registerRows.reduce((sum, row) => sum + row.balance, 0)), hint: 'Pending invoice balance', tone: 'red' },
+      { label: 'Problems', value: registerRows.filter((row) => row.problemFlags.length).length || report?.summary?.highRiskActivities || rows.filter((row) => ['high', 'critical'].includes(row.riskLevel)).length, hint: 'Review recommended', tone: 'red' }
     ];
+    this.rebuildAdvancedInsights(registerRows);
+  }
+
+  private rebuildAdvancedInsights(registerRows: AppointmentRegisterRow[]): void {
+    const completedRows = registerRows.filter((row) => this.isCompletedStatus(row.status));
+    const cancelledRows = registerRows.filter((row) => this.isCancelledStatus(row.status));
+    const notBilledRows = registerRows.filter((row) => this.isCompletedStatus(row.status) && !row.invoiceNumber);
+    const paymentPendingRows = registerRows.filter((row) => row.balance > 0 || ['partial', 'unpaid'].includes(row.paymentStatus));
+    const expectedRevenue = registerRows.reduce((sum, row) => sum + row.total, 0);
+    const billedRevenue = registerRows.filter((row) => row.invoiceNumber).reduce((sum, row) => sum + row.total, 0);
+    const staffCount = new Set(registerRows.map((row) => row.staffId || row.staffName).filter(Boolean)).size;
+    this.ownerCards = [
+      { label: 'Today booked', value: registerRows.length, hint: 'Filtered live appointments', tone: 'blue' },
+      { label: 'Completed', value: completedRows.length, hint: 'Ready or already billed', tone: 'green' },
+      { label: 'Cancel / no-show', value: cancelledRows.length, hint: 'Needs reason and recovery', tone: cancelledRows.length ? 'red' : 'green' },
+      { label: 'Not billed', value: notBilledRows.length, hint: 'Completed but POS missing', tone: notBilledRows.length ? 'red' : 'green' },
+      { label: 'Payment pending', value: this.formatMoney(paymentPendingRows.reduce((sum, row) => sum + row.balance, 0)), hint: `${paymentPendingRows.length} invoice(s)`, tone: paymentPendingRows.length ? 'amber' : 'green' },
+      { label: 'Staff coverage', value: staffCount, hint: 'Staff with appointments', tone: 'blue' },
+      { label: 'Expected revenue', value: this.formatMoney(expectedRevenue), hint: 'From live invoice/register rows', tone: 'blue' },
+      { label: 'Billed revenue', value: this.formatMoney(billedRevenue), hint: 'Invoice linked value', tone: 'green' }
+    ];
+
+    this.staffPerformance = this.buildStaffPerformance(registerRows);
+    this.clientScores = this.buildClientScores(registerRows);
+    this.smartAlerts = this.buildSmartAlerts(registerRows);
+    this.whatsappSummary = this.buildWhatsappSummary(registerRows, notBilledRows, paymentPendingRows);
+  }
+
+  private buildStaffPerformance(rows: AppointmentRegisterRow[]): StaffPerformanceRow[] {
+    const byStaff = new Map<string, StaffPerformanceRow>();
+    for (const row of rows) {
+      const key = row.staffId || row.staffName || 'unassigned';
+      const current = byStaff.get(key) || {
+        staffId: row.staffId || key,
+        staffName: row.staffName || 'Unassigned',
+        appointments: 0,
+        completed: 0,
+        cancelled: 0,
+        noShows: 0,
+        notBilled: 0,
+        revenue: 0,
+        due: 0,
+        averageDuration: 0,
+        completionRate: 0
+      };
+      current.appointments += 1;
+      if (this.isCompletedStatus(row.status)) current.completed += 1;
+      if (this.isCancelledStatus(row.status)) current.cancelled += 1;
+      if (String(row.status || '').toLowerCase() === 'no-show') current.noShows += 1;
+      if (this.isCompletedStatus(row.status) && !row.invoiceNumber) current.notBilled += 1;
+      current.revenue += row.total;
+      current.due += row.balance;
+      current.averageDuration += row.durationMinutes || 0;
+      byStaff.set(key, current);
+    }
+    return [...byStaff.values()].map((row) => ({
+      ...row,
+      averageDuration: row.appointments ? Math.round(row.averageDuration / row.appointments) : 0,
+      completionRate: row.appointments ? Math.round((row.completed / row.appointments) * 100) : 0
+    })).sort((a, b) => b.appointments - a.appointments || b.revenue - a.revenue);
+  }
+
+  private buildClientScores(rows: AppointmentRegisterRow[]): ClientScoreRow[] {
+    const byClient = new Map<string, ClientScoreRow>();
+    for (const row of rows) {
+      const key = row.clientId || row.clientPhone || row.clientName || 'unknown';
+      const current = byClient.get(key) || {
+        clientId: row.clientId || key,
+        clientName: row.clientName || 'Unknown client',
+        clientPhone: row.clientPhone || '',
+        appointments: 0,
+        completed: 0,
+        cancelled: 0,
+        noShows: 0,
+        due: 0,
+        score: 100,
+        label: 'Good',
+        suggestion: 'Normal confirmation is enough.'
+      };
+      current.appointments += 1;
+      if (this.isCompletedStatus(row.status)) current.completed += 1;
+      if (this.isCancelledStatus(row.status)) current.cancelled += 1;
+      if (String(row.status || '').toLowerCase() === 'no-show') current.noShows += 1;
+      current.due += row.balance;
+      byClient.set(key, current);
+    }
+    return [...byClient.values()].map((client) => {
+      const score = Math.max(0, Math.min(100, 100 - client.cancelled * 18 - client.noShows * 28 - (client.due > 0 ? 12 : 0)));
+      const label = score < 55 ? 'Risky' : score < 75 ? 'Watch' : 'Good';
+      const suggestion = score < 55
+        ? 'Deposit/confirmation required before next slot.'
+        : score < 75
+          ? 'Call or WhatsApp confirmation recommended.'
+          : 'Normal confirmation is enough.';
+      return { ...client, score, label, suggestion };
+    }).sort((a, b) => a.score - b.score || b.due - a.due).slice(0, 12);
+  }
+
+  private buildSmartAlerts(rows: AppointmentRegisterRow[]): SmartAlert[] {
+    const alerts: SmartAlert[] = [];
+    const clientNoShows = new Map<string, number>();
+    for (const row of rows) {
+      if (String(row.status || '').toLowerCase() === 'no-show') {
+        const key = row.clientId || row.clientName;
+        clientNoShows.set(key, (clientNoShows.get(key) || 0) + 1);
+      }
+    }
+    for (const row of rows) {
+      if (this.isCompletedStatus(row.status) && !row.invoiceNumber) {
+        alerts.push(this.alertFor(row, 'high', 'Completed but not billed', 'POS invoice is missing for this completed appointment.', 'Open POS and generate invoice.'));
+      }
+      if (row.balance > 0 || ['partial', 'unpaid'].includes(row.paymentStatus)) {
+        alerts.push(this.alertFor(row, 'medium', 'Payment pending', `${this.formatMoney(row.balance)} balance is pending.`, 'Collect balance or send payment reminder.'));
+      }
+      if (this.isCancelledStatus(row.status) && !row.cancelReason) {
+        alerts.push(this.alertFor(row, 'high', 'Cancel reason blank', 'Cancelled/no-show appointment has no reason captured.', 'Update reason for audit protection.'));
+      }
+      if (row.timelineCount <= 0) {
+        alerts.push(this.alertFor(row, 'medium', 'Timeline missing', 'No lifecycle activity captured for this appointment.', 'Review booking source and activity logging.'));
+      }
+      if (row.durationMinutes <= 0 || row.durationMinutes > 360) {
+        alerts.push(this.alertFor(row, 'medium', 'Duration mismatch', `${row.durationMinutes || 0} minute duration looks unusual.`, 'Check AM/PM, service duration and staff slot.'));
+      }
+      if ((clientNoShows.get(row.clientId || row.clientName) || 0) >= 2) {
+        alerts.push(this.alertFor(row, 'high', 'Repeat no-show client', 'Same client has repeated no-show activity in this view.', 'Require confirmation or advance before next booking.'));
+      }
+      if (row.messageStatus.count <= 0 && !this.isCompletedStatus(row.status) && !this.isCancelledStatus(row.status)) {
+        alerts.push(this.alertFor(row, 'low', 'Message not sent', 'No SMS/WhatsApp log found for this open appointment.', 'Send reminder or confirmation message.'));
+      }
+    }
+    return alerts.slice(0, 18);
+  }
+
+  private alertFor(row: AppointmentRegisterRow, level: SmartAlert['level'], title: string, detail: string, action: string): SmartAlert {
+    return {
+      level,
+      title,
+      detail,
+      action,
+      appointmentId: row.appointmentId,
+      clientName: row.clientName || 'Unknown client'
+    };
+  }
+
+  private buildWhatsappSummary(rows: AppointmentRegisterRow[], notBilledRows: AppointmentRegisterRow[], paymentPendingRows: AppointmentRegisterRow[]): string {
+    const completed = rows.filter((row) => this.isCompletedStatus(row.status)).length;
+    const cancelled = rows.filter((row) => this.isCancelledStatus(row.status)).length;
+    const due = paymentPendingRows.reduce((sum, row) => sum + row.balance, 0);
+    const revenue = rows.filter((row) => row.invoiceNumber).reduce((sum, row) => sum + row.total, 0);
+    const topStaff = this.staffPerformance.slice(0, 3).map((row) => `${row.staffName}: ${row.appointments}`).join(', ') || 'No staff data';
+    return [
+      `Appointment Register ${this.todayKey()}`,
+      `Booked: ${rows.length} | Completed: ${completed} | Cancel/no-show: ${cancelled}`,
+      `Not billed: ${notBilledRows.length} | Payment pending: ${this.formatMoney(due)}`,
+      `Billed revenue: ${this.formatMoney(revenue)}`,
+      `Staff count: ${this.staffPerformance.length} | ${topStaff}`,
+      `Problem alerts: ${this.smartAlerts.length}`
+    ].join('\n');
+  }
+
+  openRegisterByAppointment(appointmentId: string): void {
+    const row = this.filteredRegisterRows().find((item) => item.appointmentId === appointmentId);
+    if (row) this.openRegisterDetail(row);
+  }
+
+  copyWhatsappSummary(): void {
+    this.copyMessage.set('');
+    const write = navigator.clipboard?.writeText(this.whatsappSummary);
+    if (!write) {
+      this.copyMessage.set('Copy blocked by browser. Select text and copy manually.');
+      return;
+    }
+    write.then(
+      () => this.copyMessage.set('WhatsApp summary copied.'),
+      () => this.copyMessage.set('Copy blocked by browser. Select text and copy manually.')
+    );
+  }
+
+  private isCompletedStatus(status: string): boolean {
+    return ['completed', 'billed', 'paid'].includes(String(status || '').toLowerCase());
+  }
+
+  private isCancelledStatus(status: string): boolean {
+    return ['cancelled', 'canceled', 'no-show', 'deleted'].includes(String(status || '').toLowerCase());
   }
 
   private normalizeRow(row: ApiRecord): AppointmentActivityRow {
@@ -835,7 +1598,54 @@ export class AppointmentActivityComponent implements OnInit {
     };
   }
 
+  private normalizeRegisterRow(row: ApiRecord): AppointmentRegisterRow {
+    const timeline = Array.isArray(row.timeline) ? row.timeline.map((event) => this.normalizeRow(event)) : [];
+    return {
+      id: String(row.id || row.appointmentId || ''),
+      appointmentId: String(row.appointmentId || row.id || ''),
+      bookingGroupId: String(row.bookingGroupId || ''),
+      clientId: String(row.clientId || ''),
+      clientName: String(row.clientName || 'Unknown client'),
+      clientPhone: String(row.clientPhone || ''),
+      branchId: String(row.branchId || ''),
+      branchName: String(row.branchName || row.branchId || ''),
+      staffId: String(row.staffId || ''),
+      staffName: String(row.staffName || 'Unassigned'),
+      bookingMode: String(row.bookingMode || 'manual'),
+      bookedAt: this.dateValue(row.bookedAt || row.createdAt),
+      appointmentStartAt: this.dateValue(row.appointmentStartAt || row.startAt),
+      appointmentEndAt: this.dateValue(row.appointmentEndAt || row.endAt),
+      durationMinutes: Number(row.durationMinutes || 0),
+      serviceNames: String(row.serviceNames || ''),
+      status: String(row.status || 'booked'),
+      cancelReason: String(row.cancelReason || ''),
+      notes: String(row.notes || ''),
+      createdBy: String(row.createdBy || 'system'),
+      lastUpdatedBy: String(row.lastUpdatedBy || 'system'),
+      lastUpdatedAt: this.dateValue(row.lastUpdatedAt || row.updatedAt),
+      invoiceId: String(row.invoiceId || ''),
+      invoiceNumber: String(row.invoiceNumber || ''),
+      total: Number(row.total || 0),
+      paid: Number(row.paid || 0),
+      balance: Number(row.balance || 0),
+      paymentStatus: String(row.paymentStatus || 'not_billed'),
+      invoiceStatus: String(row.invoiceStatus || ''),
+      messageStatus: {
+        status: String(row.messageStatus?.status || 'not_sent'),
+        count: Number(row.messageStatus?.count || 0),
+        latestAt: String(row.messageStatus?.latestAt || '')
+      },
+      timeline,
+      timelineCount: Number(row.timelineCount || timeline.length),
+      problemFlags: Array.isArray(row.problemFlags) ? row.problemFlags.map((item: unknown) => String(item)) : []
+    };
+  }
+
   trackByRow(_index: number, row: AppointmentActivityRow): string {
+    return row.id;
+  }
+
+  trackByRegister(_index: number, row: AppointmentRegisterRow): string {
     return row.id;
   }
 
@@ -865,6 +1675,14 @@ export class AppointmentActivityComponent implements OnInit {
     return 'booking';
   }
 
+  statusClass(status: string): string {
+    const normalized = String(status || '').toLowerCase();
+    if (['cancelled', 'canceled', 'no-show', 'deleted'].includes(normalized)) return 'cancellation';
+    if (['completed', 'billed', 'paid'].includes(normalized)) return 'service';
+    if (['arrived', 'in-service', 'started'].includes(normalized)) return 'billing';
+    return 'booking';
+  }
+
   riskClass(level: string): string {
     return ['low', 'medium', 'high', 'critical'].includes(level) ? level : 'low';
   }
@@ -888,6 +1706,10 @@ export class AppointmentActivityComponent implements OnInit {
   formatDateTime(value: string): string {
     if (!value) return '-';
     return `${this.formatDate(value)} ${this.formatTime(value)}`;
+  }
+
+  formatMoney(value: number): string {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value || 0));
   }
 
   private dateValue(value: unknown): string {

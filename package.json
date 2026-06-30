@@ -17,7 +17,9 @@
     "backup:db": "node scripts/backup-database.mjs",
     "build": "npm run build:client",
     "build:client": "ng build",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest"
   },
   "dependencies": {
     "@angular/animations": "20.3.25",
@@ -45,6 +47,7 @@
     "@angular/cli": "20.3.30",
     "@types/three": "^0.184.1",
     "concurrently": "9.2.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.6"
   }
 }

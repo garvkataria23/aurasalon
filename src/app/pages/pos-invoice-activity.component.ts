@@ -9,6 +9,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 type InvoiceActivityKind = 'edited' | 'deleted' | 'restored' | 'payment_updated';
 type InvoicePaymentStatus = 'all' | 'paid' | 'partial' | 'due';
 type InvoiceRiskLevel = 'low' | 'medium' | 'high' | 'critical';
+type InvoiceActivityView = 'activity' | 'cancelled' | 'reports';
 
 interface InvoiceActivityChange {
   category: string;
@@ -144,6 +145,30 @@ interface InvoiceActivityActionReportRow {
   suggestedAction: string;
 }
 
+interface CancelledVoidBillReportRow {
+  date: string;
+  time: string;
+  invoiceNumber: string;
+  invoiceId: string;
+  clientName: string;
+  clientPhone: string;
+  staffName: string;
+  amount: number;
+  paid: number;
+  due: number;
+  status: string;
+  reason: string;
+  actionByUser: string;
+  actionTime: string;
+}
+
+interface CancelledVoidBillSummary {
+  totalBill: number;
+  totalSale: number;
+  receivedAmount: number;
+  pendingAmount: number;
+}
+
 interface InvoiceActivityExportRow {
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -211,8 +236,8 @@ interface InvoiceActivityRow {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, StateComponent],
   template: `
-    <section class="page-stack">
-      <div class="module-hero">
+    <section class="page-stack invoice-activity-page">
+      <div class="module-hero invoice-activity-hero">
         <div>
           <span class="eyebrow">POS / invoice activity</span>
           <h2>Invoice Audit Center</h2>
@@ -265,7 +290,22 @@ interface InvoiceActivityRow {
         </article>
       </div>
 
-      <div class="panel" *ngIf="!loading() && !error()">
+      <div class="invoice-activity-tabs" *ngIf="!loading() && !error()">
+        <button type="button" [class.active]="activityView === 'activity'" (click)="setActivityView('activity')">
+          <span>Activity log</span>
+          <strong>{{ filteredRowsCache.length }}</strong>
+        </button>
+        <button type="button" [class.active]="activityView === 'cancelled'" (click)="setActivityView('cancelled')">
+          <span>Cancelled / Void</span>
+          <strong>{{ cancelledVoidRowsCache.length }}</strong>
+        </button>
+        <button type="button" [class.active]="activityView === 'reports'" (click)="setActivityView('reports')">
+          <span>Reports</span>
+          <strong>{{ reports()?.summary?.totalActivities || 0 }}</strong>
+        </button>
+      </div>
+
+      <div class="panel invoice-activity-shell" *ngIf="!loading() && !error()">
         <div class="section-title invoice-activity-title">
           <div>
             <span class="eyebrow">Level 2 filters</span>
@@ -349,11 +389,11 @@ interface InvoiceActivityRow {
           </label>
         </div>
 
-        <section class="report-center">
+        <section class="report-center" *ngIf="activityView !== 'activity'">
           <div class="section-title invoice-activity-title">
             <div>
-              <span class="eyebrow">Level 7 reports</span>
-              <h3>Invoice activity reports</h3>
+              <span class="eyebrow">{{ activityView === 'cancelled' ? 'Cancelled bill control' : 'Level 7 reports' }}</span>
+              <h3>{{ activityView === 'cancelled' ? 'Cancelled / Void-ed Bill' : 'Invoice activity reports' }}</h3>
             </div>
             <div class="invoice-activity-filter-actions">
               <span *ngIf="reports() as report">Generated {{ formatDateTime(report.generatedAt || '') }}</span>
@@ -366,7 +406,7 @@ interface InvoiceActivityRow {
           <app-state [loading]="reportLoading()" [error]="reportError()"></app-state>
 
           <ng-container *ngIf="reports() as report">
-            <div class="report-summary-grid">
+            <div class="report-summary-grid" *ngIf="activityView === 'reports'">
               <article>
                 <span>Total activity</span>
                 <strong>{{ report.summary?.totalActivities || 0 }}</strong>
@@ -394,7 +434,108 @@ interface InvoiceActivityRow {
               </article>
             </div>
 
-            <div class="report-grid">
+            <section class="cancelled-void-panel" *ngIf="activityView === 'cancelled'">
+              <div class="section-title invoice-activity-title">
+                <div>
+                  <span class="eyebrow">Cancelled / Void-ed Bill</span>
+                  <h3>Cancelled and soft-deleted bill register</h3>
+                </div>
+                <div class="invoice-activity-filter-actions">
+                  <button class="ghost-button mini" type="button" (click)="exportCancelledVoidCsv()" [disabled]="!cancelledVoidRowsCache.length">Download CSV</button>
+                  <button class="ghost-button mini" type="button" (click)="exportCancelledVoidPdf()" [disabled]="!cancelledVoidRowsCache.length">Download PDF</button>
+                </div>
+              </div>
+
+              <div class="cancelled-void-summary">
+                <article>
+                  <span>Total Bill</span>
+                  <strong>{{ cancelledVoidSummaryCache.totalBill }}</strong>
+                </article>
+                <article>
+                  <span>Total Sale</span>
+                  <strong>{{ currency(cancelledVoidSummaryCache.totalSale) }}</strong>
+                </article>
+                <article>
+                  <span>Received Amount</span>
+                  <strong>{{ currency(cancelledVoidSummaryCache.receivedAmount) }}</strong>
+                </article>
+                <article>
+                  <span>Pending Amount</span>
+                  <strong>{{ currency(cancelledVoidSummaryCache.pendingAmount) }}</strong>
+                </article>
+              </div>
+
+              <div class="cancelled-void-toolbar">
+                <label class="field cancelled-void-search">
+                  <span>Search</span>
+                  <input
+                    [(ngModel)]="cancelledVoidSearch"
+                    (ngModelChange)="rebuildCancelledVoidViewModel()"
+                    placeholder="Name, phone or invoice"
+                  />
+                </label>
+                <span>{{ cancelledVoidRowsCache.length }} matched</span>
+              </div>
+
+              <div class="table-wrap cancelled-void-table" *ngIf="cancelledVoidRowsCache.length; else noCancelledVoidBills">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Contact</th>
+                      <th>Invoice No</th>
+                      <th>Price</th>
+                      <th>Paid</th>
+                      <th>Balance</th>
+                      <th>Date</th>
+                      <th>Reason</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of cancelledVoidRowsPreview">
+                      <td>{{ row.clientName }}</td>
+                      <td>{{ row.clientPhone }}</td>
+                      <td>
+                        <strong>{{ row.invoiceNumber }}</strong>
+                        <small>{{ statusLabel(row.status) }}</small>
+                      </td>
+                      <td>{{ currency(row.amount) }}</td>
+                      <td>{{ currency(row.paid) }}</td>
+                      <td>{{ currency(row.due) }}</td>
+                      <td>
+                        <strong>{{ row.date }}</strong>
+                        <small>{{ row.time }}</small>
+                      </td>
+                      <td>
+                        <strong>{{ row.reason }}</strong>
+                        <small>{{ row.staffName }} / {{ row.actionByUser }}</small>
+                      </td>
+                      <td>
+                        <div class="review-actions">
+                          <a
+                            class="ghost-button mini edit-action"
+                            routerLink="/pos/invoices"
+                            [queryParams]="{ invoice: row.invoiceId || row.invoiceNumber }"
+                          >
+                            Open invoice
+                          </a>
+                          <button type="button" class="ghost-button mini" (click)="reviewCancelledVoidBill(row)">Review</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <ng-template #noCancelledVoidBills>
+                <div class="empty-state compact">
+                  <strong>No cancelled/voided bills found</strong>
+                  <span>Change filters or run report after soft-delete/void activity.</span>
+                </div>
+              </ng-template>
+            </section>
+
+            <div class="report-grid" *ngIf="activityView === 'reports'">
               <article class="report-card">
                 <div class="report-card-title">
                   <span>Daily invoice edit/delete report</span>
@@ -529,25 +670,17 @@ interface InvoiceActivityRow {
           </ng-container>
         </section>
 
+        <ng-container *ngIf="activityView === 'activity'">
         <div class="table-wrap invoice-activity-table" *ngIf="filteredRowsCache.length; else noActivity">
           <table>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Invoice number</th>
-                <th>Client</th>
-                <th>Phone</th>
-                <th>Staff</th>
-                <th>Branch</th>
-                <th>Action</th>
+                <th>Activity</th>
+                <th>Invoice & client</th>
+                <th>Staff / branch</th>
                 <th>Payment</th>
-                <th>Amount</th>
-                <th>Amount change</th>
-                <th>Advance adjusted</th>
-                <th>Counter paid</th>
-                <th>By user</th>
-                <th>Created / changed</th>
-                <th>Status</th>
+                <th>Financial impact</th>
+                <th>Audit user</th>
                 <th>Risk</th>
                 <th>Review</th>
               </tr>
@@ -557,36 +690,40 @@ interface InvoiceActivityRow {
                 *ngFor="let row of filteredRowsCache; trackBy: trackByRow"
                 [class.selected-row]="selectedRow()?.id === row.id"
               >
-                <td>{{ formatDate(row.actionTime) }}</td>
+                <td>
+                  <strong>{{ formatDate(row.actionTime) }}</strong>
+                  <small>{{ formatTime(row.actionTime) }}</small>
+                  <span class="badge" [ngClass]="actionBadgeClass(row.actionType)">{{ actionLabel(row.actionType) }}</span>
+                </td>
                 <td>
                   <strong>{{ row.invoiceNumber }}</strong>
                   <small *ngIf="row.invoiceId">{{ row.invoiceId }}</small>
+                  <small>{{ row.clientName }} / {{ row.clientPhone }}</small>
                 </td>
-                <td>{{ row.clientName }}</td>
-                <td>{{ row.clientPhone }}</td>
-                <td>{{ row.staffName }}</td>
-                <td>{{ row.branchName }}</td>
-                <td><span class="badge" [ngClass]="actionBadgeClass(row.actionType)">{{ actionLabel(row.actionType) }}</span></td>
-                <td>{{ paymentModesLabel(row) }}</td>
+                <td>
+                  <strong>{{ row.staffName }}</strong>
+                  <small>{{ row.branchName }}</small>
+                </td>
+                <td>
+                  <strong>{{ paymentModesLabel(row) }}</strong>
+                  <small>{{ statusLabel(row.status) }}</small>
+                </td>
                 <td>
                   <strong>{{ currency(row.total) }}</strong>
                   <small>Paid {{ currency(row.paid) }} / Due {{ currency(row.balance) }}</small>
+                  <small>
+                    <b [class.amount-down]="row.financeImpact.amountDifference < 0" [class.amount-up]="row.financeImpact.amountDifference > 0">{{ signedCurrency(row.financeImpact.amountDifference) }}</b>
+                    · Adv {{ currency(row.advanceAdjusted) }} · Counter {{ currency(row.counterPaid) }}
+                  </small>
                 </td>
                 <td>
-                  <strong [class.amount-down]="row.financeImpact.amountDifference < 0" [class.amount-up]="row.financeImpact.amountDifference > 0">{{ signedCurrency(row.financeImpact.amountDifference) }}</strong>
-                  <small>{{ currency(row.financeImpact.originalTotal) }} -> {{ currency(row.financeImpact.updatedTotal) }}</small>
-                </td>
-                <td>{{ currency(row.advanceAdjusted) }}</td>
-                <td>{{ currency(row.counterPaid) }}</td>
-                <td>{{ row.actionByUser }}</td>
-                <td>
-                  <strong>{{ formatTime(row.invoiceCreatedAt || row.actionTime) }}</strong>
+                  <strong>{{ row.actionByUser }}</strong>
+                  <small>Created {{ formatTime(row.invoiceCreatedAt || row.actionTime) }}</small>
                   <small>Changed {{ formatTime(row.actionTime) }}</small>
                 </td>
-                <td><span class="badge" [ngClass]="statusBadgeClass(row.status)">{{ statusLabel(row.status) }}</span></td>
                 <td>
                   <span class="badge" [ngClass]="riskBadgeClass(row.riskLevel)">{{ riskLabel(row.riskLevel) }}</span>
-                  <small>{{ row.riskReason }}</small>
+                  <small class="risk-copy">{{ row.riskReason }}</small>
                 </td>
                 <td>
                   <div class="review-actions">
@@ -605,6 +742,7 @@ interface InvoiceActivityRow {
             </tbody>
           </table>
         </div>
+        </ng-container>
 
         <aside class="activity-detail-drawer" *ngIf="selectedRow() as selected">
           <div class="drawer-header">
@@ -878,6 +1016,75 @@ interface InvoiceActivityRow {
     </section>
   `,
   styles: [`
+    .invoice-activity-page {
+      gap: 14px;
+    }
+
+    .invoice-activity-hero {
+      padding: 22px 24px;
+    }
+
+    .invoice-activity-shell {
+      padding: 16px;
+    }
+
+    .invoice-activity-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .invoice-activity-tabs button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      padding: 10px 14px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .invoice-activity-tabs button:hover {
+      border-color: var(--line);
+      background: #f8fafc;
+    }
+
+    .invoice-activity-tabs button.active {
+      border-color: #111827;
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+    }
+
+    .invoice-activity-tabs span {
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .invoice-activity-tabs strong {
+      min-width: 34px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.08);
+      text-align: center;
+      font-size: 0.8rem;
+    }
+
+    .invoice-activity-tabs button.active strong {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
     .invoice-activity-title {
       align-items: end;
       margin-bottom: 16px;
@@ -895,7 +1102,7 @@ interface InvoiceActivityRow {
 
     .invoice-activity-filter-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -948,6 +1155,66 @@ interface InvoiceActivityRow {
       gap: 12px;
     }
 
+    .cancelled-void-panel {
+      display: grid;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid rgba(220, 38, 38, 0.18);
+      border-radius: var(--radius-md);
+      background: #fff;
+    }
+
+    .cancelled-void-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .cancelled-void-summary article {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fbfdff;
+    }
+
+    .cancelled-void-summary span,
+    .cancelled-void-toolbar span {
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .cancelled-void-toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 420px) auto;
+      gap: 12px;
+      align-items: end;
+      justify-content: space-between;
+    }
+
+    .cancelled-void-search {
+      margin: 0;
+    }
+
+    .cancelled-void-table table {
+      min-width: 1180px;
+    }
+
+    .cancelled-void-table th,
+    .cancelled-void-table td {
+      white-space: normal;
+    }
+
+    .cancelled-void-table small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
     .report-card {
       display: grid;
       gap: 12px;
@@ -982,12 +1249,90 @@ interface InvoiceActivityRow {
     }
 
     .invoice-activity-table table {
-      min-width: 1420px;
+      min-width: 1040px;
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.86rem;
+    }
+
+    .invoice-activity-table {
+      max-height: min(680px, calc(100vh - 230px));
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+      overflow: auto;
+    }
+
+    .invoice-activity-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .invoice-activity-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    .invoice-activity-table tr:hover {
+      background: #f8fbff;
+    }
+
+    .invoice-activity-table td:nth-child(1) {
+      width: 118px;
+    }
+
+    .invoice-activity-table td:nth-child(2) {
+      width: 210px;
+    }
+
+    .invoice-activity-table td:nth-child(3),
+    .invoice-activity-table td:nth-child(4) {
+      width: 145px;
+    }
+
+    .invoice-activity-table td:nth-child(5),
+    .invoice-activity-table td:nth-child(6) {
+      width: 165px;
+    }
+
+    .invoice-activity-table td:nth-child(8) {
+      width: 170px;
     }
 
     .invoice-activity-table small {
+      display: block;
       color: var(--muted);
       line-height: 1.35;
+    }
+
+    .invoice-activity-table .badge {
+      margin-top: 6px;
+    }
+
+    .invoice-activity-table .risk-copy {
+      display: -webkit-box;
+      max-height: 42px;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .invoice-activity-table .review-actions {
+      justify-content: flex-start;
     }
 
     .invoice-activity-table tr.selected-row {
@@ -1261,11 +1606,12 @@ interface InvoiceActivityRow {
 
     @media (max-width: 1260px) {
       .invoice-activity-filter-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .invoice-summary-grid,
       .report-summary-grid,
+      .cancelled-void-summary,
       .approval-timeline,
       .finance-impact-grid,
       .audit-trail-grid,
@@ -1284,6 +1630,10 @@ interface InvoiceActivityRow {
     }
 
     @media (max-width: 760px) {
+      .invoice-activity-tabs {
+        grid-template-columns: 1fr;
+      }
+
       .invoice-activity-title {
         align-items: stretch;
       }
@@ -1293,6 +1643,10 @@ interface InvoiceActivityRow {
       }
 
       .invoice-activity-filter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cancelled-void-toolbar {
         grid-template-columns: 1fr;
       }
 
@@ -1306,6 +1660,7 @@ interface InvoiceActivityRow {
 
       .invoice-summary-grid,
       .report-summary-grid,
+      .cancelled-void-summary,
       .approval-timeline,
       .finance-impact-grid,
       .audit-trail-grid,
@@ -1329,6 +1684,7 @@ export class PosInvoiceActivityComponent implements OnInit {
   reportLoading = signal(false);
   reportError = signal('');
   reports = signal<InvoiceActivityReportResponse | null>(null);
+  activityView: InvoiceActivityView = 'activity';
   filteredRowsCache: InvoiceActivityRow[] = [];
   staffOptionsCache: string[] = [];
   branchOptionsCache: Array<{ id: string; name: string }> = [];
@@ -1340,12 +1696,21 @@ export class PosInvoiceActivityComponent implements OnInit {
   paymentAdjustmentRowsPreview: PaymentAdjustmentReportRow[] = [];
   deletedReportRowsCache: InvoiceActivityActionReportRow[] = [];
   deletedReportRowsPreview: InvoiceActivityActionReportRow[] = [];
+  cancelledVoidRowsCache: CancelledVoidBillReportRow[] = [];
+  cancelledVoidRowsPreview: CancelledVoidBillReportRow[] = [];
+  cancelledVoidSummaryCache: CancelledVoidBillSummary = {
+    totalBill: 0,
+    totalSale: 0,
+    receivedAmount: 0,
+    pendingAmount: 0
+  };
   restoredReportRowsCache: InvoiceActivityActionReportRow[] = [];
   restoredReportRowsPreview: InvoiceActivityActionReportRow[] = [];
   paymentUpdateReportRowsCache: InvoiceActivityActionReportRow[] = [];
   paymentUpdateReportRowsPreview: InvoiceActivityActionReportRow[] = [];
   reportExportRowsCache: InvoiceActivityExportRow[] = [];
   search = '';
+  cancelledVoidSearch = '';
   clientSearch = '';
   staffFilter = 'all';
   branchFilter = 'all';
@@ -1373,6 +1738,13 @@ export class PosInvoiceActivityComponent implements OnInit {
     this.load();
     this.loadReports();
     this.loadTodayInvoices();
+  }
+
+  setActivityView(view: InvoiceActivityView): void {
+    this.activityView = view;
+    if (view !== 'activity') {
+      this.selectedRow.set(null);
+    }
   }
 
   loadTodayInvoices(): void {
@@ -1501,12 +1873,42 @@ export class PosInvoiceActivityComponent implements OnInit {
     return Array.isArray(report?.paymentUpdateReport) ? report.paymentUpdateReport : [];
   }
 
+  rebuildCancelledVoidViewModel(): void {
+    const query = this.cancelledVoidSearch.trim().toLowerCase();
+    const rows = this.buildCancelledVoidRows()
+      .filter((row) => {
+        if (!query) {
+          return true;
+        }
+        return [
+          row.clientName,
+          row.clientPhone,
+          row.invoiceNumber,
+          row.staffName,
+          row.reason,
+          row.actionByUser,
+          row.status
+        ].join(' ').toLowerCase().includes(query);
+      })
+      .sort((a, b) => new Date(b.actionTime).getTime() - new Date(a.actionTime).getTime());
+
+    this.cancelledVoidRowsCache = rows;
+    this.cancelledVoidRowsPreview = rows.slice(0, 25);
+    this.cancelledVoidSummaryCache = {
+      totalBill: rows.length,
+      totalSale: rows.reduce((sum, row) => sum + row.amount, 0),
+      receivedAmount: rows.reduce((sum, row) => sum + row.paid, 0),
+      pendingAmount: rows.reduce((sum, row) => sum + row.due, 0)
+    };
+  }
+
   exportRowCount(): number {
     return this.reportExportRowsCache.length;
   }
 
   resetFilters(): void {
     this.search = '';
+    this.cancelledVoidSearch = '';
     this.clientSearch = '';
     this.staffFilter = 'all';
     this.branchFilter = 'all';
@@ -1551,6 +1953,19 @@ export class PosInvoiceActivityComponent implements OnInit {
     this.selectRow(row);
     window.setTimeout(() => {
       document.querySelector('.activity-detail-drawer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  reviewCancelledVoidBill(row: CancelledVoidBillReportRow): void {
+    const activity = this.findActivityForCancelledVoidRow(row);
+    if (activity) {
+      this.reviewNow(activity);
+      return;
+    }
+    this.search = row.invoiceNumber;
+    this.applyLocalFilters();
+    window.setTimeout(() => {
+      document.querySelector('.invoice-activity-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -1619,6 +2034,51 @@ export class PosInvoiceActivityComponent implements OnInit {
       ...this.paymentAdjustmentRows(report).slice(0, 12).map((row) => `${this.paymentModeLabel(row.paymentMode)} - count ${row.count}, amount ${this.currency(row.totalAmount)}, diff ${this.currency(row.paymentDifference)}`)
     ];
     this.downloadFile(`invoice-activity-report-${this.todayKey()}.pdf`, this.simplePdf(lines), 'application/pdf');
+  }
+
+  exportCancelledVoidCsv(): void {
+    const rows = this.cancelledVoidRowsCache;
+    if (!rows.length) {
+      return;
+    }
+    const headers: Array<keyof CancelledVoidBillReportRow> = [
+      'date',
+      'time',
+      'clientName',
+      'clientPhone',
+      'invoiceNumber',
+      'staffName',
+      'amount',
+      'paid',
+      'due',
+      'status',
+      'reason',
+      'actionByUser'
+    ];
+    const csv = [
+      headers.join(','),
+      ...rows.map((row) => headers.map((header) => this.csvCell(row[header])).join(','))
+    ].join('\n');
+    this.downloadFile(`cancelled-voided-bill-report-${this.todayKey()}.csv`, csv, 'text/csv;charset=utf-8');
+  }
+
+  exportCancelledVoidPdf(): void {
+    const rows = this.cancelledVoidRowsCache;
+    if (!rows.length) {
+      return;
+    }
+    const lines = [
+      'Aura Salon OS - Cancelled / Void-ed Bill Report',
+      `Generated: ${this.formatDateTime(new Date().toISOString())}`,
+      `Total Bill: ${this.cancelledVoidSummaryCache.totalBill}`,
+      `Total Sale: ${this.currency(this.cancelledVoidSummaryCache.totalSale)}`,
+      `Received Amount: ${this.currency(this.cancelledVoidSummaryCache.receivedAmount)}`,
+      `Pending Amount: ${this.currency(this.cancelledVoidSummaryCache.pendingAmount)}`,
+      '',
+      'Name | Contact | Invoice | Price | Paid | Balance | Date | Reason',
+      ...rows.slice(0, 40).map((row) => `${row.clientName} | ${row.clientPhone} | ${row.invoiceNumber} | ${this.currency(row.amount)} | ${this.currency(row.paid)} | ${this.currency(row.due)} | ${row.date} ${row.time} | ${row.reason}`)
+    ];
+    this.downloadFile(`cancelled-voided-bill-report-${this.todayKey()}.pdf`, this.simplePdf(lines), 'application/pdf');
   }
 
   hasApprovalWorkflow(row: InvoiceActivityRow): boolean {
@@ -1877,6 +2337,7 @@ export class PosInvoiceActivityComponent implements OnInit {
     });
     this.branchOptionsCache = Array.from(branches, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
     this.applyLocalFilters();
+    this.rebuildCancelledVoidViewModel();
   }
 
   private rebuildReportViewModel(report: InvoiceActivityReportResponse | null): void {
@@ -1888,6 +2349,7 @@ export class PosInvoiceActivityComponent implements OnInit {
     this.paymentAdjustmentRowsPreview = this.paymentAdjustmentRowsCache.slice(0, 6);
     this.deletedReportRowsCache = this.deletedReportRows(report);
     this.deletedReportRowsPreview = this.deletedReportRowsCache.slice(0, 6);
+    this.rebuildCancelledVoidViewModel();
     this.restoredReportRowsCache = this.restoredReportRows(report);
     this.restoredReportRowsPreview = this.restoredReportRowsCache.slice(0, 6);
     this.paymentUpdateReportRowsCache = this.paymentUpdateReportRows(report);
@@ -1936,6 +2398,101 @@ export class PosInvoiceActivityComponent implements OnInit {
       suggestedAction: row.suggestedAction,
       reason: row.deleteReason || row.approvalReason || row.rejectionReason
     }));
+  }
+
+  private buildCancelledVoidRows(): CancelledVoidBillReportRow[] {
+    const byKey = new Map<string, CancelledVoidBillReportRow>();
+
+    this.deletedReportRowsCache.forEach((row) => {
+      const cancelledRow = this.cancelledVoidRowFromReport(row);
+      byKey.set(this.cancelledVoidRowKey(cancelledRow), cancelledRow);
+    });
+
+    this.rows()
+      .filter((row) => this.isCancelledVoidActivity(row))
+      .forEach((row) => {
+        const cancelledRow = this.cancelledVoidRowFromActivity(row);
+        byKey.set(this.cancelledVoidRowKey(cancelledRow), cancelledRow);
+      });
+
+    return Array.from(byKey.values());
+  }
+
+  private cancelledVoidRowFromReport(row: InvoiceActivityActionReportRow): CancelledVoidBillReportRow {
+    const activity = this.findActivityForActionReportRow(row);
+    const sourceDate = activity?.invoiceCreatedAt || activity?.actionTime || row.date;
+    return {
+      date: this.formatDate(sourceDate),
+      time: activity ? this.formatTime(activity.invoiceCreatedAt || activity.actionTime) : '-',
+      invoiceNumber: row.invoiceNumber || activity?.invoiceNumber || 'Unknown invoice',
+      invoiceId: activity?.invoiceId || row.invoiceNumber || '',
+      clientName: row.clientName || activity?.clientName || 'Unknown client',
+      clientPhone: row.clientPhone || activity?.clientPhone || '-',
+      staffName: row.staffName || activity?.staffName || 'Unassigned',
+      amount: this.numberValue(row.amount || activity?.total),
+      paid: this.numberValue(row.paid || activity?.paid),
+      due: this.numberValue(row.due || activity?.balance),
+      status: row.status || activity?.status || 'deleted',
+      reason: this.cancelledVoidReason(row, activity),
+      actionByUser: row.actionByUser || activity?.actionByUser || 'System',
+      actionTime: activity?.actionTime || this.dateValue(row.date)
+    };
+  }
+
+  private cancelledVoidRowFromActivity(row: InvoiceActivityRow): CancelledVoidBillReportRow {
+    const sourceDate = row.invoiceCreatedAt || row.actionTime;
+    return {
+      date: this.formatDate(sourceDate),
+      time: this.formatTime(sourceDate),
+      invoiceNumber: row.invoiceNumber,
+      invoiceId: row.invoiceId,
+      clientName: row.clientName,
+      clientPhone: row.clientPhone,
+      staffName: row.staffName,
+      amount: row.total,
+      paid: row.paid,
+      due: row.balance,
+      status: row.status || row.actionType,
+      reason: row.deleteReason || row.approvalReason || row.rejectionReason || row.riskReason || 'Cancelled / voided invoice activity',
+      actionByUser: row.actionByUser,
+      actionTime: row.actionTime
+    };
+  }
+
+  private cancelledVoidReason(row: InvoiceActivityActionReportRow, activity: InvoiceActivityRow | null): string {
+    return activity?.deleteReason
+      || activity?.approvalReason
+      || activity?.rejectionReason
+      || row.riskReason
+      || 'Soft-deleted / cancelled invoice';
+  }
+
+  private cancelledVoidRowKey(row: CancelledVoidBillReportRow): string {
+    return `${row.invoiceId || row.invoiceNumber}_${row.actionTime}`;
+  }
+
+  private isCancelledVoidActivity(row: InvoiceActivityRow): boolean {
+    const status = `${row.actionType} ${row.status} ${row.deleteReason} ${row.approvalReason}`.toLowerCase();
+    return row.actionType === 'deleted'
+      || status.includes('delete')
+      || status.includes('void')
+      || status.includes('cancel');
+  }
+
+  private findActivityForCancelledVoidRow(row: CancelledVoidBillReportRow): InvoiceActivityRow | null {
+    return this.rows().find((activity) => {
+      if (row.invoiceId && activity.invoiceId === row.invoiceId) {
+        return true;
+      }
+      return activity.invoiceNumber === row.invoiceNumber && this.isCancelledVoidActivity(activity);
+    }) || null;
+  }
+
+  private findActivityForActionReportRow(row: InvoiceActivityActionReportRow): InvoiceActivityRow | null {
+    return this.rows().find((activity) => (
+      activity.invoiceNumber === row.invoiceNumber
+      || (activity.invoiceId && activity.invoiceId === row.invoiceNumber)
+    ) && this.isCancelledVoidActivity(activity)) || null;
   }
 
   private csvCell(value: unknown): string {

@@ -50,6 +50,7 @@ export const routes: Routes = [
   { path: 'future-features', loadComponent: () => import('./pages/future-features.component').then(m => m.FutureFeaturesComponent), title: 'Future Salon Intelligence' },
   { path: 'workflows', loadComponent: () => import('./pages/workflow-engine.component').then(m => m.WorkflowEngineComponent), title: 'Workflow Engine' },
   { path: 'finance', loadComponent: () => import('./pages/finance-engine.component').then(m => m.FinanceEngineComponent), title: 'Finance Engine' },
+    { path: 'profit-intelligence', loadComponent: () => import('./pages/profit-intelligence.component').then(m => m.ProfitIntelligenceComponent), title: 'Profit Intelligence' },
   { path: 'account-master', loadComponent: () => import('./pages/account-master.component').then(m => m.AccountMasterComponent), title: 'Account Master' },
   { path: 'balance-sheet', loadComponent: () => import('./pages/balance-sheet.component').then(m => m.BalanceSheetComponent), title: 'Balance Sheet' },
   { path: 'transactions/outgoing-funds', loadComponent: () => import('./pages/outgoing-funds-entry.component').then(m => m.OutgoingFundsEntryComponent), title: 'Outgoing Funds Entry' },
@@ -61,6 +62,7 @@ export const routes: Routes = [
   { path: 'salon-3d', loadComponent: () => import('./pages/salon-3d-website.component').then(m => m.Salon3dWebsiteComponent), title: 'AuraShine 3D Salon Website' },
   { path: 'book', loadComponent: () => import('./pages/booking-portal.component').then(m => m.BookingPortalComponent), title: 'Online Booking' },
   { path: 'book/wizard', loadComponent: () => import('./pages/booking-wizard.component').then(m => m.BookingWizardComponent), title: 'Booking Wizard' },
+    { path: 'appointment-reports', loadComponent: () => import('./pages/appointment-activity.component').then(m => m.AppointmentActivityComponent), title: 'Appointment Reports' },
   { path: 'appointment-activity', loadComponent: () => import('./pages/appointment-activity.component').then(m => m.AppointmentActivityComponent), title: 'Appointment Activity' },
   { path: 'appointment-deposits', loadComponent: () => import('./pages/appointment-deposit-report.component').then(m => m.AppointmentDepositReportComponent), title: 'Appointment Deposit Report', canActivate: [permissionGuard], data: { permission: 'read:appointment_deposits' } },
   { path: 'appointments', loadComponent: () => import('./pages/appointments-enterprise.component').then(m => m.AppointmentsEnterpriseComponent), title: 'Appointment Calendar' },
@@ -132,34 +134,7 @@ export const routes: Routes = [
   { path: 'memberships/self-service/:token', loadComponent: () => import('./pages/membership-self-service.component').then(m => m.MembershipSelfServiceComponent), title: 'Membership Self Service' },
   { path: 'memberships/:id', loadComponent: () => import('./pages/membership-360.component').then(m => m.Membership360Component), title: 'Membership 360' },
   { path: 'memberships', loadComponent: () => import('./pages/memberships.component').then(m => m.MembershipsComponent), title: 'Memberships & Loyalty' },
-  {
-    path: 'packages',
-    component: ModulePageComponent,
-    title: 'Packages',
-    data: {
-      entity: 'packages',
-      title: 'Service Packages',
-      subtitle: 'Create real prepaid package definitions connected to services, credits, validity and loyalty rules.',
-      createLabel: 'Add package',
-      columns: [
-        { key: 'name', label: 'Package' },
-        { key: 'price', label: 'Price', type: 'currency' },
-        { key: 'validityDays', label: 'Validity days' },
-        { key: 'branchId', label: 'Branch' },
-        { key: 'status', label: 'Status', type: 'badge' }
-      ],
-      fields: [
-        { key: 'name', label: 'Package name', required: true },
-        { key: 'description', label: 'Description' },
-        { key: 'price', label: 'Price', type: 'number', required: true },
-        { key: 'validityDays', label: 'Validity days', type: 'number', defaultValue: 90 },
-        { key: 'branchId', label: 'Branch ID' },
-        { key: 'serviceIds', label: 'Service IDs JSON', type: 'json', defaultValue: [] },
-        { key: 'packageCredits', label: 'Package credits JSON', type: 'json', defaultValue: [] },
-        { key: 'rules', label: 'Rules JSON', type: 'json', defaultValue: {} }
-      ]
-    }
-  },
+  { path: 'packages', loadComponent: () => import('./pages/packages.component').then(m => m.PackagesComponent), title: 'Packages' },
   { path: 'staff/my-work', loadComponent: () => import('./pages/staff-my-work.component').then(m => m.StaffMyWorkComponent), title: 'My Staff Work', canActivate: [permissionGuard], data: { permission: 'read:appointments' } },
   { path: 'staff/connected-modules', loadComponent: () => import('./pages/staff-connected-modules.component').then(m => m.StaffConnectedModulesComponent), title: 'Staff Connected Modules', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
   { path: 'staff', pathMatch: 'full', redirectTo: 'staff-os/employee-masters' },
@@ -196,6 +171,8 @@ export const routes: Routes = [
   { path: 'marketing', loadComponent: () => import('./pages/ai-marketing-automation.component').then(m => m.AiMarketingAutomationComponent), title: 'AI Marketing Automation' },
   { path: 'growth-rank-bot', loadComponent: () => import('./pages/growth-rank-bot.component').then(m => m.GrowthRankBotComponent), title: 'AI Rank Bot' },
   { path: 'whatsapp', loadComponent: () => import('./pages/whatsapp-automation.component').then(m => m.WhatsAppAutomationComponent), title: 'WhatsApp Automation' },
+    { path: 'message-templates', loadComponent: () => import('./pages/message-template-studio.component').then(m => m.MessageTemplateStudioComponent), title: 'Message Templates' },
+  { path: 'message-history', loadComponent: () => import('./pages/message-history-report.component').then(m => m.MessageHistoryReportComponent), title: 'Message History' },
   {
     path: 'message-logs',
     component: ModulePageComponent,
@@ -228,12 +205,19 @@ export const routes: Routes = [
   { path: 'business-details', loadComponent: () => import('./pages/business-details.component').then(m => m.BusinessDetailsComponent), title: 'Business Details' },
   { path: 'reports/account-ledger', loadComponent: () => import('./pages/account-ledger.component').then(m => m.AccountLedgerComponent), title: 'Account Ledger' },
   { path: 'reports/commission-preview', loadComponent: () => import('./pages/commission-preview-report.component').then(m => m.CommissionPreviewReportComponent), title: 'Commission Preview' },
+    { path: 'reports/appointment-detail-list', loadComponent: () => import('./pages/appointment-detail-list-report.component').then(m => m.AppointmentDetailListReportComponent), title: 'Detail Appointment List' },
+  { path: 'reports/staff-appointments', loadComponent: () => import('./pages/staff-appointments-report.component').then(m => m.StaffAppointmentsReportComponent), title: 'Appointment Booked By Staff' },
   { path: 'reports/staff-sales', loadComponent: () => import('./pages/staff-sales-report.component').then(m => m.StaffSalesReportComponent), title: 'Staff Sales Report' },
   { path: 'reports/invoices', loadComponent: () => import('./pages/invoice-reports.component').then(m => m.InvoiceReportsComponent), title: 'Invoice Reports Command Center' },
   { path: 'reports/invoices/:reportId', loadComponent: () => import('./pages/invoice-reports.component').then(m => m.InvoiceReportsComponent), title: 'Invoice Report Detail' },
+    { path: 'reports/pending-packages', loadComponent: () => import('./pages/pending-packages-report.component').then(m => m.PendingPackagesReportComponent), title: 'Pending Packages' },
+  { path: 'reports/expired-packages', loadComponent: () => import('./pages/expired-packages-report.component').then(m => m.ExpiredPackagesReportComponent), title: 'Expired Packages' },
+  { path: 'reports/completed-packages', loadComponent: () => import('./pages/completed-packages-report.component').then(m => m.CompletedPackagesReportComponent), title: 'Completed Packages' },
   { path: 'reports/inward-revenue', loadComponent: () => import('./pages/inward-revenue-report.component').then(m => m.InwardRevenueReportComponent), title: 'Inward Revenue Report' },
+    { path: 'reports/financial-summary', loadComponent: () => import('./pages/financial-summary-report.component').then(m => m.FinancialSummaryReportComponent), title: 'Financial Summary' },
   { path: 'reports', loadComponent: () => import('./pages/reports.component').then(m => m.ReportsComponent), title: 'Reports & Analytics' },
   { path: 'reports/enterprise', loadComponent: () => import('./pages/reports-enterprise/reports-enterprise.component').then(m => m.ReportsEnterpriseComponent), title: 'Enterprise Reports' },
+    { path: 'locations/sharing', loadComponent: () => import('./pages/location-sharing-command-center.component').then(m => m.LocationSharingCommandCenterComponent), title: 'Location Sharing Command Center' },
   { path: 'saas', loadComponent: () => import('./pages/saas-onboarding.component').then(m => m.SaasOnboardingComponent), title: 'SaaS Control' },
   { path: 'super-admin', loadComponent: () => import('./pages/super-admin.component').then(m => m.SuperAdminComponent), title: 'SaaS Super Admin' },
   {
@@ -262,6 +246,11 @@ export const routes: Routes = [
       ]
     }
   },
+    { path: 'setting/calendar', loadComponent: () => import('./pages/calendar-settings.component').then(m => m.CalendarSettingsComponent), title: 'Calendar Settings' },
+  { path: 'settings/calendar', loadComponent: () => import('./pages/calendar-settings.component').then(m => m.CalendarSettingsComponent), title: 'Calendar Settings' },
+  { path: 'settings/taxes', loadComponent: () => import('./pages/tax-settings.component').then(m => m.TaxSettingsComponent), title: 'Tax Settings' },
+  { path: 'settings/clients/custom-form', loadComponent: () => import('./pages/client-custom-form-settings.component').then(m => m.ClientCustomFormSettingsComponent), title: 'Clients - Custom Form' },
+  { path: 'settings/marketplace', loadComponent: () => import('./pages/marketplace-settings.component').then(m => m.MarketplaceSettingsComponent), title: 'Marketplace Settings' },
   {
     path: 'settings',
     component: ModulePageComponent,
@@ -337,14 +326,47 @@ export const routes: Routes = [
   {
     path: 'discount-rules/client-segments', loadComponent: () => import('./pages/discount-rules/client-segments.component').then(m => m.HappyHoursClientSegmentsComponent), title: 'Client Segment Targeting'
   },
+    {
+    path: 'discount-rules/client-discount-brain', loadComponent: () => import('./pages/discount-rules/client-discount-brain.component').then(m => m.ClientDiscountBrainComponent), title: 'Client Discount Brain'
+  },
   {
     path: 'discount-rules/staff-incentives', loadComponent: () => import('./pages/discount-rules/staff-incentives.component').then(m => m.HappyHoursStaffIncentivesComponent), title: 'Staff Incentive Link'
+  },
+    {
+    path: 'discount-rules/staff-aware-offers', loadComponent: () => import('./pages/discount-rules/staff-aware-offers.component').then(m => m.StaffAwareOffersComponent), title: 'Staff-Aware Offers'
+  },
+  {
+    path: 'discount-rules/inventory-aware-offers', loadComponent: () => import('./pages/discount-rules/inventory-aware-offers.component').then(m => m.InventoryAwareOffersComponent), title: 'Inventory-Aware Offers'
+  },
+  {
+    path: 'discount-rules/weather-event-offers', loadComponent: () => import('./pages/discount-rules/weather-event-offers.component').then(m => m.WeatherEventOffersComponent), title: 'Weather/Event-Aware Offers'
+  },
+  {
+    path: 'discount-rules/market-aware-offers', loadComponent: () => import('./pages/discount-rules/market-aware-offers.component').then(m => m.MarketAwareOffersComponent), title: 'Market-Aware Offers'
+  },
+  {
+    path: 'discount-rules/channel-aware-offers', loadComponent: () => import('./pages/discount-rules/channel-aware-offers.component').then(m => m.ChannelAwareOffersComponent), title: 'Channel-Aware Offers'
+  },
+  {
+    path: 'discount-rules/lead-time-offers', loadComponent: () => import('./pages/discount-rules/lead-time-offers.component').then(m => m.LeadTimeOffersComponent), title: 'Lead-Time Offers'
+  },
+  {
+    path: 'discount-rules/bundle-aware-offers', loadComponent: () => import('./pages/discount-rules/bundle-aware-offers.component').then(m => m.BundleAwareOffersComponent), title: 'Bundle-Aware Offers'
+  },
+  {
+    path: 'discount-rules/member-wallet-offers', loadComponent: () => import('./pages/discount-rules/member-wallet-offers.component').then(m => m.MemberWalletOffersComponent), title: 'Member / Wallet Offers'
+  },
+  {
+    path: 'discount-rules/no-show-risk-offers', loadComponent: () => import('./pages/discount-rules/no-show-risk-offers.component').then(m => m.NoShowRiskOffersComponent), title: 'No-show Risk Offers'
   },
   {
     path: 'discount-rules/offer-lifecycle', loadComponent: () => import('./pages/discount-rules/offer-lifecycle.component').then(m => m.OfferLifecycleComponent), title: 'Offer Lifecycle OS'
   },
   {
     path: 'discount-rules/offer-roi-score', loadComponent: () => import('./pages/discount-rules/offer-roi-score.component').then(m => m.OfferRoiScoreComponent), title: 'Offer ROI Score'
+  },
+    {
+    path: 'discount-rules/elasticity-profit-pricing', loadComponent: () => import('./pages/discount-rules/elasticity-profit-pricing.component').then(m => m.ElasticityProfitPricingComponent), title: 'Elasticity + Profit Pricing'
   },
   {
     path: 'discount-rules/fraud-guard', loadComponent: () => import('./pages/discount-rules/fraud-guard.component').then(m => m.HappyHoursFraudGuardComponent), title: 'Abuse / Fraud Guard'
@@ -421,7 +443,7 @@ export const routes: Routes = [
     path: 'fraud-detection', component: ModulePageComponent, title: 'AI Fraud Detection', data: { entity: 'fraudAlerts', title: 'AI Fraud Detection', subtitle: 'Suspicious refunds, fake discounts, staff misuse and risk evidence.', createLabel: 'Add fraud alert', columns: [{ key: 'alertType', label: 'Type' }, { key: 'severity', label: 'Severity', type: 'badge' }, { key: 'riskScore', label: 'Risk' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'alertType', label: 'Alert type', required: true }, { key: 'severity', label: 'Severity', required: true, defaultValue: 'medium' }, { key: 'branchId', label: 'Branch ID' }, { key: 'riskScore', label: 'Risk score', type: 'number' }, { key: 'signals', label: 'Signals JSON', type: 'json', defaultValue: {} }, { key: 'evidence', label: 'Evidence JSON', type: 'json', defaultValue: [] }, { key: 'resolution', label: 'Resolution JSON', type: 'json', defaultValue: {} }] }
   },
   {
-    path: 'notification-center', component: ModulePageComponent, title: 'Notification Center', data: { entity: 'notifications', title: 'Enterprise Notification Center', subtitle: 'In-app, push, SMS, WhatsApp, email and smart reminders.', createLabel: 'Add notification', columns: [{ key: 'channel', label: 'Channel' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'channel', label: 'Channel', required: true }, { key: 'message', label: 'Message', required: true }, { key: 'clientId', label: 'Client ID' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', defaultValue: 'queued' }] }
+    path: 'notification-center', component: ModulePageComponent, title: 'Notification Center', data: { entity: 'notifications', title: 'Enterprise Notification Center', subtitle: 'In-app, push, SMS, WhatsApp, email and smart reminders.', createLabel: 'Add notification', variant: 'zenoti', columns: [{ key: 'channel', label: 'Channel' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'channel', label: 'Channel', required: true }, { key: 'message', label: 'Message', required: true }, { key: 'clientId', label: 'Client ID' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', defaultValue: 'queued' }] }
   },
   {
     path: 'smart-forms', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Smart Forms', data: { workflowType: 'smart-forms', title: 'Smart Forms Builder', subtitle: 'Consent, consultation, risk capture and signature workflow generated from client, service and booking context.', prompt: 'Design smart intake and consent forms for the current service mix and appointment flow.', primaryEndpoint: 'smartForms', secondaryEndpoint: 'formResponses', commandCenterRoute: '/future-features', recordLabel: 'Smart forms' }

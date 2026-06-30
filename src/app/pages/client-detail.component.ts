@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
@@ -126,6 +126,8 @@ type ClientPersonalDetailsForm = {
   communicationPreference: string;
 };
 
+type ClientNoteFocus = 'frontDesk' | 'internal' | 'followUp';
+
 @Component({
   selector: 'app-client-detail',
   standalone: true,
@@ -133,7 +135,13 @@ type ClientPersonalDetailsForm = {
   imports: [CommonModule, FormsModule, RouterLink, CurrencyPipe, StateComponent],
   template: `
     <section class="page-stack">
-      <a class="ghost-button fit" routerLink="/clients">Back to clients</a>
+      <div class="client360-toolbar">
+        <a class="ghost-button fit" routerLink="/clients">Back to clients</a>
+        <div class="client360-toolbar-copy">
+          <span class="eyebrow">Client CRM</span>
+          <strong>Enterprise 360 workspace</strong>
+        </div>
+      </div>
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <ng-container *ngIf="client() as client">
@@ -150,7 +158,16 @@ type ClientPersonalDetailsForm = {
                 <span class="badge">{{ clientRiskLevel() }}</span>
                 <span class="badge" *ngFor="let tag of clientTags(client); trackBy: trackValue">{{ tag }}</span>
               </div>
-              <div class="client360-header-facts">
+              <div class="client360-header-actions">
+                <button class="ghost-button mini" type="button" *ngIf="!profileDetailsEditing()" (click)="startProfileDetailsEdit(client)">Edit details</button>
+                <ng-container *ngIf="profileDetailsEditing()">
+                  <button class="primary-button mini" type="button" (click)="savePersonalDetails()" [disabled]="personalSaving()">
+                    {{ personalSaving() ? 'Saving...' : 'Save details' }}
+                  </button>
+                  <button class="ghost-button mini" type="button" (click)="cancelProfileDetailsEdit(client)" [disabled]="personalSaving()">Cancel</button>
+                </ng-container>
+              </div>
+              <div class="client360-header-facts" *ngIf="!profileDetailsEditing(); else profileHeaderEdit">
                 <div><span>Mobile</span><strong>{{ client.phone || client.mobile || '-' }}</strong></div>
                 <div><span>Email</span><strong>{{ client.email || 'No email' }}</strong></div>
                 <div><span>Gender</span><strong>{{ client.gender || '-' }}</strong></div>
@@ -161,15 +178,41 @@ type ClientPersonalDetailsForm = {
                 <div><span>Last visit</span><strong>{{ lastVisitLabel() }}</strong></div>
                 <div><span>Source</span><strong>{{ clientSourceLabel(client) }}</strong></div>
               </div>
+              <ng-template #profileHeaderEdit>
+                <div class="client360-inline-edit-grid">
+                  <label class="field"><span>Name</span><input [(ngModel)]="personalDetails.name" placeholder="Client name" /></label>
+                  <label class="field"><span>Mobile</span><input [(ngModel)]="personalDetails.phone" placeholder="Mobile number" /></label>
+                  <label class="field"><span>Email</span><input type="email" [(ngModel)]="personalDetails.email" placeholder="Email address" /></label>
+                  <label class="field">
+                    <span>Gender</span>
+                    <select [(ngModel)]="personalDetails.gender">
+                      <option value="">Not set</option>
+                      <option>Female</option>
+                      <option>Male</option>
+                      <option>Non-binary</option>
+                      <option>Prefer not to say</option>
+                    </select>
+                  </label>
+                  <label class="field"><span>Birthday</span><input type="date" [(ngModel)]="personalDetails.birthday" /></label>
+                  <label class="field"><span>Anniversary</span><input type="date" [(ngModel)]="personalDetails.anniversary" /></label>
+                  <label class="field"><span>Source</span><input [(ngModel)]="personalDetails.source" placeholder="Walk-in, Instagram, referral" /></label>
+                </div>
+              </ng-template>
             </div>
           </div>
           <div class="profile-stats client360-health-card">
-            <strong>{{ clientHealthScore() }}/100</strong>
-            <span>Health score</span>
-            <strong>{{ totalBilled() | currency: 'INR':'symbol':'1.0-0' }}</strong>
-            <span>Total spend</span>
-            <strong>{{ loyaltyPoints(client) }} pts</strong>
-            <span>Loyalty</span>
+            <div class="client360-score-ring">
+              <strong>{{ clientHealthScore() }}/100</strong>
+              <span>Health score</span>
+            </div>
+            <div class="client360-health-stat">
+              <span>Total spend</span>
+              <strong>{{ totalBilled() | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            </div>
+            <div class="client360-health-stat">
+              <span>Loyalty</span>
+              <strong>{{ loyaltyPoints(client) }} pts</strong>
+            </div>
           </div>
         </section>
 
@@ -243,7 +286,7 @@ type ClientPersonalDetailsForm = {
               <a class="primary-button smart-action-primary" [routerLink]="['/appointments']" [queryParams]="{ clientId: client.id }">Book Again</a>
               <a class="ghost-button" [routerLink]="['/pos']" [queryParams]="{ clientId: client.id }">Create Invoice</a>
               <a class="ghost-button" [routerLink]="['/pos/invoices']" [queryParams]="{ clientId: client.id, due: 1 }">Receive Due</a>
-              <button class="ghost-button" type="button" (click)="selectHistoryTab('notes')">Add Note</button>
+              <button class="ghost-button" type="button" (click)="selectHistoryTab('notes', 'frontDesk')">Add Note</button>
               <button class="ghost-button" type="button" (click)="selectHistoryTab('treatments')">Add Consultation</button>
               <a class="ghost-button" [href]="whatsAppLink(client)" target="_blank" rel="noopener">WhatsApp Client</a>
               <button class="ghost-button" type="button" (click)="printHistory()">Print Client History</button>
@@ -644,7 +687,7 @@ type ClientPersonalDetailsForm = {
           </section>
         </div>
 
-        <div class="client-ledger-layout" [hidden]="activeHistoryTab() !== 'sales' && activeHistoryTab() !== 'wallet'">
+        <div class="client-ledger-layout" [hidden]="activeHistoryTab() !== 'sales' && activeHistoryTab() !== 'products' && activeHistoryTab() !== 'wallet'">
           <section class="panel" [hidden]="activeHistoryTab() !== 'sales'">
             <div class="section-title">
               <div>
@@ -731,6 +774,40 @@ type ClientPersonalDetailsForm = {
               <div class="empty-state">
                 <strong>No invoices yet</strong>
                 <span>Invoices saved from POS will appear here automatically.</span>
+              </div>
+            </ng-template>
+          </section>
+
+          <section class="panel" [hidden]="activeHistoryTab() !== 'products'">
+            <div class="section-title">
+              <div>
+                <span class="eyebrow">Product intelligence</span>
+                <h2>Product purchase profile</h2>
+              </div>
+              <span class="badge">{{ clientProductRows().length }} product(s)</span>
+            </div>
+            <div class="product-profile-grid" *ngIf="clientProductRows().length; else noClientProducts">
+              <article class="product-profile-card" *ngFor="let product of clientProductRows(); trackBy: trackHistoryRow">
+                <div>
+                  <span class="eyebrow">Product</span>
+                  <h3>{{ product.name }}</h3>
+                  <p>{{ product.invoice }} · {{ product.lastBought }}</p>
+                </div>
+                <div class="product-profile-metrics">
+                  <div><span>Qty</span><strong>{{ product.qty }}</strong></div>
+                  <div><span>Gross</span><strong>{{ product.gross | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                  <div><span>Discount</span><strong>{{ product.discount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                  <div><span>Net</span><strong>{{ product.total | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+                  <div><span>Staff</span><strong>{{ product.staff }}</strong></div>
+                  <div><span>SKU</span><strong>{{ product.sku }}</strong></div>
+                </div>
+              </article>
+            </div>
+            <ng-template #noClientProducts>
+              <div class="empty-state">
+                <strong>No product purchases yet</strong>
+                <span>Retail product bills from POS will appear here automatically.</span>
+                <a class="primary-button fit" routerLink="/pos" [queryParams]="{ clientId: client.id }">Open POS</a>
               </div>
             </ng-template>
           </section>
@@ -966,10 +1043,20 @@ type ClientPersonalDetailsForm = {
             <article class="package-history-card" *ngFor="let row of clientPackageHistoryRows(); trackBy: trackHistoryRow">
               <div class="package-history-head">
                 <div>
-                  <span class="eyebrow">Package purchased</span>
+                  <span class="eyebrow">{{ packageHistoryEyebrow(row) }}</span>
                   <h3>{{ row.name }}</h3>
                 </div>
-                <span class="badge">{{ row.status }}</span>
+                <div class="package-history-actions">
+                  <span class="badge">{{ row.status }}</span>
+                  <a
+                    class="ghost-button fit"
+                    *ngIf="row.status === 'Active'"
+                    routerLink="/pos"
+                    [queryParams]="{ clientId: client.id }"
+                  >
+                    Redeem package
+                  </a>
+                </div>
               </div>
               <div class="info-grid package-metrics">
                 <div><span>Purchase date</span><strong>{{ row.purchaseDate }}</strong></div>
@@ -1085,7 +1172,7 @@ type ClientPersonalDetailsForm = {
           </ng-template>
         </section>
 
-        <section class="panel" [hidden]="activeHistoryTab() !== 'notes'">
+        <section class="panel notes-page-panel" #notesPanel [hidden]="activeHistoryTab() !== 'notes'">
           <div class="section-title">
             <div>
               <span class="eyebrow">Client notes</span>
@@ -1093,20 +1180,25 @@ type ClientPersonalDetailsForm = {
             </div>
             <button class="primary-button" type="button" (click)="saveNotes()" [disabled]="notesSaving()">Save note</button>
           </div>
+          <div class="notes-page-actions" aria-label="Note sections">
+            <button type="button" (click)="focusNoteField('frontDesk')">Front desk notes</button>
+            <button type="button" (click)="focusNoteField('internal')">Internal notes</button>
+            <button type="button" (click)="focusNoteField('followUp')">Follow-up notes</button>
+          </div>
           <div class="state success" *ngIf="notesMessage()">{{ notesMessage() }}</div>
           <div class="notes-tab-layout">
             <div class="notes-editor-grid">
               <label class="note-field">
                 <span>Front desk notes</span>
-                <textarea class="notes-box" [(ngModel)]="frontDeskNotes" placeholder="Arrival preference, billing reminders, comfort cues"></textarea>
+                <textarea #frontDeskNotesBox class="notes-box" [(ngModel)]="frontDeskNotes" placeholder="Arrival preference, billing reminders, comfort cues"></textarea>
               </label>
               <label class="note-field">
                 <span>Internal notes</span>
-                <textarea class="notes-box" [(ngModel)]="internalNotes" placeholder="Staff-only service context, risk flags, operational notes"></textarea>
+                <textarea #internalNotesBox class="notes-box" [(ngModel)]="internalNotes" placeholder="Staff-only service context, risk flags, operational notes"></textarea>
               </label>
               <label class="note-field">
                 <span>Follow-up notes</span>
-                <textarea class="notes-box" [(ngModel)]="followUpNotes" placeholder="Next call, reactivation, due reminder, product follow-up"></textarea>
+                <textarea #followUpNotesBox class="notes-box" [(ngModel)]="followUpNotes" placeholder="Next call, reactivation, due reminder, product follow-up"></textarea>
               </label>
             </div>
 
@@ -1304,6 +1396,34 @@ type ClientPersonalDetailsForm = {
   `
   ,
   styles: [`
+    :host {
+      display: block;
+    }
+
+    .client360-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #dbe5ee;
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 12px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    .client360-toolbar-copy {
+      display: grid;
+      gap: 2px;
+      text-align: right;
+      color: #0f172a;
+    }
+
+    .client360-toolbar-copy strong {
+      font-size: 0.92rem;
+      font-weight: 900;
+    }
+
     .client-history-tabs {
       display: flex;
       gap: 8px;
@@ -1468,6 +1588,35 @@ type ClientPersonalDetailsForm = {
     .notes-editor-grid {
       display: grid;
       gap: 12px;
+    }
+
+    .notes-page-panel {
+      scroll-margin-top: 90px;
+    }
+
+    .notes-page-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
+    .notes-page-actions button {
+      border: 1px solid #cfe0dc;
+      border-radius: 999px;
+      background: #f8fffd;
+      color: #0f766e;
+      cursor: pointer;
+      font-weight: 900;
+      min-height: 36px;
+      padding: 8px 12px;
+    }
+
+    .notes-page-actions button:hover,
+    .notes-page-actions button:focus-visible {
+      background: #0f766e;
+      color: #fff;
+      outline: none;
     }
 
     .note-field {
@@ -1827,39 +1976,99 @@ type ClientPersonalDetailsForm = {
     }
 
     .client360-profile-header {
+      position: relative;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+      gap: 22px;
       align-items: stretch;
+      overflow: hidden;
+      border: 1px solid #d9e3ec;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.04), transparent 34%),
+        linear-gradient(90deg, #ffffff 0%, #ffffff 66%, #f8fbff 100%);
+      padding: 28px;
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.10);
+    }
+
+    .client360-profile-header::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      content: '';
+      background: linear-gradient(90deg, #0f766e, #2563eb, #c2410c);
     }
 
     .client360-header-body {
       display: flex;
-      gap: 16px;
+      gap: 18px;
       min-width: 0;
+      align-items: flex-start;
+    }
+
+    .client360-header-body .avatar.large {
+      width: 76px;
+      height: 76px;
+      flex: 0 0 76px;
+      border: 1px solid #c7d2fe;
+      background: #e0f2fe;
+      color: #083344;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
     }
 
     .client360-header-main {
+      display: grid;
+      gap: 10px;
       min-width: 0;
     }
 
+    .client360-header-main h2 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 2.45rem;
+      line-height: 1;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .client360-header-main p {
+      margin: 0;
+      color: #475569;
+      font-weight: 700;
+    }
+
     .client360-status-row {
-      margin-top: 8px;
+      margin-top: 0;
+    }
+
+    .client360-header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .client360-header-actions .mini {
+      padding: 8px 11px;
+      min-height: 36px;
+      font-size: 0.8rem;
     }
 
     .client360-header-facts {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 14px;
+      gap: 10px;
+      margin-top: 2px;
     }
 
     .client360-header-facts div,
     .client360-summary-cards div {
-      border: 1px solid #d9ebe7;
+      border: 1px solid #d9e3ec;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
-      padding: 10px;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 12px;
       min-width: 0;
     }
 
@@ -1876,20 +2085,128 @@ type ClientPersonalDetailsForm = {
     .client360-summary-cards strong {
       display: block;
       margin-top: 4px;
+      color: #0f172a;
       overflow-wrap: anywhere;
+    }
+
+    .client360-inline-edit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .client360-inline-edit-grid .field {
+      margin: 0;
+      display: grid;
+      gap: 5px;
+      color: #64748b;
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .client360-inline-edit-grid input,
+    .client360-inline-edit-grid select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid #d9e3ec;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      padding: 10px 12px;
+      color: #0f172a;
+      font: inherit;
+      text-transform: none;
+    }
+
+    .client360-health-card {
+      display: grid;
+      gap: 12px;
+      align-content: stretch;
+      border: 1px solid #d9e3ec;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #fff;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .client360-score-ring,
+    .client360-health-stat {
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      padding: 14px;
+    }
+
+    .client360-score-ring strong {
+      display: block;
+      color: #fff;
+      font-size: 2.1rem;
+      line-height: 1;
+    }
+
+    .client360-health-card span {
+      display: block;
+      margin-top: 6px;
+      color: #cbd5e1;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .client360-health-stat strong {
+      display: block;
+      margin-top: 6px;
+      color: #fff;
+      font-size: 1.22rem;
+    }
+
+    .client-live-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .client-live-metrics .metric-card {
+      min-height: 124px;
+      border: 1px solid #d9e3ec;
+      border-top-width: 4px;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    .client-live-metrics .metric-card span {
+      color: #64748b;
+    }
+
+    .client-live-metrics .metric-card strong {
+      color: #0f172a;
+      font-size: 1.85rem;
+      line-height: 1.05;
     }
 
     .client360-summary-cards {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
     }
 
     .client360-command-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
-      gap: 16px;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+      gap: 18px;
       align-items: start;
+    }
+
+    .client360-summary-panel,
+    .client360-actions-panel {
+      border: 1px solid #d9e3ec;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
     }
 
     .client360-actions-panel {
@@ -1899,15 +2216,15 @@ type ClientPersonalDetailsForm = {
 
     .smart-action-context {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-      margin-bottom: 12px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
     }
 
     .smart-action-context span {
-      border: 1px solid #d9ebe7;
+      border: 1px solid #d9e3ec;
       border-radius: 8px;
-      background: #f8fcfb;
+      background: #f8fafc;
       color: #334155;
       font-size: 0.78rem;
       font-weight: 800;
@@ -1917,7 +2234,7 @@ type ClientPersonalDetailsForm = {
 
     .client360-action-buttons {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -1930,6 +2247,68 @@ type ClientPersonalDetailsForm = {
 
     .smart-action-primary {
       min-height: 42px;
+      grid-column: 1 / -1;
+    }
+
+    .product-profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .product-profile-card {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+      border: 1px solid #d9e3ec;
+      border-radius: 8px;
+      background: #fff;
+      padding: 16px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+    }
+
+    .product-profile-card h3 {
+      margin: 4px 0;
+      color: #0f172a;
+      font-size: 1.08rem;
+      overflow-wrap: anywhere;
+    }
+
+    .product-profile-card p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.86rem;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .product-profile-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .product-profile-metrics div {
+      min-width: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 10px;
+    }
+
+    .product-profile-metrics span {
+      display: block;
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .product-profile-metrics strong {
+      display: block;
+      margin-top: 4px;
+      color: #0f172a;
+      overflow-wrap: anywhere;
     }
 
     .package-history-list {
@@ -1951,6 +2330,14 @@ type ClientPersonalDetailsForm = {
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 12px;
+    }
+
+    .package-history-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .package-history-head h3 {
@@ -2058,6 +2445,10 @@ type ClientPersonalDetailsForm = {
         overflow-wrap: anywhere;
       }
 
+      .client360-header-main h2 {
+        font-size: 1.85rem;
+      }
+
       .profile-stats {
         width: 100%;
       }
@@ -2079,6 +2470,15 @@ type ClientPersonalDetailsForm = {
 
       .client360-summary-cards {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .smart-action-context {
+        grid-template-columns: 1fr;
+      }
+
+      .product-profile-grid,
+      .product-profile-metrics {
+        grid-template-columns: 1fr;
       }
 
       .client-history-tabs {
@@ -2334,11 +2734,17 @@ export class ClientDetailComponent implements OnInit {
   readonly notesMessage = signal('');
   readonly personalSaving = signal(false);
   readonly personalMessage = signal('');
+  readonly profileDetailsEditing = signal(false);
   readonly activeHistoryTab = signal('overview');
+  @ViewChild('notesPanel') private notesPanel?: ElementRef<HTMLElement>;
+  @ViewChild('frontDeskNotesBox') private frontDeskNotesBox?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('internalNotesBox') private internalNotesBox?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('followUpNotesBox') private followUpNotesBox?: ElementRef<HTMLTextAreaElement>;
   readonly appointmentStatusOptions = ['booked', 'completed', 'cancelled', 'rescheduled', 'no-show'];
   readonly historyTabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'sales', label: 'Sales / Bills' },
+    { id: 'products', label: 'Products' },
     { id: 'appointments', label: 'Appointments' },
     { id: 'packages', label: 'Packages' },
     { id: 'memberships', label: 'Memberships' },
@@ -2382,11 +2788,35 @@ export class ClientDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const requestedTab = this.route.snapshot.queryParamMap.get('tab') || '';
+    if (this.isHistoryTab(requestedTab)) this.activeHistoryTab.set(requestedTab);
     this.load();
   }
 
-  selectHistoryTab(tabId: string): void {
+  selectHistoryTab(tabId: string, noteFocus?: ClientNoteFocus): void {
+    if (!this.isHistoryTab(tabId)) return;
     this.activeHistoryTab.set(tabId);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tabId === 'overview' ? null : tabId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+    if (tabId === 'notes') this.openNotesPage(noteFocus);
+  }
+
+  focusNoteField(target: ClientNoteFocus): void {
+    this.selectHistoryTab('notes', target);
+  }
+
+  startProfileDetailsEdit(client: ApiRecord): void {
+    this.personalDetails = this.personalDetailsFormFromClient(client);
+    this.profileDetailsEditing.set(true);
+  }
+
+  cancelProfileDetailsEdit(client: ApiRecord): void {
+    this.personalDetails = this.personalDetailsFormFromClient(client);
+    this.profileDetailsEditing.set(false);
   }
 
   activeHistoryTabLabel(): string {
@@ -2402,6 +2832,7 @@ export class ClientDetailComponent implements OnInit {
     const actions: Record<string, string> = {
       overview: 'Review next best action, health score, warnings and recent activity.',
       sales: 'Create an invoice or receive pending due from the Smart Actions panel.',
+      products: 'Review product purchase memory and open POS for product refill or follow-up.',
       appointments: 'Book Again to create the next visit for this client.',
       packages: 'Sell a prepaid package from POS to begin tracking sessions and redemptions.',
       memberships: 'Sell or assign a membership to track credits, expiry and benefits.',
@@ -2423,6 +2854,8 @@ export class ClientDetailComponent implements OnInit {
         return !!client;
       case 'sales':
         return this.filteredClientInvoices().length > 0;
+      case 'products':
+        return this.clientProductRows().length > 0;
       case 'appointments':
         return this.filteredClientAppointments().length > 0;
       case 'packages':
@@ -2432,7 +2865,7 @@ export class ClientDetailComponent implements OnInit {
       case 'wallet':
         return this.filteredClientWalletLedgerRows().length > 0;
       case 'notes':
-        return !!(this.frontDeskNotes || this.internalNotes || this.followUpNotes || (client && this.clientNoteHistory(client).length));
+        return !!(this.frontDeskNotes || this.internalNotes || this.followUpNotes || this.clientAppointmentNoteHistory().length || (client && this.clientNoteHistory(client).length));
       case 'treatments':
         return !!(client && this.clientConsultationHistory(client).length);
       case 'documents':
@@ -2489,6 +2922,7 @@ export class ClientDetailComponent implements OnInit {
         this.personalMessage.set('');
         this.loadFamily(client.id);
         this.loading.set(false);
+        if (this.activeHistoryTab() === 'notes') this.openNotesPage();
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load client profile');
@@ -2499,6 +2933,26 @@ export class ClientDetailComponent implements OnInit {
 
   private safeList(resource: string, params: ApiRecord = {}) {
     return this.api.list<ApiRecord[]>(resource, params).pipe(catchError(() => of([] as ApiRecord[])));
+  }
+
+  private isHistoryTab(tabId: string): boolean {
+    return this.historyTabs.some((tab) => tab.id === tabId);
+  }
+
+  private openNotesPage(noteFocus: ClientNoteFocus = 'frontDesk'): void {
+    window.setTimeout(() => {
+      this.notesPanel?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      this.noteFieldElement(noteFocus)?.focus();
+    });
+  }
+
+  private noteFieldElement(noteFocus: ClientNoteFocus): HTMLTextAreaElement | undefined {
+    const fields: Record<ClientNoteFocus, ElementRef<HTMLTextAreaElement> | undefined> = {
+      frontDesk: this.frontDeskNotesBox,
+      internal: this.internalNotesBox,
+      followUp: this.followUpNotesBox
+    };
+    return fields[noteFocus]?.nativeElement;
   }
 
   trackApiRecord(_: number, item: ApiRecord): string {
@@ -2633,6 +3087,7 @@ export class ClientDetailComponent implements OnInit {
         this.client.set(updated);
         this.personalDetails = this.personalDetailsFormFromClient(updated);
         this.personalSaving.set(false);
+        this.profileDetailsEditing.set(false);
         this.personalMessage.set('Personal details saved.');
       },
       error: (error) => {
@@ -2803,7 +3258,7 @@ export class ClientDetailComponent implements OnInit {
   clientSales(): ApiRecord[] {
     const id = this.client()?.id;
     if (!id) return [];
-    return this.sales().filter((sale) => String(sale.clientId || sale.customerId || '') === String(id));
+    return this.sales().filter((sale) => String(sale.clientId || sale.client_id || sale.customerId || sale.customer_id || '') === String(id));
   }
 
   clientInvoices(): ApiRecord[] {
@@ -2811,7 +3266,7 @@ export class ClientDetailComponent implements OnInit {
     if (!id) return [];
     const saleIds = new Set(this.clientSales().map((sale) => String(sale.id)));
     return this.invoices()
-      .filter((invoice) => String(invoice.clientId || invoice.customerId || '') === String(id) || saleIds.has(String(invoice.saleId || '')))
+      .filter((invoice) => String(invoice.clientId || invoice.client_id || invoice.customerId || invoice.customer_id || '') === String(id) || saleIds.has(String(invoice.saleId || invoice.sale_id || '')))
       .sort((a, b) => this.dateMs(b.createdAt || b.date) - this.dateMs(a.createdAt || a.date));
   }
 
@@ -3159,20 +3614,25 @@ export class ClientDetailComponent implements OnInit {
   }
 
   clientPackageHistoryRows(): ClientPackageRow[] {
+    const membershipRows = this.memberships()
+      .filter((item) => this.membershipBelongsToClient(item) && this.membershipBenefitType(item) === 'package')
+      .map((item, index) => this.packageHistoryRow(item, undefined, `membership-package-${item.id || index}`));
+    const membershipKnown = new Set(membershipRows.map((row) => this.packageHistoryKey(row)));
     const saleRows = this.clientSales().flatMap((sale) => this.saleItems(sale)
       .filter((item) => this.itemKind(item) === 'package')
-      .map((item, index) => this.packageHistoryRow(item, sale, `sale-${sale.id || sale.invoiceId || index}-${index}`)));
-    const known = new Set(saleRows.map((row) => row.id || row.name.toLowerCase()));
+      .map((item, index) => this.packageHistoryRow(item, sale, `sale-${sale.id || sale.invoiceId || index}-${index}`)))
+      .filter((row) => !membershipKnown.has(this.packageHistoryKey(row)));
+    const known = new Set([...membershipRows, ...saleRows].map((row) => this.packageHistoryKey(row)));
     const linkedRows = this.packages()
       .filter((item) => this.packageBelongsToClient(item))
       .map((item, index) => this.packageHistoryRow(item, undefined, `package-${item.id || index}`))
-      .filter((row) => !known.has(row.id) && !known.has(row.name.toLowerCase()));
-    return [...saleRows, ...linkedRows];
+      .filter((row) => !known.has(this.packageHistoryKey(row)));
+    return [...membershipRows, ...saleRows, ...linkedRows];
   }
 
   private packageHistoryRow(item: ApiRecord, sale: ApiRecord | undefined, fallbackId: string): ClientPackageRow {
-    const totalSessions = this.packageSessionValue(item, ['totalSessions', 'sessionCount', 'sessions', 'credits', 'quantity', 'qty']);
-    const usedSessions = this.packageSessionValue(item, ['usedSessions', 'redeemedSessions', 'consumedSessions', 'used']);
+    const totalSessions = this.packageTotalSessions(item);
+    const usedSessions = this.packageUsedSessions(item, totalSessions);
     const balanceSessions = this.packageBalanceSessions(item, totalSessions, usedSessions);
     const purchaseDate = this.dateLabel(sale?.createdAt || sale?.date || item.purchaseDate || item.startDate || item.createdAt || item.date);
     const expiryDate = this.dateLabel(item.expiryDate || item.expiresAt || item.validTill || item.validityDate || sale?.expiryDate);
@@ -3190,6 +3650,31 @@ export class ClientDetailComponent implements OnInit {
     };
   }
 
+  packageHistoryEyebrow(row: ClientPackageRow): string {
+    if (row.status === 'Active') return 'Active package';
+    if (row.status === 'Expired') return 'Expired package';
+    if (row.status === 'Fully Used') return 'Package fully used';
+    return 'Package purchased';
+  }
+
+  private packageHistoryKey(row: ClientPackageRow): string {
+    return `${row.name.toLowerCase()}|${row.purchaseDate}|${row.expiryDate}|${row.totalSessions}|${row.balanceSessions}`;
+  }
+
+  private packageTotalSessions(item: ApiRecord): number {
+    const direct = this.packageSessionValue(item, ['totalSessions', 'sessionCount', 'sessions', 'credits', 'planCredits', 'plan_credits', 'quantity', 'qty']);
+    if (direct > 0) return direct;
+    const credits = this.packageServiceCredits(item);
+    return credits.reduce((sum, credit) => sum + this.moneyValue(credit.credits ?? credit.quantity ?? credit.total ?? credit.remaining ?? credit.creditsRemaining ?? 0), 0);
+  }
+
+  private packageUsedSessions(item: ApiRecord, totalSessions: number): number {
+    const direct = this.packageSessionValue(item, ['usedSessions', 'redeemedSessions', 'consumedSessions', 'used']);
+    if (direct > 0) return direct;
+    const balance = this.packageBalanceSessions(item, totalSessions, 0);
+    return Math.max(0, totalSessions - balance);
+  }
+
   private packageSessionValue(item: ApiRecord, keys: string[]): number {
     for (const key of keys) {
       const value = Number(item[key]);
@@ -3199,23 +3684,44 @@ export class ClientDetailComponent implements OnInit {
   }
 
   private packageBalanceSessions(item: ApiRecord, totalSessions: number, usedSessions: number): number {
-    const direct = this.packageSessionValue(item, ['balanceSessions', 'remainingSessions', 'remaining', 'balance']);
+    const direct = this.packageSessionValue(item, ['balanceSessions', 'remainingSessions', 'remaining', 'balance', 'creditsRemaining', 'credits_remaining']);
     if (direct > 0) return direct;
+    const credits = this.packageServiceCredits(item);
+    if (credits.length) {
+      return credits.reduce((sum, credit) => sum + this.moneyValue(credit.remaining ?? credit.creditsRemaining ?? credit.credits_remaining ?? credit.credits ?? credit.quantity ?? 0), 0);
+    }
     return Math.max(totalSessions - usedSessions, 0);
   }
 
   private packageStatusLabel(item: ApiRecord, balanceSessions: number, expiryDate: string, sale?: ApiRecord): string {
-    const explicit = String(item.status || item.packageStatus || sale?.status || '').trim();
-    if (explicit) return this.titleText(explicit);
+    const explicit = String(item.status || item.packageStatus || '').trim().toLowerCase();
+    if (['expired', 'cancelled', 'inactive'].includes(explicit)) return 'Expired';
     const expiry = Date.parse(expiryDate);
     if (Number.isFinite(expiry) && expiry < Date.now()) return 'Expired';
-    if (balanceSessions === 0 && this.packageSessionValue(item, ['totalSessions', 'sessionCount', 'sessions', 'credits']) > 0) return 'Fully Used';
+    if (balanceSessions > 0) return 'Active';
+    if (balanceSessions === 0 && this.packageTotalSessions(item) > 0) return 'Fully Used';
+    if (explicit && !['completed', 'paid', 'sold'].includes(explicit)) return this.titleText(explicit);
     return 'Active';
+  }
+
+  private packageServiceCredits(item: ApiRecord): ApiRecord[] {
+    return [
+      ...this.readRecordList(item.serviceCredits || item.service_credits),
+      ...this.readRecordList(item.packageCredits || item.package_credits)
+    ];
+  }
+
+  private membershipBenefitType(item: ApiRecord): 'membership' | 'package' {
+    const history = this.readRecordList(item.redeemHistory || item.redemptionHistory);
+    if (history.some((entry) => String(entry.type || '').includes('package') || entry.packageId)) return 'package';
+    if (String(item.planName || item.name || '').trim().toLowerCase().startsWith('package:')) return 'package';
+    if (this.packageServiceCredits(item).some((credit) => credit.packageId || credit.package_id)) return 'package';
+    return 'membership';
   }
 
   private packageRedemptionHistory(item: ApiRecord, sale?: ApiRecord): ClientPackageRedemption[] {
     const raw = [
-      ...this.readRecordList(item.redemptions || item.redemptionHistory || item.usageHistory),
+      ...this.readRecordList(item.redemptions || item.redeemHistory || item.redemptionHistory || item.usageHistory),
       ...this.readRecordList(sale?.packageRedemptions || sale?.redemptions)
     ];
     return raw.map((entry, index) => {
@@ -3381,11 +3887,57 @@ export class ClientDetailComponent implements OnInit {
   }
 
   productSalesTotal(): number {
-    return this.clientSales().reduce((sum, sale) => {
-      return sum + this.saleItems(sale)
-        .filter((item) => this.itemKind(item) === 'product')
-        .reduce((itemSum, item) => itemSum + this.itemAmount(item), 0);
-    }, 0);
+    return this.clientProductRows().reduce((sum, row) => sum + this.moneyValue(row['total']), 0);
+  }
+
+  clientProductRows(): ApiRecord[] {
+    const rows = new Map<string, ApiRecord>();
+    for (const entry of this.clientProductLineItems()) {
+      for (const item of [entry['item'] as ApiRecord].filter((record) => this.itemKind(record) === 'product')) {
+        const name = String(item.productName || item.name || item.itemName || 'Product').trim();
+        const sku = String(item.sku || item.barcode || item.productCode || item.code || '-');
+        const key = `${name}|${sku}`;
+        const existing = rows.get(key);
+        const quantity = this.moneyValue(item.quantity ?? item.qty ?? 1) || 1;
+        const gross = this.moneyValue(entry['gross'] || this.itemGross(item));
+        const discount = this.moneyValue(entry['discount']);
+        const total = Math.max(0, this.moneyValue(gross - discount));
+        const current = existing || {
+          id: key,
+          name,
+          sku,
+          qty: 0,
+          gross: 0,
+          discount: 0,
+          total: 0,
+          lastBought: '-',
+          lastBoughtMs: 0,
+          invoice: 'POS sale',
+          staff: 'Unassigned'
+        };
+        current['qty'] = this.moneyValue(current['qty']) + quantity;
+        current['gross'] = this.moneyValue(current['gross']) + gross;
+        current['discount'] = this.moneyValue(current['discount']) + discount;
+        current['total'] = this.moneyValue(current['total']) + total;
+        const time = this.dateMs(entry['date']);
+        if (time >= Number(current['lastBoughtMs'] || 0)) {
+          current['lastBoughtMs'] = time;
+          current['lastBought'] = this.dateLabel(entry['date']);
+          current['invoice'] = entry['invoice'];
+          current['staff'] = entry['staff'];
+        }
+        rows.set(key, current);
+      }
+    }
+    return [...rows.values()]
+      .map((row): ApiRecord => ({
+        ...row,
+        qty: this.moneyValue(row['qty']),
+        gross: this.moneyValue(row['gross']),
+        discount: this.moneyValue(row['discount']),
+        total: this.moneyValue(row['total'])
+      }))
+      .sort((a, b) => Number(b['lastBoughtMs'] || 0) - Number(a['lastBoughtMs'] || 0));
   }
 
   packageSalesTotal(): number {
@@ -3685,6 +4237,7 @@ export class ClientDetailComponent implements OnInit {
   }
 
   clientNoteHistory(client: ApiRecord): ClientNoteHistoryRow[] {
+    const appointmentNotes = this.clientAppointmentNoteHistory();
     const history = this.readRecordList(client.noteHistory || client.notesHistory || client.notesLog || client.interactions)
       .map((item) => ({
         date: this.dateTimeLabel(item.date || item.createdAt || item.created_at || item.updatedAt),
@@ -3692,14 +4245,25 @@ export class ClientDetailComponent implements OnInit {
         author: String(item.author || item.userName || item.createdByName || item.staffName || 'AuraShine OS'),
         note: String(item.note || item.notes || item.message || item.text || item.comment || '-')
       }));
-    if (history.length) return history;
     const current = this.combinedClientNotes().trim() || String(client.notes || '').trim();
-    return current ? [{
+    const currentRow = current ? [{
       date: this.dateTimeLabel(client.updatedAt || client.updated_at || client.createdAt),
       type: 'Current Notes',
       author: 'Client profile',
       note: current
     }] : [];
+    return [...appointmentNotes, ...history, ...currentRow];
+  }
+
+  private clientAppointmentNoteHistory(): ClientNoteHistoryRow[] {
+    return this.clientAppointments()
+      .filter((appointment) => String(appointment.notes || appointment.note || '').trim())
+      .map((appointment) => ({
+        date: this.dateTimeLabel(appointment.startAt || appointment.startTime || appointment.start_time || appointment.date || appointment.createdAt),
+        type: 'Appointment Note',
+        author: this.appointmentStaffLabel(appointment),
+        note: String(appointment.notes || appointment.note || '').trim()
+      }));
   }
 
   clientConsultationHistory(client: ApiRecord): ClientConsultationHistoryRow[] {
@@ -4026,6 +4590,48 @@ export class ClientDetailComponent implements OnInit {
     return [];
   }
 
+  private clientProductLineItems(): ApiRecord[] {
+    const rows: ApiRecord[] = [];
+    const invoicesWithSaleItems = new Set<string>();
+    for (const sale of this.clientSales()) {
+      const invoice = this.invoiceForSale(sale);
+      const saleItems = this.saleItems(sale);
+      const productItems = saleItems.filter((item) => this.itemKind(item) === 'product');
+      const grossTotal = this.itemGrossTotal(saleItems);
+      const discountTotal = this.recordDiscount(sale);
+      if (invoice && productItems.length) invoicesWithSaleItems.add(String(invoice.id || ''));
+      for (const item of productItems) {
+        const gross = this.itemGross(item);
+        rows.push({
+          item,
+          gross,
+          discount: this.itemDiscount(item, gross, grossTotal, discountTotal),
+          date: sale.createdAt || sale.created_at || sale.date || sale.updatedAt,
+          invoice: invoice ? this.invoiceNumber(invoice) : String(sale.invoiceNumber || sale.invoice_no || sale.id || 'POS sale'),
+          staff: String(item.staffName || item.staff_name || sale.staffName || sale.staff_name || this.staffName(item.staffId || item.staff_id || sale.staffId || sale.staff_id || ''))
+        });
+      }
+    }
+    for (const invoice of this.clientInvoices()) {
+      if (invoicesWithSaleItems.has(String(invoice.id || ''))) continue;
+      const invoiceItems = this.invoiceItems(invoice);
+      const grossTotal = this.itemGrossTotal(invoiceItems);
+      const discountTotal = this.recordDiscount(invoice);
+      for (const item of invoiceItems.filter((entry) => this.itemKind(entry) === 'product')) {
+        const gross = this.itemGross(item);
+        rows.push({
+          item,
+          gross,
+          discount: this.itemDiscount(item, gross, grossTotal, discountTotal),
+          date: invoice.createdAt || invoice.created_at || invoice.date || invoice.updatedAt,
+          invoice: this.invoiceNumber(invoice),
+          staff: String(item.staffName || item.staff_name || invoice.staffName || invoice.staff_name || this.staffName(item.staffId || item.staff_id || this.invoiceStaffId(invoice)))
+        });
+      }
+    }
+    return rows;
+  }
+
   saleSummary(saleId: unknown): string {
     const sale = this.sales().find((item) => String(item.id) === String(saleId));
     if (!sale) return 'POS sale';
@@ -4039,17 +4645,43 @@ export class ClientDetailComponent implements OnInit {
     return this.sales().find((sale) => String(sale.invoiceId || sale.invoice_id || sale.invoiceNumber || '') === String(invoice.id || invoice.invoiceNumber || ''));
   }
 
+  private invoiceForSale(sale: ApiRecord): ApiRecord | undefined {
+    const saleId = String(sale.id || '');
+    return this.clientInvoices().find((invoice) => String(invoice.saleId || invoice.sale_id || '') === saleId ||
+      String(invoice.id || '') === String(sale.invoiceId || sale.invoice_id || '') ||
+      String(invoice.invoiceNumber || invoice.invoice_no || '') === String(sale.invoiceNumber || sale.invoice_no || ''));
+  }
+
   private invoiceItemNames(invoice: ApiRecord): string[] {
     const sale = this.saleForInvoice(invoice);
     const saleItems = sale ? this.saleItems(sale) : [];
-    const direct = invoice.items || invoice.lineItems;
-    const invoiceItems = Array.isArray(direct) ? direct : this.readJson(direct).items;
-    const items = saleItems.length ? saleItems : (Array.isArray(invoiceItems) ? invoiceItems : []);
+    const items = saleItems.length ? saleItems : this.invoiceItems(invoice);
     const names = items
       .map((item: ApiRecord) => item.name || item.serviceName || item.productName || item.packageName || item.membershipName)
       .filter(Boolean)
       .map((item: unknown) => String(item));
     return names.length ? names : [this.invoiceSummary(invoice)].filter((item) => item && item !== 'POS sale');
+  }
+
+  private invoiceItems(invoice: ApiRecord): ApiRecord[] {
+    const direct = invoice.items || invoice.lineItems || invoice.line_items || invoice.itemLines || invoice.item_lines;
+    if (Array.isArray(direct)) return direct as ApiRecord[];
+    if (typeof direct === 'string') {
+      try {
+        const parsed = JSON.parse(direct);
+        if (Array.isArray(parsed)) return parsed as ApiRecord[];
+        if (parsed && typeof parsed === 'object') {
+          return this.readRecordList((parsed as ApiRecord)['items'] || (parsed as ApiRecord)['lineItems'] || (parsed as ApiRecord)['line_items']);
+        }
+      } catch {
+        return [];
+      }
+    }
+    if (direct && typeof direct === 'object') {
+      const record = direct as ApiRecord;
+      return this.readRecordList(record['items'] || record['lineItems'] || record['line_items']);
+    }
+    return [];
   }
 
   private invoiceStaffId(invoice: ApiRecord): string {
@@ -4097,7 +4729,34 @@ export class ClientDetailComponent implements OnInit {
   }
 
   private itemAmount(item: ApiRecord): number {
-    return this.moneyValue(item.total ?? item.amount ?? item.netAmount ?? item.price ?? item.rate ?? 0);
+    const direct = item.total ?? item.lineTotal ?? item.line_total ?? item.finalAmount ?? item.final_amount ?? item.amount ?? item.netAmount ?? item.net_amount ?? item.subtotal;
+    if (direct !== undefined && direct !== null && direct !== '') return this.moneyValue(direct);
+    const unit = this.moneyValue(item.price ?? item.rate ?? item.unitPrice ?? item.unit_price ?? item.sellingPrice ?? item.selling_price ?? 0);
+    const qty = this.moneyValue(item.quantity ?? item.qty ?? 1) || 1;
+    return this.moneyValue(unit * qty);
+  }
+
+  private itemGross(item: ApiRecord): number {
+    const direct = item.gross ?? item.grossAmount ?? item.gross_amount ?? item.subtotal ?? item.lineSubtotal ?? item.line_subtotal;
+    if (direct !== undefined && direct !== null && direct !== '') return this.moneyValue(direct);
+    const unit = this.moneyValue(item.price ?? item.rate ?? item.unitPrice ?? item.unit_price ?? item.sellingPrice ?? item.selling_price ?? item.mrp ?? 0);
+    const qty = this.moneyValue(item.quantity ?? item.qty ?? 1) || 1;
+    return this.moneyValue(unit * qty);
+  }
+
+  private itemGrossTotal(items: ApiRecord[]): number {
+    return this.moneyValue(items.reduce((sum, item) => sum + this.itemGross(item), 0));
+  }
+
+  private itemDiscount(item: ApiRecord, gross: number, sourceGross: number, sourceDiscount: number): number {
+    const direct = item.discount ?? item.discountAmount ?? item.discount_amount ?? item.manualDiscount ?? item.manual_discount ?? item.lineDiscount ?? item.line_discount;
+    if (direct !== undefined && direct !== null && direct !== '') return this.moneyValue(direct);
+    if (sourceDiscount <= 0 || sourceGross <= 0 || gross <= 0) return 0;
+    return this.moneyValue((gross / sourceGross) * sourceDiscount);
+  }
+
+  private recordDiscount(record: ApiRecord): number {
+    return this.moneyValue(record.discount ?? record.discountAmount ?? record.discount_amount ?? record.discountTotal ?? record.discount_total ?? record.totalDiscount ?? record.total_discount ?? record.manualDiscount ?? record.manual_discount ?? 0);
   }
 
   private packageBelongsToClient(item: ApiRecord): boolean {

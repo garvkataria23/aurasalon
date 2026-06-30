@@ -1,9 +1,9 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type RecipeTab = 'recipes' | 'planner' | 'intelligence' | 'usage' | 'alerts';
@@ -14,6 +14,8 @@ interface RecipeItemDraft {
   quantityPerService: number;
   unit: string;
   wastagePct: number;
+  wastageApprovalPct: number;
+  wastageHitLimit: number;
   minQuantityPerService: number;
   maxQuantityPerService: number;
   allowedSubstitutesText: string;
@@ -29,83 +31,131 @@ const DEFAULT_MODIFIERS = [
 @Component({
   selector: 'app-inventory-recipes',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, FormsModule, ReactiveFormsModule, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-enterprise-page recipes-page">
-      <div class="module-hero recipe-command-hero">
-        <div class="hero-copy">
-          <span class="eyebrow">Inventory / Auto product consume</span>
-          <h2>Auto Product Consume Service Setup</h2>
-          <p>Set which inventory products a service uses. POS checkout, appointment completion and invoice finalization then auto-consume stock with FIFO live tracking.</p>
-          <div class="hero-signal-row">
-            <span>{{ branchRecipeStatus() }}</span>
-            <span>{{ approvedRecipes().length }} approved BOMs</span>
-            <span>{{ highAlertCount() }} high-risk alerts</span>
-            <span>POS checkout linked</span>
-            <span>No physical stock entry</span>
-          </div>
+      <app-inventory-zenoti-chrome
+        title="Service Recipes"
+        breadcrumb="Inventory > Recipes"
+        (refresh)="load()"
+      >
+        <div zenoti-actions class="hero-signal-row">
+          <span>{{ branchRecipeStatus() }}</span>
+          <span>{{ approvedRecipes().length }} approved BOMs</span>
+          <span>{{ highAlertCount() }} high-risk alerts</span>
         </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory</a>
-          <a class="ghost-button" routerLink="/inventory/stock-audit">Stock audit</a>
-        </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>
 
-      <div class="metric-grid recipe-kpi-grid">
-        <article class="kpi-card accent-teal">
-          <span>Configured</span>
-          <strong>{{ metric('configuredRecipes') }}</strong>
-          <small>{{ approvedRecipes().length }} approved / {{ pendingRecipes().length }} draft</small>
-        </article>
-        <article class="kpi-card accent-red">
-          <span>Missing</span>
-          <strong>{{ metric('missingRecipes') }}</strong>
-          <small>{{ coveragePct() }}% covered</small>
-        </article>
-        <article class="kpi-card accent-amber">
-          <span>Stock risk</span>
-          <strong>{{ metric('lowStockForecast') }}</strong>
-          <small>15-day demand</small>
-        </article>
-        <article class="kpi-card accent-violet">
-          <span>Margin</span>
-          <strong>{{ metric('averageMarginPct') }}%</strong>
-          <small>{{ weakMarginRows().length }} below floor</small>
-        </article>
-      </div>
-
-      <section class="recipe-command-strip">
-        <article class="command-card primary">
-          <span class="eyebrow">Signal</span>
-          <div class="decision-row">
-            <strong>{{ riskLevel() }}</strong>
-            <span class="recipe-health-pill" [class.watch]="riskLevel() === 'Watch'" [class.danger]="riskLevel() === 'High'">{{ coveragePct() }}%</span>
+      <section class="zenoti-recipe-workspace">
+        <div class="zenoti-result-bar">
+          <div>
+            <strong>{{ activeTabCount() }}</strong><span>Results</span>
+            <small class="status-chip">Status: recipes active in this center</small>
           </div>
-          <p>{{ decisionSummary() }}</p>
-        </article>
-        <article class="command-card">
-          <span class="eyebrow">Action</span>
-          <strong>{{ topActionTitle() }}</strong>
-          <p>{{ topActionMessage() }}</p>
-        </article>
-        <article class="command-card compact">
-          <span class="eyebrow">Automation</span>
-          <div class="automation-grid">
-            <div><strong>POS</strong><small>Auto consume</small></div>
-            <div><strong>Invoice</strong><small>Live track</small></div>
-            <div><strong>FIFO</strong><small>Batch use</small></div>
+          <div class="zenoti-totals">
+            <span>Configured <strong>{{ metric('configuredRecipes') }}</strong></span>
+            <span>Approved <strong>{{ approvedRecipes().length }}</strong></span>
+            <span>Missing <strong>{{ metric('missingRecipes') }}</strong></span>
+            <span>Coverage <strong>{{ coveragePct() }}%</strong></span>
+            <span>Stock risk <strong>{{ metric('lowStockForecast') }}</strong></span>
+            <span>Margin <strong>{{ metric('averageMarginPct') }}%</strong></span>
           </div>
-        </article>
-      </section>
+        </div>
 
-      <section class="auto-consume-flow">
-        <article><span>Trigger 1</span><strong>POS billed</strong><small>Usage lines</small></article>
-        <article><span>Trigger 2</span><strong>Appointment complete</strong><small>Stock consume</small></article>
-        <article><span>Trigger 3</span><strong>Invoice finalization</strong><small>Ledger post</small></article>
-        <article><span>Result</span><strong>Tracked</strong><small>FIFO + alerts</small></article>
+        <div class="zenoti-filter-row">
+          <div class="tab-strip">
+            <button type="button" *ngFor="let tab of tabs" [class.active]="activeTab() === tab.id" (click)="activeTab.set(tab.id)">{{ tab.label }}</button>
+          </div>
+          <button type="button" class="primary-button" (click)="resetEditor()">Add recipe</button>
+        </div>
+
+        <ng-container *ngIf="activeTab() === 'recipes'">
+          <div class="table-wrap zenoti-table-wrap">
+            <table>
+              <thead><tr><th>Service</th><th>Branch</th><th>Products</th><th>Cost</th><th>Margin</th><th>Status</th><th>Auto consume</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let recipe of recipes()">
+                  <td><strong>{{ recipe.serviceName || recipe.recipeName }}</strong><small>{{ recipe.recipeName }}</small></td>
+                  <td>{{ branchName(recipe.branchId) }}</td>
+                  <td><span class="recipe-chip" *ngFor="let item of recipe.items">{{ item.productName }} x {{ item.quantityPerService }} {{ item.unit || 'pcs' }}</span></td>
+                  <td>{{ recipe.expectedCost | currency:'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ recipe.expectedMarginPct || 0 }}%</td>
+                  <td><span class="badge" [class.warn]="recipe.approvalStatus !== 'approved'">{{ recipe.approvalStatus || 'approved' }}</span></td>
+                  <td>{{ recipe.approvalStatus === 'approved' ? 'Ready' : 'Approval pending' }}</td>
+                  <td class="row-actions"><button class="ghost-button mini" type="button" (click)="editRecipe(recipe)">Edit</button><button class="ghost-button mini" type="button" (click)="approveRecipe(recipe)" *ngIf="recipe.approvalStatus !== 'approved'">Approve</button></td>
+                </tr>
+                <tr *ngIf="!recipes().length"><td colspan="8" class="empty-cell">No service BOMs configured yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'planner'">
+          <div class="table-wrap zenoti-table-wrap">
+            <table>
+              <thead><tr><th>Queue</th><th>Service / product</th><th>Category</th><th>Need</th><th>Severity</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of dashboardList('missingRecipes')"><td>Missing BOM</td><td><strong>{{ row.serviceName }}</strong></td><td>{{ row.category || 'Service' }}</td><td>Create recipe</td><td>{{ row.severity || 'medium' }}</td></tr>
+                <tr *ngFor="let row of weakMarginRows()"><td>Margin watch</td><td><strong>{{ row.serviceName }}</strong></td><td>Recipe</td><td>{{ row.expectedMarginPct }}% margin</td><td>floor {{ row.marginFloorPct || 0 }}%</td></tr>
+                <tr *ngFor="let row of upcomingDemandRows()"><td>Stock pressure</td><td><strong>{{ row.productName }}</strong></td><td>{{ row.unit }}</td><td>{{ row.requiredQty }} required</td><td>{{ row.appointmentCount }} appointment(s)</td></tr>
+                <tr *ngIf="!dashboardList('missingRecipes').length && !weakMarginRows().length && !upcomingDemandRows().length"><td colspan="5" class="empty-cell">No planner queue for selected branch.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'intelligence'">
+          <div class="table-wrap zenoti-table-wrap">
+            <table>
+              <thead><tr><th>Signal</th><th>Name</th><th>Message</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of dashboardList('missingRecipes')"><td>Missing recipe</td><td><strong>{{ row.serviceName }}</strong></td><td>{{ row.category || 'Service' }}</td><td>Create BOM</td></tr>
+                <tr *ngFor="let row of dashboardList('lowStockForecast')"><td>Low stock forecast</td><td><strong>{{ row.productName }}</strong></td><td>Need {{ row.requiredQty }} {{ row.unit }}</td><td>Reorder</td></tr>
+                <tr *ngFor="let row of dashboardList('aiSuggestions')"><td>AI suggestion</td><td><strong>{{ row.title }}</strong></td><td>{{ row.message }}</td><td>Review</td></tr>
+                <tr *ngIf="!dashboardList('missingRecipes').length && !dashboardList('lowStockForecast').length && !dashboardList('aiSuggestions').length"><td colspan="4" class="empty-cell">No urgent recipe intelligence.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'usage'">
+          <div class="table-wrap zenoti-table-wrap">
+            <table>
+              <thead><tr><th>Service</th><th>Staff</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Reference</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let row of usageLogs()">
+                  <td><strong>{{ row.serviceName || row.serviceId }}</strong><small>{{ row.usageModifierKey }} x {{ row.usageModifierMultiplier }}</small></td>
+                  <td>{{ row.staffId || '-' }}</td>
+                  <td>{{ row.expectedCost | currency:'INR':'symbol':'1.0-0' }}</td>
+                  <td>{{ row.actualCost | currency:'INR':'symbol':'1.0-0' }}</td>
+                  <td><span class="badge" [class.warn]="row.overuseFlag">{{ row.variancePct || 0 }}%</span></td>
+                  <td>{{ row.referenceType }} · {{ row.referenceId }}</td>
+                </tr>
+                <tr *ngIf="!usageLogs().length"><td colspan="6" class="empty-cell">No service recipe usage logged yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="activeTab() === 'alerts'">
+          <div class="table-wrap zenoti-table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Title</th><th>Severity</th><th>Message</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let alert of alerts()"><td>{{ alert.alertType }}</td><td><strong>{{ alert.title }}</strong></td><td><span class="badge" [class.warn]="alert.severity === 'high'">{{ alert.severity }}</span></td><td>{{ alert.message }}</td></tr>
+                <tr *ngIf="!alerts().length"><td colspan="4" class="empty-cell">No open recipe alerts.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <div class="zenoti-footer">
+          <span>1 to {{ activeTabCount() }} of {{ activeTabCount() }}</span>
+          <span>{{ branchRecipeStatus() }}</span>
+        </div>
       </section>
 
       <div class="enterprise-grid two editor-grid">
@@ -117,6 +167,12 @@ const DEFAULT_MODIFIERS = [
               <p>{{ selectedService()?.name || 'Select one service, then map every product that should be consumed automatically from live inventory.' }}</p>
             </div>
             <button type="button" class="ghost-button mini" (click)="addRecipeItem()">Add product line</button>
+          </div>
+          <div class="auto-consume-flow">
+            <span>Auto Product Consume Service Setup</span>
+            <span>POS checkout</span>
+            <span>Appointment complete</span>
+            <span>Invoice finalization</span>
           </div>
           <form [formGroup]="recipeForm" (ngSubmit)="saveRecipe()" class="enterprise-form">
             <label class="field"><span>Branch</span><select formControlName="branchId"><option value="">All branches</option><option *ngFor="let branch of branches()" [value]="branch.id">{{ branch.name }}</option></select></label>
@@ -134,7 +190,7 @@ const DEFAULT_MODIFIERS = [
 
             <div class="recipe-lines full">
               <div class="recipe-line head">
-                <span>Inventory product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Substitutes</span><span></span>
+                <span>Inventory product</span><span>Auto qty / unit</span><span>Waste %</span><span>Range min/max</span><span>Substitutes</span><span></span>
               </div>
               <div class="recipe-line" *ngFor="let item of recipeItems(); trackBy: trackRecipeItem">
                 <select [ngModel]="item.productId" [ngModelOptions]="{standalone: true}" (ngModelChange)="setLineProduct(item, $event)">
@@ -188,100 +244,6 @@ const DEFAULT_MODIFIERS = [
         </section>
       </div>
 
-      <section class="panel">
-        <div class="section-title">
-          <div><span class="eyebrow">Control center</span><h2>Recipe intelligence</h2></div>
-          <div class="tab-strip">
-            <button type="button" *ngFor="let tab of tabs" [class.active]="activeTab() === tab.id" (click)="activeTab.set(tab.id)">{{ tab.label }}</button>
-          </div>
-        </div>
-
-        <ng-container *ngIf="activeTab() === 'planner'">
-          <div class="planner-grid">
-            <article class="planner-card">
-              <div><span class="eyebrow">Coverage queue</span><h3>Services needing BOM</h3></div>
-              <button class="planner-row" type="button" *ngFor="let row of dashboardList('missingRecipes').slice(0, 7)" (click)="startMissingRecipe(row)">
-                <strong>{{ row.serviceName }}</strong>
-                <span>{{ row.category || 'Service' }} · {{ row.severity || 'medium' }}</span>
-              </button>
-              <p *ngIf="!dashboardList('missingRecipes').length">Every active service has a mapped recipe.</p>
-            </article>
-            <article class="planner-card">
-              <div><span class="eyebrow">Margin watch</span><h3>Below-floor recipes</h3></div>
-              <button class="planner-row" type="button" *ngFor="let row of weakMarginRows().slice(0, 7)">
-                <strong>{{ row.serviceName }}</strong>
-                <span>{{ row.expectedMarginPct }}% margin · floor {{ row.marginFloorPct || 0 }}%</span>
-              </button>
-              <p *ngIf="!weakMarginRows().length">No recipe is below its margin floor.</p>
-            </article>
-            <article class="planner-card">
-              <div><span class="eyebrow">Upcoming demand</span><h3>Recipe stock pressure</h3></div>
-              <button class="planner-row" type="button" *ngFor="let row of upcomingDemandRows().slice(0, 7)">
-                <strong>{{ row.productName }}</strong>
-                <span>{{ row.requiredQty }} {{ row.unit }} · {{ row.appointmentCount }} appointment(s)</span>
-              </button>
-              <p *ngIf="!upcomingDemandRows().length">No upcoming recipe demand in the forecast window.</p>
-            </article>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="activeTab() === 'recipes'">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Service</th><th>Branch</th><th>Products</th><th>Cost / margin</th><th>Status</th><th>Action</th></tr></thead>
-              <tbody>
-                <tr *ngFor="let recipe of recipes()">
-                  <td><strong>{{ recipe.serviceName || recipe.recipeName }}</strong><small>{{ recipe.recipeName }}</small></td>
-                  <td>{{ branchName(recipe.branchId) }}</td>
-                  <td><span class="recipe-chip" *ngFor="let item of recipe.items">{{ item.productName }} x {{ item.quantityPerService }} {{ item.unit || 'pcs' }}</span></td>
-                  <td><strong>{{ recipe.expectedCost | currency:'INR':'symbol':'1.0-0' }}</strong><small>{{ recipe.expectedMarginPct || 0 }}% margin</small></td>
-                  <td><span class="badge" [class.warn]="recipe.approvalStatus !== 'approved'">{{ recipe.approvalStatus || 'approved' }}</span><small class="auto-status" *ngIf="recipe.approvalStatus === 'approved'">Auto consume ready</small></td>
-                  <td class="row-actions"><button class="ghost-button mini" type="button" (click)="editRecipe(recipe)">Edit</button><button class="ghost-button mini" type="button" (click)="approveRecipe(recipe)" *ngIf="recipe.approvalStatus !== 'approved'">Approve</button></td>
-                </tr>
-                <tr *ngIf="!recipes().length"><td colspan="6">No service BOMs configured yet.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="activeTab() === 'intelligence'">
-          <div class="intel-grid">
-            <article><h3>Missing recipes</h3><p *ngFor="let row of dashboardList('missingRecipes')">{{ row.serviceName }} · {{ row.category || 'Service' }}</p><p *ngIf="!dashboardList('missingRecipes').length">No missing recipes for selected branch.</p></article>
-            <article><h3>Low stock forecast</h3><p *ngFor="let row of dashboardList('lowStockForecast')">{{ row.productName }} · need {{ row.requiredQty }} {{ row.unit }}</p><p *ngIf="!dashboardList('lowStockForecast').length">No forecast shortage in next 15 days.</p></article>
-            <article><h3>AI suggestions</h3><p *ngFor="let row of dashboardList('aiSuggestions')">{{ row.title }} · {{ row.message }}</p><p *ngIf="!dashboardList('aiSuggestions').length">No urgent recipe suggestions.</p></article>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="activeTab() === 'usage'">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Service</th><th>Staff</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Reference</th></tr></thead>
-              <tbody>
-                <tr *ngFor="let row of usageLogs()">
-                  <td><strong>{{ row.serviceName || row.serviceId }}</strong><small>{{ row.usageModifierKey }} x {{ row.usageModifierMultiplier }}</small></td>
-                  <td>{{ row.staffId || '-' }}</td>
-                  <td>{{ row.expectedCost | currency:'INR':'symbol':'1.0-0' }}</td>
-                  <td>{{ row.actualCost | currency:'INR':'symbol':'1.0-0' }}</td>
-                  <td><span class="badge" [class.warn]="row.overuseFlag">{{ row.variancePct || 0 }}%</span></td>
-                  <td>{{ row.referenceType }} · {{ row.referenceId }}</td>
-                </tr>
-                <tr *ngIf="!usageLogs().length"><td colspan="6">No service recipe usage logged yet. Logs will appear after POS checkout, appointment completion or invoice finalization consumes an approved recipe.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="activeTab() === 'alerts'">
-          <div class="alert-grid">
-            <article *ngFor="let alert of alerts()" [class.high]="alert.severity === 'high'">
-              <span>{{ alert.alertType }}</span>
-              <strong>{{ alert.title }}</strong>
-              <small>{{ alert.message }}</small>
-            </article>
-            <article *ngIf="!alerts().length"><strong>No open recipe alerts</strong><small>Overuse, missing BOM and forecast alerts will appear here.</small></article>
-          </div>
-        </ng-container>
-      </section>
     </section>
   `,
   styles: [`
@@ -294,7 +256,126 @@ const DEFAULT_MODIFIERS = [
       --recipe-line: color-mix(in srgb, var(--line) 76%, white);
       --recipe-soft: color-mix(in srgb, var(--teal) 9%, white);
       --recipe-glow: 0 22px 58px color-mix(in srgb, var(--ink) 9%, transparent);
-      gap: 18px;
+      gap: 0;
+    }
+
+    .zenoti-recipe-workspace {
+      background: #fff;
+      border: 1px solid #d8e1ea;
+      display: grid;
+      overflow: hidden;
+    }
+
+    .zenoti-result-bar,
+    .zenoti-filter-row,
+    .zenoti-footer {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+
+    .zenoti-result-bar,
+    .zenoti-filter-row {
+      border-bottom: 1px solid #d8e1ea;
+    }
+
+    .zenoti-result-bar > div,
+    .zenoti-totals {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .zenoti-result-bar strong {
+      color: #152033;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .zenoti-result-bar span,
+    .zenoti-footer {
+      color: #50637d;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .status-chip {
+      background: #eaf6ff;
+      border: 1px solid #b9d0e7;
+      border-radius: 999px;
+      color: #173f62;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+
+    .zenoti-table-wrap {
+      border-radius: 0;
+      overflow: auto;
+    }
+
+    .zenoti-table-wrap table {
+      border-collapse: collapse;
+      min-width: 1180px;
+      width: 100%;
+    }
+
+    .zenoti-table-wrap th,
+    .zenoti-table-wrap td {
+      border-bottom: 1px solid #dfe6ee;
+      color: #243142;
+      font-size: 13px;
+      padding: 11px 14px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .zenoti-table-wrap th {
+      background: #f5f8fb;
+      color: #5d6e84;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .zenoti-table-wrap td strong {
+      color: #075f9e;
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .zenoti-table-wrap td small {
+      color: #61738d;
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    .empty-cell {
+      color: #61738d;
+      font-weight: 800;
+      padding: 28px 14px;
+      text-align: center;
+    }
+
+    .zenoti-footer {
+      border-top: 1px solid #d8e1ea;
+      justify-content: flex-end;
+    }
+
+    .editor-grid {
+      background: #fff;
+      border: 1px solid #d8e1ea;
+      border-top: 0;
+      padding: 14px 16px;
     }
 
     .hero-actions,
@@ -309,8 +390,10 @@ const DEFAULT_MODIFIERS = [
     }
 
     .recipe-command-hero {
-      align-items: stretch;
-      min-height: 184px;
+      align-items: center;
+      width: 100%;
+      min-height: 250px;
+      padding: 12px 14px;
       border: 1px solid color-mix(in srgb, var(--teal) 18%, var(--line));
       background:
         radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--amber) 18%, transparent), transparent 30%),
@@ -321,16 +404,16 @@ const DEFAULT_MODIFIERS = [
 
     .hero-copy {
       display: grid;
-      gap: 10px;
-      max-width: 900px;
+      gap: 6px;
+      max-width: 560px;
     }
 
     .hero-copy h2 {
       max-width: 920px;
       margin: 0;
-      font-size: clamp(30px, 4vw, 50px);
-      letter-spacing: -0.06em;
-      line-height: 0.98;
+      font-size: clamp(22px, 2.4vw, 30px);
+      letter-spacing: 0;
+      line-height: 1.04;
     }
 
     .hero-copy p,
@@ -345,22 +428,22 @@ const DEFAULT_MODIFIERS = [
 
     .hero-signal-row {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
-      margin-top: 4px;
+      margin-top: 0;
     }
 
     .hero-signal-row span,
     .recipe-health-pill {
       display: inline-flex;
       align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
+      min-height: 24px;
+      padding: 0 9px;
       border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line));
       border-radius: 999px;
       background: color-mix(in srgb, var(--surface) 86%, white);
       color: var(--ink);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
     }
@@ -588,17 +671,33 @@ const DEFAULT_MODIFIERS = [
 
     .recipe-canvas,
     .impact-panel {
-      border: 1px solid var(--recipe-line);
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 94%, white)),
-        var(--surface);
-      box-shadow: var(--recipe-glow);
+      border: 1px solid #d8e1ea;
+      border-radius: 3px;
+      background: #fff;
+      box-shadow: none;
     }
 
     .enterprise-form {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
+    }
+
+    .auto-consume-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .auto-consume-flow span {
+      border: 1px solid var(--recipe-line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      background: var(--recipe-soft);
     }
 
     .enterprise-form .full {
@@ -635,7 +734,7 @@ const DEFAULT_MODIFIERS = [
     .recipe-line {
       min-width: 1040px;
       display: grid;
-      grid-template-columns: 2fr 1.2fr .8fr 1.2fr 1.4fr auto;
+      grid-template-columns: 2fr 1.15fr .85fr 1.2fr 1.35fr auto;
       gap: 8px;
       align-items: center;
       padding: 10px;
@@ -929,6 +1028,8 @@ export class InventoryRecipesComponent implements OnInit {
           unit: item.unit,
           unitCost: Number(product?.unitCost || 0),
           wastagePct: Number(item.wastagePct || 0),
+          wastageApprovalPct: Number(item.wastageApprovalPct || 25),
+          wastageHitLimit: Math.max(1, Number(item.wastageHitLimit || 3)),
           minQuantityPerService: Number(item.minQuantityPerService || 0),
           maxQuantityPerService: Number(item.maxQuantityPerService || 0),
           allowedSubstitutes: this.csv(item.allowedSubstitutesText),
@@ -981,29 +1082,13 @@ export class InventoryRecipesComponent implements OnInit {
       quantityPerService: Number(item.quantityPerService || 1),
       unit: item.unit || 'pcs',
       wastagePct: Number(item.wastagePct || 0),
+      wastageApprovalPct: Number(item.wastageApprovalPct || 25),
+      wastageHitLimit: Math.max(1, Number(item.wastageHitLimit || 3)),
       minQuantityPerService: Number(item.minQuantityPerService || 0),
       maxQuantityPerService: Number(item.maxQuantityPerService || 0),
       allowedSubstitutesText: (item.allowedSubstitutes || []).join(', '),
       notes: item.notes || ''
     })) || [this.blankLine()]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  startMissingRecipe(row: ApiRecord): void {
-    const serviceId = String(row.serviceId || '');
-    const service = this.services().find((item) => item.id === serviceId);
-    this.editingRecipeId.set('');
-    this.activeTab.set('recipes');
-    this.success.set(`${row.serviceName || service?.name || 'Service'} BOM draft ready.`);
-    this.recipeForm.patchValue({
-      branchId: this.api.selectedBranchId() || '',
-      serviceId,
-      recipeName: `${row.serviceName || service?.name || 'Service'} BOM`,
-      approvalStatus: 'approved',
-      marginFloorPct: 35,
-      notes: `Created from missing BOM queue for ${row.serviceName || service?.name || 'service'}.`
-    });
-    this.recipeItems.set([this.blankLine()]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1062,6 +1147,14 @@ export class InventoryRecipesComponent implements OnInit {
 
   metric(key: string): number {
     return Number((this.dashboard()?.['metrics'] || {})[key] || 0);
+  }
+
+  activeTabCount(): number {
+    if (this.activeTab() === 'recipes') return this.recipes().length;
+    if (this.activeTab() === 'planner') return this.dashboardList('missingRecipes').length + this.weakMarginRows().length + this.upcomingDemandRows().length;
+    if (this.activeTab() === 'intelligence') return this.dashboardList('missingRecipes').length + this.dashboardList('lowStockForecast').length + this.dashboardList('aiSuggestions').length;
+    if (this.activeTab() === 'usage') return this.usageLogs().length;
+    return this.alerts().length;
   }
 
   coveragePct(): number {
@@ -1202,6 +1295,8 @@ export class InventoryRecipesComponent implements OnInit {
       quantityPerService: 1,
       unit: 'pcs',
       wastagePct: 0,
+      wastageApprovalPct: 25,
+      wastageHitLimit: 3,
       minQuantityPerService: 0,
       maxQuantityPerService: 0,
       allowedSubstitutesText: '',

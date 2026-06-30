@@ -32,7 +32,13 @@ export const env = {
   firebaseProjectId: process.env.CUSTOMER_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "",
   firebaseClientEmail: process.env.CUSTOMER_FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_CLIENT_EMAIL || "",
   firebasePrivateKey: process.env.CUSTOMER_FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY || "",
-  firebaseServiceAccountJson: process.env.CUSTOMER_FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON || ""
+  firebaseServiceAccountJson: process.env.CUSTOMER_FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "",
+  whatsappProvider: process.env.WHATSAPP_PROVIDER || "local",
+  whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
+  whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
+  whatsappBusinessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "",
+  whatsappWebhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "aura_whatsapp_verify_2026",
+  metaGraphVersion: process.env.META_GRAPH_VERSION || "v20.0"
 };
 
 function loadLocalEnv() {

@@ -2,9 +2,9 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type UploadFile = {
@@ -16,27 +16,21 @@ type UploadFile = {
 @Component({
   selector: 'app-purchase-bill-drafts',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ReactiveFormsModule, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack bill-drafts-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / AI Purchase Bill Drafts</span>
-          <h2>AI receiving command center</h2>
-          <p>Convert supplier bills into controlled drafts, review every line, then post stock only after confirmation.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Back to inventory</a>
-          <a class="ghost-button" routerLink="/inventory/purchase-orders">Purchase orders</a>
-          <button class="primary-button" type="button" (click)="load()" [disabled]="loading()">Refresh</button>
-        </div>
-        <div class="hero-insights">
+      <app-inventory-zenoti-chrome
+        title="AI receiving command center"
+        breadcrumb="Inventory > AI Purchase Bill Drafts"
+        (refresh)="load()"
+      >
+        <div zenoti-actions class="hero-insights">
           <span>Confirm-gated stock</span>
           <span>Supplier + GST check</span>
           <span>Product match review</span>
           <span>Duplicate-safe receiving</span>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

@@ -48,6 +48,20 @@ function saleWhere(branchId, alias = "s") {
   ].filter(Boolean).join(" AND ");
 }
 
+const tableColumnCache = new Map();
+
+function tableColumns(tableName) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(tableName)) return new Set();
+  if (!tableColumnCache.has(tableName)) {
+    tableColumnCache.set(tableName, new Set(db.prepare(`PRAGMA table_info(${tableName})`).all().map((column) => column.name)));
+  }
+  return tableColumnCache.get(tableName);
+}
+
+function hasColumn(tableName, columnName) {
+  return tableColumns(tableName).has(columnName);
+}
+
 function statsCte(branchId) {
   return `
     WITH invoice_stats AS (
@@ -215,6 +229,17 @@ function itemAmount(item = {}) {
   const quantity = numberValue(item.quantity ?? item.qty ?? 1, 1) || 1;
   const price = numberValue(item.price ?? item.unitPrice ?? item.rate ?? 0);
   return money(quantity * price);
+}
+
+function serviceItemNames(items = []) {
+  return [...new Set(items
+    .filter((item) => {
+      const type = itemType(item);
+      return type === "service" || type === "custom" || type === "package_redeem" || (!type && !item.productId);
+    })
+    .map(itemName)
+    .filter(Boolean))]
+    .join(", ");
 }
 
 function mostCommon(entries, fallback = "") {
@@ -743,6 +768,177 @@ export class ClientReportsService {
       monetaryScore: Number(row.monetaryScore || 0),
       rfmScore: Number(row.rfmScore || 0)
     }));
+  }
+
+  clientRevenue(query = {}, access = {}) {
+    const branchId = branchFrom(query, access);
+    const from = String(query.from || query.startDate || "").slice(0, 10);
+    const to = String(query.to || query.endDate || "").slice(0, 10);
+    const order = String(query.order || query.revenueOrder || "desc").toLowerCase() === "asc" ? "asc" : "desc";
+    const search = String(query.q || query.search || "").trim().toLowerCase();
+    const membershipStatus = String(query.membershipStatus || "all").toLowerCase();
+    const visitBucket = String(query.visitBucket || "all").toLowerCase();
+    const revenueBucket = String(query.revenueBucket || "all").toLowerCase();
+    const staffFilter = String(query.staff || query.staffId || "").trim().toLowerCase();
+    const serviceFilter = String(query.service || query.serviceId || "").trim().toLowerCase();
+    const limit = clampInt(query.limit, 100, 1, 1000);
+    const params = { tenantId: tenantId(access), branchId, from, to, limit: 10000 };
+    const dateFilters = [
+      from ? `substr(${invoiceDateExpr}, 1, 10) >= @from` : "",
+      to ? `substr(${invoiceDateExpr}, 1, 10) <= @to` : ""
+    ].filter(Boolean).join(" AND ");
+    const rows = db.prepare(
+      `SELECT
+         i.id AS invoiceId,
+         i.clientId,
+         COALESCE(NULLIF(i.invoiceNumber, ''), NULLIF(i.invoice_no, ''), i.id) AS invoiceNumber,
+         i.lineItems,
+         ${invoiceDateExpr} AS invoiceCreatedAt,
+         ${invoiceTotalExpr} AS invoiceTotal,
+         ${invoicePaidExpr} AS invoicePaid,
+         ${invoiceBalanceExpr} AS invoiceBalance,
+         c.name AS clientName,
+         c.phone AS clientPhone,
+         c.createdAt AS clientCreatedAt,
+         c.visitCount AS storedVisitCount,
+         c.totalSpend AS storedTotalSpend,
+         c.lastVisitAt AS storedLastVisitAt,
+         s.items AS saleItems,
+         s.staffId AS saleStaffId,
+         st.name AS staffName
+       FROM invoices i
+       LEFT JOIN sales s ON s.id = i.saleId AND s.tenantId = i.tenantId
+       LEFT JOIN clients c ON c.id = i.clientId AND c.tenantId = i.tenantId
+       LEFT JOIN staff st ON st.id = COALESCE(NULLIF(i.staffId, ''), NULLIF(s.staffId, '')) AND st.tenantId = i.tenantId
+       WHERE ${invoiceWhere(branchId)}
+         ${dateFilters ? `AND ${dateFilters}` : ""}
+       ORDER BY ${invoiceDateExpr} DESC
+       LIMIT @limit`
+    ).all(params);
+
+    const membershipByClient = new Map();
+    const membershipWhere = [
+      hasColumn("memberships", "tenantId") ? "tenantId = @tenantId" : "",
+      hasColumn("memberships", "branchId") && branchId ? "branchId = @branchId" : ""
+    ].filter(Boolean).join(" AND ") || "1 = 1";
+    const membershipRows = db.prepare(
+      `SELECT clientId, planName, status, validityDate
+       FROM memberships
+       WHERE ${membershipWhere}
+       ORDER BY COALESCE(NULLIF(validityDate, ''), NULLIF(createdAt, '')) DESC`
+    ).all(params);
+    const today = new Date().toISOString().slice(0, 10);
+    for (const membership of membershipRows) {
+      const clientId = String(membership.clientId || "");
+      if (!clientId || membershipByClient.has(clientId)) continue;
+      const status = String(membership.status || "").toLowerCase();
+      const validUntil = String(membership.validityDate || "").slice(0, 10);
+      const active = (!status || status === "active") && (!validUntil || validUntil >= today);
+      membershipByClient.set(clientId, {
+        active,
+        label: active ? String(membership.planName || "Active member") : "Non-member"
+      });
+    }
+
+    const grouped = new Map();
+    for (const row of rows) {
+      const clientId = String(row.clientId || "");
+      if (!clientId) continue;
+      const invoiceDate = String(row.invoiceCreatedAt || "");
+      const items = readList(row.lineItems).length ? readList(row.lineItems) : readList(row.saleItems);
+      const services = serviceItemNames(items);
+      const current = grouped.get(clientId) || {
+        clientId,
+        id: clientId,
+        clientName: compactText(row.clientName, "Walk-in"),
+        name: compactText(row.clientName, "Walk-in"),
+        phone: String(row.clientPhone || ""),
+        totalVisits: 0,
+        visitCount: 0,
+        lastVisitAt: invoiceDate || row.storedLastVisitAt || "",
+        totalRevenue: 0,
+        paidAmount: 0,
+        pendingDue: 0,
+        averageBill: 0,
+        membershipStatus: "Non-member",
+        membershipPlan: "",
+        lastStaffName: "",
+        lastServiceName: "",
+        client360Url: `/clients/${clientId}`
+      };
+      current.totalVisits += 1;
+      current.visitCount = current.totalVisits;
+      current.totalRevenue = money(current.totalRevenue + Number(row.invoiceTotal || 0));
+      current.paidAmount = money(current.paidAmount + Number(row.invoicePaid || 0));
+      current.pendingDue = money(current.pendingDue + Math.max(0, Number(row.invoiceBalance || 0)));
+      if (!current.lastStaffName) current.lastStaffName = String(row.staffName || row.saleStaffId || "Unassigned");
+      if (!current.lastServiceName) current.lastServiceName = services || "-";
+      grouped.set(clientId, current);
+    }
+
+    let resultRows = [...grouped.values()].map((row) => {
+      const membership = membershipByClient.get(row.clientId) || {};
+      const totalVisits = Number(row.totalVisits || row.storedVisitCount || 0);
+      return {
+        ...row,
+        totalVisits,
+        visitCount: totalVisits,
+        totalRevenue: money(row.totalRevenue),
+        monetary: money(row.totalRevenue),
+        paidAmount: money(row.paidAmount),
+        pendingDue: money(row.pendingDue),
+        outstandingBalance: money(row.pendingDue),
+        averageBill: totalVisits ? money(row.totalRevenue / totalVisits) : 0,
+        membershipStatus: membership.active ? "Member" : "Non-member",
+        membershipPlan: membership.label || ""
+      };
+    }).filter((row) => {
+      if (search) {
+        const haystack = `${row.clientName} ${row.phone}`.toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      if (membershipStatus === "member" && row.membershipStatus !== "Member") return false;
+      if (membershipStatus === "non-member" && row.membershipStatus === "Member") return false;
+      if (staffFilter && !String(row.lastStaffName || "").toLowerCase().includes(staffFilter)) return false;
+      if (serviceFilter && !String(row.lastServiceName || "").toLowerCase().includes(serviceFilter)) return false;
+      if (visitBucket === "1" && row.totalVisits !== 1) return false;
+      if (visitBucket === "2-5" && (row.totalVisits < 2 || row.totalVisits > 5)) return false;
+      if (visitBucket === "6-10" && (row.totalVisits < 6 || row.totalVisits > 10)) return false;
+      if (visitBucket === "10+" && row.totalVisits <= 10) return false;
+      if (revenueBucket === "0-1000" && row.totalRevenue > 1000) return false;
+      if (revenueBucket === "1000-10000" && (row.totalRevenue < 1000 || row.totalRevenue > 10000)) return false;
+      if (revenueBucket === "10000+" && row.totalRevenue < 10000) return false;
+      return true;
+    }).sort((a, b) => {
+      const direction = order === "asc" ? 1 : -1;
+      return (a.totalRevenue - b.totalRevenue) * direction || a.clientName.localeCompare(b.clientName);
+    });
+
+    const summaryRows = resultRows;
+    const totalVisits = summaryRows.reduce((sum, row) => sum + row.totalVisits, 0);
+    const totalRevenue = money(summaryRows.reduce((sum, row) => sum + row.totalRevenue, 0));
+    const paidAmount = money(summaryRows.reduce((sum, row) => sum + row.paidAmount, 0));
+    const pendingDue = money(summaryRows.reduce((sum, row) => sum + row.pendingDue, 0));
+    const newClients = summaryRows.filter((row) => {
+      const firstSeen = rows.find((invoice) => String(invoice.clientId || "") === row.clientId)?.clientCreatedAt || "";
+      const key = String(firstSeen || "").slice(0, 10);
+      return (!from || key >= from) && (!to || key <= to);
+    }).length;
+    resultRows = resultRows.slice(0, limit);
+    return {
+      summary: {
+        totalClients: summaryRows.length,
+        totalVisits,
+        totalRevenue,
+        newClients,
+        repeatClients: summaryRows.filter((row) => row.totalVisits > 1).length,
+        averageBill: totalVisits ? money(totalRevenue / totalVisits) : 0,
+        paidAmount,
+        pendingDue,
+        memberClients: summaryRows.filter((row) => row.membershipStatus === "Member").length
+      },
+      rows: resultRows
+    };
   }
 
   lapsed(query = {}, access = {}) {

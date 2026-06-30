@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
+import { engagementLeadIntelligenceService } from "../services/engagement-lead-intelligence.service.js";
 import { engagementService } from "../services/engagement.service.js";
 
 export const engagementRouter = Router();
@@ -217,6 +218,46 @@ engagementRouter.get(
   requirePermission("read", () => "whatsapp"),
   asyncHandler((req, res) => {
     res.json(engagementService.managerView(req.query, req.access, requestMeta(req)));
+  })
+);
+
+engagementRouter.get(
+  "/engagement/leads/report",
+  requirePermission("read", () => "whatsapp"),
+  asyncHandler((req, res) => {
+    res.json(engagementLeadIntelligenceService.report(req.query, req.access));
+  })
+);
+
+engagementRouter.post(
+  "/engagement/leads/:id/assign",
+  requirePermission("write", () => "whatsapp"),
+  asyncHandler((req, res) => {
+    res.status(201).json(engagementLeadIntelligenceService.action(req.params.id, req.body, req.access, "assign"));
+  })
+);
+
+engagementRouter.post(
+  "/engagement/leads/:id/follow-up-note",
+  requirePermission("write", () => "whatsapp"),
+  asyncHandler((req, res) => {
+    res.status(201).json(engagementLeadIntelligenceService.action(req.params.id, req.body, req.access, "follow_up_note"));
+  })
+);
+
+engagementRouter.post(
+  "/engagement/leads/:id/mark-won",
+  requirePermission("write", () => "whatsapp"),
+  asyncHandler((req, res) => {
+    res.status(201).json(engagementLeadIntelligenceService.action(req.params.id, req.body, req.access, "mark_won"));
+  })
+);
+
+engagementRouter.post(
+  "/engagement/leads/:id/mark-lost",
+  requirePermission("write", () => "whatsapp"),
+  asyncHandler((req, res) => {
+    res.status(201).json(engagementLeadIntelligenceService.action(req.params.id, req.body, req.access, "mark_lost"));
   })
 );
 

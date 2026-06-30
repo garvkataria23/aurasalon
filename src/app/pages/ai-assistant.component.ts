@@ -285,6 +285,14 @@ type AiTool = {
               <p *ngIf="output.providerWarning" class="warning-text">{{ output.providerWarning }}</p>
             </div>
 
+            <div class="source-strip" *ngIf="knowledgeSources(output).length">
+              <article *ngFor="let source of knowledgeSources(output)">
+                <span>Source</span>
+                <strong>{{ source.title || source }}</strong>
+                <small>{{ source.excerpt || source.category || 'Knowledge base' }}</small>
+              </article>
+            </div>
+
             <div class="result-metrics">
               <article *ngFor="let metric of outputMetrics(output)">
                 <span>{{ metric.label }}</span>
@@ -411,18 +419,27 @@ type AiTool = {
   styles: [`
     :host {
       display: block;
+      --ai-ink: #111827;
+      --ai-muted: #64748b;
+      --ai-line: #dbe7e4;
+      --ai-teal: #0f766e;
+      --ai-green: #166534;
+      --ai-amber: #b7791f;
+      --ai-red: #b42318;
+      --ai-surface: rgba(255, 255, 255, .88);
+      --ai-shadow: 0 24px 70px rgba(15, 23, 42, .10);
     }
 
     .ai-command-page {
-      color: var(--ink);
+      color: var(--ai-ink);
     }
 
     .ai-hero,
     .panel,
     .ai-kpi {
-      border: 1px solid var(--line);
-      background: var(--surface);
-      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--ai-line);
+      background: var(--ai-surface);
+      box-shadow: var(--ai-shadow);
     }
 
     .ai-hero {
@@ -456,7 +473,7 @@ type AiTool = {
 
     .ai-hero p {
       max-width: 720px;
-      color: var(--muted);
+      color: var(--ai-muted);
       font-size: 17px;
       font-weight: 750;
       line-height: 1.55;
@@ -488,7 +505,7 @@ type AiTool = {
     .category-tabs button,
     .safety-strip,
     .badge {
-      border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--line));
+      border: 1px solid color-mix(in srgb, var(--ai-teal) 22%, var(--ai-line));
       background: rgba(255, 255, 255, .72);
       color: #12433f;
       border-radius: 999px;
@@ -552,7 +569,7 @@ type AiTool = {
     .result-metrics span,
     .approval-checklist small,
     .raw-json summary {
-      color: var(--muted);
+      color: var(--ai-muted);
       font-size: 12px;
       font-weight: 850;
     }
@@ -565,7 +582,7 @@ type AiTool = {
     }
 
     .ai-kpi small {
-      color: var(--muted);
+      color: var(--ai-muted);
       font-weight: 750;
     }
 
@@ -573,7 +590,7 @@ type AiTool = {
       display: grid;
       grid-template-columns: minmax(320px, .85fr) minmax(480px, 1.35fr) minmax(300px, .8fr);
       gap: 16px;
-      align-items: stretch;
+      align-items: start;
     }
 
     .panel {
@@ -585,7 +602,6 @@ type AiTool = {
     .governance-panel {
       position: sticky;
       top: 18px;
-      align-self: start;
     }
 
     .ai-search {
@@ -596,7 +612,7 @@ type AiTool = {
 
     .ai-search input {
       width: 100%;
-      border: 1px solid var(--line);
+      border: 1px solid var(--ai-line);
       border-radius: 16px;
       padding: 12px 14px;
       font: inherit;
@@ -637,12 +653,12 @@ type AiTool = {
       align-items: center;
       width: 100%;
       text-align: left;
-      border: 1px solid var(--line);
+      border: 1px solid var(--ai-line);
       border-radius: 18px;
       padding: 12px;
       background: #fff;
       cursor: pointer;
-      color: var(--ink);
+      color: var(--ai-ink);
     }
 
     .workflow-card.active {
@@ -661,7 +677,7 @@ type AiTool = {
     }
 
     .workflow-card em {
-      color: var(--teal);
+      color: var(--ai-teal);
       font-size: 11px;
       font-style: normal;
       font-weight: 950;
@@ -694,7 +710,7 @@ type AiTool = {
     }
 
     .command-header p {
-      color: var(--muted);
+      color: var(--ai-muted);
       font-weight: 750;
     }
 
@@ -707,7 +723,7 @@ type AiTool = {
     .task-badges .warn,
     .warning-text,
     .task-health-list .warn {
-      color: var(--red);
+      color: var(--ai-red);
     }
 
     .enterprise-form {
@@ -723,7 +739,7 @@ type AiTool = {
     .field {
       display: grid;
       gap: 7px;
-      color: var(--muted);
+      color: var(--ai-muted);
       font-size: 12px;
       font-weight: 900;
     }
@@ -732,11 +748,11 @@ type AiTool = {
     .field select,
     .field textarea {
       width: 100%;
-      border: 1px solid var(--line);
+      border: 1px solid var(--ai-line);
       border-radius: 16px;
       padding: 12px 13px;
       background: #fff;
-      color: var(--ink);
+      color: var(--ai-ink);
       font: inherit;
       font-weight: 750;
     }
@@ -753,7 +769,7 @@ type AiTool = {
     }
 
     .safety-strip strong {
-      color: var(--ink);
+      color: var(--ai-ink);
     }
 
     .form-actions {
@@ -774,12 +790,42 @@ type AiTool = {
     .result-metrics article,
     .approval-checklist article,
     .answer-card,
+    .source-strip article,
     .action-card,
     .mini-feed div {
-      border: 1px solid var(--line);
+      border: 1px solid var(--ai-line);
       border-radius: 18px;
       background: #fff;
       padding: 14px;
+    }
+
+    .source-strip {
+      display: grid;
+      gap: 10px;
+    }
+
+    .source-strip article {
+      border-color: #cde7dd;
+      background: #f5fbf8;
+      display: grid;
+      gap: 4px;
+    }
+
+    .source-strip span {
+      color: #0f766e;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .source-strip strong {
+      color: var(--ai-ink);
+      font-size: 13px;
+    }
+
+    .source-strip small {
+      color: var(--ai-muted);
+      line-height: 1.4;
     }
 
     .governance-stack strong,
@@ -802,7 +848,7 @@ type AiTool = {
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      border-bottom: 1px dashed var(--line);
+      border-bottom: 1px dashed var(--ai-line);
       padding-bottom: 8px;
       font-size: 12px;
       font-weight: 850;
@@ -812,7 +858,7 @@ type AiTool = {
       display: grid;
       gap: 10px;
       margin-top: 16px;
-      border-top: 1px solid var(--line);
+      border-top: 1px solid var(--ai-line);
       padding-top: 14px;
     }
 
@@ -845,14 +891,14 @@ type AiTool = {
     }
 
     .registry-list div {
-      border-bottom: 1px dashed var(--line);
+      border-bottom: 1px dashed var(--ai-line);
       padding-bottom: 8px;
       font-size: 12px;
       font-weight: 850;
     }
 
     .registry-list small {
-      color: var(--muted);
+      color: var(--ai-muted);
     }
 
     .ai-result-grid {
@@ -903,7 +949,7 @@ type AiTool = {
     .action-card span,
     .action-card small {
       margin-top: 6px;
-      color: var(--muted);
+      color: var(--ai-muted);
       font-weight: 750;
     }
 
@@ -929,7 +975,7 @@ type AiTool = {
     }
 
     .raw-json {
-      border: 1px solid var(--line);
+      border: 1px solid var(--ai-line);
       border-radius: 18px;
       padding: 12px;
       background: #f8fafc;
@@ -948,9 +994,9 @@ type AiTool = {
       min-height: 260px;
       place-content: center;
       text-align: center;
-      border: 1px dashed var(--line);
+      border: 1px dashed var(--ai-line);
       border-radius: 22px;
-      color: var(--muted);
+      color: var(--ai-muted);
       font-weight: 850;
     }
 
@@ -966,7 +1012,7 @@ type AiTool = {
 
     .table-wrap table small {
       display: block;
-      color: var(--muted);
+      color: var(--ai-muted);
       max-width: 650px;
     }
 
@@ -1005,6 +1051,7 @@ type AiTool = {
 })
 export class AiAssistantComponent implements OnInit {
   readonly tools: AiTool[] = [
+    { id: 'knowledge-search-summary', taskKey: 'knowledge.search_summary', title: 'Knowledge answer', category: 'Executive', icon: 'KB', tier: 'governed', description: 'Answer from active knowledge-base articles with source citations.', prompt: 'What does our knowledge base say about cancellation notice?', requires: ['branch'] },
     { id: 'analytics-summary', taskKey: 'analytics.summary', title: 'Executive analytics brief', category: 'Executive', icon: 'EX', tier: 'smart', description: 'Summarize revenue, pending payments, low stock and owner actions.', prompt: 'Summarize the current salon performance and list the top 3 owner actions.' },
     { id: 'dashboard-executive-summary', taskKey: 'dashboard.executive_summary', title: 'Dashboard executive summary', category: 'Executive', icon: 'DB', tier: 'smart', description: 'Generate a board-room view from dashboard metrics.', prompt: 'Create an executive daily summary for the selected branch.', requires: ['branch'] },
     { id: 'dashboard-risk-briefing', taskKey: 'dashboard.risk_briefing', title: 'Risk briefing', category: 'Executive', icon: 'RK', tier: 'governed', description: 'Detect operational risks across bookings, payments and inventory.', prompt: 'Find the biggest operational risks and give safe next steps.', requires: ['branch'] },
@@ -1245,8 +1292,13 @@ export class AiAssistantComponent implements OnInit {
   }
 
   primaryList(output: ApiRecord): ApiRecord[] {
-    const value = output.recommendations || output.suggestions || output.clients || output.products || output.risks || output.insights || output.actions || output.segmentIdeas || output.captions || [];
+    const value = output.recommendations || output.suggestions || output.clients || output.products || output.risks || output.insights || output.citations || output.actions || output.segmentIdeas || output.captions || [];
     return this.rows(value).slice(0, 9).map((item) => typeof item === 'string' ? { name: item, value: '' } : item);
+  }
+
+  knowledgeSources(output: ApiRecord): ApiRecord[] {
+    return this.rows(output.citations || output.knowledge?.sources || output.sources).slice(0, 5)
+      .map((item) => typeof item === 'string' ? { title: item } : item);
   }
 
   private buildPayload(tool: AiTool): ApiRecord {

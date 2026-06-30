@@ -19,6 +19,9 @@ const UNIT_ALIASES = new Map([
 ]);
 const LOW_BALANCE_PCT = 20;
 const MEASURE_UNITS = new Set(["ml", "g", "kg", "l"]);
+const PRODUCT_CONSUME_WASTAGE_WARN_PCT = 10;
+const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
+const PRODUCT_CONSUME_STAFF_WASTAGE_REPEAT_LIMIT = 3;
 
 let schemaReady = false;
 
@@ -998,6 +1001,8 @@ export class BackbarProductConsumptionService {
         return !productId || lineProductId === productId;
       });
       const updatedAt = draft.updated_at || draft.created_at || "";
+      const maxWastagePct = lines.reduce((max, line) => Math.max(max, number(line.wastagePct ?? line.wastage_pct, 0)), 0);
+      const wastageApprovalLines = lines.filter((line) => number(line.wastagePct ?? line.wastage_pct, 0) > number(line.wastageApprovalPct ?? line.wastage_approval_pct, PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT));
       return {
         draftId: draft.id,
         invoiceId: draft.invoice_id || "",
@@ -1010,6 +1015,15 @@ export class BackbarProductConsumptionService {
         staffId: draft.staff_id || "",
         staffName: draft.staff_name || "Unassigned",
         lineCount: lines.length,
+        maxWastagePct,
+        wastageApprovalRequired: wastageApprovalLines.length > 0,
+        wastageApprovalLines: wastageApprovalLines.map((line) => ({
+          productId: line.productId || line.product_id || "",
+          productName: line.productName || line.product_name || line.productId || line.product_id || "Product",
+          wastagePct: number(line.wastagePct ?? line.wastage_pct, 0),
+          wastageApprovalPct: number(line.wastageApprovalPct ?? line.wastage_approval_pct, PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT),
+          wastageHitLimit: Math.max(1, Math.round(number(line.wastageHitLimit ?? line.wastage_hit_limit, PRODUCT_CONSUME_STAFF_WASTAGE_REPEAT_LIMIT)))
+        })),
         expectedCost: money(lines.reduce((sum, line) => sum + number(line.expectedCost ?? line.expected_cost, 0), 0)),
         actualCost: money(lines.reduce((sum, line) => sum + number(line.actualCost ?? line.actual_cost, 0), 0)),
         ageHours: updatedAt ? Math.max(0, Math.round((Date.now() - new Date(updatedAt).getTime()) / 3600000)) : 0,
@@ -1093,6 +1107,49 @@ export class BackbarProductConsumptionService {
       }
     }
     const varianceRows = [...varianceMap.values()].sort((a, b) => Number(b.varianceQty || 0) - Number(a.varianceQty || 0)).slice(0, 80);
+    const staffWastageRepeatMap = new Map();
+    for (const draft of draftRows) {
+      for (const line of parseLineItems(draft)) {
+        const lineProductId = line.productId || line.product_id || "";
+        if (productId && lineProductId !== productId) continue;
+        const wastagePct = number(line.wastagePct ?? line.wastage_pct, 0);
+        const actualQty = number(line.actualQty ?? line.actual_qty ?? line.quantity, 0);
+        const expectedQty = number(line.expectedQty ?? line.expected_qty, 0);
+        const maxQty = number(line.maxQty ?? line.max_qty, 0);
+        const highWastage = wastagePct >= PRODUCT_CONSUME_WASTAGE_WARN_PCT;
+        const highOveruse = (maxQty > 0 && actualQty > maxQty) || (expectedQty > 0 && actualQty > expectedQty * 1.15);
+        if (!highWastage && !highOveruse) continue;
+        const key = draft.staff_id || draft.staff_name || "unassigned";
+        const row = staffWastageRepeatMap.get(key) || {
+          staffId: draft.staff_id || "",
+          staffName: draft.staff_name || "Unassigned",
+          repeatCount: 0,
+          maxWastagePct: 0,
+          hitLimit: PRODUCT_CONSUME_STAFF_WASTAGE_REPEAT_LIMIT,
+          products: new Set(),
+          invoices: new Set(),
+          cost: 0,
+          lastUsedAt: ""
+        };
+        row.repeatCount += 1;
+        row.maxWastagePct = Math.max(row.maxWastagePct, wastagePct);
+        row.hitLimit = Math.min(row.hitLimit, Math.max(1, Math.round(number(line.wastageHitLimit ?? line.wastage_hit_limit, PRODUCT_CONSUME_STAFF_WASTAGE_REPEAT_LIMIT))));
+        row.products.add(line.productName || line.product_name || lineProductId || "Product");
+        row.invoices.add(draft.invoice_number || draft.invoice_id || "");
+        row.cost = money(row.cost + number(line.actualCost ?? line.actual_cost, 0));
+        row.lastUsedAt = String(draft.updated_at || draft.created_at || "").localeCompare(String(row.lastUsedAt || "")) > 0 ? (draft.updated_at || draft.created_at || "") : row.lastUsedAt;
+        staffWastageRepeatMap.set(key, row);
+      }
+    }
+    const staffWastageRepeatRows = [...staffWastageRepeatMap.values()].map((row) => ({
+      ...row,
+      products: [...row.products].slice(0, 5).join(", "),
+      invoiceCount: row.invoices.size,
+      invoices: [...row.invoices].filter(Boolean).slice(0, 5).join(", "),
+      riskLevel: row.maxWastagePct > PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT || row.repeatCount >= row.hitLimit ? "high" : "medium"
+    })).filter((row) => row.repeatCount >= 2 || row.maxWastagePct >= PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT)
+      .sort((a, b) => Number(b.repeatCount || 0) - Number(a.repeatCount || 0) || Number(b.maxWastagePct || 0) - Number(a.maxWastagePct || 0))
+      .slice(0, 80);
     const clientProfitMap = new Map();
     for (const draft of draftRows) {
       const lines = parseLineItems(draft).filter((line) => {
@@ -1405,11 +1462,6 @@ export class BackbarProductConsumptionService {
     }
     const dailyTrendRows = [...usageDayMap.values()].sort((a, b) => String(b.period).localeCompare(String(a.period))).slice(0, 30);
     const weeklyTrendRows = [...usageWeekMap.values()].sort((a, b) => String(b.period).localeCompare(String(a.period))).slice(0, 16);
-    const approvalRows = approvals.map((request) => ({
-      ...request,
-      ageHours: request.status === "pending" && request.createdAt ? Math.max(0, Math.round((Date.now() - new Date(request.createdAt).getTime()) / 3600000)) : 0,
-      activeBalanceText: `${request.activeBalanceQty || 0} ${request.measureUnit || ""}`.trim()
-    })).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 80);
     const approvalSlaRows = approvalRows.map((request) => {
       const createdAt = request.createdAt || "";
       const updatedAt = request.updatedAt || "";
@@ -1659,12 +1711,26 @@ export class BackbarProductConsumptionService {
       riskLevel: row.reason === "No reason" || number(row.cost, 0) >= 1000 || number(row.count, 0) >= 3 ? "high" : "medium"
     })).sort((a, b) => Number(b.cost || 0) - Number(a.cost || 0) || Number(b.count || 0) - Number(a.count || 0)).slice(0, 80);
     const managerActionRows = [
+      ...pendingConsumeRows.filter((row) => row.wastageApprovalRequired).map((row) => ({
+        actionType: "wastage_owner_approval",
+        title: `Approve wastage ${row.invoiceNumber || row.draftId}`,
+        detail: `${row.staffName || "Staff"} · max waste ${row.maxWastagePct || 0}% · ${row.lineCount || 0} lines`,
+        riskLevel: "high",
+        actionAt: row.updatedAt || ""
+      })),
       ...pendingConsumeRows.filter((row) => number(row.ageHours, 0) >= 24).map((row) => ({
         actionType: "pending_consume",
         title: `Confirm consume ${row.invoiceNumber || row.draftId}`,
         detail: `${row.clientName || "Client"} · ${row.lineCount || 0} lines · ${row.ageHours || 0}h pending`,
         riskLevel: "high",
         actionAt: row.updatedAt || ""
+      })),
+      ...staffWastageRepeatRows.filter((row) => row.riskLevel === "high").slice(0, 8).map((row) => ({
+        actionType: "staff_wastage_repeat",
+        title: `Review ${row.staffName || "Staff"} wastage`,
+        detail: `${row.repeatCount || 0}/${row.hitLimit || PRODUCT_CONSUME_STAFF_WASTAGE_REPEAT_LIMIT} hits · max ${row.maxWastagePct || 0}% · ${row.products || "products"}`,
+        riskLevel: "high",
+        actionAt: row.lastUsedAt || ""
       })),
       ...approvalSlaRows.filter((row) => row.slaStatus === "breached").map((row) => ({
         actionType: "approval_sla",
@@ -1752,7 +1818,11 @@ export class BackbarProductConsumptionService {
         qualityScore: Math.max(0, Math.round(100 - exceptionRatio))
       };
     }).sort((a, b) => Number(a.qualityScore || 0) - Number(b.qualityScore || 0) || Number(b.exceptionCost || 0) - Number(a.exceptionCost || 0)).slice(0, 80);
-
+    const approvalRows = approvals.map((request) => ({
+      ...request,
+      ageHours: request.status === "pending" && request.createdAt ? Math.max(0, Math.round((Date.now() - new Date(request.createdAt).getTime()) / 3600000)) : 0,
+      activeBalanceText: `${request.activeBalanceQty || 0} ${request.measureUnit || ""}`.trim()
+    })).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 80);
     const entityLedger = [
       ...entries.map((entry) => ({
         entityType: entry.usageType === "client" ? "client_usage" : "exception_usage",
@@ -1826,6 +1896,7 @@ export class BackbarProductConsumptionService {
         costDriftRows: costDriftRows.length,
         clientRepeatUsageRows: clientRepeatUsageRows.length,
         adjustmentReasonHeatRows: adjustmentReasonHeatRows.length,
+        staffWastageRepeats: staffWastageRepeatRows.filter((row) => row.riskLevel === "high").length,
         managerActions: managerActionRows.length
       },
       productRows,
@@ -1863,6 +1934,7 @@ export class BackbarProductConsumptionService {
       costDriftRows,
       clientRepeatUsageRows,
       adjustmentReasonHeatRows,
+      staffWastageRepeatRows,
       managerActionRows,
       approvals,
       alerts,

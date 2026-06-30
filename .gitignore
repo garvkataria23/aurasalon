@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 dist/
 build/
 .angular/
@@ -36,3 +36,6 @@ customer-app/.angular/
 customer-app/node_modules/
 .DS_Store
 Thumbs.db
+.codex-runtime/
+outputs/
+happy-hours-control-tower-*.zip

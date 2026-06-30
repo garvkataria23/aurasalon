@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type DraftItem = {
@@ -40,21 +41,19 @@ type ReceiveItem = {
 @Component({
   selector: 'app-purchase-orders',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ReactiveFormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, FormsModule, ReactiveFormsModule, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack purchase-orders-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / Purchase orders</span>
-          <h2>Purchase Command Center</h2>
-          <p>Flexi-style purchase entry with multi-item PO, GST, discounts, supplier terms, GRN receiving and variance control.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Back to inventory</a>
+      <app-inventory-zenoti-chrome
+        title="Purchase Command Center"
+        breadcrumb="Inventory > Purchase orders"
+        (refresh)="load()"
+      >
+        <div zenoti-actions>
           <button class="ghost-button" type="button" (click)="printSelectedPo()" [disabled]="!selectedPo()">Print PO</button>
           <button class="primary-button" type="button" (click)="runReorder()" [disabled]="saving()">Refresh AI reorder</button>
         </div>
-      </div>
+      </app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
       <div class="state success" *ngIf="success()">{{ success() }}</div>

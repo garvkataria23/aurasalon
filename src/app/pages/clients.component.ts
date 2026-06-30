@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -14,155 +14,119 @@ import { StateComponent } from '../shared/ui/state/state.component';
     <section class="page-stack">
       <div class="module-hero client-command-hero">
         <div class="hero-copy">
-          <h2>Client intelligence</h2>
+          <span class="eyebrow">Client CRM</span>
+          <h2>Client list</h2>
+          <p>Manage client details, visits, wallet, notes, discounts and profile actions from one register.</p>
         </div>
         <div class="client-hero-actions">
           <button class="ghost-button" type="button" (click)="loadReports()" [disabled]="reportLoading()">Refresh reports</button>
-          <button class="ghost-button" type="button" (click)="loadDuplicateGroups()" [disabled]="duplicateLoading()">{{ duplicateLoading() ? 'Scanning...' : 'Find duplicates' }}</button>
-          <button class="primary-button" type="button" (click)="showForm() ? closeForm() : openCreateForm()">{{ showForm() ? 'Close form' : 'Add client' }}</button>
+          <button class="floating-add-client" type="button" (click)="openCreateForm()" aria-label="Add client">+</button>
         </div>
       </div>
 
-      <section class="panel client-reports-panel">
-        <div class="section-title client-report-heading">
-          <div class="client-api-strip" aria-label="Client report APIs">
-            <span>clients/360</span>
-            <span>clients/top-rfm</span>
-            <span>clients/lapsed</span>
-            <span>clients/new-vs-returning</span>
-            <span>clients/occasions</span>
-            <span>clients/by-service</span>
-            <span>clients/metric-cards</span>
-          </div>
-        </div>
-
-        <app-state [loading]="reportLoading()" [error]="reportError()"></app-state>
-
-        <ng-container *ngIf="clientReports() as reports">
-          <div class="metrics-grid client-report-metrics">
-            <button class="metric-card teal kpi-link-card" type="button" (click)="openClient(client360Report()?.client?.id || '')">
-              <span>Client 360</span>
-              <strong>{{ client360Report()?.client?.name || 'No client' }}</strong>
-              <small>{{ (client360Report()?.metrics?.totalSpend || 0) | currency: 'INR':'symbol':'1.0-0' }} lifetime</small>
-            </button>
-            <button class="metric-card blue kpi-link-card" type="button" (click)="openClientReport('top-rfm')">
-              <span>Top Clients RFM</span>
-              <strong>{{ reportList('topRfm')[0]?.name || '-' }}</strong>
-              <small>Score {{ reportList('topRfm')[0]?.rfmScore || 0 }} · {{ (reportList('topRfm')[0]?.monetary || 0) | currency: 'INR':'symbol':'1.0-0' }}</small>
-            </button>
-            <button class="metric-card red kpi-link-card" type="button" (click)="openClientReport('lapsed')">
-              <span>Lapsed / at-risk</span>
-              <strong>{{ reportList('lapsed').length }}</strong>
-              <small>60-180 day recovery queue</small>
-            </button>
-            <button class="metric-card green kpi-link-card" type="button" (click)="openClientReport('new-vs-returning')">
-              <span>New vs returning</span>
-              <strong>{{ latestMonthlyReport().newClients || 0 }} / {{ latestMonthlyReport().returningClients || 0 }}</strong>
-              <small>{{ latestMonthlyReport().month || 'Current month' }}</small>
-            </button>
-            <button class="metric-card amber kpi-link-card" type="button" (click)="openClientReport('occasions')">
-              <span>Birthdays / anniversaries</span>
-              <strong>{{ reportList('occasions').length }}</strong>
-              <small>Next 30 days</small>
-            </button>
-            <button class="metric-card violet kpi-link-card" type="button" (click)="openClientReport('by-service')">
-              <span>Service-wise clients</span>
-              <strong>{{ reportList('byService')[0]?.serviceName || '-' }}</strong>
-              <small>{{ reportList('byService')[0]?.clientCount || 0 }} client(s)</small>
-            </button>
-            <article class="metric-card teal">
-              <span>Visit & service</span>
-              <strong>{{ metricCardValue('last-visit', 'New') }}</strong>
-              <small>{{ metricCardValue('favorite-service', 'No favorite service') }}</small>
-            </article>
-            <article class="metric-card blue">
-              <span>Average spend</span>
-              <strong>{{ metricCardValue('average-spend', '₹0') }}</strong>
-              <small>{{ metricCardValue('lifetime-value', 'No spend signal') }} lifetime</small>
-            </article>
-            <article class="metric-card green">
-              <span>Relationship</span>
-              <strong>{{ metricCardValue('preferred-staff', '-') }}</strong>
-              <small>{{ metricCardValue('rebooking-rate', '0%') }} rebooking rate</small>
-            </article>
-            <article class="metric-card red">
-              <span>Wallet & risk</span>
-              <strong>{{ metricCardValue('outstanding-balance', '₹0') }}</strong>
-              <small>{{ metricCardValue('loyalty-points', '0') }} loyalty · {{ metricCardValue('churn-risk-score', 'Low') }} risk</small>
-            </article>
-          </div>
-
-        </ng-container>
-      </section>
-
-      <section class="form-panel client-edit-panel" *ngIf="showForm()">
-        <div class="section-title compact-title">
-          <div>
-            <span class="eyebrow">{{ editingClientId() ? 'Edit client details' : 'New client' }}</span>
-            <h2>{{ editingClientId() ? 'Fill gender, birthday, anniversary and note' : 'Add client profile' }}</h2>
-          </div>
-        </div>
-        <form [formGroup]="form" (ngSubmit)="save()">
-          <label class="field">
-            <span>Name</span>
-            <input formControlName="name" />
-          </label>
-          <label class="field">
-            <span>Phone</span>
-            <input formControlName="phone" />
-          </label>
-          <label class="field">
-            <span>Email</span>
-            <input type="email" formControlName="email" />
-          </label>
-          <label class="field">
-            <span>Gender</span>
-            <select formControlName="gender">
-              <option value="">Select gender</option>
-              <option value="Female">Female</option>
-              <option value="Male">Male</option>
-              <option value="Other">Other</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Birthday</span>
-            <input type="date" formControlName="birthday" />
-          </label>
-          <label class="field">
-            <span>Anniversary</span>
-            <input type="date" formControlName="anniversary" />
-          </label>
-          <label class="field">
-            <span>Tags</span>
-            <select formControlName="tag">
-              <option>new</option>
-              <option>VIP</option>
-              <option>inactive</option>
-              <option>high spender</option>
-            </select>
-          </label>
-          <label class="field full">
-            <span>Notes</span>
-            <textarea formControlName="notes"></textarea>
-          </label>
-          <div class="form-actions">
-            <button class="ghost-button" type="button" (click)="closeForm()">Cancel</button>
-            <button class="primary-button" type="submit" [disabled]="form.invalid || saving()">{{ editingClientId() ? 'Update client' : 'Save client' }}</button>
-          </div>
-        </form>
+      <section class="salonist-kpis" aria-label="Client summary">
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('')">
+          <span class="kpi-icon">CL</span>
+          <strong>{{ totalClientsCount() }}</strong>
+          <small>Total Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('')">
+          <span class="kpi-icon">TV</span>
+          <strong>{{ totalVisitsThisMonth() }}</strong>
+          <small>Total Visits This Month</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Old Client Visits')">
+          <span class="kpi-icon">OV</span>
+          <strong>{{ oldClientVisitsThisMonth() }}</strong>
+          <small>Old Client Visits This Month</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('New Client Visits')">
+          <span class="kpi-icon">NV</span>
+          <strong>{{ newClientVisitsThisMonth() }}</strong>
+          <small>New Client Visits This Month</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Male')">
+          <span class="kpi-icon">M</span>
+          <strong>{{ genderCount('male') }}</strong>
+          <small>Male Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Female')">
+          <span class="kpi-icon">F</span>
+          <strong>{{ genderCount('female') }}</strong>
+          <small>Female Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Membership')">
+          <span class="kpi-icon">MB</span>
+          <strong>{{ memberClientCount() }}</strong>
+          <small>Member Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Non-member')">
+          <span class="kpi-icon">NM</span>
+          <strong>{{ nonMemberClientCount() }}</strong>
+          <small>Non-member Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Unpaid Client')">
+          <span class="kpi-icon">UP</span>
+          <strong>{{ unpaidClientCount() }}</strong>
+          <small>Unpaid Clients</small>
+        </button>
+        <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Wallet Client')">
+          <span class="kpi-icon">WA</span>
+          <strong>{{ walletClientCount() }}</strong>
+          <small>Wallet Clients</small>
+        </button>
       </section>
 
       <section class="panel client-database-panel">
-        <div class="section-title client-list-title">
-          <div><h2>Total client list</h2><p>{{ filteredClients.length }} visible · {{ totalClientCount }} loaded clients</p></div>
-        </div>
+        <p class="client-notice" *ngIf="notice()">{{ notice() }}</p>
         <div class="table-toolbar">
-          <label class="search-field">
-            <span>Search/filter</span>
-            <input [(ngModel)]="query" placeholder="Name, phone, tag, membership" />
+          <label class="field">
+            <span>Client Type</span>
+            <select [ngModel]="clientTypeFilter()" (ngModelChange)="setClientTypeFilter($event)">
+              <option value="">All Clients</option>
+              <option *ngFor="let type of clientTypeOptions" [value]="type">{{ type }}</option>
+            </select>
           </label>
-          <div class="segmented">
+          <label class="field">
+            <span>Select Country</span>
+            <select [ngModel]="countryFilter()" (ngModelChange)="countryFilter.set($event)">
+              <option value="">Select Country</option>
+              <option *ngFor="let country of countryOptions()" [value]="country">{{ country }}</option>
+            </select>
+          </label>
+          <label class="field date-field">
+            <span>Date</span>
+            <input type="date" [ngModel]="dateFromFilter()" (ngModelChange)="dateFromFilter.set($event)" />
+          </label>
+          <label class="field date-field">
+            <span>&nbsp;</span>
+            <input type="date" [ngModel]="dateToFilter()" (ngModelChange)="dateToFilter.set($event)" />
+          </label>
+          <label class="search-field">
+            <span>Search client</span>
+            <input [ngModel]="query" (ngModelChange)="onClientQueryChange($event)" placeholder="Name, phone, tag, membership" />
+          </label>
+          <button class="primary-button" type="button" (click)="load()">Search</button>
+          <div class="client-action-menu">
+            <button class="dark-button" type="button" (click)="toggleActionMenu($event)">Action ▾</button>
+            <div class="dropdown-panel" *ngIf="actionMenuOpen()" (click)="$event.stopPropagation()">
+              <button type="button" (click)="openClientGroups()">Client Groups</button>
+              <button type="button" (click)="downloadClientSample()">Sample File Download</button>
+              <button type="button" (click)="openImportClient()">Import Client</button>
+            </div>
+          </div>
+          <div class="column-editor">
+            <button class="ghost-button" type="button" (click)="toggleColumnEditor($event)">Edit Columns</button>
+            <div class="column-popover" *ngIf="columnEditorOpen()" (click)="$event.stopPropagation()">
+              <label *ngFor="let column of clientColumns" [class.disabled]="column.locked">
+                <span>...</span>
+                <input type="checkbox" [checked]="isColumnVisible(column.key)" [disabled]="column.locked" (change)="toggleColumn(column.key, $event)" />
+                {{ column.label }}
+              </label>
+              <button class="dark-button" type="button" (click)="columnEditorOpen.set(false)">Save</button>
+            </div>
+          </div>
+          <div class="segmented client-tag-segment">
             <button type="button" *ngFor="let tag of ['', 'VIP', 'new', 'inactive', 'high spender']" [class.active]="tagFilter() === tag" (click)="tagFilter.set(tag)">
               {{ tag || 'All' }}
             </button>
@@ -172,54 +136,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
             <button class="ghost-button mini" type="button" (click)="toggleSelectAllVisible()" [disabled]="!filteredClients.length">
               {{ allVisibleSelected ? 'Clear visible' : 'Select all' }}
             </button>
-            <button class="ghost-button mini" type="button" (click)="loadDuplicateGroups()" [disabled]="duplicateLoading()">Duplicates {{ duplicateGroups().length || '' }}</button>
             <button class="danger-button mini" type="button" (click)="deleteSelected()" [disabled]="!selectedCount || saving()">Delete selected</button>
           </div>
         </div>
-
-        <section class="duplicate-merge-panel" *ngIf="duplicateLoading() || duplicateError() || duplicateMessage() || duplicateGroups().length">
-          <div class="duplicate-panel-header">
-            <div>
-              <h3>Duplicate contacts</h3>
-              <p>{{ phoneDuplicateGroupCount() }} group(s) from same phone number</p>
-            </div>
-            <div class="duplicate-panel-actions">
-              <button class="primary-button mini" type="button" *ngIf="phoneDuplicateGroupCount()" (click)="mergeAllDuplicateGroups()" [disabled]="duplicateMergeAllLoading()">{{ duplicateMergeAllLoading() ? 'Merging...' : 'Merge all' }}</button>
-              <button class="ghost-button mini" type="button" (click)="loadDuplicateGroups()" [disabled]="duplicateLoading()">Scan again</button>
-            </div>
-          </div>
-          <app-state [loading]="duplicateLoading()" [error]="duplicateError()"></app-state>
-          <p class="duplicate-message" *ngIf="duplicateMessage()">{{ duplicateMessage() }}</p>
-          <p class="duplicate-message" *ngIf="phoneDuplicateGroupCount() > visibleDuplicateGroups().length">Showing first {{ visibleDuplicateGroups().length }} groups. Merge all still processes all {{ phoneDuplicateGroupCount() }} phone groups.</p>
-          <div class="duplicate-group-list" *ngIf="!duplicateLoading() && duplicateGroups().length">
-            <article class="duplicate-group" *ngFor="let group of visibleDuplicateGroups()" [class.active]="activeDuplicateGroupKey() === group.groupKey">
-              <div class="duplicate-group-header">
-                <div>
-                  <strong>{{ group.matchLabel }}</strong>
-                  <small>{{ duplicateMatchValues(group) }}</small>
-                </div>
-                <button class="primary-button mini" type="button" (click)="mergeDuplicateGroup(group, $event)" [disabled]="saving() || duplicateMergeAllLoading() || duplicateGroupClients(group).length < 2">Merge into selected</button>
-              </div>
-              <div class="duplicate-client-options">
-                <button
-                  class="duplicate-client-option"
-                  type="button"
-                  *ngFor="let duplicateClient of duplicateGroupClients(group)"
-                  [class.primary]="duplicateGroupPrimaryId(group) === clientId(duplicateClient)"
-                  (click)="setDuplicatePrimary(group, clientId(duplicateClient), $event)"
-                >
-                  <span class="avatar">{{ initials(clientDisplayName(duplicateClient)) }}</span>
-                  <span>
-                    <strong>{{ clientDisplayName(duplicateClient) }}</strong>
-                    <small>{{ clientContactLine(duplicateClient) }}</small>
-                    <small>{{ duplicateClient.visitCount || 0 }} visits · {{ (duplicateClient.totalSpend || 0) | currency: 'INR':'symbol':'1.0-0' }}</small>
-                  </span>
-                  <em>{{ duplicateGroupPrimaryId(group) === clientId(duplicateClient) ? 'Keep' : 'Merge' }}</em>
-                </button>
-              </div>
-            </article>
-          </div>
-        </section>
 
         <app-state [loading]="loading()" [error]="error()"></app-state>
 
@@ -227,19 +146,25 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <table class="clients-crm-table">
             <thead>
               <tr>
-                <th>Client</th>
-                <th>Gender</th>
-                <th>Birthday</th>
-                <th>Anniversary</th>
-                <th>Note</th>
-                <th class="right">Unpaid</th>
-                <th>Tags</th>
-                <th>Spend</th>
-                <th>Visits</th>
-                <th>Wallet</th>
-                <th>Loyalty</th>
-                <th>Last visit</th>
-                <th class="right">Edit / Delete</th>
+                <th class="select-col">
+                  <input type="checkbox" [checked]="allVisibleSelected" (change)="toggleSelectAllVisible()" aria-label="Select visible clients" />
+                </th>
+                <th *ngIf="isColumnVisible('name')">Name</th>
+                <th *ngIf="isColumnVisible('contact')">Contact</th>
+                <th *ngIf="isColumnVisible('gender')">Gender</th>
+                <th *ngIf="isColumnVisible('birthday')">Birthday</th>
+                <th *ngIf="isColumnVisible('anniversary')">Anniversary</th>
+                <th *ngIf="isColumnVisible('ewallet')">Ewallet</th>
+                <th *ngIf="isColumnVisible('notes')">Notes</th>
+                <th *ngIf="isColumnVisible('firstVisit')">First Visit</th>
+                <th *ngIf="isColumnVisible('spending')">Spending</th>
+                <th *ngIf="isColumnVisible('childAge')">Child Age</th>
+                <th *ngIf="isColumnVisible('assignedDiscount')">Assigned Discount %</th>
+                <th *ngIf="isColumnVisible('discountValidity')">Discount Validity</th>
+                <th *ngIf="isColumnVisible('image')">Image</th>
+                <th *ngIf="isColumnVisible('phoneCode')">Phone Code</th>
+                <th *ngIf="isColumnVisible('cardNumber')">Card Number/File No</th>
+                <th class="right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -248,70 +173,161 @@ import { StateComponent } from '../shared/ui/state/state.component';
                 *ngFor="let client of filteredClients"
                 tabindex="0"
                 role="button"
-                [attr.aria-label]="'Open profile for ' + clientDisplayName(client)"
-                (click)="openClient(clientId(client))"
-                (keydown.enter)="openClient(clientId(client))"
-                (keydown.space)="openClient(clientId(client)); $event.preventDefault()"
+                [attr.aria-label]="'Open profile for ' + client.name"
+                (click)="openClient(client.id)"
+                (keydown.enter)="openClient(client.id)"
+                (keydown.space)="openClient(client.id); $event.preventDefault()"
               >
-                <td>
-                  <a class="identity-cell" [routerLink]="['/clients', clientId(client)]" (click)="$event.stopPropagation()">
-                    <span class="avatar">{{ initials(clientDisplayName(client)) }}</span>
+                <td class="select-col" (click)="$event.stopPropagation()">
+                  <input
+                    type="checkbox"
+                    [checked]="isClientSelected(client.id)"
+                    (change)="toggleClientSelection(client.id, $event)"
+                    [attr.aria-label]="'Select ' + client.name"
+                  />
+                </td>
+                <td *ngIf="isColumnVisible('name')">
+                  <a class="identity-cell" [routerLink]="['/clients', client.id]" (click)="$event.stopPropagation()">
+                    <span class="avatar">{{ initials(client.name) }}</span>
                     <span>
-                      <strong>{{ clientDisplayName(client) }}</strong>
-                      <small>{{ clientContactLine(client) }}</small>
+                      <strong>{{ client.name }}</strong>
+                      <small>{{ client.email || 'No email' }}</small>
                     </span>
                   </a>
                 </td>
-                <td>{{ client.gender || '-' }}</td>
-                <td>{{ client.birthday ? (client.birthday | date: 'mediumDate') : '-' }}</td>
-                <td>{{ client.anniversary ? (client.anniversary | date: 'mediumDate') : '-' }}</td>
-                <td class="note-cell" [title]="client.notes || ''">{{ shortText(client.notes) }}</td>
-                <td class="right" [class.due-amount]="client.unpaidBalance > 0">{{ client.unpaidBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
-                <td>
-                  <span class="badge" *ngFor="let tag of clientTags(client)">{{ tag }}</span>
+                <td *ngIf="isColumnVisible('contact')">{{ client.phone || client.mobile || '-' }}</td>
+                <td *ngIf="isColumnVisible('gender')">{{ client.gender || '-' }}</td>
+                <td *ngIf="isColumnVisible('birthday')">{{ client.birthday ? (client.birthday | date: 'mediumDate') : '-' }}</td>
+                <td *ngIf="isColumnVisible('anniversary')">{{ client.anniversary ? (client.anniversary | date: 'mediumDate') : '-' }}</td>
+                <td *ngIf="isColumnVisible('ewallet')" class="wallet-cell">
+                  <strong>{{ client.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</strong>
+                  <small *ngIf="walletActivityLabel(client)">{{ walletActivityLabel(client) }}</small>
                 </td>
-                <td>{{ client.totalSpend | currency: 'INR':'symbol':'1.0-0' }}</td>
-                <td>{{ client.visitCount }}</td>
-                <td>{{ client.walletBalance | currency: 'INR':'symbol':'1.0-0' }}</td>
-                <td>{{ client.loyaltyPoints }} pts</td>
-                <td>{{ client.lastVisitAt ? (client.lastVisitAt | date: 'mediumDate') : 'New' }}</td>
+                <td *ngIf="isColumnVisible('notes')" class="note-cell" [title]="client.notes || ''">{{ shortText(client.notes) }}</td>
+                <td *ngIf="isColumnVisible('firstVisit')">{{ firstVisitLabel(client) }}</td>
+                <td *ngIf="isColumnVisible('spending')">{{ client.totalSpend | currency: 'INR':'symbol':'1.0-0' }}</td>
+                <td *ngIf="isColumnVisible('childAge')">{{ client.childAge || '-' }}</td>
+                <td *ngIf="isColumnVisible('assignedDiscount')">{{ assignedDiscount(client) }}</td>
+                <td *ngIf="isColumnVisible('discountValidity')">{{ discountValidity(client) }}</td>
+                <td *ngIf="isColumnVisible('image')">{{ client.image || client.photoUrl ? 'Available' : '-' }}</td>
+                <td *ngIf="isColumnVisible('phoneCode')">{{ client.phoneCode || client.countryCode || '+91' }}</td>
+                <td *ngIf="isColumnVisible('cardNumber')">{{ client.cardNumber || client.fileNo || client.memberCode || '-' }}</td>
                 <td class="actions-cell right">
-                  <button class="ghost-button mini duplicate-row-button" type="button" *ngIf="duplicateGroupForClient(client)" (click)="openDuplicateGroupForClient(client, $event)" [disabled]="saving()">Duplicates {{ duplicateCountForClient(client) }}</button>
-                  <button class="ghost-button mini" type="button" (click)="editClient(client, $event)" [disabled]="saving()">Edit</button>
-                  <label class="row-select" (click)="$event.stopPropagation()">
-                    <input
-                      type="checkbox"
-                      [checked]="isClientSelected(clientId(client))"
-                      (change)="toggleClientSelection(clientId(client), $event)"
-                      [attr.aria-label]="'Select ' + clientDisplayName(client)"
-                    />
-                  </label>
-                  <button class="danger-button mini" type="button" (click)="deleteClient(client, $event)" [disabled]="saving()">Delete</button>
+                  <button class="row-action-trigger" type="button" (click)="toggleRowAction(client.id, $event)" aria-label="Client actions">...</button>
+                  <div class="row-action-menu" *ngIf="rowActionClientId() === clientId(client)" (click)="$event.stopPropagation()">
+                    <button type="button" (click)="openClient(client.id)">History</button>
+                    <button type="button" (click)="deleteClient(client, $event)" [disabled]="saving()">Delete</button>
+                    <button type="button" (click)="blockClient(client, $event)" [disabled]="saving()">Block</button>
+                    <button type="button" (click)="editClient(client, $event)" [disabled]="saving()">Edit</button>
+                    <button type="button" (click)="resetClientPassword(client, $event)">Reset Password</button>
+                    <button type="button" (click)="addNotes(client, $event)">Add Notes</button>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div class="client-load-more" *ngIf="hasMoreClients()">
-            <button class="ghost-button" type="button" (click)="loadMoreClients()" [disabled]="loading()">Load more clients</button>
-            <span>Showing {{ totalClientCount }}. Next batch loads {{ clientBatchSize }} more. Duplicate scan still checks all clients.</span>
+          <div class="client-empty-state" *ngIf="!filteredClients.length">
+            <strong>No clients found</strong>
+            <span>Filter/search change karo ya All Clients select karo.</span>
+            <button class="ghost-button mini" type="button" (click)="clearClientFilters()">Show all clients</button>
+          </div>
+          <div class="client-list-footer">
+            <span>{{ clients().length }} clients loaded</span>
+            <button class="ghost-button mini" type="button" (click)="loadMoreClients()" [disabled]="!clientListHasMore() || clientListLoadingMore()">
+              {{ clientListLoadingMore() ? 'Loading...' : (clientListHasMore() ? 'Load more' : 'All loaded') }}
+            </button>
           </div>
         </div>
       </section>
+
+      <div class="client-drawer-backdrop" *ngIf="showForm()" (click)="closeForm()"></div>
+      <aside class="client-drawer" *ngIf="showForm()" (click)="$event.stopPropagation()" aria-label="Add client drawer">
+        <form [formGroup]="form" (ngSubmit)="save()">
+          <header class="drawer-header">
+            <button class="drawer-close" type="button" (click)="closeForm()" aria-label="Close">x</button>
+            <h2>{{ editingClientId() ? 'Edit Client' : 'Add Client' }}</h2>
+          </header>
+          <div class="drawer-grid">
+            <label class="field">
+              <span>Name*</span>
+              <input formControlName="name" placeholder="Name*" />
+            </label>
+            <label class="field phone-field">
+              <span>Contact*</span>
+              <span class="phone-entry">
+                <select formControlName="countryCode" aria-label="Country code">
+                  <option value="+91">IN +91</option>
+                  <option value="+1">US +1</option>
+                  <option value="+44">UK +44</option>
+                  <option value="+971">AE +971</option>
+                </select>
+                <input formControlName="phone" placeholder="Contact*" />
+              </span>
+            </label>
+            <label class="field">
+              <span>Date of Birth</span>
+              <input type="date" formControlName="birthday" />
+            </label>
+            <label class="field">
+              <span>DOA</span>
+              <input type="date" formControlName="anniversary" />
+            </label>
+            <label class="field">
+              <span>Gender</span>
+              <select formControlName="gender">
+                <option value="">Select Gender</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" formControlName="email" placeholder="Email" />
+            </label>
+          </div>
+          <section class="drawer-checks">
+            <h3>Select Group</h3>
+            <label><input type="checkbox" formControlName="groupFreeMembership" /> FREE MEMBERSHIP</label>
+            <label><input type="checkbox" formControlName="groupMembershipFees" /> MEMBERSHIP FEES</label>
+            <label><input type="checkbox" formControlName="groupMembershipRenewFees" /> MEMBERSHIP RENEW FEES</label>
+          </section>
+          <section class="drawer-checks">
+            <h3>Notifications</h3>
+            <label><input type="checkbox" formControlName="smsNotifications" /> SMS Notifications</label>
+            <label><input type="checkbox" formControlName="emailNotifications" /> Email Notifications</label>
+            <label><input type="checkbox" formControlName="whatsappNotifications" /> Whatsapp Notifications</label>
+          </section>
+          <label class="field full drawer-notes">
+            <span>Notes</span>
+            <textarea formControlName="notes" placeholder="Add notes"></textarea>
+          </label>
+          <footer class="drawer-actions">
+            <button class="dark-button" type="submit" [disabled]="form.invalid || saving()">{{ saving() ? 'Saving...' : 'Save' }}</button>
+          </footer>
+        </form>
+      </aside>
     </section>
   `,
   styles: [`
     :host {
       display: block;
+      width: 100%;
+      max-width: calc(100vw - 104px);
       min-width: 0;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .page-stack {
       --client-edge-safe: clamp(14px, 1.6vw, 28px);
-      width: 100%;
-      max-width: none;
+      width: min(100%, calc(100vw - 118px));
+      max-width: calc(100vw - 118px);
       min-width: 0;
       padding-inline-end: var(--client-edge-safe);
       box-sizing: border-box;
+      overflow-x: hidden;
     }
 
     .client-command-hero {
@@ -358,6 +374,79 @@ import { StateComponent } from '../shared/ui/state/state.component';
       justify-content: flex-end;
       align-content: center;
       padding-inline-end: 2px;
+    }
+
+    .hero-copy p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .floating-add-client {
+      width: 52px;
+      height: 52px;
+      border: 0;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--ink) 92%, black);
+      color: white;
+      font-size: 34px;
+      line-height: 1;
+      box-shadow: 0 18px 34px color-mix(in srgb, var(--ink) 18%, transparent);
+      cursor: pointer;
+    }
+
+    .salonist-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: 14px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .client-kpi-card {
+      min-height: 130px;
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      background: var(--surface);
+      color: var(--ink);
+      text-align: left;
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--ink) 5%, transparent);
+      cursor: pointer;
+    }
+
+    .client-kpi-card:hover,
+    .client-kpi-card:focus-visible {
+      border-color: color-mix(in srgb, var(--teal) 45%, var(--line));
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .client-kpi-card strong {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .client-kpi-card small {
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .kpi-icon {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid color-mix(in srgb, var(--ink) 18%, var(--line));
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
     }
 
     .client-reports-panel {
@@ -425,16 +514,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
       text-align: left;
     }
 
-    .client-load-more {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 2px 0;
-      color: var(--muted);
-      font-weight: 700;
-      flex-wrap: wrap;
-    }
-
     .client-report-metrics .kpi-link-card:hover,
     .client-report-metrics .kpi-link-card:focus-visible {
       transform: translateY(-2px);
@@ -446,17 +525,30 @@ import { StateComponent } from '../shared/ui/state/state.component';
       background:
         linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white), color-mix(in srgb, var(--surface-2) 92%, white)),
         var(--surface);
-      overflow: hidden;
+      overflow: visible;
+    }
+
+    .client-notice {
+      margin: 0 0 12px;
+      border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--line));
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      background: color-mix(in srgb, var(--teal) 8%, white);
+      color: var(--ink);
+      font-weight: 750;
     }
 
     .client-database-panel .table-toolbar {
       position: sticky;
       top: 0;
-      z-index: 2;
-      display: grid;
-      grid-template-columns: minmax(320px, 1fr) minmax(300px, max-content) minmax(260px, max-content);
+      z-index: 5;
+      display: flex;
+      flex-wrap: wrap;
       align-items: end;
       gap: 12px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
       overflow: visible;
       padding: 12px;
       border: 1px solid color-mix(in srgb, var(--line) 75%, white);
@@ -465,17 +557,121 @@ import { StateComponent } from '../shared/ui/state/state.component';
       backdrop-filter: blur(18px);
     }
 
-    .client-database-panel .search-field {
+    .client-database-panel .field {
+      flex: 1 1 220px;
       min-width: 0;
-      width: min(760px, 100%);
+    }
+
+    .client-database-panel .date-field {
+      flex: 0 1 170px;
+    }
+
+    .client-database-panel .search-field {
+      flex: 2 1 320px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .client-tag-segment {
+      flex: 1 0 100%;
+      justify-content: flex-start;
+    }
+
+    .client-action-menu,
+    .column-editor,
+    .actions-cell {
+      position: relative;
+    }
+
+    .dark-button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 18px;
+      background: color-mix(in srgb, var(--ink) 92%, black);
+      color: white;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .client-action-menu,
+    .column-editor,
+    .client-database-panel .table-toolbar > .primary-button {
+      flex: 0 0 auto;
+      max-width: 100%;
+    }
+
+    .dropdown-panel,
+    .column-popover,
+    .row-action-menu {
+      position: absolute;
+      z-index: 20;
+      display: grid;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 18px 42px color-mix(in srgb, var(--ink) 18%, transparent);
+      overflow: hidden;
+    }
+
+    .dropdown-panel {
+      top: calc(100% + 6px);
+      right: 0;
+    }
+
+    .dropdown-panel button,
+    .row-action-menu button {
+      border: 0;
+      padding: 12px 16px;
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .dropdown-panel button:hover,
+    .row-action-menu button:hover {
+      background: color-mix(in srgb, var(--surface-2) 86%, white);
+    }
+
+    .column-popover {
+      top: calc(100% + 6px);
+      right: 0;
+      width: 260px;
+      max-height: min(420px, 48vh);
+      padding: 8px;
+      overflow: auto;
+      z-index: 60;
+    }
+
+    .column-popover label {
+      display: grid;
+      grid-template-columns: 26px 20px 1fr;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+      color: var(--ink);
+      font-weight: 750;
+    }
+
+    .column-popover label.disabled {
+      color: color-mix(in srgb, var(--muted) 60%, white);
+    }
+
+    .column-popover .dark-button {
+      width: 100%;
+      margin-top: 10px;
     }
 
     .client-database-panel .client-bulk-actions {
+      flex: 1 0 100%;
       min-width: 0;
       max-width: 100%;
       display: flex;
-      justify-self: end;
-      justify-content: flex-end;
+      justify-content: flex-start;
       flex-wrap: wrap;
       gap: 8px;
     }
@@ -485,6 +681,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .client-database-panel .table-wrap {
+      width: 100%;
+      max-width: 100%;
       max-height: min(780px, 72vh);
       overflow: auto;
       overscroll-behavior: contain;
@@ -494,8 +692,31 @@ import { StateComponent } from '../shared/ui/state/state.component';
       box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 4%, transparent);
     }
 
+    .client-empty-state {
+      position: sticky;
+      left: 0;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      min-height: 150px;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .client-empty-state strong {
+      color: var(--ink);
+      font-size: 18px;
+    }
+
     .client-database-panel .clients-crm-table {
       min-width: 1360px;
+    }
+
+    .client-database-panel .select-col {
+      width: 44px;
+      min-width: 44px;
+      text-align: center;
     }
 
     .client-database-panel .clients-crm-table thead th {
@@ -511,7 +732,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       position: sticky;
       right: 0;
       z-index: 1;
-      min-width: 292px;
+      min-width: 232px;
       padding-right: 18px;
       background: color-mix(in srgb, var(--surface) 97%, white);
       box-shadow: -12px 0 24px color-mix(in srgb, var(--ink) 5%, transparent);
@@ -527,121 +748,149 @@ import { StateComponent } from '../shared/ui/state/state.component';
       white-space: nowrap;
     }
 
+    .row-action-trigger {
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      cursor: pointer;
+    }
+
+    .row-action-menu {
+      right: 12px;
+      top: 34px;
+      text-align: left;
+    }
+
+    .client-database-panel .wallet-cell {
+      min-width: 130px;
+    }
+
+    .client-database-panel .wallet-cell strong,
+    .client-database-panel .wallet-cell small {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .client-database-panel .wallet-cell small {
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .client-database-panel .actions-cell > * {
       margin-left: 6px;
       vertical-align: middle;
     }
 
-    .duplicate-merge-panel {
-      display: grid;
-      gap: 12px;
-      margin: 12px 0;
-      padding: 12px;
-      border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line));
-      border-radius: var(--radius-md);
-      background: color-mix(in srgb, var(--surface) 95%, var(--teal));
+    .client-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: color-mix(in srgb, black 72%, transparent);
     }
 
-    .duplicate-panel-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .duplicate-panel-header,
-    .duplicate-group-header,
-    .duplicate-client-option {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .duplicate-panel-header h3,
-    .duplicate-panel-header p {
-      margin: 0;
-    }
-
-    .duplicate-panel-header p,
-    .duplicate-group-header small,
-    .duplicate-client-option small {
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .duplicate-group-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .duplicate-group {
-      display: grid;
-      gap: 10px;
-      padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
+    .client-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 81;
+      width: min(760px, 100vw);
+      height: 100vh;
+      overflow: auto;
+      border-left: 1px solid var(--line);
       background: var(--surface);
+      box-shadow: -22px 0 48px color-mix(in srgb, black 26%, transparent);
     }
 
-    .duplicate-group.active {
-      border-color: color-mix(in srgb, var(--teal) 54%, var(--line));
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal) 12%, transparent);
-    }
-
-    .duplicate-client-options {
+    .client-drawer form {
+      min-height: 100%;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 8px;
+      grid-template-rows: auto auto auto auto 1fr auto;
+      gap: 18px;
+      padding: 26px 28px;
     }
 
-    .duplicate-client-option {
-      width: 100%;
-      min-height: 74px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 9px;
-      color: inherit;
-      background: color-mix(in srgb, var(--surface) 96%, white);
-      font: inherit;
-      text-align: left;
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .drawer-header h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .drawer-close {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 34px;
+      line-height: 1;
       cursor: pointer;
     }
 
-    .duplicate-client-option.primary {
-      border-color: color-mix(in srgb, var(--green) 56%, var(--line));
-      background: color-mix(in srgb, var(--surface) 88%, var(--green));
-    }
-
-    .duplicate-client-option > span:nth-child(2) {
-      min-width: 0;
+    .drawer-grid {
       display: grid;
-      gap: 2px;
-      flex: 1 1 auto;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
     }
 
-    .duplicate-client-option em {
-      color: var(--muted);
-      font-size: 12px;
-      font-style: normal;
-      font-weight: 900;
-      text-transform: uppercase;
+    .phone-entry {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 8px;
     }
 
-    .duplicate-message {
+    .drawer-checks {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .drawer-checks h3 {
+      flex: 0 0 100%;
       margin: 0;
-      color: var(--teal);
-      font-weight: 850;
+      font-size: 22px;
     }
 
-    .duplicate-row-button {
-      border-color: color-mix(in srgb, var(--teal) 36%, var(--line));
+    .drawer-checks label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .drawer-notes textarea {
+      min-height: 94px;
+    }
+
+    .drawer-actions {
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+    }
+
+    .drawer-actions .dark-button {
+      min-width: 130px;
     }
 
     @media (max-width: 1380px) {
       .client-command-hero {
         grid-template-columns: 1fr;
+      }
+
+      .salonist-kpis {
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
       }
 
       .client-hero-actions {
@@ -656,9 +905,18 @@ import { StateComponent } from '../shared/ui/state/state.component';
         justify-self: start;
         justify-content: flex-start;
       }
+
+      .client-action-menu,
+      .column-editor {
+        justify-self: start;
+      }
     }
 
     @media (max-width: 760px) {
+      :host {
+        max-width: 100vw;
+      }
+
       .page-stack {
         width: 100%;
         max-width: 100%;
@@ -668,6 +926,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       .client-report-metrics {
         width: 100%;
         max-width: 100%;
+      }
+
+      .salonist-kpis {
+        grid-template-columns: 1fr;
       }
 
       .client-hero-actions,
@@ -687,25 +949,53 @@ import { StateComponent } from '../shared/ui/state/state.component';
       .client-database-panel .clients-crm-table th:last-child,
       .client-database-panel .clients-crm-table td:last-child {
         right: 0;
-        min-width: 244px;
+        min-width: 204px;
         padding-right: 12px;
       }
 
       .client-report-metrics {
         grid-template-columns: 1fr;
       }
+
+      .client-drawer form {
+        padding: 20px 16px;
+      }
+
+      .drawer-grid {
+        grid-template-columns: 1fr;
+      }
     }
   `]
 })
-export class ClientsComponent implements OnInit, OnDestroy {
+export class ClientsComponent implements OnInit {
   readonly clients = signal<ApiRecord[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
+  readonly notice = signal('');
   readonly showForm = signal(false);
   readonly tagFilter = signal('');
+  readonly clientTypeFilter = signal('');
+  readonly countryFilter = signal('');
+  readonly dateFromFilter = signal('');
+  readonly dateToFilter = signal('');
+  readonly actionMenuOpen = signal(false);
+  readonly columnEditorOpen = signal(false);
+  readonly rowActionClientId = signal('');
+  readonly visibleColumnKeys = signal<string[]>([
+    'name',
+    'contact',
+    'gender',
+    'birthday',
+    'anniversary',
+    'ewallet',
+    'notes',
+    'firstVisit',
+    'spending',
+    'assignedDiscount',
+    'discountValidity'
+  ]);
   readonly selectedClientIds = signal<string[]>([]);
-  readonly hasMoreClients = signal(false);
   readonly editingClientId = signal('');
   readonly clientReports = signal<ApiRecord | null>(null);
   readonly client360Report = signal<ApiRecord | null>(null);
@@ -713,13 +1003,10 @@ export class ClientsComponent implements OnInit, OnDestroy {
   readonly selectedMetricCategory = signal('All');
   readonly reportLoading = signal(true);
   readonly reportError = signal('');
-  readonly duplicateGroups = signal<ApiRecord[]>([]);
-  readonly duplicateLoading = signal(false);
-  readonly duplicateMergeAllLoading = signal(false);
-  readonly duplicateError = signal('');
-  readonly duplicateMessage = signal('');
-  readonly duplicatePrimarySelection = signal<Record<string, string>>({});
-  readonly activeDuplicateGroupKey = signal('');
+  readonly clientListHasMore = signal(false);
+  readonly clientListLoadingMore = signal(false);
+  private readonly clientListPageSize = 150;
+  private clientQueryTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly usefulMetricCardIds = new Set([
     'last-visit',
     'favorite-service',
@@ -741,27 +1028,56 @@ export class ClientsComponent implements OnInit, OnDestroy {
     'rebooking-rate'
   ]);
   private pendingEditClientId = '';
-  readonly clientBatchSize = 5000;
-  private clientLimit = this.clientBatchSize;
-  private clientBatchTimer: ReturnType<typeof setTimeout> | undefined;
-  private clientLoadInFlight = false;
-  private reportLoadInFlight = false;
-  private refreshTimer: ReturnType<typeof setInterval> | undefined;
-  private readonly refreshOnFocus = () => this.refreshVisibleData();
-  private readonly refreshOnVisibility = () => {
-    if (document.visibilityState === 'visible') this.refreshVisibleData();
-  };
+  private requestedReportClientId = '';
   query = '';
+
+  readonly clientTypeOptions = [
+    'Male',
+    'Female',
+    'Active',
+    'Inactive',
+    'Membership',
+    'Non-member',
+    'Unpaid Client',
+    'Wallet Client',
+    'Client Group',
+    'New Client Visits',
+    'Old Client Visits'
+  ];
+  readonly clientColumns = [
+    { key: 'name', label: 'Name', locked: true },
+    { key: 'contact', label: 'Contact', locked: false },
+    { key: 'gender', label: 'Gender', locked: false },
+    { key: 'birthday', label: 'Birthday', locked: false },
+    { key: 'anniversary', label: 'Anniversary', locked: false },
+    { key: 'ewallet', label: 'Ewallet', locked: false },
+    { key: 'notes', label: 'Notes', locked: false },
+    { key: 'firstVisit', label: 'First Visit', locked: false },
+    { key: 'spending', label: 'Spending', locked: false },
+    { key: 'childAge', label: 'Child Age', locked: false },
+    { key: 'assignedDiscount', label: 'Assigned Discount %', locked: false },
+    { key: 'discountValidity', label: 'Discount Validity', locked: false },
+    { key: 'image', label: 'Image', locked: false },
+    { key: 'phoneCode', label: 'Phone Code', locked: false },
+    { key: 'cardNumber', label: 'Card Number/File No', locked: false }
+  ];
 
   readonly form = this.fb.group({
     name: ['', Validators.required],
     phone: ['', Validators.required],
+    countryCode: ['+91'],
     email: [''],
     gender: [''],
     birthday: [''],
     anniversary: [''],
     tag: ['new'],
-    notes: ['']
+    notes: [''],
+    groupFreeMembership: [false],
+    groupMembershipFees: [false],
+    groupMembershipRenewFees: [false],
+    smsNotifications: [true],
+    emailNotifications: [true],
+    whatsappNotifications: [true]
   });
 
   constructor(
@@ -774,31 +1090,21 @@ export class ClientsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const queryClient = this.route.snapshot.queryParamMap.get('q');
     if (queryClient) this.query = queryClient;
+    this.requestedReportClientId = this.route.snapshot.queryParamMap.get('clientId') || '';
     this.pendingEditClientId = this.route.snapshot.queryParamMap.get('edit') || '';
     this.load();
     this.loadReports();
-    this.startAutoRefresh();
-  }
-
-  ngOnDestroy(): void {
-    if (this.refreshTimer) clearInterval(this.refreshTimer);
-    if (this.clientBatchTimer) clearTimeout(this.clientBatchTimer);
-    window.removeEventListener('focus', this.refreshOnFocus);
-    document.removeEventListener('visibilitychange', this.refreshOnVisibility);
   }
 
   get filteredClients(): ApiRecord[] {
-    return this.clients()
-      .filter((client) => client && typeof client === 'object')
-      .filter((client) => {
-        const queryMatch = JSON.stringify(client).toLowerCase().includes(this.query.toLowerCase());
-        const tagMatch = this.tagFilter() ? this.clientTags(client).includes(this.tagFilter()) : true;
-        return queryMatch && tagMatch;
-      });
-  }
-
-  get totalClientCount(): number {
-    return this.clients().filter((client) => client && typeof client === 'object').length;
+    return this.clients().filter((client) => {
+      const queryMatch = JSON.stringify(client).toLowerCase().includes(this.query.toLowerCase());
+      const tagMatch = this.tagFilter() ? (client.tags || []).includes(this.tagFilter()) : true;
+      const typeMatch = this.clientTypeMatches(client, this.clientTypeFilter());
+      const countryMatch = this.countryFilter() ? this.clientCountry(client) === this.countryFilter() : true;
+      const dateMatch = this.clientDateMatches(client);
+      return queryMatch && tagMatch && typeMatch && countryMatch && dateMatch;
+    });
   }
 
   get selectedCount(): number {
@@ -811,100 +1117,229 @@ export class ClientsComponent implements OnInit, OnDestroy {
     return visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
   }
 
-  clientId(client: ApiRecord | null | undefined): string {
-    return String(client?.id || '');
+  totalClientsCount(): number {
+    return this.clients().length;
   }
 
-  clientDisplayName(client: ApiRecord | null | undefined): string {
-    if (!client) return 'Client';
-    return String(client.name || client.fullName || client.full_name || client.clientName || client.customerName || client.phone || client.email || client.id || 'Client').trim() || 'Client';
+  totalVisitsThisMonth(): number {
+    const latest = this.latestMonthlyReport();
+    const fromReport = Number(latest.newClients || 0) + Number(latest.returningClients || 0);
+    if (fromReport > 0) return fromReport;
+    return this.clients().filter((client) => this.isThisMonth(this.clientActivityDate(client))).length;
   }
 
-  clientPhone(client: ApiRecord | null | undefined): string {
-    return String(client?.phone || client?.mobile || client?.mobileNumber || client?.contactNumber || '').trim();
+  oldClientVisitsThisMonth(): number {
+    const latest = this.latestMonthlyReport();
+    const returning = Number(latest.returningClients || 0);
+    if (returning > 0) return returning;
+    return this.clients().filter((client) => this.isThisMonth(this.clientActivityDate(client)) && !this.isNewClient(client)).length;
   }
 
-  clientContactLine(client: ApiRecord | null | undefined): string {
-    const phone = this.clientPhone(client) || 'No phone';
-    const email = String(client?.email || '').trim() || 'No email';
-    return `${phone} · ${email}`;
+  newClientVisitsThisMonth(): number {
+    const latest = this.latestMonthlyReport();
+    const newClients = Number(latest.newClients || 0);
+    if (newClients > 0) return newClients;
+    return this.clients().filter((client) => this.isThisMonth(this.clientActivityDate(client)) && this.isNewClient(client)).length;
   }
 
-  clientTags(client: ApiRecord | null | undefined): string[] {
-    const tags = client?.tags;
-    if (Array.isArray(tags)) return tags.filter(Boolean).map(String);
-    return tags ? [String(tags)] : [];
+  genderCount(gender: string): number {
+    const key = gender.toLowerCase();
+    return this.clients().filter((client) => String(client.gender || '').toLowerCase() === key).length;
   }
 
-  private normalizeClients(clients: ApiRecord[]): ApiRecord[] {
-    return clients
-      .filter((client) => client && typeof client === 'object')
-      .map((client) => ({
-        ...client,
-        id: this.clientId(client),
-        name: this.clientDisplayName(client),
-        phone: this.clientPhone(client),
-        email: String(client.email || '').trim(),
-        tags: this.clientTags(client)
-      }));
+  memberClientCount(): number {
+    return this.clients().filter((client) => this.isMemberClient(client)).length;
   }
-  load(showSpinner = true): void {
-    if (this.clientLoadInFlight) return;
-    this.clientLoadInFlight = true;
-    if (showSpinner) {
-      this.loading.set(true);
-      this.error.set('');
+
+  nonMemberClientCount(): number {
+    return this.clients().filter((client) => !this.isMemberClient(client)).length;
+  }
+
+  unpaidClientCount(): number {
+    return this.clients().filter((client) => this.money(client.unpaidBalance || 0) > 0).length;
+  }
+
+  walletClientCount(): number {
+    return this.clients().filter((client) => this.money(client.walletBalance || client.wallet || 0) > 0).length;
+  }
+
+  applyClientTypeFilter(type: string): void {
+    this.clientTypeFilter.set(type);
+  }
+
+  setClientTypeFilter(type: string): void {
+    this.clientTypeFilter.set(type || '');
+  }
+
+  clearClientFilters(): void {
+    this.clientTypeFilter.set('');
+    this.countryFilter.set('');
+    this.dateFromFilter.set('');
+    this.dateToFilter.set('');
+    this.tagFilter.set('');
+    if (this.query) {
+      this.query = '';
+      this.load();
     }
-    const listParams = { includeAllBranches: true, limit: this.clientLimit };
-    this.api.list<ApiRecord[]>('clients', listParams).subscribe({
-      next: (clients) => {
-        const loadedClients = this.normalizeClients(clients || []);
-        this.hasMoreClients.set(loadedClients.length >= this.clientLimit);
-        this.clients.set(loadedClients);
-        this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => this.clientId(client) === id)));
+  }
+
+  countryOptions(): string[] {
+    const countries = new Set<string>();
+    for (const client of this.clients()) {
+      const country = this.clientCountry(client);
+      if (country) countries.add(country);
+    }
+    if (!countries.size) countries.add('India');
+    return [...countries].sort();
+  }
+
+  isColumnVisible(key: string): boolean {
+    return this.visibleColumnKeys().includes(key);
+  }
+
+  toggleColumn(key: string, event: Event): void {
+    const checked = !!(event.target as HTMLInputElement | null)?.checked;
+    if (key === 'name') return;
+    const current = new Set(this.visibleColumnKeys());
+    if (checked) current.add(key);
+    else current.delete(key);
+    current.add('name');
+    this.visibleColumnKeys.set([...current]);
+  }
+
+  toggleActionMenu(event: Event): void {
+    event.stopPropagation();
+    this.actionMenuOpen.set(!this.actionMenuOpen());
+    this.columnEditorOpen.set(false);
+    this.rowActionClientId.set('');
+  }
+
+  toggleColumnEditor(event: Event): void {
+    event.stopPropagation();
+    this.columnEditorOpen.set(!this.columnEditorOpen());
+    this.actionMenuOpen.set(false);
+    this.rowActionClientId.set('');
+  }
+
+  toggleRowAction(clientId: unknown, event: Event): void {
+    event.stopPropagation();
+    const id = String(clientId || '');
+    this.rowActionClientId.set(this.rowActionClientId() === id ? '' : id);
+    this.actionMenuOpen.set(false);
+    this.columnEditorOpen.set(false);
+  }
+
+  openClientGroups(): void {
+    this.actionMenuOpen.set(false);
+    this.clientTypeFilter.set('Client Group');
+    this.notice.set('Client group filter active. Group management can be opened from selected client profiles.');
+  }
+
+  openImportClient(): void {
+    this.actionMenuOpen.set(false);
+    this.notice.set('Import Client selected. Use the sample CSV format and Data Migration Center for bulk upload.');
+  }
+
+  downloadClientSample(): void {
+    this.actionMenuOpen.set(false);
+    const csv = 'Name,Contact,Gender,Birthday,Anniversary,Email,Notes\nSample Client,9999999999,Female,1995-01-01,2020-01-01,sample@example.com,VIP client\n';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'client-import-sample.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  firstVisitLabel(client: ApiRecord): string {
+    const value = client.firstVisit || client.firstVisitAt || client.createdAt || client.lastVisitAt;
+    return value ? this.displayDate(value) : 'NA';
+  }
+
+  assignedDiscount(client: ApiRecord): string {
+    const value = client.assignedDiscountPercent ?? client.discountPercent ?? client.assignedDiscount ?? client.discount;
+    return value === undefined || value === null || value === '' ? '-' : String(value);
+  }
+
+  discountValidity(client: ApiRecord): string {
+    const value = client.discountValidity || client.discountValidUntil || client.discountExpiry;
+    return value ? this.displayDate(value) : '-';
+  }
+
+  clientId(client: ApiRecord): string {
+    return String(client.id || '');
+  }
+
+  load(options: { append?: boolean } = {}): void {
+    const append = options.append === true;
+    if (append) {
+      this.clientListLoadingMore.set(true);
+    } else {
+      this.loading.set(true);
+      this.clientListHasMore.set(false);
+    }
+    this.error.set('');
+    const branchId = this.api.selectedBranchId();
+    forkJoin({
+      clients: this.api.list<ApiRecord[]>('clients', {
+        limit: this.clientListPageSize,
+        offset: append ? this.clients().length : 0,
+        compact: 1,
+        q: this.query.trim(),
+        branchId
+      }),
+      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000, branchId }),
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000, branchId })
+    }).subscribe({
+      next: ({ clients, invoices, walletTransactions }) => {
+        const rows = clients || [];
+        const linkedWalletClients = this.withWalletBalances(rows, walletTransactions || []);
+        const hydratedClients = this.withUnpaidBalances(linkedWalletClients, invoices || []);
+        this.clients.set(append ? [...this.clients(), ...hydratedClients] : hydratedClients);
+        this.clientListHasMore.set(rows.length === this.clientListPageSize);
+        this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => client.id === id)));
         this.openPendingEditClient();
-        this.clientLoadInFlight = false;
+        const focusClientId = this.reportFocusClientId();
+        if (focusClientId) this.loadClient360(focusClientId);
         this.loading.set(false);
+        this.clientListLoadingMore.set(false);
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load clients');
-        this.clientLoadInFlight = false;
         this.loading.set(false);
+        this.clientListLoadingMore.set(false);
       }
     });
   }
+
+  onClientQueryChange(value: string): void {
+    this.query = value || '';
+    if (this.clientQueryTimer) clearTimeout(this.clientQueryTimer);
+    this.clientQueryTimer = setTimeout(() => this.load(), 250);
+  }
+
   loadMoreClients(): void {
-    if (this.clientBatchTimer) clearTimeout(this.clientBatchTimer);
-    this.clientBatchTimer = undefined;
-    this.loadNextClientBatch(true);
+    if (!this.clientListHasMore() || this.clientListLoadingMore()) return;
+    this.load({ append: true });
   }
 
-  private loadNextClientBatch(showSpinner: boolean): void {
-    if (this.clientLoadInFlight) return;
-    this.clientLimit += this.clientBatchSize;
-    this.load(showSpinner);
-  }
-
-  loadReports(showSpinner = true): void {
-    if (this.reportLoadInFlight) return;
-    this.reportLoadInFlight = true;
-    if (showSpinner) {
-      this.reportLoading.set(true);
-      this.reportError.set('');
-    }
-    const reportScope = { includeAllBranches: true };
+  loadReports(): void {
+    this.reportLoading.set(true);
+    this.reportError.set('');
+    const branchId = this.api.selectedBranchId();
     forkJoin({
-      topRfm: this.api.report<ApiRecord[]>('clients/top-rfm', { ...reportScope, limit: 10 }),
-      lapsed: this.api.report<ApiRecord[]>('clients/lapsed', { ...reportScope, minDays: 60, maxDays: 180, limit: 10 }),
-      newVsReturning: this.api.report<ApiRecord[]>('clients/new-vs-returning', { ...reportScope, months: 6 }),
-      occasions: this.api.report<ApiRecord[]>('clients/occasions', { ...reportScope, withinDays: 30, limit: 10 }),
-      byService: this.api.report<ApiRecord[]>('clients/by-service', { ...reportScope, limit: 8 })
+      clientRevenue: this.api.report<ApiRecord>('clients/revenue', { limit: 10, branchId }),
+      topRfm: this.api.report<ApiRecord[]>('clients/top-rfm', { limit: 10, branchId }),
+      lapsed: this.api.report<ApiRecord[]>('clients/lapsed', { minDays: 60, maxDays: 180, limit: 10, branchId }),
+      newVsReturning: this.api.report<ApiRecord[]>('clients/new-vs-returning', { months: 6, branchId }),
+      occasions: this.api.report<ApiRecord[]>('clients/occasions', { withinDays: 30, limit: 10, branchId }),
+      byService: this.api.report<ApiRecord[]>('clients/by-service', { limit: 8, branchId })
     }).subscribe({
       next: (reports) => {
         this.clientReports.set(reports);
-        this.reportLoadInFlight = false;
         this.reportLoading.set(false);
-        const focusClientId = reports.topRfm?.[0]?.id || reports.lapsed?.[0]?.id || this.clients()[0]?.id || '';
+        const focusClientId = this.reportFocusClientId() || reports.topRfm?.[0]?.id || reports.lapsed?.[0]?.id || this.clients()[0]?.id || '';
         if (focusClientId) {
           this.loadClient360(String(focusClientId));
         } else {
@@ -913,15 +1348,15 @@ export class ClientsComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.reportError.set(this.api.errorText(error, 'Unable to load client reports'));
-        this.reportLoadInFlight = false;
         this.reportLoading.set(false);
       }
     });
   }
+
   loadClient360(clientId: string): void {
     if (!clientId) return;
     this.api.report<ApiRecord>(`clients/${encodeURIComponent(clientId)}/360`, {
-      includeAllBranches: true
+      branchId: this.api.selectedBranchId()
     }).subscribe({
       next: (report) => {
         this.client360Report.set(report);
@@ -934,191 +1369,6 @@ export class ClientsComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadDuplicateGroups(successMessage = ''): void {
-    if (this.duplicateLoading()) return;
-    this.duplicateLoading.set(true);
-    this.duplicateError.set('');
-    if (!successMessage) this.duplicateMessage.set('');
-    this.api.list<ApiRecord[]>('clients/duplicates', { includeAllBranches: true }).subscribe({
-      next: (groups) => {
-        const duplicateGroups = (Array.isArray(groups) ? groups : []).filter((group) => this.isPhoneDuplicateGroup(group));
-        this.duplicateGroups.set(duplicateGroups);
-        const selection: Record<string, string> = {};
-        for (const group of duplicateGroups) {
-          const key = String(group.groupKey || '');
-          if (!key) continue;
-          selection[key] = String(group.suggestedPrimaryId || this.duplicateGroupClients(group)[0]?.id || '');
-        }
-        this.duplicatePrimarySelection.set(selection);
-        this.duplicateMessage.set(successMessage || (duplicateGroups.length ? '' : 'No duplicate contacts found from same phone number.'));
-        this.duplicateLoading.set(false);
-      },
-      error: (error) => {
-        this.duplicateError.set(this.api.errorText(error, 'Unable to scan duplicate clients'));
-        this.duplicateLoading.set(false);
-      }
-    });
-  }
-
-  visibleDuplicateGroups(): ApiRecord[] {
-    return this.phoneDuplicateGroups().slice(0, 100);
-  }
-
-  phoneDuplicateGroupCount(): number {
-    return this.phoneDuplicateGroups().length;
-  }
-
-  private phoneDuplicateGroups(): ApiRecord[] {
-    return this.duplicateGroups().filter((group) => this.isPhoneDuplicateGroup(group));
-  }
-
-  private isPhoneDuplicateGroup(group: ApiRecord | null | undefined): boolean {
-    const type = String(group?.matchType || '').toLowerCase();
-    const key = String(group?.groupKey || '').toLowerCase();
-    return type === 'phone' || key.startsWith('phone:');
-  }
-  duplicateGroupClients(group: ApiRecord | null | undefined): ApiRecord[] {
-    return Array.isArray(group?.clients) ? group.clients : [];
-  }
-
-  duplicateMatchValues(group: ApiRecord | null | undefined): string {
-    const values = Array.isArray(group?.matchValues) ? group.matchValues.filter(Boolean).map(String) : [];
-    return values.length ? values.join(', ') : 'Matching contact details';
-  }
-
-  duplicateGroupPrimaryId(group: ApiRecord | null | undefined): string {
-    const key = String(group?.groupKey || '');
-    const selection = this.duplicatePrimarySelection();
-    return String(selection[key] || group?.suggestedPrimaryId || this.duplicateGroupClients(group)[0]?.id || '');
-  }
-
-  setDuplicatePrimary(group: ApiRecord, clientId: string, event?: Event): void {
-    event?.stopPropagation();
-    const key = String(group?.groupKey || '');
-    const id = String(clientId || '');
-    if (!key || !id) return;
-    this.activeDuplicateGroupKey.set(key);
-    this.duplicatePrimarySelection.set({ ...this.duplicatePrimarySelection(), [key]: id });
-  }
-
-  duplicateGroupForClient(client: ApiRecord | null | undefined): ApiRecord | null {
-    const id = this.clientId(client);
-    if (!id) return null;
-    return this.duplicateGroups().find((group) => this.duplicateGroupClients(group).some((item) => this.clientId(item) === id)) || null;
-  }
-
-  duplicateCountForClient(client: ApiRecord | null | undefined): number {
-    const group = this.duplicateGroupForClient(client);
-    return group ? Math.max(this.duplicateGroupClients(group).length - 1, 0) : 0;
-  }
-
-  openDuplicateGroupForClient(client: ApiRecord, event?: Event): void {
-    event?.stopPropagation();
-    const group = this.duplicateGroupForClient(client);
-    if (group?.groupKey) {
-      this.activeDuplicateGroupKey.set(String(group.groupKey));
-      return;
-    }
-    this.loadDuplicateGroups();
-  }
-
-  mergeAllDuplicateGroups(): void {
-    if (this.duplicateMergeAllLoading()) return;
-    const groupCount = this.phoneDuplicateGroupCount();
-    if (!groupCount) {
-      this.duplicateMessage.set('No same-phone duplicate groups to merge.');
-      return;
-    }
-    const totals = {
-      mergedClients: 0,
-      mergedGroups: 0,
-      skippedGroups: 0,
-      processedGroups: 0,
-      skippedGroupKeys: [] as string[]
-    };
-    this.saving.set(true);
-    this.duplicateMergeAllLoading.set(true);
-    this.duplicateError.set('');
-    this.duplicateMessage.set(`Merging duplicate contacts... 0 clients merged across 0 groups. ${groupCount} groups remaining.`);
-    this.runDuplicateMergeBatch(totals);
-  }
-
-  private runDuplicateMergeBatch(totals: { mergedClients: number; mergedGroups: number; skippedGroups: number; processedGroups: number; skippedGroupKeys: string[] }): void {
-    this.api.post<ApiRecord>('clients/duplicates/merge-all', {
-      includeAllBranches: true,
-      allBranches: true,
-      matchType: 'phone',
-      limit: 25,
-      skipGroupKeys: totals.skippedGroupKeys,
-      reason: 'Merged by frontdesk duplicate merge all'
-    }).subscribe({
-      next: (result) => {
-        const mergedClients = Number(result?.mergedClients || 0);
-        const mergedGroups = Number(result?.mergedGroups || 0);
-        const skippedGroups = Number(result?.skippedGroups || 0);
-        const processedGroups = Number(result?.processedGroups || result?.scannedGroups || 0);
-        const remainingGroups = Number(result?.remainingGroups || 0);
-        const skippedGroupKeys = Array.isArray(result?.skippedGroupKeys) ? result.skippedGroupKeys.map(String).filter(Boolean) : [];
-        totals.mergedClients += mergedClients;
-        totals.mergedGroups += mergedGroups;
-        totals.skippedGroups += skippedGroups;
-        totals.processedGroups += processedGroups;
-        totals.skippedGroupKeys = [...new Set([...totals.skippedGroupKeys, ...skippedGroupKeys])];
-        this.duplicateMessage.set(`Merging duplicate contacts... ${totals.mergedClients} clients merged across ${totals.mergedGroups} groups. ${remainingGroups} groups remaining.`);
-        if (remainingGroups > 0 && processedGroups > 0) {
-          this.runDuplicateMergeBatch(totals);
-          return;
-        }
-        this.duplicateMessage.set(`Merge complete: ${totals.mergedClients} duplicate client(s) merged across ${totals.mergedGroups} group(s). ${totals.skippedGroups} group(s) skipped.`);
-        this.saving.set(false);
-        this.duplicateMergeAllLoading.set(false);
-        this.load(false);
-        this.loadReports(false);
-        this.duplicateGroups.set([]);
-      },
-      error: (error) => {
-        this.duplicateError.set(this.api.errorText(error, 'Unable to merge all duplicate clients'));
-        this.saving.set(false);
-        this.duplicateMergeAllLoading.set(false);
-      }
-    });
-  }
-  mergeDuplicateGroup(group: ApiRecord, event?: Event): void {
-    event?.stopPropagation();
-    const clients = this.duplicateGroupClients(group);
-    const primaryId = this.duplicateGroupPrimaryId(group);
-    const duplicateClientIds = clients.map((client) => this.clientId(client)).filter((id) => id && id !== primaryId);
-    if (!primaryId || !duplicateClientIds.length) return;
-    const primary = clients.find((client) => this.clientId(client) === primaryId);
-    if (!window.confirm(`Merge ${duplicateClientIds.length} duplicate client(s) into "${this.clientDisplayName(primary)}"?`)) return;
-    this.saving.set(true);
-    this.duplicateError.set('');
-    this.duplicateMessage.set('');
-    this.api.post<ApiRecord>(`clients/${encodeURIComponent(primaryId)}/merge-duplicates`, {
-      duplicateClientIds,
-      reason: 'Merged from frontdesk duplicate client panel'
-    }).subscribe({
-      next: (result) => {
-        const archivedIds = Array.isArray(result?.archivedClientIds) ? result.archivedClientIds.map(String) : duplicateClientIds;
-        const updatedPrimary = result?.primary ? this.normalizeClients([result.primary])[0] : null;
-        const remaining = this.clients().filter((client) => !archivedIds.includes(this.clientId(client)));
-        this.clients.set(updatedPrimary
-          ? remaining.map((client) => this.clientId(client) === primaryId ? { ...client, ...updatedPrimary } : client)
-          : remaining);
-        this.selectedClientIds.set(this.selectedClientIds().filter((id) => !archivedIds.includes(id)));
-        const successMessage = `Merged ${archivedIds.length} duplicate client(s).`;
-        this.duplicateMessage.set(successMessage);
-        this.saving.set(false);
-        this.load(false);
-        this.loadReports(false);
-        this.loadDuplicateGroups(successMessage);
-      },
-      error: (error) => {
-        this.duplicateError.set(this.api.errorText(error, 'Unable to merge duplicate clients'));
-        this.saving.set(false);
-      }
-    });
-  }
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -1126,14 +1376,23 @@ export class ClientsComponent implements OnInit, OnDestroy {
     }
     this.saving.set(true);
     const value = this.form.value;
+    const groups = this.selectedGroupsFromForm(value);
     const payload = {
       name: value.name,
       phone: value.phone,
+      phoneCode: value.countryCode,
+      countryCode: value.countryCode,
       email: value.email,
       gender: value.gender,
       birthday: value.birthday,
       anniversary: value.anniversary,
-      tags: [value.tag],
+      tags: this.clientTagsFromForm(value, groups),
+      clientGroups: groups,
+      notificationPreferences: {
+        sms: !!value.smsNotifications,
+        email: !!value.emailNotifications,
+        whatsapp: !!value.whatsappNotifications
+      },
       notes: value.notes,
       branchId: this.api.selectedBranchId() || 'branch_hyd'
     };
@@ -1155,6 +1414,7 @@ export class ClientsComponent implements OnInit, OnDestroy {
     request.subscribe({
       next: (client) => {
         this.saving.set(false);
+        this.notice.set(editingId ? 'Client updated.' : 'Client added.');
         this.closeForm(false);
         if (editingId) {
           this.clients.set(this.clients().map((item) => item.id === editingId ? { ...item, ...(client || payload) } : item));
@@ -1174,14 +1434,22 @@ export class ClientsComponent implements OnInit, OnDestroy {
     this.form.reset({
       name: '',
       phone: '',
+      countryCode: '+91',
       email: '',
       gender: '',
       birthday: '',
       anniversary: '',
       tag: 'new',
-      notes: ''
+      notes: '',
+      groupFreeMembership: false,
+      groupMembershipFees: false,
+      groupMembershipRenewFees: false,
+      smsNotifications: true,
+      emailNotifications: true,
+      whatsappNotifications: true
     });
     this.showForm.set(true);
+    this.rowActionClientId.set('');
   }
 
   closeForm(reset = true): void {
@@ -1191,36 +1459,53 @@ export class ClientsComponent implements OnInit, OnDestroy {
       this.form.reset({
         name: '',
         phone: '',
+        countryCode: '+91',
         email: '',
         gender: '',
         birthday: '',
         anniversary: '',
         tag: 'new',
-        notes: ''
+        notes: '',
+        groupFreeMembership: false,
+        groupMembershipFees: false,
+        groupMembershipRenewFees: false,
+        smsNotifications: true,
+        emailNotifications: true,
+        whatsappNotifications: true
       });
     }
   }
 
   editClient(client: ApiRecord, event?: Event): void {
     event?.stopPropagation();
-    this.editingClientId.set(this.clientId(client));
+    const groups = this.clientGroups(client);
+    const notifications = client.notificationPreferences || client.notifications || {};
+    this.editingClientId.set(String(client.id || ''));
     this.form.patchValue({
-      name: this.clientDisplayName(client),
-      phone: this.clientPhone(client),
+      name: client.name || '',
+      phone: client.phone || '',
+      countryCode: client.phoneCode || client.countryCode || '+91',
       email: client.email || '',
       gender: client.gender || '',
       birthday: this.dateInputValue(client.birthday),
       anniversary: this.dateInputValue(client.anniversary),
-      tag: this.clientTags(client)[0] || 'new',
-      notes: client.notes || ''
+      tag: Array.isArray(client.tags) && client.tags.length ? client.tags[0] : 'new',
+      notes: client.notes || '',
+      groupFreeMembership: groups.includes('FREE MEMBERSHIP'),
+      groupMembershipFees: groups.includes('MEMBERSHIP FEES'),
+      groupMembershipRenewFees: groups.includes('MEMBERSHIP RENEW FEES'),
+      smsNotifications: notifications.sms !== false,
+      emailNotifications: notifications.email !== false,
+      whatsappNotifications: notifications.whatsapp !== false
     });
     this.showForm.set(true);
+    this.rowActionClientId.set('');
   }
 
   private openPendingEditClient(): void {
     const clientId = this.pendingEditClientId;
     if (!clientId) return;
-    const client = this.clients().find((item) => this.clientId(item) === clientId);
+    const client = this.clients().find((item) => String(item.id || '') === clientId);
     if (!client) return;
     this.pendingEditClientId = '';
     this.editClient(client);
@@ -1271,8 +1556,8 @@ export class ClientsComponent implements OnInit, OnDestroy {
 
   deleteClient(client: ApiRecord, event?: Event): void {
     event?.stopPropagation();
-    const id = this.clientId(client);
-    if (!id || !window.confirm(`Delete client "${this.clientDisplayName(client) || id}"?`)) return;
+    const id = String(client?.id || '');
+    if (!id || !window.confirm(`Delete client "${client.name || id}"?`)) return;
     this.saving.set(true);
     this.api.delete('clients', id).subscribe({
       next: () => {
@@ -1304,6 +1589,39 @@ export class ClientsComponent implements OnInit, OnDestroy {
     });
   }
 
+  blockClient(client: ApiRecord, event?: Event): void {
+    event?.stopPropagation();
+    const id = String(client?.id || '');
+    if (!id || !window.confirm(`Block client "${client.name || id}"?`)) return;
+    this.saving.set(true);
+    const tags = new Set(Array.isArray(client.tags) ? client.tags.map(String) : []);
+    tags.add('blocked');
+    this.api.update<ApiRecord>('clients', id, { status: 'blocked', tags: [...tags] }).subscribe({
+      next: (updated) => {
+        this.clients.set(this.clients().map((item) => String(item.id || '') === id ? { ...item, ...(updated || {}), status: 'blocked', tags: [...tags] } : item));
+        this.notice.set('Client blocked.');
+        this.rowActionClientId.set('');
+        this.saving.set(false);
+      },
+      error: (error) => {
+        this.error.set(error?.error?.error || error?.message || 'Unable to block client');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  resetClientPassword(client: ApiRecord, event?: Event): void {
+    event?.stopPropagation();
+    this.rowActionClientId.set('');
+    this.notice.set(`Reset password action noted for ${client.name || 'client'}.`);
+  }
+
+  addNotes(client: ApiRecord, event?: Event): void {
+    event?.stopPropagation();
+    this.editClient(client, event);
+    this.notice.set('Add note in the right-side client drawer, then Save.');
+  }
+
   initials(name: string): string {
     return String(name || '?').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   }
@@ -1319,6 +1637,11 @@ export class ClientsComponent implements OnInit, OnDestroy {
     return Array.isArray(value) ? value : [];
   }
 
+  clientRevenueSummary(): ApiRecord {
+    const report = this.clientReports()?.['clientRevenue'];
+    return report && typeof report === 'object' && !Array.isArray(report) ? report['summary'] || {} : {};
+  }
+
   clientMetricCards(): ApiRecord[] {
     const value = this.client360Report()?.metricCards;
     return Array.isArray(value) ? value.filter((card) => this.usefulMetricCardIds.has(String(card.id))) : [];
@@ -1328,6 +1651,28 @@ export class ClientsComponent implements OnInit, OnDestroy {
     const card = this.clientMetricCards().find((item) => String(item.id) === cardId);
     const value = card?.value;
     return value === undefined || value === null || value === '' ? fallback : String(value);
+  }
+
+  walletMetricValue(): string {
+    const loyaltyCard = this.clientMetricCards().find((item) => String(item.id) === 'loyalty-points');
+    const walletText = String(loyaltyCard?.detail || '').match(/([^·]+?)\s+wallet/i)?.[1]?.trim();
+    if (walletText) return walletText;
+    const client = this.client360Report()?.client || {};
+    return this.currencyText(client.walletBalance ?? client.wallet_balance ?? client.wallet ?? 0);
+  }
+
+  walletMetricActivity(): string {
+    const clientId = String(this.client360Report()?.client?.id || '');
+    const client = this.clients().find((item) => String(item.id || '') === clientId);
+    return this.walletActivityLabel(client || {}) || 'No wallet activity';
+  }
+
+  walletActivityLabel(client: ApiRecord): string {
+    const type = String(client.walletLastType || '').toLowerCase();
+    const amount = this.money(client.walletLastAmount || 0);
+    if (!type || amount <= 0) return '';
+    const action = type.includes('debit') || type.includes('use') ? 'used' : 'added';
+    return `Last wallet ${action} ${this.currencyText(amount)}`;
   }
 
   metricGroups(): ApiRecord[] {
@@ -1379,21 +1724,115 @@ export class ClientsComponent implements OnInit, OnDestroy {
   }
 
   reportBranchLabel(): string {
-    return 'All branches';
+    return this.api.selectedBranchId() ? 'Branch scope' : 'All branches';
   }
 
-  private startAutoRefresh(): void {
-    if (this.refreshTimer) return;
-    this.refreshTimer = setInterval(() => this.refreshVisibleData(), 30000);
-    window.addEventListener('focus', this.refreshOnFocus);
-    document.addEventListener('visibilitychange', this.refreshOnVisibility);
+  private selectedGroupsFromForm(value: ApiRecord): string[] {
+    const groups: string[] = [];
+    if (value.groupFreeMembership) groups.push('FREE MEMBERSHIP');
+    if (value.groupMembershipFees) groups.push('MEMBERSHIP FEES');
+    if (value.groupMembershipRenewFees) groups.push('MEMBERSHIP RENEW FEES');
+    return groups;
   }
 
-  private refreshVisibleData(): void {
-    if (document.visibilityState === 'hidden' || this.saving()) return;
-    this.load(false);
-    this.loadReports(false);
+  private clientTagsFromForm(value: ApiRecord, groups: string[]): string[] {
+    const tags = new Set<string>();
+    if (value.tag) tags.add(String(value.tag));
+    for (const group of groups) tags.add(group);
+    return [...tags];
   }
+
+  private clientGroups(client: ApiRecord): string[] {
+    const raw = client.clientGroups || client.groups || client.group || [];
+    if (Array.isArray(raw)) return raw.map(String);
+    if (typeof raw === 'string' && raw.trim()) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.map(String);
+      } catch {
+        return raw.split(',').map((item) => item.trim()).filter(Boolean);
+      }
+    }
+    return Array.isArray(client.tags) ? client.tags.filter((tag) => String(tag).toUpperCase().includes('MEMBERSHIP')).map(String) : [];
+  }
+
+  private clientTypeMatches(client: ApiRecord, type: string): boolean {
+    if (!type) return true;
+    const normalizedType = type.toLowerCase();
+    const gender = String(client.gender || '').toLowerCase();
+    const tags = Array.isArray(client.tags) ? client.tags.map((tag) => String(tag).toLowerCase()) : [];
+    const status = String(client.status || '').toLowerCase();
+    if (normalizedType === 'male' || normalizedType === 'female') return gender === normalizedType;
+    if (normalizedType === 'active') return status !== 'inactive' && status !== 'blocked' && !tags.includes('inactive');
+    if (normalizedType === 'inactive') return status === 'inactive' || status === 'blocked' || tags.includes('inactive');
+    if (normalizedType === 'membership') return this.isMemberClient(client);
+    if (normalizedType === 'non-member') return !this.isMemberClient(client);
+    if (normalizedType === 'unpaid client') return this.money(client.unpaidBalance || 0) > 0;
+    if (normalizedType === 'wallet client') return this.money(client.walletBalance || client.wallet || 0) > 0;
+    if (normalizedType === 'client group') return this.clientGroups(client).length > 0;
+    if (normalizedType === 'new client visits') return this.isNewClient(client);
+    if (normalizedType === 'old client visits') return !this.isNewClient(client);
+    return true;
+  }
+
+  private isMemberClient(client: ApiRecord): boolean {
+    const tags = Array.isArray(client.tags) ? client.tags.map((tag) => String(tag).toLowerCase()) : [];
+    return tags.some((tag) => tag.includes('membership') || tag.includes('member'))
+      || this.clientGroups(client).length > 0
+      || !!client.membershipId
+      || !!client.membershipPlanId
+      || String(client.membershipStatus || '').toLowerCase() === 'active';
+  }
+
+  private clientCountry(client: ApiRecord): string {
+    return String(client.country || client.countryName || client.countryLabel || (client.countryCode === '+1' ? 'United States' : '') || 'India');
+  }
+
+  private clientDateMatches(client: ApiRecord): boolean {
+    const from = this.dateFromFilter();
+    const to = this.dateToFilter();
+    if (!from && !to) return true;
+    const activity = this.normalizeDateMs(this.clientActivityDate(client));
+    if (!activity) return false;
+    const fromMs = from ? this.normalizeDateMs(from) : 0;
+    const toMs = to ? this.normalizeDateMs(to) : 0;
+    return (!fromMs || activity >= fromMs) && (!toMs || activity <= toMs);
+  }
+
+  private isNewClient(client: ApiRecord): boolean {
+    const created = this.normalizeDateMs(client.createdAt || client.firstVisit || client.firstVisitAt);
+    if (!created) return false;
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const date = new Date(created);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  }
+
+  private isThisMonth(value: unknown): boolean {
+    const ms = this.normalizeDateMs(value);
+    if (!ms) return false;
+    const date = new Date(ms);
+    const now = new Date();
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  }
+
+  private clientActivityDate(client: ApiRecord): unknown {
+    return client.lastVisitAt || client.firstVisit || client.firstVisitAt || client.createdAt || client.updatedAt;
+  }
+
+  private displayDate(value: unknown): string {
+    const ms = this.normalizeDateMs(value);
+    if (!ms) return 'NA';
+    return new Date(ms).toLocaleDateString('en-IN');
+  }
+
+  private normalizeDateMs(value: unknown): number {
+    if (!value) return 0;
+    const ms = new Date(String(value)).getTime();
+    return Number.isNaN(ms) ? 0 : ms;
+  }
+
   private withUnpaidBalances(clients: ApiRecord[], invoices: ApiRecord[]): ApiRecord[] {
     const unpaidByClient = new Map<string, number>();
     for (const invoice of invoices) {
@@ -1405,7 +1844,7 @@ export class ClientsComponent implements OnInit, OnDestroy {
     }
     return clients.map((client) => ({
       ...client,
-      unpaidBalance: unpaidByClient.get(this.clientId(client)) || 0
+      unpaidBalance: unpaidByClient.get(String(client.id)) || 0
     }));
   }
 
@@ -1420,13 +1859,15 @@ export class ClientsComponent implements OnInit, OnDestroy {
       }
     }
     return clients.map((client) => {
-      const latest = latestByClient.get(this.clientId(client));
-      const linkedBalance = latest?.balanceAfter ?? latest?.balance_after;
+      const latest = latestByClient.get(String(client.id));
+      const linkedBalance = latest?.balanceAfter ?? latest?.balance_after ?? latest?.walletBalance ?? latest?.wallet_balance ?? latest?.balance;
       return {
         ...client,
         walletBalance: linkedBalance !== undefined && linkedBalance !== null && linkedBalance !== ''
           ? this.money(linkedBalance)
-          : this.money(client.walletBalance || 0)
+          : this.money(client.walletBalance ?? client.wallet_balance ?? client.ewalletBalance ?? client.eWalletBalance ?? client.wallet ?? 0),
+        walletLastAmount: latest ? this.money(latest.amount ?? latest.value ?? latest.walletAmount ?? 0) : 0,
+        walletLastType: latest ? String(latest.type || latest.transactionType || latest.action || '') : ''
       };
     });
   }
@@ -1443,8 +1884,29 @@ export class ClientsComponent implements OnInit, OnDestroy {
     return Math.round((Number(value) || 0) * 100) / 100;
   }
 
+  private currencyText(value: unknown): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(this.money(value));
+  }
+
+  private reportFocusClientId(): string {
+    if (this.requestedReportClientId) return this.requestedReportClientId;
+    const visible = this.filteredClients;
+    if (visible.length === 1) return String(visible[0].id || '');
+    const query = this.query.trim().toLowerCase();
+    if (!query) return '';
+    const match = this.clients().find((client) => {
+      const values = [client.id, client.name, client.phone, client.mobile, client.whatsapp, client.email];
+      return values.some((value) => String(value || '').toLowerCase().includes(query));
+    });
+    return String(match?.id || '');
+  }
+
   private filteredClientIds(): string[] {
-    return this.filteredClients.map((client) => this.clientId(client)).filter(Boolean);
+    return this.filteredClients.map((client) => String(client.id || '')).filter(Boolean);
   }
 
   private dateInputValue(value: unknown): string {
@@ -1458,7 +1920,7 @@ export class ClientsComponent implements OnInit, OnDestroy {
 
   private removeDeletedClients(ids: string[]): void {
     const deleted = new Set(ids);
-    this.clients.set(this.clients().filter((client) => !deleted.has(this.clientId(client))));
+    this.clients.set(this.clients().filter((client) => !deleted.has(String(client.id))));
     this.selectedClientIds.set(this.selectedClientIds().filter((id) => !deleted.has(id)));
   }
 }

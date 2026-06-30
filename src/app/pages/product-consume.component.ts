@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { AppStateService } from '../core/state/app-state.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 
 interface ConsumeLine {
   productId: string;
@@ -11,6 +12,8 @@ interface ConsumeLine {
   expectedQty: number;
   actualQty: number;
   wastagePct: number;
+  wastageApprovalPct?: number;
+  wastageHitLimit?: number;
   minQty?: number;
   maxQty?: number;
   substitutes?: string;
@@ -51,31 +54,98 @@ interface ProductRow extends ApiRecord {
 }
 
 const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle', 'jar', 'can', 'tin', 'pack', 'box', 'nos'];
+const PRODUCT_CONSUME_WASTAGE_WARN_PCT = 10;
+const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
 
 @Component({
   selector: 'app-product-consume',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, InventoryZenotiChromeComponent],
   template: `
     <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Inventory - service usage</span>
-          <h1>Product Consume</h1>
-          <p>Auto drafts come from POS invoices. Check quantity, then confirm to reduce stock.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost" routerLink="/inventory/recipes">Service Recipes</a>
-          <button type="button" class="primary" (click)="load()">Refresh</button>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        title="Product Consume"
+        breadcrumb="Inventory > Service Usage"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
-      <div class="metric-grid">
-        <article><span>Draft pending</span><strong>{{ draftCount() }}</strong><small>review before stock minus</small></article>
-        <article><span>Confirmed</span><strong>{{ confirmedCount() }}</strong><small>stock ledger posted</small></article>
-        <article><span>Expected cost</span><strong>{{ money(totalExpected()) }}</strong><small>recipe based</small></article>
-        <article><span>Actual cost</span><strong>{{ money(totalActual()) }}</strong><small>edited consume value</small></article>
-      </div>
+      <section class="zenoti-consume-register">
+        <div class="zenoti-toolbar">
+          <div>
+            <span class="eyebrow">Product consume register</span>
+            <h2>Invoice service usage</h2>
+          </div>
+          <div class="toolbar-actions">
+            <label>
+              <span>Status</span>
+              <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)">
+                <option value="">All</option>
+                <option value="draft">Draft</option>
+                <option value="recipe_missing">Recipe missing</option>
+                <option value="confirmed">Confirmed</option>
+              </select>
+            </label>
+            <button type="button" class="ghost" (click)="load()">Refresh</button>
+            <button type="button" class="primary" (click)="loadControlLedgerReport()">Run report</button>
+          </div>
+        </div>
+
+        <div class="consume-kpi-strip">
+          <article><span>Draft pending</span><strong>{{ draftCount() }}</strong><small>review before stock minus</small></article>
+          <article><span>Confirmed</span><strong>{{ confirmedCount() }}</strong><small>stock ledger posted</small></article>
+          <article><span>Expected cost</span><strong>{{ money(totalExpected()) }}</strong><small>recipe based</small></article>
+          <article><span>Actual cost</span><strong>{{ money(totalActual()) }}</strong><small>edited consume value</small></article>
+        </div>
+
+        <div class="zenoti-table-scroll">
+          <table class="zenoti-register-table">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Service / client</th>
+                <th>Staff</th>
+                <th>Status</th>
+                <th>Lines</th>
+                <th>Expected</th>
+                <th>Actual</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let draft of drafts()"
+                [class.selected]="draft.id === selectedId()"
+                (click)="select(draft)"
+              >
+                <td>
+                  <strong>{{ draft.invoiceNumber || draft.id }}</strong>
+                  <small>{{ draft.id }}</small>
+                </td>
+                <td>
+                  <strong>{{ draft.serviceName }}</strong>
+                  <small>{{ draft.clientName || 'Walk-in client' }}</small>
+                </td>
+                <td>{{ draft.staffName || 'Unassigned' }}</td>
+                <td><span class="badge" [class.done]="draft.status === 'confirmed'">{{ draft.status }}</span></td>
+                <td>{{ draft.lineItems.length }}</td>
+                <td>{{ money(draft.expectedCost || 0) }}</td>
+                <td>{{ money(draft.actualCost || draft.expectedCost || 0) }}</td>
+                <td><button type="button" class="mini-action" (click)="select(draft)">Open</button></td>
+              </tr>
+              <tr *ngIf="!loading() && !drafts().length">
+                <td colspan="8" class="table-empty">No product consume draft found.</td>
+              </tr>
+              <tr *ngIf="loading()">
+                <td colspan="8" class="table-empty">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="zenoti-footer">
+          <span>{{ drafts().length }} result(s)</span>
+          <span>Click any invoice to edit consume lines, container usage and notes below.</span>
+        </div>
+      </section>
 
       <section class="owner-report" *ngIf="backbarReport() as report">
         <div class="ledger-head">
@@ -289,6 +359,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
           <article><span>Anomalies</span><strong>{{ report['summary']?.usageAnomalies || 0 }}</strong><small>spike/waste</small></article>
           <article><span>Expiry priority</span><strong>{{ report['summary']?.expiryPriorityRows || 0 }}</strong><small>FEFO control</small></article>
           <article><span>Cost drift</span><strong>{{ report['summary']?.costDriftRows || 0 }}</strong><small>unit variance</small></article>
+          <article><span>Staff waste hits</span><strong>{{ report['summary']?.staffWastageRepeats || 0 }}</strong><small>owner review</small></article>
           <article><span>Manager actions</span><strong>{{ report['summary']?.managerActions || 0 }}</strong><small>to review</small></article>
         </div>
         <div class="report-grid">
@@ -694,33 +765,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
       <div *ngIf="error()" class="alert">{{ error() }}</div>
       <div *ngIf="message()" class="success">{{ message() }}</div>
 
-      <div class="workspace">
-        <aside class="draft-list">
-          <div class="list-head">
-            <strong>Invoice drafts</strong>
-            <select [ngModel]="statusFilter()" (ngModelChange)="setStatus($event)">
-              <option value="">All</option>
-              <option value="draft">Draft</option>
-              <option value="recipe_missing">Recipe missing</option>
-              <option value="confirmed">Confirmed</option>
-            </select>
-          </div>
-          <button
-            type="button"
-            class="draft-card"
-            *ngFor="let draft of drafts()"
-            [class.active]="draft.id === selectedId()"
-            (click)="select(draft)"
-          >
-            <span class="badge" [class.done]="draft.status === 'confirmed'">{{ draft.status }}</span>
-            <strong>{{ draft.invoiceNumber || draft.id }}</strong>
-            <small>{{ draft.serviceName }} - {{ draft.clientName || 'Walk-in client' }}</small>
-            <em>{{ money(draft.actualCost || draft.expectedCost) }}</em>
-          </button>
-          <p *ngIf="!loading() && !drafts().length" class="empty">No product consume draft found.</p>
-          <p *ngIf="loading()" class="empty">Loading...</p>
-        </aside>
-
+      <div class="workspace zenoti-editor-shell">
         <section class="editor" *ngIf="selected() as draft; else noSelection">
           <div class="editor-head">
             <div>
@@ -737,9 +782,22 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
             <label><span>Cost</span><strong>{{ money(draft.actualCost || draft.expectedCost) }}</strong></label>
           </div>
 
+          <section class="wastage-guard" *ngIf="draftWastageGuard(draft) as guard" [class.warn]="guard.warn" [class.blocked]="guard.approvalRequired">
+            <div>
+              <span class="eyebrow">Waste lock</span>
+              <strong>{{ guard.status }}</strong>
+              <small>{{ guard.detail }}</small>
+            </div>
+            <div class="guard-metrics">
+              <span>Normal {{ wasteWarnLimit }}%</span>
+              <span>Owner approval {{ wasteApprovalLimit }}%</span>
+              <span>Current {{ guard.maxWastagePct }}%</span>
+            </div>
+          </section>
+
           <div class="consume-table">
             <div class="row head">
-              <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Reason</span><span>Substitutes</span><span>Cost</span>
+              <span>Product</span><span>Auto qty / unit</span><span>Waste</span><span>Range</span><span>Reason</span><span>Substitutes</span><span>Cost</span><span>Action</span>
             </div>
             <div class="row" *ngFor="let line of draft.lineItems; let i = index">
               <span>
@@ -752,20 +810,35 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
                   </small>
                 </div>
               </span>
-              <span class="qty-unit">
-                <input type="number" min="0" step="0.01" [ngModel]="line.actualQty" (ngModelChange)="updateQty(i, $event)" [disabled]="draft.status === 'confirmed'">
-                <select [ngModel]="line.unit" (ngModelChange)="updateLine(i, { unit: $event })" [disabled]="draft.status === 'confirmed'">
+              <span class="qty-unit" *ngIf="lineEditing(i, draft); else qtyRead">
+                <input type="number" min="0" step="0.01" [ngModel]="line.actualQty" (ngModelChange)="updateQty(i, $event)">
+                <select [ngModel]="line.unit" (ngModelChange)="updateLine(i, { unit: $event })">
                   <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
                 </select>
               </span>
-              <span><input type="number" min="0" step="0.01" [ngModel]="line.wastagePct || 0" (ngModelChange)="updateLine(i, { wastagePct: $event })" [disabled]="draft.status === 'confirmed'"></span>
-              <span class="range-fields">
-                <input type="number" min="0" step="0.01" placeholder="Min" [ngModel]="line.minQty || 0" (ngModelChange)="updateLine(i, { minQty: $event })" [disabled]="draft.status === 'confirmed'">
-                <input type="number" min="0" step="0.01" placeholder="Max" [ngModel]="line.maxQty || 0" (ngModelChange)="updateLine(i, { maxQty: $event })" [disabled]="draft.status === 'confirmed'">
+              <ng-template #qtyRead><span class="line-read">{{ line.actualQty || 0 }} {{ line.unit || 'pcs' }}</span></ng-template>
+              <span *ngIf="lineEditing(i, draft); else wasteRead"><input type="number" min="0" step="0.01" [class.waste-warn]="lineWasteWarn(line)" [class.waste-block]="lineWasteApprovalRequired(line)" [ngModel]="line.wastagePct || 0" (ngModelChange)="updateLine(i, { wastagePct: $event })"></span>
+              <ng-template #wasteRead><span class="line-read" [class.waste-warn]="lineWasteWarn(line)" [class.waste-block]="lineWasteApprovalRequired(line)">{{ line.wastagePct || 0 }}%</span></ng-template>
+              <span class="range-fields" *ngIf="lineEditing(i, draft); else rangeRead">
+                <input type="number" min="0" step="0.01" placeholder="Min" [ngModel]="line.minQty || 0" (ngModelChange)="updateLine(i, { minQty: $event })">
+                <input type="number" min="0" step="0.01" placeholder="Max" [ngModel]="line.maxQty || 0" (ngModelChange)="updateLine(i, { maxQty: $event })">
+                <small *ngIf="autoWastePct(line) > 0">Auto waste {{ autoWastePct(line) }}%</small>
               </span>
-              <span><input [class.reason-needed]="lineNeedsReason(line)" [ngModel]="line.reason || ''" (ngModelChange)="updateLine(i, { reason: $event })" placeholder="Required if overuse" [disabled]="draft.status === 'confirmed'"></span>
-              <span><input [ngModel]="line.substitutes || ''" (ngModelChange)="updateLine(i, { substitutes: $event })" placeholder="Alternate product ids/name" [disabled]="draft.status === 'confirmed'"></span>
+              <ng-template #rangeRead>
+                <span class="line-read">
+                  {{ line.minQty || 0 }} - {{ line.maxQty || 0 }}
+                  <small *ngIf="autoWastePct(line) > 0">Auto waste {{ autoWastePct(line) }}%</small>
+                </span>
+              </ng-template>
+              <span *ngIf="lineEditing(i, draft); else reasonRead"><input [class.reason-needed]="lineNeedsReason(line)" [ngModel]="line.reason || ''" (ngModelChange)="updateLine(i, { reason: $event })" placeholder="Required if overuse"></span>
+              <ng-template #reasonRead><span class="line-read" [class.reason-needed]="lineNeedsReason(line)">{{ line.reason || '-' }}</span></ng-template>
+              <span *ngIf="lineEditing(i, draft); else substituteRead"><input [ngModel]="line.substitutes || ''" (ngModelChange)="updateLine(i, { substitutes: $event })" placeholder="Alternate product ids/name"></span>
+              <ng-template #substituteRead><span class="line-read">{{ line.substitutes || '-' }}</span></ng-template>
               <span>{{ money(lineActualCost(line)) }}</span>
+              <span class="line-actions">
+                <button type="button" class="ghost mini" *ngIf="draft.status !== 'confirmed' && !lineEditing(i, draft)" (click)="editLine(i)">Edit</button>
+                <button type="button" class="ghost mini" *ngIf="lineEditing(i, draft)" (click)="doneLineEdit()">Done</button>
+              </span>
             </div>
           </div>
 
@@ -862,7 +935,11 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
             </article>
           </section>
 
-          <div class="manual-product-add" *ngIf="draft.status !== 'confirmed'">
+          <div class="manual-product-toggle" *ngIf="draft.status !== 'confirmed' && !extraProductOpen">
+            <button type="button" class="ghost" (click)="openExtraProduct()">Add extra product</button>
+          </div>
+
+          <div class="manual-product-add" *ngIf="draft.status !== 'confirmed' && extraProductOpen">
             <label class="product-picker">
               <span>Product</span>
               <input [(ngModel)]="productQuery" (ngModelChange)="productForm.productId = ''; productPickerOpen = true" placeholder="Search product by name / SKU">
@@ -888,7 +965,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
             </label>
             <label>
               <span>Waste</span>
-              <input type="number" min="0" step="0.01" [(ngModel)]="productForm.wastagePct">
+              <input type="number" min="0" step="0.01" [class.waste-warn]="productForm.wastagePct >= wasteWarnLimit" [class.waste-block]="productForm.wastagePct > wasteApprovalLimit" [(ngModel)]="productForm.wastagePct">
             </label>
             <label>
               <span>Min</span>
@@ -903,6 +980,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
               <input [(ngModel)]="productForm.substitutes" placeholder="Alternate product ids/name">
             </label>
             <button type="button" class="ghost" (click)="addProductLine()">Add product</button>
+            <button type="button" class="ghost" (click)="cancelExtraProduct()">Cancel</button>
           </div>
 
           <label class="notes">
@@ -912,8 +990,11 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
 
           <div class="action-row">
             <button type="button" class="ghost" (click)="saveDraft()" [disabled]="saving() || draft.status === 'confirmed'">Save draft</button>
-            <button type="button" class="primary" (click)="confirmDraft()" [disabled]="saving() || draft.status !== 'draft' || !draft.lineItems.length">Confirm consume</button>
+            <button type="button" class="primary" (click)="confirmDraft()" [disabled]="saving() || draft.status !== 'draft' || !draft.lineItems.length || draftConfirmBlocked(draft)">
+              {{ confirmButtonLabel(draft) }}
+            </button>
           </div>
+          <small class="confirm-lock" *ngIf="draftConfirmBlocked(draft)">{{ draftWastageGuard(draft).detail }}</small>
         </section>
         <ng-template #noSelection>
           <section class="editor empty-editor">Select invoice draft to edit product consumption.</section>
@@ -922,45 +1003,61 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     </section>
   `,
   styles: [`
-    .page-stack { display: grid; gap: 18px; }
-    .module-hero, .workspace, .metric-grid article, .editor, .draft-list { background: rgba(255,255,255,.92); border: 1px solid #dcebea; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
+    .page-stack { display: grid; gap: 12px; }
+    .zenoti-consume-register, .workspace, .editor, .owner-report, .owner-dashboard, .control-report, .staff-audit { background: #fff; border: 1px solid #d8e1ea; box-shadow: none; }
     .module-hero { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 24px; border-radius: 22px; }
-    .module-hero h1, .editor h2 { margin: 4px 0; color: #111827; }
+    .module-hero h1, .editor h2, .zenoti-toolbar h2 { margin: 4px 0; color: #111827; }
     .module-hero p { margin: 0; color: #64748b; }
-    .eyebrow { color: #0f766e; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .eyebrow { color: #5b6b81; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .hero-actions, .action-row { display: flex; gap: 10px; flex-wrap: wrap; }
-    button, a.ghost { border: 1px solid #d7e6e4; border-radius: 14px; padding: 12px 16px; font-weight: 900; text-decoration: none; cursor: pointer; }
-    .primary { background: #0f172a; color: white; }
+    button, a.ghost { border: 1px solid #c7d6e5; border-radius: 3px; padding: 9px 14px; font-weight: 900; text-decoration: none; cursor: pointer; }
+    .primary { background: #0b72b5; border-color: #0b72b5; color: white; }
     .ghost { background: white; color: #0f172a; }
     button:disabled { opacity: .55; cursor: not-allowed; }
-    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .metric-grid article { border-radius: 18px; padding: 16px; display: grid; gap: 5px; }
-    .metric-grid span, .info-grid span, .consume-table .head { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-    .metric-grid strong { font-size: 24px; }
-    .metric-grid small, .draft-card small, .consume-table small { color: #64748b; }
-    .workspace { display: grid; grid-template-columns: 340px 1fr; border-radius: 22px; overflow: hidden; }
-    .draft-list { border: 0; border-right: 1px solid #dcebea; box-shadow: none; padding: 14px; display: grid; gap: 10px; align-content: start; max-height: 72vh; overflow: auto; }
+    .zenoti-consume-register { display: grid; overflow: hidden; border-radius: 0; }
+    .zenoti-toolbar { display: flex; justify-content: space-between; gap: 14px; align-items: end; padding: 14px 16px; border-bottom: 1px solid #d8e1ea; }
+    .toolbar-actions { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+    .toolbar-actions label { display: grid; gap: 4px; min-width: 210px; }
+    .toolbar-actions span { color: #5b6b81; font-size: 12px; font-weight: 900; }
+    .consume-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #d8e1ea; }
+    .consume-kpi-strip article { padding: 10px 16px; display: grid; gap: 3px; border-right: 1px solid #e5edf4; }
+    .consume-kpi-strip article:last-child { border-right: 0; }
+    .consume-kpi-strip span, .info-grid span, .consume-table .head { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .consume-kpi-strip strong { font-size: 22px; }
+    .consume-kpi-strip small, .zenoti-register-table small, .consume-table small { color: #64748b; }
+    .zenoti-table-scroll { overflow: auto; }
+    .zenoti-register-table { width: 100%; min-width: 1180px; border-collapse: collapse; }
+    .zenoti-register-table th, .zenoti-register-table td { padding: 10px 12px; border-bottom: 1px solid #dfe7ef; text-align: left; vertical-align: middle; }
+    .zenoti-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
+    .zenoti-register-table tbody tr { cursor: pointer; }
+    .zenoti-register-table tbody tr:hover, .zenoti-register-table tbody tr.selected { background: #eef7fc; }
+    .zenoti-register-table td small { display: block; margin-top: 3px; }
+    .mini-action { padding: 6px 10px; background: #fff; color: #0b72b5; }
+    .table-empty { text-align: center; color: #64748b; padding: 18px; }
+    .zenoti-footer { display: flex; justify-content: space-between; gap: 12px; padding: 9px 16px; color: #64748b; border-top: 1px solid #d8e1ea; font-size: 12px; }
+    .workspace { display: block; border-radius: 0; overflow: hidden; }
     .list-head, .editor-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-    select, input, textarea { width: 100%; border: 1px solid #d7e6e4; border-radius: 12px; padding: 10px; font: inherit; }
+    select, input, textarea { width: 100%; border: 1px solid #cbd8e4; border-radius: 3px; padding: 9px 10px; font: inherit; }
     .draft-card { text-align: left; background: white; display: grid; gap: 5px; }
     .draft-card.active { background: #e8f4f2; border-color: #14b8a6; }
     .badge { width: max-content; border-radius: 999px; padding: 5px 10px; background: #fff7ed; color: #9a3412; font-size: 12px; font-weight: 900; }
     .badge.done { background: #dcfce7; color: #166534; }
-    .editor { border: 0; box-shadow: none; padding: 18px; display: grid; gap: 16px; }
+    .editor { border: 0; box-shadow: none; padding: 16px; display: grid; gap: 14px; }
     .info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-    .info-grid label { border: 1px solid #dcebea; border-radius: 14px; padding: 12px; display: grid; gap: 6px; }
-    .consume-table { border: 1px solid #dcebea; border-radius: 16px; overflow: auto; }
-    .row { display: grid; grid-template-columns: 1.6fr 1.1fr .7fr 1.1fr 1.3fr 1.4fr .75fr; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid #edf4f3; min-width: 1120px; }
+    .info-grid label { border: 1px solid #d8e1ea; border-radius: 3px; padding: 10px; display: grid; gap: 6px; }
+    .consume-table { border: 1px solid #d8e1ea; border-radius: 0; overflow: auto; }
+    .row { display: grid; grid-template-columns: 1.6fr 1.1fr .7fr 1.1fr 1.3fr 1.4fr .75fr .65fr; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid #edf4f3; min-width: 1240px; }
     .row:last-child { border-bottom: 0; }
     .line-ledger { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .line-ledger small { border: 1px solid #cfe1df; border-radius: 999px; padding: 4px 8px; background: #ecfdf5; color: #0f766e; font-weight: 800; text-transform: none; }
     .qty-unit, .range-fields { display: grid; grid-template-columns: 1fr 86px; gap: 8px; }
     .range-fields { grid-template-columns: 1fr 1fr; }
+    .range-fields small { grid-column: 1 / -1; color: #b45309; font-size: 11px; font-weight: 900; }
+    .line-read { display: grid; min-height: 39px; align-content: center; border: 1px solid #e2ecea; border-radius: 0; background: #f8fbfa; padding: 9px 11px; color: #0f172a; font-weight: 800; }
+    .line-read small { display: block; margin-top: 2px; color: #b45309; font-size: 11px; }
+    .line-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .backbar-ledger { border: 1px solid #dcebea; border-radius: 16px; padding: 14px; display: grid; gap: 12px; background: #f8fbfa; }
-    .owner-report { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
-    .owner-dashboard { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
-    .control-report { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
-    .staff-audit { border: 1px solid #dcebea; border-radius: 18px; padding: 16px; display: grid; gap: 12px; background: #fff; box-shadow: 0 18px 45px rgba(15,23,42,.08); }
+    .owner-report, .owner-dashboard, .control-report, .staff-audit { border-radius: 0; padding: 14px 16px; display: grid; gap: 12px; }
     .owner-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
     .owner-metrics article { border: 1px solid #dcebea; border-radius: 12px; padding: 12px; display: grid; gap: 4px; background: #f8fbfa; }
     .owner-metrics span, .owner-metrics small { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
@@ -992,7 +1089,7 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .report-filters { display: grid; grid-template-columns: .9fr 1.4fr .9fr .9fr .7fr .7fr auto auto; gap: 10px; align-items: end; }
     .report-filters label { display: grid; gap: 6px; }
     .report-filters span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-    .report-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .8fr); gap: 12px; align-items: stretch; }
+    .report-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .8fr); gap: 12px; align-items: start; }
     .report-table { border: 1px solid #dcebea; border-radius: 14px; overflow: auto; }
     .report-table h4 { margin: 0; padding: 10px 12px; border-bottom: 1px solid #edf4f3; }
     .report-row { min-width: 820px; display: grid; grid-template-columns: 1.5fr 1fr .8fr .7fr 1fr; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #edf4f3; }
@@ -1046,7 +1143,8 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .history-row { display: grid; grid-template-columns: 1.2fr 1.4fr .8fr .8fr; gap: 10px; padding: 8px 0; border-top: 1px solid #edf4f3; }
     .ledger-empty { margin: 0; color: #64748b; }
     .notes { display: grid; gap: 8px; }
-    .manual-product-add { display: grid; grid-template-columns: minmax(260px, 2fr) .7fr .7fr .7fr .7fr .7fr 1.2fr auto; gap: 10px; align-items: end; }
+    .manual-product-toggle { display: flex; justify-content: flex-start; }
+    .manual-product-add { display: grid; grid-template-columns: minmax(260px, 2fr) .7fr .7fr .7fr .7fr .7fr 1.2fr auto auto; gap: 10px; align-items: end; }
     .manual-product-add label { display: grid; gap: 6px; }
     .manual-product-add span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .product-picker { position: relative; }
@@ -1055,27 +1153,40 @@ const RECIPE_UNITS = ['ml', 'gm', 'g', 'kg', 'l', 'ltr', 'pcs', 'tube', 'bottle'
     .product-results button:hover { background: #e8f4f2; }
     .product-results small, .selected-stock { color: #0f766e; font-weight: 900; }
     .reason-needed { border-color: #f97316; background: #fff7ed; }
+    .waste-warn { border-color: #f59e0b; background: #fffbeb; }
+    .waste-block { border-color: #dc2626; background: #fef2f2; }
+    .wastage-guard { border: 1px solid #cfe1df; border-radius: 12px; padding: 12px; background: #f8fbfa; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+    .wastage-guard.warn { border-color: #facc15; background: #fffbeb; }
+    .wastage-guard.blocked { border-color: #fecaca; background: #fff1f2; }
+    .wastage-guard strong { display: block; font-size: 15px; }
+    .wastage-guard small { color: #64748b; }
+    .guard-metrics { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .guard-metrics span { border: 1px solid #dcebea; border-radius: 999px; padding: 6px 9px; background: white; color: #0f172a; font-size: 12px; font-weight: 900; }
+    .confirm-lock { color: #991b1b; font-weight: 900; }
     .alert, .success { border-radius: 14px; padding: 12px 16px; font-weight: 800; }
     .alert { background: #fee2e2; color: #991b1b; }
     .success { background: #dcfce7; color: #166534; }
     .empty, .empty-editor { color: #64748b; padding: 18px; }
     @media (max-width: 900px) {
       .module-hero, .workspace { display: grid; }
-      .metric-grid, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .consume-kpi-strip, .info-grid, .owner-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .zenoti-toolbar, .zenoti-footer { display: grid; }
       .audit-filters, .audit-layout, .dashboard-layout, .report-filters, .report-grid, .report-feed, .product-360-grid, .risk-grid, .next-control-grid, .deep-control-grid, .owner-control-grid { grid-template-columns: 1fr; }
-      .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override, .container-scan, .scan-result { grid-template-columns: 1fr 1fr; }
+      .ledger-summary, .history-row, .ledger-actions, .ledger-actions.override, .container-scan, .scan-result, .wastage-guard { grid-template-columns: 1fr 1fr; }
       .active-container { display: grid; }
       .manual-product-add { grid-template-columns: 1fr; }
-      .draft-list { border-right: 0; border-bottom: 1px solid #dcebea; max-height: 360px; }
     }
     @media (max-width: 560px) {
-      .metric-grid, .info-grid { grid-template-columns: 1fr; }
+      .consume-kpi-strip, .info-grid { grid-template-columns: 1fr; }
+      .wastage-guard { grid-template-columns: 1fr; }
+      .guard-metrics { justify-content: flex-start; }
       .module-hero { padding: 18px; }
     }
   `]
 })
 export class ProductConsumeComponent {
   private readonly api = inject(ApiService);
+  private readonly appState = inject(AppStateService);
 
   readonly drafts = signal<ConsumeDraft[]>([]);
   readonly selectedId = signal('');
@@ -1093,6 +1204,8 @@ export class ProductConsumeComponent {
   readonly product360 = signal<ApiRecord | null>(null);
   readonly staffUsageAudit = signal<ApiRecord | null>(null);
   readonly units = RECIPE_UNITS;
+  readonly wasteWarnLimit = PRODUCT_CONSUME_WASTAGE_WARN_PCT;
+  readonly wasteApprovalLimit = PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT;
   productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
   adjustForm = { quantity: 0, usageType: 'spillage', reason: '' };
   auditFilters = { branchId: '', staffId: '', startDate: '', endDate: '' };
@@ -1103,11 +1216,14 @@ export class ProductConsumeComponent {
   dashboardPeriod = 'daily';
   productQuery = '';
   productPickerOpen = false;
+  extraProductOpen = false;
+  editingLineIndex: number | null = null;
   readonly selected = computed(() => this.drafts().find((draft) => draft.id === this.selectedId()) || null);
   readonly draftCount = computed(() => this.drafts().filter((draft) => draft.status !== 'confirmed').length);
   readonly confirmedCount = computed(() => this.drafts().filter((draft) => draft.status === 'confirmed').length);
   readonly totalExpected = computed(() => this.drafts().reduce((sum, draft) => sum + Number(draft.expectedCost || 0), 0));
   readonly totalActual = computed(() => this.drafts().reduce((sum, draft) => sum + Number(draft.actualCost || draft.expectedCost || 0), 0));
+  readonly isOwnerApprover = computed(() => ['owner', 'admin', 'superAdmin'].includes(this.appState.userRole()));
 
   constructor() {
     this.auditFilters.branchId = this.api.selectedBranchId();
@@ -1158,6 +1274,8 @@ export class ProductConsumeComponent {
 
   select(draft: ConsumeDraft): void {
     this.selectedId.set(draft.id);
+    this.doneLineEdit();
+    this.cancelExtraProduct();
     this.loadBackbarLedger(draft.id);
   }
 
@@ -1165,6 +1283,7 @@ export class ProductConsumeComponent {
     this.patchSelected((draft) => {
       const lineItems = [...draft.lineItems];
       const line = { ...lineItems[index], actualQty: Number(value || 0) };
+      line.wastagePct = this.effectiveWastePct(line);
       line.actualCost = this.lineActualCost(line);
       lineItems[index] = line;
       return { ...draft, lineItems, actualCost: lineItems.reduce((sum, item) => sum + this.lineActualCost(item), 0) };
@@ -1173,6 +1292,29 @@ export class ProductConsumeComponent {
 
   updateNotes(notes: string): void {
     this.patchSelected((draft) => ({ ...draft, notes }));
+  }
+
+  lineEditing(index: number, draft: ConsumeDraft): boolean {
+    return draft.status !== 'confirmed' && this.editingLineIndex === index;
+  }
+
+  editLine(index: number): void {
+    this.editingLineIndex = index;
+  }
+
+  doneLineEdit(): void {
+    this.editingLineIndex = null;
+  }
+
+  openExtraProduct(): void {
+    this.extraProductOpen = true;
+    this.error.set('');
+  }
+
+  cancelExtraProduct(): void {
+    this.extraProductOpen = false;
+    this.productPickerOpen = false;
+    this.resetProductForm();
   }
 
   fillProductDefaults(): void {
@@ -1207,9 +1349,9 @@ export class ProductConsumeComponent {
       const line = { ...lineItems[index], ...patch };
       if (patch.unit !== undefined) line.unitCost = this.consumeUnitCostForLine(line, String(line.unit || 'pcs'));
       line.actualQty = Number(line.actualQty || 0);
-      line.wastagePct = Number(line.wastagePct || 0);
       line.minQty = Number(line.minQty || 0);
       line.maxQty = Number(line.maxQty || 0);
+      line.wastagePct = this.effectiveWastePct(line);
       line.actualCost = this.lineActualCost(line);
       lineItems[index] = line;
       return { ...draft, lineItems, actualCost: lineItems.reduce((sum, item) => sum + this.lineActualCost(item), 0) };
@@ -1217,10 +1359,19 @@ export class ProductConsumeComponent {
   }
 
   addProductLine(): void {
+    if (!this.extraProductOpen) {
+      this.openExtraProduct();
+      return;
+    }
     const product = this.products().find((row) => row.id === this.productForm.productId);
     const qty = Number(this.productForm.qty || 0);
     if (!product || qty <= 0) {
       this.error.set('Select a product and keep quantity above 0.');
+      return;
+    }
+    const wastagePct = Math.max(0, Number(this.productForm.wastagePct || 0));
+    if (wastagePct > this.wasteApprovalLimit && !this.isOwnerApprover()) {
+      this.error.set(`Waste ${wastagePct}% owner approval limit se above hai. Save/approval owner se karwana hoga.`);
       return;
     }
     const unit = String(this.productForm.unit || this.defaultConsumeUnit(product));
@@ -1232,7 +1383,7 @@ export class ProductConsumeComponent {
       unit,
       expectedQty: qty,
       actualQty: qty,
-      wastagePct: Number(this.productForm.wastagePct || 0),
+      wastagePct,
       minQty: Number(this.productForm.minQty || 0),
       maxQty: Number(this.productForm.maxQty || 0),
       substitutes: this.productForm.substitutes || '',
@@ -1255,8 +1406,13 @@ export class ProductConsumeComponent {
         notes: draft.notes || 'Manual product consume added from invoice draft.'
       };
     });
-    this.productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
+    this.cancelExtraProduct();
     this.message.set('Product line added. Save draft or confirm consume.');
+  }
+
+  private resetProductForm(): void {
+    this.productForm = { productId: '', qty: 1, unit: 'pcs', wastagePct: 0, minQty: 0, maxQty: 0, substitutes: '' };
+    this.productQuery = '';
   }
 
   saveDraft(): void {
@@ -1271,9 +1427,15 @@ export class ProductConsumeComponent {
   confirmDraft(): void {
     const draft = this.selected();
     if (!draft) return;
+    const guard = this.draftWastageGuard(draft);
+    if (this.draftConfirmBlocked(draft)) {
+      this.error.set(guard.detail);
+      return;
+    }
     this.persist('Product consume confirmed. Backbar ledger updated.', this.api.post<{ draft: ConsumeDraft; backbarLedger?: ApiRecord }>(`inventory-intelligence/product-consume-drafts/${draft.id}/confirm`, {
       lineItems: draft.lineItems,
-      notes: draft.notes || ''
+      notes: draft.notes || '',
+      ownerApproval: guard.approvalRequired && this.isOwnerApprover()
     }), true);
   }
 
@@ -1458,6 +1620,74 @@ export class ProductConsumeComponent {
 
   lineActualCost(line: ConsumeLine): number {
     return Math.round(Number(line.actualQty || 0) * Number(line.unitCost || 0) * 100) / 100;
+  }
+
+  lineWastePct(line: ConsumeLine): number {
+    return this.effectiveWastePct(line);
+  }
+
+  autoWastePct(line: ConsumeLine): number {
+    const actualQty = Number(line.actualQty || 0);
+    const maxQty = Number(line.maxQty || 0);
+    if (!maxQty || actualQty <= maxQty) return 0;
+    return Math.round(((actualQty - maxQty) / maxQty) * 10000) / 100;
+  }
+
+  effectiveWastePct(line: ConsumeLine): number {
+    return Math.max(0, Math.round(Math.max(Number(line.wastagePct || 0), this.autoWastePct(line)) * 100) / 100);
+  }
+
+  lineWasteWarn(line: ConsumeLine): boolean {
+    return this.lineWastePct(line) >= this.wasteWarnLimit;
+  }
+
+  lineWasteApprovalRequired(line: ConsumeLine): boolean {
+    return this.lineWastePct(line) > Number(line.wastageApprovalPct || this.wasteApprovalLimit);
+  }
+
+  draftWastageGuard(draft: ConsumeDraft): { warn: boolean; approvalRequired: boolean; maxWastagePct: number; status: string; detail: string } {
+    const maxWastagePct = Math.max(0, ...draft.lineItems.map((line) => this.lineWastePct(line)));
+    const approvalLimits = draft.lineItems.map((line) => Number(line.wastageApprovalPct || this.wasteApprovalLimit)).filter((value) => Number.isFinite(value) && value > 0);
+    const approvalLimit = approvalLimits.length ? Math.min(...approvalLimits) : this.wasteApprovalLimit;
+    const approvalRequired = draft.lineItems.some((line) => this.lineWasteApprovalRequired(line));
+    const warn = maxWastagePct >= this.wasteWarnLimit;
+    if (approvalRequired) {
+      return {
+        warn,
+        approvalRequired,
+        maxWastagePct,
+        status: this.isOwnerApprover() ? 'Owner approval required' : 'Confirm locked',
+        detail: this.isOwnerApprover()
+          ? `Waste ${maxWastagePct}% hai. Owner approve & confirm se audit ke saath confirm hoga.`
+          : `Waste ${maxWastagePct}% owner approval limit ${approvalLimit}% se above hai.`
+      };
+    }
+    if (warn) {
+      return {
+        warn,
+        approvalRequired,
+        maxWastagePct,
+        status: 'High waste warning',
+        detail: `Waste ${maxWastagePct}% hai. Reason/range verify karke confirm karein.`
+      };
+    }
+    return {
+      warn,
+      approvalRequired,
+      maxWastagePct,
+      status: 'Within limit',
+      detail: `Waste ${maxWastagePct}% hai. Normal limit ${this.wasteWarnLimit}% tak clean rahega.`
+    };
+  }
+
+  draftConfirmBlocked(draft: ConsumeDraft): boolean {
+    const guard = this.draftWastageGuard(draft);
+    return guard.approvalRequired && !this.isOwnerApprover();
+  }
+
+  confirmButtonLabel(draft: ConsumeDraft): string {
+    const guard = this.draftWastageGuard(draft);
+    return guard.approvalRequired && this.isOwnerApprover() ? 'Owner approve & confirm' : 'Confirm consume';
   }
 
   ledgerProducts(): ApiRecord[] {

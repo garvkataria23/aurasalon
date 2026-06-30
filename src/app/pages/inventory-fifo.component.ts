@@ -3,150 +3,232 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 @Component({
   selector: 'app-inventory-fifo',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, RouterLink, StateComponent],
+  imports: [CommonModule, CurrencyPipe, RouterLink, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack fifo-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">Inventory / Batch + Expiry + FIFO</span>
-          <h2>Next stock to consume</h2>
-          <p>Expiry-first batch control, supplier trail and cash at risk are separated from the main inventory dashboard.</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Inventory home</a>
-          <a class="ghost-button" routerLink="/inventory/purchase-orders">Receive stock</a>
-          <a class="primary-button" routerLink="/inventory/stock-audit">Audit stock</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        title="Next stock to consume"
+        breadcrumb="Inventory > Batch + Expiry + FIFO"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <section class="fifo-kpis">
-        <article class="metric-card teal"><span>Active batches</span><strong>{{ activeBatches().length }}</strong><small>FIFO available</small></article>
-        <article class="metric-card amber"><span>Expiring soon</span><strong>{{ expiringSoon().length }}</strong><small>within 60 days</small></article>
-        <article class="metric-card blue"><span>Batch value</span><strong>{{ batchValue() | currency:'INR':'symbol':'1.0-0' }}</strong><small>quantity available x unit cost</small></article>
-        <article class="metric-card red"><span>No expiry</span><strong>{{ noExpiry().length }}</strong><small>cleanup required</small></article>
+      <section class="zenoti-fifo-workspace">
+        <div class="zenoti-result-bar">
+          <div>
+            <strong>{{ activeBatches().length }}</strong><span>Results</span>
+            <small class="status-chip">Status: FIFO active in this center</small>
+          </div>
+          <div class="zenoti-totals">
+            <span>Expiring soon <strong>{{ expiringSoon().length }}</strong></span>
+            <span>No expiry <strong>{{ noExpiry().length }}</strong></span>
+            <span>Batch value <strong>{{ batchValue() | currency:'INR':'symbol':'1.0-0' }}</strong></span>
+            <span>Waste risk <strong>{{ wasteRiskCount() }}</strong></span>
+          </div>
+        </div>
+
+        <div class="zenoti-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Batch</th>
+                <th>Branch</th>
+                <th>Supplier</th>
+                <th>Available</th>
+                <th>Received</th>
+                <th>Unit cost</th>
+                <th>Batch value</th>
+                <th>Expiry</th>
+                <th>FIFO status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let batch of activeBatches()">
+                <td><strong>{{ productName(batch.productId) }}</strong><small>{{ batch.productId || 'Product' }}</small></td>
+                <td>{{ batch.batchNumber || batch.id }}</td>
+                <td>{{ branchName(batch.branchId) }}</td>
+                <td>{{ supplierName(batch.supplierId) }}</td>
+                <td>{{ batch.quantityAvailable || 0 }}</td>
+                <td>{{ batch.quantityReceived || 0 }}</td>
+                <td>{{ batch.unitCost | currency:'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ batchRowValue(batch) | currency:'INR':'symbol':'1.0-0' }}</td>
+                <td>{{ batch.expiryDate || 'No expiry' }}<small *ngIf="batch.expiryDate">{{ daysUntil(batch.expiryDate) }} day(s)</small></td>
+                <td><span class="fifo-chip" [class.warn]="isExpiring(batch)" [class.danger]="isExpired(batch)">{{ fifoStatus(batch) }}</span></td>
+                <td><a class="zenoti-mini-button" [routerLink]="['/inventory/products', batch.productId]">Product 360</a></td>
+              </tr>
+              <tr *ngIf="!activeBatches().length">
+                <td colspan="11" class="empty-cell">No active FIFO batches. Receive stock with batch and expiry details.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="zenoti-footer">
+          <span>1 to {{ activeBatches().length }} of {{ activeBatches().length }}</span>
+          <span>{{ api.selectedBranchId() ? 'Branch scope active' : 'All branches' }}</span>
+        </div>
       </section>
-
-      <div class="fifo-grid">
-        <section class="panel">
-          <div class="section-title"><div><span class="eyebrow">FIFO queue</span><h2>Consume these batches first</h2></div></div>
-          <div class="fifo-list">
-            <article *ngFor="let batch of activeBatches()">
-              <div>
-                <strong>{{ productName(batch.productId) }}</strong>
-                <span>{{ batch.batchNumber || batch.id }} · {{ batch.quantityAvailable || 0 }} left of {{ batch.quantityReceived || 0 }}</span>
-                <small>Supplier {{ supplierName(batch.supplierId) }} · branch {{ branchName(batch.branchId) }}</small>
-              </div>
-              <div class="right">
-                <strong>{{ batch.expiryDate || 'No expiry' }}</strong>
-                <span>{{ batch.unitCost | currency:'INR':'symbol':'1.0-0' }} unit</span>
-                <a class="ghost-button mini" [routerLink]="['/inventory/products', batch.productId]">Product 360</a>
-              </div>
-            </article>
-            <article *ngIf="!activeBatches().length">
-              <div><strong>No active FIFO batches</strong><span>Receive stock with batch and expiry details.</span></div>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-title"><div><span class="eyebrow">Expiry watch</span><h2>Waste prevention queue</h2></div></div>
-          <div class="expiry-list">
-            <article *ngFor="let batch of expiringSoon()">
-              <strong>{{ productName(batch.productId) }}</strong>
-              <span>{{ daysUntil(batch.expiryDate) }} day(s) left · {{ batch.quantityAvailable || 0 }} unit(s)</span>
-              <small>{{ batch.batchNumber || batch.id }} · {{ supplierName(batch.supplierId) }}</small>
-            </article>
-            <article *ngIf="!expiringSoon().length"><strong>No near expiry batch</strong><span>Nothing is inside the 60-day risk window.</span></article>
-          </div>
-        </section>
-      </div>
     </section>
   `,
   styles: [`
-    .compact-hero, .hero-actions, .section-title {
-      align-items: center;
+    .fifo-page {
+      gap: 0;
     }
 
-    .hero-actions {
+    .zenoti-fifo-workspace {
+      background: #fff;
+      border: 1px solid #d8e1ea;
+      display: grid;
+      overflow: hidden;
+    }
+
+    .zenoti-result-bar,
+    .zenoti-footer {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+
+    .zenoti-result-bar {
+      border-bottom: 1px solid #d8e1ea;
+    }
+
+    .zenoti-result-bar > div,
+    .zenoti-totals {
+      align-items: center;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      justify-content: flex-end;
     }
 
-    .fifo-kpis,
-    .fifo-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
+    .zenoti-result-bar strong {
+      color: #152033;
+      font-size: 14px;
+      font-weight: 900;
     }
 
-    .fifo-grid {
-      grid-template-columns: minmax(0, 1.35fr) minmax(360px, .65fr);
-    }
-
-    .fifo-list,
-    .expiry-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .fifo-list article,
-    .expiry-list article {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 180px;
-      gap: 14px;
-      padding: 14px;
-      border: 1px solid rgba(79, 70, 229, 0.1);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.92);
-    }
-
-    .expiry-list article {
-      grid-template-columns: 1fr;
-    }
-
-    .fifo-list strong,
-    .fifo-list span,
-    .fifo-list small,
-    .expiry-list strong,
-    .expiry-list span,
-    .expiry-list small {
-      display: block;
-    }
-
-    .fifo-list span,
-    .fifo-list small,
-    .expiry-list span,
-    .expiry-list small {
-      color: var(--muted);
+    .zenoti-result-bar span,
+    .zenoti-footer {
+      color: #50637d;
+      font-size: 12px;
       font-weight: 800;
     }
 
-    .right {
-      text-align: right;
-      display: grid;
-      justify-items: end;
-      gap: 4px;
+    .status-chip,
+    .fifo-chip {
+      background: #eaf6ff;
+      border: 1px solid #b9d0e7;
+      border-radius: 999px;
+      color: #173f62;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+
+    .fifo-chip {
+      background: #e7f7ef;
+      border-color: #bfe9d4;
+      color: #086245;
+    }
+
+    .fifo-chip.warn {
+      background: #fff3d8;
+      border-color: #f7d48a;
+      color: #7c4d00;
+    }
+
+    .fifo-chip.danger {
+      background: #fff1f0;
+      border-color: #ffc8c2;
+      color: #a51d16;
+    }
+
+    .zenoti-table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      min-width: 1220px;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #dfe6ee;
+      color: #243142;
+      font-size: 13px;
+      padding: 11px 14px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f5f8fb;
+      color: #5d6e84;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    td strong {
+      color: #075f9e;
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    td small {
+      color: #61738d;
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    .zenoti-mini-button {
+      background: #fff;
+      border: 1px solid #b9d0e7;
+      border-radius: 3px;
+      color: #075f9e;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 7px 10px;
+      text-decoration: none;
+    }
+
+    .empty-cell {
+      color: #61738d;
+      font-weight: 800;
+      padding: 28px 14px;
+      text-align: center;
+    }
+
+    .zenoti-footer {
+      border-top: 1px solid #d8e1ea;
+      justify-content: flex-end;
     }
 
     @media (max-width: 1020px) {
-      .fifo-kpis,
-      .fifo-grid,
-      .fifo-list article {
-        grid-template-columns: 1fr;
-      }
-
-      .right {
-        justify-items: start;
-        text-align: left;
+      .zenoti-result-bar,
+      .zenoti-footer {
+        align-items: flex-start;
+        display: grid;
       }
     }
   `]
@@ -159,7 +241,7 @@ export class InventoryFifoComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
 
-  constructor(private readonly api: ApiService) {}
+  constructor(readonly api: ApiService) {}
 
   ngOnInit(): void {
     this.load();
@@ -201,6 +283,29 @@ export class InventoryFifoComponent implements OnInit {
 
   batchValue(): number {
     return this.activeBatches().reduce((total, batch) => total + Number(batch.quantityAvailable || 0) * Number(batch.unitCost || 0), 0);
+  }
+
+  batchRowValue(batch: ApiRecord): number {
+    return Number(batch.quantityAvailable || 0) * Number(batch.unitCost || 0);
+  }
+
+  wasteRiskCount(): number {
+    return this.expiringSoon().length + this.noExpiry().length;
+  }
+
+  isExpired(batch: ApiRecord): boolean {
+    return Boolean(batch.expiryDate) && this.daysUntil(batch.expiryDate) < 0;
+  }
+
+  isExpiring(batch: ApiRecord): boolean {
+    return Boolean(batch.expiryDate) && this.daysUntil(batch.expiryDate) >= 0 && this.daysUntil(batch.expiryDate) <= 60;
+  }
+
+  fifoStatus(batch: ApiRecord): string {
+    if (this.isExpired(batch)) return 'Expired';
+    if (this.isExpiring(batch)) return 'Consume first';
+    if (!batch.expiryDate) return 'Expiry missing';
+    return 'FIFO ready';
   }
 
   productName(id: string): string {

@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -64,24 +65,27 @@ interface EngagementDetail extends ApiRecord {
   standalone: true,
   imports: [CommonModule, FormsModule, DatePipe, StateComponent],
   template: `
-    <section class="engagement-page">
-      <div class="module-hero engagement-hero">
+    <section class="engagement-page zenoti-engagement-page">
+      <div class="zenoti-page-heading">
         <div>
-          <span class="eyebrow">Engagement Command Center</span>
-          <h2>Unified client inbox</h2>
-          <p>WhatsApp, email, calls, reviews, appointments and system alerts in one approval-safe workspace.</p>
+          <h1>Engagement Command Center</h1>
+          <p>Engagement &gt; Unified inbox, reviews, SLA, recovery and audit ledger</p>
         </div>
-        <div class="hero-actions">
-          <button class="ghost-button" type="button" (click)="openRecoveryDrawer()" [disabled]="loading()">Recovery board</button>
-          <button class="ghost-button" type="button" (click)="openReviewDrawer()" [disabled]="loading()">Review center</button>
-          <button class="ghost-button" type="button" (click)="openRiskDrawer()" [disabled]="loading()">Risk signals</button>
-          <button class="ghost-button" type="button" (click)="openSlaDrawer()" [disabled]="loading()">SLA board</button>
-          <button class="ghost-button" type="button" (click)="openReportsDrawer()" [disabled]="loading()">Reports</button>
-          <button class="ghost-button" type="button" (click)="openProviderDrawer()" [disabled]="loading()">Providers</button>
-          <button class="ghost-button" type="button" (click)="openAuditDrawer()" [disabled]="loading()">Audit ledger</button>
-          <button class="ghost-button" type="button" (click)="load()" [disabled]="loading()">Refresh</button>
-          <button class="primary-button" type="button" (click)="startNewThread()">New thread</button>
-        </div>
+        <label class="zenoti-search">
+          <span>Search engagement</span>
+          <input [(ngModel)]="query" (ngModelChange)="filterThreads()" placeholder="Client name, mobile, subject" />
+        </label>
+      </div>
+
+      <div class="zenoti-shortcuts">
+        <button type="button" [class.active]="activeWorkspace() === 'inbox'" (click)="openInboxWorkspace()" [disabled]="loading()">Inbox</button>
+        <button type="button" [class.active]="activeWorkspace() === 'leads'" (click)="openLeadIntelligence()" [disabled]="leadLoading()">Lead Intelligence</button>
+        <button type="button" (click)="openRecoveryDrawer()" [disabled]="loading()">Recovery board</button>
+        <button type="button" (click)="openReviewDrawer()" [disabled]="loading()">Review center</button>
+        <button type="button" (click)="openRiskDrawer()" [disabled]="loading()">Risk signals</button>
+        <button type="button" (click)="openSlaDrawer()" [disabled]="loading()">SLA board</button>
+        <button type="button" (click)="openReportsDrawer()" [disabled]="loading()">Reports</button>
+        <button type="button" (click)="openProviderDrawer()" [disabled]="loading()">Providers</button>
       </div>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
@@ -95,7 +99,158 @@ interface EngagementDetail extends ApiRecord {
         {{ pendingApprovalCount() }} draft{{ pendingApprovalCount() === 1 ? '' : 's' }} pending approval.
       </div>
 
-      <section class="action-queue-strip" *ngIf="engagementActionQueue().length">
+      <section class="lead-intelligence-panel" *ngIf="activeWorkspace() === 'leads'">
+        <div class="section-title-row">
+          <div>
+            <span class="eyebrow">Lead Pipeline</span>
+            <h3>Lead Intelligence</h3>
+            <p>Source, lead score, follow-up, owner, conversion revenue and missed accountability in one report.</p>
+          </div>
+          <div class="reports-actions">
+            <button class="ghost-button" type="button" (click)="loadLeadReport()" [disabled]="leadLoading()">Refresh</button>
+            <button class="ghost-button" type="button" (click)="exportLeadCsv()" [disabled]="!leadRows().length">Lead CSV</button>
+          </div>
+        </div>
+
+        <section class="reports-toolbar">
+          <label>
+            <span>From date</span>
+            <input type="date" [(ngModel)]="leadFromDate" />
+          </label>
+          <label>
+            <span>To date</span>
+            <input type="date" [(ngModel)]="leadToDate" />
+          </label>
+          <label>
+            <span>Source</span>
+            <select [(ngModel)]="leadSourceFilter">
+              <option value="">All sources</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Website">Website</option>
+              <option value="Google Call">Google Call</option>
+              <option value="Walk-in">Walk-in</option>
+              <option value="Referral">Referral</option>
+            </select>
+          </label>
+          <label>
+            <span>Status</span>
+            <select [(ngModel)]="leadStatusFilter">
+              <option value="">All status</option>
+              <option value="new">New</option>
+              <option value="open">Open</option>
+              <option value="pending">Pending</option>
+              <option value="follow_up">Follow-up</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+            </select>
+          </label>
+          <label>
+            <span>Lead score</span>
+            <select [(ngModel)]="leadScoreFilter">
+              <option value="">All scores</option>
+              <option value="hot">Hot</option>
+              <option value="warm">Warm</option>
+              <option value="cold">Cold</option>
+            </select>
+          </label>
+          <label>
+            <span>Follow-up due</span>
+            <select [(ngModel)]="leadFollowUpFilter">
+              <option value="">All follow-ups</option>
+              <option value="today">Today</option>
+              <option value="overdue">Overdue</option>
+              <option value="upcoming">Upcoming</option>
+            </select>
+          </label>
+          <label>
+            <span>Owner</span>
+            <input [(ngModel)]="leadAssignedFilter" placeholder="Staff/user id" />
+          </label>
+          <label>
+            <span>Service interest</span>
+            <input [(ngModel)]="leadServiceFilter" placeholder="Hair, facial, bridal" />
+          </label>
+          <label>
+            <span>Branch</span>
+            <input [(ngModel)]="leadBranchFilter" placeholder="Current branch or branch id" />
+          </label>
+          <label>
+            <span>Search</span>
+            <input [(ngModel)]="leadSearch" placeholder="Name, phone, source, invoice" />
+          </label>
+          <div class="reports-actions">
+            <button class="primary-button" type="button" (click)="loadLeadReport()" [disabled]="leadLoading()">Run Report</button>
+          </div>
+        </section>
+
+        <app-state [loading]="leadLoading()" [error]="leadError()"></app-state>
+        <div class="state info" *ngIf="leadNotice()">{{ leadNotice() }}</div>
+
+        <section class="reports-kpis" *ngIf="leadReport() as report">
+          <article><small>Total leads</small><strong>{{ report.summary?.totalLeads || 0 }}</strong></article>
+          <article><small>Hot leads</small><strong>{{ report.summary?.hotLeads || 0 }}</strong></article>
+          <article><small>Pending follow-up</small><strong>{{ report.summary?.pendingFollowUps || 0 }}</strong></article>
+          <article><small>Won leads</small><strong>{{ report.summary?.wonLeads || 0 }}</strong></article>
+          <article><small>Lost leads</small><strong>{{ report.summary?.lostLeads || 0 }}</strong></article>
+          <article><small>Conversion rate</small><strong>{{ report.summary?.conversionRate || 0 }}%</strong></article>
+          <article><small>Lead revenue</small><strong>{{ reportCurrency(report.summary?.revenueFromLeads) }}</strong></article>
+          <article><small>Avg response</small><strong>{{ minutesLabel(report.summary?.averageResponseMinutes) }}</strong></article>
+          <article><small>Overdue</small><strong>{{ report.summary?.overdueFollowUps || 0 }}</strong></article>
+          <article><small>Top source</small><strong>{{ report.summary?.topLeadSource || '-' }}</strong></article>
+        </section>
+
+        <section class="lead-table-wrap">
+          <div class="lead-table-head">
+            <span>Lead date</span>
+            <span>Source</span>
+            <span>Client</span>
+            <span>Phone</span>
+            <span>Interest</span>
+            <span>Score</span>
+            <span>Status</span>
+            <span>Owner</span>
+            <span>Response</span>
+            <span>Follow-up</span>
+            <span>Won invoice</span>
+            <span>Revenue</span>
+            <span>Lost reason</span>
+            <span>Actions</span>
+          </div>
+          <article class="lead-table-row" *ngFor="let row of leadRows()">
+            <span>{{ row.leadDateTime | date:'short' }}</span>
+            <strong>{{ row.source || 'Unknown' }}</strong>
+            <span>{{ row.clientName || 'Lead' }}</span>
+            <span>{{ row.phone || '-' }}</span>
+            <span>{{ row.interestService || 'Not captured' }}</span>
+            <span [class]="'risk-pill ' + leadScoreTone(row)">{{ row.leadTemperature || 'cold' }} · {{ row.leadScore || 0 }}</span>
+            <span class="badge">{{ row.status || 'pending' }}</span>
+            <span>{{ row.assignedName || row.assignedTo || 'Unassigned' }}</span>
+            <span>{{ minutesLabel(row.firstResponseMinutes) }}</span>
+            <span>{{ row.followUpStatus || 'upcoming' }}<br /><small>{{ row.lastFollowUpAt ? (row.lastFollowUpAt | date:'short') : '-' }}</small></span>
+            <span>{{ row.wonInvoiceNumber || '-' }}</span>
+            <span>{{ reportCurrency(row.convertedRevenue) }}</span>
+            <span>{{ row.lostReason || row.lastFollowUpNote || '-' }}</span>
+            <span class="lead-actions">
+              <button class="ghost-button mini" type="button" (click)="callLead(row)" [disabled]="!row.phone">Call</button>
+              <button class="ghost-button mini" type="button" (click)="whatsappLead(row)" [disabled]="!row.phone">WhatsApp</button>
+              <button class="ghost-button mini" type="button" (click)="bookLead(row)">Book</button>
+              <button class="ghost-button mini" type="button" (click)="assignLead(row)" [disabled]="leadSaving()">Assign</button>
+              <button class="ghost-button mini" type="button" (click)="addLeadFollowUp(row)" [disabled]="leadSaving()">Note</button>
+              <button class="ghost-button mini" type="button" (click)="markLeadWon(row)" [disabled]="leadSaving()">Won</button>
+              <button class="ghost-button mini" type="button" (click)="markLeadLost(row)" [disabled]="leadSaving()">Lost</button>
+              <button class="ghost-button mini" type="button" (click)="openLeadClient(row)" [disabled]="!row.clientId">Client</button>
+              <button class="ghost-button mini" type="button" (click)="openLeadInvoice(row)" [disabled]="!row.wonInvoiceId && !row.wonInvoiceNumber">Invoice</button>
+            </span>
+          </article>
+          <div class="empty-state compact" *ngIf="!leadRows().length && !leadLoading()">
+            <strong>No leads found</strong>
+            <span>WhatsApp, engagement, campaign or lead widget activity will populate this report.</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="action-queue-strip" *ngIf="activeWorkspace() === 'inbox' && engagementActionQueue().length">
         <div class="section-title-row">
           <div>
             <span class="eyebrow">WhatsApp operations</span>
@@ -123,99 +278,57 @@ interface EngagementDetail extends ApiRecord {
         </div>
       </section>
 
-      <section class="engagement-shell" *ngIf="!loading()">
-        <aside class="client-rail">
-          <ng-container *ngIf="selectedThread()?.clientId; else noClient">
-            <section class="client-card">
-              <span class="eyebrow">Client 360</span>
-              <h3>{{ clientProfile()?.name || selectedThread()?.displayName || 'Linked client' }}</h3>
-              <p>{{ clientProfile()?.phone || selectedThread()?.phone || 'Phone not captured' }}</p>
-              <p class="muted-line">{{ clientProfile()?.email || selectedThread()?.email || 'Email not captured' }}</p>
-              <p class="muted-line">Branch: {{ client360()?.branch?.name || clientProfile()?.branchName || clientProfile()?.branchId || 'Branch not linked' }}</p>
-              <div class="tag-row">
-                <span *ngFor="let tag of profileTags()">{{ tag }}</span>
-              </div>
-            </section>
+      <section class="engagement-shell" *ngIf="activeWorkspace() === 'inbox' && !loading()">
+        <aside class="thread-rail">
+          <div class="rail-section">
+            <span class="rail-title">Channels</span>
+            <div class="channel-grid">
+              <button
+                type="button"
+                *ngFor="let channel of channelFilters"
+                [class.active]="channelFilter() === channel.key"
+                (click)="selectChannel(channel.key)"
+              >
+                <span>{{ channel.label }}</span>
+                <strong>{{ countForChannel(channel.key) }}</strong>
+              </button>
+            </div>
+          </div>
 
-            <section class="client-card">
-              <span class="eyebrow">Membership, package, wallet, due</span>
-              <div class="info-grid">
-                <div><small>Membership</small><strong>{{ client360()?.membership?.summaryText || 'None' }}</strong></div>
-                <div><small>Package</small><strong>{{ client360()?.package?.summaryText || 'None' }}</strong></div>
-                <div><small>Wallet</small><strong>₹{{ client360()?.wallet?.balance || 0 }}</strong></div>
-                <div><small>Loyalty</small><strong>{{ client360()?.loyalty?.points || 0 }}</strong></div>
-                <div><small>Due</small><strong>₹{{ client360()?.balance?.dueAmount || 0 }}</strong></div>
-                <div><small>Membership credits</small><strong>{{ client360()?.membership?.activeMembership?.creditsAfter ?? 0 }}</strong></div>
-              </div>
-            </section>
+          <label class="thread-search">
+            <span>Search client, name or phone</span>
+            <input [(ngModel)]="query" (ngModelChange)="filterThreads()" placeholder="Client name, mobile, subject" />
+          </label>
 
-            <section class="client-card">
-              <span class="eyebrow">Visits and bookings</span>
-              <div class="mini-list">
-                <article>
-                  <strong>Last visit</strong>
-                  <span>{{ lastAppointment()?.startAt || lastAppointment()?.appointmentDate || '-' }}</span>
-                </article>
-                <article>
-                  <strong>Upcoming</strong>
-                  <span>{{ upcomingAppointment()?.startAt || upcomingAppointment()?.appointmentDate || 'No upcoming appointment' }}</span>
-                </article>
-                <article *ngFor="let appt of pastAppointments().slice(0, 4)">
-                  <strong>{{ appt.serviceName || appt.serviceId || 'Appointment' }}</strong>
-                  <span>{{ appt.startAt || appt.appointmentDate || appt.date }} · {{ appt.staffName || appt.status || 'staff not captured' }}</span>
-                </article>
-              </div>
-            </section>
+          <div class="rail-section" *ngIf="pinnedThreads().length">
+            <span class="rail-title">Pinned</span>
+            <button
+              class="thread-card"
+              type="button"
+              *ngFor="let thread of pinnedThreads()"
+              [class.active]="selectedThreadId() === thread.id"
+              (click)="selectThread(thread.id)"
+            >
+              <ng-container *ngTemplateOutlet="threadCard; context: { thread: thread }"></ng-container>
+            </button>
+          </div>
 
-            <section class="client-card">
-              <span class="eyebrow">Past invoices</span>
-              <div class="mini-list">
-                <article *ngFor="let invoice of pastInvoices().slice(0, 4)">
-                  <strong>{{ invoice.invoiceNumber || invoice.id }}</strong>
-                  <span>₹{{ invoice.total || 0 }} · due ₹{{ invoice.due || 0 }}</span>
-                </article>
-                <article *ngIf="!pastInvoices().length">
-                  <strong>No invoices found</strong>
-                  <span>Invoices will appear when POS data exists for this client.</span>
-                </article>
-              </div>
-            </section>
-
-            <section class="client-card">
-              <span class="eyebrow">Preferences</span>
-              <div class="info-grid">
-                <div><small>Preferred staff</small><strong>{{ listLabels(preferredStaff(), 'name') || 'None' }}</strong></div>
-                <div><small>Preferred services</small><strong>{{ listLabels(preferredServices(), 'name') || 'None' }}</strong></div>
-                <div><small>Allergies</small><strong>{{ allergiesText() || 'None captured' }}</strong></div>
-                <div><small>Channel</small><strong>{{ clientProfile()?.preferredChannel || 'Not set' }}</strong></div>
-              </div>
-            </section>
-
-            <section class="client-card">
-              <span class="eyebrow">Notes, files and alerts</span>
-              <p>{{ clientProfile()?.notes || clientProfile()?.preferences || 'No notes captured yet.' }}</p>
-              <p class="muted-line">{{ client360()?.files?.placeholder || 'Files placeholder ready.' }}</p>
-              <div class="alert-list">
-                <div *ngFor="let alert of alerts()">
-                  <strong>{{ alert.title || alert.alertType || 'Alert' }}</strong>
-                  <span>{{ alert.summary || alert.suggestedAction || alert.status }}</span>
-                </div>
-                <div *ngIf="!alerts().length"><strong>No open alerts</strong><span>Risk signals will appear here.</span></div>
-              </div>
-            </section>
-
-            <section class="client-card ai-summary">
-              <div class="card-header-row">
-                <span class="eyebrow">AI guest summary</span>
-                <button class="ghost-button mini" type="button" (click)="openAiSummaryDrawer()" [disabled]="aiSummaryGenerating()">Review</button>
-              </div>
-              <p>{{ latestAiSummaryText() }}</p>
-              <p class="muted-line" *ngIf="generatedAiSummary()">
-                Generated {{ (generatedAiSummary()?.generatedAt || generatedAiSummary()?.generated_at) | date: 'short' }}
-                · Confidence {{ confidencePercent(generatedAiSummary()?.confidence) }}
-              </p>
-            </section>
-          </ng-container>
+          <div class="rail-section">
+            <span class="rail-title">Recent threads</span>
+            <button
+              class="thread-card"
+              type="button"
+              *ngFor="let thread of visibleThreads()"
+              [class.active]="selectedThreadId() === thread.id"
+              (click)="selectThread(thread.id)"
+            >
+              <ng-container *ngTemplateOutlet="threadCard; context: { thread: thread }"></ng-container>
+            </button>
+            <div class="empty-state compact" *ngIf="!visibleThreads().length">
+              <strong>No threads</strong>
+              <span>Create or receive an engagement thread to start.</span>
+            </div>
+          </div>
         </aside>
 
         <main class="conversation-panel">
@@ -313,56 +426,98 @@ interface EngagementDetail extends ApiRecord {
           </ng-container>
         </main>
 
-        <aside class="thread-rail">
-          <div class="rail-section">
-            <span class="rail-title">Channels</span>
-            <div class="channel-grid">
-              <button
-                type="button"
-                *ngFor="let channel of channelFilters"
-                [class.active]="channelFilter() === channel.key"
-                (click)="selectChannel(channel.key)"
-              >
-                <span>{{ channel.label }}</span>
-                <strong>{{ countForChannel(channel.key) }}</strong>
-              </button>
-            </div>
-          </div>
+        <aside class="client-rail">
+          <ng-container *ngIf="selectedThread()?.clientId; else noClient">
+            <section class="client-card">
+              <span class="eyebrow">Client 360</span>
+              <h3>{{ clientProfile()?.name || selectedThread()?.displayName || 'Linked client' }}</h3>
+              <p>{{ clientProfile()?.phone || selectedThread()?.phone || 'Phone not captured' }}</p>
+              <p class="muted-line">{{ clientProfile()?.email || selectedThread()?.email || 'Email not captured' }}</p>
+              <p class="muted-line">Branch: {{ client360()?.branch?.name || clientProfile()?.branchName || clientProfile()?.branchId || 'Branch not linked' }}</p>
+              <div class="tag-row">
+                <span *ngFor="let tag of profileTags()">{{ tag }}</span>
+              </div>
+            </section>
 
-          <label class="thread-search">
-            <span>Search client, name or phone</span>
-            <input [(ngModel)]="query" (ngModelChange)="filterThreads()" placeholder="Client name, mobile, subject" />
-          </label>
+            <section class="client-card">
+              <span class="eyebrow">Membership, package, wallet, due</span>
+              <div class="info-grid">
+                <div><small>Membership</small><strong>{{ client360()?.membership?.summaryText || 'None' }}</strong></div>
+                <div><small>Package</small><strong>{{ client360()?.package?.summaryText || 'None' }}</strong></div>
+                <div><small>Wallet</small><strong>₹{{ client360()?.wallet?.balance || 0 }}</strong></div>
+                <div><small>Loyalty</small><strong>{{ client360()?.loyalty?.points || 0 }}</strong></div>
+                <div><small>Due</small><strong>₹{{ client360()?.balance?.dueAmount || 0 }}</strong></div>
+                <div><small>Membership credits</small><strong>{{ client360()?.membership?.activeMembership?.creditsAfter ?? 0 }}</strong></div>
+              </div>
+            </section>
 
-          <div class="rail-section" *ngIf="pinnedThreads().length">
-            <span class="rail-title">Pinned</span>
-            <button
-              class="thread-card"
-              type="button"
-              *ngFor="let thread of pinnedThreads()"
-              [class.active]="selectedThreadId() === thread.id"
-              (click)="selectThread(thread.id)"
-            >
-              <ng-container *ngTemplateOutlet="threadCard; context: { thread: thread }"></ng-container>
-            </button>
-          </div>
+            <section class="client-card">
+              <span class="eyebrow">Visits and bookings</span>
+              <div class="mini-list">
+                <article>
+                  <strong>Last visit</strong>
+                  <span>{{ lastAppointment()?.startAt || lastAppointment()?.appointmentDate || '-' }}</span>
+                </article>
+                <article>
+                  <strong>Upcoming</strong>
+                  <span>{{ upcomingAppointment()?.startAt || upcomingAppointment()?.appointmentDate || 'No upcoming appointment' }}</span>
+                </article>
+                <article *ngFor="let appt of pastAppointments().slice(0, 4)">
+                  <strong>{{ appt.serviceName || appt.serviceId || 'Appointment' }}</strong>
+                  <span>{{ appt.startAt || appt.appointmentDate || appt.date }} · {{ appt.staffName || appt.status || 'staff not captured' }}</span>
+                </article>
+              </div>
+            </section>
 
-          <div class="rail-section">
-            <span class="rail-title">Recent threads</span>
-            <button
-              class="thread-card"
-              type="button"
-              *ngFor="let thread of visibleThreads()"
-              [class.active]="selectedThreadId() === thread.id"
-              (click)="selectThread(thread.id)"
-            >
-              <ng-container *ngTemplateOutlet="threadCard; context: { thread: thread }"></ng-container>
-            </button>
-            <div class="empty-state compact" *ngIf="!visibleThreads().length">
-              <strong>No threads</strong>
-              <span>Create or receive an engagement thread to start.</span>
-            </div>
-          </div>
+            <section class="client-card">
+              <span class="eyebrow">Past invoices</span>
+              <div class="mini-list">
+                <article *ngFor="let invoice of pastInvoices().slice(0, 4)">
+                  <strong>{{ invoice.invoiceNumber || invoice.id }}</strong>
+                  <span>₹{{ invoice.total || 0 }} · due ₹{{ invoice.due || 0 }}</span>
+                </article>
+                <article *ngIf="!pastInvoices().length">
+                  <strong>No invoices found</strong>
+                  <span>Invoices will appear when POS data exists for this client.</span>
+                </article>
+              </div>
+            </section>
+
+            <section class="client-card">
+              <span class="eyebrow">Preferences</span>
+              <div class="info-grid">
+                <div><small>Preferred staff</small><strong>{{ listLabels(preferredStaff(), 'name') || 'None' }}</strong></div>
+                <div><small>Preferred services</small><strong>{{ listLabels(preferredServices(), 'name') || 'None' }}</strong></div>
+                <div><small>Allergies</small><strong>{{ allergiesText() || 'None captured' }}</strong></div>
+                <div><small>Channel</small><strong>{{ clientProfile()?.preferredChannel || 'Not set' }}</strong></div>
+              </div>
+            </section>
+
+            <section class="client-card">
+              <span class="eyebrow">Notes, files and alerts</span>
+              <p>{{ clientProfile()?.notes || clientProfile()?.preferences || 'No notes captured yet.' }}</p>
+              <p class="muted-line">{{ client360()?.files?.placeholder || 'Files placeholder ready.' }}</p>
+              <div class="alert-list">
+                <div *ngFor="let alert of alerts()">
+                  <strong>{{ alert.title || alert.alertType || 'Alert' }}</strong>
+                  <span>{{ alert.summary || alert.suggestedAction || alert.status }}</span>
+                </div>
+                <div *ngIf="!alerts().length"><strong>No open alerts</strong><span>Risk signals will appear here.</span></div>
+              </div>
+            </section>
+
+            <section class="client-card ai-summary">
+              <div class="card-header-row">
+                <span class="eyebrow">AI guest summary</span>
+                <button class="ghost-button mini" type="button" (click)="openAiSummaryDrawer()" [disabled]="aiSummaryGenerating()">Review</button>
+              </div>
+              <p>{{ latestAiSummaryText() }}</p>
+              <p class="muted-line" *ngIf="generatedAiSummary()">
+                Generated {{ (generatedAiSummary()?.generatedAt || generatedAiSummary()?.generated_at) | date: 'short' }}
+                · Confidence {{ confidencePercent(generatedAiSummary()?.confidence) }}
+              </p>
+            </section>
+          </ng-container>
         </aside>
       </section>
 
@@ -1355,64 +1510,61 @@ interface EngagementDetail extends ApiRecord {
     </section>
   `,
   styles: [`
-    .engagement-page { display: flex; flex-direction: column; gap: 20px; padding: 8px 12px 28px; background: var(--color-surface-muted); min-height: 100vh; }
-    .engagement-hero { align-items: center; flex-shrink: 0; gap: 16px; }
-    .engagement-shell { display: grid; grid-template-columns: minmax(280px, 350px) minmax(440px, 1fr) minmax(270px, 330px); gap: 16px; flex: 1; min-height: 0; overflow: hidden; }
-    .thread-rail, .conversation-panel, .client-card { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); }
-    .thread-rail, .client-rail { min-width: 0; min-height: 0; }
-    .thread-rail { padding: 16px; display: grid; gap: 16px; overflow: auto; align-content: start; }
+    .engagement-page { display: grid; gap: 16px; }
+    .engagement-hero { align-items: center; }
+    .engagement-shell { display: grid; grid-template-columns: minmax(260px, 320px) minmax(420px, 1fr) minmax(280px, 360px); gap: 14px; align-items: start; }
+    .thread-rail, .conversation-panel, .client-rail { min-width: 0; }
+    .thread-rail, .conversation-panel, .client-card { border: 1px solid #dce5e2; background: #fff; border-radius: 8px; box-shadow: 0 12px 30px rgba(15, 23, 42, .05); }
+    .thread-rail { padding: 14px; display: grid; gap: 16px; max-height: calc(100vh - 220px); overflow: auto; }
     .rail-section { display: grid; gap: 10px; }
-    .rail-title, .field span, .thread-search span, .composer label span { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-    .channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-    .channel-grid button, .composer-tabs button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 8px; display: flex; justify-content: space-between; gap: 6px; cursor: pointer; color: var(--ink); font: inherit; transition: all .12s; }
-    .channel-grid button:hover, .composer-tabs button:hover { border-color: var(--color-primary); }
-    .channel-grid button.active, .composer-tabs button.active { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-soft); }
-    .thread-search { display: grid; gap: 5px; }
-    .thread-search input, .composer select, .composer textarea, .conversation-actions select { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; width: 100%; background: var(--surface); color: var(--ink); transition: border-color .12s; }
-    .thread-search input:focus, .composer select:focus, .composer textarea:focus, .conversation-actions select:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--ring-brand); }
-    .thread-card { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 10px; cursor: pointer; display: grid; gap: 6px; transition: all .12s; }
-    .thread-card:hover { border-color: var(--color-primary); }
-    .thread-card.active { border-color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); background: var(--color-primary-soft); }
+    .rail-title, .field span, .thread-search span, .composer label span { color: #526173; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .channel-grid button, .composer-tabs button { border: 1px solid #d8e3df; background: #f8faf9; border-radius: 8px; padding: 9px; display: flex; justify-content: space-between; gap: 8px; cursor: pointer; }
+    .channel-grid button.active, .composer-tabs button.active { border-color: #0f8f79; color: #075f52; background: #e9f7f4; }
+    .thread-search { display: grid; gap: 6px; }
+    .thread-search input, .composer select, .composer textarea, .conversation-actions select { border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; width: 100%; }
+    .thread-card { text-align: left; border: 1px solid #e3ebe8; background: #fff; border-radius: 8px; padding: 12px; cursor: pointer; display: grid; gap: 7px; }
+    .thread-card.active { border-color: #0f8f79; box-shadow: inset 3px 0 0 #0f8f79; }
     .thread-top, .thread-meta, .conversation-header, .composer-footer, .timeline-topline { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-    .thread-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
-    .thread-meta { color: var(--muted); font-size: 11px; flex-wrap: wrap; gap: 6px; }
-    .channel-pill, .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 7px; font-size: 10px; font-weight: 800; background: var(--surface-2); color: var(--muted); text-transform: uppercase; }
-    .badge.danger { background: #fdecec; color: #b42318; }
+    .thread-card p { margin: 0; color: #53657d; font-size: 13px; line-height: 1.35; }
+    .thread-meta { color: #607083; font-size: 12px; flex-wrap: wrap; justify-content: flex-start; }
+    .channel-pill, .badge, .tag-row span, .unread, .sla { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 800; background: #eef5f3; color: #0f766e; }
+    .unread { background: #e7f0ff; color: #2855a7; }
+    .sla, .badge.danger { background: #fdecec; color: #b42318; }
     .badge.pending { background: #fff3d1; color: #8a5a00; }
-    .conversation-panel { display: grid; grid-template-rows: auto minmax(200px, 1fr) auto; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
-    .conversation-header { padding: 16px 18px; border-bottom: 1px solid var(--line); }
-    .conversation-header h3 { margin: 3px 0; font-size: 22px; }
-    .conversation-header p { margin: 0; color: var(--muted); }
+    .conversation-panel { min-height: calc(100vh - 220px); display: grid; grid-template-rows: auto minmax(260px, 1fr) auto; overflow: hidden; }
+    .conversation-header { padding: 16px 18px; border-bottom: 1px solid #e3ebe8; }
+    .conversation-header h3 { margin: 4px 0; font-size: 24px; }
+    .conversation-header p { margin: 0; color: #53657d; }
     .conversation-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .conversation-actions select { width: auto; min-width: 140px; }
-    .timeline { padding: 18px; display: grid; gap: 12px; overflow: auto; min-height: 0; align-content: start; background: var(--surface-2); }
-    .timeline-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; max-width: 80%; }
+    .timeline { padding: 18px; display: grid; gap: 12px; overflow: auto; max-height: calc(100vh - 430px); align-content: start; background: #fbfdfc; }
+    .timeline-item { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; max-width: 80%; }
     .timeline-item.outbound { justify-self: end; }
-    .timeline-item > div { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 10px; transition: box-shadow .12s; }
-    .timeline-item.outbound > div { background: var(--color-primary-soft); border-color: var(--color-primary-ring); }
-    .timeline-item.event > div { background: var(--surface-2); }
-    .timeline-dot { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; background: var(--surface-2); color: var(--color-primary); font-size: 11px; font-weight: 900; }
-    .timeline-item p { margin: 5px 0 0; color: var(--ink); white-space: pre-wrap; font-size: 14px; }
-    .chip-row, .tag-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
-    .composer { border-top: 1px solid var(--line); padding: 14px 18px; display: grid; gap: 10px; background: var(--surface); }
-    .composer-tabs { display: flex; gap: 6px; }
-    .composer-toolbar { display: grid; grid-template-columns: 140px minmax(160px, 1fr) auto; gap: 8px; align-items: end; }
-    .composer label { display: grid; gap: 4px; }
-    .composer textarea { min-height: 80px; resize: vertical; }
-    .attachment-placeholder { border: 1px dashed var(--line); border-radius: 8px; padding: 8px; color: var(--muted); background: var(--surface-2); font-size: 12px; }
+    .timeline-item > div { border: 1px solid #e0e8e5; background: #fff; border-radius: 8px; padding: 12px; }
+    .timeline-item.outbound > div { background: #eaf7f4; border-color: #bfe5dd; }
+    .timeline-item.event > div { background: #f8fafc; }
+    .timeline-dot { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: #eef5f3; color: #0f766e; font-size: 12px; font-weight: 900; }
+    .timeline-item p { margin: 6px 0 0; color: #1f2937; white-space: pre-wrap; }
+    .chip-row, .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .composer { border-top: 1px solid #e3ebe8; padding: 14px; display: grid; gap: 10px; background: #fff; }
+    .composer-tabs { display: flex; gap: 8px; }
+    .composer-toolbar { display: grid; grid-template-columns: 150px minmax(180px, 1fr) auto; gap: 10px; align-items: end; }
+    .composer label { display: grid; gap: 5px; }
+    .composer textarea { min-height: 92px; resize: vertical; }
+    .attachment-placeholder { border: 1px dashed #c9d8d4; border-radius: 8px; padding: 10px; color: #607083; background: #f8faf9; }
     .pending-text { color: #8a5a00; font-weight: 800; }
-    .client-rail { display: grid; gap: 14px; overflow: auto; min-width: 0; min-height: 0; }
+    .client-rail { display: grid; gap: 14px; max-height: calc(100vh - 220px); overflow: auto; }
     .client-card { padding: 16px; display: grid; gap: 10px; }
-    .client-card h3 { margin: 0; font-size: 18px; }
-    .client-card p { margin: 0; color: var(--muted); line-height: 1.4; font-size: 13px; }
+    .client-card h3 { margin: 0; }
+    .client-card p { margin: 0; color: #53657d; line-height: 1.45; }
     .card-header-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-    .client-card .muted-line { color: var(--muted); font-size: 12px; }
-    .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-    .info-grid div, .mini-list article, .alert-list div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); display: grid; gap: 3px; }
-    .info-grid small, .mini-list span, .alert-list span { color: var(--muted); font-size: 11px; }
-    .mini-list, .alert-list { display: grid; gap: 7px; }
+    .client-card .muted-line { color: #6b788a; font-size: 12px; }
+    .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .info-grid div, .mini-list article, .alert-list div { border: 1px solid #edf2f0; border-radius: 8px; padding: 10px; background: #fbfdfc; display: grid; gap: 4px; }
+    .info-grid small, .mini-list span, .alert-list span { color: #607083; }
+    .mini-list, .alert-list { display: grid; gap: 8px; }
     .drawer-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .32); z-index: 70; }
-    .ai-summary-drawer, .booking-drawer, .review-response-drawer, .recovery-drawer, .risk-drawer, .sla-drawer, .reports-drawer, .provider-drawer, .audit-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 94vw); background: var(--surface); border-left: 1px solid var(--line); box-shadow: -24px 0 60px rgba(15, 23, 42, .22); z-index: 80; padding: 18px; overflow: auto; display: grid; gap: 12px; align-content: start; }
+    .ai-summary-drawer, .booking-drawer, .review-response-drawer, .recovery-drawer, .risk-drawer, .sla-drawer, .reports-drawer, .provider-drawer, .audit-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 94vw); background: #fff; border-left: 1px solid #dce5e2; box-shadow: -24px 0 60px rgba(15, 23, 42, .22); z-index: 80; padding: 20px; overflow: auto; display: grid; gap: 14px; align-content: start; }
     .booking-drawer { width: min(620px, 96vw); }
     .review-response-drawer { width: min(920px, 98vw); }
     .recovery-drawer { width: min(1080px, 98vw); }
@@ -1421,123 +1573,203 @@ interface EngagementDetail extends ApiRecord {
     .reports-drawer { width: min(1240px, 98vw); }
     .provider-drawer { width: min(1120px, 98vw); }
     .audit-drawer { width: min(1060px, 98vw); }
-    .drawer-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
-    .drawer-head h3 { margin: 3px 0; font-size: 22px; }
-    .drawer-head p, .summary-overview p { margin: 0; color: var(--muted); line-height: 1.45; font-size: 13px; }
-    .icon-button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; font-size: 16px; }
-    .drawer-section { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; background: var(--surface-2); }
+    .drawer-head { display: flex; justify-content: space-between; gap: 14px; align-items: start; border-bottom: 1px solid #e5eeeb; padding-bottom: 14px; }
+    .drawer-head h3 { margin: 4px 0; font-size: 24px; }
+    .drawer-head p, .summary-overview p { margin: 0; color: #53657d; line-height: 1.45; }
+    .icon-button { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; font-size: 18px; }
+    .drawer-section { border: 1px solid #e1ebe7; border-radius: 8px; padding: 14px; display: grid; gap: 10px; background: #fbfdfc; }
     .booking-grid-section { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .booking-grid-section label, .drawer-section label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
-    .booking-grid-section input, .booking-grid-section select, .booking-grid-section textarea { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; color: var(--ink); text-transform: none; font-weight: 500; background: var(--surface); }
-    .booking-grid-section textarea { min-height: 70px; resize: vertical; }
+    .booking-grid-section label, .drawer-section label { display: grid; gap: 6px; color: #526173; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .booking-grid-section input, .booking-grid-section select, .booking-grid-section textarea { border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; color: #111827; text-transform: none; font-weight: 500; background: #fff; }
+    .booking-grid-section textarea { min-height: 80px; resize: vertical; }
     .full-span, .toggle-grid { grid-column: 1 / -1; }
-    .toggle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
-    .toggle-grid label { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 8px; display: flex; align-items: center; gap: 7px; text-transform: none; font-size: 12px; }
-    .warning-stack { display: flex; gap: 7px; flex-wrap: wrap; }
-    .slot-list { display: grid; gap: 7px; }
-    .slot-list button { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 10px; display: grid; gap: 3px; cursor: pointer; transition: all .12s; }
-    .slot-list button:hover { border-color: var(--color-primary); }
-    .slot-list button.active { border-color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); background: var(--color-primary-soft); }
-    .slot-list span { color: var(--muted); font-size: 12px; }
+    .toggle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .toggle-grid label { border: 1px solid #e1ebe7; border-radius: 8px; background: #fff; padding: 10px; display: flex; align-items: center; gap: 8px; text-transform: none; }
+    .warning-stack { display: flex; gap: 8px; flex-wrap: wrap; }
+    .slot-list { display: grid; gap: 8px; }
+    .slot-list button { text-align: left; border: 1px solid #dfe8e5; background: #fff; border-radius: 8px; padding: 11px 12px; display: grid; gap: 4px; cursor: pointer; }
+    .slot-list button.active { border-color: #0f8f79; box-shadow: inset 3px 0 0 #0f8f79; background: #eaf7f4; }
+    .slot-list span { color: #607083; }
     .review-box .primary-button { width: 100%; justify-content: center; }
-    .review-center-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; min-height: 0; }
-    .review-list-panel, .review-detail-panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 10px; display: grid; gap: 8px; align-content: start; }
+    .review-center-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; min-height: 0; }
+    .review-list-panel, .review-detail-panel { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 10px; align-content: start; }
     .review-list-panel { max-height: calc(100vh - 150px); overflow: auto; }
-    .review-row { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; cursor: pointer; transition: all .12s; }
-    .review-row:hover { border-color: var(--color-primary); }
-    .review-row.active { border-color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); background: var(--color-primary-soft); }
-    .review-row span, .review-row p { color: var(--muted); font-size: 12px; }
+    .review-row { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 11px; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; cursor: pointer; }
+    .review-row.active { border-color: #0f8f79; box-shadow: inset 3px 0 0 #0f8f79; background: #eef8f5; }
+    .review-row span, .review-row p { color: #607083; }
     .review-row p { grid-column: 1 / -1; margin: 0; line-height: 1.4; }
-    .review-title-row { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
-    .review-title-row h3 { margin: 3px 0; font-size: 18px; }
-    .review-text-block { margin: 0; line-height: 1.6; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 13px; }
-    .risk-pill { border-radius: 999px; padding: 4px 8px; font-weight: 900; font-size: 11px; background: #e7f7ef; color: #067647; text-transform: uppercase; white-space: nowrap; }
+    .review-title-row { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .review-title-row h3 { margin: 4px 0; }
+    .review-text-block { margin: 0; line-height: 1.6; color: #26364b; background: #fff; border: 1px solid #edf2f0; border-radius: 8px; padding: 12px; }
+    .risk-pill { border-radius: 999px; padding: 5px 9px; font-weight: 900; font-size: 12px; background: #e7f7ef; color: #067647; text-transform: uppercase; white-space: nowrap; }
     .risk-pill.medium { background: #fff3d1; color: #8a5a00; }
     .risk-pill.high, .risk-pill.critical { background: #fdecec; color: #b42318; }
-    .review-detail-panel textarea { min-height: 130px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; color: var(--ink); background: var(--surface); }
-    .review-detail-panel select { border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; font: inherit; color: var(--ink); background: var(--surface); }
-    .recovery-toolbar, .audit-toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) auto; gap: 10px; align-items: end; }
-    .recovery-kpis, .risk-kpis, .sla-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-    .recovery-kpis article, .risk-kpis article, .sla-kpis article { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 10px 12px; display: grid; gap: 2px; }
-    .recovery-kpis small, .risk-kpis small, .sla-kpis small { color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 10px; }
-    .recovery-kpis strong, .risk-kpis strong, .sla-kpis strong { font-size: 20px; color: var(--ink); }
-    .recovery-board, .risk-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .recovery-card, .risk-card { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 12px; display: grid; gap: 8px; }
-    .recovery-card-head, .recovery-footer, .risk-card-head, .risk-footer, .risk-evidence { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
-    .recovery-card h4, .risk-card h4 { margin: 2px 0 0; font-size: 16px; }
-    .recovery-reason, .risk-reason, .suggested-message { margin: 0; color: var(--muted); line-height: 1.4; font-size: 12px; }
-    .suggested-message { border: 1px dashed var(--line); border-radius: 8px; background: var(--surface-2); padding: 8px; color: var(--ink); }
-    .risk-toolbar { display: grid; grid-template-columns: minmax(200px, 1fr) 130px 150px auto; gap: 10px; align-items: end; }
-    .risk-toolbar label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
-    .risk-toolbar select { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; color: var(--ink); background: var(--surface); }
-    .risk-evidence { color: var(--muted); font-size: 11px; align-items: center; }
+    .review-detail-panel textarea { min-height: 150px; resize: vertical; border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; color: #111827; background: #fff; }
+    .review-detail-panel select { border: 1px solid #d8e3df; border-radius: 8px; padding: 9px 12px; font: inherit; color: #111827; background: #fff; }
+    .recovery-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 12px; align-items: end; }
+    .recovery-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .recovery-kpis article { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 3px; }
+    .recovery-kpis small { color: #607083; font-weight: 800; text-transform: uppercase; }
+    .recovery-kpis strong { font-size: 22px; }
+    .recovery-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .recovery-card { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 14px; display: grid; gap: 10px; }
+    .recovery-card-head, .recovery-footer { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .recovery-card h4 { margin: 3px 0 0; font-size: 18px; }
+    .recovery-reason, .suggested-message { margin: 0; color: #526173; line-height: 1.45; }
+    .suggested-message { border: 1px dashed #cfe0dc; border-radius: 8px; background: #f8faf9; padding: 10px; color: #26364b; }
+    .risk-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 150px 180px auto; gap: 12px; align-items: end; }
+    .risk-toolbar label { display: grid; gap: 6px; color: #526173; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .risk-toolbar select { border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; color: #111827; background: #fff; }
+    .risk-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .risk-kpis article { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 3px; }
+    .risk-kpis small { color: #607083; font-weight: 800; text-transform: uppercase; }
+    .risk-kpis strong { font-size: 22px; }
+    .risk-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .risk-card { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 14px; display: grid; gap: 10px; }
+    .risk-card-head, .risk-footer, .risk-evidence { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .risk-card h4 { margin: 3px 0 0; font-size: 18px; }
+    .risk-reason { margin: 0; color: #526173; line-height: 1.45; }
+    .risk-evidence { color: #607083; font-size: 12px; align-items: center; }
     .risk-footer { align-items: center; flex-wrap: wrap; }
-    .risk-footer > div { display: flex; gap: 7px; flex-wrap: wrap; justify-content: end; }
-    .sla-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 10px; }
-    .section-title-row, .sla-row { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
-    .section-title-row h4, .drawer-section h4 { margin: 2px 0 0; }
-    .sla-overdue-list { display: grid; gap: 8px; }
-    .sla-row { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px; align-items: center; }
-    .sla-row > div:first-child { display: grid; gap: 3px; min-width: 0; }
-    .sla-row span, .sla-row small { color: var(--muted); }
-    .sla-row-metrics { display: grid; gap: 4px; justify-items: end; min-width: 140px; }
-    .staff-performance-table { border: 1px solid var(--line); border-radius: 8px; overflow: auto; background: var(--surface); }
-    .staff-performance-head, .staff-performance-row { display: grid; grid-template-columns: minmax(160px, 1.2fr) repeat(6, minmax(100px, 1fr)); gap: 8px; align-items: center; min-width: 900px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
-    .staff-performance-head { background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .risk-footer > div { display: flex; gap: 8px; flex-wrap: wrap; justify-content: end; }
+    .sla-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .sla-kpis article { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 3px; }
+    .sla-kpis small { color: #607083; font-weight: 800; text-transform: uppercase; }
+    .sla-kpis strong { font-size: 22px; }
+    .sla-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 12px; }
+    .section-title-row, .sla-row { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .section-title-row h4, .drawer-section h4 { margin: 3px 0 0; }
+    .sla-overdue-list { display: grid; gap: 10px; }
+    .sla-row { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 12px; align-items: center; }
+    .sla-row > div:first-child { display: grid; gap: 4px; min-width: 0; }
+    .sla-row span, .sla-row small { color: #607083; }
+    .sla-row-metrics { display: grid; gap: 5px; justify-items: end; min-width: 150px; }
+    .staff-performance-table { border: 1px solid #e1ebe7; border-radius: 8px; overflow: auto; background: #fff; }
+    .staff-performance-head, .staff-performance-row { display: grid; grid-template-columns: minmax(170px, 1.2fr) repeat(6, minmax(110px, 1fr)); gap: 10px; align-items: center; min-width: 920px; padding: 11px 12px; border-bottom: 1px solid #edf2f0; }
+    .staff-performance-head { background: #f5f8f7; color: #53657d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .staff-performance-row:last-child { border-bottom: 0; }
-    .staff-performance-row span { color: var(--ink); font-size: 13px; }
-    .reports-toolbar { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 10px; align-items: end; }
-    .reports-toolbar label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
-    .reports-toolbar input, .reports-toolbar select { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; color: var(--ink); background: var(--surface); text-transform: none; font-weight: 500; min-width: 0; }
-    .reports-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: end; align-items: center; grid-column: span 2; }
-    .reports-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-    .reports-kpis article { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 10px; display: grid; gap: 2px; min-width: 0; }
-    .reports-kpis small { color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 10px; }
-    .reports-kpis strong { font-size: 18px; overflow-wrap: anywhere; color: var(--ink); }
-    .reports-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+    .staff-performance-row span { color: #26364b; }
+    .reports-toolbar { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+    .reports-toolbar label { display: grid; gap: 6px; color: #526173; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .reports-toolbar input, .reports-toolbar select { border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; color: #111827; background: #fff; text-transform: none; font-weight: 500; min-width: 0; }
+    .reports-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: end; align-items: center; grid-column: span 2; }
+    .reports-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+    .reports-kpis article { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 3px; min-width: 0; }
+    .reports-kpis small { color: #607083; font-weight: 800; text-transform: uppercase; }
+    .reports-kpis strong { font-size: 21px; overflow-wrap: anywhere; }
+    .reports-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
     .reports-grid .wide { grid-column: 1 / -1; }
-    .report-table { border: 1px solid var(--line); border-radius: 8px; overflow: auto; background: var(--surface); }
-    .report-table-head, .report-table-row { display: grid; gap: 8px; align-items: center; min-width: 700px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
-    .report-table.compact .report-table-head, .report-table.compact .report-table-row { min-width: 500px; }
-    .report-table-head { background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .report-table { border: 1px solid #e1ebe7; border-radius: 8px; overflow: auto; background: #fff; }
+    .report-table-head, .report-table-row { display: grid; gap: 10px; align-items: center; min-width: 780px; padding: 10px 12px; border-bottom: 1px solid #edf2f0; }
+    .report-table.compact .report-table-head, .report-table.compact .report-table-row { min-width: 560px; }
+    .report-table-head { background: #f5f8f7; color: #53657d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .report-table-row:last-child { border-bottom: 0; }
-    .report-table-row span { color: var(--ink); font-size: 13px; }
-    .report-table-head.five, .report-table-row.five { grid-template-columns: minmax(150px, 1.3fr) repeat(4, minmax(72px, 1fr)); }
-    .report-table-head.six, .report-table-row.six { grid-template-columns: minmax(150px, 1.4fr) repeat(5, minmax(85px, 1fr)); }
-    .audit-table { border: 1px solid var(--line); border-radius: 8px; overflow: auto; background: var(--surface); }
-    .audit-table-head, .audit-table-row { display: grid; grid-template-columns: 130px minmax(170px, 1.2fr) minmax(140px, 1fr) minmax(100px, .8fr) minmax(170px, 1fr) minmax(100px, .8fr); gap: 8px; align-items: center; min-width: 880px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
-    .audit-table-head { background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+    .report-table-row span { color: #26364b; }
+    .report-table-head.five, .report-table-row.five { grid-template-columns: minmax(170px, 1.3fr) repeat(4, minmax(82px, 1fr)); }
+    .report-table-head.six, .report-table-row.six { grid-template-columns: minmax(170px, 1.4fr) repeat(5, minmax(95px, 1fr)); }
+    .lead-intelligence-panel { background: #fff; border-top: 1px solid #d8e1ea; border-bottom: 1px solid #d8e1ea; padding: 16px; display: grid; gap: 14px; }
+    .lead-table-wrap { overflow-x: auto; border: 1px solid #d8e3df; border-radius: 4px; background: #fff; }
+    .lead-table-head, .lead-table-row { display: grid; grid-template-columns: 130px 110px 150px 120px 170px 120px 110px 140px 100px 140px 130px 110px 170px 300px; gap: 10px; align-items: center; min-width: 2100px; padding: 10px 12px; border-bottom: 1px solid #edf2f0; }
+    .lead-table-head { background: #f5f8f7; color: #53657d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .lead-table-row:last-child { border-bottom: 0; }
+    .lead-table-row span { overflow-wrap: anywhere; }
+    .lead-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .audit-toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 12px; align-items: end; }
+    .audit-table { border: 1px solid #e1ebe7; border-radius: 8px; overflow: auto; background: #fff; }
+    .audit-table-head, .audit-table-row { display: grid; grid-template-columns: 150px minmax(190px, 1.2fr) minmax(160px, 1fr) minmax(120px, .8fr) minmax(190px, 1fr) minmax(120px, .8fr); gap: 10px; align-items: center; min-width: 930px; padding: 11px 12px; border-bottom: 1px solid #edf2f0; }
+    .audit-table-head { background: #f5f8f7; color: #53657d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .audit-table-row:last-child { border-bottom: 0; }
-    .audit-table-row span { color: var(--ink); font-size: 13px; }
-    .priority-pill { border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 900; text-transform: uppercase; background: #e7f7ef; color: #067647; white-space: nowrap; }
-    .priority-pill.normal { background: var(--surface-2); color: var(--muted); }
+    .audit-table-row span { color: #526173; }
+    .priority-pill { border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 900; text-transform: uppercase; background: #e7f7ef; color: #067647; white-space: nowrap; }
+    .priority-pill.normal { background: #eef5f3; color: #0f766e; }
     .priority-pill.high { background: #fff3d1; color: #8a5a00; }
     .priority-pill.urgent { background: #fdecec; color: #b42318; }
-    .summary-list { display: grid; gap: 7px; }
-    .summary-list article { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 8px 10px; display: grid; gap: 3px; }
-    .summary-list span { color: var(--muted); line-height: 1.4; font-size: 12px; }
-    .summary-list em { margin-left: 5px; border-radius: 999px; padding: 2px 6px; background: #fff3d1; color: #8a5a00; font-style: normal; font-size: 10px; text-transform: uppercase; }
+    .summary-list { display: grid; gap: 8px; }
+    .summary-list article { border: 1px solid #edf2f0; border-radius: 8px; background: #fff; padding: 10px; display: grid; gap: 4px; }
+    .summary-list span { color: #607083; line-height: 1.4; }
+    .summary-list em { margin-left: 6px; border-radius: 999px; padding: 2px 7px; background: #fff3d1; color: #8a5a00; font-style: normal; font-size: 11px; text-transform: uppercase; }
     .risk-item em { background: #fdecec; color: #b42318; }
-    .conversation-empty { height: 100%; display: grid; place-items: center; align-content: center; gap: 8px; color: var(--muted); text-align: center; padding: 24px; grid-column: 1 / -1; grid-row: 1 / -1; }
-    .conversation-empty strong { color: var(--ink); font-size: 20px; }
-    .state.info { background: #eef8ff; border: 1px solid #bfdbfe; color: #1d4e89; padding: 10px 12px; border-radius: 8px; font-size: 13px; }
-    .action-queue-strip { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 16px; display: grid; gap: 12px; box-shadow: var(--shadow); }
-    .action-queue-strip p { margin: 2px 0 0; color: var(--muted); line-height: 1.4; }
-    .action-queue-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-    .action-queue-card { text-align: left; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 10px; display: grid; gap: 5px; min-width: 0; cursor: pointer; transition: all .12s; }
-    .action-queue-card:hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
+    .conversation-empty { min-height: calc(100vh - 220px); display: grid; place-items: center; align-content: center; gap: 10px; color: #53657d; text-align: center; padding: 30px; }
+    .conversation-empty strong { color: #111827; font-size: 22px; }
+    .state.info { background: #eef8ff; border: 1px solid #bfdbfe; color: #1d4e89; padding: 12px 14px; border-radius: 8px; }
+    .action-queue-strip { border: 1px solid #dce5e2; background: #fff; border-radius: 8px; padding: 14px; display: grid; gap: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .05); }
+    .action-queue-strip p { margin: 3px 0 0; color: #53657d; line-height: 1.45; }
+    .action-queue-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+    .action-queue-card { text-align: left; border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 6px; min-width: 0; cursor: pointer; }
+    .action-queue-card:hover { border-color: #0f8f79; background: #eef8f5; }
     .action-queue-card.urgent { border-color: #f4b4ae; background: #fff8f7; }
     .action-queue-card.high { border-color: #f4d28c; background: #fffaf0; }
-    .action-queue-card strong { font-size: 22px; color: var(--ink); }
-    .action-queue-card span:not(.badge) { font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
-    .action-queue-card small { color: var(--muted); line-height: 1.3; font-size: 11px; }
-    .empty-state.compact { padding: 14px 10px; font-size: 13px; }
-    .unread { background: #e7f0ff; color: #2855a7; }
-    .sla { background: #fdecec; color: #b42318; }
-    .tag-row span { background: var(--surface-2); color: var(--muted); }
-    @media (max-width: 1280px) { .engagement-shell { grid-template-columns: 280px minmax(400px, 1fr); } .client-rail { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); } .thread-rail { grid-column: 1; grid-row: 2; } .conversation-panel { grid-column: 2; grid-row: 2; } .action-queue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .action-queue-card strong { font-size: 24px; color: #111827; }
+    .action-queue-card span:not(.badge) { font-weight: 900; color: #26364b; overflow-wrap: anywhere; }
+    .action-queue-card small { color: #607083; line-height: 1.35; }
+    .empty-state.compact { padding: 18px 12px; }
+    .zenoti-engagement-page { gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
+    .brand-block, .top-actions, .center-line, .header-actions, .zenoti-shortcuts { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
+    .brand-block small, .zenoti-search span { display: block; color: #8fa1b8; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .brand-block strong { display: block; color: #fff; font-size: 15px; }
+    .zenoti-button, .zenoti-shortcuts button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
+    .zenoti-button.primary, .zenoti-shortcuts .active { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-header, .zenoti-page-heading, .zenoti-shortcuts, .action-queue-strip, .engagement-shell { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
+    .center-line { justify-content: space-between; }
+    .center-line strong { font-size: 15px; }
+    .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
+    .zenoti-page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; }
+    .zenoti-page-heading h1 { margin: 0; font-size: 22px; color: #172033; }
+    .zenoti-page-heading p { margin: 6px 0 0; color: #36506d; font-size: 13px; }
+    .zenoti-search { width: min(100%, 340px); display: grid; gap: 5px; }
+    .zenoti-search input { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
+    .zenoti-shortcuts { flex-wrap: wrap; padding: 10px 16px; }
+    .zenoti-shortcuts button { padding: 7px 12px; }
+    .zenoti-engagement-page .state.info,
+    .zenoti-engagement-page .state.error { border-radius: 0; margin: 0; border-left: 0; border-right: 0; }
+    .zenoti-engagement-page .action-queue-strip { border: 0; border-radius: 0; box-shadow: none; padding: 14px 16px; }
+    .zenoti-engagement-page .action-queue-card,
+    .zenoti-engagement-page .thread-rail,
+    .zenoti-engagement-page .conversation-panel,
+    .zenoti-engagement-page .client-card,
+    .zenoti-engagement-page .timeline-item > div,
+    .zenoti-engagement-page .info-grid div,
+    .zenoti-engagement-page .mini-list article,
+    .zenoti-engagement-page .alert-list div,
+    .zenoti-engagement-page .composer,
+    .zenoti-engagement-page .attachment-placeholder,
+    .zenoti-engagement-page .drawer-section,
+    .zenoti-engagement-page .review-list-panel,
+    .zenoti-engagement-page .review-detail-panel,
+    .zenoti-engagement-page .recovery-card,
+    .zenoti-engagement-page .risk-card,
+    .zenoti-engagement-page .report-table,
+    .zenoti-engagement-page .audit-table,
+    .zenoti-engagement-page .summary-list article { border-radius: 0; box-shadow: none; }
+    .zenoti-engagement-page .engagement-shell { grid-template-columns: minmax(270px, 320px) minmax(460px, 1fr) minmax(280px, 360px); gap: 0; align-items: stretch; border-top: 1px solid #d8e1ea; }
+    .zenoti-engagement-page .thread-rail,
+    .zenoti-engagement-page .conversation-panel,
+    .zenoti-engagement-page .client-rail { max-height: calc(100vh - 260px); border: 0; border-right: 1px solid #d8e1ea; background: #fff; }
+    .zenoti-engagement-page .client-rail { border-right: 0; padding: 0; gap: 0; }
+    .zenoti-engagement-page .thread-rail { padding: 12px; gap: 12px; }
+    .zenoti-engagement-page .conversation-panel { min-height: calc(100vh - 260px); }
+    .zenoti-engagement-page .client-card { border: 0; border-bottom: 1px solid #d8e1ea; padding: 14px 16px; }
+    .zenoti-engagement-page .conversation-header { padding: 14px 16px; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-engagement-page .conversation-header h3 { font-size: 20px; }
+    .zenoti-engagement-page .timeline { background: #f8fafc; padding: 14px 16px; max-height: calc(100vh - 500px); }
+    .zenoti-engagement-page .composer { padding: 12px 16px; border-top: 1px solid #d8e1ea; }
+    .zenoti-engagement-page .channel-grid button,
+    .zenoti-engagement-page .composer-tabs button,
+    .zenoti-engagement-page .thread-card,
+    .zenoti-engagement-page .slot-list button,
+    .zenoti-engagement-page .review-row { border-radius: 0; }
+    .zenoti-engagement-page input,
+    .zenoti-engagement-page select,
+    .zenoti-engagement-page textarea { border-radius: 3px !important; }
+    .zenoti-engagement-page .primary-button,
+    .zenoti-engagement-page .ghost-button { border-radius: 3px; }
+    .zenoti-engagement-page .drawer-head { border-bottom: 1px solid #d8e1ea; }
+    @media (max-width: 1280px) { .engagement-shell { grid-template-columns: 280px minmax(420px, 1fr); } .client-rail { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; } .action-queue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 1040px) { .reports-toolbar, .reports-kpis, .reports-grid { grid-template-columns: 1fr; } .reports-actions { grid-column: auto; justify-content: start; } .reports-grid .wide { grid-column: auto; } }
-    @media (max-width: 840px) { .engagement-shell { grid-template-columns: 1fr; } .timeline { min-height: 140px; } .composer-toolbar { grid-template-columns: 1fr; } .timeline-item { max-width: 100%; } .client-rail { grid-template-columns: 1fr; } .review-center-grid, .recovery-board, .recovery-kpis, .recovery-toolbar, .risk-board, .risk-kpis, .risk-toolbar, .sla-grid, .sla-kpis, .reports-toolbar, .reports-kpis, .reports-grid, .audit-toolbar, .action-queue-grid { grid-template-columns: 1fr; } .sla-row { display: grid; } .sla-row-metrics { justify-items: start; } }
+    @media (max-width: 840px) { .engagement-shell { grid-template-columns: 1fr; } .thread-rail, .conversation-panel, .client-rail { max-height: none; } .timeline { max-height: none; } .composer-toolbar { grid-template-columns: 1fr; } .timeline-item { max-width: 100%; } .client-rail { grid-template-columns: 1fr; } .review-center-grid, .recovery-board, .recovery-kpis, .recovery-toolbar, .risk-board, .risk-kpis, .risk-toolbar, .sla-grid, .sla-kpis, .reports-toolbar, .reports-kpis, .reports-grid, .audit-toolbar, .action-queue-grid { grid-template-columns: 1fr; } .sla-row { display: grid; } .sla-row-metrics { justify-items: start; } }
   `]
 })
 export class EngagementCommandCenterComponent implements OnInit {
@@ -1621,6 +1853,12 @@ export class EngagementCommandCenterComponent implements OnInit {
   readonly reviewError = signal('');
   readonly reviewNotice = signal('');
   readonly reviewProviderStatus = signal('');
+  readonly activeWorkspace = signal<'inbox' | 'leads'>('inbox');
+  readonly leadReport = signal<ApiRecord | null>(null);
+  readonly leadLoading = signal(false);
+  readonly leadSaving = signal(false);
+  readonly leadError = signal('');
+  readonly leadNotice = signal('');
   readonly loading = signal(true);
   readonly detailLoading = signal(false);
   readonly saving = signal(false);
@@ -1663,8 +1901,19 @@ export class EngagementCommandCenterComponent implements OnInit {
   reviewTone = 'warm';
   reviewResponseText = '';
   reviewReplyId = '';
+  leadFromDate = '';
+  leadToDate = '';
+  leadSourceFilter = '';
+  leadStatusFilter = '';
+  leadScoreFilter = '';
+  leadAssignedFilter = '';
+  leadFollowUpFilter = '';
+  leadServiceFilter = '';
+  leadBranchFilter = '';
+  leadSearch = '';
 
   readonly selectedThread = computed(() => this.selectedDetail()?.thread || this.threads().find((thread) => thread.id === this.selectedThreadId()) || null);
+  readonly leadRows = computed(() => ((this.leadReport()?.['rows'] as ApiRecord[] | undefined) || []));
   readonly pinnedThreads = computed(() => this.threads().filter((thread) => this.isPinned(thread)).slice(0, 8));
   readonly lastDraft = computed(() => {
     const detail = this.selectedDetail();
@@ -1679,11 +1928,14 @@ export class EngagementCommandCenterComponent implements OnInit {
     return ((actionQueue['items'] || []) as ApiRecord[]).slice(0, 6);
   });
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.loadTemplates();
     this.load();
+    this.route.queryParamMap.subscribe((params) => {
+      if (params.get('tab') === 'leads') this.openLeadIntelligence();
+    });
   }
 
   load(): void {
@@ -2066,6 +2318,16 @@ export class EngagementCommandCenterComponent implements OnInit {
     this.reportsDrawerOpen.set(false);
   }
 
+  openEngagementQuickAction(event: Event): void {
+    const action = (event.target as HTMLSelectElement).value;
+    if (action === 'recovery') this.openRecoveryDrawer();
+    if (action === 'reviews') this.openReviewDrawer();
+    if (action === 'risk') this.openRiskDrawer();
+    if (action === 'sla') this.openSlaDrawer();
+    if (action === 'reports') this.openReportsDrawer();
+    (event.target as HTMLSelectElement).selectedIndex = 0;
+  }
+
   loadReports(): void {
     this.reportsLoading.set(true);
     this.reportsError.set('');
@@ -2112,6 +2374,171 @@ export class EngagementCommandCenterComponent implements OnInit {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount)) return '₹0';
     return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+  }
+
+  openInboxWorkspace(): void {
+    this.activeWorkspace.set('inbox');
+  }
+
+  openLeadIntelligence(): void {
+    this.activeWorkspace.set('leads');
+    if (!this.leadReport() && !this.leadLoading()) this.loadLeadReport();
+  }
+
+  loadLeadReport(): void {
+    this.leadLoading.set(true);
+    this.leadError.set('');
+    this.leadNotice.set('');
+    this.api.list<ApiRecord>('engagement/leads/report', this.leadFilterParams())
+      .pipe(finalize(() => this.leadLoading.set(false)))
+      .subscribe({
+        next: (report) => {
+          this.leadReport.set(report || null);
+          this.leadNotice.set(report?.['generatedAt'] ? `Generated ${new Date(String(report['generatedAt'])).toLocaleString()}` : '');
+        },
+        error: (error) => this.leadError.set(error?.error?.error || error?.message || 'Unable to load lead intelligence.')
+      });
+  }
+
+  leadFilterParams(): ApiRecord {
+    return {
+      fromDate: this.leadFromDate,
+      toDate: this.leadToDate,
+      branchId: this.leadBranchFilter || this.api.selectedBranchId(),
+      source: this.leadSourceFilter,
+      status: this.leadStatusFilter,
+      score: this.leadScoreFilter,
+      assignedTo: this.leadAssignedFilter,
+      followUp: this.leadFollowUpFilter,
+      service: this.leadServiceFilter,
+      q: this.leadSearch,
+      limit: 500
+    };
+  }
+
+  leadScoreTone(row: ApiRecord): string {
+    const score = String(row['leadTemperature'] || '').toLowerCase();
+    if (score === 'hot') return 'high';
+    if (score === 'warm') return 'medium';
+    return 'low';
+  }
+
+  private leadActionPayload(row: ApiRecord, extra: ApiRecord = {}): ApiRecord {
+    return {
+      branchId: row['branchId'] || this.api.selectedBranchId(),
+      threadId: row['threadId'] || '',
+      whatsappThreadId: row['whatsappThreadId'] || '',
+      clientId: row['clientId'] || '',
+      invoiceId: row['wonInvoiceId'] || '',
+      invoiceNumber: row['wonInvoiceNumber'] || '',
+      convertedRevenue: row['convertedRevenue'] || 0,
+      ...extra
+    };
+  }
+
+  private runLeadAction(row: ApiRecord, endpoint: string, payload: ApiRecord, success: string): void {
+    const leadId = String(row['id'] || '');
+    if (!leadId) return;
+    this.leadSaving.set(true);
+    this.leadError.set('');
+    this.api.post<ApiRecord>(`engagement/leads/${encodeURIComponent(leadId)}/${endpoint}`, payload)
+      .pipe(finalize(() => this.leadSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.leadNotice.set(success);
+          this.loadLeadReport();
+        },
+        error: (error) => this.leadError.set(error?.error?.error || error?.message || 'Unable to update lead.')
+      });
+  }
+
+  assignLead(row: ApiRecord): void {
+    const assignedTo = window.prompt('Assign lead to staff/user id', String(row['assignedTo'] || ''));
+    if (!assignedTo) return;
+    this.runLeadAction(row, 'assign', this.leadActionPayload(row, { assignedTo, note: 'Assigned from Lead Intelligence' }), 'Lead assigned.');
+  }
+
+  addLeadFollowUp(row: ApiRecord): void {
+    const note = window.prompt('Follow-up note', '');
+    if (!note) return;
+    this.runLeadAction(row, 'follow-up-note', this.leadActionPayload(row, { note }), 'Follow-up note added.');
+  }
+
+  markLeadWon(row: ApiRecord): void {
+    const invoiceNumber = window.prompt('Won invoice number', String(row['wonInvoiceNumber'] || ''));
+    if (invoiceNumber === null) return;
+    const convertedRevenue = window.prompt('Converted revenue', String(row['convertedRevenue'] || 0));
+    if (convertedRevenue === null) return;
+    this.runLeadAction(row, 'mark-won', this.leadActionPayload(row, {
+      invoiceNumber,
+      convertedRevenue: Number(convertedRevenue || row['convertedRevenue'] || 0),
+      note: 'Marked won from Lead Intelligence'
+    }), 'Lead marked won.');
+  }
+
+  markLeadLost(row: ApiRecord): void {
+    const reason = window.prompt('Lost reason', String(row['lostReason'] || ''));
+    if (!reason) return;
+    this.runLeadAction(row, 'mark-lost', this.leadActionPayload(row, { note: reason, lostReason: reason }), 'Lead marked lost.');
+  }
+
+  callLead(row: ApiRecord): void {
+    const phone = String(row['phone'] || '').replace(/\D/g, '');
+    if (phone) window.location.href = `tel:${phone}`;
+  }
+
+  whatsappLead(row: ApiRecord): void {
+    const phone = String(row['phone'] || '').replace(/\D/g, '');
+    if (phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener,noreferrer');
+  }
+
+  bookLead(row: ApiRecord): void {
+    const clientId = String(row['clientId'] || '');
+    if (!clientId) {
+      this.leadError.set('Client link missing for this lead. Open WhatsApp/call first, then link the client.');
+      return;
+    }
+    this.bookingForm = {
+      ...this.defaultBookingForm(),
+      clientId,
+      branchId: String(row['branchId'] || this.api.selectedBranchId() || ''),
+      notes: `Lead follow-up: ${row['clientName'] || row['phone'] || 'lead'} · ${row['interestService'] || 'service interest'}`
+    };
+    this.bookingError.set('');
+    this.bookingSuccess.set('');
+    this.clearBookingPreview();
+    this.bookingDrawerOpen.set(true);
+    this.loadBookingCatalog();
+  }
+
+  openLeadClient(row: ApiRecord): void {
+    const clientId = String(row['clientId'] || '');
+    if (clientId) window.open(`/clients/${encodeURIComponent(clientId)}`, '_blank', 'noopener,noreferrer');
+  }
+
+  openLeadInvoice(row: ApiRecord): void {
+    const invoice = String(row['wonInvoiceNumber'] || row['wonInvoiceId'] || '');
+    if (invoice) window.open(`/pos/invoices?q=${encodeURIComponent(invoice)}`, '_blank', 'noopener,noreferrer');
+  }
+
+  exportLeadCsv(): void {
+    const keys = ['leadDateTime', 'source', 'clientName', 'phone', 'interestService', 'leadTemperature', 'leadScore', 'status', 'assignedName', 'firstResponseMinutes', 'followUpStatus', 'lastFollowUpAt', 'wonInvoiceNumber', 'convertedRevenue', 'lostReason'];
+    const lines = [keys.join(',')];
+    for (const row of this.leadRows()) {
+      lines.push(keys.map((key) => this.csvCell(row[key])).join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lead-intelligence-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private csvCell(value: unknown): string {
+    const text = String(value ?? '').replace(/"/g, '""');
+    return `"${text}"`;
   }
 
   loadManagerActions(): void {

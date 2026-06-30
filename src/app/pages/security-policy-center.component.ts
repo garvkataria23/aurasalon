@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -9,27 +10,24 @@ import { StateComponent } from '../shared/ui/state/state.component';
   standalone: true,
   imports: [CommonModule, DatePipe, FormsModule, StateComponent],
   template: `
-    <section class="page-stack">
-      <div class="module-hero">
-        <div>
-          <span class="eyebrow">Enterprise Security Shield</span>
-          <h2>Security Policy Center</h2>
-          <p>Control device trust, PIN re-auth, export protection and field-level audit policy from one owner/admin surface.</p>
-        </div>
-        <button class="ghost-button" type="button" (click)="load()">Refresh</button>
-      </div>
-
+    <section class="policy-workspace">
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
-      <div class="metrics-grid">
-        <article class="metric-card"><span>Device trust</span><strong>{{ enabledLabel('deviceTrustEnabled') }}</strong><small>Known browser/device layer</small></article>
-        <article class="metric-card"><span>PIN re-auth</span><strong>{{ enabledLabel('securityPinRequiredForRefund') }}</strong><small>Manager action protection</small></article>
-        <article class="metric-card"><span>Export guard</span><strong>{{ enabledLabel('exportProtectionEnabled') }}</strong><small>Download/export monitoring</small></article>
-        <article class="metric-card"><span>Field audit</span><strong>{{ enabledLabel('fieldAuditEnabled') }}</strong><small>Sensitive field history</small></article>
-        <article class="metric-card"><span>Risk score</span><strong>{{ latestRisk()?.riskScore ?? 0 }}</strong><small>{{ latestRisk()?.riskLevel || 'No signal' }}</small></article>
-        <article class="metric-card"><span>Zenoti-style pack</span><strong>{{ zenotiPackCount() }}</strong><small>Advanced controls</small></article>
-        <article class="metric-card"><span>Access devices</span><strong>{{ managedDevices().devices?.length || 0 }}</strong><small>Netflix-style control</small></article>
-        <article class="metric-card"><span>Compliance readiness</span><strong>{{ complianceReadiness()?.score || 0 }}%</strong><small>{{ complianceReadiness()?.status || 'Not checked' }}</small></article>
+      <div class="page-heading">
+        <div>
+          <h1>Security Policy Center</h1>
+          <span>Control device trust, PIN re-auth, export protection, field audit, access devices, fraud warnings and compliance evidence</span>
+        </div>
+        <button class="primary-button" type="button" (click)="savePolicies()">Save policies</button>
+      </div>
+
+      <div class="metric-strip">
+        <article><span>Device trust</span><strong>{{ enabledLabel('deviceTrustEnabled') }}</strong><small>Known browser/device layer</small></article>
+        <article><span>PIN re-auth</span><strong>{{ enabledLabel('securityPinRequiredForRefund') }}</strong><small>Manager action protection</small></article>
+        <article><span>Export guard</span><strong>{{ enabledLabel('exportProtectionEnabled') }}</strong><small>Download/export monitoring</small></article>
+        <article><span>Risk score</span><strong>{{ latestRisk()?.riskScore ?? 0 }}</strong><small>{{ latestRisk()?.riskLevel || 'No signal' }}</small></article>
+        <article><span>Access devices</span><strong>{{ managedDevices().devices?.length || 0 }}</strong><small>Device control</small></article>
+        <article><span>Compliance</span><strong>{{ complianceReadiness()?.score || 0 }}%</strong><small>{{ complianceReadiness()?.status || 'Not checked' }}</small></article>
       </div>
 
       <section class="panel">
@@ -444,20 +442,69 @@ import { StateComponent } from '../shared/ui/state/state.component';
     </section>
   `,
   styles: [`
+    .policy-workspace { background: #fff; color: #111827; min-height: 100vh; }
+    .command-bar { background: #111827; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.16); }
+    .brand-block, .command-actions, .header-actions, .page-heading, .section-title, .inline-row { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #635bff; font-weight: 900; }
+    .brand-block small { display: block; color: #94a3b8; font-size: 10px; font-weight: 800; letter-spacing: 0; }
+    .brand-block strong { display: block; font-size: 16px; }
+    .zenoti-button, .primary-button, .ghost-button { border: 1px solid #bfdbfe; background: #fff; color: #075985; border-radius: 4px; padding: 8px 13px; font-weight: 800; cursor: pointer; text-decoration: none; }
+    .zenoti-button.primary, .primary-button { background: #0f8f7f; border-color: #0f8f7f; color: #fff; }
+    .zenoti-button:disabled, .ghost-button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .zenoti-header { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 26px 16px 12px; border-bottom: 1px solid #d7e2ea; }
+    .zenoti-header select { grid-column: 2; width: min(620px, 100%); border: 1px solid #bfdbfe; border-radius: 4px; padding: 9px 12px; font-weight: 800; background: #fff; }
+    .page-heading { justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #d7e2ea; }
+    .page-heading h1 { margin: 0 0 4px; font-size: 24px; }
+    .page-heading span, .section-title p, .section-title span, small, td, .form-grid label span { color: #64748b; }
+    .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); border-bottom: 1px solid #d7e2ea; background: #f8fafc; }
+    .metric-strip article { padding: 14px 16px; border-right: 1px solid #d7e2ea; border-top: 4px solid #0f8f7f; min-height: 86px; }
+    .metric-strip article:nth-child(2) { border-top-color: #2563eb; }
+    .metric-strip article:nth-child(3) { border-top-color: #b7791f; }
+    .metric-strip article:nth-child(4) { border-top-color: #b91c1c; }
+    .metric-strip article:nth-child(5) { border-top-color: #7c3aed; }
+    .metric-strip article:nth-child(6) { border-top-color: #15803d; }
+    .metric-strip span { display: block; color: #64748b; font-size: 12px; font-weight: 900; }
+    .metric-strip strong { display: block; margin-top: 6px; font-size: 25px; }
+    .panel { margin: 16px; background: #fff; border: 1px solid #d7e2ea; border-radius: 4px; padding: 14px; }
+    .section-title { justify-content: space-between; margin-bottom: 12px; }
+    .section-title h2 { margin: 0 0 4px; font-size: 16px; }
+    .section-title p { margin: 0; }
+    .quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .action-card { border: 1px solid #d7e2ea; border-radius: 4px; padding: 12px; min-height: 102px; display: grid; gap: 7px; align-content: start; background: #fff; }
+    .action-card strong, .action-card span { display: block; }
+    .action-card span { color: #64748b; font-size: 12px; }
+    .score-card strong { font-size: 28px; }
+    .badge { display: inline-block; border-radius: 999px; background: #e0f2fe; color: #075985; padding: 5px 9px; font-weight: 800; font-size: 12px; }
+    .table-wrap { overflow: auto; border: 1px solid #d7e2ea; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; min-width: 880px; }
+    th { background: #f1f5f9; color: #475569; font-size: 12px; text-align: left; text-transform: uppercase; }
+    th, td { border-bottom: 1px solid #d7e2ea; padding: 12px; vertical-align: top; }
+    input, select { border: 1px solid #d7e2ea; border-radius: 4px; min-height: 38px; padding: 8px 10px; color: #111827; background: #fff; }
+    .mini { padding: 6px 10px; }
     .policy-toggle { position: relative; }
     .policy-toggle input { position: absolute; right: 16px; top: 16px; width: 20px; height: 20px; accent-color: #0f8f82; }
-    .form-grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
-    .form-grid label span { display: block; margin-bottom: 8px; color: #5b6b80; font-weight: 800; }
-    .inline-row { display: flex; gap: 10px; }
+    .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
+    .form-grid label span { display: block; margin-bottom: 8px; font-weight: 800; }
     .risk-heatmap { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-    .risk-tile, .evidence-export { border: 1px solid #d8e2ef; border-radius: 8px; padding: 14px; background: #f8fbfd; display: grid; gap: 6px; }
+    .risk-tile, .evidence-export { border: 1px solid #d7e2ea; border-radius: 4px; padding: 14px; background: #f8fbfd; display: grid; gap: 6px; }
     .risk-tile strong { font-size: 24px; }
     .risk-tile.low { border-color: #9fd6c8; background: #f1fbf7; }
     .risk-tile.warning { border-color: #f4c56e; background: #fff8e9; }
     .risk-tile.high, .risk-tile.critical { border-color: #ef9a9a; background: #fff1f1; }
     .evidence-export { margin-top: 14px; }
     .evidence-export pre { max-height: 260px; overflow: auto; margin: 0; border-radius: 8px; background: #0f172a; color: #e2e8f0; padding: 12px; white-space: pre-wrap; }
-    @media (max-width: 900px) { .form-grid, .risk-heatmap { grid-template-columns: 1fr; } .inline-row { flex-direction: column; } }
+    @media (max-width: 1180px) {
+      .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .quick-grid { grid-template-columns: repeat(2, 1fr); }
+      .zenoti-header { grid-template-columns: 1fr; }
+      .zenoti-header select { grid-column: auto; }
+    }
+    @media (max-width: 900px) { .form-grid, .risk-heatmap { grid-template-columns: 1fr; } .inline-row { flex-direction: column; align-items: stretch; } }
+    @media (max-width: 720px) {
+      .command-bar, .page-heading, .section-title { align-items: stretch; flex-direction: column; }
+      .metric-strip, .quick-grid { grid-template-columns: 1fr; }
+      .header-actions { flex-wrap: wrap; }
+    }
   `]
 })
 export class SecurityPolicyCenterComponent implements OnInit {
@@ -520,7 +567,7 @@ export class SecurityPolicyCenterComponent implements OnInit {
     { key: 'iso27001ReadinessEnabled', layer: 'SOC2 / ISO Readiness', label: 'ISO 27001 readiness', detail: 'Tracks ISO-style access, encryption, audit and incident control evidence.' }
   ];
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly router: Router) {}
 
   ngOnInit(): void {
     this.load();
@@ -740,6 +787,16 @@ export class SecurityPolicyCenterComponent implements OnInit {
       next: () => { this.disclosureForm = { reporterName: '', reporterContact: '', summary: '', details: '', severity: 'warning' }; this.loadNetflixPack(); },
       error: (error) => this.error.set(this.api.errorText(error))
     });
+  }
+
+  runQuickAction(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    if (select.value === 'refresh') this.load();
+    if (select.value === 'save') this.savePolicies();
+    if (select.value === 'risk') this.evaluateRisk();
+    if (select.value === 'devices') this.loadNetflixPack();
+    if (select.value === 'alerts') this.router.navigate(['/security-alerts']);
+    select.selectedIndex = 0;
   }
 
   enabledLabel(key: string): string {

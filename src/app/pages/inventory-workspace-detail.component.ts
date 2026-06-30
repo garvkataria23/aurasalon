@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { InventoryZenotiChromeComponent } from '../shared/ui/inventory-zenoti-chrome/inventory-zenoti-chrome.component';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
@@ -11,23 +12,14 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
 @Component({
   selector: 'app-inventory-workspace-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StateComponent],
+  imports: [CommonModule, FormsModule, InventoryZenotiChromeComponent, StateComponent],
   template: `
     <section class="page-stack inventory-detail-page">
-      <div class="module-hero compact-hero">
-        <div>
-          <span class="eyebrow">{{ eyebrow() }}</span>
-          <h2>{{ pageTitle() }}</h2>
-          <p>{{ pageSubtitle() }}</p>
-        </div>
-        <div class="hero-actions">
-          <a class="ghost-button" routerLink="/inventory">Back to products</a>
-          <button class="ghost-button" type="button" (click)="load()">Refresh</button>
-          <a class="primary-button" *ngIf="workspace() === 'procurement'" routerLink="/inventory/purchase-orders">Purchase orders</a>
-          <a class="primary-button" *ngIf="workspace() === 'vendors'" routerLink="/suppliers">Supplier register</a>
-          <a class="primary-button" *ngIf="workspace() === 'stock'" routerLink="/inventory/reports">Save View</a>
-        </div>
-      </div>
+      <app-inventory-zenoti-chrome
+        [title]="pageTitle()"
+        [breadcrumb]="eyebrow()"
+        (refresh)="load()"
+      ></app-inventory-zenoti-chrome>
 
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
@@ -211,6 +203,7 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
 
     .detail-shell {
       padding: 14px;
+      border-radius: 8px;
       overflow: hidden;
     }
 
@@ -220,7 +213,7 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
       justify-content: space-between;
       gap: 12px;
       padding-bottom: 12px;
-      border-bottom: 1px solid rgba(79, 70, 229, 0.1);
+      border-bottom: 1px solid var(--line);
       margin-bottom: 12px;
     }
 
@@ -260,24 +253,33 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
     .filter-bar input {
       width: 100%;
       min-height: 36px;
-      border: 1px solid rgba(79, 70, 229, 0.12);
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
       color: var(--ink);
       padding: 7px 9px;
       font: inherit;
       font-size: 0.86rem;
     }
 
+    .table-wrap {
+      max-height: 620px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
     table {
       width: 100%;
       min-width: 980px;
+      border-collapse: collapse;
     }
 
     th,
     td {
       padding: 10px 12px;
-      border-bottom: 1px solid rgba(79, 70, 229, 0.08);
+      border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
       font-size: 0.82rem;
@@ -288,7 +290,7 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
       position: sticky;
       top: 0;
       z-index: 2;
-      background: #f7faf9;
+      background: #f7fbfa;
       color: var(--muted);
       font-size: 0.68rem;
       font-weight: 900;
@@ -327,7 +329,7 @@ type InventoryWorkspaceMode = 'vendors' | 'stock' | 'procurement';
     .total-row td {
       position: sticky;
       bottom: 0;
-      background: #f7faf9;
+      background: #f7fbfa;
       font-weight: 900;
     }
 

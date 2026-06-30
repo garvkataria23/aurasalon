@@ -179,6 +179,34 @@ import { whiteLabelRouter } from "./routes/white-label.routes.js";
 import { workflowEngineRouter } from "./routes/workflow-engine.routes.js";
 import { zReportRouter } from "./routes/z-report.routes.js";
 
+import { ensureDueRecoveryFollowupSchema } from "./services/due-recovery-followup-schema.service.js";
+import { ensureProfitActionQueueSchema } from "./services/profit-action-queue-schema.service.js";
+import { ensureProfitGovernanceSchema } from "./services/profit-governance-schema.service.js";
+import { ensureLocationSharingSchema } from "./services/location-sharing-schema.service.js";
+import { appointmentSalonistReportRouter } from "./routes/appointment-salonist-report.routes.js";
+import { clientCustomFormSettingsRouter } from "./routes/client-custom-form-settings.routes.js";
+import { dueRecoveryReportRouter } from "./routes/due-recovery-report.routes.js";
+import { serviceTrendsReportRouter } from "./routes/service-trends-report.routes.js";
+import { clientDiscountBrainRouter } from "./routes/client-discount-brain.routes.js";
+import { happyHoursBundleAwareRouter } from "./routes/happy-hours-bundle-aware.routes.js";
+import { happyHoursChannelAwareRouter } from "./routes/happy-hours-channel-aware.routes.js";
+import { happyHoursElasticityRouter } from "./routes/happy-hours-elasticity.routes.js";
+import { happyHoursInventoryAwareRouter } from "./routes/happy-hours-inventory-aware.routes.js";
+import { happyHoursLeadTimeRouter } from "./routes/happy-hours-lead-time.routes.js";
+import { happyHoursMarketAwareRouter } from "./routes/happy-hours-market-aware.routes.js";
+import { happyHoursMemberWalletRouter } from "./routes/happy-hours-member-wallet.routes.js";
+import { happyHoursNoShowRiskRouter } from "./routes/happy-hours-no-show-risk.routes.js";
+import { happyHoursStaffAwareRouter } from "./routes/happy-hours-staff-aware.routes.js";
+import { happyHoursWeatherEventRouter } from "./routes/happy-hours-weather-event.routes.js";
+import { locationSharingRouter } from "./routes/location-sharing.routes.js";
+import { messageHistoryReportRouter } from "./routes/message-history-report.routes.js";
+import { marketplaceSettingsRouter } from "./routes/marketplace-settings.routes.js";
+import { messageTemplateStudioRouter } from "./routes/message-template-studio.routes.js";
+import { pendingPackagesReportRouter } from "./routes/pending-packages-report.routes.js";
+import { profitIntelligenceRouter } from "./routes/profit-intelligence.routes.js";
+import { taxSettingsRouter } from "./routes/tax-settings.routes.js";
+import { whatsappWebhookRouter } from "./routes/whatsapp-webhook.routes.js";
+
 function healthPayload(version = "legacy") {
   return { ok: true, service: "Aura Salon CRM/POS API", version, timestamp: new Date().toISOString() };
 }
@@ -222,6 +250,10 @@ export function createApp() {
   ensureMigrationUploadSchema();
   ensureMigrationApprovalSchema();
   initializeSchemaMigrationHealth();
+  ensureDueRecoveryFollowupSchema();
+  ensureProfitActionQueueSchema();
+  ensureProfitGovernanceSchema();
+  ensureLocationSharingSchema();
   const app = express();
   app.disable("x-powered-by");
   app.set("etag", false);
@@ -424,6 +456,17 @@ export function createApp() {
   app.use("/api/v1", authenticateJwt(), appointmentSafetyRouter);
   app.use("/api/v1", authenticateJwt(), reputationRouter);
   app.use("/api/v1", authenticateJwt(), resourceRouter);
+  app.use("/api/v1", appointmentSalonistReportRouter);
+  app.use("/api/v1", dueRecoveryReportRouter);
+  app.use("/api/v1", pendingPackagesReportRouter);
+  app.use("/api/v1", serviceTrendsReportRouter);
+  app.use("/api/v1", locationSharingRouter);
+  app.use("/api/v1", taxSettingsRouter);
+  app.use("/api/v1", clientCustomFormSettingsRouter);
+  app.use("/api/v1", marketplaceSettingsRouter);
+  app.use("/api/v1", authenticateJwt(), profitIntelligenceRouter);
+  app.use("/api/v1", authenticateJwt(), messageHistoryReportRouter);
+  app.use("/api/v1", authenticateJwt(), messageTemplateStudioRouter);
   app.use("/api/v1", notFoundHandler);
 
   app.get("/", (_req, res) => {
@@ -568,6 +611,20 @@ export function createApp() {
   app.use("/api", appointmentSafetyRouter);
   app.use("/api", reputationRouter);
   app.use("/api", resourceRouter);
+
+  app.use("/api", whatsappWebhookRouter);
+  app.use("/api", appointmentSalonistReportRouter);
+  app.use("/api", dueRecoveryReportRouter);
+  app.use("/api", pendingPackagesReportRouter);
+  app.use("/api", serviceTrendsReportRouter);
+  app.use("/api", taxSettingsRouter);
+  app.use("/api", clientCustomFormSettingsRouter);
+  app.use("/api", marketplaceSettingsRouter);
+  app.use("/api", locationSharingRouter);
+  app.use("/api", profitIntelligenceRouter);
+  app.use("/api", migrationRouter);
+  app.use("/api", messageHistoryReportRouter);
+  app.use("/api", messageTemplateStudioRouter);
 
   const clientDist = resolveClientDist();
   if (clientDist) {

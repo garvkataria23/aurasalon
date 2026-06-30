@@ -137,21 +137,162 @@ function listOperationalStaff(query = {}, access = {}) {
   return [...staff.values()];
 }
 
+function hasLinePricing(item = {}) {
+  return item.lineGross !== undefined || item.lineDiscountAmount !== undefined || item.lineTaxableSubtotal !== undefined;
+}
+
+function itemGross(item = {}) {
+  return money(item.lineGross ?? (Number(item.price || 0) * Number(item.quantity || 1)));
+}
+
+function itemLineDiscount(item = {}) {
+  if (item.lineDiscountAmount !== undefined) return money(item.lineDiscountAmount);
+  const gross = itemGross(item);
+  const value = Math.max(0, Number(item.discountValue || 0));
+  const amount = item.discountType === "percent" ? (gross * Math.min(value, 100)) / 100 : value;
+  return money(Math.min(gross, amount));
+}
+
+function itemTaxableSubtotal(item = {}) {
+  if (item.lineTaxableSubtotal !== undefined) return money(item.lineTaxableSubtotal);
+  return money(Math.max(0, itemGross(item) - itemLineDiscount(item)));
+}
+
+function serviceCreditRemaining(credit = {}) {
+  return Math.max(0, Number(credit.remaining ?? credit.creditsRemaining ?? credit.credits_remaining ?? credit.credits ?? credit.quantity ?? 0));
+}
+
+function serviceCreditRules(credit = {}) {
+  return credit.benefitRules && typeof credit.benefitRules === "object" ? credit.benefitRules : {};
+}
+
+function serviceCreditMatchesMapping(credit = {}, mapping = {}) {
+  const serviceId = String(credit.serviceId || credit.service_id || "").trim().toLowerCase();
+  const serviceName = String(credit.serviceName || credit.service_name || credit.name || "").trim().toLowerCase();
+  if (!serviceId && !serviceName) return true;
+  if (serviceId && serviceId === String(mapping.serviceId || "").trim().toLowerCase()) return true;
+  if (serviceName && String(mapping.serviceName || "").trim().toLowerCase().includes(serviceName)) return true;
+  return false;
+}
+
+function mappedMembershipRedeemSubtotal(serviceLineMappings = [], items = []) {
+  const seen = new Set();
+  return money(serviceLineMappings.reduce((sum, mapping) => {
+    const lineIndex = Number(mapping.lineIndex);
+    if (!Number.isFinite(lineIndex) || seen.has(lineIndex)) return sum;
+    seen.add(lineIndex);
+    const item = items[lineIndex];
+    if (!item || !["service", "package_redeem", "product"].includes(String(item.type || ""))) return sum;
+    return sum + itemTaxableSubtotal(item);
+  }, 0));
+}
+
+function monthKey(value = now()) {
+  return String(value || "").slice(0, 7);
+}
+
+function unlimitedMonthlyUsage(membership = {}, credit = {}) {
+  const currentMonth = monthKey();
+  const serviceId = String(credit.serviceId || credit.service_id || "");
+  const serviceName = String(credit.serviceName || credit.service_name || credit.name || "").toLowerCase();
+  return (membership.redeemHistory || [])
+    .filter((entry) => monthKey(entry.redeemedAt || entry.date) === currentMonth)
+    .flatMap((entry) => Array.isArray(entry.serviceLineMappings) ? entry.serviceLineMappings : [])
+    .filter((mapping) => {
+      if (!serviceId && !serviceName) return true;
+      if (serviceId && String(mapping.serviceId || "") === serviceId) return true;
+      return serviceName && String(mapping.serviceName || "").toLowerCase().includes(serviceName);
+    })
+    .reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+}
+
+function planServiceCreditRedemption(membership = {}, serviceLineMappings = [], invoiceAdjustmentAmount = 0) {
+  const serviceCredits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
+  const mappings = Array.isArray(serviceLineMappings) ? serviceLineMappings.filter((mapping) => Number(mapping.credits || 0) > 0) : [];
+  if (!serviceCredits.length) {
+    const creditsUsed = mappings.reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
+    return { serviceCredits: [], creditsUsed, unlimited: false, prepaid: false, legacy: true };
+  }
+  const nextServiceCredits = serviceCredits.map((credit) => ({ ...credit }));
+  const prepaidIndex = nextServiceCredits.findIndex((credit) => String(credit.type || "") === "prepaid_credit");
+  if (prepaidIndex >= 0) {
+    const amount = money(invoiceAdjustmentAmount);
+    const available = money(serviceCreditRemaining(nextServiceCredits[prepaidIndex]));
+    if (amount > available) throw conflict("Membership does not have enough prepaid credit");
+    nextServiceCredits[prepaidIndex].remaining = money(available - amount);
+    return { serviceCredits: nextServiceCredits, creditsUsed: amount, unlimited: false, prepaid: true };
+  }
+
+  let consumed = 0;
+  let unlimited = false;
+  for (const mapping of mappings) {
+    let requested = Math.max(0, Math.floor(Number(mapping.credits || 0)));
+    for (let index = 0; index < nextServiceCredits.length && requested > 0; index += 1) {
+      const credit = nextServiceCredits[index];
+      const type = String(credit.type || "");
+      if (["bill_discount", "product_discount", "prepaid_credit"].includes(type)) continue;
+      if (!serviceCreditMatchesMapping(credit, mapping)) continue;
+      if (type === "unlimited_service") {
+        const rules = serviceCreditRules(credit);
+        const fairUsage = rules.fairUsage && typeof rules.fairUsage === "object" ? rules.fairUsage : {};
+        const monthlyCap = Math.max(0, Number(fairUsage.monthlyCap || 0));
+        const usedThisMonth = unlimitedMonthlyUsage(membership, credit);
+        if (monthlyCap && usedThisMonth + requested > monthlyCap) throw conflict("Membership fair-usage limit reached");
+        consumed += requested;
+        unlimited = true;
+        requested = 0;
+        break;
+      }
+      const available = serviceCreditRemaining(credit);
+      const used = Math.min(available, requested);
+      if (used <= 0) continue;
+      nextServiceCredits[index].remaining = available - used;
+      consumed += used;
+      requested -= used;
+    }
+    if (requested > 0) throw conflict("Membership service credits do not cover selected services");
+  }
+  return { serviceCredits: nextServiceCredits, creditsUsed: consumed, unlimited, prepaid: false };
+}
+
 function calculateInvoice(items = [], discount = 0, tipTotal = 0) {
-  const subtotal = items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
-  const discountAmount = Math.min(Number(discount || 0), subtotal);
-  const discountRatio = subtotal ? discountAmount / subtotal : 0;
+  const usesLinePricing = items.some(hasLinePricing);
+  if (!usesLinePricing) {
+    const subtotal = items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    const discountAmount = Math.min(Number(discount || 0), subtotal);
+    const discountRatio = subtotal ? discountAmount / subtotal : 0;
+    const gstAmount = items.reduce((sum, item) => {
+      const line = Number(item.price || 0) * Number(item.quantity || 1);
+      return sum + line * (1 - discountRatio) * (Number(item.gstRate ?? 18) / 100);
+    }, 0);
+    const tipAmount = money(tipTotal);
+    return {
+      subtotal: money(subtotal),
+      discount: money(discountAmount),
+      gstAmount: money(gstAmount),
+      tipTotal: tipAmount,
+      total: money(subtotal - discountAmount + gstAmount + tipAmount)
+    };
+  }
+
+  const subtotal = items.reduce((sum, item) => sum + itemGross(item), 0);
+  const itemDiscountTotal = items.reduce((sum, item) => sum + itemLineDiscount(item), 0);
+  const taxableBeforeBillDiscount = items.reduce((sum, item) => sum + itemTaxableSubtotal(item), 0);
+  const billDiscountAmount = Math.min(Number(discount || 0), taxableBeforeBillDiscount);
+  const afterBillDiscountRatio = taxableBeforeBillDiscount
+    ? Math.max(0, taxableBeforeBillDiscount - billDiscountAmount) / taxableBeforeBillDiscount
+    : 0;
   const gstAmount = items.reduce((sum, item) => {
-    const line = Number(item.price || 0) * Number(item.quantity || 1);
-    return sum + line * (1 - discountRatio) * (Number(item.gstRate ?? 18) / 100);
+    const taxable = itemTaxableSubtotal(item) * afterBillDiscountRatio;
+    return sum + taxable * (Number(item.gstRate ?? 18) / 100);
   }, 0);
   const tipAmount = money(tipTotal);
   return {
     subtotal: money(subtotal),
-    discount: money(discountAmount),
+    discount: money(itemDiscountTotal + billDiscountAmount),
     gstAmount: money(gstAmount),
     tipTotal: tipAmount,
-    total: money(subtotal - discountAmount + gstAmount + tipAmount)
+    total: money(subtotal - itemDiscountTotal - billDiscountAmount + gstAmount + tipAmount)
   };
 }
 
@@ -328,6 +469,14 @@ function normalizeItemAttribution(item = {}, access) {
 function normalizeSaleItems(items = [], access) {
   return items.map((item) => {
     const attribution = normalizeItemAttribution(item, access);
+    const linePricing = {
+      discountType: item.discountType || "",
+      discountValue: Number(item.discountValue || 0),
+      discountSource: item.discountSource || "",
+      ...(item.lineGross !== undefined ? { lineGross: money(item.lineGross) } : {}),
+      ...(item.lineDiscountAmount !== undefined ? { lineDiscountAmount: money(item.lineDiscountAmount) } : {}),
+      ...(item.lineTaxableSubtotal !== undefined ? { lineTaxableSubtotal: money(item.lineTaxableSubtotal) } : {})
+    };
     if (item.type === "service" && item.id) {
       const service = requireRecord(repositories.services, item.id, "Service", access);
       return {
@@ -337,6 +486,7 @@ function normalizeSaleItems(items = [], access) {
         quantity: Number(item.quantity || 1),
         price: Number(item.price ?? service.price),
         gstRate: Number(service.gstRate || 18),
+        ...linePricing,
         ...attribution
       };
     }
@@ -349,6 +499,7 @@ function normalizeSaleItems(items = [], access) {
         quantity: Number(item.quantity || 1),
         price: Number(item.price ?? product.price),
         gstRate: Number(product.gstRate || 18),
+        ...linePricing,
         ...attribution
       };
     }
@@ -359,10 +510,16 @@ function normalizeSaleItems(items = [], access) {
       quantity: Number(item.quantity || 1),
       price: Number(item.price || 0),
       gstRate: Number(item.gstRate ?? 18),
+      ...linePricing,
       ...attribution,
       discountPercent: Number(item.discountPercent || 0),
       validityDays: Number(item.validityDays || 0),
       serviceCredits: Array.isArray(item.serviceCredits) ? item.serviceCredits : [],
+      planType: item.planType || "",
+      planCredits: Number(item.planCredits || 0),
+      creditsRemaining: Number(item.creditsRemaining || item.planCredits || 0),
+      bonusAmount: Number(item.bonusAmount || 0),
+      benefitRules: item.benefitRules && typeof item.benefitRules === "object" ? item.benefitRules : {},
       packageCredits: Array.isArray(item.packageCredits) ? item.packageCredits : [],
       giftCode: item.giftCode || "",
       expiryDate: item.expiryDate || ""
@@ -375,19 +532,25 @@ function createSoldEntitlements({ clientId, branchId, saleId, items = [], access
   const soldDate = dayKey(soldAt) || now().slice(0, 10);
   for (const item of items) {
     if (item.type === "membership") {
+      const membershipCredits = Math.max(0, Number(item.creditsRemaining || item.planCredits || 0));
+      const benefitRules = item.benefitRules && typeof item.benefitRules === "object" ? item.benefitRules : {};
       created.push(repositories.memberships.create({
         id: makeId("mem"),
         clientId,
         planName: item.name,
         price: money(item.price),
-        planCredits: 0,
-        creditsRemaining: 0,
-        serviceCredits: item.serviceCredits?.length ? item.serviceCredits : [{ type: "bill_discount", percent: Number(item.discountPercent || 0), planId: item.id || "" }],
+        planCredits: membershipCredits,
+        creditsRemaining: membershipCredits,
+        serviceCredits: item.serviceCredits?.length
+          ? item.serviceCredits
+          : item.planType === "prepaid_credit"
+            ? [{ type: "prepaid_credit", credits: membershipCredits, remaining: membershipCredits, planId: item.id || "", bonusAmount: money(item.bonusAmount || 0), benefitRules }]
+            : [{ type: "bill_discount", percent: Number(item.discountPercent || 0), planId: item.id || "" }],
         validityDate: addDays(item.validityDays || 365, soldAt),
         autoRenew: 0,
         loyaltyMultiplier: 1,
         status: "active",
-        redeemHistory: [{ date: soldDate, saleId, type: "membership_sale", planId: item.id || "" }],
+        redeemHistory: [{ date: soldDate, saleId, type: "membership_sale", planId: item.id || "", planType: item.planType || "discount", credits: membershipCredits, paidAmount: money(item.price), bonusAmount: money(item.bonusAmount || 0) }],
         branchId,
         createdAt: soldAt,
         updatedAt: soldAt
@@ -757,7 +920,8 @@ export class SalonOperationsService {
       couponCode = "",
       payments = [],
       tips = [],
-      membershipRedeem = {}
+      membershipRedeem = {},
+      discountBreakdown = {}
     } = payload;
     const requestedItems = payload.items || [];
     if (!clientId || !branchId || !requestedItems.length) throw badRequest("clientId, branchId and items are required");
@@ -799,7 +963,13 @@ export class SalonOperationsService {
     const couponDiscount = money(coupon?.discountAmount || 0);
     const membershipBenefit = activeMembershipBenefit(clientId, items, access);
     const membershipDiscount = membershipBenefit.amount;
-    const totals = calculateInvoice(items, Number(discount || 0) + membershipDiscount + couponDiscount, tipTotal);
+    const hasSubmittedLinePricing = items.some(hasLinePricing);
+    const manualBillDiscount = money(Number(discountBreakdown?.manualDiscountAmount ?? discount ?? 0));
+    const membershipRedeemAdjustment = this.validatedMembershipRedeemAdjustment({ membershipRedeem, items }, access);
+    const billDiscount = hasSubmittedLinePricing
+      ? manualBillDiscount + couponDiscount + membershipRedeemAdjustment
+      : Number(discount || 0) + membershipDiscount + couponDiscount + membershipRedeemAdjustment;
+    const totals = calculateInvoice(items, billDiscount, tipTotal);
     const sale = repositories.sales.create({
       id: makeId("sale"),
       clientId,
@@ -1091,23 +1261,81 @@ export class SalonOperationsService {
     }, scope(access, sale?.branchId || ""));
   }
 
-  redeemMembership({ membershipId, creditsUsed = 0, saleId = "", serviceId = "", serviceLineMappings = [], benefitType = "", benefitName = "", remainingAfterRedeem = 0 }, access) {
+  validatedMembershipRedeemAdjustment({ membershipRedeem = {}, items = [] }, access) {
+    const amount = money(Number(membershipRedeem?.invoiceAdjustmentAmount || 0));
+    if (!membershipRedeem?.membershipId || amount <= 0) return amount;
+    const membership = requireRecord(repositories.memberships, membershipRedeem.membershipId, "Membership", access);
+    const serviceCredits = Array.isArray(membership.serviceCredits) ? membership.serviceCredits : [];
+    const prepaidCredit = serviceCredits.find((credit) => credit?.type === "prepaid_credit");
+    const serviceLineMappings = Array.isArray(membershipRedeem.serviceLineMappings) ? membershipRedeem.serviceLineMappings : [];
+    if (!prepaidCredit) {
+      if (!serviceLineMappings.length) throw conflict("Membership service credit requires service-line mappings");
+      const mappedSubtotal = mappedMembershipRedeemSubtotal(serviceLineMappings, items);
+      if (amount > mappedSubtotal) throw conflict("Membership credit exceeds mapped service amount");
+      const redemption = planServiceCreditRedemption(membership, serviceLineMappings, amount);
+      const requestedCredits = Number(membershipRedeem.creditsUsed || redemption.creditsUsed || 0);
+      if (redemption.legacy && Number(membership.creditsRemaining || 0) < requestedCredits) throw conflict("Membership does not have enough credits");
+      return amount;
+    }
+    const creditsRemaining = money(serviceCreditRemaining(prepaidCredit));
+    if (creditsRemaining < amount) throw conflict("Membership does not have enough credits");
+    const rules = prepaidCredit.benefitRules && typeof prepaidCredit.benefitRules === "object" ? prepaidCredit.benefitRules : {};
+    const restriction = rules.serviceRestriction && typeof rules.serviceRestriction === "object" ? rules.serviceRestriction : {};
+    const restrictionType = String(restriction.type || "all");
+    const tokens = String(restriction.value || "")
+      .toLowerCase()
+      .split(",")
+      .map((token) => token.trim())
+      .filter(Boolean);
+    const eligibleSubtotal = items
+      .filter((item) => {
+        if (item.type === "product") return Boolean(rules.allowProductRedeem);
+        if (item.type !== "service" && item.type !== "package_redeem") return false;
+        if (restrictionType === "all" || !tokens.length) return true;
+        const haystack = `${item.id || ""} ${item.name || ""}`.toLowerCase();
+        return tokens.some((token) => haystack.includes(token));
+      })
+      .reduce((sum, item) => sum + itemTaxableSubtotal(item), 0);
+    const limit = rules.perVisitLimit && typeof rules.perVisitLimit === "object" ? rules.perVisitLimit : {};
+    const limitType = String(limit.type || "none");
+    const limitValue = Math.max(0, Number(limit.value || 0));
+    const perVisitCap = limitType === "fixed"
+      ? limitValue
+      : limitType === "bill_percent" && limitValue > 0
+        ? money(eligibleSubtotal * (limitValue / 100))
+        : eligibleSubtotal;
+    const cap = money(Math.min(creditsRemaining, eligibleSubtotal, perVisitCap));
+    if (amount > cap) throw conflict("Membership credit exceeds eligible amount");
+    return amount;
+  }
+
+  redeemMembership({ membershipId, creditsUsed = 0, saleId = "", serviceId = "", serviceLineMappings = [], benefitType = "", benefitName = "", remainingAfterRedeem = 0, invoiceAdjustmentAmount = 0 }, access) {
     if (!membershipId || !creditsUsed) return null;
     const membership = requireRecord(repositories.memberships, membershipId, "Membership", access);
-    if (Number(membership.creditsRemaining) < Number(creditsUsed)) {
-      throw conflict("Membership does not have enough credits");
-    }
+    const creditsBefore = Number(membership.creditsRemaining || 0);
+    const redemption = planServiceCreditRedemption(membership, serviceLineMappings, money(invoiceAdjustmentAmount || creditsUsed));
+    const deductedCredits = redemption.prepaid ? money(invoiceAdjustmentAmount || creditsUsed) : Number(redemption.creditsUsed || creditsUsed);
+    if (!redemption.unlimited && (redemption.legacy || creditsBefore > 0) && creditsBefore < deductedCredits) throw conflict("Membership does not have enough credits");
+    const creditsAfter = redemption.unlimited ? creditsBefore : Math.max(0, creditsBefore - deductedCredits);
     return repositories.memberships.update(membershipId, {
-      creditsRemaining: Number(membership.creditsRemaining) - Number(creditsUsed),
+      creditsRemaining: creditsAfter,
+      serviceCredits: redemption.serviceCredits,
       redeemHistory: [
         {
           date: now().slice(0, 10),
+          redeemedAt: now(),
+          type: "membership_redeem",
           credits: Number(creditsUsed),
+          creditsUsed: Number(creditsUsed),
+          creditsBefore,
+          creditsAfter,
+          invoiceAdjustmentAmount: money(invoiceAdjustmentAmount || creditsUsed),
           saleId,
           serviceId,
           benefitType,
           benefitName,
           remainingAfterRedeem: Number(remainingAfterRedeem || 0),
+          unlimited: redemption.unlimited,
           serviceLineMappings: Array.isArray(serviceLineMappings) ? serviceLineMappings : []
         },
         ...(membership.redeemHistory || [])
@@ -1351,14 +1579,6 @@ export class SalonOperationsService {
           .filter((item) => !["cash", "upi", "card"].includes(String(item.mode || "").toLowerCase()))
           .reduce((sum, item) => sum + Number(item.amount || 0), 0))
       },
-      paymentModeSummary: Object.entries(
-        payments.reduce((acc, p) => {
-          const mode = String(p.mode || "Other").trim() || "Other";
-          acc[mode] = (acc[mode] || 0) + Number(p.amount || 0);
-          return acc;
-        }, {})
-      ).map(([mode, amount]) => ({ mode, amount: money(amount) }))
-        .sort((a, b) => b.amount - a.amount),
       profitLoss: { revenue: money(revenue), estimatedInventoryCost: money(cost), grossProfit: money(revenue - cost) },
       quickLinks: [
         { label: "Staff Sales", path: "/reports/staff-sales", module: "POS attribution" },

@@ -1,5 +1,5 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit, effect, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, forkJoin, of, Subscription } from 'rxjs';
@@ -12,7 +12,7 @@ type ItemDiscountType = 'amount' | 'percent';
 type ItemDiscountSource = 'none' | 'manual' | 'membership';
 
 type SaleItem = {
-  type: 'service' | 'product' | 'membership' | 'package' | 'gift_card' | 'custom';
+  type: 'service' | 'product' | 'membership' | 'package' | 'gift_card' | 'package_redeem' | 'custom';
   id: string;
   name: string;
   quantity: number;
@@ -27,6 +27,11 @@ type SaleItem = {
   discountSource?: ItemDiscountSource;
   validityDays?: number;
   serviceCredits?: ApiRecord[];
+  planType?: string;
+  planCredits?: number;
+  creditsRemaining?: number;
+  bonusAmount?: number;
+  benefitRules?: ApiRecord;
   packageCredits?: ApiRecord[];
   giftCode?: string;
   expiryDate?: string;
@@ -42,7 +47,24 @@ type BenefitServiceMapping = {
   lineIndex: number;
   serviceId: string;
   serviceName: string;
+  staffId?: string;
+  staffName?: string;
   credits: number;
+};
+
+type RedeemableServiceLine = {
+  lineIndex: number;
+  serviceId: string;
+  serviceName: string;
+  staffId: string;
+  staffName: string;
+  finalAmount: number;
+};
+
+type MembershipLineBenefitState = {
+  status: 'credit' | 'unlimited' | 'discount' | 'eligible' | 'none';
+  label: string;
+  detail: string;
 };
 
 type TipLine = {
@@ -69,6 +91,26 @@ type ClientSearchIndex = {
   membershipBadge: string;
   membershipMeta: string;
   duplicate: boolean;
+};
+
+type PackageRedeemRow = {
+  id: string;
+  membershipId: string;
+  packageName: string;
+  serviceId: string;
+  serviceName: string;
+  pendingQty: number;
+  totalQty: number;
+  expiry: string;
+  status: 'active' | 'expired';
+};
+
+type PackageClientNotice = {
+  status: 'active' | 'expired';
+  title: string;
+  summary: string;
+  credits: string;
+  expiry: string;
 };
 
 @Component({
@@ -158,6 +200,7 @@ type ClientSearchIndex = {
             <label class="field smart-search-field pos-floating-search client-search-field" style="min-width: 0;">
               <span>Client</span>
               <input
+                #clientSearchInput
                 type="search"
                 [ngModel]="clientSearchText"
                 (ngModelChange)="setClientSearch($event)"
@@ -167,72 +210,70 @@ type ClientSearchIndex = {
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Search name, mobile, email, code, membership"
               />
-              <div class="smart-search-results pos-search-results client-search-results" *ngIf="showClientResults()">
-                <div class="client-search-caption">
-                  <span>{{ debouncedClientQuery() ? 'Matching contacts' : 'Recent contacts' }}</span>
-                  <small>{{ clientSearchResults().length }} shown</small>
-                </div>
-                <article
-                  class="client-result-card"
-                  [class.active]="clientResultActive(client)"
-                  role="button"
-                  tabindex="0"
-                  *ngFor="let client of clientSearchResults()"
-                  (mousedown)="$event.preventDefault()"
-                  (click)="selectClient(client)"
-                  (keydown.enter)="selectClient(client)"
-                >
-                  <span class="client-avatar">{{ clientInitial(client) }}</span>
-                  <span class="client-result-main">
-                    <strong>
-                      <ng-container *ngFor="let segment of highlightSegments(client.name || 'Client')">
-                        <mark *ngIf="segment.match; else clientNamePlain">{{ segment.text }}</mark>
-                        <ng-template #clientNamePlain>{{ segment.text }}</ng-template>
-                      </ng-container>
-                    </strong>
-                    <span>
-                      <ng-container *ngFor="let segment of highlightSegments(clientPrimaryPhone(client))">
-                        <mark *ngIf="segment.match; else clientPhonePlain">{{ segment.text }}</mark>
-                        <ng-template #clientPhonePlain>{{ segment.text }}</ng-template>
-                      </ng-container>
-                    </span>
-                    <small>{{ clientResultMeta(client) }}</small>
-                    <span class="client-badges">
-                      <span class="client-badge good" *ngIf="clientMembershipBadge(client)">{{ clientMembershipBadge(client) }}</span>
-                      <span class="client-badge wallet" *ngIf="Number(client.walletBalance || 0) > 0">Wallet {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
-                      <span class="client-badge due" *ngIf="Number(client.unpaidBalance || 0) > 0">Due {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
-                      <span class="client-badge warning" *ngIf="possibleDuplicateClient(client)">Duplicate?</span>
-                    </span>
-                  </span>
-                  <a
-                    class="client-call-button whatsapp"
-                    *ngIf="clientWhatsAppHref(client)"
-                    [href]="clientWhatsAppHref(client)"
-                    target="_blank"
-                    rel="noopener"
-                    aria-label="WhatsApp client"
-                    (mousedown)="$event.preventDefault()"
-                    (click)="$event.stopPropagation()"
-                  >
-                    WA
-                  </a>
-                  <a
-                    class="client-call-button"
-                    *ngIf="clientCallHref(client)"
-                    [href]="clientCallHref(client)"
-                    aria-label="Call client"
-                    (mousedown)="$event.preventDefault()"
-                    (click)="$event.stopPropagation()"
-                  >
-                    Call
-                  </a>
-                </article>
-                <div class="client-empty-state" *ngIf="clientSearchActive && debouncedClientQuery() && !clientSearchResults().length">
-                  No contacts found
-                </div>
-              </div>
               <small *ngIf="clientSearchPending()">Searching...</small>
             </label>
+            <div class="smart-search-results pos-search-results client-search-results" *ngIf="showClientResults()">
+              <div class="client-search-caption">
+                <span>{{ debouncedClientQuery() ? 'Matching contacts' : 'Recent contacts' }}</span>
+                <small>{{ clientSearchResults().length }} shown</small>
+              </div>
+              <button
+                class="client-result-card"
+                [class.active]="clientResultActive(client)"
+                type="button"
+                *ngFor="let client of clientSearchResults()"
+                (pointerdown)="selectClientFromResult($event, client)"
+                (click)="selectClient(client)"
+              >
+                <span class="client-avatar">{{ clientInitial(client) }}</span>
+                <span class="client-result-main">
+                  <strong>
+                    <ng-container *ngFor="let segment of highlightSegments(client.name || 'Client')">
+                      <mark *ngIf="segment.match; else clientNamePlain">{{ segment.text }}</mark>
+                      <ng-template #clientNamePlain>{{ segment.text }}</ng-template>
+                    </ng-container>
+                  </strong>
+                  <span>
+                    <ng-container *ngFor="let segment of highlightSegments(clientPrimaryPhone(client))">
+                      <mark *ngIf="segment.match; else clientPhonePlain">{{ segment.text }}</mark>
+                      <ng-template #clientPhonePlain>{{ segment.text }}</ng-template>
+                    </ng-container>
+                  </span>
+                  <small>{{ clientResultMeta(client) }}</small>
+                  <span class="client-badges">
+                    <span class="client-badge good" *ngIf="clientMembershipBadge(client)">{{ clientMembershipBadge(client) }}</span>
+                    <span class="client-badge wallet" *ngIf="Number(client.walletBalance || 0) > 0">Wallet {{ Number(client.walletBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                    <span class="client-badge due" *ngIf="Number(client.unpaidBalance || 0) > 0">Due {{ Number(client.unpaidBalance || 0) | currency: 'INR':'symbol':'1.0-0' }}</span>
+                    <span class="client-badge warning" *ngIf="possibleDuplicateClient(client)">Duplicate?</span>
+                  </span>
+                </span>
+                <a
+                  class="client-call-button whatsapp"
+                  *ngIf="clientWhatsAppHref(client)"
+                  [href]="clientWhatsAppHref(client)"
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="WhatsApp client"
+                  (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+                  (click)="$event.stopPropagation()"
+                >
+                  WA
+                </a>
+                <a
+                  class="client-call-button"
+                  *ngIf="clientCallHref(client)"
+                  [href]="clientCallHref(client)"
+                  aria-label="Call client"
+                  (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+                  (click)="$event.stopPropagation()"
+                >
+                  Call
+                </a>
+              </button>
+              <div class="client-empty-state" *ngIf="clientSearchActive && debouncedClientQuery() && !clientSearchResults().length">
+                No contacts found
+              </div>
+            </div>
             <button class="ghost-button fit pos-add-client-button" type="button" *ngIf="canCreateClientFromSearch()" (click)="openClientFormFromSearch()">Add client</button>
             <div class="client-search-actions">
               <button class="dark-button fit" type="button" (click)="useWalkinClient()">Walkin Client</button>
@@ -244,6 +285,71 @@ type ClientSearchIndex = {
               <strong>{{ currentBranchName() }}</strong>
               <small>POS billing is locked to the top header branch.</small>
             </div>
+            <section
+              class="package-billing-alert"
+              [class.package-billing-alert--expired]="packageNotice.status === 'expired'"
+              *ngIf="selectedClientPackageNotice() as packageNotice"
+            >
+              <div>
+                <span>{{ packageNotice.status === 'active' ? 'Active package' : 'Expired package' }}</span>
+                <strong>{{ packageNotice.title }}</strong>
+                <small>{{ packageNotice.summary }}</small>
+              </div>
+              <div class="package-billing-alert__meta">
+                <span>Credits {{ packageNotice.credits }}</span>
+                <span>Expiry {{ packageNotice.expiry }}</span>
+              </div>
+            </section>
+            <section class="package-redeem-panel" *ngIf="selectedClientPackageRows().length">
+              <div class="package-redeem-header">
+                <strong>Package redemption</strong>
+                <small>{{ selectedClientPackageRows().length }} package service row(s)</small>
+              </div>
+              <div class="package-redeem-grid package-redeem-grid--head">
+                <span>Package</span>
+                <span>Service</span>
+                <span>Pending Qty</span>
+                <span>Redeem Qty</span>
+                <span>Staff</span>
+                <span>Action</span>
+              </div>
+              <div
+                class="package-redeem-grid"
+                [class.package-redeem-grid--expired]="row.status === 'expired'"
+                *ngFor="let row of selectedClientPackageRows(); trackBy: trackPackageRedeemRow"
+              >
+                <strong>{{ row.packageName }}</strong>
+                <span>{{ row.serviceName }}</span>
+                <span>{{ row.pendingQty }}</span>
+                <input
+                  type="number"
+                  min="0"
+                  [max]="row.pendingQty"
+                  [ngModel]="packageRedeemQty(row)"
+                  (ngModelChange)="setPackageRedeemQty(row, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                  [disabled]="row.status === 'expired'"
+                />
+                <select
+                  [ngModel]="packageRedeemStaff(row)"
+                  (ngModelChange)="setPackageRedeemStaff(row, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                  [disabled]="row.status === 'expired'"
+                >
+                  <option value="">Use invoice staff</option>
+                  <option *ngFor="let person of staff()" [value]="person.id">{{ person.name }}</option>
+                </select>
+                <button
+                  class="ghost-button mini"
+                  type="button"
+                  (click)="redeemPackageRow(row)"
+                  [disabled]="row.status === 'expired' || packageRedeemQty(row) <= 0"
+                >
+                  Redeem
+                </button>
+                <small class="package-redeem-expiry">Expiry {{ row.expiry }}</small>
+              </div>
+            </section>
             <label class="field billing-date-field">
               <span>Invoice date</span>
               <input type="date" formControlName="invoiceDate" [attr.max]="invoiceDateMax" />
@@ -253,11 +359,13 @@ type ClientSearchIndex = {
               <span>Staff</span>
               <div class="staff-search-input-wrap">
                 <input
+                  #staffSearchInput
                   type="search"
                   [ngModel]="staffSearchText"
                   (ngModelChange)="setStaffSearch($event)"
                   (focus)="staffSearchActive = true"
                   (blur)="closeStaffSearchSoon()"
+                  (keydown)="handleStaffSearchKeydown($event)"
                   [ngModelOptions]="{ standalone: true }"
                   placeholder="Search staff name, phone, role, ID 1/2"
                 />
@@ -350,11 +458,13 @@ type ClientSearchIndex = {
             <label class="field smart-search-field">
               <span>Add service</span>
               <input
+                #serviceSearchInput
                 type="search"
                 [ngModel]="serviceSearchText"
                 (ngModelChange)="setServiceSearch($event)"
                 (focus)="serviceSearchActive = true"
                 (blur)="closeServiceSearchSoon()"
+                (keydown)="handleServiceSearchKeydown($event)"
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Type service name, e.g. cut"
               />
@@ -395,11 +505,13 @@ type ClientSearchIndex = {
             <label class="field smart-search-field">
               <span>Add product</span>
               <input
+                #productSearchInput
                 type="search"
                 [ngModel]="productSearchText"
                 (ngModelChange)="setProductSearch($event)"
                 (focus)="productSearchActive = true"
                 (blur)="closeProductSearchSoon()"
+                (keydown)="handleProductSearchKeydown($event)"
                 [ngModelOptions]="{ standalone: true }"
                 placeholder="Type product name, SKU, barcode"
               />
@@ -442,27 +554,35 @@ type ClientSearchIndex = {
           <div class="benefit-lines">
             <label class="field">
               <span>Membership sale</span>
-              <select #membershipPlanSelect>
+              <select
+                #membershipPlanSelect
+                (change)="addMembershipPlanFromSelect(membershipPlanSelect)"
+                (keydown)="handleMembershipPlanKeydown($event, membershipPlanSelect)"
+              >
                 <option value="">Choose membership</option>
-                <option *ngFor="let plan of activeMembershipPlans()" [value]="plan.id">{{ plan.name }} - ₹{{ plan.price }} / {{ plan.discountPercent }}% every bill</option>
+                <option *ngFor="let plan of activeMembershipPlans()" [value]="plan.id">{{ membershipPlanLabel(plan) }}</option>
               </select>
             </label>
-            <button class="ghost-button" type="button" (click)="addMembershipPlan(membershipPlanSelect.value); membershipPlanSelect.value = ''">Add</button>
+            <button class="ghost-button" type="button" (click)="addMembershipPlanFromSelect(membershipPlanSelect)">Add</button>
 
             <label class="field">
               <span>Package sale</span>
-              <select #packageSelect>
+              <select
+                #packageSelect
+                (change)="addPackageFromSelect(packageSelect)"
+                (keydown)="handlePackageKeydown($event, packageSelect)"
+              >
                 <option value="">Choose package</option>
                 <option *ngFor="let itemPackage of packages()" [value]="itemPackage.id">{{ itemPackage.name }} - ₹{{ itemPackage.price }}</option>
               </select>
             </label>
-            <button class="ghost-button" type="button" (click)="addPackage(packageSelect.value); packageSelect.value = ''">Add</button>
+            <button class="ghost-button" type="button" (click)="addPackageFromSelect(packageSelect)">Add</button>
 
             <label class="field">
               <span>Gift card sale</span>
-              <input #giftCardAmount type="number" min="0" placeholder="Gift card amount" />
+              <input #giftCardAmount type="number" min="0" placeholder="Gift card amount" (keydown)="handleGiftCardAmountKeydown($event, giftCardAmount)" />
             </label>
-            <button class="ghost-button" type="button" (click)="addGiftCard(giftCardAmount.value); giftCardAmount.value = ''">Add</button>
+            <button class="ghost-button" type="button" (click)="addGiftCardFromInput(giftCardAmount)">Add</button>
           </div>
 
           <div class="table-wrap">
@@ -484,6 +604,14 @@ type ClientSearchIndex = {
                   <td>
                     <span style="display: block; margin-bottom: 6px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase;">{{ itemCategoryTitle(item) }}</span>
                     <span>{{ item.name }}</span>
+                    <small
+                      *ngIf="membershipLineBenefitState(item, index).status !== 'none'"
+                      class="membership-line-badge"
+                      [ngClass]="'membership-line-badge--' + membershipLineBenefitState(item, index).status"
+                    >
+                      {{ membershipLineBenefitState(item, index).label }}
+                      <span *ngIf="membershipLineBenefitState(item, index).detail">· {{ membershipLineBenefitState(item, index).detail }}</span>
+                    </small>
                   </td>
                   <td>
                     <div class="line-staff-box" [class.has-splits]="item.staffSplits?.length">
@@ -594,13 +722,22 @@ type ClientSearchIndex = {
                 <option *ngFor="let benefit of redeemableBenefits()" [value]="benefit.membershipId || benefit.id">{{ redeemableBenefitOption(benefit) }}</option>
               </select>
             </label>
-            <button class="ghost-button summary-apply-button" type="button" (click)="useAllRedeemableCredits()" [disabled]="!selectedRedeemableBenefit() || !selectedRedeemableBenefitRemainingCredits()">
+            <button class="ghost-button summary-apply-button" type="button" (click)="useAllRedeemableCredits()" [disabled]="!selectedRedeemableBenefit() || !membershipCreditRedeemCap()">
               Use all
             </button>
           </div>
           <p class="inline-hint" *ngIf="selectedRedeemableBenefit() as benefit">
-            Redeeming {{ redeemableBenefitTypeLabel(benefit) }} {{ benefit.planName || benefit.name || benefit.membershipId }}. {{ selectedRedeemableBenefitRemainingCredits() }} credits available before invoice save.
+            Redeeming {{ redeemableBenefitTypeLabel(benefit) }} {{ benefit.planName || benefit.name || benefit.membershipId }}.
+            {{ selectedRedeemableBenefitRemainingCredits() }} credits available · {{ membershipCreditRedeemCap(benefit) }} eligible for this bill.
           </p>
+          <div class="membership-redemption-panel" *ngIf="selectedClient()">
+            <strong>{{ membershipRedemptionPanelTitle() }}</strong>
+            <span>{{ membershipRedemptionPanelSummary() }}</span>
+            <span *ngIf="membershipRedemptionConflictReason()" class="warning-text">{{ membershipRedemptionConflictReason() }}</span>
+          </div>
+          <div class="inline-hint" *ngIf="membershipEligibilityNotes().length">
+            <span *ngFor="let note of membershipEligibilityNotes()">{{ note }}</span>
+          </div>
           <section class="benefit-mapping-box" *ngIf="selectedRedeemableBenefit() as benefit">
             <div class="benefit-mapping-box__header">
               <div>
@@ -687,6 +824,7 @@ type ClientSearchIndex = {
             <div><span>Subtotal</span><strong>{{ subtotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Manual discount</span><strong>{{ manualDiscountAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div *ngIf="membershipAutoDiscount > 0"><span>{{ membershipAutoDiscountLabel }}</span><strong>{{ membershipAutoDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
+            <div *ngIf="membershipCreditAdjustmentAmount() > 0"><span>Membership credit redeem</span><strong>{{ membershipCreditAdjustmentAmount() | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Coupon discount</span><strong>{{ couponDiscount | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>GST</span><strong>{{ gst | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
             <div><span>Staff tips</span><strong>{{ tipTotal | currency: 'INR':'symbol':'1.0-0' }}</strong></div>
@@ -869,23 +1007,8 @@ type ClientSearchIndex = {
     </section>
   `,
   styles: [`
-    :host .pos-layout > .panel {
-      overflow: visible;
-      display: flex;
-      flex-direction: column;
-    }
-
-    :host .pos-layout > .panel > .table-wrap {
-      flex: 1 1 auto;
-      min-height: 80px;
-    }
-
-    :host .pos-layout > .checkout-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
+    :host .pos-layout,
+    :host .pos-layout > .panel,
     :host .pos-form {
       overflow: visible;
     }
@@ -944,7 +1067,7 @@ type ClientSearchIndex = {
     }
 
     :host .settlement-preview-metrics span {
-      color: var(--teal);
+      color: #0f766e;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
@@ -973,6 +1096,52 @@ type ClientSearchIndex = {
       border: 1px solid rgba(15, 118, 110, 0.14);
       border-radius: 10px;
       background: #f8fffd;
+    }
+
+    :host .membership-redemption-panel {
+      display: grid;
+      gap: 4px;
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid #d7e8e2;
+      border-radius: 8px;
+      background: #f8fcfa;
+      color: #315148;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    :host .membership-line-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #d8e2df;
+      background: #f8fafc;
+      color: #52625d;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    :host .membership-line-badge--credit,
+    :host .membership-line-badge--unlimited {
+      border-color: #9bd8c4;
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    :host .membership-line-badge--discount {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    :host .membership-line-badge--eligible {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #92400e;
     }
 
     :host .benefit-mapping-box__header,
@@ -1161,7 +1330,7 @@ type ClientSearchIndex = {
       transform: translateY(-50%);
       border: 0;
       border-radius: 999px;
-      color: var(--teal);
+      color: #0f766e;
       background: rgba(15, 118, 110, 0.1);
       font-weight: 900;
       cursor: pointer;
@@ -1200,7 +1369,7 @@ type ClientSearchIndex = {
       place-items: center;
       border-radius: 999px;
       color: #f8fafc;
-      background: linear-gradient(135deg, var(--teal), #2563eb);
+      background: linear-gradient(135deg, #0f766e, #2563eb);
       font-weight: 900;
     }
 
@@ -1252,6 +1421,127 @@ type ClientSearchIndex = {
       background: #fef3c7;
     }
 
+    :host .package-billing-alert {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      min-height: 58px;
+      border: 2px solid #22c55e;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #ecfdf5;
+      box-shadow: inset 4px 0 0 #16a34a;
+    }
+
+    :host .package-billing-alert div {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    :host .package-billing-alert span {
+      color: #047857;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    :host .package-billing-alert strong {
+      color: #0f172a;
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    :host .package-billing-alert small {
+      color: #166534;
+      line-height: 1.35;
+    }
+
+    :host .package-billing-alert__meta {
+      flex: 0 0 auto;
+      justify-items: end;
+      text-align: right;
+    }
+
+    :host .package-billing-alert--expired {
+      border-color: #f59e0b;
+      background: #fffbeb;
+      box-shadow: inset 4px 0 0 #dc2626;
+    }
+
+    :host .package-billing-alert--expired span {
+      color: #b45309;
+    }
+
+    :host .package-billing-alert--expired small {
+      color: #92400e;
+    }
+
+    :host .package-redeem-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 8px;
+      border: 1px solid #c7d2fe;
+      border-radius: 8px;
+      padding: 10px;
+      background: #ede9fe;
+    }
+
+    :host .package-redeem-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: #111827;
+    }
+
+    :host .package-redeem-header small,
+    :host .package-redeem-expiry {
+      color: #475569;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    :host .package-redeem-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1.35fr 0.65fr 0.7fr 1.2fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    :host .package-redeem-grid--head {
+      padding: 0 8px;
+      color: #1f2937;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    :host .package-redeem-grid input,
+    :host .package-redeem-grid select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      padding: 8px 10px;
+      background: #fff;
+      color: #0f172a;
+    }
+
+    :host .package-redeem-grid--expired {
+      opacity: 0.72;
+      background: #fff7ed;
+    }
+
+    :host .package-redeem-expiry {
+      grid-column: 1 / -1;
+    }
+
     :host .client-result-main mark {
       padding: 0 1px;
       border-radius: 3px;
@@ -1262,7 +1552,7 @@ type ClientSearchIndex = {
     :host .client-call-button {
       padding: 8px 12px;
       border-radius: 999px;
-      color: var(--teal);
+      color: #0f766e;
       background: rgba(15, 118, 110, 0.1);
       font-size: 12px;
       font-weight: 900;
@@ -1363,7 +1653,15 @@ type ClientSearchIndex = {
     }
   `]
 })
-export class PosComponent implements OnInit, OnDestroy {
+export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('clientSearchInput') private clientSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('staffSearchInput') private staffSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('serviceSearchInput') private serviceSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('productSearchInput') private productSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('membershipPlanSelect') private membershipPlanSelect?: ElementRef<HTMLSelectElement>;
+  @ViewChild('packageSelect') private packageSelect?: ElementRef<HTMLSelectElement>;
+  @ViewChild('giftCardAmount') private giftCardAmount?: ElementRef<HTMLInputElement>;
+
   readonly clients = signal<ApiRecord[]>([]);
   readonly staff = signal<ApiRecord[]>([]);
   readonly services = signal<ApiRecord[]>([]);
@@ -1407,6 +1705,8 @@ export class PosComponent implements OnInit, OnDestroy {
   creditsUsed = 0;
   membershipId = '';
   benefitServiceMappings: BenefitServiceMapping[] = [];
+  packageRedeemQuantities: Record<string, number> = {};
+  packageRedeemStaffIds: Record<string, string> = {};
   clientSearchText = '';
   staffSearchText = '';
   serviceSearchText = '';
@@ -1455,7 +1755,44 @@ export class PosComponent implements OnInit, OnDestroy {
   private readonly branchSelectionSub = new Subscription();
   private branchSyncReady = false;
   private clientSearchTimer = 0;
+  private clientSearchRequestId = 0;
+  private redeemableBenefitsCacheKey = '';
+  private redeemableBenefitsCache: ApiRecord[] = [];
+  private redeemableServiceLinesCacheKey = '';
+  private redeemableServiceLinesCache: RedeemableServiceLine[] = [];
+  private selectedBenefitMappingsCacheKey = '';
+  private selectedBenefitMappingsCache: BenefitServiceMapping[] = [];
   private readonly clientSearchIndex = new Map<string, ClientSearchIndex>();
+  private readonly selectedClientId = signal('');
+  readonly selectedClientPackageRecords = computed<ApiRecord[]>(() => {
+    const clientId = this.selectedClientId();
+    return clientId ? this.clientPackageRecords(clientId) : [];
+  });
+  readonly selectedClientPackageRows = computed<PackageRedeemRow[]>(() => [...this.selectedClientPackageRecords()]
+    .sort((a, b) => this.packageSortTime(b) - this.packageSortTime(a))
+    .flatMap((membership) => this.packageCreditRows(membership)));
+  readonly selectedClientPackageNotice = computed<PackageClientNotice | null>(() => {
+    const packages = [...this.selectedClientPackageRecords()];
+    if (!packages.length) return null;
+    const active = packages
+      .filter((membership) => this.packageStatus(membership) === 'active')
+      .sort((a, b) => this.packageSortTime(b) - this.packageSortTime(a))[0];
+    const selected = active || packages.sort((a, b) => this.packageSortTime(b) - this.packageSortTime(a))[0];
+    const status = this.packageStatus(selected);
+    const creditsRemaining = this.packageRemainingCredits(selected);
+    const totalCredits = this.packageTotalCredits(selected);
+    const expiry = selected.validityDate ? this.dateLabel(selected.validityDate) : 'No expiry';
+    const title = this.packageDisplayName(selected);
+    return {
+      status,
+      title,
+      summary: status === 'active'
+        ? `${title} active hai. Billing me package redeem kar sakte ho.`
+        : `${title} expire/used ho gaya hai. Renewal ya new package sale check karo.`,
+      credits: totalCredits > 0 ? `${creditsRemaining}/${totalCredits}` : String(creditsRemaining),
+      expiry
+    };
+  });
 
   constructor(
     private readonly api: ApiService,
@@ -1496,6 +1833,60 @@ export class PosComponent implements OnInit, OnDestroy {
     this.load();
   }
 
+  ngAfterViewInit(): void {
+    this.focusInitialDirectInvoiceField();
+  }
+
+  private focusInitialDirectInvoiceField(): void {
+    this.focusLater(() => {
+      if (!this.form.value.clientId) {
+        this.focusClientSearch();
+        return;
+      }
+      if (!this.form.value.staffId) {
+        this.focusStaffSearch();
+        return;
+      }
+      this.focusServiceSearch();
+    });
+  }
+
+  private focusLater(action: () => void): void {
+    window.setTimeout(action, 0);
+  }
+
+  private focusClientSearch(): void {
+    this.clientSearchActive = true;
+    this.clientSearchInput?.nativeElement.focus();
+  }
+
+  private focusStaffSearch(): void {
+    this.staffSearchActive = true;
+    this.staffSearchInput?.nativeElement.focus();
+  }
+
+  private focusServiceSearch(): void {
+    this.serviceSearchActive = true;
+    this.serviceSearchInput?.nativeElement.focus();
+  }
+
+  private focusProductSearch(): void {
+    this.productSearchActive = true;
+    this.productSearchInput?.nativeElement.focus();
+  }
+
+  private focusMembershipPlan(): void {
+    this.membershipPlanSelect?.nativeElement.focus();
+  }
+
+  private focusPackageSelect(): void {
+    this.packageSelect?.nativeElement.focus();
+  }
+
+  private focusGiftCardAmount(): void {
+    this.giftCardAmount?.nativeElement.focus();
+  }
+
   ngOnDestroy(): void {
     window.clearTimeout(this.clientSearchTimer);
     this.branchSelectionSub.unsubscribe();
@@ -1532,7 +1923,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
   get billLevelDiscount(): number {
     const base = Math.max(0, this.subtotal - this.itemDiscountTotal);
-    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount));
+    return this.money(Math.min(base, this.manualDiscountAmount + this.couponDiscount + this.membershipCreditAdjustmentAmount()));
   }
 
   get gst(): number {
@@ -1717,6 +2108,39 @@ export class PosComponent implements OnInit, OnDestroy {
     return membership ? `${membership.planName} ${percent}% discount` : 'Membership discount';
   }
 
+  get prepaidMembershipRedeemDiscount(): number {
+    const benefit = this.selectedRedeemableBenefit();
+    if (!benefit || !this.isPrepaidCreditBenefit(benefit) || Number(this.creditsUsed || 0) <= 0) return 0;
+    const mappedLines = this.selectedBenefitServiceMappings();
+    const taxableMappedTotal = mappedLines.length
+      ? mappedLines.reduce((sum, mapping) => {
+          const item = this.items()[mapping.lineIndex];
+          return item && this.membershipCreditAllowedForItem(item, benefit) ? sum + this.lineTaxableSubtotal(item) : sum;
+        }, 0)
+      : this.redeemableServiceLines(benefit).reduce((sum, line) => {
+          const item = this.items()[line.lineIndex];
+          return item ? sum + this.lineTaxableSubtotal(item) : sum;
+        }, 0);
+    const baseAfterManual = Math.max(0, this.subtotal - this.itemDiscountTotal - this.manualDiscountAmount - this.couponDiscount);
+    return this.money(Math.min(Math.max(0, Number(this.creditsUsed || 0)), taxableMappedTotal, baseAfterManual, this.membershipCreditRedeemCap(benefit)));
+  }
+
+  membershipCreditAdjustmentAmount(): number {
+    const benefit = this.selectedRedeemableBenefit();
+    if (!benefit || Number(this.creditsUsed || 0) <= 0) return 0;
+    if (this.isPrepaidCreditBenefit(benefit)) return this.prepaidMembershipRedeemDiscount;
+    if (!this.isCreditBenefit(benefit)) return 0;
+    const mappedLines = this.selectedBenefitServiceMappings();
+    if (!mappedLines.length) return 0;
+    const taxableMappedTotal = mappedLines.reduce((sum, mapping) => {
+      const item = this.items()[mapping.lineIndex];
+      if (!item || !this.membershipCreditAllowedForItem(item, benefit)) return sum;
+      return sum + this.lineTaxableSubtotal(item);
+    }, 0);
+    const baseAfterManual = Math.max(0, this.subtotal - this.itemDiscountTotal - this.manualDiscountAmount - this.couponDiscount);
+    return this.money(Math.min(taxableMappedTotal, baseAfterManual));
+  }
+
   get totalDiscount(): number {
     return this.money(Math.min(this.subtotal, this.itemDiscountTotal + this.billLevelDiscount));
   }
@@ -1777,6 +2201,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!hadPendingHold) this.restoreActiveBillingDraft();
         this.applyRouteClientSelection(clientsWithBalances);
         this.loading.set(false);
+        this.focusInitialDirectInvoiceField();
       },
       error: (error) => {
         this.error.set(error?.error?.error || 'Unable to load POS data');
@@ -1852,6 +2277,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.bookingAdvanceInfo.set(null);
     this.bookingAdvanceLoading.set(false);
     this.bookingAdvanceAppliedAmount.set(0);
+    this.selectedClientId.set('');
     this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
     const invoiceText = invoiceNumber ? ` Invoice ${invoiceNumber} already exists.` : '';
     this.dataHint.set(`Appointment ${appointmentId} is already billed.${invoiceText} POS will not reopen it.`);
@@ -1870,6 +2296,7 @@ export class PosComponent implements OnInit, OnDestroy {
     if (client) {
       this.selectClient(client);
     } else {
+      this.selectedClientId.set(clientId);
       this.form.patchValue({ clientId }, { emitEvent: false });
       this.clientSearchText = clientId;
     }
@@ -1882,6 +2309,8 @@ export class PosComponent implements OnInit, OnDestroy {
       this.staffSearchText = staffId;
     }
     this.form.patchValue({ appointmentId }, { emitEvent: false });
+    this.resetCounterPayments();
+    this.tips.set([]);
     this.items.set([]);
     const routeAppointments = this.routeAppointmentRows(appointment);
     const explicitServiceIds = this.routeIdList(this.route.snapshot.queryParamMap.get('serviceIds') || '');
@@ -1944,6 +2373,11 @@ export class PosComponent implements OnInit, OnDestroy {
   paymentModeLabel(modeId: string): string {
     if (modeId === 'booking_advance') return 'Booking advance';
     return this.paymentModes().find((mode) => mode.id === modeId)?.label || modeId;
+  }
+
+  private resetCounterPayments(): void {
+    this.payments = Object.fromEntries(this.activePaymentModes().map((mode) => [mode.id, 0]));
+    this.walletCreditRequested.set(false);
   }
 
   bookingAdvancePaidAmount(): number {
@@ -2046,14 +2480,39 @@ export class PosComponent implements OnInit, OnDestroy {
   private refreshClientSearchResults(): void {
     const query = this.normalizeSearch(this.debouncedClientQuery());
     const clients = this.clients();
+    const queryDigits = this.phoneDigits(query);
     const results = !query
       ? this.recentClients(clients)
+      : query.length < 2 && queryDigits.length < 2
+        ? this.recentClients(clients)
       : clients
-        .filter((client) => (this.clientSearchIndex.get(String(client.id || ''))?.haystack || '').includes(query))
+        .filter((client) => this.clientMatchesSearchQuery(client, query))
         .sort((a, b) => this.clientSearchScore(b, query) - this.clientSearchScore(a, query))
-        .slice(0, 25);
+        .slice(0, 12);
     this.clientSearchResults.set(results);
     this.activeClientResultIndex.set(Math.min(this.activeClientResultIndex(), Math.max(0, results.length - 1)));
+  }
+
+  private refreshRemoteClientSearchResults(rawQuery: string): void {
+    const query = this.normalizeSearch(rawQuery);
+    const queryDigits = this.phoneDigits(rawQuery);
+    if (query.length < 2 && queryDigits.length < 2) return;
+    const requestId = ++this.clientSearchRequestId;
+    this.api.list<ApiRecord[]>('clients', { limit: 50, q: rawQuery.trim(), includeAllBranches: true }).pipe(
+      catchError(() => of([] as ApiRecord[]))
+    ).subscribe((rows) => {
+      if (requestId !== this.clientSearchRequestId) return;
+      const remoteRows = rows || [];
+      if (!remoteRows.length) return;
+      const existing = this.clients();
+      const existingIds = new Set(existing.map((client) => String(client.id || '')));
+      const additions = remoteRows.filter((client) => !existingIds.has(String(client.id || '')));
+      if (additions.length) {
+        this.clients.set(this.withUnpaidBalances([...existing, ...additions], this.invoices()));
+        this.rebuildClientSearchIndex();
+      }
+      this.refreshClientSearchResults();
+    });
   }
 
   private rebuildClientSearchIndex(): void {
@@ -2122,17 +2581,84 @@ export class PosComponent implements OnInit, OnDestroy {
     const name = index?.name || this.normalizeSearch(client.name || '');
     const email = index?.email || this.normalizeSearch(client.email || '');
     const codes = index?.codes || '';
+    const compactQuery = this.compactSearch(query);
+    const compactName = this.compactSearch(name);
+    const initials = this.compactSearch(this.clientNameInitials(client));
     let score = 0;
     if (queryDigits && phone === queryDigits) score += 140;
     if (queryDigits && phone.startsWith(queryDigits)) score += 110;
     if (name === query) score += 100;
     if (name.startsWith(query)) score += 80;
+    if (compactQuery && compactName.startsWith(compactQuery)) score += 75;
+    if (compactQuery && initials.startsWith(compactQuery)) score += 70;
+    if (compactQuery && this.isWalkInAliasMatch(client, compactQuery)) score += 95;
+    if (compactQuery && this.smartSearchMatch(name, compactQuery)) score += 55;
     if (codes.includes(query)) score += 60;
     if (email.includes(query)) score += 40;
     if (Number(client.unpaidBalance || 0) > 0) score += 4;
     if (Number(client.walletBalance || 0) > 0) score += 3;
     if (index?.membershipBadge) score += 2;
     return score;
+  }
+
+  private clientMatchesSearchQuery(client: ApiRecord, query: string): boolean {
+    const index = this.clientSearchIndex.get(String(client.id || ''));
+    const haystack = index?.haystack || this.clientSearchHaystack(client);
+    const queryDigits = this.phoneDigits(query);
+    if (queryDigits && (index?.phone || this.clientPhoneDigits(client)).includes(queryDigits)) return true;
+    if (haystack.includes(query)) return true;
+
+    const compactQuery = this.compactSearch(query);
+    if (!compactQuery) return false;
+
+    const compactHaystack = this.compactSearch(haystack);
+    return compactHaystack.includes(compactQuery)
+      || this.compactSearch(this.clientNameInitials(client)).startsWith(compactQuery)
+      || this.isWalkInAliasMatch(client, compactQuery)
+      || this.smartSearchMatch(haystack, compactQuery)
+      || this.smartSearchMatch(client.name || '', compactQuery);
+  }
+
+  private clientNameInitials(client: ApiRecord): string {
+    return this.normalizeSearch(client.name || '')
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.slice(0, 1))
+      .join('');
+  }
+
+  private searchLettersExistInName(name: string, query: string): boolean {
+    const letters = this.compactSearch(query).split('');
+    if (!letters.length || letters.some((letter) => /\d/.test(letter))) return false;
+    const counts = new Map<string, number>();
+    for (const letter of this.compactSearch(name)) {
+      counts.set(letter, (counts.get(letter) || 0) + 1);
+    }
+    return letters.every((letter) => {
+      const next = (counts.get(letter) || 0) - 1;
+      if (next < 0) return false;
+      counts.set(letter, next);
+      return true;
+    });
+  }
+
+  private smartSearchMatch(value: unknown, query: string): boolean {
+    const normalizedValue = this.normalizeSearch(value);
+    const normalizedQuery = this.normalizeSearch(query);
+    const compactValue = this.compactSearch(normalizedValue);
+    const compactQuery = this.compactSearch(normalizedQuery);
+    if (!compactQuery) return true;
+    if (normalizedValue.includes(normalizedQuery) || compactValue.includes(compactQuery)) return true;
+    const queryTokens = normalizedQuery.split(' ').filter(Boolean);
+    if (queryTokens.length > 1 && queryTokens.every((token) => compactValue.includes(this.compactSearch(token)))) return true;
+    if (compactQuery.length >= 3 && this.searchLettersExistInName(normalizedValue, compactQuery)) return true;
+    return false;
+  }
+
+  private isWalkInAliasMatch(client: ApiRecord, compactQuery: string): boolean {
+    if (compactQuery.length < 3) return false;
+    const isWalkInQuery = ['wai', 'wak', 'walk', 'walki', 'walkin'].some((prefix) => compactQuery.startsWith(prefix));
+    return isWalkInQuery && this.compactSearch(client.name || '').startsWith('walkin');
   }
 
   private clientMembershipIds(client: ApiRecord): string[] {
@@ -2180,7 +2706,7 @@ export class PosComponent implements OnInit, OnDestroy {
     const query = this.normalizeSearch(this.serviceSearchText);
     if (!query) return this.services().slice(0, 25);
     return this.services()
-      .filter((service) => this.normalizeSearch(`${service.name || ''} ${service.category || ''} ${service.description || ''}`).includes(query))
+      .filter((service) => this.smartSearchMatch(`${service.name || ''} ${service.category || ''} ${service.description || ''} ${service.code || ''}`, query))
       .slice(0, 25);
   }
 
@@ -2188,10 +2714,32 @@ export class PosComponent implements OnInit, OnDestroy {
     const query = this.normalizeSearch(this.productSearchText);
     if (!query) return this.products().slice(0, 25);
     return this.products()
-      .filter((product) =>
-        this.normalizeSearch(`${product.name || ''} ${product.category || ''} ${product.brand || ''} ${product.sku || ''} ${product.barcode || ''}`).includes(query)
-      )
+      .filter((product) => this.productMatchesSearchQuery(product, query))
+      .sort((a, b) => this.productSearchScore(b, query) - this.productSearchScore(a, query))
       .slice(0, 25);
+  }
+
+  private productMatchesSearchQuery(product: ApiRecord, query: string): boolean {
+    const haystack = this.normalizeSearch(`${product.name || ''} ${product.category || ''} ${product.brand || ''} ${product.sku || ''} ${product.barcode || ''}`);
+    if (haystack.includes(query)) return true;
+    const compactQuery = this.compactSearch(query);
+    return Boolean(compactQuery)
+      && (this.compactSearch(haystack).includes(compactQuery)
+        || this.searchLettersExistInName(this.normalizeSearch(product.name || ''), query));
+  }
+
+  private productSearchScore(product: ApiRecord, query: string): number {
+    const name = this.normalizeSearch(product.name || '');
+    const haystack = this.normalizeSearch(`${product.name || ''} ${product.category || ''} ${product.brand || ''} ${product.sku || ''} ${product.barcode || ''}`);
+    const compactQuery = this.compactSearch(query);
+    let score = 0;
+    if (name === query) score += 100;
+    if (name.startsWith(query)) score += 80;
+    if (compactQuery && this.compactSearch(name).startsWith(compactQuery)) score += 75;
+    if (haystack.includes(query)) score += 45;
+    if (this.searchLettersExistInName(name, query)) score += 30;
+    if (Number(product.stock || 0) > 0) score += 2;
+    return score;
   }
 
   showClientResults(): boolean {
@@ -2257,17 +2805,20 @@ export class PosComponent implements OnInit, OnDestroy {
 
   highlightSegments(value: unknown): HighlightSegment[] {
     const text = String(value || '');
-    const query = String(this.debouncedClientQuery() || '').trim().split(/\s+/).filter(Boolean)[0] || '';
+    const query = String(this.debouncedClientQuery() || '').trim();
     if (!text || !query) return [{ text, match: false }];
     const lowerText = text.toLowerCase();
     const lowerQuery = query.toLowerCase();
     const index = lowerText.indexOf(lowerQuery);
-    if (index < 0) return [{ text, match: false }];
-    return [
-      { text: text.slice(0, index), match: false },
-      { text: text.slice(index, index + query.length), match: true },
-      { text: text.slice(index + query.length), match: false }
-    ].filter((segment) => segment.text);
+    if (index >= 0) {
+      return [
+        { text: text.slice(0, index), match: false },
+        { text: text.slice(index, index + query.length), match: true },
+        { text: text.slice(index + query.length), match: false }
+      ].filter((segment) => segment.text);
+    }
+
+    return [{ text, match: false }];
   }
 
   staffOption(person: ApiRecord): string {
@@ -2364,20 +2915,240 @@ export class PosComponent implements OnInit, OnDestroy {
   redeemableBenefits(): ApiRecord[] {
     const wallet = this.membershipEligibility()?.['wallet'] as ApiRecord | undefined;
     const rows = Array.isArray(wallet?.['memberships']) ? wallet['memberships'] as ApiRecord[] : [];
-    return rows.filter((benefit) => this.redeemableBenefitRemainingCredits(benefit) > 0);
+    const clientId = String(this.form.value.clientId || '');
+    const activePackages = this.clientPackageRecords(clientId).filter((membership) => this.packageStatus(membership) === 'active');
+    const cacheKey = [
+      clientId,
+      rows.map((benefit) => this.benefitCachePart(benefit)).join(';'),
+      activePackages.map((benefit) => this.benefitCachePart(benefit)).join(';')
+    ].join('|');
+    if (cacheKey === this.redeemableBenefitsCacheKey) return this.redeemableBenefitsCache;
+    const localPackages: ApiRecord[] = activePackages.map((membership) => ({
+        ...membership,
+        membershipId: membership.id,
+        entitlementType: 'package',
+        planName: membership.planName || this.packageDisplayName(membership)
+      }));
+    const byId = new Map<string, ApiRecord>();
+    for (const benefit of [...rows, ...localPackages]) {
+      const id = String(benefit['membershipId'] || benefit['id'] || '');
+      if (!id || this.redeemableBenefitRemainingCredits(benefit) <= 0) continue;
+      byId.set(id, { ...benefit, membershipId: id });
+    }
+    this.redeemableBenefitsCacheKey = cacheKey;
+    this.redeemableBenefitsCache = [...byId.values()];
+    return this.redeemableBenefitsCache;
   }
 
-  redeemableServiceLines(): Array<{ lineIndex: number; serviceId: string; serviceName: string; staffName: string; finalAmount: number }> {
-    return this.items()
+  private prepaidCreditLine(benefit?: ApiRecord): ApiRecord | undefined {
+    const rows = this.benefitServiceCreditEntries(benefit);
+    return rows.find((credit) => String(credit['type'] || '') === 'prepaid_credit');
+  }
+
+  private benefitServiceCreditEntries(benefit?: ApiRecord): ApiRecord[] {
+    const direct = Array.isArray(benefit?.['serviceCredits']) ? benefit?.['serviceCredits'] as ApiRecord[] : [];
+    const nestedMembership = benefit?.['membership'] as ApiRecord | undefined;
+    const nested = Array.isArray(nestedMembership?.['serviceCredits']) ? nestedMembership?.['serviceCredits'] as ApiRecord[] : [];
+    return [...direct, ...nested].filter((credit) => credit && typeof credit === 'object');
+  }
+
+  private benefitRulesFor(benefit?: ApiRecord): ApiRecord {
+    const directRules = this.readJsonObject(benefit?.['benefitRules']) || {};
+    const planBenefits = this.readJsonObject(benefit?.['planBenefits']) || {};
+    const planRules = this.readJsonObject(planBenefits['benefitRules']) || {};
+    const creditRules = this.readJsonObject(this.prepaidCreditLine(benefit)?.['benefitRules']) || {};
+    return { ...planRules, ...creditRules, ...directRules };
+  }
+
+  private isPrepaidCreditBenefit(benefit?: ApiRecord): boolean {
+    const rules = this.benefitRulesFor(benefit);
+    return this.redeemableBenefitTypeLabel(benefit) === 'membership'
+      && (String(rules['planType'] || '') === 'prepaid_credit' || rules['prepaidCredit'] === true || !!this.prepaidCreditLine(benefit));
+  }
+
+  private isCreditBenefit(benefit?: ApiRecord): boolean {
+    const rules = this.benefitRulesFor(benefit);
+    const planType = String(rules['planType'] || '');
+    return this.isPrepaidCreditBenefit(benefit)
+      || ['visit_pack', 'service_credit', 'combo', 'unlimited'].includes(planType)
+      || this.redeemableBenefitTypeLabel(benefit) === 'package';
+  }
+
+  private isAutoServiceCreditBenefit(benefit?: ApiRecord): boolean {
+    const rules = this.benefitRulesFor(benefit);
+    const planType = String(rules['planType'] || '').toLowerCase();
+    return ['visit_pack', 'service_credit', 'combo', 'unlimited'].includes(planType)
+      || this.redeemableBenefitTypeLabel(benefit) === 'package';
+  }
+
+  private isUnlimitedBenefit(benefit?: ApiRecord): boolean {
+    return String(this.benefitRulesFor(benefit)['planType'] || '').toLowerCase() === 'unlimited';
+  }
+
+  private membershipCreditAllowedForItem(item: SaleItem, benefit?: ApiRecord): boolean {
+    const rules = this.benefitRulesFor(benefit);
+    if (item.type === 'product') return Boolean(rules['allowProductRedeem']);
+    if (item.type !== 'service' && item.type !== 'package_redeem') return false;
+    const creditEntries = this.benefitServiceCreditEntries(benefit)
+      .filter((credit) => !['bill_discount', 'product_discount', 'prepaid_credit'].includes(String(credit['type'] || '')));
+    if (creditEntries.length && creditEntries.some((credit) => this.serviceCreditEntryMatchesItem(credit, item))) return true;
+    const restriction = this.readJsonObject(rules['serviceRestriction']) || {};
+    const type = String(restriction['type'] || 'all');
+    const value = String(restriction['value'] || '').trim().toLowerCase();
+    if (type === 'all' || !value) return true;
+    const tokens = value.split(',').map((token) => token.trim()).filter(Boolean);
+    const service = this.services().find((row) => String(row.id) === item.id);
+    const haystack = `${item.id} ${item.name} ${service?.['category'] || ''} ${service?.['code'] || ''}`.toLowerCase();
+    return tokens.some((token) => haystack.includes(token));
+  }
+
+  private serviceCreditEntryMatchesItem(credit: ApiRecord, item: SaleItem): boolean {
+    const serviceId = String(credit['serviceId'] || credit['service_id'] || '').trim().toLowerCase();
+    const serviceName = String(credit['serviceName'] || credit['service_name'] || credit['name'] || '').trim().toLowerCase();
+    const category = String(credit['category'] || credit['serviceCategory'] || credit['service_category'] || '').trim().toLowerCase();
+    const service = this.services().find((row) => String(row.id || '') === String(item.id || ''));
+    const itemCategory = String(service?.['category'] || '').toLowerCase();
+    if (!serviceId && !serviceName && !category) return true;
+    if (serviceId && serviceId === String(item.id || '').toLowerCase()) return true;
+    if (serviceName && String(item.name || '').toLowerCase().includes(serviceName)) return true;
+    if (category && itemCategory.includes(category)) return true;
+    return false;
+  }
+
+  membershipCreditRedeemCap(benefit: ApiRecord | undefined = this.selectedRedeemableBenefit()): number {
+    if (!benefit) return 0;
+    const remaining = this.selectedRedeemableBenefitRemainingCredits();
+    if (!this.isCreditBenefit(benefit)) return remaining;
+    const eligible = this.redeemableServiceLines(benefit).reduce((sum, line) => sum + this.money(line.finalAmount), 0);
+    if (!this.isPrepaidCreditBenefit(benefit)) return Math.min(remaining, this.redeemableServiceLines(benefit).length || remaining);
+    const rules = this.benefitRulesFor(benefit);
+    const limit = this.readJsonObject(rules['perVisitLimit']) || {};
+    const limitType = String(limit['type'] || 'none');
+    const limitValue = Math.max(0, Number(limit['value'] || 0));
+    const perVisitCap = limitType === 'fixed'
+      ? limitValue
+      : limitType === 'bill_percent' && limitValue > 0
+        ? this.money(eligible * (limitValue / 100))
+        : eligible;
+    return this.money(Math.min(remaining, eligible, perVisitCap));
+  }
+
+  redeemableServiceLines(benefit: ApiRecord | undefined = this.selectedRedeemableBenefit()): RedeemableServiceLine[] {
+    const serviceItems = this.items()
       .map((item, lineIndex) => ({ item, lineIndex }))
-      .filter(({ item }) => item.type === 'service')
-      .map(({ item, lineIndex }) => ({
+      .filter(({ item }) => item.type === 'service' || item.type === 'package_redeem' || (this.isCreditBenefit(benefit) && item.type === 'product'))
+      .filter(({ item }) => !this.isCreditBenefit(benefit) || this.membershipCreditAllowedForItem(item, benefit));
+    const cacheKey = serviceItems
+      .map(({ item, lineIndex }) => `${benefit?.['membershipId'] || benefit?.['id'] || ''}:${lineIndex}:${item.type}:${item.id}:${item.name}:${item.staffName}:${item.quantity}:${item.price}:${item.discountValue}:${this.lineTotal(item)}`)
+      .join('|');
+    if (cacheKey === this.redeemableServiceLinesCacheKey) return this.redeemableServiceLinesCache;
+    this.redeemableServiceLinesCacheKey = cacheKey;
+    this.redeemableServiceLinesCache = serviceItems.map(({ item, lineIndex }) => ({
         lineIndex,
         serviceId: String(item.id || ''),
         serviceName: item.name || `Service ${lineIndex + 1}`,
+        staffId: item.staffId || '',
         staffName: item.staffName || '',
         finalAmount: this.lineTotal(item)
       }));
+    return this.redeemableServiceLinesCache;
+  }
+
+  private eligibleAutoCreditBenefits(): ApiRecord[] {
+    return this.redeemableBenefits()
+      .filter((benefit) => this.isAutoServiceCreditBenefit(benefit))
+      .filter((benefit) => this.membershipCreditRedeemCap(benefit) > 0 && this.redeemableServiceLines(benefit).length > 0);
+  }
+
+  private autoSuggestMembershipRedemption(reason = ''): void {
+    if (this.membershipId || this.creditsUsed > 0 || !this.form.value.clientId) return;
+    const matches = this.eligibleAutoCreditBenefits();
+    if (matches.length === 1) {
+      const benefit = matches[0];
+      this.membershipId = String(benefit['membershipId'] || benefit['id'] || '');
+      this.creditsUsed = Math.min(this.membershipCreditRedeemCap(benefit), this.redeemableServiceLines(benefit).length || 1);
+      this.autoAllocateBenefitCredits();
+      this.applyMembershipDiscountsToEligibleItems();
+      const name = benefit['businessLabel'] || benefit['planName'] || benefit['name'] || 'membership benefit';
+      this.dataHint.set(`${name} auto-applied${reason ? ` for ${reason}` : ''}.`);
+      return;
+    }
+    if (matches.length > 1) {
+      this.dataHint.set(`${matches.length} membership benefits match this bill. Select the benefit before saving.`);
+    }
+  }
+
+  membershipRedemptionPanelTitle(): string {
+    const selected = this.selectedRedeemableBenefit();
+    if (selected) return 'Membership credit applied';
+    const matches = this.eligibleAutoCreditBenefits();
+    if (matches.length > 1) return 'Multiple membership benefits matched';
+    if (matches.length === 1) return 'Membership benefit ready';
+    return 'Membership redemption';
+  }
+
+  membershipRedemptionPanelSummary(): string {
+    const selected = this.selectedRedeemableBenefit();
+    if (selected) {
+      const name = String(selected['businessLabel'] || selected['planName'] || selected['name'] || 'Selected benefit');
+      const amount = this.membershipCreditAdjustmentAmount();
+      const mappings = this.selectedBenefitServiceMappings().length;
+      const creditLabel = this.isUnlimitedBenefit(selected) ? 'unlimited use' : `${Number(this.creditsUsed || 0)} credit${Number(this.creditsUsed || 0) === 1 ? '' : 's'}`;
+      return `${name}: ${creditLabel} mapped to ${mappings} line${mappings === 1 ? '' : 's'}${amount > 0 ? `, bill adjusted ₹${amount.toLocaleString('en-IN')}` : ''}.`;
+    }
+    const matches = this.eligibleAutoCreditBenefits();
+    if (matches.length === 1) {
+      const benefit = matches[0];
+      return `${benefit['businessLabel'] || benefit['planName'] || benefit['name'] || 'Benefit'} can cover matching service lines.`;
+    }
+    if (matches.length > 1) return 'Select one benefit so credits are not deducted from the wrong membership/package.';
+    return 'No matching service credit is selected for this bill.';
+  }
+
+  membershipRedemptionConflictReason(): string {
+    if (this.membershipId) return '';
+    const matches = this.eligibleAutoCreditBenefits();
+    return matches.length > 1 ? `${matches.length} benefits match this service. Manual selection required.` : '';
+  }
+
+  membershipLineBenefitState(item: SaleItem, index: number): MembershipLineBenefitState {
+    const mappedCredits = this.serviceLineMappedCredits(index);
+    const selected = this.selectedRedeemableBenefit();
+    if (selected && mappedCredits > 0) {
+      return {
+        status: this.isUnlimitedBenefit(selected) ? 'unlimited' : 'credit',
+        label: this.isUnlimitedBenefit(selected) ? 'Unlimited covered' : 'Credit covered',
+        detail: `${mappedCredits} credit${mappedCredits === 1 ? '' : 's'}`
+      };
+    }
+    if (item.discountSource === 'membership') {
+      return {
+        status: 'discount',
+        label: 'Membership discount',
+        detail: `${this.lineDiscountAmount(item).toLocaleString('en-IN')} off`
+      };
+    }
+    const matches = this.redeemableBenefits()
+      .filter((benefit) => this.isAutoServiceCreditBenefit(benefit))
+      .filter((benefit) => this.membershipCreditAllowedForItem(item, benefit));
+    if (matches.length) {
+      return {
+        status: 'eligible',
+        label: matches.length === 1 ? 'Credit eligible' : 'Multiple credits',
+        detail: matches.length === 1 ? String(matches[0]['businessLabel'] || matches[0]['planName'] || matches[0]['name'] || '') : 'select benefit'
+      };
+    }
+    return { status: 'none', label: '', detail: '' };
+  }
+
+  private benefitCachePart(benefit: ApiRecord): string {
+    return [
+      benefit['membershipId'] || benefit['id'] || '',
+      benefit['planName'] || benefit['name'] || '',
+      benefit['expiryDate'] || benefit['validityDate'] || '',
+      benefit['status'] || '',
+      this.redeemableBenefitRemainingCredits(benefit)
+    ].join(':');
   }
 
   selectedRedeemableBenefit(): ApiRecord | undefined {
@@ -2387,7 +3158,15 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   redeemableBenefitRemainingCredits(benefit?: ApiRecord): number {
-    return Math.max(0, Number(benefit?.['serviceCredits']?.['remaining'] || benefit?.['creditsRemaining'] || 0));
+    const serviceCredits = benefit?.['serviceCredits'];
+    if (Array.isArray(serviceCredits)) {
+      return Math.max(0, serviceCredits.reduce((sum, credit: ApiRecord) =>
+        sum + Number(credit.remaining ?? credit.creditsRemaining ?? credit.credits_remaining ?? credit.credits ?? credit.quantity ?? 0), 0));
+    }
+    if (serviceCredits && typeof serviceCredits === 'object') {
+      return Math.max(0, Number((serviceCredits as ApiRecord)['remaining'] || (serviceCredits as ApiRecord)['creditsRemaining'] || 0));
+    }
+    return Math.max(0, Number(benefit?.['creditsRemaining'] ?? benefit?.['credits_remaining'] ?? 0));
   }
 
   redeemableBenefitTypeLabel(benefit?: ApiRecord): string {
@@ -2397,7 +3176,37 @@ export class PosComponent implements OnInit, OnDestroy {
   redeemableBenefitOption(benefit: ApiRecord): string {
     const remaining = this.redeemableBenefitRemainingCredits(benefit);
     const expiry = benefit['expiryDate'] ? ` · exp ${String(benefit['expiryDate']).slice(0, 10)}` : '';
-    return `${this.redeemableBenefitTypeLabel(benefit)} · ${benefit['planName'] || benefit['name'] || benefit['membershipId']} · ${remaining} credits${expiry}`;
+    const rules = this.benefitRulesFor(benefit);
+    const planType = String(rules['planType'] || this.redeemableBenefitTypeLabel(benefit));
+    const label = benefit['businessLabel'] || this.membershipBusinessLabel({
+      name: String(benefit['planName'] || benefit['name'] || benefit['membershipId'] || 'Benefit'),
+      price: 0,
+      discountPercent: 0,
+      benefitRules: rules,
+      validityDays: 0,
+      active: true,
+      createdAt: ''
+    } as PosMembershipPlan);
+    return `${planType.replace('_', ' ')} · ${label} · ${remaining} credits${expiry}`;
+  }
+
+  membershipEligibilityNotes(): string[] {
+    const wallet = (this.membershipEligibility()?.['wallet'] || {}) as ApiRecord;
+    const notes: string[] = [];
+    if (wallet['businessLabel']) notes.push(`Active benefit: ${wallet['businessLabel']}`);
+    const fairUsage = Array.isArray(wallet['fairUsage']) ? wallet['fairUsage'] as ApiRecord[] : [];
+    for (const item of fairUsage.slice(0, 2)) {
+      notes.push(`Fair usage ${item['planName'] || ''}: ${item['monthlyUsed'] || 0}/${item['monthlyCap'] || 0} used this month.`);
+    }
+    const family = wallet['familySharing'] as ApiRecord | undefined;
+    if (family?.['status'] === 'shared') notes.push(`Family shared benefits active (${family['activeLinks'] || 0} link).`);
+    const corporate = Array.isArray(wallet['corporate']) ? wallet['corporate'] as ApiRecord[] : [];
+    if (corporate[0]?.['label']) notes.push(`Corporate rule: ${corporate[0]['label']}${corporate[0]['employeeIdRequired'] ? ' employee ID required' : ''}.`);
+    const occasions = Array.isArray(wallet['occasionBenefits']) ? wallet['occasionBenefits'] as ApiRecord[] : [];
+    if (occasions.some((item) => item['birthday'] || item['anniversary'])) notes.push('Birthday/anniversary membership benefit configured.');
+    const tiers = Array.isArray(wallet['tierSuggestions']) ? wallet['tierSuggestions'] as ApiRecord[] : [];
+    if (tiers[0]?.['eligible']) notes.push(`Tier upgrade ready: ${tiers[0]['tierName'] || 'next tier'}.`);
+    return notes.slice(0, 5);
   }
 
   selectRedeemableBenefit(value: string): void {
@@ -2409,18 +3218,19 @@ export class PosComponent implements OnInit, OnDestroy {
     }
     const remaining = this.selectedRedeemableBenefitRemainingCredits();
     if (this.creditsUsed <= 0) {
-      this.creditsUsed = remaining > 0 ? 1 : 0;
-      this.autoAllocateBenefitCredits();
+      this.creditsUsed = 0;
       return;
     }
-    this.creditsUsed = Math.min(this.creditsUsed, remaining);
+    this.creditsUsed = Math.min(this.creditsUsed, this.membershipCreditRedeemCap(this.selectedRedeemableBenefit()), remaining);
     this.normalizeBenefitServiceMappings();
   }
 
   setRedeemableCredits(value: number | string): void {
     const requested = Math.max(0, Math.floor(Number(value || 0)));
     const remaining = this.selectedRedeemableBenefitRemainingCredits();
-    this.creditsUsed = remaining > 0 ? Math.min(requested, remaining) : 0;
+    const benefit = this.selectedRedeemableBenefit();
+    const cap = this.isPrepaidCreditBenefit(benefit) ? this.membershipCreditRedeemCap(benefit) : remaining;
+    this.creditsUsed = remaining > 0 ? Math.min(requested, cap) : 0;
     this.normalizeBenefitServiceMappings();
   }
 
@@ -2429,12 +3239,19 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   useAllRedeemableCredits(): void {
-    this.creditsUsed = this.selectedRedeemableBenefitRemainingCredits();
+    const benefit = this.selectedRedeemableBenefit();
+    this.creditsUsed = this.isPrepaidCreditBenefit(benefit) ? this.membershipCreditRedeemCap(benefit) : this.selectedRedeemableBenefitRemainingCredits();
     this.autoAllocateBenefitCredits();
   }
 
   selectedBenefitServiceMappings(): BenefitServiceMapping[] {
-    return this.benefitServiceMappings.filter((mapping) => Number(mapping.credits || 0) > 0);
+    const cacheKey = this.benefitServiceMappings
+      .map((mapping) => `${mapping.lineIndex}:${mapping.serviceId}:${mapping.serviceName}:${mapping.credits}`)
+      .join('|');
+    if (cacheKey === this.selectedBenefitMappingsCacheKey) return this.selectedBenefitMappingsCache;
+    this.selectedBenefitMappingsCacheKey = cacheKey;
+    this.selectedBenefitMappingsCache = this.benefitServiceMappings.filter((mapping) => Number(mapping.credits || 0) > 0);
+    return this.selectedBenefitMappingsCache;
   }
 
   serviceLineMappedCredits(lineIndex: number): number {
@@ -2443,10 +3260,11 @@ export class PosComponent implements OnInit, OnDestroy {
 
   maxServiceLineMappedCredits(lineIndex: number): number {
     const current = this.serviceLineMappedCredits(lineIndex);
+    const line = this.redeemableServiceLines().find((item) => item.lineIndex === lineIndex);
     const others = this.selectedBenefitServiceMappings()
       .filter((mapping) => mapping.lineIndex !== lineIndex)
       .reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0);
-    return Math.max(current, this.creditsUsed - others);
+    return Math.max(current, Math.min(this.creditsUsed - others, this.isPrepaidCreditBenefit(this.selectedRedeemableBenefit()) ? Math.floor(line?.finalAmount || 0) : this.creditsUsed));
   }
 
   setServiceLineMappedCredits(lineIndex: number, value: number | string): void {
@@ -2455,12 +3273,16 @@ export class PosComponent implements OnInit, OnDestroy {
     if (!serviceLine) return;
     const next = this.selectedBenefitServiceMappings().filter((mapping) => mapping.lineIndex !== lineIndex);
     const remaining = Math.max(0, this.creditsUsed - next.reduce((sum, mapping) => sum + Number(mapping.credits || 0), 0));
-    const credits = Math.min(requested, remaining);
+    const benefit = this.selectedRedeemableBenefit();
+    const lineCap = this.isPrepaidCreditBenefit(benefit) ? Math.floor(serviceLine.finalAmount || 0) : remaining;
+    const credits = Math.min(requested, remaining, lineCap);
     if (credits > 0) {
       next.push({
         lineIndex,
         serviceId: serviceLine.serviceId,
         serviceName: serviceLine.serviceName,
+        staffId: serviceLine.staffId,
+        staffName: serviceLine.staffName,
         credits
       });
     }
@@ -2485,20 +3307,25 @@ export class PosComponent implements OnInit, OnDestroy {
       this.benefitServiceMappings = [];
       return;
     }
-    const next = serviceLines.map((line) => ({
-      lineIndex: line.lineIndex,
-      serviceId: line.serviceId,
-      serviceName: line.serviceName,
-      credits: 0
-    }));
     let remaining = Number(this.creditsUsed || 0);
-    let cursor = 0;
-    while (remaining > 0) {
-      next[cursor % next.length].credits += 1;
-      remaining -= 1;
-      cursor += 1;
+    const benefit = this.selectedRedeemableBenefit();
+    const next: BenefitServiceMapping[] = [];
+    for (const line of serviceLines) {
+      if (remaining <= 0) break;
+      const lineCap = this.isPrepaidCreditBenefit(benefit) ? Math.floor(line.finalAmount || 0) : remaining;
+      const credits = Math.min(Math.floor(remaining), lineCap);
+      if (credits <= 0) continue;
+      next.push({
+        lineIndex: line.lineIndex,
+        serviceId: line.serviceId,
+        serviceName: line.serviceName,
+        staffId: line.staffId,
+        staffName: line.staffName,
+        credits
+      });
+      remaining -= credits;
     }
-    this.benefitServiceMappings = next.filter((mapping) => mapping.credits > 0);
+    this.benefitServiceMappings = next;
   }
 
   generatedBenefitRedeemLabel(benefitRedeem: ApiRecord): string {
@@ -2528,6 +3355,17 @@ export class PosComponent implements OnInit, OnDestroy {
     }
   }
 
+  private readJsonArray(value: unknown): unknown[] {
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(String(value));
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
   private normalizeBenefitServiceMappings(): void {
     const validLines = new Map(this.redeemableServiceLines().map((line) => [line.lineIndex, line]));
     if (!this.membershipId || this.creditsUsed <= 0 || !validLines.size) {
@@ -2536,15 +3374,19 @@ export class PosComponent implements OnInit, OnDestroy {
     }
     let remaining = Number(this.creditsUsed || 0);
     const next: BenefitServiceMapping[] = [];
+    const benefit = this.selectedRedeemableBenefit();
     for (const mapping of this.selectedBenefitServiceMappings().sort((left, right) => left.lineIndex - right.lineIndex)) {
       const line = validLines.get(mapping.lineIndex);
       if (!line || remaining <= 0) continue;
-      const credits = Math.min(Math.max(0, Math.floor(Number(mapping.credits || 0))), remaining);
+      const lineCap = this.isPrepaidCreditBenefit(benefit) ? Math.floor(line.finalAmount || 0) : remaining;
+      const credits = Math.min(Math.max(0, Math.floor(Number(mapping.credits || 0))), remaining, lineCap);
       if (credits <= 0) continue;
       next.push({
         lineIndex: mapping.lineIndex,
         serviceId: line.serviceId,
         serviceName: line.serviceName,
+        staffId: line.staffId,
+        staffName: line.staffName,
         credits
       });
       remaining -= credits;
@@ -2710,9 +3552,15 @@ export class PosComponent implements OnInit, OnDestroy {
     this.activeClientResultIndex.set(0);
     window.clearTimeout(this.clientSearchTimer);
     const selected = this.clients().find((client) => this.clientOption(client) === this.clientSearchText);
-    this.form.patchValue({ clientId: selected?.id || '' }, { emitEvent: false });
+    if (selected) {
+      this.selectClient(selected);
+      return;
+    }
+    this.selectedClientId.set('');
+    this.form.patchValue({ clientId: '' }, { emitEvent: false });
     const trimmed = this.clientSearchText.trim();
     if (!trimmed) {
+      this.clientSearchRequestId++;
       this.clientSearchPending.set(false);
       this.debouncedClientQuery.set('');
       this.refreshClientSearchResults();
@@ -2722,6 +3570,7 @@ export class PosComponent implements OnInit, OnDestroy {
       this.clientSearchPending.set(false);
       this.debouncedClientQuery.set(trimmed);
       this.refreshClientSearchResults();
+      this.refreshRemoteClientSearchResults(trimmed);
       return;
     }
     this.clientSearchPending.set(true);
@@ -2730,6 +3579,7 @@ export class PosComponent implements OnInit, OnDestroy {
       this.clientSearchPending.set(false);
       this.activeClientResultIndex.set(0);
       this.refreshClientSearchResults();
+      this.refreshRemoteClientSearchResults(this.clientSearchText.trim());
     }, 300);
   }
 
@@ -2751,20 +3601,33 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   selectClient(client: ApiRecord): void {
+    const clientId = String(client.id || '');
     this.clientSearchText = this.clientOption(client);
+    this.clientSearchRequestId++;
     this.clientSearchPending.set(false);
-    this.debouncedClientQuery.set(this.clientSearchText);
-    this.refreshClientSearchResults();
-    this.form.patchValue({ clientId: client.id }, { emitEvent: false });
+    this.debouncedClientQuery.set('');
+    this.clientSearchResults.set([client]);
+    this.activeClientResultIndex.set(0);
+    this.selectedClientId.set(clientId);
+    this.form.patchValue({ clientId }, { emitEvent: false });
     this.clientSearchActive = false;
     this.creditsUsed = 0;
     this.membershipId = '';
     this.benefitServiceMappings = [];
+    this.packageRedeemQuantities = {};
+    this.packageRedeemStaffIds = {};
     this.walletCreditRequested.set(false);
     this.unpaidReceiveAmount = 0;
     this.unpaidReceiveMode = this.activePaymentModes()[0]?.id || 'cash';
     this.unpaidReceiveMessage.set('');
-    this.loadMembershipIntelligence(client.id);
+    if (clientId) this.loadMembershipIntelligence(clientId);
+    this.focusLater(() => this.focusStaffSearch());
+  }
+
+  selectClientFromResult(event: Event, client: ApiRecord): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectClient(client);
   }
 
   handleClientSearchKeydown(event: KeyboardEvent): void {
@@ -2788,6 +3651,11 @@ export class PosComponent implements OnInit, OnDestroy {
       this.selectClient(results[this.activeClientResultIndex()]);
       return;
     }
+    if (event.key === 'Enter' && this.form.value.clientId) {
+      event.preventDefault();
+      this.focusStaffSearch();
+      return;
+    }
     if (event.key === 'Escape') {
       this.clientSearchActive = false;
     }
@@ -2797,6 +3665,24 @@ export class PosComponent implements OnInit, OnDestroy {
     this.staffSearchText = this.staffOption(person);
     this.form.patchValue({ staffId: person.id }, { emitEvent: false });
     this.staffSearchActive = false;
+    this.focusLater(() => this.focusServiceSearch());
+  }
+
+  handleStaffSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.staffSearchActive = false;
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const query = this.normalizeSearch(this.staffSearchText);
+    const candidate = query ? this.filteredStaff()[0] : undefined;
+    if (candidate) {
+      this.selectStaff(candidate);
+      return;
+    }
+    this.staffSearchActive = false;
+    this.focusServiceSearch();
   }
 
   clearStaffSelection(): void {
@@ -2898,20 +3784,12 @@ export class PosComponent implements OnInit, OnDestroy {
 
   toggleServiceSelection(service: ApiRecord): void {
     if (!service.id) return;
-    this.selectedServiceIds = this.isServiceSelected(service.id)
-      ? this.selectedServiceIds.filter((id) => id !== service.id)
-      : [...this.selectedServiceIds, service.id];
-    this.selectedServiceId = this.selectedServiceIds[0] || '';
-    this.serviceSearchActive = true;
+    this.addServiceFromSearch(service);
   }
 
   toggleProductSelection(product: ApiRecord): void {
     if (!product.id) return;
-    this.selectedProductIds = this.isProductSelected(product.id)
-      ? this.selectedProductIds.filter((id) => id !== product.id)
-      : [...this.selectedProductIds, product.id];
-    this.selectedProductId = this.selectedProductIds[0] || '';
-    this.productSearchActive = true;
+    this.addProductFromSearch(product);
   }
 
   selectVisibleServices(): void {
@@ -2946,10 +3824,92 @@ export class PosComponent implements OnInit, OnDestroy {
     this.productSearchActive = true;
   }
 
+  handleServiceSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.serviceSearchActive = false;
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (this.selectedServiceIds.length) {
+      this.addSelectedService();
+      return;
+    }
+    const query = this.normalizeSearch(this.serviceSearchText);
+    const candidate = query ? this.filteredServices()[0] : undefined;
+    if (candidate) {
+      this.addServiceFromSearch(candidate);
+      return;
+    }
+    this.serviceSearchActive = false;
+    this.focusProductSearch();
+  }
+
+  handleProductSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.productSearchActive = false;
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (this.selectedProductIds.length) {
+      this.addSelectedProduct();
+      return;
+    }
+    const query = this.normalizeSearch(this.productSearchText);
+    const candidate = query ? this.filteredProducts()[0] : undefined;
+    if (candidate) {
+      this.addProductFromSearch(candidate);
+      return;
+    }
+    this.productSearchActive = false;
+    this.focusMembershipPlan();
+  }
+
+  handleMembershipPlanKeydown(event: KeyboardEvent, select: HTMLSelectElement): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.addMembershipPlanFromSelect(select);
+  }
+
+  handlePackageKeydown(event: KeyboardEvent, select: HTMLSelectElement): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.addPackageFromSelect(select);
+  }
+
+  handleGiftCardAmountKeydown(event: KeyboardEvent, input: HTMLInputElement): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    this.addGiftCardFromInput(input);
+  }
+
   closeClientSearchSoon(): void {
     window.setTimeout(() => {
+      this.selectBestClientSearchMatch();
       this.clientSearchActive = false;
     }, 120);
+  }
+
+  private selectBestClientSearchMatch(): void {
+    if (this.form.value.clientId) return;
+    const query = this.debouncedClientQuery() || this.clientSearchText.trim();
+    const candidate = this.clientSearchResults()[this.activeClientResultIndex()] || this.clientSearchResults()[0];
+    if (!candidate || !this.shouldAutoSelectClient(candidate, query)) return;
+    this.selectClient(candidate);
+  }
+
+  private shouldAutoSelectClient(client: ApiRecord, query: string): boolean {
+    const digits = this.phoneDigits(query);
+    if (digits.length >= 4) {
+      return this.clientPhoneDigits(client).includes(digits);
+    }
+    const compactQuery = this.compactSearch(query);
+    if (compactQuery.length < 3) return false;
+    const name = this.compactSearch(client.name || '');
+    return name.startsWith(compactQuery)
+      || this.isWalkInAliasMatch(client, compactQuery)
+      || this.normalizeSearch(client.name || '').startsWith(this.normalizeSearch(query));
   }
 
   closeStaffSearchSoon(): void {
@@ -3034,9 +3994,7 @@ export class PosComponent implements OnInit, OnDestroy {
   useWalkinClient(): void {
     const existing = this.clients().find((client) => this.normalizeSearch(`${client.name} ${client.phone}`) === 'walk in client 0000000000' || this.normalizeSearch(client.name || '').includes('walk'));
     if (existing) {
-      this.clientSearchText = this.clientOption(existing);
-      this.form.patchValue({ clientId: existing.id }, { emitEvent: false });
-      this.loadMembershipIntelligence(existing.id);
+      this.selectClient(existing);
       return;
     }
     const branchId = this.form.value.branchId || this.appState.selectedBranchId() || 'branch_hyd';
@@ -3052,9 +4010,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (client) => {
         this.clients.update((clients) => [client, ...clients]);
-        this.clientSearchText = this.clientOption(client);
-        this.form.patchValue({ clientId: client.id }, { emitEvent: false });
-        this.loadMembershipIntelligence(client.id);
+        this.selectClient(client);
       },
       error: (error) => this.error.set(error?.error?.error || 'Unable to create walk-in client')
     });
@@ -3123,7 +4079,18 @@ export class PosComponent implements OnInit, OnDestroy {
       }
     ]);
     this.normalizeBenefitServiceMappings();
+    this.autoSuggestMembershipRedemption(service.name || 'service');
     this.clearCoupon();
+  }
+
+  addServiceFromSearch(service: ApiRecord): void {
+    const serviceId = String(service.id || '');
+    if (!serviceId) return;
+    this.addService(serviceId);
+    this.serviceSearchText = '';
+    this.clearServiceSelection();
+    this.serviceSearchActive = false;
+    this.focusLater(() => this.focusProductSearch());
   }
 
   addSelectedService(): void {
@@ -3132,6 +4099,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.serviceSearchText = '';
     this.clearServiceSelection();
     this.serviceSearchActive = false;
+    this.focusLater(() => this.focusProductSearch());
   }
 
   addProduct(id: string): void {
@@ -3151,7 +4119,18 @@ export class PosComponent implements OnInit, OnDestroy {
       }
     ]);
     this.normalizeBenefitServiceMappings();
+    this.autoSuggestMembershipRedemption(product.name || 'product');
     this.clearCoupon();
+  }
+
+  addProductFromSearch(product: ApiRecord): void {
+    const productId = String(product.id || '');
+    if (!productId) return;
+    this.addProduct(productId);
+    this.productSearchText = '';
+    this.clearProductSelection();
+    this.productSearchActive = false;
+    this.focusLater(() => this.focusMembershipPlan());
   }
 
   addSelectedProduct(): void {
@@ -3160,11 +4139,17 @@ export class PosComponent implements OnInit, OnDestroy {
     this.productSearchText = '';
     this.clearProductSelection();
     this.productSearchActive = false;
+    this.focusLater(() => this.focusMembershipPlan());
   }
 
   addMembershipPlan(id: string): void {
     const plan = this.membershipPlans().find((item) => item.id === id);
     if (!plan) return;
+    const planType = this.membershipPlanType(plan);
+    const creditAmount = this.membershipPlanCreditAmount(plan);
+    const bonusAmount = this.membershipPlanBonusAmount(plan);
+    const benefitRules = plan.benefitRules || {};
+    const serviceCredits = this.planServiceCreditsForSale(plan, planType, creditAmount, benefitRules);
     this.items.update((items) => [
       ...items,
       {
@@ -3175,16 +4160,55 @@ export class PosComponent implements OnInit, OnDestroy {
         price: Number(plan.price || 0),
         gstRate: 18,
         ...this.defaultItemStaff(),
-        discountPercent: Number(plan.discountPercent || 0),
+        discountPercent: this.planUsesCredits(planType) ? 0 : Number(plan.discountPercent || 0),
         validityDays: Number(plan.validityDays || 365),
-        serviceCredits: [
-          { type: 'bill_discount', percent: Number(plan.discountPercent || 0), planId: plan.id },
-          { type: 'product_discount', percent: Number(plan.productDiscountPercent || 0), planId: plan.id }
-        ]
+        planType,
+        planCredits: this.planUsesCredits(planType) ? creditAmount : 0,
+        creditsRemaining: this.planUsesCredits(planType) ? creditAmount : 0,
+        bonusAmount,
+        benefitRules,
+        serviceCredits
       }
     ]);
     this.normalizeBenefitServiceMappings();
     this.clearCoupon();
+  }
+
+  private planUsesCredits(planType: string): boolean {
+    return ['prepaid_credit', 'visit_pack', 'service_credit', 'combo', 'unlimited'].includes(planType);
+  }
+
+  private planServiceCreditsForSale(plan: PosMembershipPlan, planType: string, creditAmount: number, benefitRules: ApiRecord): ApiRecord[] {
+    if (planType === 'prepaid_credit') {
+      return [{ type: 'prepaid_credit', credits: creditAmount, remaining: creditAmount, planId: plan.id, bonusAmount: this.membershipPlanBonusAmount(plan), benefitPercent: plan.benefitPercent || 0, benefitRules }];
+    }
+    if (['visit_pack', 'service_credit', 'combo'].includes(planType)) {
+      const included = Array.isArray(plan.includedServices) && plan.includedServices.length ? plan.includedServices as ApiRecord[] : [{}];
+      return included.map((item) => ({
+        type: planType,
+        serviceId: String(item['serviceId'] || ''),
+        serviceName: String(item['serviceName'] || item['name'] || item['serviceId'] || plan.name),
+        credits: Number(item['credits'] || creditAmount || 1),
+        remaining: Number(item['credits'] || creditAmount || 1),
+        planId: plan.id,
+        creditUnit: planType === 'visit_pack' ? 'visit' : 'service',
+        benefitRules
+      }));
+    }
+    if (planType === 'unlimited') {
+      return [{ type: 'unlimited_service', credits: creditAmount, remaining: creditAmount, planId: plan.id, creditUnit: 'unlimited', fairUsage: benefitRules['fairUsage'] || {}, benefitRules }];
+    }
+    return [
+      { type: 'bill_discount', percent: Number(plan.discountPercent || 0), planId: plan.id, benefitRules },
+      { type: 'product_discount', percent: Number(plan.productDiscountPercent || 0), planId: plan.id, benefitRules }
+    ];
+  }
+
+  addMembershipPlanFromSelect(select: HTMLSelectElement): void {
+    const planId = String(select.value || '');
+    if (planId) this.addMembershipPlan(planId);
+    select.value = '';
+    this.focusLater(() => this.focusPackageSelect());
   }
 
   addPackage(id: string): void {
@@ -3208,6 +4232,13 @@ export class PosComponent implements OnInit, OnDestroy {
     this.clearCoupon();
   }
 
+  addPackageFromSelect(select: HTMLSelectElement): void {
+    const packageId = String(select.value || '');
+    if (packageId) this.addPackage(packageId);
+    select.value = '';
+    this.focusLater(() => this.focusGiftCardAmount());
+  }
+
   addGiftCard(value: number | string): void {
     const amount = this.money(value);
     if (amount <= 0) return;
@@ -3228,6 +4259,12 @@ export class PosComponent implements OnInit, OnDestroy {
     ]);
     this.normalizeBenefitServiceMappings();
     this.clearCoupon();
+  }
+
+  addGiftCardFromInput(input: HTMLInputElement): void {
+    this.addGiftCard(input.value);
+    input.value = '';
+    this.focusLater(() => this.focusGiftCardAmount());
   }
 
   removeItem(index: number): void {
@@ -3341,6 +4378,7 @@ export class PosComponent implements OnInit, OnDestroy {
       membership: 'Membership sale',
       package: 'Package sale',
       gift_card: 'Gift card sale',
+      package_redeem: 'Package redeem',
       custom: 'Custom item'
     };
     return titles[item.type] || 'Item';
@@ -3552,7 +4590,12 @@ export class PosComponent implements OnInit, OnDestroy {
     if (!draft) {
       return;
     }
+    if (!this.shouldRestoreActiveBillingDraft()) {
+      this.posSettings.clearActiveBillingDraft();
+      return;
+    }
     this.currentHoldId = draft.currentHoldId || '';
+    this.selectedClientId.set(String(draft.clientId || ''));
     this.form.patchValue({
       clientId: draft.clientId || '',
       branchId: draft.branchId || this.form.value.branchId || '',
@@ -3601,6 +4644,11 @@ export class PosComponent implements OnInit, OnDestroy {
     this.dataHint.set('Unsaved POS bill restored. Checkout, hold or clear the bill to remove this draft.');
   }
 
+  private shouldRestoreActiveBillingDraft(): boolean {
+    const params = this.route.snapshot.queryParamMap;
+    return params.get('restoreDraft') === '1';
+  }
+
   private restorePendingHold(): void {
     const id = this.pendingHoldId;
     if (!id) return;
@@ -3611,6 +4659,7 @@ export class PosComponent implements OnInit, OnDestroy {
       return;
     }
     this.currentHoldId = draft.id;
+    this.selectedClientId.set(String(draft.clientId || ''));
     this.form.patchValue({
       clientId: draft.clientId || '',
       branchId: draft.branchId || this.form.value.branchId || '',
@@ -3670,6 +4719,7 @@ export class PosComponent implements OnInit, OnDestroy {
     this.productSearchActive = false;
     this.membershipEligibility.set(null);
     this.membershipSuggestion.set(null);
+    this.selectedClientId.set('');
     this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
     this.clearCoupon();
   }
@@ -3768,6 +4818,8 @@ export class PosComponent implements OnInit, OnDestroy {
         itemDiscountTotal: this.itemDiscountTotal,
         itemManualDiscountTotal: this.itemManualDiscountTotal,
         membershipAutoDiscount: this.membershipAutoDiscount,
+        prepaidMembershipRedeemDiscount: this.prepaidMembershipRedeemDiscount,
+        membershipCreditAdjustmentAmount: this.membershipCreditAdjustmentAmount(),
         couponDiscount: this.couponDiscount,
         totalDiscount: this.totalDiscount
       },
@@ -3783,6 +4835,7 @@ export class PosComponent implements OnInit, OnDestroy {
           benefitName: selectedBenefit?.['planName'] || selectedBenefit?.['name'] || this.membershipId,
           remainingBeforeRedeem: this.selectedRedeemableBenefitRemainingCredits(),
           remainingAfterRedeem: this.benefitRemainingAfterRedeem(),
+          invoiceAdjustmentAmount: this.membershipCreditAdjustmentAmount(),
           serviceId: serviceLineMappings[0]?.serviceId || '',
           serviceLineMappings
         } : {}),
@@ -3870,6 +4923,7 @@ export class PosComponent implements OnInit, OnDestroy {
     settlementPreview?: { advance: number; counter: number; due: number; walletCredit: number }
   ): void {
     const benefitRedeem = this.readJsonObject(result.sale?.membershipRedeem);
+    const invoiceNumber = String(result.invoice?.invoiceNumber || result.invoice?.id || 'Invoice');
     this.invoice.set(result.invoice);
     this.generatedInvoiceSettlement.set(settlementPreview || this.currentSettlementPreview());
     this.generatedInvoiceBenefitRedeem.set(Number(benefitRedeem?.['creditsUsed'] || 0) > 0 ? benefitRedeem : null);
@@ -3906,10 +4960,13 @@ export class PosComponent implements OnInit, OnDestroy {
     this.tipDraft = { staffId: '', paymentMode: this.activePaymentModes()[0]?.id || 'cash', amount: 0, note: '' };
     this.unpaidReceiveAmount = 0;
     this.unpaidReceiveMessage.set('');
+    this.selectedClientId.set('');
     this.form.patchValue({ clientId: '', staffId: '', appointmentId: '', invoiceDate: this.todayDateInput() }, { emitEvent: false });
     this.saving.set(false);
-    this.clearPosRouteSelection(() => this.load());
-    if (message) window.setTimeout(() => this.dataHint.set(message), 600);
+    this.clearPosRouteSelection(() => {
+      this.load();
+      this.dataHint.set(message || `${invoiceNumber} generated. Fresh POS bill ready.`);
+    });
   }
 
   private clearPosRouteSelection(onFinally?: () => void): void {
@@ -3969,6 +5026,167 @@ export class PosComponent implements OnInit, OnDestroy {
       && (!membership.validityDate || membership.validityDate >= today)
       && this.membershipBenefitType(membership) === 'package'
     ).length;
+  }
+
+  trackPackageRedeemRow(_index: number, row: PackageRedeemRow): string {
+    return row.id;
+  }
+
+  private clientPackageRecords(clientId: string): ApiRecord[] {
+    return this.memberships().filter((membership) =>
+      String(membership.clientId || membership.client_id || '') === clientId
+      && this.membershipBenefitType(membership) === 'package'
+    );
+  }
+
+  private packageCreditRows(membership: ApiRecord): PackageRedeemRow[] {
+    const credits = this.packageServiceCredits(membership);
+    const status = this.packageStatus(membership);
+    const packageName = this.packageDisplayName(membership);
+    const expiry = membership.validityDate ? this.dateLabel(membership.validityDate) : 'No expiry';
+    if (!credits.length) {
+      const pendingQty = this.packageRemainingCredits(membership);
+      return [{
+        id: `${membership.id || membership.membershipId || packageName}:package`,
+        membershipId: String(membership.id || membership.membershipId || ''),
+        packageName,
+        serviceId: '',
+        serviceName: 'Package credit',
+        pendingQty,
+        totalQty: this.packageTotalCredits(membership),
+        expiry,
+        status
+      }];
+    }
+    return credits.map((credit, index) => {
+      const serviceId = String(credit.serviceId || credit.service_id || credit.id || '');
+      const service = this.services().find((item) => String(item.id || '') === serviceId);
+      const qty = Math.max(0, Number(credit.remaining ?? credit.creditsRemaining ?? credit.credits ?? credit.quantity ?? 0));
+      return {
+        id: `${membership.id || membership.membershipId || packageName}:${serviceId || index}`,
+        membershipId: String(membership.id || membership.membershipId || ''),
+        packageName,
+        serviceId,
+        serviceName: String(credit.serviceName || credit.name || service?.name || serviceId || 'Package service'),
+        pendingQty: Math.min(qty, this.packageRemainingCredits(membership) || qty),
+        totalQty: Number(credit.credits ?? credit.quantity ?? qty),
+        expiry,
+        status
+      };
+    });
+  }
+
+  packageRedeemQty(row: PackageRedeemRow): number {
+    const current = this.packageRedeemQuantities[row.id];
+    if (current !== undefined) return Math.min(Math.max(0, Number(current || 0)), row.pendingQty);
+    return 0;
+  }
+
+  setPackageRedeemQty(row: PackageRedeemRow, value: number | string): void {
+    this.packageRedeemQuantities[row.id] = Math.min(row.pendingQty, Math.max(0, Math.floor(Number(value || 0))));
+    if (this.error().includes('Package service')) this.error.set('');
+  }
+
+  packageRedeemStaff(row: PackageRedeemRow): string {
+    return this.packageRedeemStaffIds[row.id] || String(this.form.value.staffId || '');
+  }
+
+  setPackageRedeemStaff(row: PackageRedeemRow, staffId: string): void {
+    this.packageRedeemStaffIds[row.id] = String(staffId || '');
+  }
+
+  redeemPackageRow(row: PackageRedeemRow): void {
+    const credits = this.packageRedeemQty(row);
+    if (row.status === 'expired' || credits <= 0) return;
+    const staffId = this.packageRedeemStaff(row);
+    const lineId = this.packageRedeemLineId(row);
+    let lineIndex = this.items().findIndex((item) => this.isPackageRedeemLine(item, lineId));
+    if (lineIndex < 0) {
+      this.addPackageRedeemServiceLine(row, staffId, credits);
+      lineIndex = this.items().findIndex((item) => this.isPackageRedeemLine(item, lineId));
+    }
+    if (lineIndex < 0) {
+      this.error.set('Package redeem service line could not be prepared.');
+      return;
+    }
+    const line = this.redeemableServiceLines().find((item) => item.lineIndex === lineIndex);
+    this.membershipId = row.membershipId;
+    this.creditsUsed = credits;
+    this.benefitServiceMappings = [{
+      lineIndex,
+      serviceId: lineId,
+      serviceName: line?.serviceName || row.serviceName,
+      credits
+    }];
+    this.error.set('');
+    this.dataHint.set(`${row.packageName} package redeem selected: ${credits} credit(s) for ${row.serviceName}.`);
+  }
+
+  private addPackageRedeemServiceLine(row: PackageRedeemRow, staffId: string, credits: number): void {
+    const service = this.services().find((item) => String(item.id || '') === row.serviceId);
+    const type: SaleItem['type'] = service ? 'service' : 'package_redeem';
+    this.items.update((items) => [
+      ...items,
+      {
+        type,
+        id: this.packageRedeemLineId(row),
+        name: service?.name || row.serviceName || 'Package service',
+        quantity: Math.max(1, credits),
+        price: 0,
+        gstRate: Number(service?.gstRate || 0),
+        ...this.defaultItemStaff(staffId),
+        discountType: 'amount',
+        discountValue: 0,
+        discountSource: 'none'
+      }
+    ]);
+    this.normalizeBenefitServiceMappings();
+    this.clearCoupon();
+  }
+
+  private packageRedeemLineId(row: PackageRedeemRow): string {
+    return row.serviceId || `package-redeem:${row.id}`;
+  }
+
+  private isPackageRedeemLine(item: SaleItem, lineId: string): boolean {
+    return (item.type === 'service' || item.type === 'package_redeem') && String(item.id || '') === lineId;
+  }
+
+  private packageStatus(membership: ApiRecord): 'active' | 'expired' {
+    const today = new Date().toISOString().slice(0, 10);
+    const status = String(membership.status || '').toLowerCase();
+    if (status === 'expired' || status === 'cancelled' || status === 'inactive') return 'expired';
+    if (membership.validityDate && String(membership.validityDate) < today) return 'expired';
+    return this.packageRemainingCredits(membership) > 0 ? 'active' : 'expired';
+  }
+
+  private packageDisplayName(membership: ApiRecord): string {
+    return String(membership.planName || membership.name || membership.membershipId || 'Package').replace(/^Package:\s*/i, '');
+  }
+
+  private packageRemainingCredits(membership: ApiRecord): number {
+    if (membership.creditsRemaining !== undefined || membership.credits_remaining !== undefined) {
+      return Math.max(0, Number(membership.creditsRemaining ?? membership.credits_remaining ?? 0));
+    }
+    const credits = this.packageServiceCredits(membership);
+    return credits.reduce((sum, credit) => sum + Number(credit.remaining ?? credit.creditsRemaining ?? credit.credits ?? credit.quantity ?? 0), 0);
+  }
+
+  private packageTotalCredits(membership: ApiRecord): number {
+    const direct = Number(membership.planCredits ?? membership.plan_credits ?? 0);
+    if (direct > 0) return direct;
+    const credits = this.packageServiceCredits(membership);
+    return credits.reduce((sum, credit) => sum + Number(credit.credits ?? credit.quantity ?? credit.remaining ?? credit.creditsRemaining ?? 0), 0);
+  }
+
+  private packageServiceCredits(membership: ApiRecord): ApiRecord[] {
+    if (Array.isArray(membership.serviceCredits)) return membership.serviceCredits as ApiRecord[];
+    const parsed = this.readJsonArray(membership.serviceCredits || membership.service_credits || []);
+    return parsed.filter((credit) => credit && typeof credit === 'object') as ApiRecord[];
+  }
+
+  private packageSortTime(membership: ApiRecord): number {
+    return this.dateMs(membership.validityDate || membership.updatedAt || membership.createdAt);
   }
 
   activeMembershipDiscountPercent(): number {
@@ -4040,6 +5258,10 @@ export class PosComponent implements OnInit, OnDestroy {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ');
   }
 
+  private compactSearch(value: unknown): string {
+    return this.normalizeSearch(value).replace(/\s+/g, '');
+  }
+
   membershipDiscountPercent(membership?: ApiRecord): number {
     const credits = Array.isArray(membership?.serviceCredits) ? membership?.serviceCredits : [];
     const benefit = credits.find((item: ApiRecord) => item?.type === 'bill_discount');
@@ -4079,6 +5301,7 @@ export class PosComponent implements OnInit, OnDestroy {
       }
       this.normalizeBenefitServiceMappings();
       this.applyMembershipDiscountsToEligibleItems();
+      this.autoSuggestMembershipRedemption('client');
     });
   }
 
@@ -4113,9 +5336,17 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   private applyMembershipDiscountsToEligibleItems(): void {
-    const nextItems = this.items().map((item) => {
+    const nextItems = this.items().map((item, index) => {
       if (!['service', 'product'].includes(item.type)) return item;
       if (item.discountSource === 'manual') return item;
+      if (this.selectedRedeemableBenefit() && this.serviceLineMappedCredits(index) > 0) {
+        return {
+          ...item,
+          discountType: 'amount' as ItemDiscountType,
+          discountValue: 0,
+          discountSource: 'none' as ItemDiscountSource
+        };
+      }
       return {
         ...item,
         ...this.defaultItemDiscount(item.type)
@@ -4125,17 +5356,74 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   private normalizeMembershipPlan(plan: PosMembershipPlan): PosMembershipPlan {
+    const benefitRules = plan.benefitRules || {};
+    const planType = String(plan.planType || benefitRules['planType'] || (benefitRules['prepaidCredit'] ? 'prepaid_credit' : 'discount'));
+    const price = Number(plan.price || 0);
+    const creditAmount = Math.max(0, Number(plan.creditAmount || benefitRules['creditAmount'] || 0));
+    const bonusAmount = Math.max(0, Number(plan.bonusAmount || benefitRules['bonusAmount'] || Math.max(0, creditAmount - price)));
+    const perVisitLimit = (benefitRules['perVisitLimit'] || {}) as ApiRecord;
+    const serviceRestriction = (benefitRules['serviceRestriction'] || {}) as ApiRecord;
     return {
       ...plan,
-      price: Number(plan.price || 0),
+      price,
       discountPercent: Number(plan.discountPercent || 0),
       productDiscountPercent: Number(plan.productDiscountPercent || 0),
+      planType,
+      creditAmount,
+      bonusAmount,
+      benefitPercent: Number(plan.benefitPercent || benefitRules['benefitPercent'] || (price > 0 ? Math.round((bonusAmount / price) * 100) : 0)),
+      perVisitLimitType: String(plan.perVisitLimitType || perVisitLimit['type'] || 'none'),
+      perVisitLimitValue: Number(plan.perVisitLimitValue || perVisitLimit['value'] || 0),
+      serviceRestrictionType: String(plan.serviceRestrictionType || serviceRestriction['type'] || 'all'),
+      serviceRestrictionValue: String(plan.serviceRestrictionValue || serviceRestriction['value'] || ''),
+      allowProductRedeem: Boolean(plan.allowProductRedeem || benefitRules['allowProductRedeem']),
       gstRate: Number(plan.gstRate || 18),
       validityDays: Number(plan.validityDays || 365),
       active: plan.active !== false && plan.status !== 'inactive',
       status: plan.status || (plan.active === false ? 'inactive' : 'active'),
       createdAt: plan.createdAt || new Date().toISOString()
     };
+  }
+
+  membershipPlanLabel(plan: PosMembershipPlan): string {
+    const businessLabel = this.membershipBusinessLabel(plan);
+    if (businessLabel) return `${plan.name} - ${businessLabel}`;
+    if (this.membershipPlanType(plan) === 'prepaid_credit') {
+      return `${plan.name} - Pay ₹${Math.round(Number(plan.price || 0)).toLocaleString('en-IN')} / Get ₹${Math.round(this.membershipPlanCreditAmount(plan)).toLocaleString('en-IN')} credit`;
+    }
+    return `${plan.name} - ₹${Math.round(Number(plan.price || 0)).toLocaleString('en-IN')} / ${Number(plan.discountPercent || 0)}% every bill`;
+  }
+
+  private membershipBusinessLabel(plan: PosMembershipPlan | null | undefined): string {
+    if (!plan) return '';
+    const rules = plan.benefitRules || {};
+    const planType = this.membershipPlanType(plan);
+    const credits = this.membershipPlanCreditAmount(plan);
+    if (planType === 'prepaid_credit') return `Pay ₹${Math.round(Number(plan.price || 0)).toLocaleString('en-IN')} / Get ₹${Math.round(credits).toLocaleString('en-IN')} credit`;
+    if (planType === 'visit_pack') return `${credits || 10} visits`;
+    if (planType === 'service_credit') return `${credits || 1} service credits`;
+    if (planType === 'combo') return `${credits || 1} combo credits`;
+    if (planType === 'unlimited') return `Unlimited ${Number(((rules['fairUsage'] || {}) as ApiRecord)['monthlyCap'] || 4)} / month`;
+    if (planType === 'family') return `Family ${Number(((rules['family'] || {}) as ApiRecord)['memberLimit'] || 4)} members`;
+    if (planType === 'corporate') return `Corporate ${String(((rules['corporate'] || {}) as ApiRecord)['label'] || plan.name)} ${Number(plan.discountPercent || 0)}%`;
+    if (planType === 'tiered') return `Tier ${String(((rules['tier'] || {}) as ApiRecord)['name'] || plan.name)} after ₹${Math.round(Number(((rules['tier'] || {}) as ApiRecord)['spendThreshold'] || 0)).toLocaleString('en-IN')}`;
+    return '';
+  }
+
+  private membershipPlanType(plan: PosMembershipPlan | null | undefined): string {
+    const rules = plan?.benefitRules || {};
+    return String(plan?.planType || rules['planType'] || (rules['prepaidCredit'] ? 'prepaid_credit' : 'discount'));
+  }
+
+  private membershipPlanCreditAmount(plan: PosMembershipPlan | null | undefined): number {
+    const rules = plan?.benefitRules || {};
+    if (this.membershipPlanType(plan) === 'unlimited') return Math.max(1, Number(((rules['fairUsage'] || {}) as ApiRecord)['monthlyCap'] || 4));
+    return Math.max(0, Number(plan?.creditAmount || rules['creditAmount'] || rules['credits'] || 0));
+  }
+
+  private membershipPlanBonusAmount(plan: PosMembershipPlan | null | undefined): number {
+    const rules = plan?.benefitRules || {};
+    return Math.max(0, Number(plan?.bonusAmount || rules['bonusAmount'] || Math.max(0, this.membershipPlanCreditAmount(plan) - Number(plan?.price || 0))));
   }
 
   private membershipDaysLeft(membership: ApiRecord): number {

@@ -167,10 +167,21 @@
 
 :host ::ng-deep .detail-body .page-stack,
 :host ::ng-deep .detail-body .auto-sunset-page,
+:host ::ng-deep .detail-body .bundle-aware-page,
+:host ::ng-deep .detail-body .channel-aware-page,
+:host ::ng-deep .detail-body .client-brain-page,
 :host ::ng-deep .detail-body .campaign-audience-page,
+:host ::ng-deep .detail-body .elasticity-page,
 :host ::ng-deep .detail-body .offer-health-page,
 :host ::ng-deep .detail-body .client-return-page,
-:host ::ng-deep .detail-body .branch-leaderboard-page {
+:host ::ng-deep .detail-body .branch-leaderboard-page,
+:host ::ng-deep .detail-body .inventory-aware-page,
+:host ::ng-deep .detail-body .lead-time-page,
+:host ::ng-deep .detail-body .market-aware-page,
+:host ::ng-deep .detail-body .member-wallet-page,
+:host ::ng-deep .detail-body .no-show-risk-page,
+:host ::ng-deep .detail-body .staff-aware-page,
+:host ::ng-deep .detail-body .weather-event-page {
   background: #ffffff;
   min-height: 0;
   padding: 18px;

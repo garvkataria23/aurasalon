@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { badRequest } from "../utils/app-error.js";
+import { validateBody } from "../validators/request-validator.js";
 import { paymentService } from "../services/payment.service.js";
 import { invoicePaymentCollectionService } from "../services/invoice-payment-collection.service.js";
 
@@ -16,19 +17,19 @@ function requireIdempotencyKey(req, _res, next) {
   next();
 }
 
-paymentRouter.post("/payments/invoice/:invoiceId/cash", requirePermission("write", () => "payments"), requireIdempotencyKey, asyncHandler((req, res) => {
+paymentRouter.post("/payments/invoice/:invoiceId/cash", requirePermission("write", () => "payments"), requireIdempotencyKey, validateBody({ required: ["amount"] }), asyncHandler((req, res) => {
   res.status(201).json(paymentService.pay(req.params.invoiceId, "cash", req.body, req.access));
 }));
 
-paymentRouter.post("/payments/invoice/:invoiceId/upi", requirePermission("write", () => "payments"), requireIdempotencyKey, asyncHandler((req, res) => {
+paymentRouter.post("/payments/invoice/:invoiceId/upi", requirePermission("write", () => "payments"), requireIdempotencyKey, validateBody({ required: ["amount"] }), asyncHandler((req, res) => {
   res.status(201).json(paymentService.pay(req.params.invoiceId, "upi", req.body, req.access));
 }));
 
-paymentRouter.post("/payments/invoice/:invoiceId/card", requirePermission("write", () => "payments"), requireIdempotencyKey, asyncHandler((req, res) => {
+paymentRouter.post("/payments/invoice/:invoiceId/card", requirePermission("write", () => "payments"), requireIdempotencyKey, validateBody({ required: ["amount"] }), asyncHandler((req, res) => {
   res.status(201).json(paymentService.pay(req.params.invoiceId, "card", req.body, req.access));
 }));
 
-paymentRouter.post("/payments/invoice/:invoiceId/split", requirePermission("write", () => "payments"), requireIdempotencyKey, asyncHandler((req, res) => {
+paymentRouter.post("/payments/invoice/:invoiceId/split", requirePermission("write", () => "payments"), requireIdempotencyKey, validateBody({ required: ["payments"] }), asyncHandler((req, res) => {
   res.status(201).json(paymentService.split(req.params.invoiceId, req.body, req.access));
 }));
 

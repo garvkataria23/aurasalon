@@ -45,7 +45,7 @@ export function startDashboardCron() {
   if (started) return;
   started = true;
 
-  runHourlyAndDaily();
+  setTimeout(runHourlyAndDaily, 1000).unref?.();
   setInterval(runHourlyAndDaily, 5 * 60 * 1000);
   setInterval(runFullRefresh, 60 * 60 * 1000);
   setInterval(runAnomalies, 60 * 60 * 1000);
