@@ -2140,8 +2140,13 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   async createBooking(): Promise<void> {
-    if (this.bookingForm.invalid) return;
+    if (this.bookingForm.invalid) {
+      this.bookingForm.markAllAsTouched();
+      this.error.set('Select a client before creating the booking.');
+      return;
+    }
     this.error.set('');
+    if (this.totalSelectedBookingServiceCount()) this.addSelectedLineServices();
     const lines = this.bookingLines();
     if (lines.some((line) => !line.serviceId || !line.staffId || !line.startAt)) {
       this.error.set('Every service line needs service, staff and start time.');
@@ -2158,6 +2163,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       this.bookingForm.value.notifyOwner ? 'owner' : ''
     ].filter(Boolean);
     this.saving.set(true);
+    let committedAppointments: ApiRecord[] = [];
     try {
       const bookedClientId = String(this.bookingForm.value.clientId || '');
       const payload = {
@@ -2178,7 +2184,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       if (this.editingAppointmentId()) {
         const line = lines[0];
         const editingAppointment = this.selectedAppointment();
-        await firstValueFrom(this.api.update<ApiRecord>('appointments', this.editingAppointmentId(), {
+        const updatedAppointment = await firstValueFrom(this.api.update<ApiRecord>('appointments', this.editingAppointmentId(), {
           branchId: payload.branchId,
           clientId: payload.clientId,
           status: payload.status,
@@ -2192,10 +2198,12 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
           chair: String(line.chair || '').trim(),
           room: String(line.room || '').trim()
         }));
+        committedAppointments = updatedAppointment ? [updatedAppointment] : [];
         this.lastBookedClientId.set(bookedClientId);
         this.showNotice('Appointment updated');
       } else {
         const result = await firstValueFrom(this.api.post<ApiRecord>('appointment-deposits/multi-service-bookings', payload));
+        committedAppointments = Array.isArray(result.appointments) ? result.appointments : [];
         this.lastBookedClientId.set(bookedClientId);
         this.showNotice(result.deposit?.required
           ? `20% advance link sent: ${result.deposit.depositAmount} INR. Appointment will confirm after payment.`
@@ -2203,6 +2211,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       }
       this.closeDrawer();
       await this.load();
+      this.mergeAppointmentsIntoContext(committedAppointments);
     } catch (error) {
       this.error.set(this.bookingErrorText(error));
     } finally {
@@ -2999,6 +3008,28 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private blankLine(staffId: string, startAt: string): BookingLineDraft {
     return { id: `line_${Math.random().toString(16).slice(2)}`, serviceId: '', staffId, startAt, durationMinutes: 30, chair: '', room: '' };
+  }
+
+  private mergeAppointmentsIntoContext(appointments: ApiRecord[]): void {
+    if (!appointments.length) return;
+    const current = this.context();
+    if (!current) return;
+    const rows = [...(current.appointments || [])];
+    for (const appointment of appointments) {
+      const id = String(appointment?.id || '');
+      if (!id) continue;
+      const index = rows.findIndex((row) => String(row?.id || '') === id);
+      if (index >= 0) {
+        rows[index] = { ...rows[index], ...appointment };
+      } else {
+        rows.push(appointment);
+      }
+    }
+    this.context.set({
+      ...current,
+      appointments: rows,
+      appointmentTotal: Math.max(Number(current.appointmentTotal || 0), rows.length)
+    });
   }
 
   private normalizedAppointmentStatus(value: unknown): string {
