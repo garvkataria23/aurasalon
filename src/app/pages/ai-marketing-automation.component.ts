@@ -216,7 +216,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     </section>
   `,
   styles: [`
-    .marketing-workspace { display: grid; gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .marketing-workspace { display: grid; gap: 8px; padding: 8px; color: #1d2430; background: #f0f2f5; min-height: calc(100vh - 20px); }
     .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
     .brand-block, .top-actions, .center-line, .header-actions, .desk-heading, .register-heading, .desk-tabs { display: flex; align-items: center; gap: 10px; }
     .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
@@ -225,26 +225,27 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .zenoti-button, .desk-tabs button, .primary-button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
     .zenoti-button.primary, .primary-button, .desk-tabs .active { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
     .primary-button:disabled { opacity: .5; cursor: not-allowed; }
-    .zenoti-header, .page-heading, .metric-strip, .workdesk, .register-panel { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { background: #fff; }
     .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
     .center-line { justify-content: space-between; }
     .center-line strong { font-size: 15px; }
     .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
-    .page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; }
+    .page-heading { display: flex; justify-content: space-between; gap: 16px; padding: 16px; align-items: end; background: #fff; border: 1px solid #d8e1ea; }
     .page-heading h1 { margin: 0; font-size: 22px; color: #172033; }
     .page-heading p { margin: 6px 0 0; color: #36506d; font-size: 13px; }
     .search-field { width: min(100%, 310px); }
     .search-field input, .field input, .field select, .field textarea { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
-    .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 0; overflow-x: auto; }
+    .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 0; overflow-x: auto; background: #fff; border-left: 1px solid #d8e1ea; border-right: 1px solid #d8e1ea; border-bottom: 1px solid #d8e1ea; }
     .metric-strip article { min-width: 150px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #0b8f7c; display: flex; flex-direction: column; }
     .metric-strip article:nth-child(2) { border-top-color: #2b61d1; }
     .metric-strip article:nth-child(3) { border-top-color: #bd7400; }
     .metric-strip article:nth-child(4) { border-top-color: #0b8f7c; }
     .metric-strip article:nth-child(5) { border-top-color: #7046d8; }
     .metric-strip article:nth-child(6) { border-top-color: #bb241a; }
+    .metric-strip article:last-child { border-right: none; }
     .metric-strip span, .metric-strip small, td small, .output-grid span { display: block; color: #5f6f85; font-size: 12px; }
     .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; }
-    .workdesk, .register-panel { padding: 16px; }
+    .workdesk, .register-panel { padding: 16px; background: #fff; border: 1px solid #d8e1ea; }
     .desk-heading, .register-heading { justify-content: space-between; align-items: end; margin-bottom: 12px; }
     .desk-heading h2, .register-heading h2, .zenoti-form h3 { margin: 3px 0 0; color: #172033; font-size: 18px; }
     .desk-tabs { flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid #d8e1ea; }

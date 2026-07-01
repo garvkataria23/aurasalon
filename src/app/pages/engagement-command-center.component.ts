@@ -1703,7 +1703,7 @@ interface EngagementDetail extends ApiRecord {
     .action-queue-card span:not(.badge) { font-weight: 900; color: #26364b; overflow-wrap: anywhere; }
     .action-queue-card small { color: #607083; line-height: 1.35; }
     .empty-state.compact { padding: 18px 12px; }
-    .zenoti-engagement-page { gap: 0; color: #1d2430; background: #f7f9fb; min-height: calc(100vh - 20px); }
+    .zenoti-engagement-page { gap: 8px; padding: 8px; color: #1d2430; background: #f0f2f5; min-height: calc(100vh - 20px); }
     .command-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; background: #111827; color: #fff; border-bottom: 1px solid #d8e1ea; }
     .brand-block, .top-actions, .center-line, .header-actions, .zenoti-shortcuts { display: flex; align-items: center; gap: 10px; }
     .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #6d5bd0; color: #fff; font-weight: 900; }
@@ -1711,7 +1711,9 @@ interface EngagementDetail extends ApiRecord {
     .brand-block strong { display: block; color: #fff; font-size: 15px; }
     .zenoti-button, .zenoti-shortcuts button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
     .zenoti-button.primary, .zenoti-shortcuts .active { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
-    .zenoti-header, .zenoti-page-heading, .zenoti-shortcuts, .action-queue-strip, .engagement-shell { background: #fff; border-bottom: 1px solid #d8e1ea; }
+    .zenoti-header { background: #fff; }
+    .zenoti-page-heading { background: #fff; border: 1px solid #d8e1ea; }
+    .zenoti-shortcuts { background: #fff; border: 1px solid #d8e1ea; }
     .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
     .center-line { justify-content: space-between; }
     .center-line strong { font-size: 15px; }
