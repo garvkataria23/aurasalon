@@ -8991,3 +8991,86 @@ body,
     margin-right: 0 !important;
   }
 }
+
+/* Bottom Customer Care AI shortcut for the compact sidebar rail. */
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar,
+.app-shell.sidebar-is-compact > aside.inline-app-sidebar.enterprise-sidebar {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  justify-self: center !important;
+  align-self: end !important;
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  z-index: 80 !important;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action:hover,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action.active {
+  color: var(--color-primary) !important;
+  background: linear-gradient(90deg, #fff8fb, #f8e5ec) !important;
+  border-color: rgba(232, 167, 184, 0.78) !important;
+  transform: translateY(-1px) !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action:focus-visible {
+  outline: 2px solid rgba(232, 167, 184, 0.78) !important;
+  outline-offset: 2px !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-icon {
+  width: 21px !important;
+  height: 21px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.9 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-icon path:last-child {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  z-index: 120;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid rgba(232, 167, 184, 0.48);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(75, 18, 56, 0.18);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action:hover::after,
+.app-shell > aside.inline-app-sidebar.enterprise-sidebar .sidebar-care-ai-action:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
