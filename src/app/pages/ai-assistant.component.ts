@@ -69,7 +69,8 @@ type AiTool = {
         </article>
       </div>
 
-      <div class="ai-command-grid" *ngIf="!loading()">
+      <div class="ai-workspace-grid" *ngIf="!loading()">
+        <div class="ai-left-stack">
         <section class="panel workflow-panel">
           <div class="section-title">
             <div>
@@ -107,7 +108,9 @@ type AiTool = {
             </button>
           </div>
         </section>
+        </div>
 
+        <div class="ai-main-stack">
         <section class="panel command-panel">
           <div class="command-header">
             <div>
@@ -212,62 +215,6 @@ type AiTool = {
             </div>
           </form>
         </section>
-
-        <section class="panel governance-panel">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">Governance rail</span>
-              <h2>Model, policy and cost</h2>
-            </div>
-          </div>
-          <div class="governance-stack">
-            <article>
-              <span>Provider mode</span>
-              <strong>{{ modelMode() }}</strong>
-              <small>{{ observability()?.providerStatus?.openaiConfigured ? 'External provider configured' : 'Local business-rule fallback active' }}</small>
-            </article>
-            <article>
-              <span>Daily limit</span>
-              <strong>{{ governance()?.usage?.callsToday || 0 }} / {{ governance()?.dailyCallLimit || 0 }}</strong>
-              <small>{{ (governance()?.usage?.costTodayUsd || 0) | currency:'USD':'symbol':'1.2-2' }} spent today</small>
-            </article>
-            <article>
-              <span>Policy denials</span>
-              <strong>{{ observability()?.policyDenialsToday || 0 }}</strong>
-              <small>Role, budget and task override controls</small>
-            </article>
-          </div>
-
-          <div class="task-health-list">
-            <div *ngFor="let task of taskOverrides().slice(0, 8)">
-              <span>{{ task.taskKey }}</span>
-              <strong [class.warn]="task.enabled === false">{{ task.enabled === false ? 'off' : 'on' }}</strong>
-            </div>
-          </div>
-
-          <div class="prompt-registry">
-            <div class="registry-head">
-              <span class="eyebrow">Prompt registry</span>
-              <strong>{{ rows(promptRegistry()?.prompts).length }} prompts</strong>
-            </div>
-            <div class="registry-flags">
-              <span>PII redaction</span>
-              <span>Role policy</span>
-              <span>Usage limits</span>
-              <span>{{ promptRegistry()?.fallbackMode || 'local-business-rules' }}</span>
-            </div>
-            <div class="registry-list">
-              <div *ngFor="let prompt of rows(promptRegistry()?.prompts).slice(0, 8)">
-                <span>{{ prompt.taskKey }}</span>
-                <strong>{{ prompt.promptVersion || 'v1' }}</strong>
-                <small>{{ prompt.outputMode || 'json_schema' }}</small>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <div class="ai-result-grid" *ngIf="!loading()">
         <section class="panel output-panel">
           <div class="section-title">
             <div>
@@ -340,7 +287,61 @@ type AiTool = {
             </div>
           </ng-template>
         </section>
+        </div>
 
+        <div class="ai-side-stack">
+        <section class="panel governance-panel">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">Governance rail</span>
+              <h2>Model, policy and cost</h2>
+            </div>
+          </div>
+          <div class="governance-stack">
+            <article>
+              <span>Provider mode</span>
+              <strong>{{ modelMode() }}</strong>
+              <small>{{ observability()?.providerStatus?.openaiConfigured ? 'External provider configured' : 'Local business-rule fallback active' }}</small>
+            </article>
+            <article>
+              <span>Daily limit</span>
+              <strong>{{ governance()?.usage?.callsToday || 0 }} / {{ governance()?.dailyCallLimit || 0 }}</strong>
+              <small>{{ (governance()?.usage?.costTodayUsd || 0) | currency:'USD':'symbol':'1.2-2' }} spent today</small>
+            </article>
+            <article>
+              <span>Policy denials</span>
+              <strong>{{ observability()?.policyDenialsToday || 0 }}</strong>
+              <small>Role, budget and task override controls</small>
+            </article>
+          </div>
+
+          <div class="task-health-list">
+            <div *ngFor="let task of taskOverrides().slice(0, 8)">
+              <span>{{ task.taskKey }}</span>
+              <strong [class.warn]="task.enabled === false">{{ task.enabled === false ? 'off' : 'on' }}</strong>
+            </div>
+          </div>
+
+          <div class="prompt-registry">
+            <div class="registry-head">
+              <span class="eyebrow">Prompt registry</span>
+              <strong>{{ rows(promptRegistry()?.prompts).length }} prompts</strong>
+            </div>
+            <div class="registry-flags">
+              <span>PII redaction</span>
+              <span>Role policy</span>
+              <span>Usage limits</span>
+              <span>{{ promptRegistry()?.fallbackMode || 'local-business-rules' }}</span>
+            </div>
+            <div class="registry-list">
+              <div *ngFor="let prompt of rows(promptRegistry()?.prompts).slice(0, 8)">
+                <span>{{ prompt.taskKey }}</span>
+                <strong>{{ prompt.promptVersion || 'v1' }}</strong>
+                <small>{{ prompt.outputMode || 'json_schema' }}</small>
+              </div>
+            </div>
+          </div>
+        </section>
         <section class="panel queue-panel">
           <div class="section-title">
             <div>
@@ -378,8 +379,8 @@ type AiTool = {
             </div>
           </div>
         </section>
+        </div>
       </div>
-
       <section class="panel history-panel" *ngIf="!loading()">
         <div class="section-title">
           <div>
@@ -432,6 +433,19 @@ type AiTool = {
 
     .ai-command-page {
       color: var(--ai-ink);
+      display: grid;
+      grid-template-columns: minmax(300px, .82fr) minmax(520px, 1.42fr) minmax(300px, .76fr);
+      gap: 18px;
+      align-items: start;
+      max-width: 1760px;
+      margin: 0 auto;
+    }
+
+    .ai-command-page app-state,
+    .ai-hero,
+    .ai-kpi-grid,
+    .history-panel {
+      grid-column: 1 / -1;
     }
 
     .ai-hero,
@@ -448,9 +462,9 @@ type AiTool = {
       display: flex;
       justify-content: space-between;
       gap: 24px;
-      min-height: 260px;
-      padding: 34px;
-      border-radius: 30px;
+      min-height: 210px;
+      padding: 28px;
+      border-radius: 26px;
       background:
         radial-gradient(circle at 8% 12%, rgba(15, 118, 110, .22), transparent 28%),
         radial-gradient(circle at 88% 20%, rgba(183, 121, 31, .18), transparent 30%),
@@ -464,13 +478,12 @@ type AiTool = {
     }
 
     .ai-hero h2 {
-      max-width: 880px;
+      max-width: 820px;
       margin: 8px 0;
-      font-size: clamp(38px, 5vw, 74px);
-      line-height: .9;
-      letter-spacing: -0.07em;
+      font-size: clamp(36px, 4.4vw, 64px);
+      line-height: .94;
+      letter-spacing: -0.055em;
     }
-
     .ai-hero p {
       max-width: 720px;
       color: var(--ai-muted);
@@ -586,13 +599,22 @@ type AiTool = {
       font-weight: 750;
     }
 
-    .ai-command-grid {
+    .ai-workspace-grid {
+      grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: minmax(320px, .85fr) minmax(480px, 1.35fr) minmax(300px, .8fr);
-      gap: 16px;
+      grid-template-columns: minmax(300px, .82fr) minmax(520px, 1.42fr) minmax(300px, .76fr);
+      gap: 18px;
       align-items: start;
     }
 
+    .ai-left-stack,
+    .ai-main-stack,
+    .ai-side-stack {
+      min-width: 0;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
     .panel {
       border-radius: 26px;
       padding: 18px;
@@ -601,7 +623,25 @@ type AiTool = {
     .workflow-panel,
     .governance-panel {
       position: sticky;
-      top: 18px;
+      top: 104px;
+      max-height: calc(100vh - 128px);
+      overflow: hidden;
+    }
+
+    .workflow-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .governance-panel {
+      overflow: auto;
+    }
+
+    .command-panel,
+    .output-panel,
+    .queue-panel {
+      min-width: 0;
     }
 
     .ai-search {
@@ -641,7 +681,9 @@ type AiTool = {
     .workflow-list {
       display: grid;
       gap: 10px;
-      max-height: 720px;
+      flex: 1 1 auto;
+      min-height: 220px;
+      max-height: none;
       overflow: auto;
       padding-right: 4px;
     }
@@ -901,12 +943,6 @@ type AiTool = {
       color: var(--ai-muted);
     }
 
-    .ai-result-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(320px, .55fr);
-      gap: 16px;
-      align-items: start;
-    }
 
     .ai-output {
       display: grid;
@@ -991,7 +1027,7 @@ type AiTool = {
     .empty-command {
       display: grid;
       gap: 8px;
-      min-height: 260px;
+      min-height: 220px;
       place-content: center;
       text-align: center;
       border: 1px dashed var(--ai-line);
@@ -1017,8 +1053,11 @@ type AiTool = {
     }
 
     @media (max-width: 1280px) {
-      .ai-command-grid,
-      .ai-result-grid,
+      .ai-command-page,
+      .ai-workspace-grid {
+        grid-template-columns: 1fr;
+      }
+
       .ai-kpi-grid,
       .result-metrics,
       .quick-grid,
@@ -1029,9 +1068,10 @@ type AiTool = {
       .workflow-panel,
       .governance-panel {
         position: static;
+        max-height: none;
+        overflow: visible;
       }
     }
-
     @media (max-width: 860px) {
       .ai-hero,
       .command-header {
