@@ -33,6 +33,13 @@ Searched `src/styles.css` and shared UI component styles/scripts for `--aura-*` 
 - Added low-specificity base normalization for `aura-button`, `aura-badge`, `aura-table`, `aura-empty`, `aura-skeleton`, `aura-page-header`, and `aura-kpi-card`.
 - Added a generic `.aura-card` class as a token-backed primitive for future incremental migrations. No pages were migrated in this phase.
 
+
+## Critical Quick Pass - 2026-07-02
+
+- Verified canonical modern selectors for `aura-badge`, `aura-table`, `aura-empty`, `aura-skeleton`, `aura-page-header`, `aura-stat-strip`, and `aura-tabs` are unique under `src/app/shared/ui`.
+- Verified legacy selectors now use the `aura-legacy-*` namespace, including the legacy table rendering `<aura-legacy-empty>` while the modern table keeps `<aura-empty>` and `<aura-skeleton>`.
+- Tightened the radius token contract with `--radius-xs: 4px`, `--aura-radius-sm: var(--radius-xs)`, `--aura-radius-md: var(--radius-sm)`, and `--aura-radius-lg: var(--radius-md)`, preserving effective Aura radii of `4px`, `6px`, and `10px`.
+- Added token aliases for `.metric-card` base and v2 values so radius, min-height, background, shadow, hover shadow, transition, padding, and gap have a single variable-backed contract per cascade layer.
 ## Not Changed
 
 - No backend files.
