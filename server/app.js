@@ -92,6 +92,7 @@ import { crmRouter } from "./routes/crm.routes.js";
 import { clientMasterRouter } from "./routes/client-master.routes.js";
 import { customer360Router } from "./routes/customer-360.routes.js";
 import { customerAuthRouter } from "./routes/customer-auth.routes.js";
+import { customerCareAiRouter } from "./routes/customer-care-ai.routes.js";
 import { customerMarketplaceRouter } from "./routes/customer-marketplace.routes.js";
 import { clientReportsRouter } from "./routes/client-reports.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
@@ -432,6 +433,7 @@ export function createApp() {
   app.use("/api/v1", authenticateJwt(), workflowEngineRouter);
   app.use("/api/v1", authenticateJwt(), financeEngineRouter);
   app.use("/api/v1", authenticateJwt(), customer360Router);
+  app.use("/api/v1", authenticateJwt(), customerCareAiRouter);
   app.use("/api/v1", authenticateJwt(), qualityRouter);
   app.use("/api/v1", authenticateJwt(), deploymentRouter);
   app.use("/api/v1", authenticateJwt(), ecosystemRouter);
@@ -586,6 +588,7 @@ export function createApp() {
   app.use("/api", workflowEngineRouter);
   app.use("/api", financeEngineRouter);
   app.use("/api", customer360Router);
+  app.use("/api", customerCareAiRouter);
   app.use("/api", bookingPortalRouter);
   app.use("/api", bookingPortalV2Router);
   app.use("/api", qualityRouter);
@@ -647,3 +650,4 @@ function resolveClientDist() {
   ];
   return candidates.find((candidate) => existsSync(join(candidate, "index.html"))) || "";
 }
+

@@ -273,11 +273,11 @@ type ActiveModuleTabs = {
 
         <a
           class="sidebar-care-ai-action"
-          routerLink="/ai"
+          routerLink="/customer-care-ai"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
-          (mouseenter)="prefetchNavPath('/ai')"
-          (focus)="prefetchNavPath('/ai')"
+          (mouseenter)="prefetchNavPath('/customer-care-ai')"
+          (focus)="prefetchNavPath('/customer-care-ai')"
           aria-label="Customer Care AI"
           data-label="Customer Care AI"
         >
@@ -1973,5 +1973,4 @@ export class AppComponent implements OnDestroy {
     return 'Unexpected application error';
   }
 }
-
 

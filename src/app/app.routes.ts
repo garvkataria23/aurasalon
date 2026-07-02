@@ -14,6 +14,7 @@ export const routes: Routes = [
   { path: 'design-system', loadComponent: () => import('./pages/design-system.component').then(m => m.DesignSystemComponent), title: 'Design System' },
   { path: 'ai/:section', loadComponent: () => import('./pages/ai-assistant.component').then(m => m.AiAssistantComponent), title: 'AI Assistant' },
   { path: 'ai', loadComponent: () => import('./pages/ai-assistant.component').then(m => m.AiAssistantComponent), title: 'AI Assistant' },
+  { path: 'customer-care-ai', loadComponent: () => import('./pages/customer-care-ai.component').then(m => m.CustomerCareAiComponent), title: 'Customer Care AI' },
   { path: 'analytics', loadComponent: () => import('./pages/analytics-engine.component').then(m => m.AnalyticsEngineComponent), title: 'Advanced Analytics' },
   { path: 'engagement', loadComponent: () => import('./pages/engagement-command-center.component').then(m => m.EngagementCommandCenterComponent), title: 'Engagement Command Center' },
   { path: 'smart-booking', loadComponent: () => import('./pages/smart-booking.component').then(m => m.SmartBookingComponent), title: 'Smart Booking System' },
@@ -478,3 +479,4 @@ export const routes: Routes = [
   },
   { path: '**', redirectTo: 'home' }
 ];
+
