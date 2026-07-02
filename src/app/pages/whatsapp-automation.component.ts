@@ -4,6 +4,8 @@ import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/fo
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
+type WhatsAppViewKey = 'overview' | 'operations' | 'result' | 'inbox' | 'rules';
+
 @Component({
   selector: 'app-whatsapp-automation',
   standalone: true,
@@ -33,7 +35,23 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <article><span>Threads stored</span><strong>{{ threads().length }}</strong></article>
       </div>
 
-      <div class="ai-layout" *ngIf="!loading()">
+            <div class="whatsapp-section-workspace">
+        <aside class="whatsapp-side-nav" aria-label="WhatsApp sections">
+          <button
+            class="whatsapp-nav-card"
+            type="button"
+            *ngFor="let view of whatsAppViews"
+            [class.active]="activeWhatsAppView() === view.key"
+            (click)="setWhatsAppView(view.key)"
+          >
+            <span class="whatsapp-nav-icon">{{ view.icon }}</span>
+            <span><strong>{{ view.label }}</strong><small>{{ view.description }}</small></span>
+            <em>{{ view.badge }}</em>
+          </button>
+        </aside>
+
+        <main class="whatsapp-detail">
+      <div class="ai-layout" *ngIf="!loading() && visibleWhatsAppView('operations')">
         <section class="form-panel">
           <h3>Inbound auto reply and intent detection</h3>
           <form [formGroup]="inboundForm" (ngSubmit)="processInbound()">
@@ -105,7 +123,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </section>
       </div>
 
-      <section class="panel register-panel" *ngIf="result() as result">
+      <section class="panel register-panel" *ngIf="visibleWhatsAppView('result') && result() as result">
         <div class="section-title">
           <div>
             <h2>{{ resultTitle(result) }}</h2>
@@ -120,7 +138,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <pre class="result-json">{{ result | json }}</pre>
       </section>
 
-      <div class="dashboard-grid">
+      <div class="dashboard-grid" *ngIf="visibleWhatsAppView('inbox')">
         <section class="panel">
           <div class="section-title">
             <div>
@@ -164,7 +182,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </section>
       </div>
 
-      <section class="panel register-panel">
+      <section class="panel register-panel" *ngIf="visibleWhatsAppView('rules')">
         <div class="section-title">
           <div>
             <h2>WhatsApp rule library</h2>
@@ -193,6 +211,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </table>
         </div>
       </section>
+        </main>
+      </div>
     </section>
   `,
   styles: [`
@@ -229,6 +249,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .metric-strip article:nth-child(8) { border-top-color: #d3336f; }
     .metric-strip span, .metric-strip small, td small, .rank-list small, .activity-list small { display: block; color: #5f6f85; font-size: 12px; }
     .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; }
+    .whatsapp-section-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
+    .whatsapp-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
+    .whatsapp-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
+    .whatsapp-nav-card:hover, .whatsapp-nav-card.active { background: linear-gradient(135deg, #e8fbf7, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
+    .whatsapp-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #e8f7f4; color: #0b6f61; font-weight: 950; font-size: 12px; }
+    .whatsapp-nav-card strong, .whatsapp-nav-card small { display: block; }
+    .whatsapp-nav-card small { margin-top: 4px; color: #5f6f85; font-size: 12px; font-weight: 700; line-height: 1.3; }
+    .whatsapp-nav-card em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #e8f7f4; color: #0b6f61; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+    .whatsapp-detail { display: grid; gap: 8px; min-width: 0; }
     .ai-layout, .dashboard-grid { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(520px, 1.2fr); gap: 0; }
     .form-panel, .panel { border-right: 1px solid #d8e1ea; border-radius: 0; box-shadow: none; padding: 16px; }
     .panel:last-child, .form-panel:last-child { border-right: 0; }
@@ -255,7 +284,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     tr:hover td { background: #eef7fc; }
     app-state { display: block; }
     @media (max-width: 1180px) {
-      .ai-layout, .dashboard-grid { grid-template-columns: 1fr; }
+      .whatsapp-section-workspace, .ai-layout, .dashboard-grid { grid-template-columns: 1fr; }
+      .whatsapp-side-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .form-panel, .panel { border-right: 0; }
       .quick-grid { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
     }
@@ -263,7 +293,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       .command-bar, .page-heading, .center-line, .rank-list article, .activity-list article { display: grid; align-items: start; }
       .top-actions, .header-actions, .form-actions { flex-wrap: wrap; }
       .search-field { width: 100%; }
-      .metric-strip, .wa-action-form, .quick-grid { grid-template-columns: 1fr; }
+      .whatsapp-section-workspace, .whatsapp-side-nav, .metric-strip, .wa-action-form, .quick-grid { grid-template-columns: 1fr; }
       .right { text-align: left; justify-items: start; }
     }
   `]
@@ -282,6 +312,13 @@ export class WhatsAppAutomationComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
+  readonly activeWhatsAppView = signal<WhatsAppViewKey>('overview');
+  readonly whatsAppViews: Array<{ key: WhatsAppViewKey; label: string; description: string; icon: string; badge: string }> = [
+    { key: 'overview', label: 'Overview', description: 'All WhatsApp automation sections', icon: 'OV', badge: 'All' },
+    { key: 'operations', label: 'Operations', description: 'Inbound processing and quick actions', icon: 'OP', badge: 'Run' },
+    { key: 'inbox', label: 'Inbox', description: 'Threads, messages and handoffs', icon: 'IB', badge: 'CRM' },
+    { key: 'rules', label: 'Rules', description: 'Automation rule library', icon: 'RL', badge: 'Ops' }
+  ];
 
   readonly inboundForm = this.fb.group({
     phone: ['+91 98765 43120', Validators.required],
@@ -303,6 +340,14 @@ export class WhatsAppAutomationComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  setWhatsAppView(view: WhatsAppViewKey): void {
+    this.activeWhatsAppView.set(view);
+  }
+
+  visibleWhatsAppView(view: WhatsAppViewKey): boolean {
+    return this.activeWhatsAppView() === 'overview' || this.activeWhatsAppView() === view;
   }
 
   load(): void {

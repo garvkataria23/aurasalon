@@ -11,7 +11,23 @@
 
   <p class="error-text" *ngIf="error()">{{ error() }}</p>
 
-  <section class="panel calendar-toolbar">
+    <div class="promotion-workspace">
+    <aside class="promotion-side-nav" aria-label="Promotion calendar sections">
+      <button
+        class="promotion-nav-card"
+        type="button"
+        *ngFor="let view of promotionViews"
+        [class.active]="activePromotionView() === view.key"
+        (click)="setPromotionView(view.key)"
+      >
+        <span class="promotion-nav-icon">{{ view.icon }}</span>
+        <span><strong>{{ view.label }}</strong><small>{{ view.description }}</small></span>
+        <em>{{ view.badge }}</em>
+      </button>
+    </aside>
+
+    <main class="promotion-detail">
+  <section class="panel calendar-toolbar" *ngIf="visiblePromotionView('toolbar')">
     <div class="period-actions">
       <button class="ghost-button mini" type="button" (click)="shift(-1)" aria-label="Previous period">&lt;</button>
       <strong>{{ currentTitle() }}</strong>
@@ -38,7 +54,7 @@
     </button>
   </section>
 
-  <section class="metric-grid">
+  <section class="metric-grid" *ngIf="visiblePromotionView('metrics')">
     <article class="metric-card">
       <span>Total visible</span>
       <strong>{{ visibleEvents().length }}</strong>
@@ -58,8 +74,8 @@
     </article>
   </section>
 
-  <section class="calendar-layout">
-    <div class="panel calendar-board">
+  <section class="calendar-layout" *ngIf="visiblePromotionView('calendar') || visiblePromotionView('planner')">
+    <div class="panel calendar-board" *ngIf="visiblePromotionView('calendar')">
       <div class="weekday-row">
         <span *ngFor="let day of weekdays">{{ day }}</span>
       </div>
@@ -81,7 +97,7 @@
       </div>
     </div>
 
-    <form class="panel form-grid planner-panel" (ngSubmit)="savePromotion()">
+    <form class="panel form-grid planner-panel" *ngIf="visiblePromotionView('planner')" (ngSubmit)="savePromotion()">
       <div class="section-title">
         <h2>Schedule offer</h2>
         <button class="primary-button" type="submit" [disabled]="saving()">
@@ -156,7 +172,7 @@
     </form>
   </section>
 
-  <section class="panel">
+  <section class="panel" *ngIf="visiblePromotionView('list')">
     <div class="section-title">
       <h2>Campaign list</h2>
       <span class="muted-text">{{ visibleEvents().length }} events</span>
@@ -201,4 +217,6 @@
       </table>
     </div>
   </section>
+    </main>
+  </div>
 </section>

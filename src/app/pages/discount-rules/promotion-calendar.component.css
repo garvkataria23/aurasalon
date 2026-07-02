@@ -1,5 +1,6 @@
 .promotion-calendar-page {
   gap: 18px;
+  min-width: 0;
 }
 
 .promotion-calendar-page .page-header p,
@@ -20,11 +21,120 @@
   gap: 8px;
 }
 
+.promotion-workspace {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.promotion-detail {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.promotion-side-nav {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e4e7ec);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 8px;
+  position: sticky;
+  top: 68px;
+  z-index: 4;
+}
+
+.promotion-nav-card {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #101828;
+  cursor: pointer;
+  display: grid;
+  flex: 1 0 178px;
+  gap: 9px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  min-height: 64px;
+  padding: 9px 10px;
+  text-align: left;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.promotion-nav-card:hover,
+.promotion-nav-card.active {
+  background: #fcfaf7;
+  border-color: var(--line, #e4e7ec);
+  transform: translateY(-1px);
+}
+
+.promotion-nav-card.active {
+  background: var(--color-primary-soft, #f7edf3);
+  border-color: color-mix(in srgb, var(--color-primary, #4b1238) 34%, var(--line, #e4e7ec));
+  box-shadow: inset 0 -2px 0 var(--color-primary, #4b1238);
+}
+
+.promotion-nav-icon {
+  background: var(--color-primary-soft, #f7edf3);
+  border-radius: 8px;
+  color: var(--color-primary, #4b1238);
+  display: grid;
+  font-size: 11px;
+  font-weight: 950;
+  height: 34px;
+  place-items: center;
+  width: 34px;
+}
+
+.promotion-nav-card strong,
+.promotion-nav-card small {
+  display: block;
+}
+
+.promotion-nav-card strong {
+  color: #101828;
+  font-size: 13px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promotion-nav-card small {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promotion-nav-card em {
+  align-self: start;
+  background: #ffffff;
+  border: 1px solid var(--line, #e4e7ec);
+  border-radius: 999px;
+  color: var(--color-primary, #4b1238);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  padding: 4px 7px;
+  text-transform: uppercase;
+}
+
 .calendar-toolbar {
   align-items: end;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(220px, 1fr) auto repeat(2, minmax(160px, 1fr)) auto;
+  grid-template-columns: minmax(230px, 1.2fr) auto repeat(2, minmax(150px, 0.8fr)) auto;
+  min-width: 0;
 }
 
 .period-actions strong {
@@ -88,11 +198,17 @@
   align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  min-width: 0;
 }
 
 .calendar-board {
   min-width: 0;
+}
+
+.calendar-board:only-child,
+.planner-panel:only-child {
+  grid-column: 1 / -1;
 }
 
 .weekday-row,
@@ -125,6 +241,7 @@
   flex-direction: column;
   gap: 6px;
   min-height: 118px;
+  min-width: 0;
   padding: 10px;
   text-align: left;
 }
@@ -200,6 +317,7 @@
 
 .planner-panel {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .planner-panel .section-title,
@@ -230,16 +348,23 @@
   vertical-align: top;
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
+
 .table-wrap td strong,
 .table-wrap td small {
   display: block;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .calendar-toolbar,
-  .calendar-layout,
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .calendar-layout {
+    grid-template-columns: 1fr;
   }
 
   .calendar-board,
@@ -254,6 +379,14 @@
   .metric-grid,
   .planner-panel {
     grid-template-columns: 1fr;
+  }
+
+  .promotion-side-nav {
+    position: static;
+  }
+
+  .promotion-nav-card {
+    flex-basis: 162px;
   }
 
   .day-grid,

@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 import { ApiRecord, ApiService } from '../../core/api.service';
 
 type CalendarView = 'month' | 'week';
+type PromotionViewKey = 'overview' | 'toolbar' | 'metrics' | 'calendar' | 'planner' | 'list';
 
 type CalendarDay = {
   iso: string;
@@ -32,6 +33,15 @@ export class PromotionCalendarComponent implements OnInit {
   readonly coupons = signal<ApiRecord[]>([]);
   readonly viewMode = signal<CalendarView>('month');
   readonly cursor = signal(this.monthStartIso(new Date()));
+  readonly activePromotionView = signal<PromotionViewKey>('overview');
+  readonly promotionViews: Array<{ key: PromotionViewKey; label: string; description: string; icon: string; badge: string }> = [
+    { key: 'overview', label: 'Overview', description: 'All calendar sections', icon: 'OV', badge: 'All' },
+    { key: 'toolbar', label: 'Filters', description: 'Period and promotion filters', icon: 'FT', badge: 'Plan' },
+    { key: 'metrics', label: 'Metrics', description: 'Visible promotion counts', icon: 'MT', badge: 'Live' },
+    { key: 'calendar', label: 'Calendar', description: 'Scheduled promotions by date', icon: 'CA', badge: 'Grid' },
+    { key: 'planner', label: 'Planner', description: 'Create or schedule offers', icon: 'PL', badge: 'New' },
+    { key: 'list', label: 'List', description: 'Manage campaign status', icon: 'LS', badge: 'Ops' }
+  ];
 
   readonly days = computed(() => this.buildDays());
   readonly visibleEvents = computed(() => this.calendar().filter((row) => this.eventIntersectsWindow(row)));
@@ -124,6 +134,19 @@ export class PromotionCalendarComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  setPromotionView(view: PromotionViewKey): void {
+    this.activePromotionView.set(view);
+  }
+
+  visiblePromotionView(view: PromotionViewKey): boolean {
+    const active = this.activePromotionView();
+    if (active === 'overview') return true;
+    if (active === 'calendar') return ['toolbar', 'metrics', 'calendar'].includes(view);
+    if (active === 'planner') return ['toolbar', 'calendar', 'planner'].includes(view);
+    if (active === 'list') return ['toolbar', 'list'].includes(view);
+    return active === view;
   }
 
   load(): void {

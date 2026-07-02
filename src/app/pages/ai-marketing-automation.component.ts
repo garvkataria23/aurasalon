@@ -4,6 +4,8 @@ import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/fo
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
+type MarketingViewKey = 'overview' | 'workdesk' | 'offers' | 'output' | 'register';
+
 @Component({
   selector: 'app-ai-marketing-automation',
   standalone: true,
@@ -33,7 +35,23 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <article><span>Audience</span><strong>{{ summary.metrics.estimatedAudience }}</strong></article>
         </div>
 
-        <section class="workdesk">
+        <div class="marketing-section-workspace">
+          <aside class="marketing-side-nav" aria-label="Marketing sections">
+            <button
+              class="marketing-nav-card"
+              type="button"
+              *ngFor="let view of marketingViews"
+              [class.active]="activeMarketingView() === view.key"
+              (click)="setMarketingView(view.key)"
+            >
+              <span class="marketing-nav-icon">{{ view.icon }}</span>
+              <span><strong>{{ view.label }}</strong><small>{{ view.description }}</small></span>
+              <em>{{ view.badge }}</em>
+            </button>
+          </aside>
+
+          <main class="marketing-detail">
+        <section class="workdesk" *ngIf="visibleMarketingView('workdesk')">
           <div class="desk-heading">
             <div>
               <span>Marketing operations</span>
@@ -122,7 +140,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="register-panel">
+        <section class="register-panel" *ngIf="visibleMarketingView('offers')">
           <div class="register-heading">
             <div>
               <span>Offer recommendations</span>
@@ -144,7 +162,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="register-panel" *ngIf="latestResult() as result">
+        <section class="register-panel" *ngIf="visibleMarketingView('output') && latestResult() as result">
           <div class="register-heading"><h2>Latest marketing output</h2></div>
           <div class="output-grid">
             <article *ngIf="result.campaign">
@@ -170,7 +188,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="register-panel">
+        <section class="register-panel" *ngIf="visibleMarketingView('register')">
           <div class="register-heading">
             <div>
               <span>Marketing register</span>
@@ -210,6 +228,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
             </table>
           </div>
         </section>
+          </main>
+        </div>
       </ng-container>
     </section>
   `,
@@ -243,6 +263,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .metric-strip article:last-child { border-right: none; }
     .metric-strip span, .metric-strip small, td small, .output-grid span { display: block; color: #5f6f85; font-size: 12px; }
     .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; }
+    .marketing-section-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
+    .marketing-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
+    .marketing-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
+    .marketing-nav-card:hover, .marketing-nav-card.active { background: linear-gradient(135deg, #e8fbf7, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
+    .marketing-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #e8f7f4; color: #0b6f61; font-weight: 950; font-size: 12px; }
+    .marketing-nav-card strong, .marketing-nav-card small { display: block; }
+    .marketing-nav-card small { margin-top: 4px; color: #5f6f85; font-size: 12px; font-weight: 700; line-height: 1.3; }
+    .marketing-nav-card em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #e8f7f4; color: #0b6f61; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+    .marketing-detail { display: grid; gap: 8px; min-width: 0; }
     .workdesk, .register-panel { padding: 16px; background: #fff; border: 1px solid #d8e1ea; }
     .desk-heading, .register-heading { justify-content: space-between; align-items: end; margin-bottom: 12px; }
     .desk-heading h2, .register-heading h2, .zenoti-form h3 { margin: 3px 0 0; color: #172033; font-size: 18px; }
@@ -270,7 +299,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .state.success { margin: 0 16px; padding: 12px 14px; border-radius: 8px; font-weight: 850; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
     .empty-row { text-align: center; color: #8a9aa8; padding: 24px 12px !important; font-style: italic; }
     @media (max-width: 1100px) {
-      .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .marketing-section-workspace, .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .marketing-side-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .workdesk-grid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
       .zenoti-form.wide { grid-column: span 1; }
     }
@@ -278,7 +308,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       .command-bar, .page-heading, .center-line, .desk-heading, .register-heading { display: grid; align-items: start; }
       .top-actions, .header-actions { flex-wrap: wrap; }
       .search-field { width: 100%; }
-      .metric-strip, .workdesk-grid { grid-template-columns: 1fr; }
+      .marketing-section-workspace, .marketing-side-nav, .metric-strip, .workdesk-grid { grid-template-columns: 1fr; }
     }
   `]
 })
@@ -289,12 +319,28 @@ export class AiMarketingAutomationComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly activeTab = signal('segment');
+  readonly activeMarketingView = signal<MarketingViewKey>('overview');
+  readonly marketingViews: Array<{ key: MarketingViewKey; label: string; description: string; icon: string; badge: string }> = [
+    { key: 'overview', label: 'Overview', description: 'All marketing workspaces', icon: 'OV', badge: 'All' },
+    { key: 'workdesk', label: 'Workdesk', description: 'Segments, campaigns and workflows', icon: 'WD', badge: 'AI' },
+    { key: 'offers', label: 'Offers', description: 'Recommendations and register', icon: 'OF', badge: 'Live' },
+    { key: 'output', label: 'Output', description: 'Latest generated campaign result', icon: 'OT', badge: 'Run' },
+    { key: 'register', label: 'Register', description: 'Saved marketing automation records', icon: 'RG', badge: 'Log' }
+  ];
   readonly success = signal('');
   readonly submitting = signal(false);
   private successTimer: ReturnType<typeof setTimeout> | null = null;
 
   setActiveTab(tab: string): void {
     this.activeTab.set(tab);
+  }
+
+  setMarketingView(view: MarketingViewKey): void {
+    this.activeMarketingView.set(view);
+  }
+
+  visibleMarketingView(view: MarketingViewKey): boolean {
+    return this.activeMarketingView() === 'overview' || this.activeMarketingView() === view;
   }
 
   private showSuccess(msg: string): void {

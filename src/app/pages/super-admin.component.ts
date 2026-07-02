@@ -11,6 +11,7 @@ type TenantFilter = 'all' | 'active' | 'trial' | 'suspended' | 'risk' | 'payment
 type AdminFormTab = 'subscription' | 'limits' | 'security' | 'sso' | 'exports' | 'features' | 'impersonation' | 'plans';
 type DrawerTab = 'profile' | 'billing' | 'users' | 'branches' | 'limits' | 'security' | 'audit' | 'support' | 'impersonation';
 type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 'support' | 'churn';
+type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | 'search' | 'actionInbox' | 'tenants' | 'controls';
 
 @Component({
   selector: 'app-super-admin',
@@ -37,7 +38,23 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
           <aura-kpi-card tone="violet" target="/kpi-details/super-admin/health"><span>Health</span><strong>{{ overview.metrics.averageHealth | number: '1.0-1' }}</strong></aura-kpi-card>
         </div>
 
-        <section class="dashboard-grid executive-deep-grid">
+        <div class="super-admin-workspace">
+          <aside class="super-admin-side-nav" aria-label="Super admin sections">
+            <button
+              class="super-admin-nav-card"
+              type="button"
+              *ngFor="let view of superAdminViews"
+              [class.active]="activeSuperAdminView() === view.key"
+              (click)="setSuperAdminView(view.key)"
+            >
+              <span class="super-admin-nav-icon">{{ view.icon }}</span>
+              <span><strong>{{ view.label }}</strong><small>{{ view.description }}</small></span>
+              <em>{{ view.badge }}</em>
+            </button>
+          </aside>
+
+          <main class="super-admin-detail">
+        <section class="dashboard-grid executive-deep-grid" id="super-admin-revenue">
           <section class="panel revenue-trend-panel">
             <div class="section-title">
               <div>
@@ -83,7 +100,7 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
           </section>
         </section>
 
-        <section class="super-admin-command" *ngIf="commandMetrics(overview) as command">
+        <section class="super-admin-command" id="super-admin-command" *ngIf="commandMetrics(overview) as command">
           <div class="command-heading">
             <div>
               <h2>Revenue, tenant risk and platform control</h2>
@@ -127,7 +144,7 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
           </div>
         </section>
 
-        <section class="ops-intel-grid">
+        <section class="ops-intel-grid" id="super-admin-intelligence">
           <article class="ops-intel-card" *ngFor="let item of operationalIntelligence(overview)" (click)="setActionInboxFilter(item.key)">
             <div>
               <span class="eyebrow">{{ item.kind }}</span>
@@ -138,7 +155,7 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
           </article>
         </section>
 
-        <section class="panel command-search-panel">
+        <section class="panel command-search-panel" id="super-admin-search">
           <div class="section-title">
             <div>
               <h2>Search salons, domains, invoices, audit events, feature flags and plans</h2>
@@ -172,7 +189,7 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
           </div>
         </section>
 
-        <section class="panel" *ngIf="overview.actionInbox as inbox">
+        <section class="panel" id="super-admin-actionInbox" *ngIf="overview.actionInbox as inbox">
           <div class="section-title">
             <div>
               <h2>Need attention today</h2>
@@ -1748,7 +1765,7 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
           </div>
         </section>
 
-        <div class="admin-form-tabs" role="tablist" aria-label="Advanced admin forms">
+        <div class="admin-form-tabs" id="super-admin-controls" role="tablist" aria-label="Advanced admin forms">
           <button type="button" [class.active]="adminFormTab() === 'subscription'" (click)="setAdminFormTab('subscription')">Subscription</button>
           <button type="button" [class.active]="adminFormTab() === 'limits'" (click)="setAdminFormTab('limits')">Limits</button>
           <button type="button" [class.active]="adminFormTab() === 'security'" (click)="setAdminFormTab('security')">Security</button>
@@ -2214,10 +2231,94 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
             </div>
           </div>
         </section>
+          </main>
+        </div>
       </ng-container>
     </section>
   `,
   styles: [`
+    .super-admin-workspace {
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .super-admin-side-nav {
+      position: sticky;
+      top: 92px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .super-admin-nav-card {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
+      gap: 11px;
+      align-items: center;
+      width: 100%;
+      min-height: 92px;
+      padding: 13px;
+      border: 1px solid rgba(15, 118, 110, 0.14);
+      border-left: 4px solid #0b8f7c;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .super-admin-nav-card:hover,
+    .super-admin-nav-card.active {
+      transform: translateY(-1px);
+      border-color: rgba(15, 118, 110, 0.35);
+      background: linear-gradient(135deg, #e8fbf7, #eef4ff);
+    }
+
+    .super-admin-nav-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #e8f7f4;
+      color: #0b6f61;
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .super-admin-nav-card strong,
+    .super-admin-nav-card small {
+      display: block;
+    }
+
+    .super-admin-nav-card small {
+      margin-top: 4px;
+      color: var(--muted, #667085);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .super-admin-nav-card em {
+      align-self: start;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #e8f7f4;
+      color: #0b6f61;
+      font-size: 10px;
+      font-style: normal;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .super-admin-detail {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
     .super-admin-command {
       border: 1px solid rgba(15, 118, 110, 0.14);
       border-radius: 18px;
@@ -3015,7 +3116,19 @@ type ActionInboxFilter = 'all' | 'billing' | 'usage' | 'login' | 'security' | 's
       font-weight: 800;
     }
 
+    @media (max-width: 1180px) {
+      .super-admin-workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .super-admin-side-nav {
+        position: static;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 900px) {
+      .super-admin-side-nav,
       .tenant-command-toolbar {
         grid-template-columns: 1fr;
       }
@@ -3044,7 +3157,17 @@ export class SuperAdminComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
-  readonly selectedTenant = computed(() => {
+  readonly activeSuperAdminView = signal<SuperAdminViewKey>('overview');
+  readonly superAdminViews: Array<{ key: SuperAdminViewKey; label: string; description: string; icon: string; badge: string }> = [
+    { key: 'overview', label: 'Overview', description: 'Top of super-admin dashboard', icon: 'OV', badge: 'All' },
+    { key: 'revenue', label: 'Revenue', description: 'MRR, ARR and exposure', icon: 'RV', badge: 'Money' },
+    { key: 'command', label: 'Command', description: 'Risk and platform control KPIs', icon: 'CC', badge: 'Ops' },
+    { key: 'intelligence', label: 'Intelligence', description: 'Operational alerts by category', icon: 'IN', badge: 'AI' },
+    { key: 'search', label: 'Search', description: 'Global tenant and audit search', icon: 'GS', badge: 'Find' },
+    { key: 'actionInbox', label: 'Action inbox', description: 'Approvals and escalations', icon: 'AI', badge: 'Now' },
+    { key: 'tenants', label: 'Tenants', description: 'Salon management table', icon: 'TN', badge: 'CRM' },
+    { key: 'controls', label: 'Controls', description: 'Plans and feature flags', icon: 'CT', badge: 'SaaS' }
+  ];  readonly selectedTenant = computed(() => {
     const overview = this.overview();
     if (!overview?.tenants?.length) return null;
     return overview.tenants.find((tenant: ApiRecord) => tenant.id === this.selectedTenantId()) || overview.tenants[0];
@@ -3197,6 +3320,11 @@ export class SuperAdminComponent implements OnInit {
     this.load();
   }
 
+  setSuperAdminView(view: SuperAdminViewKey): void {
+    this.activeSuperAdminView.set(view);
+    const target = view === 'overview' ? null : document.getElementById(`super-admin-${view}`);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   load(): void {
     this.loading.set(true);
     this.error.set('');
