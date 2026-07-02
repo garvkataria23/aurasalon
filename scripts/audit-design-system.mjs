@@ -8,6 +8,9 @@ const stylesPath = join(root, 'src', 'styles.css');
 const barrelPath = join(sharedUiDir, 'index.ts');
 const cardThemePath = join(sharedUiDir, 'aura-card', 'aura-card.theme.ts');
 const catalogPath = join(root, 'docs', 'aura-component-catalog.md');
+const tokenDecisionPath = join(root, 'docs', 'aura-token-source-decision.md');
+const angularConfigPath = join(root, 'angular.json');
+const scssTokenPath = join(root, 'src', 'app', 'core', 'styles', '_tokens.scss');
 
 const canonicalSelectors = [
   'aura-badge',
@@ -90,6 +93,10 @@ function read(path) {
   return readFileSync(path, 'utf8');
 }
 
+function readIfExists(path) {
+  return existsSync(path) ? read(path) : '';
+}
+
 function isInside(parent, child) {
   const rel = relative(parent, child);
   return rel && !rel.startsWith('..') && !rel.startsWith(sep);
@@ -161,11 +168,21 @@ expect(existsSync(cardThemePath), 'Missing aura-card.theme.ts');
 expect(read(cardThemePath).includes('auraCardTokens'), 'aura-card.theme.ts must export auraCardTokens');
 expect(existsSync(catalogPath), 'Missing docs/aura-component-catalog.md');
 expect(read(catalogPath).includes('## Legacy Shims'), 'Component catalog must document legacy shims');
+expect(existsSync(tokenDecisionPath), 'Missing docs/aura-token-source-decision.md');
+const tokenDecision = read(tokenDecisionPath);
+expect(tokenDecision.includes('src/styles.css') && tokenDecision.includes('runtime source of truth'), 'Token source decision must identify src/styles.css as runtime source of truth');
+expect(read(angularConfigPath).includes('"styles": ["src/styles.css"]'), 'angular.json must keep src/styles.css as the style entrypoint');
+expect(existsSync(scssTokenPath), 'Missing legacy SCSS token reference file');
+
+const styleFiles = walk(join(root, 'src'), ['.css', '.scss']);
+const scssTokenImportPattern = /@(?:use|import)\s+['"][^'"]*(?:_tokens|tokens)/;
+const scssTokenConsumers = styleFiles.filter((file) => file !== scssTokenPath && scssTokenImportPattern.test(readIfExists(file)));
+expect(scssTokenConsumers.length === 0, `SCSS token file is imported by runtime style files: ${scssTokenConsumers.map((file) => relative(root, file)).join(', ')}`);
 
 notes.push(`Checked ${selectors.size} Aura selectors across shared UI.`);
 notes.push(`Canonical selectors: ${canonicalSelectors.length}; legacy selectors: ${legacySelectors.length}.`);
 notes.push(`Checked ${appFiles.length} app template/script files for legacy Aura leaks outside shared UI.`);
-notes.push('Checked token bridge, card utility aliases, barrel exports, and catalog docs.');
+notes.push('Checked token bridge, SCSS token source decision, card utility aliases, barrel exports, and catalog docs.');
 
 if (failures.length) {
   console.error('Aura design-system audit failed:');
