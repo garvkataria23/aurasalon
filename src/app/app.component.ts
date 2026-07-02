@@ -335,7 +335,7 @@ type ActiveModuleTabs = {
         <section
             class="workspace-route-shell"
             [class.workspace-route-shell--with-local-nav]="activeLocalNav() !== null"
-            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null"
+            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null && !localRailExpanded()"
           >
           <aside
             class="workspace-local-rail"
@@ -377,8 +377,8 @@ type ActiveModuleTabs = {
                   *ngFor="let tab of moduleTabs.items; trackBy: trackNavItem"
                   class="workspace-module-tab"
                   [routerLink]="tab.path"
-                  [class.active]="isNavItemActive(tab)"
-                  [attr.aria-current]="isNavItemActive(tab) ? 'page' : null"
+                  [class.active]="isModuleTabActive(tab, moduleTabs.items)"
+                  [attr.aria-current]="isModuleTabActive(tab, moduleTabs.items) ? 'page' : null"
                   (mouseenter)="prefetchNavItem(tab)"
                   (focus)="prefetchNavItem(tab)"
                   (click)="rememberNavGroup(moduleTabs.groupId)"
@@ -642,8 +642,8 @@ export class AppComponent implements OnDestroy {
   readonly sidebarCompact = signal(true);
   readonly sidebarHoverExpanded = signal(false);
   readonly sidebarUiCompact = computed(() => true);
-  readonly localRailHoverExpanded = signal(false);
-  readonly localRailExpanded = computed(() => this.localRailHoverExpanded());
+  readonly localRailHoverExpanded = signal(true);
+  readonly localRailExpanded = computed(() => true);
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   private readonly maxBackHistory = 10;
   private readonly emptyNavItems: NavItem[] = [];
@@ -1597,6 +1597,22 @@ export class AppComponent implements OnDestroy {
     return this.isRouteActive(url, item.path) || (item.children || []).some((child) => this.isRouteActive(url, child.path));
   }
 
+  isModuleTabActive(item: NavItem, siblings: NavItem[]): boolean {
+    const currentPath = this.routePath(this.activeRoute());
+    const exactMatch = siblings.find((candidate) => this.moduleTabPaths(candidate).some((path) => currentPath === path));
+    if (exactMatch) return exactMatch === item;
+
+    const prefixMatches = siblings
+      .map((candidate) => ({
+        candidate,
+        score: Math.max(...this.moduleTabPaths(candidate).map((path) => this.routePrefixScore(currentPath, path)))
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score);
+
+    return prefixMatches[0]?.candidate === item;
+  }
+
   isLocalNavItemActive(item: NavItem): boolean {
     const currentUrl = this.activeRoute();
     const currentPath = this.routePath(currentUrl);
@@ -1726,6 +1742,16 @@ export class AppComponent implements OnDestroy {
       .map(([key, value]) => `${key}=${value}`)
       .join('&');
     return `${this.routePath(item.path)}?${query}`;
+  }
+
+  private moduleTabPaths(item: NavItem): string[] {
+    return [item.path, ...(item.children || []).map((child) => child.path)].map((path) => this.routePath(path));
+  }
+
+  private routePrefixScore(currentPath: string, targetPath: string): number {
+    if (!targetPath || targetPath === '/') return currentPath === targetPath ? 1 : 0;
+    if (currentPath === targetPath) return targetPath.length;
+    return currentPath.startsWith(`${targetPath}/`) ? targetPath.length : 0;
   }
 
   private navItemSearchScore(item: NavItem, group: NavGroup, term: string): number {
@@ -1973,4 +1999,3 @@ export class AppComponent implements OnDestroy {
     return 'Unexpected application error';
   }
 }
-

@@ -76,6 +76,7 @@ type MoneyFlowCheck = {
           <h1>100% readiness control</h1>
         </div>
         <div class="hero-actions">
+          <a class="button ghost" routerLink="/pos/invoices">Back to invoices</a>
           <input type="date" [ngModel]="asOfDate()" (ngModelChange)="asOfDate.set($event); load()" />
           <button class="ghost" type="button" [disabled]="loading()" (click)="load()">Refresh</button>
           <a class="button primary" routerLink="/pos">Open POS</a>
