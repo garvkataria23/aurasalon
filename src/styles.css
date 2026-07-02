@@ -259,6 +259,51 @@
   color: var(--aura-text);
 }
 
+:where(.aura-card) {
+  --aura-card-tone: var(--aura-card-accent, var(--aura-primary));
+  padding: var(--card-padding);
+  transition: border-color var(--card-transition), box-shadow var(--card-transition), transform var(--card-transition);
+}
+
+:where(.aura-card.aura-card--padding-none) { padding: 0; }
+:where(.aura-card.aura-card--padding-sm) { padding: var(--aura-space-3); }
+:where(.aura-card.aura-card--padding-md) { padding: var(--card-padding); }
+:where(.aura-card.aura-card--padding-lg) { padding: var(--aura-space-6); }
+
+:where(.aura-card.aura-card--radius-sm) { border-radius: var(--aura-radius-sm); }
+:where(.aura-card.aura-card--radius-md) { border-radius: var(--aura-radius-md); }
+:where(.aura-card.aura-card--radius-lg) { border-radius: var(--card-border-radius); }
+
+:where(.aura-card.aura-card--shadow-none) { box-shadow: none; }
+:where(.aura-card.aura-card--shadow-xs) { box-shadow: var(--aura-shadow-xs); }
+:where(.aura-card.aura-card--shadow-card) { box-shadow: var(--aura-shadow-card); }
+:where(.aura-card.aura-card--shadow-soft) { box-shadow: var(--aura-shadow-soft); }
+
+:where(.aura-card.aura-card--variant-muted) { background: var(--aura-card-muted); }
+:where(.aura-card.aura-card--variant-outlined) { background: transparent; box-shadow: none; }
+:where(.aura-card.aura-card--variant-elevated) { box-shadow: var(--aura-shadow-card); }
+
+:where(.aura-card.aura-card--tone-primary, .aura-card.aura-card--type-action) { --aura-card-tone: var(--aura-primary); }
+:where(.aura-card.aura-card--tone-green, .aura-card.aura-card--tone-success, .aura-card.aura-card--status-completed) { --aura-card-tone: var(--aura-success); }
+:where(.aura-card.aura-card--tone-amber, .aura-card.aura-card--tone-warning, .aura-card.aura-card--status-pending) { --aura-card-tone: var(--aura-warning); }
+:where(.aura-card.aura-card--tone-red, .aura-card.aura-card--tone-danger, .aura-card.aura-card--status-cancelled, .aura-card.aura-card--status-canceled) { --aura-card-tone: var(--aura-danger); }
+:where(.aura-card.aura-card--tone-info, .aura-card.aura-card--tone-blue) { --aura-card-tone: var(--aura-info); }
+:where(.aura-card.aura-card--tone-rose) { --aura-card-tone: var(--aura-rose); }
+
+:where(.aura-card.aura-card--tone-primary, .aura-card.aura-card--tone-green, .aura-card.aura-card--tone-success, .aura-card.aura-card--tone-amber, .aura-card.aura-card--tone-warning, .aura-card.aura-card--tone-red, .aura-card.aura-card--tone-danger, .aura-card.aura-card--tone-info, .aura-card.aura-card--tone-blue, .aura-card.aura-card--tone-rose, .aura-card.aura-card--type-action, .aura-card[class*='aura-card--status-']) {
+  border-top-color: var(--aura-card-tone);
+}
+
+:where(.aura-card.aura-card--hover:hover, .aura-card.aura-card--interactive:hover) {
+  border-color: color-mix(in srgb, var(--aura-card-tone) 42%, var(--aura-border));
+  box-shadow: var(--card-hover-shadow);
+  transform: translateY(-2px);
+}
+
+:where(.aura-card.aura-card--interactive) {
+  cursor: pointer;
+}
+
 :where(aura-page-header) {
   min-height: var(--aura-page-header-h);
   background: var(--aura-card);

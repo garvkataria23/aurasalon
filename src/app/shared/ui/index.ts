@@ -3,6 +3,7 @@ export * from './metric-card/metric-card.component';
 
 export * from './aura-badge/aura-badge.component';
 export * from './aura-card/aura-card.component';
+export * from './aura-card/aura-card.theme';
 export * from './aura-empty/aura-empty.component';
 export * from './aura-kpi-card/aura-kpi-card.component';
 export * from './aura-page-header/aura-page-header.component';
