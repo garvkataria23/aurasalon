@@ -890,7 +890,6 @@ type MigrationRecoveryReport = {
   styles: [`
     :host { display: block; }
     .migration-shell { display: grid; gap: 18px; color: #172033; }
-    .migration-shell.child-page-active > :not(.migration-page-workspace) { display: none; }
     .migration-shell:not(.child-page-active) .migration-page-detail { display: none; }
     .migration-page-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
     .migration-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
@@ -3425,5 +3424,6 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     return `${row.sourceSheet || 'sheet'}:${row.sourceRowNumber || row.targetId || row.sourceExternalId || 'row'}`;
   }
 }
+
 
 
