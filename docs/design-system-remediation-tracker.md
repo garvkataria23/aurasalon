@@ -12,6 +12,7 @@ Source: `C:\Users\ADMIN\.codex\attachments\3fac217b-b697-4dfb-9443-44a7d6242a64\
 - A token source decision records `src/styles.css` as the current runtime token source and preserves `_tokens.scss` as legacy reference material until a generator/migration is approved.
 - A card migration inventory records current legacy card-class footprint and safe migration order.
 - A CSS split plan defines the future token, Aura primitive, layout, legacy-card, and feature-legacy layers plus extraction gates.
+- An accessibility QA checklist covers keyboard, focus, contrast, semantics, card migration, shell preservation, and theme checks.
 - Global Aura token aliases now bridge the active `--color-*` runtime variables into `--aura-*` variables.
 - Root layout/type/card aliases exist for `--radius-*`, `--space-*`, `--font-size-*`, `--metric-card-*`, `--kpi-*`, and `--card-*` tokens.
 - A canonical standalone `aura-card` component exists with `tone`, `variant`, `padding`, `radius`, `shadow`, `hover`, and `interactive` inputs.
@@ -32,8 +33,4 @@ Source: `C:\Users\ADMIN\.codex\attachments\3fac217b-b697-4dfb-9443-44a7d6242a64\
 ## Remaining Work
 
 - Migrate page-level card classes to `aura-card` or `.aura-card--*` utilities in small batches.
-- Split `src/styles.css` into token, layout, component, and utility layers after card migrations reduce cascade risk.
-- Decide whether `_tokens.scss` should be generated from CSS tokens or formally deprecated.
-- Add component catalog documentation for the modern Aura components.
-- Add accessibility checks for dark mode, high contrast, focus states, and card interactions.
 - Add performance gates after CSS splitting; current global CSS remains over the desired long-term target.

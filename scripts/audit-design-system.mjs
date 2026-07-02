@@ -11,6 +11,7 @@ const catalogPath = join(root, 'docs', 'aura-component-catalog.md');
 const tokenDecisionPath = join(root, 'docs', 'aura-token-source-decision.md');
 const cardInventoryPath = join(root, 'docs', 'aura-card-migration-inventory.md');
 const cssSplitPlanPath = join(root, 'docs', 'aura-css-split-plan.md');
+const accessibilityChecklistPath = join(root, 'docs', 'aura-accessibility-qa-checklist.md');
 const angularConfigPath = join(root, 'angular.json');
 const scssTokenPath = join(root, 'src', 'app', 'core', 'styles', '_tokens.scss');
 
@@ -174,6 +175,8 @@ expect(existsSync(cardInventoryPath), 'Missing docs/aura-card-migration-inventor
 expect(read(cardInventoryPath).includes('## Current Footprint'), 'Card migration inventory must document current footprint');
 expect(existsSync(cssSplitPlanPath), 'Missing docs/aura-css-split-plan.md');
 expect(read(cssSplitPlanPath).includes('## Target Layers'), 'CSS split plan must document target layers');
+expect(existsSync(accessibilityChecklistPath), 'Missing docs/aura-accessibility-qa-checklist.md');
+expect(read(accessibilityChecklistPath).includes('## Theme Checks'), 'Accessibility QA checklist must document theme checks');
 expect(existsSync(tokenDecisionPath), 'Missing docs/aura-token-source-decision.md');
 const tokenDecision = read(tokenDecisionPath);
 expect(tokenDecision.includes('src/styles.css') && tokenDecision.includes('runtime source of truth'), 'Token source decision must identify src/styles.css as runtime source of truth');
@@ -188,7 +191,7 @@ expect(scssTokenConsumers.length === 0, `SCSS token file is imported by runtime 
 notes.push(`Checked ${selectors.size} Aura selectors across shared UI.`);
 notes.push(`Canonical selectors: ${canonicalSelectors.length}; legacy selectors: ${legacySelectors.length}.`);
 notes.push(`Checked ${appFiles.length} app template/script files for legacy Aura leaks outside shared UI.`);
-notes.push('Checked token bridge, SCSS token source decision, card utility aliases, barrel exports, catalog docs, card migration inventory, and CSS split plan.');
+notes.push('Checked token bridge, SCSS token source decision, card utility aliases, barrel exports, catalog docs, card migration inventory, CSS split plan, and accessibility QA checklist.');
 
 if (failures.length) {
   console.error('Aura design-system audit failed:');
