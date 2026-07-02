@@ -10,6 +10,7 @@ Source: `C:\Users\ADMIN\.codex\attachments\3fac217b-b697-4dfb-9443-44a7d6242a64\
 - A canonical Aura component catalog now documents modern selectors, legacy shims, barrel imports, and card migration rules.
 - A repeatable `npm run audit:design-system` gate checks selector uniqueness, canonical/legacy selector contracts, legacy Aura template/import leakage outside shared UI, token bridges, card utility aliases, barrel exports, and catalog presence.
 - A token source decision records `src/styles.css` as the current runtime token source and preserves `_tokens.scss` as legacy reference material until a generator/migration is approved.
+- A card migration inventory records current legacy card-class footprint and safe migration order.
 - Global Aura token aliases now bridge the active `--color-*` runtime variables into `--aura-*` variables.
 - Root layout/type/card aliases exist for `--radius-*`, `--space-*`, `--font-size-*`, `--metric-card-*`, `--kpi-*`, and `--card-*` tokens.
 - A canonical standalone `aura-card` component exists with `tone`, `variant`, `padding`, `radius`, `shadow`, `hover`, and `interactive` inputs.

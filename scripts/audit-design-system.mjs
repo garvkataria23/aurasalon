@@ -9,6 +9,7 @@ const barrelPath = join(sharedUiDir, 'index.ts');
 const cardThemePath = join(sharedUiDir, 'aura-card', 'aura-card.theme.ts');
 const catalogPath = join(root, 'docs', 'aura-component-catalog.md');
 const tokenDecisionPath = join(root, 'docs', 'aura-token-source-decision.md');
+const cardInventoryPath = join(root, 'docs', 'aura-card-migration-inventory.md');
 const angularConfigPath = join(root, 'angular.json');
 const scssTokenPath = join(root, 'src', 'app', 'core', 'styles', '_tokens.scss');
 
@@ -168,6 +169,8 @@ expect(existsSync(cardThemePath), 'Missing aura-card.theme.ts');
 expect(read(cardThemePath).includes('auraCardTokens'), 'aura-card.theme.ts must export auraCardTokens');
 expect(existsSync(catalogPath), 'Missing docs/aura-component-catalog.md');
 expect(read(catalogPath).includes('## Legacy Shims'), 'Component catalog must document legacy shims');
+expect(existsSync(cardInventoryPath), 'Missing docs/aura-card-migration-inventory.md');
+expect(read(cardInventoryPath).includes('## Current Footprint'), 'Card migration inventory must document current footprint');
 expect(existsSync(tokenDecisionPath), 'Missing docs/aura-token-source-decision.md');
 const tokenDecision = read(tokenDecisionPath);
 expect(tokenDecision.includes('src/styles.css') && tokenDecision.includes('runtime source of truth'), 'Token source decision must identify src/styles.css as runtime source of truth');
@@ -182,7 +185,7 @@ expect(scssTokenConsumers.length === 0, `SCSS token file is imported by runtime 
 notes.push(`Checked ${selectors.size} Aura selectors across shared UI.`);
 notes.push(`Canonical selectors: ${canonicalSelectors.length}; legacy selectors: ${legacySelectors.length}.`);
 notes.push(`Checked ${appFiles.length} app template/script files for legacy Aura leaks outside shared UI.`);
-notes.push('Checked token bridge, SCSS token source decision, card utility aliases, barrel exports, and catalog docs.');
+notes.push('Checked token bridge, SCSS token source decision, card utility aliases, barrel exports, catalog docs, and card migration inventory.');
 
 if (failures.length) {
   console.error('Aura design-system audit failed:');

@@ -1,0 +1,38 @@
+# Aura Card Migration Inventory
+
+Date: 2026-07-02
+Scope: static scan of `src/app` TypeScript and HTML files for legacy card class names. This is a migration baseline, not a visual QA result.
+
+## Current Footprint
+
+| Class | Files | Matches | Migration Direction |
+| --- | ---: | ---: | --- |
+| `panel` | 186 | 1905 | Leave for later layout-layer split; too broad for card primitive migration. |
+| `metric-card` | 74 | 499 | Pair with `aura-card aura-card--type-metric` in visually verified page batches. |
+| `action-card` | 34 | 234 | Pair with `aura-card aura-card--type-action` in small batches. |
+| `form-panel` | 26 | 127 | Treat as layout/form surface, not a generic card migration target yet. |
+| `report-card` | 5 | 60 | Migrate after reports surfaces are visually checked. |
+| `score-card` | 9 | 54 | Migrate alongside reporting/score surfaces. |
+| `summary-card` | 4 | 18 | Pair with `aura-card` utilities after owner page QA. |
+| `client-card` | 2 | 16 | Migrate with CRM page QA. |
+| `daily-sheet-card` | 1 | 14 | Migrate with daily sheet workflow QA. |
+| `dashboard-hub-card` | 1 | 14 | Already has dashboard-specific visuals; migrate only after dark-mode visual QA. |
+| `status-card` | 3 | 9 | Pair with `aura-card--status-*` utilities. |
+| `service-card` | 1 | 6 | Migrate with catalog/service page QA. |
+| `product-card` | 1 | 2 | Migrate with product/POS page QA. |
+| `booking-card` | 0 | 0 | No current `src/app` matches in this scan. |
+
+## Rules
+
+- Do not remove old classes during first migration; add Aura utility classes beside them.
+- Migrate high-volume classes in small, page-owned batches with visual QA.
+- Keep `panel` and `form-panel` out of early card migration because they are also layout primitives.
+- Use `npm run audit:design-system` after each batch to keep selector, token, and legacy-usage guardrails intact.
+- Run `npm run build` after every committed card migration batch.
+
+## Next Batches
+
+1. Shared primitives and low-risk repeated cards.
+2. `action-card` batches by feature page, starting with pages that do not redefine `.action-card` locally.
+3. Reporting score surfaces after report page visual review.
+4. Dashboard-specific cards only after dark-mode and high-contrast visual checks.
