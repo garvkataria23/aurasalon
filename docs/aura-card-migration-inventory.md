@@ -32,6 +32,7 @@ Scope: static scan of `src/app` TypeScript and HTML files for legacy card class 
 - Daily-sheet financial report batch: financial summary daily sheet, member comparison, and sales-tax report cards now pair legacy `daily-sheet-card` classes with `aura-card` without removing existing classes.
 - Growth report-card batch: growth rank bot report cards now pair legacy `report-card` classes with `aura-card` without removing existing classes.
 - Data-migration score-card batch: data migration approval, history, import worker, AI mapping, go-live, overview, and command center score cards now pair legacy `score-card` classes with `aura-card` without removing existing classes.
+- Security policy center action-card batch: compliance, policy toggle, privacy, IAM, fraud, and playbook cards now pair legacy `action-card`/`score-card` classes with `aura-card aura-card--type-action` without removing existing classes.
 
 ## Rules
 

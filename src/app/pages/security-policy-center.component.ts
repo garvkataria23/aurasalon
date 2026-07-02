@@ -41,21 +41,21 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </div>
         <div class="quick-grid" *ngIf="complianceReadiness() as readiness">
-          <article class="action-card score-card">
+          <article class="action-card aura-card aura-card--type-action score-card">
             <strong>{{ readiness.score || 0 }}%</strong>
             <span>{{ readiness.status }} · {{ readiness.scoreBreakdown?.ready || 0 }} ready / {{ readiness.scoreBreakdown?.total || 0 }} controls</span>
           </article>
-          <article class="action-card" *ngFor="let control of complianceControls()">
+          <article class="action-card aura-card aura-card--type-action" *ngFor="let control of complianceControls()">
             <small>{{ control.framework }}</small>
             <strong>{{ control.label }}</strong>
             <span>{{ control.evidence }}</span>
             <span class="badge">{{ control.status }}</span>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ readiness.evidence?.immutableAuditHash?.slice(0, 16) || '-' }}</strong>
             <span>{{ readiness.evidence?.evidenceRows || 0 }} audit rows sampled for chain evidence.</span>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ readiness.evidence?.exportProtectionReady ? 'Ready' : 'Gap' }}</strong>
             <span>Evidence bundle: {{ readiness.evidence?.exportBundleId || '-' }}</span>
           </article>
@@ -84,7 +84,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <button class="primary-button" type="button" (click)="savePolicies()">Save policies</button>
         </div>
         <div class="quick-grid">
-          <label class="action-card policy-toggle" *ngFor="let toggle of toggles">
+          <label class="action-card aura-card aura-card--type-action policy-toggle" *ngFor="let toggle of toggles">
             <small>{{ toggle.layer }}</small>
             <strong>{{ toggle.label }}</strong>
             <span>{{ toggle.detail }}</span>
@@ -146,11 +146,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <button class="ghost-button" type="button" (click)="evaluateAccountSharing()">Evaluate sharing</button>
         </div>
         <div class="quick-grid">
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ subscriptionEvents().length || 0 }} events</strong>
             <span>Reports/export/AI premium paths are guarded when subscription status is expired or suspended.</span>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ sharingEvents().length || 0 }} signals</strong>
             <span>Flags same account across many devices or branches.</span>
           </article>
@@ -170,7 +170,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <label><span>Severity</span><select [(ngModel)]="fraudForm.severity"><option value="info">Info</option><option value="warning">Warning</option><option value="critical">Critical</option></select></label>
         </div>
         <div class="quick-grid">
-          <article class="action-card" *ngFor="let warning of fraudWarnings()">
+          <article class="action-card aura-card aura-card--type-action" *ngFor="let warning of fraudWarnings()">
             <small>{{ warning.severity }}</small>
             <strong>{{ warning.title }}</strong>
             <span>{{ warning.message }}</span>
@@ -215,27 +215,27 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <button class="ghost-button" type="button" (click)="loadZenotiPack()">Refresh pack</button>
         </div>
         <div class="quick-grid">
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ ssoSettings().length || 0 }} settings</strong>
             <span>SAML/OIDC provider policy placeholder for owner/admin roles.</span>
             <button class="ghost-button mini" type="button" (click)="saveSsoSetting()">Save draft</button>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ privilegedSessions().length || 0 }} sessions</strong>
             <span>Temporary elevated-action window for sensitive admin work.</span>
             <button class="ghost-button mini" type="button" (click)="startPrivilegedSession()">Start 15 min</button>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ apiClients().length || 0 }} clients</strong>
             <span>Register API clients with hashed tokens and revocation support.</span>
             <button class="ghost-button mini" type="button" (click)="createApiClient()">Create client</button>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ paymentGuardEvents().length || 0 }} events</strong>
             <span>Track payment data access and suspicious refund/payment events.</span>
             <button class="ghost-button mini" type="button" (click)="recordPaymentGuard()">Record event</button>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ privacyRequests().length || 0 }} requests</strong>
             <span>Track access/export/delete privacy requests for clients.</span>
             <button class="ghost-button mini" type="button" (click)="createPrivacyRequest()">Create request</button>
@@ -361,7 +361,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <section class="panel">
         <div class="section-title"><h2>Security Response Playbooks</h2></div>
         <div class="quick-grid">
-          <article class="action-card" *ngFor="let playbook of playbooks()">
+          <article class="action-card aura-card aura-card--type-action" *ngFor="let playbook of playbooks()">
             <small>{{ playbook.severity }}</small>
             <strong>{{ playbook.title }}</strong>
             <span>{{ joinList(playbook.checklist) }}</span>
