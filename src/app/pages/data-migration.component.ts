@@ -889,17 +889,19 @@ type MigrationRecoveryReport = {
   `,
   styles: [`
     :host { display: block; }
-    .migration-shell { display: grid; gap: 18px; color: #172033; }
+    .migration-shell { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 18px 14px; align-items: start; color: #172033; }
     .migration-shell:not(.child-page-active) .migration-page-detail { display: none; }
-    .migration-page-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
-    .migration-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
+    .migration-page-workspace { display: contents; }
+    .command-header, .control-strip { grid-column: 1 / -1; }
+    .migration-shell > :not(.command-header):not(.control-strip):not(.migration-page-workspace) { grid-column: 2; }
+    .migration-side-nav { grid-column: 1; grid-row: 3 / span 80; position: sticky; top: 92px; display: grid; gap: 10px; align-self: start; }
     .migration-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; min-height: 92px; padding: 13px; border: 1px solid #d7e6e2; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-decoration: none; box-shadow: 0 12px 26px rgba(15,23,42,.07); cursor: pointer; }
     .migration-nav-card:hover, .migration-nav-card.active { background: linear-gradient(135deg, #e8fbf7, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
     .migration-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #e8f7f4; color: #0b6f61; font-weight: 950; font-size: 12px; }
     .migration-nav-card strong, .migration-nav-card small { display: block; }
     .migration-nav-card small { margin-top: 4px; color: #64748b; font-size: 12px; font-weight: 700; line-height: 1.3; }
     .migration-nav-card em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #e8f7f4; color: #0b6f61; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
-    .migration-page-detail { min-width: 0; display: block; }
+    .migration-page-detail { grid-column: 2; min-width: 0; display: block; }
     .migration-page-detail .migration-shell { padding: 0; }
     .command-header { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; align-items: stretch; padding: 22px; border: 1px solid #d7e6e2; border-radius: 8px; background: linear-gradient(120deg, #f8fffd, #ffffff 62%, #edf7ff); box-shadow: 0 18px 40px rgba(15,23,42,.08); }
     .command-header h1 { margin: 6px 0; font-size: 34px; line-height: 1.05; letter-spacing: 0; }
@@ -1066,13 +1068,15 @@ type MigrationRecoveryReport = {
     .rollback-zone span, .result-box span { color: #64748b; }
     .result-box { border: 1px solid #d7e6e2; border-radius: 8px; padding: 12px; display: grid; gap: 6px; background: #f8fffd; }
     @media (max-width: 1100px) {
+      .migration-shell { grid-template-columns: 1fr; }
       .command-header, .workspace-grid, .grid.two, .grid.three, .control-strip { grid-template-columns: 1fr 1fr; }
-      .migration-page-workspace { grid-template-columns: 1fr; }
-      .migration-side-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .migration-page-workspace { display: contents; }
+      .migration-shell > :not(.command-header):not(.control-strip):not(.migration-page-workspace), .migration-side-nav, .migration-page-detail { grid-column: 1; }
+      .migration-side-nav { grid-row: auto; position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .pipeline { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 760px) {
-      .command-header, .workspace-grid, .grid.two, .grid.three, .control-strip, .control-strip.compact, .migration-page-workspace, .migration-side-nav, .form-grid, .pipeline, .recon-list, .expected-grid, .approval-list article, .proof-grid, .recovery-grid { grid-template-columns: 1fr; }
+      .command-header, .workspace-grid, .grid.two, .grid.three, .control-strip, .control-strip.compact, .migration-side-nav, .form-grid, .pipeline, .recon-list, .expected-grid, .approval-list article, .proof-grid, .recovery-grid { grid-template-columns: 1fr; }
       .command-header h1 { font-size: 28px; }
       .panel-head { align-items: flex-start; flex-direction: column; }
       .mapping-toolbar, .mapping-list article, .duplicate-list article, .ops-queue, .worker-settings, .normalizer-head { grid-template-columns: 1fr; }
@@ -3424,6 +3428,4 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     return `${row.sourceSheet || 'sheet'}:${row.sourceRowNumber || row.targetId || row.sourceExternalId || 'row'}`;
   }
 }
-
-
 
