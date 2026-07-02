@@ -163,7 +163,15 @@ const RESOURCE_GROUPS = [
     .permission-nav-card strong, .permission-nav-card small { display: block; }
     .permission-nav-card small { margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.3; }
     .permission-nav-card em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #e8f7f4; color: #0b6f61; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
-    .permission-detail { display: grid; gap: 14px; min-width: 0; }    .um-shell { display: grid; grid-template-columns: 286px minmax(0, 1fr) 292px; gap: 14px; align-items: start; }
+    .permission-detail { display: grid; gap: 14px; min-width: 0; }
+    .um-shell { display: grid; grid-template-columns: 286px minmax(0, 1fr) 292px; gap: 14px; align-items: start; }
+    .um-shell[data-active-view]:not([data-active-view="overview"]) { grid-template-columns: minmax(0, 1fr); }
+    .um-shell[data-active-view]:not([data-active-view="overview"]) > * { display: none; }
+    .um-shell[data-active-view="users"] > .um-sidebar,
+    .um-shell[data-active-view="controls"] > .um-control-panel { display: grid; position: static; grid-column: 1 / -1; }
+    .um-shell[data-active-view="definition"] > .um-workbench,
+    .um-shell[data-active-view="rights"] > .um-workbench,
+    .um-shell[data-active-view="activity"] > .um-workbench { display: block; grid-column: 1 / -1; }
     .um-sidebar, .um-workbench, .um-control-panel, .um-card { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
     .um-sidebar, .um-control-panel { display: grid; gap: 12px; padding: 12px; position: sticky; top: 74px; }
     .um-workbench { min-width: 0; overflow: hidden; }
@@ -266,7 +274,7 @@ const RESOURCE_GROUPS = [
         </aside>
 
         <main class="permission-detail">
-      <section class="um-shell" id="permission-users">
+      <section class="um-shell" id="permission-users" [attr.data-active-view]="activePermissionView()">
         <aside class="um-sidebar" aria-label="User search and list">
           <div class="um-panel-head">
             <h3>Users</h3>
@@ -691,7 +699,9 @@ export class PermissionMatrixComponent implements OnInit {
     this.activePermissionView.set(view);
     if (view === 'definition' || view === 'rights' || view === 'activity') this.mode.set(view);
     setTimeout(() => {
-      const target = document.getElementById(`permission-${view === 'overview' ? 'users' : view}`);
+      const target = view === 'overview'
+        ? document.querySelector('.um-kpis')
+        : document.getElementById(`permission-${view === 'users' ? 'users' : view}`);
       target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
@@ -1223,5 +1233,6 @@ export class PermissionMatrixComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 }
+
 
 
