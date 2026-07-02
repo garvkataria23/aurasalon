@@ -14,7 +14,7 @@ import { DataMigrationStore } from './data-migration.store';
           <button class="back-btn" (click)="back()">← Back to Dashboard</button>
           <h1>History &amp; Rollback</h1>
         </div>
-        <div class="score-card">
+        <div class="score-card aura-card">
           <span>Jobs</span>
           <strong>{{ store.jobs().length }}</strong>
           <small>{{ completedCount() }} completed</small>

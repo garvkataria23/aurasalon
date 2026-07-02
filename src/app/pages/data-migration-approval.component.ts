@@ -14,7 +14,7 @@ import { DataMigrationStore } from './data-migration.store';
           <button class="back-btn" (click)="back()">← Back to Dashboard</button>
           <h1>Approval Workflow</h1>
         </div>
-        <div class="score-card">
+        <div class="score-card aura-card">
           <span>Approvals</span>
           <strong>{{ store.approvals().length }}</strong>
           <small>{{ pendingCount() }} pending</small>

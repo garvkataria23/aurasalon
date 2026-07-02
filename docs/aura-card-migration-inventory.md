@@ -31,6 +31,7 @@ Scope: static scan of `src/app` TypeScript and HTML files for legacy card class 
 - Catalog service/product card batch: booking portal services and product 360 profile now pair legacy `service-card`/`product-card` classes with `aura-card` without removing existing classes.
 - Daily-sheet financial report batch: financial summary daily sheet, member comparison, and sales-tax report cards now pair legacy `daily-sheet-card` classes with `aura-card` without removing existing classes.
 - Growth report-card batch: growth rank bot report cards now pair legacy `report-card` classes with `aura-card` without removing existing classes.
+- Data-migration score-card batch: data migration approval, history, import worker, AI mapping, go-live, overview, and command center score cards now pair legacy `score-card` classes with `aura-card` without removing existing classes.
 
 ## Rules
 

@@ -13,7 +13,7 @@ import { DataMigrationStore } from './data-migration.store';
         <div>
           <h1>100X import command center</h1>
         </div>
-        <div class="score-card" [class.danger]="store.readinessScore() < 60" [class.warning]="store.readinessScore() >= 60 && store.readinessScore() < 85">
+        <div class="score-card aura-card" [class.danger]="store.readinessScore() < 60" [class.warning]="store.readinessScore() >= 60 && store.readinessScore() < 85" [class.aura-card--tone-danger]="store.readinessScore() < 60" [class.aura-card--tone-warning]="store.readinessScore() >= 60 && store.readinessScore() < 85">
           <span>Go-live readiness</span>
           <strong>{{ store.readinessScore() }}%</strong>
           <small>{{ store.goLiveGate() }}</small>

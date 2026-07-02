@@ -14,7 +14,7 @@ import { DataMigrationStore } from './data-migration.store';
           <button class="back-btn" (click)="back()">← Back to Dashboard</button>
           <h1>Go-Live Checklist</h1>
         </div>
-        <div class="score-card" [class.danger]="store.readinessScore() < 60" [class.warning]="store.readinessScore() >= 60 && store.readinessScore() < 85">
+        <div class="score-card aura-card" [class.danger]="store.readinessScore() < 60" [class.warning]="store.readinessScore() >= 60 && store.readinessScore() < 85" [class.aura-card--tone-danger]="store.readinessScore() < 60" [class.aura-card--tone-warning]="store.readinessScore() >= 60 && store.readinessScore() < 85">
           <span>Readiness</span>
           <strong>{{ store.readinessScore() }}%</strong>
           <small>{{ store.goLiveGate() }}</small>

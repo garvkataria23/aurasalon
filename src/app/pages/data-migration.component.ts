@@ -153,7 +153,7 @@ type MigrationRecoveryReport = {
         <div>
           <h1>100X import command center</h1>
         </div>
-        <div class="score-card" [class.danger]="readinessScore() < 60" [class.warning]="readinessScore() >= 60 && readinessScore() < 85">
+        <div class="score-card aura-card" [class.danger]="readinessScore() < 60" [class.warning]="readinessScore() >= 60 && readinessScore() < 85" [class.aura-card--tone-danger]="readinessScore() < 60" [class.aura-card--tone-warning]="readinessScore() >= 60 && readinessScore() < 85">
           <span>Go-live readiness</span>
           <strong>{{ readinessScore() }}%</strong>
           <small>{{ goLiveGate() }}</small>

@@ -14,7 +14,7 @@ import { DataMigrationStore } from './data-migration.store';
           <button class="back-btn" (click)="back()">← Back to Dashboard</button>
           <h1>Import Worker</h1>
         </div>
-        <div class="score-card" *ngIf="store.largeJob()">
+        <div class="score-card aura-card" *ngIf="store.largeJob()">
           <span>Job status</span>
           <strong>{{ store.largeJob()?.status }}</strong>
           <small>{{ store.largeJobProgress() }}% complete</small>
