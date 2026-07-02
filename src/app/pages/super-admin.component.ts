@@ -53,7 +53,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
             </button>
           </aside>
 
-          <main class="super-admin-detail">
+          <main class="super-admin-detail" [attr.data-active-view]="activeSuperAdminView()">
         <section class="dashboard-grid executive-deep-grid" id="super-admin-revenue">
           <section class="panel revenue-trend-panel">
             <div class="section-title">
@@ -1189,7 +1189,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="super-admin-tenants">
           <div class="section-title">
             <div>
               <h2>Tenant Command Table 2.0</h2>
@@ -2319,6 +2319,31 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
       gap: 18px;
       min-width: 0;
     }
+
+    .super-admin-detail[data-active-view]:not([data-active-view="overview"]) > * {
+      display: none;
+    }
+
+    .super-admin-detail[data-active-view="revenue"] > #super-admin-revenue,
+    .super-admin-detail[data-active-view="command"] > #super-admin-command,
+    .super-admin-detail[data-active-view="intelligence"] > #super-admin-intelligence,
+    .super-admin-detail[data-active-view="search"] > #super-admin-search,
+    .super-admin-detail[data-active-view="actionInbox"] > #super-admin-actionInbox,
+    .super-admin-detail[data-active-view="tenants"] > #super-admin-tenants {
+      display: grid;
+    }
+
+    .super-admin-detail[data-active-view="controls"] > #super-admin-controls {
+      display: flex;
+    }
+
+    .super-admin-detail[data-active-view="controls"] > #super-admin-controls + .admin-form-grid {
+      display: grid;
+    }
+
+    .super-admin-detail[data-active-view="controls"] > #super-admin-controls + .admin-form-grid + .panel {
+      display: block;
+    }
     .super-admin-command {
       border: 1px solid rgba(15, 118, 110, 0.14);
       border-radius: 18px;
@@ -3322,8 +3347,14 @@ export class SuperAdminComponent implements OnInit {
 
   setSuperAdminView(view: SuperAdminViewKey): void {
     this.activeSuperAdminView.set(view);
-    const target = view === 'overview' ? null : document.getElementById(`super-admin-${view}`);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (view === 'tenants') this.drilldownOpen.set(false);
+    if (view === 'controls' && !this.adminFormTab()) this.adminFormTab.set('subscription');
+    setTimeout(() => {
+      const target = view === 'overview'
+        ? document.querySelector('.metrics-grid')
+        : document.getElementById(`super-admin-${view}`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
   load(): void {
     this.loading.set(true);
@@ -4776,3 +4807,4 @@ export class SuperAdminComponent implements OnInit {
     });
   }
 }
+

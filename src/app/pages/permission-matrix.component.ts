@@ -6,6 +6,7 @@ import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type RightsMode = 'definition' | 'rights' | 'activity';
+type PermissionViewKey = 'overview' | 'users' | 'definition' | 'rights' | 'activity' | 'controls';
 type PermissionAction = 'access' | 'add' | 'edit' | 'delete' | 'back' | 'print' | 'export' | 'all';
 type TenantUser = ApiRecord & {
   id: string;
@@ -154,7 +155,15 @@ const RESOURCE_GROUPS = [
     .um-kpis article { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
     .um-kpis span, .um-muted { color: var(--muted); font-size: 12px; font-weight: 800; }
     .um-kpis strong { display: block; margin-top: 6px; font-size: 1.45rem; color: var(--ink); }
-    .um-shell { display: grid; grid-template-columns: 286px minmax(0, 1fr) 292px; gap: 14px; align-items: start; }
+    .permission-section-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
+    .permission-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
+    .permission-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid var(--line); border-left: 4px solid var(--teal); border-radius: 8px; background: var(--surface); color: var(--ink); text-align: left; box-shadow: var(--shadow); cursor: pointer; }
+    .permission-nav-card:hover, .permission-nav-card.active { background: linear-gradient(135deg, #e8fbf7, #eef4ff); border-color: color-mix(in srgb, var(--teal) 38%, var(--line)); transform: translateY(-1px); }
+    .permission-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #e8f7f4; color: #0b6f61; font-weight: 950; font-size: 12px; }
+    .permission-nav-card strong, .permission-nav-card small { display: block; }
+    .permission-nav-card small { margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.3; }
+    .permission-nav-card em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #e8f7f4; color: #0b6f61; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+    .permission-detail { display: grid; gap: 14px; min-width: 0; }    .um-shell { display: grid; grid-template-columns: 286px minmax(0, 1fr) 292px; gap: 14px; align-items: start; }
     .um-sidebar, .um-workbench, .um-control-panel, .um-card { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
     .um-sidebar, .um-control-panel { display: grid; gap: 12px; padding: 12px; position: sticky; top: 74px; }
     .um-workbench { min-width: 0; overflow: hidden; }
@@ -214,8 +223,8 @@ const RESOURCE_GROUPS = [
     .um-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .um-danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 32%, var(--line)); }
     .um-success-text { color: var(--green); font-weight: 900; }
-    @media (max-width: 1180px) { .um-shell { grid-template-columns: 260px minmax(0, 1fr); } .um-control-panel { position: static; grid-column: 1 / -1; } .um-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 780px) { .user-hero, .um-shell, .um-definition-grid, .um-toolbar, .um-form-grid, .um-filter-row, .salonist-groups, .salonist-grid { grid-template-columns: 1fr; } .um-sidebar { position: static; } .um-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero-actions, .um-toolbar-actions { justify-content: stretch; } .hero-actions button, .um-toolbar-actions button { flex: 1; } }
+    @media (max-width: 1180px) { .permission-section-workspace { grid-template-columns: 1fr; } .permission-side-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .um-shell { grid-template-columns: 260px minmax(0, 1fr); } .um-control-panel { position: static; grid-column: 1 / -1; } .um-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 780px) { .user-hero, .permission-side-nav, .um-shell, .um-definition-grid, .um-toolbar, .um-form-grid, .um-filter-row, .salonist-groups, .salonist-grid { grid-template-columns: 1fr; } .um-sidebar { position: static; } .um-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero-actions, .um-toolbar-actions { justify-content: stretch; } .hero-actions button, .um-toolbar-actions button { flex: 1; } }
   `],
   template: `
     <section class="page-stack user-management-os">
@@ -241,7 +250,23 @@ const RESOURCE_GROUPS = [
         <article><span>Modules</span><strong>{{ resourceCount() }}</strong></article>
       </div>
 
-      <section class="um-shell">
+      <div class="permission-section-workspace">
+        <aside class="permission-side-nav" aria-label="Permission sections">
+          <button
+            class="permission-nav-card"
+            type="button"
+            *ngFor="let view of permissionViews"
+            [class.active]="activePermissionView() === view.key"
+            (click)="setPermissionView(view.key)"
+          >
+            <span class="permission-nav-icon">{{ view.icon }}</span>
+            <span><strong>{{ view.label }}</strong><small>{{ view.description }}</small></span>
+            <em>{{ view.badge }}</em>
+          </button>
+        </aside>
+
+        <main class="permission-detail">
+      <section class="um-shell" id="permission-users">
         <aside class="um-sidebar" aria-label="User search and list">
           <div class="um-panel-head">
             <h3>Users</h3>
@@ -321,7 +346,7 @@ const RESOURCE_GROUPS = [
             <button type="button" [class.active]="mode() === 'activity'" (click)="mode.set('activity')">Audit</button>
           </div>
 
-          <div class="um-body" *ngIf="mode() === 'definition'">
+          <div class="um-body" id="permission-definition" *ngIf="mode() === 'definition'">
             <section class="um-definition-grid">
               <form class="um-card" [formGroup]="userForm" (ngSubmit)="saveUser()">
                 <div class="um-panel-head">
@@ -385,7 +410,7 @@ const RESOURCE_GROUPS = [
             </section>
           </div>
 
-          <div class="um-body" *ngIf="mode() === 'rights'">
+          <div class="um-body" id="permission-rights" *ngIf="mode() === 'rights'">
             <div class="um-toolbar">
               <label class="field">
                 <span>Search menu rights</span>
@@ -487,7 +512,7 @@ const RESOURCE_GROUPS = [
             </div>
           </div>
 
-          <div class="um-body" *ngIf="mode() === 'activity'">
+          <div class="um-body" id="permission-activity" *ngIf="mode() === 'activity'">
             <div class="um-panel-head">
               <div>
                 <h2>User audit and sessions</h2>
@@ -504,7 +529,7 @@ const RESOURCE_GROUPS = [
           </div>
         </main>
 
-        <aside class="um-control-panel" aria-label="Selected user and lock controls">
+        <aside class="um-control-panel" id="permission-controls" aria-label="Selected user and lock controls">
           <div class="um-selected-card">
             <div class="um-selected-head">
               <span class="um-avatar">{{ initials(selectedUser()?.name || selectedRole()) }}</span>
@@ -540,6 +565,8 @@ const RESOURCE_GROUPS = [
           </div>
         </aside>
       </section>
+        </main>
+      </div>
     </section>
   `
 })
@@ -550,7 +577,15 @@ export class PermissionMatrixComponent implements OnInit {
   readonly error = signal('');
   readonly notice = signal('');
   readonly mode = signal<RightsMode>('rights');
-  readonly userQuery = signal('');
+  readonly activePermissionView = signal<PermissionViewKey>('overview');
+  readonly permissionViews: Array<{ key: PermissionViewKey; label: string; description: string; icon: string; badge: string }> = [
+    { key: 'overview', label: 'Overview', description: 'All permission sections', icon: 'OV', badge: 'All' },
+    { key: 'users', label: 'Users', description: 'User list and assignment', icon: 'US', badge: 'CRM' },
+    { key: 'definition', label: 'Definitions', description: 'Role and module rules', icon: 'DF', badge: 'RBAC' },
+    { key: 'rights', label: 'Rights', description: 'Action permission matrix', icon: 'RT', badge: 'Live' },
+    { key: 'activity', label: 'Activity', description: 'Audit and recent changes', icon: 'AC', badge: 'Log' },
+    { key: 'controls', label: 'Controls', description: 'Bulk, export and sync tools', icon: 'CT', badge: 'Ops' }
+  ];  readonly userQuery = signal('');
   readonly roleFilter = signal('');
   readonly statusFilter = signal('');
   readonly branchFilter = signal('');
@@ -652,6 +687,14 @@ export class PermissionMatrixComponent implements OnInit {
 
   constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder, private readonly route: ActivatedRoute) {}
 
+  setPermissionView(view: PermissionViewKey): void {
+    this.activePermissionView.set(view);
+    if (view === 'definition' || view === 'rights' || view === 'activity') this.mode.set(view);
+    setTimeout(() => {
+      const target = document.getElementById(`permission-${view === 'overview' ? 'users' : view}`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
   ngOnInit(): void {
     this.load();
   }
@@ -1180,4 +1223,5 @@ export class PermissionMatrixComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 }
+
 

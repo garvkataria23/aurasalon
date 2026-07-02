@@ -5,6 +5,8 @@ import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
+type SaasViewKey = 'overview' | 'usage' | 'metering' | 'health' | 'features' | 'brand' | 'onboarding' | 'plans';
+
 @Component({
   selector: 'app-saas-onboarding',
   standalone: true,
@@ -57,7 +59,26 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </article>
         </div>
 
-        <section class="panel">
+        <div class="saas-section-workspace">
+          <aside class="saas-side-nav" aria-label="SaaS sections">
+            <button
+              class="saas-nav-card"
+              type="button"
+              *ngFor="let view of saasViews"
+              [class.active]="activeSaasView() === view.key"
+              (click)="setSaasView(view.key)"
+            >
+              <span class="saas-nav-icon">{{ view.icon }}</span>
+              <span>
+                <strong>{{ view.label }}</strong>
+                <small>{{ view.description }}</small>
+              </span>
+              <em>{{ view.badge }}</em>
+            </button>
+          </aside>
+
+          <main class="saas-detail">
+        <section class="panel" *ngIf="visibleSaasView('usage')">
           <div class="section-title">
             <div>
               <h2>Plan consumption</h2>
@@ -72,7 +93,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" *ngIf="visibleSaasView('metering')">
           <div class="section-title">
             <div>
               <h2>Current period metering</h2>
@@ -88,7 +109,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" *ngIf="visibleSaasView('health')">
           <div class="section-title">
             <div>
               <h2>Tenant health, subscription limits and usage-based billing</h2>
@@ -117,7 +138,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" *ngIf="visibleSaasView('features')">
           <div class="section-title">
             <div>
               <h2>Feature access for this tenant</h2>
@@ -134,7 +155,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" *ngIf="visibleSaasView('brand')">
           <div class="section-title">
             <div>
               <h2>Brand, domain and theme setup</h2>
@@ -149,9 +170,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
             </article>
           </div>
         </section>
-      </ng-container>
 
-      <div class="dashboard-grid workdesk">
+      <div class="dashboard-grid workdesk" *ngIf="visibleSaasView('onboarding')">
         <section class="form-panel">
           <h3>Onboard a salon tenant</h3>
           <form [formGroup]="onboardingForm" (ngSubmit)="onboard()">
@@ -183,8 +203,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
             <button class="primary-button" type="submit" [disabled]="domainForm.invalid || saving()">Add domain</button>
           </form>
 
-          <div class="activity-list" *ngIf="context()?.domains?.length">
-            <article *ngFor="let domain of context()?.domains">
+          <div class="activity-list" *ngIf="context.domains?.length">
+            <article *ngFor="let domain of context.domains">
               <div>
                 <strong>{{ domain.domain }}</strong>
                 <span>{{ domain.status }} · {{ domain.isPrimary ? 'primary' : 'secondary' }}</span>
@@ -195,7 +215,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </section>
       </div>
 
-      <section class="panel">
+      <section class="panel" *ngIf="visibleSaasView('plans')">
         <div class="section-title">
           <div>
             <h2>Trial and plan catalogue</h2>
@@ -210,6 +230,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </article>
         </div>
       </section>
+          </main>
+        </div>
+      </ng-container>
     </section>
   `,
   styles: [`
@@ -225,7 +248,15 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .zenoti-header { background: #fff; display: grid; gap: 10px; padding: 18px 16px 12px; }
     .page-heading { background: #fff; border: 1px solid #d8e1ea; }
     .metric-strip { background: #fff; border: 1px solid #d8e1ea; }
-    .panel, .form-panel { background: #fff; border: 1px solid #d8e1ea; }
+    .saas-section-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
+    .saas-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
+    .saas-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
+    .saas-nav-card:hover, .saas-nav-card.active { background: linear-gradient(135deg, #e8fbf7, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
+    .saas-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #e8f7f4; color: #0b6f61; font-weight: 950; font-size: 12px; }
+    .saas-nav-card strong, .saas-nav-card small { display: block; }
+    .saas-nav-card small { margin-top: 4px; color: #5f6f85; font-size: 12px; font-weight: 700; line-height: 1.3; }
+    .saas-nav-card em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #e8f7f4; color: #0b6f61; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+    .saas-detail { display: grid; gap: 8px; min-width: 0; }    .panel, .form-panel { background: #fff; border: 1px solid #d8e1ea; }
     .center-line { justify-content: space-between; }
     .center-line strong { font-size: 15px; }
     .command-select { width: 100%; padding: 9px 12px; border: 1px solid #b9cbe0; border-radius: 3px; color: #111827; font-weight: 800; background: #fff; }
@@ -262,7 +293,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .stage-track span { display: block; height: 100%; background: #0b8f7c; }
     app-state { display: block; }
     @media (max-width: 1050px) {
-      .dashboard-grid { grid-template-columns: 1fr; }
+      .saas-section-workspace, .dashboard-grid { grid-template-columns: 1fr; }
+      .saas-side-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .dashboard-grid .form-panel:first-child { border-right: 0; }
       .metric-strip { grid-template-columns: repeat(2, minmax(155px, 1fr)); }
     }
@@ -270,7 +302,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       .command-bar, .page-heading, .center-line, .section-title, .activity-list article { display: grid; align-items: start; }
       .top-actions, .header-actions, .form-actions { flex-wrap: wrap; }
       .search-field { width: 100%; }
-      .metric-strip, form { grid-template-columns: 1fr; }
+      .saas-section-workspace, .saas-side-nav, .metric-strip, form { grid-template-columns: 1fr; }
     }
   `]
 })
@@ -280,7 +312,17 @@ export class SaasOnboardingComponent implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
-
+  readonly activeSaasView = signal<SaasViewKey>('overview');
+  readonly saasViews: Array<{ key: SaasViewKey; label: string; description: string; icon: string; badge: string }> = [
+    { key: 'overview', label: 'Overview', description: 'All SaaS control sections', icon: 'OV', badge: 'All' },
+    { key: 'usage', label: 'Plan usage', description: 'Subscription consumption', icon: 'PU', badge: 'Use' },
+    { key: 'metering', label: 'Metering', description: 'Current billing period', icon: 'MT', badge: 'Bill' },
+    { key: 'health', label: 'Health', description: 'Limits and tenant score', icon: 'HT', badge: 'Risk' },
+    { key: 'features', label: 'Features', description: 'Feature access control', icon: 'FA', badge: 'Gate' },
+    { key: 'brand', label: 'Brand setup', description: 'Domain and white-label status', icon: 'BD', badge: 'DNS' },
+    { key: 'onboarding', label: 'Onboarding', description: 'Create tenant and map domain', icon: 'ON', badge: 'New' },
+    { key: 'plans', label: 'Plans', description: 'Trial and plan catalogue', icon: 'PL', badge: 'SaaS' }
+  ];
   readonly onboardingForm = this.fb.group({
     salonName: ['', Validators.required],
     slug: [''],
@@ -308,6 +350,13 @@ export class SaasOnboardingComponent implements OnInit {
     this.load();
   }
 
+  setSaasView(view: SaasViewKey): void {
+    this.activeSaasView.set(view);
+  }
+
+  visibleSaasView(view: SaasViewKey): boolean {
+    return this.activeSaasView() === 'overview' || this.activeSaasView() === view;
+  }
   load(): void {
     this.loading.set(true);
     this.error.set('');
@@ -391,3 +440,6 @@ export class SaasOnboardingComponent implements OnInit {
     }));
   }
 }
+
+
+
