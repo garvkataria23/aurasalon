@@ -38,7 +38,22 @@ export const routes: Routes = [
     { path: 'approval', loadComponent: () => import('./pages/data-migration-approval.component').then(m => m.DataMigrationApprovalComponent), title: 'Approval Workflow' },
     { path: 'go-live', loadComponent: () => import('./pages/data-migration-go-live.component').then(m => m.DataMigrationGoLiveComponent), title: 'Go-Live Checklist' },
     { path: 'assistant', loadComponent: () => import('./pages/data-migration-assistant.component').then(m => m.DataMigrationAssistantComponent), title: 'Migration Assistant' },
-    { path: 'history', loadComponent: () => import('./pages/data-migration-history.component').then(m => m.DataMigrationHistoryComponent), title: 'History & Rollback' }
+    { path: 'history', loadComponent: () => import('./pages/data-migration-history.component').then(m => m.DataMigrationHistoryComponent), title: 'History & Rollback' },
+    { path: 'controlled-migration-launch', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Controlled Migration Launch' },
+    { path: 'import-blockers', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Import Blockers' },
+    { path: 'chunked-import-queue', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Chunked Import Queue' },
+    { path: 'reconciliation-sign-off', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Reconciliation Sign-off' },
+    { path: 'field-confidence-saved-profiles', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Field Confidence & Saved Profiles' },
+    { path: 'detected-modules', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Detected Modules' },
+    { path: 'old-vs-aura-checks', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Old vs Aura Checks' },
+    { path: 'expected-totals-analyzed-data', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Expected Totals vs Analyzed Data' },
+    { path: 'owner-sign-off-workflow', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Owner Sign-off Workflow' },
+    { path: 'fix-priorities', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Fix Priorities' },
+    { path: 'client-invoice-source-collisions', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Client, Invoice & Source Collisions' },
+    { path: 'sign-off-controls', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Sign-off Controls' },
+    { path: 'quality-sandbox-approval-gate', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Quality, Sandbox & Approval Gate' },
+    { path: 'ask-why-rows-failed', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Ask Why Rows Failed' },
+    { path: 'jobs-audits-rollback-history', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Jobs, Audits and Rollback History' }
   ] },
   { path: 'offline', loadComponent: () => import('./pages/offline-support.component').then(m => m.OfflineSupportComponent), title: 'Offline Support' },
   { path: 'offline/readiness', loadComponent: () => import('./pages/offline-readiness.component').then(m => m.OfflineReadinessComponent), title: 'Offline Readiness Score' },
@@ -479,4 +494,5 @@ export const routes: Routes = [
   },
   { path: '**', redirectTo: 'home' }
 ];
+
 

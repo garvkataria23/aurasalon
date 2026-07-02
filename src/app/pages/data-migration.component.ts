@@ -149,7 +149,7 @@ type MigrationRecoveryReport = {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
-    <section class="migration-shell" [class.child-page-active]="migrationChildActive()">
+    <section class="migration-shell" [class.child-page-active]="migrationChildActive()" [class.migration-section-mode]="activeMigrationSection()">
       <header class="command-header">
         <div>
           <h1>100X import command center</h1>
@@ -207,7 +207,7 @@ type MigrationRecoveryReport = {
         </main>
       </section>
 
-      <section class="normalizer-files" *ngIf="entityTotalCards().length">
+      <section class="normalizer-files" *ngIf="!activeMigrationSection() && entityTotalCards().length">
         <article *ngFor="let item of entityTotalCards()">
           <strong>{{ item.label }}</strong>
           <small>{{ item.total || 0 }} total - {{ item.branchTotal || 0 }} branch - {{ item.migrated || 0 }} migrated</small>
@@ -215,7 +215,7 @@ type MigrationRecoveryReport = {
       </section>
 
       <section class="workspace-grid">
-        <article class="panel import-panel">
+        <article class="panel import-panel" *ngIf="showMigrationSection('controlled-migration-launch')">
           <div class="panel-head">
             <div>
               <h2>Controlled migration launch</h2>
@@ -335,7 +335,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <aside class="panel risk-panel">
+        <aside class="panel risk-panel" *ngIf="showMigrationSection('import-blockers')">
           <div class="panel-head">
             <div>
               <h2>Import blockers</h2>
@@ -351,7 +351,7 @@ type MigrationRecoveryReport = {
 
 
       <section class="grid two">
-        <article class="panel worker-panel">
+        <article class="panel worker-panel" *ngIf="showMigrationSection('chunked-import-queue')">
           <div class="panel-head">
             <div>
               <h2>Chunked import queue</h2>
@@ -429,7 +429,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel proof-panel">
+        <article class="panel proof-panel" *ngIf="showMigrationSection('reconciliation-sign-off')">
           <div class="panel-head">
             <div>
               <h2>Reconciliation sign-off</h2>
@@ -491,7 +491,7 @@ type MigrationRecoveryReport = {
       </section>
 
       <section class="grid three">
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('field-confidence-saved-profiles')">
           <div class="panel-head">
             <div>
               <h2>Field confidence & saved profiles</h2>
@@ -518,7 +518,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('detected-modules')">
           <div class="panel-head">
             <div>
               <h2>Detected modules</h2>
@@ -535,7 +535,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('old-vs-aura-checks')">
           <div class="panel-head">
             <div>
               <h2>Old vs Aura checks</h2>
@@ -552,7 +552,7 @@ type MigrationRecoveryReport = {
       </section>
 
       <section class="grid two">
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('expected-totals-analyzed-data')">
           <div class="panel-head">
             <div>
               <h2>Expected totals vs analyzed data</h2>
@@ -578,7 +578,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('owner-sign-off-workflow')">
           <div class="panel-head">
             <div>
               <h2>Owner sign-off workflow</h2>
@@ -615,7 +615,7 @@ type MigrationRecoveryReport = {
       </section>
 
       <section class="grid two">
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('client-invoice-source-collisions')">
           <div class="panel-head">
             <div>
               <h2>Client, invoice & source collisions</h2>
@@ -638,7 +638,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('fix-priorities')">
           <div class="panel-head">
             <div>
               <h2>Fix priorities</h2>
@@ -655,7 +655,7 @@ type MigrationRecoveryReport = {
       </section>
 
       <section class="grid two">
-        <article class="panel" *ngIf="previewRows().length">
+        <article class="panel" *ngIf="!activeMigrationSection() && previewRows().length">
           <div class="panel-head">
             <div>
               <h2>First 500 row decisions</h2>
@@ -693,7 +693,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('sign-off-controls')">
           <div class="panel-head">
             <div>
               <h2>Sign-off controls</h2>
@@ -719,7 +719,7 @@ type MigrationRecoveryReport = {
 
 
       <section class="grid two">
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('quality-sandbox-approval-gate')">
           <div class="panel-head">
             <div>
               <h2>Quality, sandbox & approval gate</h2>
@@ -746,7 +746,7 @@ type MigrationRecoveryReport = {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel" *ngIf="showMigrationSection('ask-why-rows-failed')">
           <div class="panel-head">
             <div>
               <h2>Ask why rows failed</h2>
@@ -774,7 +774,7 @@ type MigrationRecoveryReport = {
         </article>
       </section>
 
-      <section class="panel">
+      <section class="panel" *ngIf="showMigrationSection('jobs-audits-rollback-history')">
         <div class="panel-head">
           <div>
             <h2>Jobs, audits and rollback history</h2>
@@ -891,6 +891,8 @@ type MigrationRecoveryReport = {
     :host { display: block; }
     .migration-shell { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 18px 14px; align-items: start; color: #172033; }
     .migration-shell:not(.child-page-active) .migration-page-detail { display: none; }
+    .migration-shell.migration-section-mode .migration-page-detail { display: none; }
+    .migration-shell.migration-section-mode .workspace-grid, .migration-shell.migration-section-mode .grid.two, .migration-shell.migration-section-mode .grid.three { grid-template-columns: 1fr; }
     .migration-page-workspace { display: contents; }
     .command-header, .control-strip { grid-column: 1 / -1; }
     .migration-shell > :not(.command-header):not(.control-strip):not(.migration-page-workspace) { grid-column: 2; }
@@ -1086,15 +1088,21 @@ type MigrationRecoveryReport = {
 })
 export class DataMigrationComponent implements OnInit, OnDestroy {
   readonly migrationPages = [
-    { route: '/data-migration', label: 'Overview', description: 'Readiness and migration modules', icon: 'OV', badge: 'All', exact: true },
-    { route: '/data-migration/launch', label: 'Launch', description: 'Upload source and start scan', icon: 'LA', badge: 'Start', exact: true },
-    { route: '/data-migration/ai-mapping', label: 'AI Mapping', description: 'Map columns and resolve fields', icon: 'AI', badge: 'Map', exact: true },
-    { route: '/data-migration/import-worker', label: 'Import Worker', description: 'Chunk queue and worker status', icon: 'IW', badge: 'Queue', exact: true },
-    { route: '/data-migration/validation', label: 'Validation', description: 'Reconciliation and blockers', icon: 'VA', badge: 'QA', exact: true },
-    { route: '/data-migration/approval', label: 'Approval', description: 'Review gate and approvals', icon: 'AP', badge: 'Gate', exact: true },
-    { route: '/data-migration/go-live', label: 'Go Live', description: 'Final checklist and cutover', icon: 'GL', badge: 'Live', exact: true },
-    { route: '/data-migration/assistant', label: 'Assistant', description: 'Migration issue guidance', icon: 'AS', badge: 'Help', exact: true },
-    { route: '/data-migration/history', label: 'History', description: 'Jobs, rollback and audit', icon: 'HI', badge: 'Log', exact: true }
+    { route: '/data-migration/controlled-migration-launch', section: 'controlled-migration-launch', label: 'Controlled migration launch', description: 'Source upload, analyzer, dry run and import actions', icon: 'CL', badge: 'Start', exact: true },
+    { route: '/data-migration/import-blockers', section: 'import-blockers', label: 'Import blockers', description: 'Critical errors, warnings, duplicates and adapter readiness', icon: 'IB', badge: 'Risk', exact: true },
+    { route: '/data-migration/chunked-import-queue', section: 'chunked-import-queue', label: 'Chunked import queue', description: 'Large import job, chunks, worker tick and resume controls', icon: 'CQ', badge: 'Queue', exact: true },
+    { route: '/data-migration/reconciliation-sign-off', section: 'reconciliation-sign-off', label: 'Reconciliation sign-off', description: 'Proof checks, reconciliation evidence and export', icon: 'RS', badge: 'Proof', exact: true },
+    { route: '/data-migration/field-confidence-saved-profiles', section: 'field-confidence-saved-profiles', label: 'Field confidence & saved profiles', description: 'AI mapping confidence and reusable profiles', icon: 'FC', badge: 'Map', exact: true },
+    { route: '/data-migration/detected-modules', section: 'detected-modules', label: 'Detected modules', description: 'Entity coverage, valid rows, errors and duplicates', icon: 'DM', badge: 'Scan', exact: true },
+    { route: '/data-migration/old-vs-aura-checks', section: 'old-vs-aura-checks', label: 'Old vs Aura checks', description: 'Source-to-Aura reconciliation summary', icon: 'OA', badge: 'Check', exact: true },
+    { route: '/data-migration/expected-totals-analyzed-data', section: 'expected-totals-analyzed-data', label: 'Expected totals vs analyzed data', description: 'Expected count inputs and reconciliation run', icon: 'ET', badge: 'Match', exact: true },
+    { route: '/data-migration/owner-sign-off-workflow', section: 'owner-sign-off-workflow', label: 'Owner sign-off workflow', description: 'Approval note, submit, approve and reject flow', icon: 'OS', badge: 'Gate', exact: true },
+    { route: '/data-migration/fix-priorities', section: 'fix-priorities', label: 'Fix priorities', description: 'Error, warning and duplicate priority queues', icon: 'FP', badge: 'Fix', exact: true },
+    { route: '/data-migration/client-invoice-source-collisions', section: 'client-invoice-source-collisions', label: 'Client, invoice & source collisions', description: 'Merge, keep and link duplicate decisions', icon: 'CC', badge: 'Resolve', exact: true },
+    { route: '/data-migration/sign-off-controls', section: 'sign-off-controls', label: 'Sign-off controls', description: 'Completion checklist and rollback controls', icon: 'SC', badge: 'Audit', exact: true },
+    { route: '/data-migration/quality-sandbox-approval-gate', section: 'quality-sandbox-approval-gate', label: 'Quality, sandbox & approval gate', description: 'Sandbox mode, approval gate and quality checklist', icon: 'QG', badge: 'QA', exact: true },
+    { route: '/data-migration/ask-why-rows-failed', section: 'ask-why-rows-failed', label: 'Ask why rows failed', description: 'Migration assistant and anomaly explanation', icon: 'AW', badge: 'Help', exact: true },
+    { route: '/data-migration/jobs-audits-rollback-history', section: 'jobs-audits-rollback-history', label: 'Jobs, audits and rollback history', description: 'Job ledger, audit detail, recovery and rollback history', icon: 'JH', badge: 'Log', exact: true }
   ];
   readonly sourceOptions = [
     { value: 'zenoti', label: 'Zenoti' },
@@ -1440,6 +1448,17 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
   });
 
   constructor(private readonly api: ApiService, private readonly router: Router) {}
+
+  activeMigrationSection(): string | null {
+    const path = this.router.url.split('?')[0].replace(/\/$/, '');
+    const section = path.split('/').pop() || '';
+    return this.migrationPages.some((page) => page.section === section) ? section : null;
+  }
+
+  showMigrationSection(section: string): boolean {
+    const active = this.activeMigrationSection();
+    return !active || active === section;
+  }
 
   migrationChildActive(): boolean {
     const path = this.router.url.split('?')[0].replace(/\/$/, '');
@@ -3428,4 +3447,8 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     return `${row.sourceSheet || 'sheet'}:${row.sourceRowNumber || row.targetId || row.sourceExternalId || 'row'}`;
   }
 }
+
+
+
+
 
