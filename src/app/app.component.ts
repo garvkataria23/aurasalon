@@ -335,7 +335,7 @@ type ActiveModuleTabs = {
         <section
             class="workspace-route-shell"
             [class.workspace-route-shell--with-local-nav]="activeLocalNav() !== null"
-            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null && !localRailExpanded()"
+            [class.workspace-route-shell--local-rail-collapsed]="activeLocalNav() !== null"
           >
           <aside
             class="workspace-local-rail"
@@ -642,8 +642,8 @@ export class AppComponent implements OnDestroy {
   readonly sidebarCompact = signal(true);
   readonly sidebarHoverExpanded = signal(false);
   readonly sidebarUiCompact = computed(() => true);
-  readonly localRailHoverExpanded = signal(true);
-  readonly localRailExpanded = computed(() => true);
+  readonly localRailHoverExpanded = signal(false);
+  readonly localRailExpanded = computed(() => this.localRailHoverExpanded());
   readonly expandedGroupIds = signal<string[]>(this.readExpandedGroups());
   private readonly maxBackHistory = 10;
   private readonly emptyNavItems: NavItem[] = [];
