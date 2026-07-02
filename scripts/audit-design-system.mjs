@@ -1,8 +1,9 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { extname, join, relative, sep } from 'node:path';
 
 const root = process.cwd();
-const sharedUiDir = join(root, 'src', 'app', 'shared', 'ui');
+const srcAppDir = join(root, 'src', 'app');
+const sharedUiDir = join(srcAppDir, 'shared', 'ui');
 const stylesPath = join(root, 'src', 'styles.css');
 const barrelPath = join(sharedUiDir, 'index.ts');
 const cardThemePath = join(sharedUiDir, 'aura-card', 'aura-card.theme.ts');
@@ -32,6 +33,18 @@ const legacySelectors = [
   'aura-legacy-stat-strip',
   'aura-legacy-table',
   'aura-legacy-tabs'
+];
+
+const legacyFolders = [
+  'badge',
+  'button',
+  'drawer',
+  'empty',
+  'page-header',
+  'skeleton',
+  'stat-strip',
+  'table',
+  'tabs'
 ];
 
 const requiredStyles = [
@@ -65,16 +78,21 @@ const requiredBarrelExports = [
   './aura-tabs/aura-tabs.component'
 ];
 
-function walk(dir) {
+function walk(dir, extensions = ['.ts']) {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) return walk(path);
-    return path.endsWith('.ts') ? [path] : [];
+    if (statSync(path).isDirectory()) return walk(path, extensions);
+    return extensions.includes(extname(path)) ? [path] : [];
   });
 }
 
 function read(path) {
   return readFileSync(path, 'utf8');
+}
+
+function isInside(parent, child) {
+  const rel = relative(parent, child);
+  return rel && !rel.startsWith('..') && !rel.startsWith(sep);
 }
 
 const failures = [];
@@ -114,6 +132,21 @@ for (const selector of legacySelectors) {
   expect(countInMap(selectors, selector) === 1, `Missing legacy selector '${selector}'`);
 }
 
+const appFiles = walk(srcAppDir, ['.ts', '.html']);
+const legacySelectorPattern = /<\/?aura-legacy-[a-z-]+\b/g;
+const legacyImportPattern = new RegExp(`from\\s+['"][^'"]*shared/ui/(${legacyFolders.join('|')})/`, 'g');
+const legacyLeaks = [];
+
+for (const file of appFiles) {
+  if (isInside(sharedUiDir, file)) continue;
+  const source = read(file);
+  if (legacySelectorPattern.test(source) || legacyImportPattern.test(source)) {
+    legacyLeaks.push(relative(root, file));
+  }
+}
+
+expect(legacyLeaks.length === 0, `Legacy Aura usage leaked outside shared UI: ${legacyLeaks.join(', ')}`);
+
 const styles = read(stylesPath);
 for (const token of requiredStyles) {
   expect(styles.includes(token), `Missing styles contract '${token}' in src/styles.css`);
@@ -131,6 +164,7 @@ expect(read(catalogPath).includes('## Legacy Shims'), 'Component catalog must do
 
 notes.push(`Checked ${selectors.size} Aura selectors across shared UI.`);
 notes.push(`Canonical selectors: ${canonicalSelectors.length}; legacy selectors: ${legacySelectors.length}.`);
+notes.push(`Checked ${appFiles.length} app template/script files for legacy Aura leaks outside shared UI.`);
 notes.push('Checked token bridge, card utility aliases, barrel exports, and catalog docs.');
 
 if (failures.length) {

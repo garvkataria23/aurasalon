@@ -8,7 +8,7 @@ Source: `C:\Users\ADMIN\.codex\attachments\3fac217b-b697-4dfb-9443-44a7d6242a64\
 - Shared UI exports now expose modern Aura components and legacy aliases without same-name class/type collisions.
 - Additional button/drawer selector ambiguity was removed by keeping modern `aura-button` and `aura-drawer` canonical and renaming legacy versions to `aura-legacy-button` and `aura-legacy-drawer`.
 - A canonical Aura component catalog now documents modern selectors, legacy shims, barrel imports, and card migration rules.
-- A repeatable `npm run audit:design-system` gate checks selector uniqueness, canonical/legacy selector contracts, token bridges, card utility aliases, barrel exports, and catalog presence.
+- A repeatable `npm run audit:design-system` gate checks selector uniqueness, canonical/legacy selector contracts, legacy Aura template/import leakage outside shared UI, token bridges, card utility aliases, barrel exports, and catalog presence.
 - Global Aura token aliases now bridge the active `--color-*` runtime variables into `--aura-*` variables.
 - Root layout/type/card aliases exist for `--radius-*`, `--space-*`, `--font-size-*`, `--metric-card-*`, `--kpi-*`, and `--card-*` tokens.
 - A canonical standalone `aura-card` component exists with `tone`, `variant`, `padding`, `radius`, `shadow`, `hover`, and `interactive` inputs.
