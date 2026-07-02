@@ -12,6 +12,7 @@
     "check:server": "node scripts/check-server.mjs",
     "test": "node scripts/run-tests.mjs",
     "quality": "npm run check:server && npm test && npm run build",
+    "audit:design-system": "node scripts/audit-design-system.mjs",
     "seed:demo": "node scripts/seed-demo-data.mjs",
     "seed:ai-knowledge": "node scripts/seed-aurashine-ai-knowledge.mjs",
     "backup:db": "node scripts/backup-database.mjs",
