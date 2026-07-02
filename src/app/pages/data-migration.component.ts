@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../core/api.service';
 
@@ -149,7 +149,7 @@ type MigrationRecoveryReport = {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
-    <section class="migration-shell">
+    <section class="migration-shell" [class.child-page-active]="migrationChildActive()">
       <header class="command-header">
         <div>
           <h1>100X import command center</h1>
@@ -890,7 +890,8 @@ type MigrationRecoveryReport = {
   styles: [`
     :host { display: block; }
     .migration-shell { display: grid; gap: 18px; color: #172033; }
-    .migration-shell > :not(.migration-page-workspace) { display: none; }
+    .migration-shell.child-page-active > :not(.migration-page-workspace) { display: none; }
+    .migration-shell:not(.child-page-active) .migration-page-detail { display: none; }
     .migration-page-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
     .migration-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
     .migration-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; min-height: 92px; padding: 13px; border: 1px solid #d7e6e2; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-decoration: none; box-shadow: 0 12px 26px rgba(15,23,42,.07); cursor: pointer; }
@@ -1435,8 +1436,12 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     ];
   });
 
-  constructor(private readonly api: ApiService) {}
+  constructor(private readonly api: ApiService, private readonly router: Router) {}
 
+  migrationChildActive(): boolean {
+    const path = this.router.url.split('?')[0].replace(/\/$/, '');
+    return path !== '/data-migration';
+  }
   ngOnInit(): void {
     this.loadIntelligence();
     this.loadJobs();
@@ -3420,4 +3425,5 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     return `${row.sourceSheet || 'sheet'}:${row.sourceRowNumber || row.targetId || row.sourceExternalId || 'row'}`;
   }
 }
+
 
