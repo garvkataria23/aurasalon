@@ -25,11 +25,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
           <span class="badge">{{ status()?.enabled ? 'Enabled' : 'Not enabled' }}</span>
         </div>
         <div class="quick-grid">
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ status()?.enabled ? '2FA active' : '2FA inactive' }}</strong>
             <span>{{ status()?.verifiedAt || 'No verified authenticator yet' }}</span>
           </article>
-          <article class="action-card">
+          <article class="action-card aura-card aura-card--type-action">
             <strong>{{ status()?.pendingSetup ? 'Setup pending' : 'No pending setup' }}</strong>
             <span>Pending secrets become active only after code verification.</span>
           </article>
@@ -60,7 +60,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <section class="panel" *ngIf="recoveryCodes().length">
         <div class="section-title"><h2>Recovery codes</h2></div>
         <div class="quick-grid">
-          <article class="action-card" *ngFor="let code of recoveryCodes()"><strong>{{ code }}</strong><span>Use once if authenticator is unavailable</span></article>
+          <article class="action-card aura-card aura-card--type-action" *ngFor="let code of recoveryCodes()"><strong>{{ code }}</strong><span>Use once if authenticator is unavailable</span></article>
         </div>
         <label class="inline-check"><input type="checkbox" [(ngModel)]="savedCodes" /> I saved these codes securely</label>
         <div class="form-actions"><button class="primary-button" type="button" [disabled]="!savedCodes" (click)="recoveryCodes.set([])">Done</button></div>

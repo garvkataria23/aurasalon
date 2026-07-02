@@ -33,6 +33,7 @@ Scope: static scan of `src/app` TypeScript and HTML files for legacy card class 
 - Growth report-card batch: growth rank bot report cards now pair legacy `report-card` classes with `aura-card` without removing existing classes.
 - Data-migration score-card batch: data migration approval, history, import worker, AI mapping, go-live, overview, and command center score cards now pair legacy `score-card` classes with `aura-card` without removing existing classes.
 - Security policy center action-card batch: compliance, policy toggle, privacy, IAM, fraud, and playbook cards now pair legacy `action-card`/`score-card` classes with `aura-card aura-card--type-action` without removing existing classes.
+- Two-factor setup action-card batch: 2FA status and recovery-code cards now pair legacy `action-card` classes with `aura-card aura-card--type-action` without removing existing classes.
 
 ## Rules
 
