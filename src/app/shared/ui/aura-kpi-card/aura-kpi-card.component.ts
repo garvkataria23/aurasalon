@@ -10,7 +10,7 @@ type KpiTone = string | string[] | Set<string> | { [klass: string]: unknown } | 
   imports: [CommonModule, RouterLink],
   template: `
     <a
-      class="metric-card"
+      class="metric-card aura-card aura-card--type-metric aura-card--hover aura-card--interactive"
       [ngClass]="tone"
       [routerLink]="safeTarget"
       [queryParams]="queryParams"

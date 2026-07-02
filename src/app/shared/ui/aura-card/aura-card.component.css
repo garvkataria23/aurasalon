@@ -34,17 +34,25 @@
 .aura-card--variant-elevated { box-shadow: var(--aura-shadow-card); }
 
 .aura-card--tone-primary { --aura-card-tone: var(--aura-primary); }
-.aura-card--tone-success { --aura-card-tone: var(--aura-success); }
-.aura-card--tone-warning { --aura-card-tone: var(--aura-warning); }
-.aura-card--tone-danger { --aura-card-tone: var(--aura-danger); }
-.aura-card--tone-info { --aura-card-tone: var(--aura-info); }
+.aura-card--tone-success,
+.aura-card--tone-green { --aura-card-tone: var(--aura-success); }
+.aura-card--tone-warning,
+.aura-card--tone-amber { --aura-card-tone: var(--aura-warning); }
+.aura-card--tone-danger,
+.aura-card--tone-red { --aura-card-tone: var(--aura-danger); }
+.aura-card--tone-info,
+.aura-card--tone-blue { --aura-card-tone: var(--aura-info); }
 .aura-card--tone-rose { --aura-card-tone: var(--aura-rose); }
 
 .aura-card--tone-primary,
 .aura-card--tone-success,
+.aura-card--tone-green,
 .aura-card--tone-warning,
+.aura-card--tone-amber,
 .aura-card--tone-danger,
+.aura-card--tone-red,
 .aura-card--tone-info,
+.aura-card--tone-blue,
 .aura-card--tone-rose {
   border-top-color: var(--aura-card-tone);
 }
