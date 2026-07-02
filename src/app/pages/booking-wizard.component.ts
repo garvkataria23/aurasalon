@@ -51,7 +51,7 @@ type WizardStep = 1 | 2 | 3 | 4 | 5;
                   <option *ngFor="let service of services()" [value]="service.id">{{ service.name }} · {{ service.price | currency:'INR':'symbol':'1.0-0' }}</option>
                 </select>
               </label>
-              <div class="summary-card" *ngIf="resolvedServices().length">
+              <div class="summary-card aura-card" *ngIf="resolvedServices().length">
                 <strong>{{ resolvedServices().length }} service item(s)</strong>
                 <small *ngFor="let item of resolvedServices()">{{ serviceName(item.serviceId) }} {{ item.isAuto ? '· auto' : '' }}</small>
               </div>
@@ -69,7 +69,7 @@ type WizardStep = 1 | 2 | 3 | 4 | 5;
                 <span>Date</span>
                 <input type="date" formControlName="date" (change)="queueStateSave()" />
               </label>
-              <div class="summary-card">
+              <div class="summary-card aura-card">
                 <strong>{{ staffForBranch().length }} eligible team members</strong>
               </div>
             </div>
@@ -109,15 +109,15 @@ type WizardStep = 1 | 2 | 3 | 4 | 5;
             </div>
 
             <div *ngSwitchCase="5" class="confirm-grid">
-              <article class="summary-card">
+              <article class="summary-card aura-card">
                 <strong>{{ serviceName(wizardForm.value.serviceId) }}</strong>
                 <small>{{ selectedSlot()?.startAt | date:'medium' }} with {{ selectedSlot()?.staffName || 'auto staff' }}</small>
                 <small>{{ wizardForm.value.clientName }} · {{ wizardForm.value.phone }}</small>
               </article>
-              <article class="summary-card">
+              <article class="summary-card aura-card">
                 <strong>{{ holdId() ? 'Slot hold active' : 'No active hold' }}</strong>
               </article>
-              <article class="summary-card" *ngIf="createdAppointment() as appointment">
+              <article class="summary-card aura-card" *ngIf="createdAppointment() as appointment">
                 <strong>{{ appointment.id }}</strong>
                 <small>{{ appointment.status }} · {{ appointment.startAt | date:'medium' }}</small>
               </article>

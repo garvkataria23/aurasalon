@@ -183,7 +183,7 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
         </section>
 
         <section class="report-summary-grid">
-          <article class="summary-card" *ngFor="let card of summaryCards()">
+          <article class="summary-card aura-card" *ngFor="let card of summaryCards()">
             <span>{{ card.label }}</span>
             <strong>
               <ng-container *ngIf="card.currency; else plainValue">
