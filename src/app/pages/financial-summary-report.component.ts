@@ -554,7 +554,7 @@ type WalletLedgerRow = ApiRecord & {
           </div>
 
           <div class="daily-sheet-grid">
-            <section class="panel daily-sheet-card">
+            <section class="panel daily-sheet-card aura-card">
               <div class="mini-section-title"><span>Item details</span><strong>Sale type breakup</strong></div>
               <table>
                 <thead><tr><th>Item name</th><th class="right">Item count</th><th class="right">Received</th><th class="right">Total</th></tr></thead>
@@ -569,7 +569,7 @@ type WalletLedgerRow = ApiRecord & {
               </table>
             </section>
 
-            <section class="panel daily-sheet-card">
+            <section class="panel daily-sheet-card aura-card">
               <div class="mini-section-title"><span>Payment mode truth</span><strong>Total received</strong></div>
               <table>
                 <thead><tr><th>Mode</th><th class="right">Count</th><th class="right">Amount</th></tr></thead>
@@ -583,7 +583,7 @@ type WalletLedgerRow = ApiRecord & {
               </table>
             </section>
 
-            <section class="panel daily-sheet-card">
+            <section class="panel daily-sheet-card aura-card">
               <div class="mini-section-title"><span>Reconciliation</span><strong>Cash + audit control</strong></div>
               <table>
                 <thead><tr><th>Check</th><th class="right">Value</th><th>Note</th></tr></thead>
@@ -597,7 +597,7 @@ type WalletLedgerRow = ApiRecord & {
               </table>
             </section>
 
-            <section class="panel daily-sheet-card">
+            <section class="panel daily-sheet-card aura-card">
               <div class="mini-section-title"><span>Staff-wise daily sheet</span><strong>Accountability</strong></div>
               <table>
                 <thead><tr><th>Staff</th><th class="right">Service sale</th><th class="right">Product sale</th><th class="right">Discount</th><th class="right">Tips</th><th class="right">Unpaid</th><th class="right">Commission base</th></tr></thead>
@@ -846,7 +846,7 @@ type WalletLedgerRow = ApiRecord & {
           </div>
 
           <div class="member-sales-grid">
-            <section class="panel daily-sheet-card">
+            <section class="panel daily-sheet-card aura-card">
               <div class="mini-section-title"><span>Member vs Non-Member Comparison</span><strong>Revenue quality</strong></div>
               <table>
                 <thead><tr><th>Metric</th><th class="right">Members</th><th class="right">Non-members</th></tr></thead>
@@ -860,7 +860,7 @@ type WalletLedgerRow = ApiRecord & {
               </table>
             </section>
 
-            <section class="panel daily-sheet-card">
+            <section class="panel daily-sheet-card aura-card">
               <div class="mini-section-title"><span>Membership ROI</span><strong>Profitability signal</strong></div>
               <table>
                 <thead><tr><th>Metric</th><th class="right">Value</th></tr></thead>
@@ -1004,7 +1004,7 @@ type WalletLedgerRow = ApiRecord & {
           </div>
 
           <div class="sales-tax-grid">
-            <section class="panel daily-sheet-card sales-tax-card">
+            <section class="panel daily-sheet-card aura-card sales-tax-card">
               <div class="mini-section-title"><span>GST rate breakup</span><strong>0%, 5%, 12%, 18%, 28%</strong></div>
               <table>
                 <thead><tr><th>GST rate</th><th class="right">Bills</th><th class="right">Taxable</th><th class="right">GST</th><th class="right">Total</th></tr></thead>
@@ -1020,7 +1020,7 @@ type WalletLedgerRow = ApiRecord & {
               </table>
             </section>
 
-            <section class="panel daily-sheet-card sales-tax-card">
+            <section class="panel daily-sheet-card aura-card sales-tax-card">
               <div class="mini-section-title"><span>Service/product tax split</span><strong>Tax by item type</strong></div>
               <table>
                 <thead><tr><th>Type</th><th class="right">Bills</th><th class="right">Taxable</th><th class="right">GST</th><th class="right">Total</th></tr></thead>
@@ -1036,7 +1036,7 @@ type WalletLedgerRow = ApiRecord & {
               </table>
             </section>
 
-            <section class="panel daily-sheet-card sales-tax-card sales-tax-checks-card">
+            <section class="panel daily-sheet-card aura-card sales-tax-card sales-tax-checks-card">
               <div class="mini-section-title"><span>Accounting checks</span><strong>Mismatch, missing GST, refund tax</strong></div>
               <table>
                 <thead><tr><th>Check</th><th class="right">Count</th><th class="right">Amount</th><th>Action</th></tr></thead>

@@ -29,6 +29,7 @@ Scope: static scan of `src/app` TypeScript and HTML files for legacy card class 
 - Summary-card booking/client report batch: booking wizard and client report detail now pair legacy `summary-card` classes with `aura-card` without removing existing classes.
 - Client-card engagement rail batch: engagement command center now pairs legacy `client-card` rail panels with `aura-card` without removing existing classes.
 - Catalog service/product card batch: booking portal services and product 360 profile now pair legacy `service-card`/`product-card` classes with `aura-card` without removing existing classes.
+- Daily-sheet financial report batch: financial summary daily sheet, member comparison, and sales-tax report cards now pair legacy `daily-sheet-card` classes with `aura-card` without removing existing classes.
 
 ## Rules
 
