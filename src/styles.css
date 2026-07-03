@@ -13984,3 +13984,435 @@ app-data-migration :where(.migration-nav-icon) {
   }
 }
 /* End AuraSalon data migration and offline resilience polish layer. */
+
+/* AuraSalon platform utility polish layer. */
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio, app-public-feedback) {
+  --platform-ink: var(--aura-ink, #231723);
+  --platform-muted: var(--aura-muted, #6f6470);
+  --platform-surface: var(--aura-surface-raised, rgba(255, 255, 255, 0.96));
+  --platform-soft: color-mix(in srgb, var(--aura-bg, #faf7f2) 82%, white 18%);
+  --platform-border: var(--aura-border-soft, rgba(75, 18, 56, 0.13));
+  --platform-radius: var(--aura-card-radius-premium, 14px);
+  --platform-shadow: 0 14px 36px rgba(75, 18, 56, 0.08);
+  color: var(--platform-ink);
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.apps-shell, .page-stack, .studio-page) {
+  gap: 16px;
+  padding: clamp(14px, 2vw, 22px);
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.apps-header, .module-hero, .studio-hero) {
+  position: relative;
+  overflow: hidden;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--platform-border) 75%, white 25%);
+  border-radius: calc(var(--platform-radius) + 4px);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(237, 108, 146, 0.18), transparent 30%),
+    linear-gradient(135deg, #fff7fb 0%, #fff 43%, #f8f2ff 100%);
+  box-shadow: var(--platform-shadow);
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.apps-header, .module-hero, .studio-hero)::after {
+  content: '';
+  position: absolute;
+  inset: auto -8% -42% 44%;
+  height: 170px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(156, 46, 118, 0.12), rgba(230, 124, 110, 0.10));
+  pointer-events: none;
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.apps-header > *, .module-hero > *, .studio-hero > *) {
+  position: relative;
+  z-index: 1;
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.apps-header h2, .module-hero h2, .studio-hero h1) {
+  margin: 0;
+  color: var(--platform-ink);
+  font-size: clamp(1.45rem, 1.2rem + 1vw, 2.25rem);
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.hero-actions, .header-actions, .form-actions, .panel-actions, .template-actions, .setting-meta) {
+  gap: 8px;
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.ghost-button, .dark-button, .primary-button, .mini) {
+  min-height: 38px;
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  box-shadow: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.ghost-button:hover, .dark-button:hover, .primary-button:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(75, 18, 56, 0.10);
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.ghost-button) {
+  border-color: var(--platform-border);
+  color: var(--platform-ink);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.primary-button, .dark-button) {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 82%, black 18%);
+  background: linear-gradient(135deg, var(--aura-primary, #8f286b), #3c1434);
+  color: #fff;
+}
+
+:where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.suite-toolbar, .suite-group, .signal-tile, .panel, .form-panel, .settings-panel, .template-panel, .history-panel, .action-card, .summary-lines div, .rank-list article, .heatmap-grid article, .setting-card, .template-card, .empty-state, .apps-empty) {
+  border: 1px solid var(--platform-border);
+  border-radius: var(--platform-radius);
+  background: var(--platform-surface);
+  box-shadow: var(--platform-shadow);
+}
+
+app-apps-launchpad .suite-signal-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+app-apps-launchpad .signal-tile {
+  min-height: 112px;
+  align-content: space-between;
+  padding: 16px;
+  background: linear-gradient(180deg, #fff, var(--platform-soft));
+}
+
+app-apps-launchpad .signal-tile span,
+app-apps-launchpad .suite-search span,
+app-apps-launchpad .app-card small,
+app-apps-launchpad .app-tags,
+app-apps-launchpad .status-pill {
+  color: var(--platform-muted);
+}
+
+app-apps-launchpad .signal-tile strong {
+  font-size: clamp(1.45rem, 1.1rem + 0.8vw, 2rem);
+  color: var(--platform-ink);
+}
+
+app-apps-launchpad .suite-toolbar {
+  grid-template-columns: minmax(260px, 400px) minmax(0, 1fr);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(12px);
+}
+
+app-apps-launchpad .suite-search input,
+:where(app-analytics-engine, app-workflow-engine, app-message-template-studio, app-public-feedback) :where(input, select, textarea) {
+  min-height: 40px;
+  border: 1px solid var(--platform-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--platform-ink);
+  font: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+app-apps-launchpad .suite-search input:focus,
+:where(app-analytics-engine, app-workflow-engine, app-message-template-studio, app-public-feedback) :where(input, select, textarea):focus {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 70%, white 30%);
+  outline: 3px solid rgba(143, 40, 107, 0.12);
+}
+
+app-apps-launchpad .suite-tabs button,
+app-message-template-studio .tab-rail button,
+app-message-template-studio .segmented button,
+app-analytics-engine .analytics-nav-card {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--platform-muted);
+  background: rgba(255, 255, 255, 0.78);
+  font-weight: 900;
+}
+
+app-apps-launchpad .suite-tabs button.active,
+app-message-template-studio .tab-rail button.active,
+app-message-template-studio .segmented button.active {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 26%, white 74%);
+  background: linear-gradient(135deg, rgba(143, 40, 107, 0.12), rgba(237, 108, 146, 0.10));
+  color: var(--aura-primary-strong, #4b1238);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--aura-primary, #8f286b) 70%, white 30%);
+}
+
+app-apps-launchpad .suite-group {
+  padding: 16px;
+}
+
+app-apps-launchpad .apps-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+app-apps-launchpad .app-card {
+  min-height: 190px;
+  border: 1px solid var(--platform-border);
+  border-top: 4px solid var(--aura-primary, #8f286b);
+  border-radius: var(--platform-radius);
+  background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, var(--platform-soft) 75%, white 25%) 100%);
+  box-shadow: 0 10px 24px rgba(75, 18, 56, 0.06);
+}
+
+app-apps-launchpad .app-card:hover,
+app-apps-launchpad .app-card:focus-visible,
+app-analytics-engine .analytics-nav-card:hover,
+app-analytics-engine .analytics-nav-card:focus-visible {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 32%, white 68%);
+  box-shadow: 0 16px 34px rgba(75, 18, 56, 0.12);
+}
+
+app-apps-launchpad .app-icon,
+app-analytics-engine .nav-icon {
+  width: 42px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--aura-primary, #8f286b), #ed6c92);
+  color: #fff;
+}
+
+app-apps-launchpad .status-pill,
+app-analytics-engine .analytics-nav-card i,
+:where(app-analytics-engine, app-workflow-engine, app-message-template-studio) .badge {
+  border: 1px solid color-mix(in srgb, var(--aura-primary, #8f286b) 18%, white 82%);
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 9%, white 91%);
+  color: var(--aura-primary-strong, #4b1238);
+}
+
+app-analytics-engine .analytics-workspace {
+  grid-template-columns: minmax(270px, 320px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+app-analytics-engine .analytics-side-nav {
+  gap: 9px;
+}
+
+app-analytics-engine .analytics-nav-card {
+  min-height: 84px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  border-color: var(--platform-border);
+  border-left: 4px solid transparent;
+  background: var(--platform-surface);
+  box-shadow: 0 8px 20px rgba(75, 18, 56, 0.06);
+}
+
+app-analytics-engine .analytics-nav-card.active {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 35%, white 65%);
+  border-left-color: var(--aura-primary, #8f286b);
+  background: linear-gradient(90deg, rgba(143, 40, 107, 0.13), rgba(237, 108, 146, 0.08));
+}
+
+app-analytics-engine .chart-bars {
+  border-color: var(--platform-border);
+  border-radius: var(--platform-radius);
+  background: linear-gradient(180deg, #fff, var(--platform-soft));
+}
+
+app-analytics-engine .chart-bars i {
+  background: linear-gradient(180deg, #ed6c92, var(--aura-primary, #8f286b));
+}
+
+app-analytics-engine .rank-list article,
+app-workflow-engine .summary-lines div,
+app-analytics-engine .summary-lines div {
+  align-items: center;
+  background: linear-gradient(180deg, #fff, color-mix(in srgb, var(--platform-soft) 70%, white 30%));
+}
+
+app-workflow-engine .dashboard-grid,
+app-analytics-engine .dashboard-grid {
+  gap: 14px;
+}
+
+app-workflow-engine .form-panel form,
+app-analytics-engine .form-panel form {
+  gap: 12px;
+}
+
+app-workflow-engine textarea,
+app-message-template-studio textarea,
+app-public-feedback textarea {
+  min-height: 118px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+:where(app-workflow-engine, app-analytics-engine) .result-json {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--platform-border);
+  border-radius: var(--platform-radius);
+  background: #231723;
+  color: #fff8fb;
+  padding: 14px;
+}
+
+:where(app-workflow-engine, app-analytics-engine) .table-wrap {
+  border: 1px solid var(--platform-border);
+  border-radius: var(--platform-radius);
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(75, 18, 56, 0.06);
+}
+
+:where(app-workflow-engine, app-analytics-engine) table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+:where(app-workflow-engine, app-analytics-engine) th {
+  color: var(--platform-muted);
+  background: color-mix(in srgb, var(--platform-soft) 76%, white 24%);
+}
+
+:where(app-workflow-engine, app-analytics-engine) td,
+:where(app-workflow-engine, app-analytics-engine) th {
+  border-bottom-color: color-mix(in srgb, var(--platform-border) 80%, white 20%);
+}
+
+app-message-template-studio .studio-page {
+  min-height: auto;
+  background: transparent;
+}
+
+app-message-template-studio .tab-rail,
+app-message-template-studio .segmented {
+  border: 1px solid var(--platform-border);
+  border-radius: var(--platform-radius);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 20px rgba(75, 18, 56, 0.05);
+}
+
+app-message-template-studio .kpi-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+app-message-template-studio .kpi-grid article {
+  border: 1px solid var(--platform-border);
+  border-radius: var(--platform-radius);
+  background: linear-gradient(180deg, #fff, var(--platform-soft));
+  box-shadow: 0 10px 24px rgba(75, 18, 56, 0.06);
+}
+
+app-message-template-studio .settings-grid,
+app-message-template-studio .template-grid {
+  gap: 14px;
+}
+
+app-message-template-studio .setting-card,
+app-message-template-studio .template-card {
+  background: linear-gradient(180deg, #fff, color-mix(in srgb, var(--platform-soft) 78%, white 22%));
+}
+
+app-message-template-studio .chips button,
+app-message-template-studio .provider-map b {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 20%, white 80%);
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 8%, white 92%);
+  color: var(--aura-primary-strong, #4b1238);
+}
+
+app-message-template-studio .preview-box {
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 30%, white 70%);
+  background: linear-gradient(180deg, #fff7fb, #fff);
+}
+
+app-message-template-studio .switch span {
+  background: linear-gradient(135deg, var(--aura-primary, #8f286b), #3c1434);
+}
+
+app-message-template-studio .switch input:not(:checked) + span {
+  background: #c9bec9;
+}
+
+app-public-feedback .feedback-page {
+  min-height: 100vh;
+  padding: clamp(18px, 4vw, 40px);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(237, 108, 146, 0.16), transparent 28%),
+    linear-gradient(135deg, #fff8fb 0%, #fbf7f2 48%, #f7f2ff 100%);
+}
+
+app-public-feedback .panel {
+  width: min(590px, 100%);
+  border: 1px solid var(--platform-border);
+  border-radius: calc(var(--platform-radius) + 6px);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(75, 18, 56, 0.13);
+}
+
+app-public-feedback h1 {
+  color: var(--platform-ink);
+  font-size: clamp(1.8rem, 1.4rem + 1vw, 2.55rem);
+}
+
+app-public-feedback .lead,
+app-public-feedback .field span {
+  color: var(--platform-muted);
+}
+
+app-public-feedback .primary {
+  min-height: 46px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--aura-primary, #8f286b), #3c1434);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(75, 18, 56, 0.16);
+}
+
+app-public-feedback .state {
+  border: 1px solid var(--platform-border);
+  border-radius: 12px;
+}
+
+@media (max-width: 1180px) {
+  app-apps-launchpad .suite-signal-grid,
+  app-message-template-studio .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  app-analytics-engine .analytics-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  app-analytics-engine .analytics-side-nav {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  :where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.apps-header, .module-hero, .studio-hero, .section-title, .history-panel) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  app-apps-launchpad .suite-toolbar,
+  app-apps-launchpad .suite-signal-grid,
+  app-message-template-studio .kpi-grid,
+  app-message-template-studio .tab-rail,
+  app-analytics-engine .analytics-side-nav {
+    grid-template-columns: 1fr;
+  }
+
+  app-apps-launchpad .suite-tabs,
+  :where(app-apps-launchpad, app-analytics-engine, app-workflow-engine, app-message-template-studio) :where(.hero-actions, .header-actions, .form-actions, .panel-actions, .template-actions) {
+    justify-content: flex-start;
+  }
+
+  app-analytics-engine .analytics-nav-card {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  app-analytics-engine .analytics-nav-card i {
+    grid-column: 2;
+    width: max-content;
+  }
+}
