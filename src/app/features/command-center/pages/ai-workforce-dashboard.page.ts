@@ -262,21 +262,23 @@ interface PolicyRow {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="page-stack ai-workforce-page">
-      <article class="module-hero ai-workforce-hero">
-        <div>
-          <h2>Workforce Automation</h2>
+    <section class="page-stack">
+      <div class="greeting">
+        <div class="greeting-copy">
+          <span class="greeting-eyebrow">Command center</span>
+          <h1>Workforce Automation</h1>
+          <p>Track agents, approvals, runs, alerts, and costs from one operational view.</p>
         </div>
-        <div class="hero-actions">
-          <button class="ghost-button" type="button" (click)="loadAll()" [disabled]="loading()">Refresh</button>
-          <button class="primary-button" type="button" (click)="registerAgent()" [disabled]="!!saving()">Register agent</button>
+        <div class="greeting-actions">
+          <button class="btn-ghost" type="button" (click)="loadAll()" [disabled]="loading()">Refresh</button>
+          <button class="btn-primary" type="button" (click)="registerAgent()" [disabled]="!!saving()">Register agent</button>
         </div>
-      </article>
+      </div>
 
       <div *ngIf="loading()" class="state loading">Loading workforce data...</div>
       <div *ngIf="error()" class="state error">
         {{ error() }}
-        <button class="ghost-button mini" type="button" (click)="loadAll()">Retry</button>
+        <button class="btn-ghost mini" type="button" (click)="loadAll()">Retry</button>
       </div>
 
       <nav class="ai-tabs" aria-label="Workforce tabs">
@@ -430,7 +432,7 @@ interface PolicyRow {
                     <small>{{ row.status }}</small>
                   </td>
                   <td>
-                    <button class="ghost-button mini" type="button" (click)="focusAgent(row.agent)">Open</button>
+                    <button class="btn-ghost mini" type="button" (click)="focusAgent(row.agent)">Open</button>
                   </td>
                 </tr>
               </tbody>
@@ -504,13 +506,13 @@ interface PolicyRow {
             </div>
 
             <div class="agent-actions">
-              <button class="primary-button" type="button" (click)="runAgent(agent)" [disabled]="!!saving()">Run safely</button>
-              <button class="ghost-button" type="button" (click)="simulateAgent(agent)" [disabled]="!!saving()">Simulate</button>
-              <button class="ghost-button" type="button" (click)="toggleAgent(agent)" [disabled]="!!saving()">
+              <button class="btn-primary" type="button" (click)="runAgent(agent)" [disabled]="!!saving()">Run safely</button>
+              <button class="btn-ghost" type="button" (click)="simulateAgent(agent)" [disabled]="!!saving()">Simulate</button>
+              <button class="btn-ghost" type="button" (click)="toggleAgent(agent)" [disabled]="!!saving()">
                 {{ agent.status === 'disabled' ? 'Enable' : 'Disable' }}
               </button>
-              <button class="ghost-button" type="button" (click)="activeTab.set('settings')">Settings</button>
-              <button class="ghost-button" type="button" (click)="activeTab.set('premium')">Premium controls</button>
+              <button class="btn-ghost" type="button" (click)="activeTab.set('settings')">Settings</button>
+              <button class="btn-ghost" type="button" (click)="activeTab.set('premium')">Premium controls</button>
             </div>
 
             <div class="section-title compact">
@@ -582,10 +584,10 @@ interface PolicyRow {
                     <span *ngFor="let chip of actionLabels(item)">{{ chip }}</span>
                   </div>
                   <div class="agent-actions">
-                    <button class="primary-button" type="button" (click)="approveQueue(item); $event.stopPropagation()" [disabled]="!!saving()">Approve</button>
-                    <button class="ghost-button" type="button" (click)="editQueue(item); $event.stopPropagation()" [disabled]="!!saving()">Edit</button>
-                    <button class="ghost-button" type="button" (click)="askAgain(item); $event.stopPropagation()" [disabled]="!!saving()">Ask again</button>
-                    <button class="ghost-button danger-text" type="button" (click)="rejectQueue(item); $event.stopPropagation()" [disabled]="!!saving()">Reject</button>
+                    <button class="btn-primary" type="button" (click)="approveQueue(item); $event.stopPropagation()" [disabled]="!!saving()">Approve</button>
+                    <button class="btn-ghost" type="button" (click)="editQueue(item); $event.stopPropagation()" [disabled]="!!saving()">Edit</button>
+                    <button class="btn-ghost" type="button" (click)="askAgain(item); $event.stopPropagation()" [disabled]="!!saving()">Ask again</button>
+                    <button class="btn-ghost danger-text" type="button" (click)="rejectQueue(item); $event.stopPropagation()" [disabled]="!!saving()">Reject</button>
                   </div>
                 </article>
               </div>
@@ -628,10 +630,10 @@ interface PolicyRow {
                 </div>
 
                 <div class="agent-actions">
-                  <button class="primary-button" type="button" (click)="approveQueue(item)" [disabled]="!!saving()">Approve</button>
-                  <button class="ghost-button" type="button" (click)="editQueue(item)" [disabled]="!!saving()">Edit safer copy</button>
-                  <button class="ghost-button" type="button" (click)="askAgain(item)" [disabled]="!!saving()">Ask again</button>
-                  <button class="ghost-button danger-text" type="button" (click)="rejectQueue(item)" [disabled]="!!saving()">Reject</button>
+                  <button class="btn-primary" type="button" (click)="approveQueue(item)" [disabled]="!!saving()">Approve</button>
+                  <button class="btn-ghost" type="button" (click)="editQueue(item)" [disabled]="!!saving()">Edit safer copy</button>
+                  <button class="btn-ghost" type="button" (click)="askAgain(item)" [disabled]="!!saving()">Ask again</button>
+                  <button class="btn-ghost danger-text" type="button" (click)="rejectQueue(item)" [disabled]="!!saving()">Reject</button>
                 </div>
               </aside>
             </div>
@@ -842,8 +844,8 @@ interface PolicyRow {
                     <span>{{ alert.runId ? 'Run linked' : 'No run link' }}</span>
                   </div>
                   <div class="agent-actions">
-                    <button class="ghost-button" type="button" (click)="acknowledgeAlert(alert); $event.stopPropagation()" [disabled]="!!saving()">Acknowledge</button>
-                    <button class="primary-button" type="button" (click)="resolveAlert(alert); $event.stopPropagation()" [disabled]="!!saving()">Resolve</button>
+                    <button class="btn-ghost" type="button" (click)="acknowledgeAlert(alert); $event.stopPropagation()" [disabled]="!!saving()">Acknowledge</button>
+                    <button class="btn-primary" type="button" (click)="resolveAlert(alert); $event.stopPropagation()" [disabled]="!!saving()">Resolve</button>
                   </div>
                 </article>
               </div>
@@ -887,9 +889,9 @@ interface PolicyRow {
                 </div>
 
                 <div class="agent-actions">
-                  <button class="ghost-button" type="button" (click)="acknowledgeAlert(alert)" [disabled]="!!saving()">Acknowledge</button>
-                  <button class="primary-button" type="button" (click)="resolveAlert(alert)" [disabled]="!!saving()">Resolve</button>
-                  <button class="ghost-button" type="button" (click)="rerunAlertAgent(alert)" [disabled]="!!saving() || !agentForAlert(alert)">Re-run agent</button>
+                  <button class="btn-ghost" type="button" (click)="acknowledgeAlert(alert)" [disabled]="!!saving()">Acknowledge</button>
+                  <button class="btn-primary" type="button" (click)="resolveAlert(alert)" [disabled]="!!saving()">Resolve</button>
+                  <button class="btn-ghost" type="button" (click)="rerunAlertAgent(alert)" [disabled]="!!saving() || !agentForAlert(alert)">Re-run agent</button>
                 </div>
               </aside>
             </div>
@@ -1053,9 +1055,9 @@ interface PolicyRow {
                 </label>
 
                 <div class="agent-actions">
-                  <button class="primary-button" type="button" (click)="saveSetting(setting)" [disabled]="!!saving()">Save settings</button>
-                  <button class="ghost-button" type="button" (click)="runAgent(agent)" [disabled]="!!saving()">Test run</button>
-                  <button class="ghost-button" type="button" (click)="simulateAgent(agent)" [disabled]="!!saving()">Simulation</button>
+                  <button class="btn-primary" type="button" (click)="saveSetting(setting)" [disabled]="!!saving()">Save settings</button>
+                  <button class="btn-ghost" type="button" (click)="runAgent(agent)" [disabled]="!!saving()">Test run</button>
+                  <button class="btn-ghost" type="button" (click)="simulateAgent(agent)" [disabled]="!!saving()">Simulation</button>
                 </div>
               </ng-container>
             </article>
@@ -1119,7 +1121,7 @@ interface PolicyRow {
                   <span>API key reference</span>
                   <input [(ngModel)]="provider.apiKeyRef" placeholder="env:OPENAI_API_KEY or vault ref" />
                 </label>
-                <button class="ghost-button full-button" type="button" (click)="saveProvider(provider)" [disabled]="!!saving()">
+                <button class="btn-ghost full-button" type="button" (click)="saveProvider(provider)" [disabled]="!!saving()">
                   Save provider
                 </button>
               </article>
@@ -1179,7 +1181,7 @@ interface PolicyRow {
                       <span>{{ templateCategory(template) }}</span>
                       <span>{{ template.defaultTaskType || 'manual task' }}</span>
                     </div>
-                    <button class="primary-button full-button" type="button" (click)="installTemplate(template); $event.stopPropagation()" [disabled]="!!saving() || !!template.installed || !templateProviderReady(template)">
+                    <button class="btn-primary full-button" type="button" (click)="installTemplate(template); $event.stopPropagation()" [disabled]="!!saving() || !!template.installed || !templateProviderReady(template)">
                       {{ template.installed ? 'Installed' : templateProviderReady(template) ? 'Install agent' : 'Provider needed' }}
                     </button>
                   </article>
@@ -1224,7 +1226,7 @@ interface PolicyRow {
                     </span>
                   </div>
 
-                  <button class="primary-button full-button" type="button" (click)="installTemplate(template)" [disabled]="!!saving() || !!template.installed || !templateProviderReady(template)">
+                  <button class="btn-primary full-button" type="button" (click)="installTemplate(template)" [disabled]="!!saving() || !!template.installed || !templateProviderReady(template)">
                     {{ template.installed ? 'Already installed' : templateProviderReady(template) ? 'Install selected template' : 'Complete provider setup first' }}
                   </button>
                 </aside>
@@ -1237,7 +1239,7 @@ interface PolicyRow {
               <div>
                 <h3>Govern prompts before activation</h3>
               </div>
-              <button class="ghost-button mini" type="button" (click)="createPromptVersion(selectedAgent())" [disabled]="!!saving() || !selectedAgent()">
+              <button class="btn-ghost mini" type="button" (click)="createPromptVersion(selectedAgent())" [disabled]="!!saving() || !selectedAgent()">
                 New version
               </button>
             </div>
@@ -1271,10 +1273,10 @@ interface PolicyRow {
                     <small>{{ prompt.promptKey || 'dashboard-prompt' }} · {{ agentName(prompt.agentId) }}</small>
                   </div>
                   <div class="prompt-actions">
-                    <button class="ghost-button mini" type="button" (click)="testPrompt(prompt)" [disabled]="!!saving()">
+                    <button class="btn-ghost mini" type="button" (click)="testPrompt(prompt)" [disabled]="!!saving()">
                       Test
                     </button>
-                    <button class="primary-button mini" type="button" (click)="activatePrompt(prompt)" [disabled]="!!saving() || prompt.status === 'active'">
+                    <button class="btn-primary mini" type="button" (click)="activatePrompt(prompt)" [disabled]="!!saving() || prompt.status === 'active'">
                       Activate
                     </button>
                   </div>
@@ -1328,7 +1330,7 @@ interface PolicyRow {
               <div>
                 <h3>Spend, value and agent economics</h3>
               </div>
-              <button class="ghost-button mini" type="button" (click)="recordKpiImpact(selectedAgent())" [disabled]="!!saving() || !selectedAgent()">
+              <button class="btn-ghost mini" type="button" (click)="recordKpiImpact(selectedAgent())" [disabled]="!!saving() || !selectedAgent()">
                 Add impact
               </button>
             </div>
@@ -1438,61 +1440,108 @@ interface PolicyRow {
     </section>
   `,
   styles: [`
-    .ai-workforce-page {
-      gap: 12px;
-      color: var(--ink);
-      background: var(--bg);
+    :host { display: contents; }
+    .page-stack {
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: #f8f5f2;
+      min-height: 100vh;
     }
 
-    .ai-workforce-hero h2 {
-      font-size: 1.35rem;
-      line-height: 1.18;
+    /* ── Greeting ── */
+    .greeting {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .greeting-copy h1 {
+      font-size: 20px; font-weight: 500;
+      margin: 0; color: #2b2220;
+    }
+    .greeting-eyebrow {
+      font-size: 11px; letter-spacing: .06em;
+      text-transform: uppercase; color: #8f5c54; font-weight: 600;
+    }
+    .greeting-copy p {
+      font-size: 13px; line-height: 1.45; color: #7a6c66; margin: 2px 0 0;
+    }
+    .greeting-actions { display: flex; gap: 8px; }
+
+    /* ── Buttons ── */
+    .btn-ghost {
+      display: inline-flex; align-items: center;
+      height: 30px; padding: 0 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 500; color: #7a6c66;
+      background: #fff; border: 1px solid #e8e2dc;
+      text-decoration: none; cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-ghost:hover { background: #f5f2ef; border-color: #d5cec7; color: #2b2220; }
+    .btn-ghost.mini { height: 26px; padding: 0 10px; font-size: 11px; }
+    .btn-primary {
+      display: inline-flex; align-items: center;
+      height: 32px; padding: 0 16px; border-radius: 6px;
+      font-size: 12px; font-weight: 500; color: #fff;
+      background: #4B1238; border: 0;
+      text-decoration: none; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-primary:hover { background: #3d0e2e; }
+    .btn-primary.mini { height: 28px; padding: 0 12px; font-size: 11px; }
+
+    .ai-workforce-page {
+      color: #2b2220;
     }
 
     .ai-tabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      padding: 6px 8px;
-      border: 1px solid var(--line);
-      border-radius: 0;
-      background: var(--surface);
-      box-shadow: none;
+      gap: 4px;
+      padding: 4px;
+      background: #f5f2ef;
+      border-radius: 10px;
     }
 
     .ai-tabs button {
-      min-height: 34px;
+      height: 34px;
       display: inline-flex;
       align-items: center;
-      gap: 9px;
-      padding: 0 12px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      color: var(--muted);
-      background: var(--surface);
-      font-weight: 700;
+      gap: 8px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 8px;
+      color: #7a6c66;
+      background: transparent;
+      font-weight: 500;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .15s, color .15s;
     }
+    .ai-tabs button:hover { background: #ede8e3; color: #2b2220; }
 
     .ai-tabs button.active {
       color: #fff;
-      border-color: var(--color-primary-strong);
-      background: var(--color-primary-strong);
-      box-shadow: none;
+      background: #4B1238;
     }
 
     .ai-tabs strong {
-      min-width: 24px;
-      height: 24px;
+      min-width: 22px;
+      height: 22px;
       display: grid;
       place-items: center;
       border-radius: 999px;
-      background: var(--color-primary-soft);
-      color: var(--color-primary-strong);
-      font-size: 0.78rem;
+      background: #ede8e3;
+      color: #7a6c66;
+      font-size: 11px;
+      font-weight: 600;
     }
 
     .ai-tabs button.active strong {
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.2);
       color: #fff;
     }
 
@@ -1504,7 +1553,7 @@ interface PolicyRow {
     .ai-metrics-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .ai-overview-grid {
@@ -1521,81 +1570,113 @@ interface PolicyRow {
 
     .executive-brief-grid {
       display: grid;
-      grid-template-columns: minmax(240px, 0.85fr) minmax(300px, 1fr) minmax(320px, 1.2fr);
-      gap: 12px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
       align-items: stretch;
-    }
-
-    .executive-score-card,
-    .executive-snapshot-grid span,
-    .executive-action-list article {
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
     }
 
     .executive-score-card {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       align-content: start;
+      padding: 16px;
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
+      background: #fff;
     }
 
-    .executive-score-card span,
-    .executive-score-card small,
-    .executive-snapshot-grid small,
-    .executive-action-list small,
-    .executive-action-list span {
-      color: var(--muted);
-      font-weight: 800;
-    }
-
-    .executive-score-card span,
-    .executive-snapshot-grid small,
-    .executive-action-list small {
-      font-size: 0.78rem;
+    .executive-score-card span {
+      font-size: 10px;
       text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #7a6c66;
+      font-weight: 600;
     }
 
     .executive-score-card strong {
-      color: var(--ink);
-      font-size: 1.65rem;
-      line-height: 1;
+      color: #2b2220;
+      font-size: 28px;
+      font-weight: 550;
+      line-height: 1.1;
+    }
+
+    .executive-score-card small {
+      font-size: 12px;
+      color: #7a6c66;
+      line-height: 1.35;
     }
 
     .executive-snapshot-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
-    .executive-snapshot-grid strong,
-    .executive-action-list strong {
+    .executive-snapshot-grid span {
+      padding: 12px;
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .executive-snapshot-grid small {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #7a6c66;
+      font-weight: 600;
+    }
+
+    .executive-snapshot-grid strong {
       display: block;
       margin-top: 4px;
-      color: var(--ink);
+      color: #2b2220;
+      font-weight: 600;
+      font-size: 14px;
       line-height: 1.25;
     }
 
     .executive-action-list {
       display: grid;
-      gap: 10px;
+      gap: 8px;
     }
 
     .executive-action-list article {
+      padding: 12px;
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
+      border-left: 3px solid #e8e2dc;
     }
 
-    .executive-action-list article.good {
-      background: #eefaf3;
-    }
-
-    .executive-action-list article.warning {
-      background: #fff7e6;
-    }
-
+    .executive-action-list article.good,
+    .executive-action-list article.warning,
     .executive-action-list article.danger {
-      background: #fff0f0;
+      border-left-color: #4B1238;
+    }
+
+    .executive-action-list small {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #7a6c66;
+      font-weight: 600;
+    }
+
+    .executive-action-list strong {
+      display: block;
+      margin-top: 3px;
+      color: #2b2220;
+      font-weight: 600;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .executive-action-list span {
+      display: block;
+      font-size: 12px;
+      color: #7a6c66;
+      line-height: 1.35;
     }
 
     .control-tower-panel {
@@ -1606,35 +1687,38 @@ interface PolicyRow {
     .control-strip {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .control-strip article {
       padding: 12px;
-      border: 1px solid var(--line);
+      border: 1px solid #ede8e3;
       border-radius: 8px;
-      background: var(--surface);
+      background: #fff;
     }
 
-    .control-strip span,
-    .control-table small {
+    .control-strip span {
       display: block;
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 750;
+      color: #7a6c66;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
     }
 
     .control-strip strong {
       display: block;
-      margin-top: 5px;
-      font-size: 1.3rem;
+      margin-top: 4px;
+      font-size: 18px;
+      font-weight: 550;
+      color: #2b2220;
     }
 
     .control-table-wrap {
       overflow-x: auto;
-      border: 1px solid var(--line);
+      border: 1px solid #e8e2dc;
       border-radius: 8px;
-      background: var(--surface);
+      background: #ffffff;
     }
 
     .control-table {
@@ -1645,48 +1729,54 @@ interface PolicyRow {
 
     .control-table th,
     .control-table td {
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--line);
+      padding: 8px 10px;
+      border-bottom: 1px solid #e8e2dc;
       text-align: left;
       vertical-align: middle;
     }
 
     .control-table th {
-      color: var(--muted);
-      font-size: 0.76rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      background: var(--surface-2);
+      background: #f5f2ef;
       position: sticky;
       top: 0;
       z-index: 1;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #7a6c66;
     }
+
+    .control-table td { font-size: 13px; color: #2b2220; }
 
     .control-table td > strong,
     .control-table td > span {
       display: block;
     }
 
+    .control-table tbody tr { transition: background .12s; }
+    .control-table tbody tr:hover td { background: #faf8f6; }
+
     .score-pill {
       width: fit-content;
       padding: 5px 9px;
-      border-radius: var(--radius-pill);
-      font-weight: 900;
+      border-radius: 999px;
+      font-weight: 600;
     }
 
     .score-pill.good {
-      color: #145a2c;
-      background: #d4f0dd;
+      color: #4B1238;
+      background: #f5f2ef;
     }
 
     .score-pill.warning {
-      color: #7c4a03;
-      background: #fff0c2;
+      color: #7a6c66;
+      background: #f5f2ef;
     }
 
     .score-pill.danger {
-      color: #8a1f12;
-      background: #ffe0dd;
+      color: #7a6c66;
+      background: #f5f2ef;
     }
 
     .agent-card {
@@ -1697,39 +1787,12 @@ interface PolicyRow {
       align-items: center;
       margin-top: 10px;
       padding: 13px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #ede8e3;
+      border-radius: 8px;
       background: #fff;
-      color: var(--ink);
+      color: #2b2220;
       text-align: left;
-    }
-
-    .agent-card:hover,
-    .agent-card.selected {
-      border-color: rgba(75, 18, 56, 0.45);
-      background: var(--color-primary-soft);
-    }
-
-    .agent-avatar {
-      width: 42px;
-      height: 42px;
-      display: grid;
-      place-items: center;
-      border-radius: var(--radius-md);
-      background: linear-gradient(135deg, var(--teal), #3aa39a);
-      color: #fff;
-      font-weight: 900;
-    }
-
-    .agent-card strong,
-    .agent-card small {
-      display: block;
-    }
-
-    .agent-card small {
-      margin-top: 4px;
-      color: var(--muted);
-      line-height: 1.4;
+      box-shadow: 0 1px 2px rgba(0,0,0,.02);
     }
 
     .detail-grid,
@@ -1743,18 +1806,18 @@ interface PolicyRow {
     .agent-safety-card,
     .permission-row {
       padding: 13px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      background: var(--color-surface-sunken);
+      border: 1px solid #ede8e3;
+      border-radius: 8px;
+      background: #fff;
     }
 
     .detail-grid span,
     .agent-safety-card span,
     .permission-row span {
       display: block;
-      color: var(--muted);
+      color: #7a6c66;
       font-size: 0.78rem;
-      font-weight: 800;
+      font-weight: 600;
       text-transform: uppercase;
     }
 
@@ -1776,15 +1839,15 @@ interface PolicyRow {
     .progress-track {
       height: 10px;
       overflow: hidden;
-      border-radius: var(--radius-pill);
-      background: #e4ecea;
+      border-radius: 999px;
+      background: #f5f2ef;
     }
 
     .progress-track i {
       display: block;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--teal), var(--green));
+      background: #4B1238;
     }
 
     .agent-actions {
@@ -1794,6 +1857,16 @@ interface PolicyRow {
       margin-top: 14px;
     }
 
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title h3 {
+      font-size: 14px; font-weight: 600;
+      margin: 0; color: #2b2220; letter-spacing: .01em;
+    }
     .section-title.compact {
       margin-top: 16px;
       margin-bottom: 10px;
@@ -1804,8 +1877,8 @@ interface PolicyRow {
     .alert-card,
     .settings-card {
       padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -1831,9 +1904,9 @@ interface PolicyRow {
 
     .incident-kpi-grid article {
       padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      background: var(--color-surface-sunken);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
+      background: #f8f5f2;
     }
 
     .incident-kpi-grid span,
@@ -1842,8 +1915,8 @@ interface PolicyRow {
     .incident-evidence-grid small,
     .incident-evidence-list small,
     .incident-run-preview small {
-      color: var(--muted);
-      font-weight: 800;
+      color: #7a6c66;
+      font-weight: 600;
     }
 
     .incident-kpi-grid span {
@@ -1855,34 +1928,41 @@ interface PolicyRow {
     .incident-kpi-grid strong {
       display: block;
       margin-top: 5px;
-      color: var(--ink);
+      color: #2b2220;
       font-size: 1.18rem;
     }
 
     .alert-triage-strip {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 12px;
     }
 
     .alert-triage-strip button {
       display: flex;
       justify-content: space-between;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
-      padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
       background: #fff;
-      color: var(--ink);
-      font-weight: 800;
+      color: #7a6c66;
+      font-weight: 500;
+      font-size: 12px;
       cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .alert-triage-strip button:hover {
+      background: #faf8f6;
+      border-color: #d5cec7;
     }
 
     .alert-triage-strip button.active {
-      border-color: rgba(183, 121, 31, 0.35);
-      background: #fff7e6;
+      border-color: #4B1238;
+      background: #f5f2ef;
+      color: #4B1238;
     }
 
     .incident-workbench {
@@ -1897,8 +1977,8 @@ interface PolicyRow {
     }
 
     .alert-card.selected {
-      border-color: rgba(183, 121, 31, 0.42);
-      box-shadow: 0 0 0 2px rgba(183, 121, 31, 0.12);
+      border-color: rgba(75, 18, 56, 0.42);
+      box-shadow: 0 0 0 2px rgba(75, 18, 56, 0.12);
     }
 
     .incident-card-meta {
@@ -1911,22 +1991,22 @@ interface PolicyRow {
 
     .incident-card-meta span {
       padding: 7px 8px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border-radius: 6px;
+      background: #f5f2ef;
     }
 
     .incident-detail-panel {
       display: grid;
       gap: 12px;
       padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
     .incident-detail-panel p {
       margin: 0;
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.5;
     }
 
@@ -1941,8 +2021,8 @@ interface PolicyRow {
     .incident-evidence-list article,
     .incident-run-preview {
       padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border-radius: 6px;
+      background: #f5f2ef;
     }
 
     .incident-evidence-grid strong,
@@ -1951,7 +2031,7 @@ interface PolicyRow {
     .incident-run-preview span {
       display: block;
       margin-top: 4px;
-      color: var(--ink);
+      color: #2b2220;
       line-height: 1.35;
     }
 
@@ -1969,17 +2049,17 @@ interface PolicyRow {
 
     .policy-kpi-grid article {
       padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      background: var(--color-surface-sunken);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
+      background: #f8f5f2;
     }
 
     .policy-kpi-grid span,
     .policy-kpi-grid small,
     .policy-card-strip small,
     .policy-table td small {
-      color: var(--muted);
-      font-weight: 800;
+      color: #7a6c66;
+      font-weight: 600;
     }
 
     .policy-kpi-grid span {
@@ -1991,14 +2071,14 @@ interface PolicyRow {
     .policy-kpi-grid strong {
       display: block;
       margin-top: 5px;
-      color: var(--ink);
+      color: #2b2220;
       font-size: 1.18rem;
     }
 
     .policy-table-wrap {
       overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -2011,17 +2091,13 @@ interface PolicyRow {
     .policy-table th,
     .policy-table td {
       padding: 11px;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid #e8e2dc;
       text-align: left;
       vertical-align: top;
     }
 
     .policy-table th {
-      color: var(--muted);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0;
-      background: var(--surface-2);
+      background: #f5f2ef;
     }
 
     .policy-table td strong,
@@ -2037,51 +2113,62 @@ interface PolicyRow {
 
     .policy-card-strip span {
       padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
+      background: #fff;
     }
 
     .policy-card-strip strong {
       display: block;
       margin-top: 4px;
-      color: var(--ink);
+      color: #2b2220;
     }
 
     .approval-triage-strip {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
+      gap: 6px;
+      margin-bottom: 12px;
     }
 
     .approval-triage-strip button {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
       background: #fff;
-      padding: 12px;
-      color: var(--ink);
+      padding: 8px 10px;
+      color: #7a6c66;
+      font-weight: 500;
+      font-size: 12px;
       text-align: left;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .approval-triage-strip button:hover {
+      background: #faf8f6;
+      border-color: #d5cec7;
     }
 
     .approval-triage-strip button.active {
-      border-color: rgba(75, 18, 56, 0.45);
-      background: var(--color-primary-soft);
+      border-color: #4B1238;
+      background: #f5f2ef;
+      color: #4B1238;
     }
 
-    .approval-triage-strip span,
-    .approval-evidence strong {
+    .approval-triage-strip span {
       display: block;
-      color: var(--muted);
-      font-size: 0.76rem;
-      font-weight: 850;
+      color: #7a6c66;
+      font-size: 10px;
+      font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: .04em;
     }
 
     .approval-triage-strip strong {
       display: block;
-      margin-top: 5px;
-      font-size: 1.25rem;
+      margin-top: 3px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2b2220;
     }
 
     .approval-workbench {
@@ -2093,21 +2180,21 @@ interface PolicyRow {
 
     .decision-card.selected {
       border-color: rgba(75, 18, 56, 0.45);
-      background: var(--color-primary-soft);
+      background: #f5f2ef;
     }
 
     .approval-detail-panel {
       display: grid;
       gap: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
       padding: 14px;
     }
 
     .approval-detail-panel p {
       margin: 0;
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.5;
     }
 
@@ -2123,21 +2210,19 @@ interface PolicyRow {
 
     .approval-check-grid article,
     .approval-evidence {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--color-surface-sunken);
+      border: 1px solid #e8e2dc;
+      border-radius: 6px;
+      background: #f8f5f2;
       padding: 10px;
     }
 
-    .approval-check-grid article.warning {
-      border-color: rgba(183, 121, 31, 0.25);
-      background: #fffaf0;
+    .approval-check-grid article {
+      border-left: 3px solid #e8e2dc;
     }
-
+    .approval-check-grid article.warning,
     .approval-check-grid article.danger,
     .approval-check-grid article.critical {
-      border-color: rgba(180, 35, 24, 0.25);
-      background: #fff7f6;
+      border-left-color: #4B1238;
     }
 
     .approval-check-grid strong {
@@ -2147,7 +2232,7 @@ interface PolicyRow {
 
     .approval-check-grid span,
     .approval-evidence span {
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.45;
       word-break: break-word;
     }
@@ -2168,7 +2253,7 @@ interface PolicyRow {
     .decision-card p,
     .alert-card p {
       margin: 10px 0;
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.5;
     }
 
@@ -2180,16 +2265,17 @@ interface PolicyRow {
 
     .decision-stats span {
       padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--color-surface-sunken);
-      color: var(--muted);
-      font-size: 0.82rem;
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
+      background: #fff;
+      color: #7a6c66;
+      font-size: 13px;
     }
 
     .decision-stats strong {
       display: block;
       margin-top: 3px;
-      color: var(--ink);
+      color: #2b2220;
     }
 
     .action-chips {
@@ -2200,12 +2286,12 @@ interface PolicyRow {
     }
 
     .action-chips span {
-      padding: 6px 10px;
-      border-radius: var(--radius-pill);
-      background: var(--surface-2);
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #f0ece9;
+      color: #7a6c66;
+      font-size: 11px;
+      font-weight: 600;
     }
 
     .ai-table-wrap table {
@@ -2217,7 +2303,7 @@ interface PolicyRow {
     }
 
     .ai-table-wrap tr.selected-row td {
-      background: var(--color-primary-soft);
+      background: #f5f2ef;
     }
 
     .run-console-grid {
@@ -2230,8 +2316,8 @@ interface PolicyRow {
     .run-console {
       display: grid;
       gap: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
       padding: 14px;
     }
@@ -2244,16 +2330,16 @@ interface PolicyRow {
 
     .console-metrics article {
       padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--color-surface-sunken);
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
+      background: #fff;
     }
 
     .console-metrics span {
       display: block;
-      color: var(--muted);
+      color: #7a6c66;
       font-size: 0.76rem;
-      font-weight: 850;
+      font-weight: 600;
       text-transform: uppercase;
     }
 
@@ -2276,13 +2362,13 @@ interface PolicyRow {
 
     .timeline-step p {
       margin: 5px 0 0;
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.45;
       word-break: break-word;
     }
 
     .timeline-step small {
-      color: var(--muted);
+      color: #7a6c66;
       font-weight: 700;
     }
 
@@ -2290,33 +2376,27 @@ interface PolicyRow {
       width: 12px;
       height: 12px;
       margin-top: 5px;
-      border-radius: var(--radius-pill);
-      background: #94a3b8;
+      border-radius: 999px;
+      background: #d5cec7;
     }
 
-    .step-dot.good {
-      background: #22c55e;
-    }
-
-    .step-dot.warning {
-      background: #d97706;
-    }
-
+    .step-dot.good,
+    .step-dot.warning,
     .step-dot.danger,
     .step-dot.critical {
-      background: #dc2626;
+      background: #4B1238;
     }
 
     .raw-json {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border: 1px solid #e8e2dc;
+      border-radius: 6px;
+      background: #f5f2ef;
       padding: 10px;
     }
 
     .raw-json summary {
       cursor: pointer;
-      font-weight: 850;
+      font-weight: 600;
     }
 
     .raw-json pre {
@@ -2329,14 +2409,9 @@ interface PolicyRow {
     }
 
     .alert-card.critical,
-    .alert-card.danger {
-      border-color: rgba(180, 35, 24, 0.25);
-      background: #fff7f6;
-    }
-
+    .alert-card.danger,
     .alert-card.warning {
-      border-color: rgba(183, 121, 31, 0.25);
-      background: #fffaf0;
+      border-left: 3px solid #4B1238;
     }
 
     .settings-card {
@@ -2381,8 +2456,8 @@ interface PolicyRow {
       display: grid;
       gap: 10px;
       padding: 13px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -2404,21 +2479,22 @@ interface PolicyRow {
       gap: 10px;
       align-items: center;
       padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--color-surface-sunken);
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
+      background: #fff;
     }
 
     .provider-health-score span,
     .provider-health-stats span {
-      color: var(--muted);
+      color: #7a6c66;
       font-size: 0.78rem;
-      font-weight: 800;
+      font-weight: 600;
     }
 
     .provider-health-score strong,
     .provider-health-stats strong {
       display: block;
-      color: var(--ink);
+      color: #2b2220;
       margin-top: 3px;
     }
 
@@ -2430,12 +2506,13 @@ interface PolicyRow {
 
     .provider-health-stats span {
       padding: 9px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
+      background: #fff;
     }
 
     .provider-health-card small {
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.45;
     }
 
@@ -2451,18 +2528,19 @@ interface PolicyRow {
       display: inline-flex;
       width: fit-content;
       margin-bottom: 5px;
-      padding: 3px 8px;
-      border-radius: var(--radius-pill);
-      background: var(--color-primary-soft);
-      color: var(--teal-2);
-      font-size: 0.72rem;
-      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #f0ece9;
+      color: #7a6c66;
+      font-size: 10px;
+      font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: .04em;
     }
 
     .marketplace-card p {
       margin: 0;
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.45;
     }
 
@@ -2480,9 +2558,9 @@ interface PolicyRow {
     .marketplace-kpi-grid article,
     .template-value-strip span {
       padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border: 1px solid #e8e2dc;
+      border-radius: 6px;
+      background: #f5f2ef;
     }
 
     .marketplace-kpi-grid span,
@@ -2491,8 +2569,8 @@ interface PolicyRow {
     .template-rollout-list small,
     .template-value-strip small,
     .marketplace-meta-row {
-      color: var(--muted);
-      font-weight: 800;
+      color: #7a6c66;
+      font-weight: 600;
     }
 
     .marketplace-kpi-grid span {
@@ -2505,7 +2583,7 @@ interface PolicyRow {
     .template-value-strip strong {
       display: block;
       margin-top: 4px;
-      color: var(--ink);
+      color: #2b2220;
     }
 
     .marketplace-workbench {
@@ -2520,8 +2598,8 @@ interface PolicyRow {
     }
 
     .marketplace-card.selected {
-      border-color: rgba(34, 124, 112, 0.42);
-      box-shadow: 0 0 0 2px rgba(34, 124, 112, 0.12);
+      border-color: rgba(75, 18, 56, 0.42);
+      box-shadow: 0 0 0 2px rgba(75, 18, 56, 0.12);
     }
 
     .marketplace-card-head {
@@ -2532,7 +2610,7 @@ interface PolicyRow {
     }
 
     .marketplace-card-head strong {
-      color: var(--ink);
+      color: #2b2220;
     }
 
     .marketplace-meta-row {
@@ -2544,22 +2622,22 @@ interface PolicyRow {
 
     .marketplace-meta-row span {
       padding: 8px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border-radius: 6px;
+      background: #f5f2ef;
     }
 
     .marketplace-detail-panel {
       display: grid;
       gap: 12px;
       padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
     .marketplace-detail-panel p {
       margin: 0;
-      color: var(--muted);
+      color: #7a6c66;
       line-height: 1.5;
     }
 
@@ -2581,23 +2659,23 @@ interface PolicyRow {
     .template-readiness-grid span,
     .template-rollout-list article {
       padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border-radius: 6px;
+      background: #f5f2ef;
     }
 
     .template-readiness-grid span.good {
-      background: #eefaf3;
+      border-left: 3px solid #4B1238;
     }
 
     .template-readiness-grid span.warning {
-      background: #fff7e6;
+      border-left: 3px solid #4B1238;
     }
 
     .template-readiness-grid strong,
     .template-rollout-list strong {
       display: block;
       margin-top: 4px;
-      color: var(--ink);
+      color: #2b2220;
       line-height: 1.35;
     }
 
@@ -2622,8 +2700,8 @@ interface PolicyRow {
     }
 
     .prompt-version-card.selected-row {
-      border-color: rgba(34, 124, 112, 0.45);
-      box-shadow: 0 0 0 2px rgba(34, 124, 112, 0.12);
+      border-color: rgba(75, 18, 56, 0.45);
+      box-shadow: 0 0 0 2px rgba(75, 18, 56, 0.12);
     }
 
     .prompt-version-main {
@@ -2633,7 +2711,7 @@ interface PolicyRow {
     }
 
     .prompt-version-main strong {
-      color: var(--ink);
+      color: #2b2220;
       line-height: 1.25;
     }
 
@@ -2643,16 +2721,16 @@ interface PolicyRow {
     .prompt-compare small,
     .prompt-meta-grid small,
     .prompt-readiness-grid small {
-      color: var(--muted);
-      font-weight: 800;
+      color: #7a6c66;
+      font-weight: 600;
     }
 
     .prompt-inspector {
       display: grid;
       gap: 12px;
       padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -2698,21 +2776,18 @@ interface PolicyRow {
     .prompt-preview-grid div,
     .prompt-compare div {
       padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border-radius: 6px;
+      background: #f5f2ef;
       min-width: 0;
     }
 
     .prompt-readiness-grid span.good {
-      background: #eefaf3;
+      border-left: 3px solid #4B1238;
     }
 
-    .prompt-readiness-grid span.warning {
-      background: #fff7e6;
-    }
-
+    .prompt-readiness-grid span.warning,
     .prompt-readiness-grid span.danger {
-      background: #fff0f0;
+      border-left: 3px solid #4B1238;
     }
 
     .prompt-meta-grid strong,
@@ -2720,13 +2795,13 @@ interface PolicyRow {
     .prompt-compare strong {
       display: block;
       margin-top: 3px;
-      color: var(--ink);
+      color: #2b2220;
       line-height: 1.25;
     }
 
     .prompt-preview-grid p {
       margin: 6px 0 0;
-      color: var(--ink);
+      color: #2b2220;
       line-height: 1.45;
       word-break: break-word;
     }
@@ -2740,14 +2815,14 @@ interface PolicyRow {
 
     .cost-grid div {
       padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      background: var(--color-surface-sunken);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
+      background: #f8f5f2;
     }
 
     .cost-grid span {
       display: block;
-      color: var(--muted);
+      color: #7a6c66;
       font-size: 0.78rem;
       font-weight: 700;
     }
@@ -2763,8 +2838,8 @@ interface PolicyRow {
       gap: 10px;
       margin-bottom: 12px;
       padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -2777,27 +2852,28 @@ interface PolicyRow {
     }
 
     .roi-health-strip strong {
-      color: var(--ink);
+      color: #2b2220;
       font-size: 1.08rem;
     }
 
     .roi-health-strip small {
-      color: var(--muted);
-      font-weight: 700;
+      color: #7a6c66;
+      font-weight: 500;
+      font-size: 12px;
     }
 
     .spend-meter {
       height: 9px;
       overflow: hidden;
-      border-radius: var(--radius-pill);
-      background: var(--surface-2);
+      border-radius: 999px;
+      background: #f5f2ef;
     }
 
     .spend-meter span {
       display: block;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--teal-2), #4c9f70);
+      background: linear-gradient(90deg, #8f5c54, #4B1238);
     }
 
     .roi-workbench {
@@ -2809,8 +2885,8 @@ interface PolicyRow {
 
     .roi-table-wrap {
       overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -2823,32 +2899,29 @@ interface PolicyRow {
     .roi-table th,
     .roi-table td {
       padding: 11px;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid #e8e2dc;
       text-align: left;
       vertical-align: top;
     }
 
     .roi-table th {
-      color: var(--muted);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0;
-      background: var(--surface-2);
+      background: #f5f2ef;
     }
 
     .roi-table td small {
       display: block;
-      margin-top: 3px;
-      color: var(--muted);
-      font-weight: 700;
+      margin-top: 2px;
+      color: #7a6c66;
+      font-weight: 500;
+      font-size: 11px;
     }
 
     .roi-agent-panel {
       display: grid;
       gap: 12px;
       padding: 13px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border: 1px solid #e8e2dc;
+      border-radius: 8px;
       background: #fff;
     }
 
@@ -2860,19 +2933,20 @@ interface PolicyRow {
 
     .roi-agent-stats span {
       padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-2);
+      border: 1px solid #ede8e3;
+      border-radius: 6px;
+      background: #fff;
     }
 
     .roi-agent-stats small {
-      color: var(--muted);
-      font-weight: 800;
+      color: #7a6c66;
+      font-weight: 600;
     }
 
     .roi-agent-stats strong {
       display: block;
       margin-top: 4px;
-      color: var(--ink);
+      color: #2b2220;
     }
 
     .compact-list {
@@ -2883,7 +2957,7 @@ interface PolicyRow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: var(--muted);
+      color: #7a6c66;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -2892,7 +2966,7 @@ interface PolicyRow {
     .approval-line input {
       width: auto;
       min-height: auto;
-      accent-color: var(--teal);
+      accent-color: #4B1238;
     }
 
     .permission-row {
@@ -2903,18 +2977,10 @@ interface PolicyRow {
 
     .approval-line {
       padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      background: var(--color-primary-soft);
-      color: var(--teal-2);
-      font-weight: 800;
-    }
-
-    .ai-workforce-page .module-hero {
-      padding: 16px 18px;
-      border-left: 0;
-      border-right: 0;
-      border-radius: 0;
-      box-shadow: none;
+      border-radius: 6px;
+      background: #f5f2ef;
+      color: #8f5c54;
+      font-weight: 600;
     }
 
     .ai-workforce-page .panel,
@@ -2924,26 +2990,51 @@ interface PolicyRow {
     .marketplace-detail-panel,
     .roi-agent-panel,
     .run-console {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
-    }
-
-    .ai-workforce-page .panel,
-    .premium-card {
-      padding: 14px;
+      background: #fff;
+      border: 1px solid #e8e2dc;
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
     }
 
     .ai-workforce-page .metric-card {
-      min-height: 94px;
+      padding: 14px 16px;
+      background: #fff;
+      border: 1px solid #ede8e3;
       border-radius: 8px;
-      background: var(--surface);
-      box-shadow: 0 4px 12px rgba(12, 26, 43, 0.06);
+      border-left: 3px solid #4B1238;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: box-shadow .2s, border-color .2s, transform .2s;
+    }
+
+    .ai-workforce-page .metric-card:hover {
+      box-shadow: 0 4px 12px rgba(75,18,56,.07);
+      border-color: #d5cec7;
+      transform: translateY(-1px);
+    }
+
+    .ai-workforce-page .metric-card span {
+      font-size: 10px;
+      color: #8b7a74;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: .05em;
     }
 
     .ai-workforce-page .metric-card strong {
-      font-size: 1.35rem;
+      font-size: 18px;
+      font-weight: 550;
+      line-height: 1.25;
+      color: #2b2220;
+    }
+
+    .ai-workforce-page .metric-card small {
+      font-size: 11px;
+      color: #7a6c66;
+      line-height: 1.3;
     }
 
     .agent-card,
@@ -2967,10 +3058,10 @@ interface PolicyRow {
     .detail-grid div,
     .agent-safety-card,
     .permission-row {
-      border: 1px solid var(--line);
+      border: 1px solid #ede8e3;
       border-radius: 8px;
-      background: var(--surface);
-      box-shadow: none;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,.02);
     }
 
     .agent-card,
@@ -2978,7 +3069,7 @@ interface PolicyRow {
     .decision-card,
     .alert-card,
     .settings-card {
-      padding: 12px;
+      padding: 16px;
     }
 
     .agent-card:hover,
@@ -2986,15 +3077,30 @@ interface PolicyRow {
     .decision-card.selected,
     .alert-card.selected,
     .ai-table-wrap tr.selected-row td {
-      border-color: var(--color-primary-strong);
-      background: var(--color-primary-soft);
-      box-shadow: inset 3px 0 0 var(--color-primary-strong);
+      border-color: #d5cec7;
+      background: #f5f2ef;
+      box-shadow: inset 3px 0 0 #4B1238;
     }
 
     .agent-avatar {
-      background: var(--color-primary-strong);
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      background: #4B1238;
       color: #fff;
-      box-shadow: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .agent-card strong {
+      font-size: 13px; font-weight: 600; color: #2b2220;
+    }
+    .agent-card small {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px; color: #7a6c66; line-height: 1.4;
     }
 
     .agent-actions {
@@ -3002,10 +3108,10 @@ interface PolicyRow {
       margin-top: 10px;
     }
 
-    .agent-actions .primary-button,
-    .agent-actions .ghost-button,
-    .hero-actions .primary-button,
-    .hero-actions .ghost-button {
+    .agent-actions .btn-primary,
+    .agent-actions .btn-ghost,
+    .hero-actions .btn-primary,
+    .hero-actions .btn-ghost {
       min-height: 34px;
       border-radius: 6px;
       padding: 0 12px;
@@ -3016,19 +3122,43 @@ interface PolicyRow {
     .control-table-wrap,
     .policy-table-wrap,
     .roi-table-wrap {
-      border: 1px solid var(--line);
+      border: 1px solid #e8e2dc;
       border-radius: 8px;
-      background: var(--surface);
+      background: #ffffff;
       overflow: auto;
     }
 
     .ai-table-wrap th,
     .policy-table th,
     .roi-table th {
-      background: var(--surface-2);
+      background: #f5f2ef;
       position: sticky;
       top: 0;
       z-index: 1;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #7a6c66;
+      white-space: nowrap;
+    }
+
+    .ai-table-wrap td,
+    .policy-table td,
+    .roi-table td {
+      font-size: 13px;
+      color: #2b2220;
+    }
+
+    .ai-table-wrap tr,
+    .policy-table tr,
+    .roi-table tr {
+      transition: background .12s;
+    }
+    .ai-table-wrap tr:hover td,
+    .policy-table tr:hover td,
+    .roi-table tr:hover td {
+      background: #faf8f6;
     }
 
     .ai-table-wrap th,
@@ -3037,63 +3167,57 @@ interface PolicyRow {
     .policy-table td,
     .roi-table th,
     .roi-table td {
-      padding: 9px 10px;
+      padding: 8px 10px;
     }
 
     .approval-triage-strip button,
     .alert-triage-strip button {
       min-height: 38px;
       border-radius: 6px;
-      background: var(--surface);
+      background: #ffffff;
     }
 
     .approval-triage-strip button.active,
     .alert-triage-strip button.active {
-      border-color: var(--color-primary-strong);
-      background: var(--color-primary-soft);
-      color: var(--color-primary-strong);
+      border-color: #4B1238;
+      background: #f5f2ef;
+      color: #4B1238;
     }
 
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
     .badge.neutral {
-      color: #334155;
-      background: #e8eef2;
+      color: #7a6c66;
+      background: #f0ece9;
     }
-
     .badge.good,
-    .badge.success {
-      color: #145a2c;
-      background: #d4f0dd;
+    .badge.success,
+    .badge.info {
+      color: #4B1238;
+      background: #ede8e3;
     }
-
     .badge.warning {
-      color: #7a4d10;
-      background: #fdecc8;
+      color: #7a6c66;
+      background: #f0ece9;
     }
-
     .badge.critical,
     .badge.danger {
-      color: #7a1610;
-      background: #fbdcd9;
+      color: #7a6c66;
+      background: #f0ece9;
     }
 
-    .metric-card.good {
-      border-top: 4px solid var(--green);
-    }
-
-    .metric-card.warning {
-      border-top: 4px solid var(--amber);
-    }
-
-    .metric-card.critical {
-      border-top: 4px solid var(--red);
-    }
-
-    .metric-card.neutral {
-      border-top: 4px solid var(--teal);
-    }
+    .metric-card .badge { height: 20px; font-size: 10px; }
 
     .danger-text {
-      color: var(--red) !important;
+      color: #4B1238 !important;
     }
 
     .empty-state.compact {

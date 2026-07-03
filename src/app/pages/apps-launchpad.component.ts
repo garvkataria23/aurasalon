@@ -158,383 +158,309 @@ const SUITE_GROUPS: SuiteGroup[] = [
   imports: [CommonModule, CurrencyPipe, DecimalPipe, FormsModule, RouterLink, StateComponent],
   template: `
     <section class="apps-shell">
-      <header class="apps-header">
+      <header class="lp-header">
         <div>
           <h2>All Apps</h2>
         </div>
         <div class="header-actions">
-          <a class="ghost-button" routerLink="/dashboard/executive">Executive</a>
-          <a class="primary-button" routerLink="/appointments">New booking</a>
-          <a class="dark-button" routerLink="/pos">Fast POS</a>
+          <a class="btn-ghost" routerLink="/dashboard/executive">Executive</a>
+          <a class="btn-primary" routerLink="/appointments">New booking</a>
+          <a class="btn-primary" routerLink="/pos">Fast POS</a>
         </div>
       </header>
 
       <app-state [loading]="loading()" loadingText="Loading suite signal" [error]="error()"></app-state>
 
-      <section class="suite-signal-grid" *ngIf="report() as data" aria-label="Live suite signals">
-        <article class="signal-tile">
-          <span>Today</span>
-          <strong>{{ data.revenueToday | currency: 'INR':'symbol':'1.0-0' }}</strong>
+      <div class="lp-signals" *ngIf="report() as data" aria-label="Live suite signals">
+        <article class="lp-signal">
+          <span class="ls-l">Today</span>
+          <strong class="ls-v">{{ data.revenueToday | currency: 'INR':'symbol':'1.0-0' }}</strong>
           <small>{{ data.totalBookings | number }} bookings tracked</small>
         </article>
-        <article class="signal-tile">
-          <span>Month</span>
-          <strong>{{ data.revenueMonth | currency: 'INR':'symbol':'1.0-0' }}</strong>
+        <article class="lp-signal">
+          <span class="ls-l">Month</span>
+          <strong class="ls-v">{{ data.revenueMonth | currency: 'INR':'symbol':'1.0-0' }}</strong>
           <small>{{ data.repeatCustomerRate | number: '1.0-0' }}% repeat rate</small>
         </article>
-        <article class="signal-tile">
-          <span>Cash control</span>
-          <strong>{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }}</strong>
+        <article class="lp-signal">
+          <span class="ls-l">Cash control</span>
+          <strong class="ls-v">{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }}</strong>
           <small>{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }} received due</small>
         </article>
-        <article class="signal-tile">
-          <span>Suite coverage</span>
-          <strong>{{ totalApps }}</strong>
+        <article class="lp-signal">
+          <span class="ls-l">Suite coverage</span>
+          <strong class="ls-v">{{ totalApps }}</strong>
           <small>{{ aiApps }} AI apps · {{ adminApps }} admin controls</small>
         </article>
-      </section>
+      </div>
 
-      <section class="suite-toolbar" aria-label="App filters">
-        <label class="suite-search">
+      <div class="lp-toolbar" aria-label="App filters">
+        <label class="lp-search">
           <span>Search</span>
           <input type="search" [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Find POS, staff, WhatsApp, reports" />
         </label>
-        <div class="suite-tabs">
+        <div class="lp-tabs">
           <button type="button" [class.active]="selectedGroup() === 'all'" (click)="selectedGroup.set('all')">All</button>
           <button type="button" *ngFor="let group of suiteGroups" [class.active]="selectedGroup() === group.id" (click)="selectedGroup.set(group.id)">
             {{ group.label }}
           </button>
         </div>
-      </section>
+      </div>
 
-      <section class="apps-empty" *ngIf="!filteredGroups().length">
+      <div class="lp-empty" *ngIf="!filteredGroups().length">
         <strong>No apps found</strong>
-        <button class="ghost-button mini" type="button" (click)="resetFilters()">Reset</button>
-      </section>
+        <button class="btn-ghost" type="button" (click)="resetFilters()">Reset</button>
+      </div>
 
-      <section class="suite-group" *ngFor="let group of filteredGroups(); trackBy: trackGroup">
-        <div class="suite-group-title">
-          <div>
-            <span class="eyebrow">{{ group.apps.length }} apps</span>
-            <h3>{{ group.label }}</h3>
-            
-          </div>
+      <section class="lp-section" *ngFor="let group of filteredGroups(); trackBy: trackGroup">
+        <div class="lp-group-h">
+          <span class="lp-count">{{ group.apps.length }} apps</span>
+          <h3>{{ group.label }}</h3>
         </div>
 
-        <div class="apps-grid">
+        <div class="lp-grid">
           <a
-            class="app-card"
             *ngFor="let app of group.apps; trackBy: trackApp"
-            [class]="'app-card tone-' + app.tone"
+            [class]="'lp-app tone-' + app.tone"
             [routerLink]="app.path"
           >
-            <span class="app-icon">{{ app.icon }}</span>
-            <span class="status-pill">{{ app.status }}</span>
+            <span class="lp-icon">{{ app.icon }}</span>
             <strong>{{ app.label }}</strong>
             <small>{{ app.description }}</small>
-            <span class="app-tags">{{ app.tags.join(' · ') }}</span>
+            <span class="lp-tags">{{ app.tags.join(' · ') }}</span>
+            <span class="lp-badge">{{ app.status }}</span>
           </a>
         </div>
       </section>
     </section>
   `,
   styles: [`
-    .apps-shell {
-      display: grid;
-      gap: 16px;
-      padding-bottom: 24px;
-    }
+    :host { display: contents; }
 
-    .apps-header,
-    .suite-toolbar,
-    .suite-group {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-    }
-
-    .apps-header {
+    :host .apps-shell {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      flex-direction: column;
       gap: 18px;
-      padding: 18px;
+      padding: 24px 32px 40px;
+      background: #f8f5f2;
+      min-height: 100vh;
     }
 
-    .apps-header h2,
-    .suite-group-title h3 {
-      margin: 0;
-      color: var(--ink);
-      letter-spacing: 0;
+    :host .btn-ghost {
+      display: inline-flex; align-items: center;
+      height: 30px; padding: 0 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 500; color: #6b7280;
+      background: #fff; border: 1px solid #e5e0db;
+      text-decoration: none; cursor: pointer;
+      transition: background .15s, color .15s;
     }
-
-    .apps-header h2 {
-      font-size: var(--font-page-title);
+    :host .btn-ghost:hover { background: #f5f2ef; color: #1a1a1a; }
+    :host .btn-primary {
+      display: inline-flex; align-items: center;
+      height: 30px; padding: 0 14px; border-radius: 6px;
+      font-size: 12px; font-weight: 500; color: #fff;
+      background: #4B1238; border: 0;
+      text-decoration: none; cursor: pointer;
+      transition: background .15s;
     }
+    :host .btn-primary:hover { background: #3d0e2e; }
 
-    .apps-header p,
-    .suite-group-title p {
-      max-width: 760px;
-      margin: 6px 0 0;
-      color: var(--muted);
-      line-height: 1.55;
-    }
-
-    .header-actions {
-      display: inline-flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .suite-signal-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .signal-tile {
-      min-height: 104px;
-      display: grid;
-      gap: 5px;
-      align-content: center;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface);
-    }
-
-    .signal-tile span,
-    .signal-tile small {
-      color: var(--muted);
-    }
-
-    .signal-tile strong {
-      color: var(--ink);
-      font-size: 1.38rem;
-      letter-spacing: 0;
-    }
-
-    .suite-toolbar {
-      display: grid;
-      grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
-      gap: 12px;
-      align-items: center;
-      padding: 12px;
-    }
-
-    .suite-search {
-      display: grid;
-      gap: 5px;
-    }
-
-    .suite-search span {
-      color: var(--muted);
-      font-size: var(--font-label);
-      font-weight: 800;
-    }
-
-    .suite-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 7px;
-    }
-
-    .suite-tabs button {
-      min-height: 34px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0 10px;
-      color: var(--muted);
-      background: var(--surface);
-      font-weight: 800;
-    }
-
-    .suite-tabs button.active {
-      color: #fff;
-      border-color: var(--teal);
-      background: var(--teal);
-    }
-
-    .apps-empty {
-      min-height: 96px;
-      display: grid;
-      place-items: center;
-      gap: 8px;
-      border: 1px dashed var(--line);
-      border-radius: 8px;
-      color: var(--muted);
-      background: var(--surface);
-    }
-
-    .suite-group {
-      display: grid;
-      gap: 12px;
-      padding: 14px;
-    }
-
-    .suite-group-title {
+    :host .lp-header {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 16px 24px;
+      background: #fff;
+      border: 1px solid #ede8e3;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+    }
+    :host .lp-header h2 {
+      margin: 0;
+      font-size: 18px; font-weight: 600; color: #2b2220;
+    }
+    :host .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    :host .lp-signals {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
     }
-
-    .suite-group-title h3 {
-      font-size: 1.08rem;
+    :host .lp-signal {
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 18px 18px 16px; border-radius: 8px;
+      background: #fff; border: 1px solid #ede8e3;
+      border-left: 3px solid #4B1238;
+      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
     }
-
-    .apps-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+    :host .ls-l {
+      font-size: 11px; font-weight: 500; color: #8b7a74;
+      text-transform: uppercase; letter-spacing: .05em;
     }
-
-    .app-card {
-      min-height: 178px;
-      display: grid;
-      grid-template-rows: auto auto auto 1fr auto;
-      gap: 8px;
-      padding: 13px;
-      border: 1px solid var(--line);
-      border-top: 4px solid var(--teal);
-      border-radius: 8px;
-      background: #fff;
-      color: var(--ink);
-      text-decoration: none;
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-      overflow: hidden;
+    :host .ls-v {
+      font-size: 20px; font-weight: 550; color: #2b2220; line-height: 1.2;
     }
+    :host .lp-signal small { font-size: 12px; color: #b0a49c; margin-top: 1px; }
 
-    .app-card:hover,
-    .app-card:focus-visible {
-      transform: translateY(-2px);
-      outline: 0;
-      box-shadow: 0 12px 28px rgba(23, 32, 45, 0.1);
-    }
-
-    .app-card strong {
-      font-size: 1rem;
-      letter-spacing: 0;
-    }
-
-    .app-card small {
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .app-icon {
-      width: 38px;
-      height: 32px;
-      display: inline-grid;
-      place-items: center;
-      border-radius: 8px;
-      color: #fff;
-      background: var(--teal);
-      font-size: 0.76rem;
-      font-weight: 900;
-    }
-
-    .status-pill {
-      width: max-content;
-      min-height: 24px;
-      display: inline-flex;
+    :host .lp-toolbar {
+      display: flex;
       align-items: center;
-      padding: 0 8px;
-      border-radius: 999px;
-      color: var(--muted);
-      background: var(--surface-2);
-      font-size: 0.72rem;
-      font-weight: 900;
+      gap: 20px;
+      padding: 14px 20px;
+      background: #fff;
+      border: 1px solid #ede8e3;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
     }
-
-    .app-tags {
-      color: var(--muted);
-      font-size: 0.74rem;
-      font-weight: 800;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    :host .lp-search {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+    :host .lp-search span {
+      font-size: 12px; font-weight: 500; color: #8b7a74;
       white-space: nowrap;
     }
+    :host .lp-search input {
+      height: 36px; padding: 0 14px; border-radius: 6px;
+      border: 1px solid #e5e0db; background: #faf9f7;
+      font-size: 13px; color: #1a1a1a; width: 220px;
+      outline: none; transition: border-color .15s, background .15s;
+    }
+    :host .lp-search input:focus { border-color: #8f5c54; background: #fff; }
 
-    .tone-blue {
-      border-top-color: var(--blue);
+    :host .lp-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-left: auto;
+    }
+    :host .lp-tabs button {
+      height: 32px; padding: 0 14px; border-radius: 6px;
+      border: 1px solid #ede8e3; background: #fff;
+      font-size: 12px; font-weight: 500; color: #7a6c66;
+      cursor: pointer; transition: all .15s;
+      font-family: inherit;
+    }
+    :host .lp-tabs button:hover { background: #f5f2ef; border-color: #d5cec7; color: #2b2220; }
+    :host .lp-tabs button.active {
+      background: #4B1238; border-color: #4B1238; color: #fff;
     }
 
-    .tone-blue .app-icon {
-      background: var(--blue);
+    :host .lp-empty {
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border: 1px dashed #e5e0db;
+      border-radius: 8px;
+      background: #fff;
+    }
+    :host .lp-empty strong { font-size: 13px; font-weight: 500; color: #8b7a74; }
+
+    :host .lp-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 20px 20px;
+      background: #fff;
+      border: 1px solid #ede8e3;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+    }
+    :host .lp-group-h {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0ece8;
+    }
+    :host .lp-count {
+      font-size: 11px; font-weight: 500; color: #c0b4ac;
+      text-transform: uppercase; letter-spacing: .05em;
+      font-feature-settings: "tnum";
+    }
+    :host .lp-group-h h3 {
+      margin: 0;
+      font-size: 15px; font-weight: 600; color: #2b2220;
     }
 
-    .tone-amber {
-      border-top-color: var(--amber);
+    :host .lp-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    :host .lp-app {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 16px;
+      border: 1px solid #ede8e3;
+      border-left: 3px solid #4B1238;
+      border-radius: 8px;
+      background: #fff;
+      text-decoration: none;
+      transition: box-shadow .2s, border-color .2s, transform .2s;
+      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+    }
+    :host .lp-app:hover {
+      box-shadow: 0 6px 16px rgba(75,18,56,.08);
+      border-color: #d5cec7;
+      transform: translateY(-1px);
+    }
+    :host .lp-app strong {
+      font-size: 13px; font-weight: 600; color: #2b2220;
+      line-height: 1.3; margin-top: 1px;
+    }
+    :host .lp-app small {
+      font-size: 12px; color: #7a6c66; line-height: 1.4;
+    }
+    :host .lp-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 26px; border-radius: 5px;
+      background: #4B1238; color: #fff;
+      font-size: 10px; font-weight: 700;
+      margin-bottom: 2px;
+    }
+    :host .lp-tags {
+      font-size: 10px; color: #b0a49c; font-weight: 500;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin-top: auto;
+    }
+    :host .lp-badge {
+      align-self: flex-start;
+      height: 20px; padding: 0 8px; border-radius: 999px;
+      display: inline-flex; align-items: center;
+      font-size: 10px; font-weight: 500; color: #6b5e58;
+      background: #f2edeb;
+      margin-top: 6px;
     }
 
-    .tone-amber .app-icon {
-      background: var(--amber);
-    }
-
-    .tone-green {
-      border-top-color: var(--green);
-    }
-
-    .tone-green .app-icon {
-      background: var(--green);
-    }
-
-    .tone-red {
-      border-top-color: var(--red);
-    }
-
-    .tone-red .app-icon {
-      background: var(--red);
-    }
-
-    .tone-violet {
-      border-top-color: var(--violet);
-    }
-
-    .tone-violet .app-icon {
-      background: var(--violet);
-    }
-
-    .tone-neutral {
-      border-top-color: var(--muted);
-    }
-
-    .tone-neutral .app-icon {
-      background: var(--muted);
-    }
+    :host .tone-blue .lp-icon { background: #3b82f6; }
+    :host .tone-amber .lp-icon { background: #d97706; }
+    :host .tone-green .lp-icon { background: #059669; }
+    :host .tone-red .lp-icon { background: #dc2626; }
+    :host .tone-violet .lp-icon { background: #7c3aed; }
+    :host .tone-neutral .lp-icon { background: #9ca3af; }
 
     @media (max-width: 1280px) {
-      .apps-grid,
-      .suite-signal-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+      :host .lp-grid { grid-template-columns: repeat(3, 1fr); }
+      :host .lp-signals { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 880px) {
-      .apps-header,
-      .suite-toolbar {
-        grid-template-columns: 1fr;
-        display: grid;
-      }
-
-      .header-actions,
-      .suite-tabs {
-        justify-content: flex-start;
-      }
+      :host .lp-header,
+      :host .lp-toolbar { flex-direction: column; align-items: stretch; }
+      :host .lp-toolbar { gap: 12px; }
+      :host .lp-tabs { margin-left: 0; }
+      :host .header-actions { justify-content: flex-start; }
     }
 
     @media (max-width: 680px) {
-      .apps-grid,
-      .suite-signal-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .apps-header,
-      .suite-group {
-        padding: 12px;
-      }
+      :host .lp-grid { grid-template-columns: 1fr; }
+      :host .lp-signals { grid-template-columns: 1fr; }
     }
   `]
 })
