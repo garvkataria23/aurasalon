@@ -56,7 +56,7 @@
 }
 
 .readiness-score {
-  border-color: #0f766e;
+  border-color: #4B1238;
 }
 
 .readiness-score span,
@@ -72,7 +72,7 @@
 }
 
 .readiness-score strong {
-  color: #0f766e;
+  color: #4B1238;
   font-size: 44px;
   line-height: 1;
 }
@@ -88,7 +88,7 @@
 }
 
 .decision-card.advanced {
-  border-color: #a7f3d0;
+  border-color: #DCC4D4;
 }
 
 .status-card strong,
@@ -160,7 +160,7 @@
 }
 
 .score-track span {
-  background: linear-gradient(90deg, #0f766e, #2563eb);
+  background: linear-gradient(90deg, #4B1238, #2563eb);
   display: block;
   height: 100%;
 }

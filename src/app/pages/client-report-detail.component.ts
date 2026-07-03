@@ -310,14 +310,14 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       gap: 16px;
       min-height: 132px;
       padding: 24px;
-      border-left: 5px solid #0f8f7b;
+      border-left: 5px solid #55173D;
       background:
-        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--accent, #0f8f7b) 18%, transparent), transparent 34%),
-        linear-gradient(135deg, color-mix(in srgb, var(--accent, #0f8f7b) 8%, white), var(--surface));
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--accent, #55173D) 18%, transparent), transparent 34%),
+        linear-gradient(135deg, color-mix(in srgb, var(--accent, #55173D) 8%, white), var(--surface));
     }
 
     .report-hero.blue { --accent: #2f5dcc; }
-    .report-hero.teal { --accent: #0f8f7b; }
+    .report-hero.teal { --accent: #55173D; }
     .report-hero.red { --accent: #b91c1c; }
     .report-hero.green { --accent: #1f7a3d; }
     .report-hero.amber { --accent: #b87810; }
@@ -414,7 +414,7 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       min-height: 112px;
       padding: 16px;
       border: 1px solid var(--line);
-      border-top: 4px solid #0f8f7b;
+      border-top: 4px solid #55173D;
       border-radius: 8px;
       background: var(--surface);
       box-shadow: 0 16px 30px color-mix(in srgb, var(--ink) 7%, transparent);
@@ -543,7 +543,7 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
 
     .report-row.clickable:hover,
     .report-row.clickable:focus-visible {
-      border-color: #0f8f7b;
+      border-color: #55173D;
       box-shadow: 0 14px 28px color-mix(in srgb, var(--ink) 8%, transparent);
       outline: none;
       transform: translateY(-1px);

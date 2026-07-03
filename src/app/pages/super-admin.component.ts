@@ -2274,7 +2274,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
     .super-admin-nav-card.active {
       transform: translateY(-1px);
       border-color: rgba(75, 18, 56, 0.35);
-      background: linear-gradient(135deg, #e8fbf7, #eef4ff);
+      background: linear-gradient(135deg, #F1E8EE, #eef4ff);
     }
 
     .super-admin-nav-icon {

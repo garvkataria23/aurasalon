@@ -72,8 +72,8 @@ button {
 }
 
 button.primary {
-  background: #0f766e;
-  border-color: #0f766e;
+  background: #4B1238;
+  border-color: #4B1238;
   color: #fff;
 }
 
@@ -236,7 +236,7 @@ td small {
 }
 
 .status-applied {
-  background: #ecfdf5;
+  background: #F3EAF0;
   color: #087443;
 }
 

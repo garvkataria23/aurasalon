@@ -68,11 +68,11 @@
 }
 
 .metric-card.hero {
-  border-color: #0f766e;
+  border-color: #4B1238;
 }
 
 .metric-card.hero strong {
-  color: #0f766e;
+  color: #4B1238;
 }
 
 .metric-card.warning {
@@ -119,7 +119,7 @@
 }
 
 .bar-track span {
-  background: linear-gradient(90deg, #0f766e, #2563eb);
+  background: linear-gradient(90deg, #4B1238, #2563eb);
   display: block;
   height: 100%;
 }

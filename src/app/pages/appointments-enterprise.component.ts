@@ -1132,7 +1132,7 @@ const STATUS_TONES: Record<string, string> = {
     .summary-strip button { cursor: pointer; text-align: left; font: inherit; color: #172033; }
     .summary-strip .pending-summary-card { border-color: #facc15; background: linear-gradient(135deg, #fffbeb, #ffffff); }
     .summary-strip .pending-summary-card strong { color: #b45309; }
-    .summary-strip .waitlist-summary-action { border-color: #5eead4; background: linear-gradient(135deg, #F3EAF0, #ffffff); box-shadow: inset 0 0 0 1px rgba(90, 21, 63, 0.12); }
+    .summary-strip .waitlist-summary-action { border-color: #D4A8C0; background: linear-gradient(135deg, #F3EAF0, #ffffff); box-shadow: inset 0 0 0 1px rgba(90, 21, 63, 0.12); }
     .summary-strip .waitlist-summary-action small { color: #4B1238; font-weight: 900; }
     .summary-strip span, .pulse-grid span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; display: block; }
     .summary-strip strong { display: block; font-size: 20px; margin-top: 2px; line-height: 1.05; }

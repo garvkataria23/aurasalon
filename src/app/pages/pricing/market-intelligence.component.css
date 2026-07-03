@@ -169,8 +169,8 @@
 
 .map-card {
   background:
-    linear-gradient(90deg, rgba(15, 118, 110, 0.08) 1px, transparent 1px),
-    linear-gradient(rgba(15, 118, 110, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(75, 18, 56, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(75, 18, 56, 0.08) 1px, transparent 1px),
     #f8fafc;
   background-size: 28px 28px;
   border: 1px solid #e4e7ec;
@@ -191,7 +191,7 @@
 }
 
 .branch-dot {
-  background: #0f766e;
+  background: #4B1238;
   color: #ffffff;
   font-weight: 800;
   justify-self: center;

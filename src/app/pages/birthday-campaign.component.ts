@@ -148,7 +148,7 @@ type Channel = 'whatsapp' | 'sms';
     .filter-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
     .filter-row button.active { background: #5A153F; border-color: #5A153F; color: #fff; }
     .client-list button { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 70px; text-align: left; }
-    .client-list button.active, .suggestion.active { background: linear-gradient(135deg, #e8fbf7, #eef4ff); border-color: #5A153F; }
+    .client-list button.active, .suggestion.active { background: linear-gradient(135deg, #F1E8EE, #eef4ff); border-color: #5A153F; }
     .avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 8px; background: #F1E8EE; color: #3D0F2C; font-weight: 950; }
     .client-list strong, .client-list small { display: block; }
     .client-list small { margin-top: 3px; color: #64748b; font-size: 12px; }

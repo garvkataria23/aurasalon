@@ -13,10 +13,10 @@
   gap: 16px;
   overflow: hidden;
   padding: 18px 20px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
+  border: 1px solid rgba(109, 27, 77, 0.18);
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98) 48%, rgba(239, 246, 255, 0.9)),
+    linear-gradient(135deg, rgba(245, 238, 242, 0.96), rgba(255, 255, 255, 0.98) 48%, rgba(239, 246, 255, 0.9)),
     var(--surface);
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
@@ -26,7 +26,7 @@
   inset: 0 auto 0 0;
   width: 5px;
   content: "";
-  background: linear-gradient(180deg, #0f766e, #f97316);
+  background: linear-gradient(180deg, #4B1238, #f97316);
 }
 
 .executive-header h1 {
@@ -85,7 +85,7 @@
 }
 
 .kpi-tile:hover {
-  border-color: rgba(13, 148, 136, 0.34);
+  border-color: rgba(109, 27, 77, 0.34);
   transform: translateY(-1px);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.09);
 }
@@ -96,14 +96,14 @@
   inset: 0 0 auto;
   height: 4px;
   content: "";
-  background: #0f766e;
+  background: #4B1238;
 }
 
 .kpi-tile.tone-money::before,
 .priority-card.tone-money::before,
 .kpi-tile.tone-profit::before,
 .priority-card.tone-profit::before {
-  background: linear-gradient(90deg, #16a34a, #0f766e);
+  background: linear-gradient(90deg, #16a34a, #4B1238);
 }
 
 .kpi-tile.tone-risk::before,
@@ -115,7 +115,7 @@
 .priority-card.tone-stock::before,
 .kpi-tile.tone-service::before,
 .priority-card.tone-service::before {
-  background: linear-gradient(90deg, #2563eb, #14b8a6);
+  background: linear-gradient(90deg, #2563eb, #6D1B4D);
 }
 
 .kpi-tile.tone-branch::before,
@@ -177,7 +177,7 @@
 }
 
 .priority-intro .eyebrow {
-  color: #99f6e4;
+  color: #D4B8CC;
 }
 
 .priority-intro h2 {
@@ -282,7 +282,7 @@
 .mini-bar span {
   min-height: 3px;
   border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, #14b8a6, #2563eb);
+  background: linear-gradient(180deg, #6D1B4D, #2563eb);
 }
 
 .mini-bar small {
@@ -388,7 +388,7 @@
 .heat-row span {
   height: 18px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #99f6e4, #0f766e);
+  background: linear-gradient(90deg, #D4B8CC, #4B1238);
 }
 
 .alert-list > div {

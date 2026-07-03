@@ -36,7 +36,7 @@ td small,
 }
 
 .eyebrow {
-  color: #0f766e;
+  color: #4B1238;
   display: block;
   font-size: 12px;
   font-weight: 900;
@@ -82,7 +82,7 @@ td small,
 .primary-button,
 .ghost-button,
 .row-actions button {
-  border: 1px solid #0f766e;
+  border: 1px solid #4B1238;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 900;
@@ -91,14 +91,14 @@ td small,
 }
 
 .primary-button {
-  background: #0f766e;
+  background: #4B1238;
   color: #ffffff;
 }
 
 .ghost-button,
 .row-actions button {
   background: #ffffff;
-  color: #0f766e;
+  color: #4B1238;
 }
 
 .metric-grid {
