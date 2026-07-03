@@ -185,7 +185,7 @@ type MessageHistoryResponse = {
     .table-wrap { overflow-x: auto; border: 1px solid #dfeae7; border-radius: 16px; }
     table { width: 100%; border-collapse: collapse; min-width: 1320px; }
     th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid #e4eeeb; vertical-align: top; }
-    th { background: #f7faf9; color: #48596f; font-size: 12px; text-transform: uppercase; }
+    th { background: #F4EDF1; color: #48596f; font-size: 12px; text-transform: uppercase; }
     td { color: #132238; }
     .message-cell { min-width: 320px; max-width: 520px; line-height: 1.35; }
     .pill, .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 7px 11px; font-weight: 800; background: #f2f6f5; border: 1px solid #dce8e4; }

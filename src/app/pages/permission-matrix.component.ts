@@ -181,7 +181,7 @@ const RESOURCE_GROUPS = [
     .um-filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .um-list { display: grid; gap: 8px; max-height: 54vh; overflow: auto; padding-right: 2px; }
     .um-user-card { display: grid; gap: 8px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; text-align: left; cursor: pointer; }
-    .um-user-card.active { border-color: var(--teal); background: #eef8f5; box-shadow: inset 3px 0 0 var(--teal); }
+    .um-user-card.active { border-color: var(--teal); background: #F0E6EE; box-shadow: inset 3px 0 0 var(--teal); }
     .um-user-card header { display: flex; justify-content: space-between; gap: 8px; }
     .um-user-card strong { color: var(--ink); }
     .um-user-card small { display: block; color: var(--muted); font-size: 12px; }

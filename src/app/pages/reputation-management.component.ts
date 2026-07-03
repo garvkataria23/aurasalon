@@ -269,7 +269,7 @@ interface SegmentRow {
     }
     .metric-card span, .metric-card small { color: var(--muted); }
     .metric-card strong { font-size: 28px; color: var(--ink); line-height: 1; }
-    .metric-card.green { border-top: 4px solid #0f8f79; }
+    .metric-card.green { border-top: 4px solid #55173D; }
     .metric-card.blue { border-top: 4px solid #2563eb; }
     .metric-card.gold { border-top: 4px solid #ca8a04; }
     .metric-card.rose { border-top: 4px solid #e11d48; }
@@ -386,7 +386,7 @@ interface SegmentRow {
     .segment-row span { color: var(--muted); }
     .segment-row > div:first-child { display: flex; justify-content: space-between; gap: 12px; }
     .bar-track { height: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
-    .bar-track span { display: block; height: 100%; border-radius: inherit; background: #0f8f79; }
+    .bar-track span { display: block; height: 100%; border-radius: inherit; background: #55173D; }
     .platform-row { border-bottom: 1px solid var(--line); padding: 11px 0; }
     .platform-row span { color: var(--muted); }
     .platform-row strong { color: var(--ink); }

@@ -523,7 +523,7 @@ a {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: linear-gradient(135deg, #f7faf9 0%, #edf5f1 54%, #fff8ed 100%);
+  background: linear-gradient(135deg, #F4EDF1 0%, #EBE1E8 54%, #fff8ed 100%);
 }
 
 .auth-card {
@@ -557,8 +557,8 @@ a {
   padding: 0 14px;
   border: 1px solid rgba(75, 18, 56, 0.16);
   border-radius: 8px;
-  color: #052e28;
-  background: linear-gradient(135deg, #d7f7ea 0%, #f8de94 100%);
+  color: #1A0512;
+  background: linear-gradient(135deg, #E6D1DD 0%, #f8de94 100%);
   font-weight: 1000;
   white-space: nowrap;
   animation: auth-brand-lift 5s ease-in-out infinite;
@@ -629,7 +629,7 @@ a {
   border: 1px solid rgba(75, 18, 56, 0.16);
   border-radius: 8px;
   color: var(--teal);
-  background: #eef8f5;
+  background: #F0E6EE;
   font-weight: 900;
 }
 
@@ -1157,7 +1157,7 @@ h3 {
 
 .tool-strip button.active {
   border-color: rgba(75, 18, 56, 0.45);
-  background: #eaf6f4;
+  background: #EEE3EB;
   box-shadow: inset 0 3px 0 var(--teal);
 }
 
@@ -1827,8 +1827,8 @@ td small {
   margin: 1px 4px 1px 0;
   padding: 0 8px;
   border-radius: 999px;
-  color: #30514d;
-  background: #dff2ef;
+  color: #3D1A2E;
+  background: #E8DBE5;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -5296,7 +5296,7 @@ thead th {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #f7faf9;
+  background: #F4EDF1;
 }
 
 tbody tr {

@@ -91,7 +91,7 @@ type PunchType = 'in' | 'out';
     h1 { margin: 4px 0 6px; font-size: 32px; letter-spacing: 0; }
     h2 { margin: 0 0 12px; font-size: 18px; }
     p { margin: 0; color: #607086; }
-    .eyebrow { color: #0f8f79; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .eyebrow { color: #55173D; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .grid { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 14px; }
     .panel { padding: 16px; }
     .camera-frame { min-height: 300px; background: #0f172a; border-radius: 8px; overflow: hidden; position: relative; display: grid; place-items: center; }
@@ -99,14 +99,14 @@ type PunchType = 'in' | 'out';
     .camera-empty { position: absolute; color: #dbeafe; font-weight: 800; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     button, .primary { min-height: 40px; border: 1px solid #9fb2b8; border-radius: 6px; padding: 0 14px; background: #fff; color: #0f172a; font-weight: 900; cursor: pointer; }
-    button.active, .primary { background: #0f8f79; border-color: #0f8f79; color: #fff; }
+    button.active, .primary { background: #55173D; border-color: #55173D; color: #fff; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     label { display: grid; gap: 5px; color: #31445c; font-weight: 900; }
     label span { font-size: 12px; text-transform: uppercase; }
     input, select { min-height: 40px; border: 1px solid #b7c5cf; border-radius: 6px; padding: 0 10px; font: inherit; background: #fff; color: #122033; }
     .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .cards article { padding: 16px; border-top: 4px solid #0f8f79; }
+    .cards article { padding: 16px; border-top: 4px solid #55173D; }
     .cards span { display: block; color: #607086; font-weight: 800; }
     .cards strong { display: block; margin-top: 8px; font-size: 26px; }
     .panel-head { display: flex; justify-content: space-between; align-items: center; }

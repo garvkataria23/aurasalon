@@ -1446,11 +1446,11 @@ interface EngagementDetail extends ApiRecord {
     .rail-title, .field span, .thread-search span, .composer label span { color: #526173; font-size: 12px; font-weight: 800; text-transform: uppercase; }
     .channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .channel-grid button, .composer-tabs button { border: 1px solid #d8e3df; background: #f8faf9; border-radius: 8px; padding: 9px; display: flex; justify-content: space-between; gap: 8px; cursor: pointer; }
-    .channel-grid button.active, .composer-tabs button.active { border-color: #0f8f79; color: #075f52; background: #e9f7f4; }
+    .channel-grid button.active, .composer-tabs button.active { border-color: #55173D; color: #2A091E; background: #EDE2EA; }
     .thread-search { display: grid; gap: 6px; }
     .thread-search input, .composer select, .composer textarea, .conversation-actions select { border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; width: 100%; }
     .thread-card { text-align: left; border: 1px solid #e3ebe8; background: #fff; border-radius: 8px; padding: 12px; cursor: pointer; display: grid; gap: 7px; }
-    .thread-card.active { border-color: #0f8f79; box-shadow: inset 3px 0 0 #0f8f79; }
+    .thread-card.active { border-color: #55173D; box-shadow: inset 3px 0 0 #55173D; }
     .thread-top, .thread-meta, .conversation-header, .composer-footer, .timeline-topline { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
     .thread-card p { margin: 0; color: #53657d; font-size: 13px; line-height: 1.35; }
     .thread-meta { color: #607083; font-size: 12px; flex-wrap: wrap; justify-content: flex-start; }
@@ -1467,7 +1467,7 @@ interface EngagementDetail extends ApiRecord {
     .timeline-item { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; max-width: 80%; }
     .timeline-item.outbound { justify-self: end; }
     .timeline-item > div { border: 1px solid #e0e8e5; background: #fff; border-radius: 8px; padding: 12px; }
-    .timeline-item.outbound > div { background: #eaf7f4; border-color: #bfe5dd; }
+    .timeline-item.outbound > div { background: #EEE3EB; border-color: #D4B8CC; }
     .timeline-item.event > div { background: #f8fafc; }
     .timeline-dot { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: #eef5f3; color: #4B1238; font-size: 12px; font-weight: 900; }
     .timeline-item p { margin: 6px 0 0; color: #1f2937; white-space: pre-wrap; }
@@ -1514,14 +1514,14 @@ interface EngagementDetail extends ApiRecord {
     .warning-stack { display: flex; gap: 8px; flex-wrap: wrap; }
     .slot-list { display: grid; gap: 8px; }
     .slot-list button { text-align: left; border: 1px solid #dfe8e5; background: #fff; border-radius: 8px; padding: 11px 12px; display: grid; gap: 4px; cursor: pointer; }
-    .slot-list button.active { border-color: #0f8f79; box-shadow: inset 3px 0 0 #0f8f79; background: #eaf7f4; }
+    .slot-list button.active { border-color: #55173D; box-shadow: inset 3px 0 0 #55173D; background: #EEE3EB; }
     .slot-list span { color: #607083; }
     .review-box .primary-button { width: 100%; justify-content: center; }
     .review-center-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; min-height: 0; }
     .review-list-panel, .review-detail-panel { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 10px; align-content: start; }
     .review-list-panel { max-height: calc(100vh - 150px); overflow: auto; }
     .review-row { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 11px; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; cursor: pointer; }
-    .review-row.active { border-color: #0f8f79; box-shadow: inset 3px 0 0 #0f8f79; background: #eef8f5; }
+    .review-row.active { border-color: #55173D; box-shadow: inset 3px 0 0 #55173D; background: #F0E6EE; }
     .review-row span, .review-row p { color: #607083; }
     .review-row p { grid-column: 1 / -1; margin: 0; line-height: 1.4; }
     .review-title-row { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
@@ -1622,7 +1622,7 @@ interface EngagementDetail extends ApiRecord {
     .action-queue-strip p { margin: 3px 0 0; color: #53657d; line-height: 1.45; }
     .action-queue-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
     .action-queue-card { text-align: left; border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 6px; min-width: 0; cursor: pointer; }
-    .action-queue-card:hover { border-color: #0f8f79; background: #eef8f5; }
+    .action-queue-card:hover { border-color: #55173D; background: #F0E6EE; }
     .action-queue-card.urgent { border-color: #f4b4ae; background: #fff8f7; }
     .action-queue-card.high { border-color: #f4d28c; background: #fffaf0; }
     .action-queue-card strong { font-size: 24px; color: #111827; }

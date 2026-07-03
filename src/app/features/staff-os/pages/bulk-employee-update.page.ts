@@ -176,7 +176,7 @@ type BulkField = keyof EditableBulkEmployeeRow;
     table { border-collapse: separate; border-spacing: 0; min-width: 1680px; width: 100%; }
     th, td { border-bottom: 1px solid #e8efeb; border-right: 1px solid #eef3f0; font-size: 13px; min-width: 126px; padding: 6px; text-align: left; vertical-align: middle; }
     th { background: #f8fbf9; color: #34483f; font-weight: 900; position: sticky; top: 34px; z-index: 3; }
-    .group-row th { background: #edf5f1; top: 0; z-index: 4; text-align: center; }
+    .group-row th { background: #EBE1E8; top: 0; z-index: 4; text-align: center; }
     .sticky { left: 0; position: sticky; z-index: 5; }
     .select-col { min-width: 46px; width: 46px; }
     .sr-col { left: 46px; min-width: 70px; width: 70px; }

@@ -2348,7 +2348,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
       border: 1px solid rgba(75, 18, 56, 0.14);
       border-radius: 18px;
       padding: 18px;
-      background: linear-gradient(135deg, rgba(240, 253, 250, 0.95), rgba(255, 255, 255, 0.98));
+      background: linear-gradient(135deg, rgba(245, 238, 242, 0.95), rgba(255, 255, 255, 0.98));
       box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
     }
 
@@ -2627,7 +2627,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
 
     .command-suggestions button {
       min-height: 94px;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 250, 0.72));
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 238, 242, 0.72));
     }
 
     .command-empty-state {
@@ -2938,7 +2938,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
       padding: 10px;
       border: 1px solid rgba(75, 18, 56, 0.18);
       border-radius: 14px;
-      background: rgba(240, 253, 250, 0.98);
+      background: rgba(245, 238, 242, 0.98);
       box-shadow: 0 14px 36px rgba(15, 23, 42, 0.09);
     }
 
@@ -2978,7 +2978,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
       border: 1px solid rgba(75, 18, 56, 0.16);
       border-radius: 14px;
       padding: 14px;
-      background: rgba(240, 253, 250, 0.7);
+      background: rgba(245, 238, 242, 0.7);
     }
 
     .drawer-focus-card strong,
@@ -3027,7 +3027,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
     }
 
     .super-admin-tenant-table tr:hover td {
-      background: rgba(240, 253, 250, 0.72);
+      background: rgba(245, 238, 242, 0.72);
     }
 
     .super-admin-tenant-table small,

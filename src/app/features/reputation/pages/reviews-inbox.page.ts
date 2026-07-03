@@ -227,7 +227,7 @@ type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
     .page-heading h2 { margin: 4px 0 8px; font-size: 32px; color: #0f172a; letter-spacing: 0; }
     .page-heading p { margin: 0; color: #53657d; line-height: 1.55; }
     .heading-actions, .actions-row, .reply-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .primary-link { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #0f8f79; color: #fff; padding: 12px 16px; text-decoration: none; font-weight: 800; }
+    .primary-link { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #55173D; color: #fff; padding: 12px 16px; text-decoration: none; font-weight: 800; }
     .notice { margin: 0; border: 1px solid #c7e8df; border-radius: 8px; background: #f4fbf8; padding: 12px 14px; color: #53657d; font-weight: 800; }
     .inbox-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr) 420px; gap: 16px; align-items: start; }
     .filter-panel, .review-list, .detail-panel { padding: 18px; }
@@ -260,7 +260,7 @@ type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
       cursor: pointer;
     }
     .review-row + .review-row { margin-top: 10px; }
-    .review-row.selected { border-left: 4px solid #0f8f79; background: #f7fcfa; }
+    .review-row.selected { border-left: 4px solid #55173D; background: #F5EEF2; }
     .platform-dot { width: 42px; height: 42px; border-radius: 8px; color: #fff; font-weight: 900; display: grid; place-items: center; }
     .review-title { display: flex; justify-content: space-between; gap: 12px; color: #0f172a; }
     .review-main p { margin: 6px 0; color: #334155; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -277,7 +277,7 @@ type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
     .rating { font-size: 18px; padding: 9px 12px; }
     .detail-section { border-top: 1px solid #edf2f5; padding-top: 16px; margin-top: 16px; }
     .review-text { margin: 0; color: #26364b; line-height: 1.65; }
-    .translation { border-left: 3px solid #0f8f79; padding-left: 12px; line-height: 1.55; }
+    .translation { border-left: 3px solid #55173D; padding-left: 12px; line-height: 1.55; }
     .link-grid { display: grid; gap: 6px; margin-top: 14px; font-weight: 700; }
     .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .analysis-grid div { border: 1px solid #edf2f5; border-radius: 8px; padding: 12px; display: grid; gap: 4px; }
@@ -528,7 +528,7 @@ export class ReviewsInboxPage implements OnInit {
       zomato: '#e23744',
       facebook: '#1877f2',
       instagram: '#c13584',
-      whatsapp: '#0f8f79',
+      whatsapp: '#55173D',
       internal: '#334155'
     };
     return colors[String(code || '').toLowerCase()] || '#475569';

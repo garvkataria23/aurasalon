@@ -1018,7 +1018,7 @@ type PackageClientNotice = {
       border-radius: 10px;
       padding: 14px;
       margin: 14px 0 16px;
-      background: linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
+      background: linear-gradient(180deg, rgba(245, 238, 242, 0.96), rgba(255, 255, 255, 0.98));
     }
 
     :host .settlement-preview-copy {

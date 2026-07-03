@@ -2325,7 +2325,7 @@ type PlanLifecycleDialog = {
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      background: #eaf7f4;
+      background: #EEE3EB;
       color: #4B1238;
       font-size: 0.78rem;
       font-weight: 800;

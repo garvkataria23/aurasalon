@@ -443,7 +443,7 @@ type StaffSection = 'directory' | 'performance' | 'incentives' | 'payroll' | 'sc
       color: #164e24;
     }
     .shift-cell.off {
-      background: #f7faf9;
+      background: #F4EDF1;
       color: var(--muted);
     }
     .shift-cell.weekly-off {

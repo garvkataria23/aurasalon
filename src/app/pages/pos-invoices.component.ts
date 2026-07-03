@@ -826,7 +826,7 @@ type ProductConsumeDraftRow = {
       border: 1px solid rgba(75, 18, 56, 0.18);
       border-radius: 10px;
       padding: 14px;
-      background: linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
+      background: linear-gradient(180deg, rgba(245, 238, 242, 0.96), rgba(255, 255, 255, 0.98));
       display: grid;
       gap: 6px;
     }

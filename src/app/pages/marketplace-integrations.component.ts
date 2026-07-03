@@ -222,7 +222,7 @@ const catalog: IntegrationCategory[] = [
     title: 'India Payment Modes',
     integrations: [
       card('cash-counter', 'payments-india', 'Cash Counter', 'CASH', '#334155', 'Track cash payments, drawer settlement and cashier handover.', 'Configure cash payment mode', paymentFields.cash, ['cash', 'settlement', 'pos'], [], { region: 'India', paymentModes: ['Cash', 'Drawer closing'] }),
-      card('upi-bhim-qr', 'payments-india', 'UPI / BHIM QR', 'UPI', '#0f8f79', 'Accept UPI collect, intent, static QR and dynamic QR payments.', 'Configure UPI payment collection', paymentFields.upi, ['upi', 'qr', 'webhooks'], [], { region: 'India', paymentModes: ['UPI Collect', 'Intent', 'QR'] }),
+      card('upi-bhim-qr', 'payments-india', 'UPI / BHIM QR', 'UPI', '#55173D', 'Accept UPI collect, intent, static QR and dynamic QR payments.', 'Configure UPI payment collection', paymentFields.upi, ['upi', 'qr', 'webhooks'], [], { region: 'India', paymentModes: ['UPI Collect', 'Intent', 'QR'] }),
       card('google-pay-india', 'payments-india', 'Google Pay Business', 'GPay', '#4285f4', 'Accept Google Pay UPI payments and reconcile booking collections.', 'Connect Google Pay Business for UPI', paymentFields.upi, ['upi', 'qr'], [], { region: 'India', paymentModes: ['UPI', 'QR'] }),
       card('phonepe-pg', 'payments-india', 'PhonePe Payment Gateway', 'PPe', '#5f259f', 'Accept UPI, cards, wallets and net banking through PhonePe.', 'Connect PhonePe Payment Gateway', paymentFields.indiaGateway, ['upi', 'cards', 'netbanking', 'wallets'], [], { region: 'India', paymentModes: ['UPI', 'Cards', 'NetBanking'] }),
       card('paytm-pg', 'payments-india', 'Paytm Payment Gateway', 'PTM', '#00baf2', 'Accept Paytm wallet, UPI, cards and net banking.', 'Connect Paytm Payment Gateway', paymentFields.indiaGateway, ['upi', 'wallets', 'cards', 'netbanking'], [], { region: 'India', paymentModes: ['Wallet', 'UPI', 'Cards'] }),
@@ -350,7 +350,7 @@ const catalog: IntegrationCategory[] = [
         accountField,
         { key: 'widgetSlug', label: 'Widget slug', placeholder: 'aurashine-hyd', required: true },
         { key: 'defaultBranchId', label: 'Default branch ID', placeholder: 'branch_hyd' },
-        { key: 'themeColor', label: 'Theme color', placeholder: '#0f8f79' }
+        { key: 'themeColor', label: 'Theme color', placeholder: '#55173D' }
       ], ['booking-widget'], [{ label: 'Embed code', kind: 'embed' }]),
       card('weebly', 'booking', 'Weebly', 'W', '#2991ff', 'Get embed code for creating bookings on Weebly.', 'Install booking widget on Weebly', [
         accountField,
@@ -587,7 +587,7 @@ const catalog: IntegrationCategory[] = [
     .market-summary span { display: block; margin-top: 4px; color: #64748b; font-weight: 800; font-size: 12px; }
     .category-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 14px; margin-bottom: 4px; }
     .category-tabs button { border: 1px solid #d7dee8; background: #fff; color: #334155; border-radius: 999px; padding: 9px 12px; font-weight: 900; cursor: pointer; white-space: nowrap; }
-    .category-tabs button.active { background: #0f8f79; border-color: #0f8f79; color: #fff; }
+    .category-tabs button.active { background: #55173D; border-color: #55173D; color: #fff; }
     .category-tabs span { margin-left: 6px; opacity: .75; }
     .category-panel { background: #fff; border: 1px solid #d8dde5; border-radius: 8px; padding: 10px 14px 24px; margin-bottom: 20px; box-shadow: 0 14px 30px rgba(15, 23, 42, .04); }
     .category-title { background: #eef2f6; border-radius: 7px; padding: 12px 14px; color: #020617; margin-bottom: 18px; }
@@ -596,18 +596,18 @@ const catalog: IntegrationCategory[] = [
     .integration-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(174px, 1fr)); gap: 14px; }
     .integration-card { position: relative; min-height: 236px; border: 1px solid #edf1f5; background: #fff; border-radius: 8px; padding: 16px 12px 14px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer; box-shadow: 0 12px 24px rgba(15, 23, 42, .055); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease; text-align: center; }
     .integration-card:hover { transform: translateY(-2px); border-color: #b8c4d3; box-shadow: 0 18px 36px rgba(15, 23, 42, .12); }
-    .integration-card.connected { border-color: #0f8f79; background: #fbfffd; }
-    .integration-card.featured { border-color: rgba(15, 143, 121, .35); }
+    .integration-card.connected { border-color: #55173D; background: #FCF5F9; }
+    .integration-card.featured { border-color: rgba(85, 23, 61, .35); }
     .status-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 999px; background: #cbd5e1; }
-    .status-dot.on { background: #0f8f79; box-shadow: 0 0 0 4px rgba(15, 143, 121, .12); }
+    .status-dot.on { background: #55173D; box-shadow: 0 0 0 4px rgba(85, 23, 61, .12); }
     .region-chip { position: absolute; top: 9px; left: 10px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 999px; padding: 4px 7px; font-size: 10px; font-weight: 900; max-width: 94px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .logo-ring { --accent: #0f8f79; width: 86px; height: 86px; border-radius: 999px; display: grid; place-items: center; background: #fff; border: 2px solid #f1f5f9; box-shadow: inset 0 0 0 4px #fff, 0 2px 9px rgba(15, 23, 42, .14); margin-top: 8px; }
+    .logo-ring { --accent: #55173D; width: 86px; height: 86px; border-radius: 999px; display: grid; place-items: center; background: #fff; border: 2px solid #f1f5f9; box-shadow: inset 0 0 0 4px #fff, 0 2px 9px rgba(15, 23, 42, .14); margin-top: 8px; }
     .logo-ring span { width: 58px; min-width: 0; height: 40px; border-radius: 8px; display: grid; place-items: center; color: var(--accent); font-weight: 950; font-size: 16px; line-height: 1; overflow-wrap: anywhere; }
     .integration-card strong { color: #020617; font-size: 16px; }
     .integration-card small { color: #475569; line-height: 1.25; max-width: 170px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .mode-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; min-height: 24px; }
     .mode-tags span { border-radius: 999px; background: #eef2f7; color: #334155; padding: 4px 7px; font-size: 10px; font-weight: 900; }
-    .connect-text { margin-top: auto; color: #0f8f79; font-size: 12px; font-weight: 950; }
+    .connect-text { margin-top: auto; color: #55173D; font-size: 12px; font-weight: 950; }
     .empty-market { background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 28px; color: #475569; display: grid; gap: 6px; }
     .empty-market strong { color: #0f172a; font-size: 18px; }
     .drawer-backdrop { position: fixed; inset: 0; background: rgba(2, 6, 23, .62); z-index: 30; }
@@ -635,7 +635,7 @@ const catalog: IntegrationCategory[] = [
     .field-error { color: #dc2626; font-weight: 800; }
     .save-message { color: #047857; font-weight: 800; }
     .setup-guide { color: #444; padding-top: 4px; }
-    .guide-logo { --accent: #0f8f79; width: 92px; height: 92px; border-radius: 999px; display: grid; place-items: center; color: var(--accent); border: 2px solid #eef2f7; font-weight: 950; margin-bottom: 18px; box-shadow: 0 2px 9px rgba(15, 23, 42, .14); }
+    .guide-logo { --accent: #55173D; width: 92px; height: 92px; border-radius: 999px; display: grid; place-items: center; color: var(--accent); border: 2px solid #eef2f7; font-weight: 950; margin-bottom: 18px; box-shadow: 0 2px 9px rgba(15, 23, 42, .14); }
     .setup-guide h3 { margin: 0 0 16px; font-size: 24px; color: #333; line-height: 1.25; letter-spacing: 0; }
     .setup-guide p { margin: 0; color: #666; line-height: 1.5; }
     .drawer-mode-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }

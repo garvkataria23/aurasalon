@@ -2721,7 +2721,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         padding: 3px 8px;
         border-radius: 999px;
         color: #4B1238;
-        background: #eef8f5;
+        background: #F0E6EE;
         font-size: 0.68rem;
         font-style: normal;
         font-weight: 900;

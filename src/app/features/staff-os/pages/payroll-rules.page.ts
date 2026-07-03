@@ -73,10 +73,10 @@ import { DEFAULT_STAFF_PAYROLL_RULES, normalizeStaffPayrollRules, readStaffPayro
     .rules-page { display: grid; gap: 16px; color: #122033; }
     .topbar, article { background: #fff; border: 1px solid #d8e4ea; border-radius: 8px; box-shadow: 0 16px 34px rgba(15,23,42,.06); }
     .topbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 22px 24px; }
-    .topbar span { color: #0f8f79; font-size: 12px; font-weight: 900; text-transform: uppercase; } h1 { margin: 4px 0 6px; font-size: 32px; } h2 { margin: 0 0 14px; font-size: 18px; } p { margin: 0; color: #607086; }
+    .topbar span { color: #55173D; font-size: 12px; font-weight: 900; text-transform: uppercase; } h1 { margin: 4px 0 6px; font-size: 32px; } h2 { margin: 0 0 14px; font-size: 18px; } p { margin: 0; color: #607086; }
     .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-    button, .top-actions a { min-height: 40px; border: 1px solid #0f8f79; border-radius: 6px; padding: 0 14px; background: #0f8f79; color: #fff; font-weight: 900; display: inline-flex; align-items: center; text-decoration: none; }
-    .top-actions button:first-of-type { background: #fff; color: #0f8f79; }
+    button, .top-actions a { min-height: 40px; border: 1px solid #55173D; border-radius: 6px; padding: 0 14px; background: #55173D; color: #fff; font-weight: 900; display: inline-flex; align-items: center; text-decoration: none; }
+    .top-actions button:first-of-type { background: #fff; color: #55173D; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; } article { padding: 16px; display: grid; gap: 12px; }
     label { display: grid; gap: 6px; font-weight: 900; color: #31445c; } label span { font-size: 12px; text-transform: uppercase; } input, select { min-height: 40px; border: 1px solid #b7c5cf; border-radius: 6px; padding: 0 10px; font: inherit; }
     .check { display: flex; align-items: center; gap: 9px; } .check input { min-height: auto; }

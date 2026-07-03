@@ -421,7 +421,7 @@ type RosterView = 'day' | 'week' | 'month';
       padding: 22px;
       border: 1px solid rgba(15, 23, 42, 0.08);
       border-radius: 10px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(240,253,250,0.82));
+      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(245,238,242,0.82));
       box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
     }
 

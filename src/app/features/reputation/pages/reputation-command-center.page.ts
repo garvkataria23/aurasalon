@@ -502,7 +502,7 @@ interface StaffPreview {
     .page-heading h2 { margin: 4px 0 8px; font-size: 32px; line-height: 1.1; color: #0f172a; letter-spacing: 0; }
     .page-heading p { margin: 0; color: #53657d; max-width: 760px; line-height: 1.55; }
     .heading-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .primary-link { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #0f8f79; color: #fff; padding: 12px 16px; text-decoration: none; font-weight: 800; }
+    .primary-link { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #55173D; color: #fff; padding: 12px 16px; text-decoration: none; font-weight: 800; }
     .rep-tabs {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -523,10 +523,10 @@ interface StaffPreview {
       cursor: pointer;
     }
     .rep-tabs button.active {
-      border-color: #0f8f79;
-      background: #0f8f79;
+      border-color: #55173D;
+      background: #55173D;
       color: #fff;
-      box-shadow: 0 10px 18px rgba(15, 143, 121, 0.18);
+      box-shadow: 0 10px 18px rgba(85, 23, 61, 0.18);
     }
     .feedback-intelligence-panel {
       display: grid;
@@ -574,7 +574,7 @@ interface StaffPreview {
       display: grid;
       align-content: space-between;
       border: 1px solid #dbe4e8;
-      border-top: 4px solid #0f8f79;
+      border-top: 4px solid #55173D;
       border-radius: 8px;
       background: #fff;
       padding: 12px;
@@ -653,7 +653,7 @@ interface StaffPreview {
       margin: 0 6px 6px 0;
     }
     .kpi-grid, .platform-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-    .kpi-card { min-height: 128px; padding: 18px; display: grid; align-content: space-between; border-top: 4px solid #0f8f79; }
+    .kpi-card { min-height: 128px; padding: 18px; display: grid; align-content: space-between; border-top: 4px solid #55173D; }
     .kpi-card.danger { border-top-color: #e11d48; }
     .kpi-card span, .kpi-card small, .platform-card span, .platform-card small, .feed-row small, .feed-row p, .empty-box span, .staff-row span, .staff-row small { color: #53657d; }
     .kpi-card strong { font-size: 30px; color: #0f172a; line-height: 1; }
@@ -668,7 +668,7 @@ interface StaffPreview {
     .score-segments, .sentiment-bars { display: grid; gap: 12px; }
     .score-segments > div, .sentiment-bars > div { display: grid; grid-template-columns: 92px minmax(0, 1fr) 42px; gap: 10px; align-items: center; color: #334155; font-weight: 800; }
     .meter { height: 9px; border-radius: 999px; overflow: hidden; background: #edf2f5; }
-    .meter i { display: block; height: 100%; border-radius: inherit; background: #0f8f79; }
+    .meter i { display: block; height: 100%; border-radius: inherit; background: #55173D; }
     .alerts-panel, .feed-panel, .analytics-panel { padding: 20px; }
     .section-title { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
     .section-title h3, .analytics-panel h3 { margin: 4px 0 0; color: #0f172a; letter-spacing: 0; }
@@ -1152,7 +1152,7 @@ export class ReputationCommandCenterPage implements OnInit {
 
   gaugeBackground(score: number): string {
     const degrees = Math.max(0, Math.min(360, Math.round(score * 3.6)));
-    return `conic-gradient(#0f8f79 0deg ${degrees}deg, #edf2f5 ${degrees}deg 360deg)`;
+    return `conic-gradient(#55173D 0deg ${degrees}deg, #edf2f5 ${degrees}deg 360deg)`;
   }
 
   scoreLabel(score: number): string {
@@ -1269,7 +1269,7 @@ export class ReputationCommandCenterPage implements OnInit {
       zomato: '#e23744',
       facebook: '#1877f2',
       instagram: '#c13584',
-      whatsapp: '#0f8f79',
+      whatsapp: '#55173D',
       internal: '#334155'
     };
     return colors[String(code || '').toLowerCase()] || '#475569';

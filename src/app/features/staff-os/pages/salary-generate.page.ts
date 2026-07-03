@@ -308,17 +308,17 @@ type SalaryRow = {
     .hero, .filters, .panel, .cards article, .drawer { background: #fff; border: 1px solid #d8e4ea; border-radius: 8px; box-shadow: 0 16px 34px rgba(15,23,42,.06); }
     .hero { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 24px; min-width: 0; }
     h1 { margin: 4px 0 6px; font-size: 32px; letter-spacing: 0; } h2 { margin: 0; font-size: 18px; } h3 { margin: 0 0 10px; font-size: 15px; }
-    p { margin: 0; color: #607086; } .eyebrow { color: #0f8f79; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    p { margin: 0; color: #607086; } .eyebrow { color: #55173D; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .hero-actions, .toolbar, .panel-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; min-width: 0; }
     .toolbar { justify-content: flex-end; overflow-x: auto; max-width: 100%; padding-bottom: 2px; }
     .toolbar button, .hero-actions button { white-space: nowrap; }
     button { min-height: 38px; border: 1px solid #9fb2b8; border-radius: 6px; padding: 0 12px; background: #fff; color: #122033; font-weight: 900; cursor: pointer; }
-    button.primary { background: #0f8f79; border-color: #0f8f79; color: #fff; } button:disabled { opacity: .55; cursor: not-allowed; }
+    button.primary { background: #55173D; border-color: #55173D; color: #fff; } button:disabled { opacity: .55; cursor: not-allowed; }
     .filters { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; padding: 14px; }
     label { display: grid; gap: 5px; color: #31445c; font-weight: 900; } label span { font-size: 12px; text-transform: uppercase; }
     input, select { min-height: 40px; border: 1px solid #b7c5cf; border-radius: 6px; padding: 0 10px; font: inherit; }
     .cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
-    .cards article { padding: 15px; border-top: 4px solid #0f8f79; } .cards span { color: #607086; font-weight: 800; } .cards strong { display: block; margin-top: 7px; font-size: 24px; } .cards small { color: #64748b; display: block; font-weight: 800; margin-top: 4px; }
+    .cards article { padding: 15px; border-top: 4px solid #55173D; } .cards span { color: #607086; font-weight: 800; } .cards strong { display: block; margin-top: 7px; font-size: 24px; } .cards small { color: #64748b; display: block; font-weight: 800; margin-top: 4px; }
     .split { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; min-width: 0; } .panel { padding: 16px; min-width: 0; max-width: 100%; }
     .run-list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
     .run-list article { padding: 12px; border: 1px solid #d8e4ea; border-radius: 8px; background: #f8fcfb; }
@@ -331,7 +331,7 @@ type SalaryRow = {
     .pill { padding: 4px 9px; border-radius: 999px; background: #e0f2fe; color: #075985; font-weight: 900; font-size: 12px; } .empty { text-align: center; color: #607086; padding: 28px; }
     .drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; width: min(560px, 100vw); overflow: auto; padding: 18px; display: grid; gap: 16px; border-radius: 0; }
     .drawer-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; border-bottom: 1px solid #e1e9ef; padding-bottom: 12px; }
-    .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; } .detail-grid span, .line { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid #edf2f5; } .line.total { font-size: 18px; color: #0f8f79; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; } .detail-grid span, .line { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid #edf2f5; } .line.total { font-size: 18px; color: #55173D; }
     .banner { margin: 0; padding: 10px 14px; border-radius: 8px; font-weight: 800; } .banner.err { background: #fee2e2; color: #991b1b; } .banner.ok { background: #dcfce7; color: #166534; } .banner.info { background: #e0f2fe; color: #075985; }
     @media (max-width: 980px) { .hero, .split { grid-template-columns: 1fr; flex-direction: column; align-items: stretch; } .filters, .cards { grid-template-columns: 1fr; } }
     @media (max-width: 980px) { .run-list { grid-template-columns: 1fr; } }
