@@ -78,3 +78,86 @@
   outline: 0;
   box-shadow: var(--aura-focus);
 }
+/* Premium shared card refinement. */
+.aura-card {
+  border-color: var(--aura-border-soft, var(--aura-border));
+  border-radius: var(--aura-card-radius-premium, 14px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 249, 246, 0.94)),
+    var(--aura-card);
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06);
+  overflow: clip;
+}
+
+.aura-card--padding-sm { padding: 14px; }
+.aura-card--padding-md { padding: 18px; }
+.aura-card--padding-lg { padding: 22px; }
+
+.aura-card--radius-md,
+.aura-card--radius-lg {
+  border-radius: var(--aura-card-radius-premium, 14px);
+}
+
+.aura-card--variant-muted {
+  background: color-mix(in srgb, var(--aura-bg) 68%, white 32%);
+}
+
+.aura-card--variant-outlined {
+  background: rgba(255, 255, 255, 0.62);
+  border-style: dashed;
+}
+
+.aura-card--variant-elevated {
+  box-shadow: 0 14px 34px rgba(75, 18, 56, 0.09);
+}
+
+.aura-card--tone-primary,
+.aura-card--tone-teal,
+.aura-card--tone-violet,
+.aura-card--tone-success,
+.aura-card--tone-green,
+.aura-card--tone-warning,
+.aura-card--tone-amber,
+.aura-card--tone-danger,
+.aura-card--tone-red,
+.aura-card--tone-info,
+.aura-card--tone-blue,
+.aura-card--tone-rose,
+.aura-card--tone-slate {
+  border-top-color: var(--aura-border-soft, var(--aura-border));
+}
+
+.aura-card--tone-primary::before,
+.aura-card--tone-teal::before,
+.aura-card--tone-violet::before,
+.aura-card--tone-success::before,
+.aura-card--tone-green::before,
+.aura-card--tone-warning::before,
+.aura-card--tone-amber::before,
+.aura-card--tone-danger::before,
+.aura-card--tone-red::before,
+.aura-card--tone-info::before,
+.aura-card--tone-blue::before,
+.aura-card--tone-rose::before,
+.aura-card--tone-slate::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--aura-card-tone);
+  opacity: 0.82;
+}
+
+.aura-card--hover:hover,
+.aura-card--interactive:hover {
+  border-color: color-mix(in srgb, var(--aura-card-tone) 32%, var(--aura-border-soft, var(--aura-border)));
+  box-shadow: 0 16px 36px rgba(75, 18, 56, 0.11);
+  transform: translateY(-1px);
+}
+
+:host-context(:root[data-theme="dark"]) .aura-card {
+  background: rgba(17, 24, 39, 0.96);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+/* End premium shared card refinement. */

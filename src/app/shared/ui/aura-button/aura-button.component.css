@@ -97,3 +97,75 @@
     transform: rotate(360deg);
   }
 }
+
+/* Premium shared button refinement. */
+.aura-button {
+  min-width: 0;
+  border-radius: var(--aura-control-radius, 10px);
+  font-weight: 800;
+  letter-spacing: 0;
+  transition: transform 140ms ease, background var(--aura-transition-fast), border-color var(--aura-transition-fast), color var(--aura-transition-fast), box-shadow var(--aura-transition-fast);
+}
+
+.aura-button--md {
+  min-height: 40px;
+  height: auto;
+  padding: 0 16px;
+}
+
+.aura-button--sm {
+  min-height: 32px;
+  height: auto;
+  padding: 0 12px;
+}
+
+.aura-button--primary {
+  border-color: color-mix(in srgb, var(--aura-primary-700) 82%, black 18%);
+  background: linear-gradient(180deg, var(--aura-primary-700), var(--aura-primary-600));
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(75, 18, 56, 0.18);
+}
+
+.aura-button--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--aura-primary-700), color-mix(in srgb, var(--aura-primary-600) 86%, black 14%));
+  box-shadow: 0 14px 28px rgba(75, 18, 56, 0.24);
+  transform: translateY(-1px);
+}
+
+.aura-button--secondary {
+  border-color: var(--aura-border-soft, var(--aura-gray-300));
+  background: var(--aura-surface-raised, var(--aura-white));
+  color: var(--aura-text, var(--aura-gray-700));
+}
+
+.aura-button--secondary:hover:not(:disabled),
+.aura-button--ghost:hover:not(:disabled) {
+  border-color: var(--aura-border-strong, var(--aura-gray-300));
+  background: color-mix(in srgb, var(--aura-bg) 58%, white 42%);
+  transform: translateY(-1px);
+}
+
+.aura-button--ghost {
+  border-color: transparent;
+  color: var(--aura-text, var(--aura-gray-700));
+}
+
+.aura-button--danger {
+  border-color: color-mix(in srgb, var(--aura-danger) 82%, black 18%);
+  box-shadow: 0 10px 22px rgba(225, 29, 72, 0.14);
+}
+
+.aura-button:focus-visible {
+  box-shadow: var(--aura-focus);
+}
+
+@media (max-width: 520px) {
+  :host {
+    width: 100%;
+  }
+
+  .aura-button {
+    width: 100%;
+  }
+}
+/* End premium shared button refinement. */

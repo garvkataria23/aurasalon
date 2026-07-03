@@ -89,3 +89,75 @@ h1 {
     margin-left: 0;
   }
 }
+
+/* Premium shared page header refinement. */
+.aura-page-header {
+  min-height: 72px;
+  padding: 14px 20px;
+  border: 1px solid var(--aura-border-soft, var(--aura-gray-200));
+  border-radius: var(--aura-card-radius-premium, 14px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(252, 247, 243, 0.94)),
+    var(--aura-white);
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.055);
+}
+
+.aura-page-header__main {
+  display: grid;
+  gap: 4px;
+}
+
+.aura-page-header__breadcrumb {
+  color: var(--aura-muted, var(--aura-gray-500));
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.aura-page-header__title-row {
+  align-items: center;
+  gap: 10px;
+}
+
+h1 {
+  color: var(--aura-text, var(--aura-gray-900));
+  font-size: clamp(1.1rem, 0.98rem + 0.42vw, 1.36rem);
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.aura-page-header__subtitle {
+  color: var(--aura-muted, var(--aura-gray-500));
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.aura-page-header__filters,
+.aura-page-header__actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .aura-page-header {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  h1,
+  .aura-page-header__subtitle {
+    white-space: normal;
+  }
+
+  .aura-page-header__filters,
+  .aura-page-header__actions,
+  .aura-page-header__filters > *,
+  .aura-page-header__actions > * {
+    width: 100%;
+  }
+}
+
+:host-context(:root[data-theme="dark"]) .aura-page-header {
+  background: rgba(17, 24, 39, 0.96);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+}
+/* End premium shared page header refinement. */
