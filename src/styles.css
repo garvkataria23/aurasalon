@@ -11971,3 +11971,165 @@ app-inventory :where(.zenoti-table-footer, .section-title, .panel-heading) {
   }
 }
 /* End AuraSalon page excellence layer. */
+
+/* AuraSalon enterprise module polish layer: staff, reports, finance, marketing, admin, booking. */
+:where(app-staff-os-section, app-reports, app-reports-enterprise, app-balance-sheet, app-finance-engine, app-financial-summary-report, app-invoice-reports, app-profit-intelligence, app-memberships, app-packages, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-booking-portal, app-booking-wizard) :where(.page-stack, .staff-os, .rep-shell, .reports-shell, .module-shell, .portal-shell, .booking-shell) {
+  width: min(100%, var(--aura-content-max, 1680px));
+  margin-inline: auto;
+  gap: 18px !important;
+  background: transparent !important;
+}
+
+:where(app-staff-os-section, app-reports, app-reports-enterprise, app-balance-sheet, app-finance-engine, app-financial-summary-report, app-invoice-reports, app-profit-intelligence, app-memberships, app-packages, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations) :where(.panel, .billing-panel, .cc-panel, .score-panel, .alerts-panel, .feed-panel, .analytics-panel, .request-panel, .filter-panel, .review-list, .detail-panel, .page-heading, .kpi-card, .platform-card, .staff-workspace-panel, .staff-register-panel, .staff-workspace-detail, .staff-category-rail, .staff-list-toolbar, .staff-register-kpis article, .control-card, .form-panel, .report-card, .settings-card) {
+  min-width: 0;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: var(--aura-surface-raised, rgba(255, 255, 255, 0.94)) !important;
+  color: var(--aura-text, #1f2933) !important;
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06) !important;
+  overflow: clip;
+}
+
+:where(app-staff-os-section, app-reports, app-reports-enterprise, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page) :where(.panel-heading, .cc-panel-head, .section-title, .staff-register-heading, .page-heading, .filter-panel h3, .detail-panel h3) {
+  gap: 10px !important;
+  border-bottom-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+}
+
+:where(app-staff-os-section, app-reports, app-reports-enterprise, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page) :where(h1, h2, h3, .cc-panel-head h2, .section-title h3, .page-heading h1, .staff-register-heading h2) {
+  color: var(--aura-text, #1f2933) !important;
+  letter-spacing: 0 !important;
+  line-height: 1.18 !important;
+}
+
+:where(app-staff-os-section, app-reports, app-reports-enterprise, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page) :where(p, small, .muted, .cc-panel-head span, .page-heading p, .section-title p, .kpi-card span, .kpi-card small, .platform-card span, .platform-card small, .empty-box span, .staff-row span, .staff-row small) {
+  color: var(--aura-muted, #6b7280) !important;
+  line-height: 1.42;
+}
+
+app-staff-os-section :where(.staff-shell-header, .staff-list-toolbar, .staff-register-actions, .staff-workspace-actions, .action-links) {
+  gap: 10px !important;
+  flex-wrap: wrap;
+}
+
+app-staff-os-section :where(.staff-register-scroll, .table-wrap, .compact-table) {
+  overflow-x: auto;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: #fff !important;
+  box-shadow: 0 8px 22px rgba(75, 18, 56, 0.045) !important;
+}
+
+app-staff-os-section :where(.staff-register-table, table) {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+app-staff-os-section :where(th, td) {
+  border-bottom-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+}
+
+app-staff-os-section :where(th) {
+  background: var(--aura-table-header, #fbf7f2) !important;
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 78%, var(--aura-muted, #6b7280));
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+app-staff-os-section :where(.staff-category-tile, .row, .staff-row, .heatmap-cell, .action-empty) {
+  border-radius: 12px !important;
+  border-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+}
+
+app-staff-os-section :where(.primary, .refresh, .row-action, button, a.refresh) {
+  min-height: 36px;
+  border-radius: var(--aura-control-radius, 10px) !important;
+  font-weight: 800;
+}
+
+:where(app-reports, app-reports-enterprise, app-balance-sheet, app-finance-engine, app-financial-summary-report, app-invoice-reports, app-profit-intelligence) :where(.table-wrap, .report-table, .ledger-table, .compact-table) {
+  overflow-x: auto;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: #fff !important;
+  box-shadow: 0 8px 22px rgba(75, 18, 56, 0.045) !important;
+}
+
+:where(app-reports, app-reports-enterprise, app-balance-sheet, app-finance-engine, app-financial-summary-report, app-invoice-reports, app-profit-intelligence) :where(.kpi-grid, .report-grid, .summary-grid, .metric-grid, .chart-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px !important;
+}
+
+:where(app-reputation-command-center-page, app-reviews-inbox-page) :where(.rep-tabs, .feedback-filters, .request-panel, .filter-panel) {
+  gap: 12px !important;
+}
+
+:where(app-reputation-command-center-page, app-reviews-inbox-page) :where(.rep-tabs button, .feedback-filters button, .request-panel button) {
+  min-height: 38px;
+  border-radius: var(--aura-control-radius, 10px) !important;
+}
+
+:where(app-reputation-command-center-page, app-reviews-inbox-page) :where(.table-wrap) {
+  overflow-x: auto;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+}
+
+app-command-center-page :where(.cc-grid, .cc-panel-grid) {
+  gap: 14px !important;
+}
+
+app-command-center-page :where(.cc-item, .cc-row, .cc-card) {
+  border-radius: 12px !important;
+  border-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+}
+
+:where(app-memberships, app-packages, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations) :where(.toolbar, .table-toolbar, .filters, .actions, .header-actions, .form-grid, .settings-grid) {
+  gap: 12px !important;
+  flex-wrap: wrap;
+}
+
+:where(app-memberships, app-packages, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations) :where(.table-wrap, table) {
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+}
+
+:where(app-booking-portal, app-booking-wizard) :where(.portal-shell, .booking-shell, .booking-card, .service-card, .staff-card, .time-card, .summary-card, .portal-panel) {
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  border-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06) !important;
+}
+
+:where(app-booking-portal, app-booking-wizard) :where(.primary-button, .dark-button, .ghost-button, button) {
+  min-height: 42px;
+  border-radius: var(--aura-control-radius, 10px) !important;
+}
+
+:where(app-booking-portal, app-booking-wizard) :where(.service-grid, .staff-grid, .time-grid, .booking-grid) {
+  gap: 12px !important;
+}
+
+@media (max-width: 1024px) {
+  :where(app-staff-os-section, app-reports, app-reports-enterprise, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page) :where(.staff-register-layout, .staff-workspace-shell, .score-panel, .request-panel, .cc-layout) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :where(app-reviews-inbox-page) :where(.filter-panel) {
+    position: static !important;
+  }
+}
+
+@media (max-width: 760px) {
+  :where(app-staff-os-section, app-reports, app-reports-enterprise, app-balance-sheet, app-finance-engine, app-financial-summary-report, app-invoice-reports, app-profit-intelligence, app-memberships, app-packages, app-reputation-command-center-page, app-reviews-inbox-page, app-command-center-page, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations) :where(.panel, .billing-panel, .cc-panel, .score-panel, .alerts-panel, .feed-panel, .analytics-panel, .request-panel, .filter-panel, .review-list, .detail-panel, .page-heading, .kpi-card, .platform-card) {
+    border-radius: 12px !important;
+  }
+
+  :where(app-staff-os-section, app-memberships, app-packages, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations) :where(.staff-shell-header, .staff-list-toolbar, .staff-register-actions, .toolbar, .table-toolbar, .filters, .actions, .header-actions, .form-grid, .settings-grid) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  :where(app-staff-os-section, app-memberships, app-packages, app-super-admin, app-white-label, app-ai-marketing-automation, app-whatsapp-automation, app-engagement-command-center, app-business-details, app-marketplace-settings, app-marketplace-integrations) :where(.staff-shell-header > *, .staff-list-toolbar > *, .staff-register-actions > *, .toolbar > *, .table-toolbar > *, .filters > *, .actions > *, .header-actions > *, .form-grid > *, .settings-grid > *) {
+    width: 100%;
+  }
+}
+/* End AuraSalon enterprise module polish layer. */
