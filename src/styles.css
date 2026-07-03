@@ -13290,3 +13290,148 @@ app-account-master :where(.group-overlay) {
   }
 }
 /* End AuraSalon finance and reports workbench polish layer. */
+
+/* AuraSalon CRM and catalog commerce polish layer. */
+:where(app-client-detail, app-clients, app-client-report-detail, app-client-custom-form-settings, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-completed-packages-report, app-pending-packages-report, app-expired-packages-report, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-inventory-aware-offers, app-inventory-financial, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) {
+  --crm-surface: var(--aura-surface-raised, rgba(255, 255, 255, 0.94));
+  --crm-soft: color-mix(in srgb, var(--aura-bg, #faf7f2) 78%, white 22%);
+  --crm-border: var(--aura-border-soft, rgba(75, 18, 56, 0.12));
+  --crm-radius: var(--aura-card-radius-premium, 14px);
+  --crm-shadow: 0 12px 30px rgba(75, 18, 56, 0.07);
+}
+
+:where(app-client-detail, app-clients, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments) :where(.page-stack, .page, .workspace, .inventory-page, .product-page, .supplier-page, .membership-page, .package-page, .client-page) {
+  background: transparent !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments) :where(.profile-header, .client360-profile-header, .page-hero, .page-header, .page-heading, .command-bar, .workspace-hero, .inventory-hero, .product-hero, .supplier-hero, .membership-hero, .package-hero, .settings-hero) {
+  border: 1px solid var(--crm-border) !important;
+  border-radius: var(--crm-radius) !important;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(232, 167, 184, 0.15), transparent 260px),
+    linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  color: #fff !important;
+  box-shadow: 0 18px 42px rgba(75, 18, 56, 0.16) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments) :where(.profile-header h1, .profile-header h2, .page-hero h1, .page-header h1, .page-heading h1, .command-bar h1, .command-bar strong, .workspace-hero h1, .inventory-hero h1, .product-hero h1, .supplier-hero h1, .membership-hero h1, .package-hero h1) {
+  color: #fff !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments) :where(.profile-header p, .page-hero p, .page-header p, .page-heading p, .command-bar p, .command-bar span, .workspace-hero p, .inventory-hero p, .product-hero p, .supplier-hero p, .membership-hero p, .package-hero p) {
+  color: rgba(255, 255, 255, 0.74) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(.panel, .card, .metric-card, .summary-card, .profile-stats, .client360-health-card, .client360-summary-panel, .client360-command-grid > *, .client-live-metrics article, .client360-header-facts div, .client360-inline-edit-grid, .table-wrap, .table-shell, .data-table, .drawer, .modal, .sheet, .form-panel, .filter-card, .settings-section, .membership-card, .package-card, .supplier-card, .product-card, .inventory-card, .stock-card, .review-card, .coupon-card, .segment-card, .recipe-card, .scanner-card, .empty-state) {
+  border-color: var(--crm-border) !important;
+  border-radius: var(--crm-radius) !important;
+  background: var(--crm-surface) !important;
+  color: var(--aura-text, #1f2933) !important;
+  box-shadow: var(--crm-shadow) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(.card, .metric-card, .summary-card, .client-live-metrics article, .client360-header-facts div, .membership-card, .package-card, .supplier-card, .product-card, .inventory-card, .stock-card, .review-card, .coupon-card, .segment-card, .recipe-card):where(:hover, :focus-within) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 22%, var(--crm-border)) !important;
+  box-shadow: 0 16px 34px rgba(75, 18, 56, 0.09) !important;
+  transform: translateY(-1px);
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(input, select, textarea) {
+  min-height: 42px !important;
+  border: 1px solid var(--crm-border) !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(input, select, textarea):focus {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 44%, var(--crm-border)) !important;
+  box-shadow: 0 0 0 3px rgba(75, 18, 56, 0.1) !important;
+  outline: none !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(button, .primary-button, .ghost-button, .secondary-button, .icon-button, .row-action, .action-button, .fit) {
+  min-height: 40px !important;
+  border-radius: 11px !important;
+  border-color: var(--crm-border) !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(.primary-button, button.primary, button[type='submit']) {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  box-shadow: 0 12px 24px rgba(75, 18, 56, 0.18) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(.ghost-button, .secondary-button, .icon-button, .row-action, .action-button, button:not(.primary):not([type='submit'])) {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: var(--aura-primary, #4b1238) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(.badge, .chip, .pill, .status, .status-pill, .state, .tag, .stock-badge, .client360-status-row span) {
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 78%, white 22%) !important;
+  color: var(--aura-primary, #4b1238) !important;
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 16%, var(--crm-border)) !important;
+  font-weight: 850 !important;
+}
+
+:where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-product-360, app-inventory, app-reviews-inbox-page) :where(.status.success, .badge.success, .chip.success, .state.success, .active, .paid, .completed) {
+  background: var(--aura-success-bg, rgba(22, 163, 74, 0.12)) !important;
+  color: var(--aura-success, #16a34a) !important;
+}
+
+:where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-product-360, app-inventory, app-reviews-inbox-page) :where(.status.warning, .badge.warning, .chip.warning, .state.warning, .pending, .low, .amber) {
+  background: var(--aura-warning-bg, rgba(245, 158, 11, 0.14)) !important;
+  color: color-mix(in srgb, var(--aura-warning, #f59e0b) 74%, black 26%) !important;
+}
+
+:where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-product-360, app-inventory, app-reviews-inbox-page) :where(.status.danger, .badge.danger, .chip.danger, .state.danger, .overdue, .expired, .out, .red) {
+  background: var(--aura-danger-bg, rgba(225, 29, 72, 0.12)) !important;
+  color: var(--aura-danger, #e11d48) !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(.table-wrap, .table-shell, .data-table, .list-table) {
+  overflow-x: auto !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(th, .table-head) {
+  background: var(--crm-soft) !important;
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 78%, var(--aura-muted, #6b7280)) !important;
+  letter-spacing: 0.02em !important;
+}
+
+:where(app-client-detail, app-clients, app-client-report-detail, app-memberships, app-membership-360, app-membership-self-service, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-product-edit, app-inventory-workspace-detail, app-inventory-reorder, app-inventory-scanner, app-inventory-recipes, app-inventory-stock-audit, app-inventory-fifo, app-reviews-inbox-page, app-coupon-engine, app-client-discount-brain, app-client-return-tracker, app-happy-hours-client-segments, app-service-product-picker, app-invoice-preview) :where(td, th) {
+  border-bottom-color: var(--crm-border) !important;
+  padding: 12px 14px !important;
+}
+
+:where(app-client-detail, app-supplier-360, app-product-360, app-membership-360) :where(.avatar, .brand-mark, .profile-photo, .product-icon, .supplier-icon) {
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary, #4b1238), var(--aura-rose, #e8a7b8)) !important;
+  box-shadow: 0 10px 22px rgba(75, 18, 56, 0.18) !important;
+}
+
+@media (max-width: 980px) {
+  :where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-workspace-detail, app-reviews-inbox-page, app-coupon-engine) :where(.profile-header, .client360-header-body, .client360-command-grid, .client-live-metrics, .page-header, .page-heading, .page-hero, .toolbar, .filters, .actions, .summary-grid, .metric-grid, .stats-grid, .workspace-grid, .detail-grid, .form-grid) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 620px) {
+  :where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-workspace-detail, app-reviews-inbox-page, app-coupon-engine) :where(.client-live-metrics, .client360-header-facts, .summary-grid, .metric-grid, .stats-grid, .workspace-grid, .detail-grid, .form-grid, .card-grid, .product-grid, .inventory-grid) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-supplier-360, app-product-360, app-product-consume, app-inventory, app-inventory-workspace-detail, app-reviews-inbox-page, app-coupon-engine) :where(button, .primary-button, .ghost-button, .secondary-button, .icon-button, .row-action, .action-button) {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+/* End AuraSalon CRM and catalog commerce polish layer. */
