@@ -12928,3 +12928,197 @@ app-tax-settings :where(.switch-card input:checked + i, .toggle input:checked + 
   }
 }
 /* End AuraSalon security and settings surface polish layer. */
+
+/* AuraSalon AI operations surface polish layer. */
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot, .ai-workforce-page) {
+  --ai-aura-surface: var(--aura-surface-raised, rgba(255, 255, 255, 0.94));
+  --ai-aura-soft: color-mix(in srgb, var(--aura-bg, #faf7f2) 78%, white 22%);
+  --ai-aura-border: var(--aura-border-soft, rgba(75, 18, 56, 0.12));
+  --ai-aura-radius: var(--aura-card-radius-premium, 14px);
+  --ai-aura-shadow: 0 12px 30px rgba(75, 18, 56, 0.07);
+}
+
+app-ai-assistant .ai-command-page,
+:where(app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.zenoti-page, .automation-page, .command-page),
+.ai-workforce-page {
+  background: transparent !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-hero, .command-bar, .zenoti-header, .page-heading),
+.ai-workforce-page :where(.module-hero, .ai-workforce-hero) {
+  border: 1px solid var(--ai-aura-border) !important;
+  border-radius: var(--ai-aura-radius) !important;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(232, 167, 184, 0.18), transparent 260px),
+    linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  color: #fff !important;
+  box-shadow: 0 18px 42px rgba(75, 18, 56, 0.16) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-hero h1, .ai-hero h2, .command-bar h1, .command-bar h2, .command-bar strong, .zenoti-header h1, .page-heading h1),
+.ai-workforce-page :where(.module-hero h1, .module-hero h2, .ai-workforce-hero h2) {
+  color: #fff !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-hero p, .ai-hero small, .command-bar p, .command-bar small, .command-bar span, .hero-signal-row span),
+.ai-workforce-page :where(.module-hero p, .module-hero small, .ai-workforce-hero p) {
+  color: rgba(255, 255, 255, 0.74) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.brand-mark, .workflow-icon, .ai-page-card-icon),
+.ai-workforce-page :where(.agent-avatar) {
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary, #4b1238), var(--aura-rose, #e8a7b8)) !important;
+  box-shadow: 0 10px 22px rgba(75, 18, 56, 0.18) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.panel, .ai-kpi, .ai-page-card, .workflow-card, .result-metrics article, .governance-stack article, .queue-stack article, .output-panel, .ai-output, .center-card, .whatsapp-nav-card, .activity-list article, .rank-list article, .table-wrap),
+.ai-workforce-page :where(.panel, .metric-card, .agent-card, .agent-safety-card, .run-mini, .alert-card, .settings-card, .premium-card, .provider-card, .marketplace-card, .kpi-impact-card, .provider-health-card, .marketplace-kpi-grid article, .marketplace-detail-panel, .run-console, .ai-table-wrap, .empty-state) {
+  border-color: var(--ai-aura-border) !important;
+  border-radius: var(--ai-aura-radius) !important;
+  background: var(--ai-aura-surface) !important;
+  color: var(--aura-text, #1f2933) !important;
+  box-shadow: var(--ai-aura-shadow) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-kpi, .ai-page-card, .workflow-card, .center-card, .whatsapp-nav-card, .activity-list article, .rank-list article),
+.ai-workforce-page :where(.metric-card, .agent-card, .run-mini, .alert-card, .settings-card, .premium-card, .provider-card, .marketplace-card, .kpi-impact-card, .provider-health-card) {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-kpi, .ai-page-card, .workflow-card, .center-card, .whatsapp-nav-card, .activity-list article, .rank-list article):where(:hover, :focus-within),
+.ai-workforce-page :where(.metric-card, .agent-card, .run-mini, .alert-card, .settings-card, .premium-card, .provider-card, .marketplace-card, .kpi-impact-card, .provider-health-card):where(:hover, :focus-within) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 22%, var(--ai-aura-border)) !important;
+  box-shadow: 0 16px 34px rgba(75, 18, 56, 0.09) !important;
+  transform: translateY(-1px);
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-page-card.active, .workflow-card.active, .category-tabs button.active),
+.ai-workforce-page :where(.ai-tabs button.active, .agent-card.selected, .alert-card.selected, .alert-triage-strip button.active, .marketplace-card.selected) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 32%, var(--ai-aura-border)) !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 72%, white 28%) !important;
+  color: var(--aura-primary, #4b1238) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.hero-actions, .category-tabs, .ai-tabs, .alert-triage-strip),
+.ai-workforce-page :where(.ai-tabs, .alert-triage-strip, .agent-actions) {
+  gap: 8px !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(button, .primary-button, .dark-button, .ghost-button, .zenoti-button),
+.ai-workforce-page :where(button, .primary-button, .ghost-button) {
+  min-height: 40px !important;
+  border-radius: 11px !important;
+  border-color: var(--ai-aura-border) !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.primary-button, .dark-button, button.primary, button[type='submit']),
+.ai-workforce-page :where(.primary-button, button.primary, button[type='submit']) {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  box-shadow: 0 12px 24px rgba(75, 18, 56, 0.18) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ghost-button, .zenoti-button:not(.primary), button:not(.primary):not([type='submit'])),
+.ai-workforce-page :where(.ghost-button, button:not(.primary):not([type='submit'])) {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: var(--aura-primary, #4b1238) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(input, select, textarea),
+.ai-workforce-page :where(input, select, textarea) {
+  min-height: 42px !important;
+  border: 1px solid var(--ai-aura-border) !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(input, select, textarea):focus,
+.ai-workforce-page :where(input, select, textarea):focus {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 44%, var(--ai-aura-border)) !important;
+  box-shadow: 0 0 0 3px rgba(75, 18, 56, 0.1) !important;
+  outline: none !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.badge, .chip, .pill, .state, .workflow-card em, .hero-signal-row span),
+.ai-workforce-page :where(.badge, .chip, .pill, .state, .provider-key, .provider-health-score span) {
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 78%, white 22%) !important;
+  color: var(--aura-primary, #4b1238) !important;
+  font-weight: 850 !important;
+}
+
+.ai-workforce-page :where(.badge.good, .badge.success, .metric-card.good) {
+  background: var(--aura-success-bg, rgba(22, 163, 74, 0.12)) !important;
+  color: var(--aura-success, #16a34a) !important;
+}
+
+.ai-workforce-page :where(.badge.warning, .metric-card.warning, .alert-card.warning) {
+  background: var(--aura-warning-bg, rgba(245, 158, 11, 0.14)) !important;
+  color: color-mix(in srgb, var(--aura-warning, #f59e0b) 74%, black 26%) !important;
+}
+
+.ai-workforce-page :where(.badge.critical, .badge.danger, .metric-card.critical, .alert-card.critical, .alert-card.danger) {
+  background: var(--aura-danger-bg, rgba(225, 29, 72, 0.12)) !important;
+  color: var(--aura-danger, #e11d48) !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.table-wrap, .ai-open-page .table-wrap),
+.ai-workforce-page .ai-table-wrap {
+  overflow-x: auto !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(th),
+.ai-workforce-page :where(th) {
+  background: var(--ai-aura-soft) !important;
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 78%, var(--aura-muted, #6b7280)) !important;
+  letter-spacing: 0.02em !important;
+}
+
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(td, th),
+.ai-workforce-page :where(td, th) {
+  border-bottom-color: var(--ai-aura-border) !important;
+  padding: 12px 14px !important;
+}
+
+.ai-workforce-page :where(.run-console, pre),
+:where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.result-json, .ai-output pre) {
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--aura-primary, #4b1238) 88%, #111827 12%) !important;
+  color: #fff7ed !important;
+}
+
+@media (max-width: 980px) {
+  app-ai-assistant :where(.ai-page-layout, .ai-workspace-grid),
+  .ai-workforce-page :where(.ai-overview-grid, .run-console-grid, .marketplace-workbench) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.ai-hero, .command-bar, .zenoti-header, .page-heading),
+  .ai-workforce-page :where(.module-hero, .ai-workforce-hero) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(.hero-actions, .category-tabs, .result-metrics, .queue-stack, .governance-stack),
+  .ai-workforce-page :where(.ai-tabs, .alert-triage-strip, .agent-actions, .provider-health-stats, .marketplace-meta-row) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  :where(app-ai-assistant, app-ai-marketing-automation, app-whatsapp-automation, app-growth-rank-bot) :where(button, .primary-button, .dark-button, .ghost-button, .zenoti-button),
+  .ai-workforce-page :where(button, .primary-button, .ghost-button) {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+/* End AuraSalon AI operations surface polish layer. */
