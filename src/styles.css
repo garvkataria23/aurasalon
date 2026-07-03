@@ -12586,3 +12586,154 @@ app-market-intelligence :where(.branch-dot) {
   color: var(--aura-danger, #e11d48);
 }
 /* End AuraSalon controlled card surface normalization layer. */
+
+/* AuraSalon auth entry premium brand polish layer. */
+.auth-shell {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(232, 167, 184, 0.16), transparent 320px),
+    radial-gradient(circle at 92% 12%, rgba(75, 18, 56, 0.08), transparent 360px),
+    linear-gradient(180deg, #fffaf6 0%, var(--aura-bg, #faf7f2) 62%, #f6eee8 100%) !important;
+}
+
+.auth-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(75, 18, 56, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(75, 18, 56, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 72%);
+  pointer-events: none;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: min(536px, calc(100% - 32px)) !important;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 246, 0.94)),
+    var(--aura-surface-strong, #fff) !important;
+  box-shadow: 0 28px 80px rgba(75, 18, 56, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.auth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 18px 0 0 18px;
+  background: linear-gradient(180deg, var(--aura-primary, #4b1238), var(--aura-rose, #e8a7b8));
+  pointer-events: none;
+}
+
+.auth-brand-lockup {
+  align-items: center !important;
+}
+
+.auth-brand-mark {
+  min-height: 40px !important;
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 24%, white 76%) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  box-shadow: 0 12px 26px rgba(75, 18, 56, 0.2) !important;
+}
+
+.auth-brand-kicker {
+  color: var(--aura-muted, #6b7280) !important;
+  letter-spacing: 0 !important;
+}
+
+.auth-card h1 {
+  color: var(--aura-text, #1f2933) !important;
+  font-size: clamp(2rem, 1.52rem + 1.6vw, 2.45rem) !important;
+  letter-spacing: 0 !important;
+}
+
+.auth-form-grid {
+  gap: 14px !important;
+}
+
+.auth-card .enterprise-field {
+  display: grid;
+  gap: 7px;
+}
+
+.auth-card .enterprise-field span,
+.auth-checkline {
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 78%, var(--aura-muted, #6b7280)) !important;
+}
+
+.auth-card :where(input, select, textarea) {
+  min-height: 46px !important;
+  border-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+
+.auth-input-action button {
+  top: 6px !important;
+  right: 6px !important;
+  min-height: 34px !important;
+  border-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: 10px !important;
+  color: var(--aura-primary, #4b1238) !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 74%, white 26%) !important;
+}
+
+.auth-form-options {
+  align-items: center !important;
+}
+
+.auth-checkline input {
+  accent-color: var(--aura-primary, #4b1238);
+}
+
+.auth-card .state {
+  border-radius: 12px !important;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  padding: 11px 12px !important;
+  font-weight: 800;
+}
+
+.auth-card .state.warning {
+  color: color-mix(in srgb, var(--aura-warning, #f59e0b) 72%, black 28%) !important;
+  background: var(--aura-warning-bg, rgba(245, 158, 11, 0.14)) !important;
+}
+
+.auth-card .state.error {
+  color: var(--aura-danger, #e11d48) !important;
+  background: var(--aura-danger-bg, rgba(225, 29, 72, 0.12)) !important;
+}
+
+.auth-submit-button {
+  min-height: 48px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 34px rgba(75, 18, 56, 0.22) !important;
+}
+
+@media (max-width: 520px) {
+  .auth-shell {
+    padding: 14px !important;
+  }
+
+  .auth-card {
+    width: 100% !important;
+    border-radius: 16px !important;
+  }
+
+  .auth-brand-lockup {
+    align-items: stretch !important;
+  }
+
+  .auth-brand-kicker {
+    text-align: left !important;
+  }
+}
+/* End AuraSalon auth entry premium brand polish layer. */
