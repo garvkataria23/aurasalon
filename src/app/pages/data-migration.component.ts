@@ -1541,7 +1541,8 @@ export class DataMigrationComponent implements OnInit, OnDestroy {
     this.resource = 'purchaseBills';
     this.selectedMappingId = '';
     this.rebuildMappingDraft();
-    this.message.set('Purchase bill history template selected. Import will preserve vendor and item lines without adding stock to inventory.');
+    this.message.set('Purchase bill history template selected. Upload the old purchase bill file and run Analyze.');
+    void this.router.navigate(['/data-migration/controlled-migration-launch'], { queryParams: { resource: 'purchaseBills' } });
   }
 
   onResourceChange(): void {
