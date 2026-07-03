@@ -11732,3 +11732,242 @@ body {
   background: rgba(17, 24, 39, 0.98) !important;
 }
 /* End dark-mode control contrast for premium polish layer. */
+
+/* AuraSalon page excellence layer: dashboard, calendar, POS, CRM, inventory. */
+:where(app-dashboard, app-appointments, app-pos, app-clients, app-inventory) :where(.page-stack) {
+  width: min(100%, var(--aura-content-max, 1680px));
+  margin-inline: auto;
+  gap: 18px !important;
+  padding: 14px 0 34px !important;
+  background: transparent !important;
+}
+
+app-dashboard .dashboard-greeting {
+  min-height: 96px;
+  padding: 20px 22px !important;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.98), rgba(252,247,243,0.94)),
+    var(--aura-surface-strong, #fff) !important;
+  box-shadow: 0 14px 34px rgba(75, 18, 56, 0.08) !important;
+}
+
+app-dashboard .dashboard-greeting h1 {
+  color: var(--aura-text, #1f2933) !important;
+  font-size: clamp(1.35rem, 1.1rem + 0.75vw, 2rem) !important;
+  line-height: 1.12 !important;
+  letter-spacing: 0 !important;
+}
+
+app-dashboard .dashboard-greeting p {
+  max-width: 68ch;
+  color: var(--aura-muted, #6b7280) !important;
+  font-size: 0.94rem !important;
+  line-height: 1.45 !important;
+}
+
+app-dashboard .metrics-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+app-dashboard :where(.metric-card, .dashboard-hub-card, .action-card, .summary-tile) {
+  min-height: 112px;
+  padding: 16px 18px !important;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,249,246,0.94)),
+    #fff !important;
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06) !important;
+}
+
+app-dashboard :where(.metric-card, .dashboard-hub-card, .action-card, .summary-tile)::after {
+  content: none !important;
+}
+
+app-dashboard :where(.metric-value, .summary-tile strong) {
+  color: var(--aura-text, #1f2933) !important;
+  font-size: clamp(1.45rem, 1.2rem + 0.7vw, 1.9rem) !important;
+  line-height: 1.08 !important;
+}
+
+app-dashboard :where(.dashboard-panel, .dashboard-command-panel, .dashboard-summary-grid > .panel) {
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  overflow: clip;
+}
+
+app-appointments :where(.calendar-action-row, .calendar-panel, .date-strip-panel) {
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: var(--aura-surface-raised, rgba(255,255,255,0.94)) !important;
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06) !important;
+}
+
+app-appointments .calendar-action-row {
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px !important;
+}
+
+app-appointments :where(.calendar-filter-row, .calendar-action-buttons, .calendar-toolbar-actions) {
+  gap: 10px !important;
+  flex-wrap: wrap;
+}
+
+app-appointments :where(.calendar-panel .panel-heading, .day-scheduler-heading) {
+  min-height: 52px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12));
+}
+
+app-appointments :where(.appointment-drawer) {
+  border-radius: 18px 0 0 18px !important;
+  box-shadow: var(--aura-shadow-drawer, 0 24px 70px rgba(31, 41, 51, 0.18)) !important;
+}
+
+app-appointments :where(.appointment-card, .appointment-block, .month-appointment, .timeline-appointment, .resource-appointment) {
+  border-radius: 10px !important;
+  box-shadow: 0 8px 18px rgba(75, 18, 56, 0.1) !important;
+}
+
+app-pos .pos-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px) !important;
+  align-items: start !important;
+  gap: 18px !important;
+}
+
+app-pos :where(.pos-layout > .panel, .checkout-panel, .form-panel, .package-redeem-panel, .membership-redemption-panel) {
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: var(--aura-surface-raised, rgba(255,255,255,0.94)) !important;
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06) !important;
+}
+
+app-pos .checkout-panel {
+  position: sticky !important;
+  top: 84px !important;
+}
+
+app-pos :where(.pos-form, .checkout-panel) {
+  gap: 14px !important;
+}
+
+app-pos :where(.table-wrap) {
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  overflow-x: auto;
+}
+
+app-pos :where(.payment-button, .payment-mode-button, .quick-pay button, .tip-button, .primary-button, .dark-button) {
+  min-height: 44px;
+}
+
+app-clients .client-database-panel {
+  overflow: visible !important;
+}
+
+app-clients .client-database-panel .table-toolbar {
+  top: 66px !important;
+  z-index: 8 !important;
+  gap: 12px !important;
+  padding: 14px !important;
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: color-mix(in srgb, var(--aura-bg, #faf7f2) 72%, white 28%) !important;
+  box-shadow: 0 10px 24px rgba(75, 18, 56, 0.06) !important;
+}
+
+app-clients :where(.client-database-panel .table-wrap, .clients-crm-table) {
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+}
+
+app-clients .clients-crm-table :where(th, td) {
+  white-space: nowrap;
+}
+
+app-clients .client-drawer {
+  border-radius: 18px 0 0 18px !important;
+  box-shadow: var(--aura-shadow-drawer, 0 24px 70px rgba(31, 41, 51, 0.18)) !important;
+}
+
+app-inventory .inventory-shell {
+  gap: 18px !important;
+}
+
+app-inventory :where(.zenoti-table-shell, .operations-panel, .product-panel, .autopilot-panel, .pos-intelligence-panel, .panel) {
+  border: 1px solid var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: var(--aura-card-radius-premium, 14px) !important;
+  background: var(--aura-surface-raised, rgba(255,255,255,0.94)) !important;
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.06) !important;
+}
+
+app-inventory .zenoti-products-table :where(th, td) {
+  white-space: nowrap;
+}
+
+app-inventory :where(.zenoti-table-footer, .section-title, .panel-heading) {
+  gap: 10px !important;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1180px) {
+  app-pos .pos-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  app-pos .checkout-panel {
+    position: static !important;
+  }
+
+  app-dashboard .metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  :where(app-dashboard, app-appointments, app-pos, app-clients, app-inventory) :where(.page-stack) {
+    padding-top: 10px !important;
+    gap: 14px !important;
+  }
+
+  app-dashboard .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  app-appointments :where(.calendar-action-row, .calendar-filter-row, .calendar-action-buttons, .calendar-toolbar-actions),
+  app-clients .client-database-panel .table-toolbar {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  app-appointments :where(.calendar-action-row > *, .calendar-filter-row > *, .calendar-action-buttons > *, .calendar-toolbar-actions > *),
+  app-clients .client-database-panel .table-toolbar > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  app-dashboard .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  app-dashboard .dashboard-greeting,
+  app-dashboard :where(.metric-card, .dashboard-hub-card, .action-card, .summary-tile),
+  app-appointments :where(.calendar-action-row, .calendar-panel, .date-strip-panel),
+  app-pos :where(.pos-layout > .panel, .checkout-panel),
+  app-clients .client-database-panel .table-toolbar,
+  app-inventory :where(.zenoti-table-shell, .operations-panel, .product-panel, .panel) {
+    border-radius: 12px !important;
+  }
+
+  app-appointments .appointment-drawer,
+  app-clients .client-drawer {
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+  }
+}
+/* End AuraSalon page excellence layer. */
