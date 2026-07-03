@@ -12133,3 +12133,186 @@ app-command-center-page :where(.cc-item, .cc-row, .cc-card) {
   }
 }
 /* End AuraSalon enterprise module polish layer. */
+
+/* AuraSalon discount and pricing operations polish layer. */
+:where(app-happy-hours-workspace, app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-client-discount-brain, app-client-return-tracker, app-branch-offer-leaderboard, app-campaign-audience-builder, app-bundle-aware-offers, app-channel-aware-offers, app-elasticity-profit-pricing, app-inventory-aware-offers, app-lead-time-offers, app-market-aware-offers, app-member-wallet-offers, app-no-show-risk-offers, app-staff-aware-offers, app-weather-event-offers, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) {
+  --promo-surface: var(--aura-surface-raised, rgba(255, 255, 255, 0.94));
+  --promo-surface-soft: color-mix(in srgb, var(--aura-bg, #faf7f2) 76%, white 24%);
+  --promo-border: var(--aura-border-soft, rgba(75, 18, 56, 0.12));
+  --promo-shadow: 0 10px 26px rgba(75, 18, 56, 0.06);
+  --promo-shadow-hover: 0 16px 38px rgba(75, 18, 56, 0.1);
+  --promo-radius: var(--aura-card-radius-premium, 14px);
+  --promo-control-radius: var(--aura-control-radius, 10px);
+}
+
+app-happy-hours-workspace .happy-hours-workspace,
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-client-discount-brain, app-client-return-tracker, app-branch-offer-leaderboard, app-campaign-audience-builder, app-bundle-aware-offers, app-channel-aware-offers, app-elasticity-profit-pricing, app-inventory-aware-offers, app-lead-time-offers, app-market-aware-offers, app-member-wallet-offers, app-no-show-risk-offers, app-staff-aware-offers, app-weather-event-offers, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-stack, .promotion-calendar-page, .market-intel-page, .incrementality-page, .level6-page, .page) {
+  width: min(100%, var(--aura-content-max, 1680px));
+  margin-inline: auto;
+  gap: 18px !important;
+  background: transparent !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+app-happy-hours-workspace :where(.workspace-hero, .workspace-detail),
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-client-discount-brain, app-client-return-tracker, app-branch-offer-leaderboard, app-campaign-audience-builder, app-bundle-aware-offers, app-channel-aware-offers, app-elasticity-profit-pricing, app-inventory-aware-offers, app-lead-time-offers, app-market-aware-offers, app-member-wallet-offers, app-no-show-risk-offers, app-staff-aware-offers, app-weather-event-offers, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-header, .panel, .toolbar, .calendar-toolbar, .promotion-side-nav, .planner-panel, .metric-card, .form-box, .suggestion-card, .map-card, .category-card, .rules-card, .offer-card, .insight-card, .score-card, .simulation-card, .audit-card, .approval-card, .leaderboard-card, .segment-card, .conflict-card, .empty-card, .table-wrap) {
+  min-width: 0;
+  border: 1px solid var(--promo-border) !important;
+  border-radius: var(--promo-radius) !important;
+  background: var(--promo-surface) !important;
+  color: var(--aura-text, #1f2933) !important;
+  box-shadow: var(--promo-shadow) !important;
+}
+
+app-happy-hours-workspace :where(.workspace-hero, .workspace-detail) {
+  overflow: clip;
+}
+
+app-happy-hours-workspace .workspace-hero,
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-header) {
+  align-items: flex-start !important;
+  gap: 14px !important;
+  padding: 18px !important;
+}
+
+app-happy-hours-workspace :where(.workspace-hero h1, .detail-head h2),
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-client-discount-brain, app-client-return-tracker, app-branch-offer-leaderboard, app-campaign-audience-builder, app-bundle-aware-offers, app-channel-aware-offers, app-elasticity-profit-pricing, app-inventory-aware-offers, app-lead-time-offers, app-market-aware-offers, app-member-wallet-offers, app-no-show-risk-offers, app-staff-aware-offers, app-weather-event-offers, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-header h1, h1, h2, h3, .metric-card strong, .suggestion-card strong, .day-number) {
+  color: var(--aura-text, #1f2933) !important;
+  letter-spacing: 0 !important;
+}
+
+app-happy-hours-workspace :where(.workspace-hero p, .workspace-hero span, .detail-head p, .category-tile small),
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-client-discount-brain, app-client-return-tracker, app-branch-offer-leaderboard, app-campaign-audience-builder, app-bundle-aware-offers, app-channel-aware-offers, app-elasticity-profit-pricing, app-inventory-aware-offers, app-lead-time-offers, app-market-aware-offers, app-member-wallet-offers, app-no-show-risk-offers, app-staff-aware-offers, app-weather-event-offers, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(p, small, .muted-text, .empty-text, .legal-note, .metric-card span, .metric-card small, .suggestion-card p, .suggestion-card li, .promotion-nav-card small, .weekday-row span) {
+  color: var(--aura-muted, #6b7280) !important;
+  line-height: 1.42;
+}
+
+app-happy-hours-workspace :where(.eyebrow, .kicker),
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.eyebrow, .kicker, .section-kicker) {
+  color: var(--aura-primary, #4b1238) !important;
+}
+
+app-happy-hours-workspace .category-tile,
+:where(app-promotion-calendar, app-market-intelligence, app-pricing-incrementality, app-level6-readiness) :where(.promotion-nav-card, .day-cell, .event-chip, .branch-dot, .competitor-dot, .preset-row .ghost-button) {
+  border-color: var(--promo-border) !important;
+  border-radius: 12px !important;
+  background: var(--promo-surface-soft) !important;
+}
+
+app-happy-hours-workspace .category-tile:hover,
+app-happy-hours-workspace .category-tile.active,
+:where(app-promotion-calendar, app-market-intelligence, app-pricing-incrementality, app-level6-readiness) :where(.promotion-nav-card:hover, .promotion-nav-card.active, .day-cell:hover) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 28%, var(--promo-border)) !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, #f7edf3) 54%, white 46%) !important;
+  box-shadow: var(--promo-shadow-hover) !important;
+  transform: translateY(-1px);
+}
+
+app-happy-hours-workspace .category-tile.active,
+app-promotion-calendar .promotion-nav-card.active {
+  box-shadow: inset 3px 0 0 var(--aura-primary, #4b1238), var(--promo-shadow-hover) !important;
+}
+
+:where(app-happy-hours-workspace, app-promotion-calendar, app-market-intelligence, app-pricing-incrementality, app-level6-readiness) :where(.header-actions, .hero-actions, .period-actions, .segmented-control, .preset-row, .row-actions, .market-filters, .form-grid, .suggestion-actions, .calendar-toolbar) {
+  gap: 10px !important;
+}
+
+:where(app-happy-hours-workspace, app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(button, .primary-button, .dark-button, .ghost-button, .secondary-button) {
+  min-height: 38px;
+  border-radius: var(--promo-control-radius) !important;
+  font-weight: 800;
+}
+
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(input, select, textarea) {
+  min-height: 38px;
+  border-color: var(--promo-border) !important;
+  border-radius: var(--promo-control-radius) !important;
+  background: #fff !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible) {
+  outline: none;
+  box-shadow: var(--aura-focus, 0 0 0 3px rgba(75, 18, 56, 0.18)) !important;
+}
+
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.table-wrap) {
+  overflow-x: auto;
+}
+
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(table) {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(th) {
+  background: var(--aura-table-header, #fbf7f2) !important;
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 78%, var(--aura-muted, #6b7280)) !important;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(td, th) {
+  border-bottom-color: var(--promo-border) !important;
+  vertical-align: top;
+}
+
+:where(app-happy-hours-workspace, app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.status-pill, .status-badge, .badge, .offer-pill, .event-chip) {
+  border-radius: 999px !important;
+  font-weight: 850;
+}
+
+app-promotion-calendar :where(.day-grid) {
+  border-color: var(--promo-border) !important;
+  border-radius: var(--promo-radius) !important;
+  box-shadow: var(--promo-shadow);
+}
+
+app-promotion-calendar :where(.day-cell.today) {
+  box-shadow: inset 0 0 0 2px var(--aura-primary, #4b1238) !important;
+}
+
+app-market-intelligence :where(.map-card) {
+  background:
+    linear-gradient(90deg, rgba(75, 18, 56, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(75, 18, 56, 0.055) 1px, transparent 1px),
+    var(--promo-surface-soft) !important;
+  background-size: 28px 28px !important;
+}
+
+app-market-intelligence :where(.branch-dot) {
+  background: linear-gradient(135deg, var(--aura-primary-strong, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+@media (max-width: 1180px) {
+  app-happy-hours-workspace .workspace-shell,
+  :where(app-promotion-calendar, app-market-intelligence, app-pricing-incrementality, app-level6-readiness) :where(.calendar-layout, .content-grid, .suggestion-grid) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  app-happy-hours-workspace .happy-hours-workspace {
+    padding: 14px !important;
+  }
+
+  app-happy-hours-workspace :where(.workspace-hero, .detail-head),
+  :where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-header, .header-actions, .hero-actions, .toolbar, .calendar-toolbar, .market-filters, .form-grid, .suggestion-actions) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  :where(app-happy-hours-workspace, app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-header > *, .header-actions > *, .hero-actions > *, .toolbar > *, .calendar-toolbar > *, .market-filters > *, .form-grid > *, .suggestion-actions > *) {
+    width: 100%;
+  }
+
+  app-happy-hours-workspace :where(.workspace-hero, .workspace-detail),
+  :where(app-happy-hours-control-tower, app-rule-list, app-rule-builder, app-coupon-engine, app-promotion-calendar, app-happy-hours-client-segments, app-happy-hours-staff-incentives, app-offer-lifecycle, app-offer-roi-score, app-offer-health-score, app-offer-auto-sunset, app-happy-hours-fraud-guard, app-rule-conflict-detector, app-discount-audit-log, app-discount-rule-approvals, app-cross-branch-analytics, app-discount-simulation-sandbox, app-discount-anomaly-inbox, app-white-label-rules, app-pricing-incrementality, app-market-intelligence, app-level6-readiness) :where(.page-header, .panel, .toolbar, .calendar-toolbar, .promotion-side-nav, .planner-panel, .metric-card, .form-box, .suggestion-card, .map-card, .table-wrap) {
+    border-radius: 12px !important;
+  }
+}
+/* End AuraSalon discount and pricing operations polish layer. */
