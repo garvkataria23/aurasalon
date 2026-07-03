@@ -15333,3 +15333,390 @@ app-purchase-bill-drafts .warning-list {
     flex-direction: column;
   }
 }
+
+/* AuraSalon targeted visual cleanup: calmer enterprise surfaces. */
+:root {
+  --aura-clean-surface: rgba(255, 255, 255, 0.96);
+  --aura-clean-surface-soft: color-mix(in srgb, var(--aura-bg, #faf7f2) 72%, white 28%);
+  --aura-clean-border: color-mix(in srgb, var(--aura-border-soft, rgba(75, 18, 56, 0.13)) 82%, white 18%);
+  --aura-clean-shadow: 0 10px 26px rgba(75, 18, 56, 0.07);
+  --aura-clean-shadow-hover: 0 14px 32px rgba(75, 18, 56, 0.10);
+}
+
+.workspace > router-outlet + * :where(
+  .metric-card,
+  .kpi-card,
+  .summary-card,
+  .command-kpi,
+  .status-card,
+  .action-card,
+  .quick-card,
+  .control-card,
+  .kanban-card,
+  .kanban-column,
+  .ai-card,
+  .ai-kpi,
+  .ai-page-card,
+  .workflow-card,
+  .dashboard-hub-card,
+  .report-card,
+  .score-card,
+  .score-panel,
+  .insight-card,
+  .suggestion-card,
+  .simulation-card,
+  .metric,
+  .card,
+  .panel,
+  .form-panel,
+  .settings-card,
+  .platform-card,
+  .drawer-card,
+  .calendar-panel,
+  .table-wrap,
+  .tbl-wrap,
+  .aura-table-wrap
+) {
+  border-color: var(--aura-clean-border) !important;
+  border-radius: 14px !important;
+  background: var(--aura-clean-surface) !important;
+  box-shadow: var(--aura-clean-shadow) !important;
+}
+
+.workspace > router-outlet + * :where(
+  .metric-card,
+  .kpi-card,
+  .summary-card,
+  .command-kpi,
+  .status-card,
+  .action-card,
+  .quick-card,
+  .control-card,
+  .kanban-card,
+  .ai-card,
+  .ai-kpi,
+  .workflow-card,
+  .dashboard-hub-card,
+  .report-card,
+  .score-card,
+  .insight-card,
+  .suggestion-card,
+  .simulation-card,
+  .metric,
+  .card
+):where(:hover, :focus-within) {
+  transform: translateY(-1px) !important;
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 24%, white 76%) !important;
+  box-shadow: var(--aura-clean-shadow-hover) !important;
+}
+
+.workspace > router-outlet + * :where(
+  .teal,
+  .cyan,
+  .mint,
+  .pink,
+  .peach,
+  .blue,
+  .amber,
+  .green,
+  .violet,
+  .rose,
+  .red
+):where(.metric-card, .kpi-card, .summary-card, .action-card, .quick-card, .control-card, .kanban-card, .ai-card, .report-card, .score-card, .metric, .card) {
+  background: var(--aura-clean-surface) !important;
+  border-top: 0 !important;
+  border-left: 4px solid color-mix(in srgb, var(--aura-primary, #8f286b) 74%, white 26%) !important;
+}
+
+.workspace > router-outlet + * :where(
+  .metric-card::before,
+  .kpi-card::before,
+  .summary-card::before,
+  .action-card::before,
+  .quick-card::before,
+  .control-card::before,
+  .kanban-card::before,
+  .ai-card::before,
+  .report-card::before,
+  .card::before
+) {
+  opacity: 0.45;
+}
+
+.workspace > router-outlet + * :where(
+  .app-icon,
+  .nav-icon,
+  .po-nav-icon,
+  .saas-nav-icon,
+  .whatsapp-nav-icon,
+  .avatar,
+  .brand-mark,
+  .workflow-icon,
+  .ai-page-card-icon,
+  .swatch
+) {
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 12%, white 88%) !important;
+  color: var(--aura-primary-strong, #4b1238) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--aura-primary, #8f286b) 16%, white 84%);
+}
+
+.workspace > router-outlet + * :where(
+  .badge,
+  .chip,
+  .pill,
+  .tag,
+  .status,
+  .status-pill,
+  .state,
+  .risk,
+  .offer-pill,
+  .event-chip
+) {
+  min-height: 24px;
+  border: 1px solid color-mix(in srgb, var(--aura-primary, #8f286b) 16%, white 84%) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 7%, white 93%) !important;
+  color: var(--aura-primary-strong, #4b1238) !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+}
+
+.workspace > router-outlet + * :where(.success, .good, .complete, .completed, .paid, .active):where(.badge, .chip, .pill, .status, .state, .status-pill) {
+  border-color: rgba(34, 197, 94, 0.24) !important;
+  background: rgba(34, 197, 94, 0.09) !important;
+  color: #166534 !important;
+}
+
+.workspace > router-outlet + * :where(.warning, .warn, .pending, .trial, .paused, .low, .amber):where(.badge, .chip, .pill, .status, .state, .status-pill) {
+  border-color: rgba(245, 158, 11, 0.26) !important;
+  background: rgba(245, 158, 11, 0.10) !important;
+  color: #92400e !important;
+}
+
+.workspace > router-outlet + * :where(.danger, .critical, .risk, .failed, .expired, .overdue, .red):where(.badge, .chip, .pill, .status, .state, .status-pill) {
+  border-color: rgba(220, 38, 38, 0.24) !important;
+  background: rgba(220, 38, 38, 0.08) !important;
+  color: #991b1b !important;
+}
+
+.workspace > router-outlet + * :where(table) {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  background: #fff;
+}
+
+.workspace > router-outlet + * :where(.table-wrap, .tbl-wrap, .aura-table-wrap, .compact-table-wrap, .register-scroll, .line-table, .data-table, .list-table) {
+  overflow-x: auto;
+  border: 1px solid var(--aura-clean-border) !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  box-shadow: 0 8px 22px rgba(75, 18, 56, 0.06) !important;
+}
+
+.workspace > router-outlet + * :where(th, .table-head, .group-tree-head) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 42px;
+  background: color-mix(in srgb, var(--aura-bg, #faf7f2) 74%, white 26%) !important;
+  color: var(--aura-muted, #6f6470) !important;
+  font-size: 0.75rem !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase;
+}
+
+.workspace > router-outlet + * :where(td, th) {
+  padding: 11px 12px !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--aura-clean-border) 78%, white 22%) !important;
+  line-height: 1.42;
+  vertical-align: middle;
+}
+
+.workspace > router-outlet + * :where(tbody tr:hover, .table-row:hover, .data-row:hover, .account-row:hover) {
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 4%, white 96%) !important;
+}
+
+.workspace > router-outlet + * :where(.action-cell, .table-actions, .row-actions, .cell-actions) {
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.workspace > router-outlet + * :where(
+  button,
+  .primary-button,
+  .secondary-button,
+  .ghost-button,
+  .dark-button,
+  .zenoti-button,
+  .row-action,
+  .icon-button,
+  .action-button
+) {
+  border-radius: 10px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+}
+
+.workspace > router-outlet + * :where(.mini, .row-action, .icon-button) {
+  min-height: 32px !important;
+  padding: 7px 10px !important;
+}
+
+.workspace > router-outlet + * :where(
+  input,
+  select,
+  textarea,
+  .cell-input,
+  .command-select
+) {
+  border-color: var(--aura-clean-border) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: var(--aura-ink, #231723) !important;
+  font-weight: 500 !important;
+}
+
+.workspace > router-outlet + * :where(input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible) {
+  outline: 3px solid rgba(143, 40, 107, 0.13) !important;
+  outline-offset: 1px;
+  border-color: color-mix(in srgb, var(--aura-primary, #8f286b) 55%, white 45%) !important;
+}
+
+.workspace > router-outlet + * :where(
+  h1,
+  .module-hero h1,
+  .module-hero h2,
+  .page-heading h1,
+  .page-header h1,
+  .page-title h1,
+  .studio-hero h1
+) {
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.12;
+}
+
+.workspace > router-outlet + * :where(h2, h3, .section-title h2, .section-title h3, .panel-head h2, .panel-head h3) {
+  font-weight: 780 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.22;
+}
+
+.workspace > router-outlet + * :where(p, small, span, label, td, th, li, .muted, .hint) {
+  line-height: 1.45;
+}
+
+.workspace > router-outlet + * :where(.metric-card span, .kpi-card span, .summary-card span, .action-card span, .quick-card span, .control-card span, .card small, .panel small, label span, .eyebrow, .kicker) {
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+}
+
+.workspace > router-outlet + * :where(.metric-card strong, .kpi-card strong, .summary-card strong, .action-card strong, .quick-card strong, .control-card strong, .card strong) {
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+:where(.app-shell, .shell, .workspace-shell) :where(.topbar, .app-topbar, .top-bar, header.topbar) {
+  border-bottom: 1px solid var(--aura-clean-border) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 22px rgba(75, 18, 56, 0.05) !important;
+}
+
+:where(.sidebar, .app-sidebar, .side-nav, .rail, .inner-rail, .workspace-rail) {
+  border-color: var(--aura-clean-border) !important;
+  background: color-mix(in srgb, var(--aura-bg, #faf7f2) 70%, white 30%) !important;
+}
+
+:where(.sidebar, .app-sidebar, .side-nav, .rail, .inner-rail, .workspace-rail) :where(a, button, .nav-item, .rail-item, .tab) {
+  border-radius: 10px !important;
+  font-weight: 690 !important;
+  box-shadow: none !important;
+}
+
+:where(.sidebar, .app-sidebar, .side-nav, .rail, .inner-rail, .workspace-rail) :where(a.active, button.active, .active, .selected, [aria-current='page']) {
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 9%, white 91%) !important;
+  color: var(--aura-primary-strong, #4b1238) !important;
+  box-shadow: inset 3px 0 0 var(--aura-primary, #8f286b) !important;
+}
+
+.workspace > router-outlet + * :where(.tab-rail, .tabs, .segmented, .category-tabs, .desk-tabs, .staff-shell-nav, .suite-tabs, .filter-row) {
+  border-color: var(--aura-clean-border) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 8px 20px rgba(75, 18, 56, 0.04) !important;
+}
+
+.workspace > router-outlet + * :where(.tab-rail button, .tabs a, .segmented button, .category-tabs button, .desk-tabs button, .staff-shell-nav a, .suite-tabs button, .filter-row button) {
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--aura-muted, #6f6470) !important;
+  font-weight: 720 !important;
+}
+
+.workspace > router-outlet + * :where(.tab-rail button.active, .tabs a.active, .segmented button.active, .category-tabs button.active, .desk-tabs button.active, .staff-shell-nav a.active, .suite-tabs button.active, .filter-row button.active) {
+  background: color-mix(in srgb, var(--aura-primary, #8f286b) 9%, white 91%) !important;
+  color: var(--aura-primary-strong, #4b1238) !important;
+  box-shadow: inset 0 -2px 0 var(--aura-primary, #8f286b) !important;
+}
+
+.workspace > router-outlet + * :where(.module-hero, .page-heading, .page-header, .page-title, .studio-hero, .apps-header) {
+  border-color: var(--aura-clean-border) !important;
+  background: linear-gradient(135deg, #fff 0%, color-mix(in srgb, var(--aura-bg, #faf7f2) 58%, white 42%) 100%) !important;
+}
+
+.workspace > router-outlet + * :where(.calendar-grid, .scheduler-grid, .appointment-grid, .month-grid, .week-grid) {
+  border-color: var(--aura-clean-border) !important;
+  background: #fff !important;
+}
+
+.workspace > router-outlet + * :where(.calendar-toolbar, .scheduler-toolbar, .calendar-action-row, .scheduler-view-toolbar) {
+  border-color: var(--aura-clean-border) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: var(--aura-clean-shadow) !important;
+}
+
+.workspace > router-outlet + * :where(.appointment-card, .booking-card, .event-card, .slot-card) {
+  border-radius: 10px !important;
+  background: #fff !important;
+  border-left: 4px solid color-mix(in srgb, var(--aura-primary, #8f286b) 70%, white 30%) !important;
+  box-shadow: 0 6px 16px rgba(75, 18, 56, 0.06) !important;
+}
+
+.workspace > router-outlet + * :where(.dashboard-grid, .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .quick-grid, .card-grid, .action-grid, .workspace-grid, .kanban-board) {
+  gap: clamp(12px, 1.4vw, 18px) !important;
+  align-items: start;
+}
+
+.workspace > router-outlet + * :where(.dashboard-grid, .workspace-grid, .analytics-workspace, .po-workspace, .saas-section-workspace, .campaign-layout) > :where(main, section, aside, .panel, .detail-stack, .analytics-detail, .po-detail-pane) {
+  min-width: 0;
+}
+
+.workspace > router-outlet + * :where(.empty-state, .empty, .apps-empty, .preview-empty) {
+  border: 1px dashed var(--aura-clean-border) !important;
+  background: color-mix(in srgb, var(--aura-bg, #faf7f2) 62%, white 38%) !important;
+  color: var(--aura-muted, #6f6470) !important;
+}
+
+@media (max-width: 1024px) {
+  .workspace > router-outlet + * :where(.dashboard-grid, .workspace-grid, .analytics-workspace, .po-workspace, .saas-section-workspace, .campaign-layout, .review-layout, .draft-workbench) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .workspace > router-outlet + * :where(.metric-grid, .metrics-grid, .kpi-grid, .summary-grid, .quick-grid, .card-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace > router-outlet + * :where(.metric-grid, .metrics-grid, .kpi-grid, .summary-grid, .quick-grid, .card-grid, .dashboard-grid, .workspace-grid) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .workspace > router-outlet + * :where(.module-hero, .page-heading, .page-header, .page-title, .studio-hero, .apps-header, .section-title, .panel-head, .toolbar, .table-toolbar, .filter-bar, .filters, .header-actions, .hero-actions) {
+    align-items: stretch !important;
+  }
+}
