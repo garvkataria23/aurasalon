@@ -917,7 +917,7 @@ type MigrationRecoveryReport = {
     .command-header, .control-strip { grid-column: 1 / -1; }
     .migration-shell > :not(.command-header):not(.control-strip):not(.migration-page-workspace) { grid-column: 2; }
     .migration-side-nav { grid-column: 1; grid-row: 3 / span 80; position: sticky; top: 92px; display: grid; gap: 10px; align-self: start; }
-    .migration-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; min-height: 92px; padding: 13px; border: 1px solid #d7e6e2; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-decoration: none; box-shadow: 0 12px 26px rgba(15,23,42,.07); cursor: pointer; }
+    .migration-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; min-height: 92px; padding: 13px; border: 1px solid #d7e6e2; border-left: 4px solid #55173D; border-radius: 8px; background: #fff; color: #172033; text-decoration: none; box-shadow: 0 12px 26px rgba(15,23,42,.07); cursor: pointer; }
     .migration-nav-card:hover, .migration-nav-card.active { background: linear-gradient(135deg, #F1E8EE, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
     .migration-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #F1E8EE; color: #3D0F2C; font-weight: 950; font-size: 12px; }
     .migration-nav-card strong, .migration-nav-card small { display: block; }

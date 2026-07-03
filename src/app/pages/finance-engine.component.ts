@@ -173,7 +173,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .ghost-button, .primary-button { min-height: 32px; border: 1px solid #c6d7ea; border-radius: 3px; padding: 7px 12px; font-weight: 900; cursor: pointer; }
     .ghost-button { background: #fff; color: #0963a6; }
-    .primary-button { background: #0f8a7d; color: #fff; border-color: #0f8a7d; }
+    .primary-button { background: #55173D; color: #fff; border-color: #55173D; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     .table-wrap { overflow: auto; border: 1px solid #d9e1ea; }
     table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }

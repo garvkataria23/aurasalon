@@ -241,7 +241,7 @@ type MarketingViewKey = 'overview' | 'workdesk' | 'offers' | 'output' | 'registe
     .brand-block small, .desk-heading span, .register-heading span, .field span, .search-field span { display: block; color: #5f6f85; font-size: 11px; font-weight: 800; text-transform: uppercase; }
     .brand-block strong { display: block; color: #fff; font-size: 15px; }
     .zenoti-button, .desk-tabs button, .primary-button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
-    .zenoti-button.primary, .primary-button, .desk-tabs .active { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-button.primary, .primary-button, .desk-tabs .active { background: #55173D; border-color: #55173D; color: #fff; }
     .primary-button:disabled { opacity: .5; cursor: not-allowed; }
     .zenoti-header { background: #fff; }
     .zenoti-header { display: grid; gap: 10px; padding: 18px 16px 12px; }
@@ -254,10 +254,10 @@ type MarketingViewKey = 'overview' | 'workdesk' | 'offers' | 'output' | 'registe
     .search-field { width: min(100%, 310px); }
     .search-field input, .field input, .field select, .field textarea { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
     .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 0; overflow-x: auto; background: #fff; border-left: 1px solid #d8e1ea; border-right: 1px solid #d8e1ea; border-bottom: 1px solid #d8e1ea; }
-    .metric-strip article { min-width: 150px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #0b8f7c; display: flex; flex-direction: column; }
+    .metric-strip article { min-width: 150px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #55173D; display: flex; flex-direction: column; }
     .metric-strip article:nth-child(2) { border-top-color: #2b61d1; }
     .metric-strip article:nth-child(3) { border-top-color: #bd7400; }
-    .metric-strip article:nth-child(4) { border-top-color: #0b8f7c; }
+    .metric-strip article:nth-child(4) { border-top-color: #55173D; }
     .metric-strip article:nth-child(5) { border-top-color: #7046d8; }
     .metric-strip article:nth-child(6) { border-top-color: #bb241a; }
     .metric-strip article:last-child { border-right: none; }
@@ -265,7 +265,7 @@ type MarketingViewKey = 'overview' | 'workdesk' | 'offers' | 'output' | 'registe
     .metric-strip strong { display: block; margin: 6px 0 2px; color: #172033; font-size: 24px; }
     .marketing-section-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
     .marketing-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
-    .marketing-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
+    .marketing-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #55173D; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
     .marketing-nav-card:hover, .marketing-nav-card.active { background: linear-gradient(135deg, #F1E8EE, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
     .marketing-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #F1E8EE; color: #3D0F2C; font-weight: 950; font-size: 12px; }
     .marketing-nav-card strong, .marketing-nav-card small { display: block; }
@@ -279,11 +279,11 @@ type MarketingViewKey = 'overview' | 'workdesk' | 'offers' | 'output' | 'registe
     .desk-tabs button { border-radius: 16px; color: #5f6f85; padding: 7px 13px; }
     .workdesk-grid { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 12px; padding-top: 14px; min-height: 370px; align-content: start; }
     .zenoti-form { display: grid; gap: 10px; align-content: start; padding: 12px; border: 1px solid #d8e1ea; background: #fbfcfe; box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: box-shadow .15s, border-color .15s; min-height: 340px; }
-    .zenoti-form:focus-within { border-color: #0b8f7c; box-shadow: 0 2px 8px rgba(11,143,124,.1); }
+    .zenoti-form:focus-within { border-color: #55173D; box-shadow: 0 2px 8px rgba(11,143,124,.1); }
     .zenoti-form.wide { grid-column: span 2; }
     .field.full { grid-column: 1 / -1; }
     .field textarea { min-height: 78px; resize: vertical; }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid rgba(11,143,124,.3); border-color: #0b8f7c; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid rgba(11,143,124,.3); border-color: #55173D; }
     .check-line { display: flex; align-items: center; gap: 8px; color: #41536b; font-weight: 700; }
     .segment-result { display: grid; gap: 5px; padding: 10px; background: #f4f7fa; border: 1px solid #d8e1ea; color: #41536b; font-size: 13px; }
     .table-wrap { overflow: auto; border: 1px solid #d8e1ea; background: #fff; min-height: 100px; }

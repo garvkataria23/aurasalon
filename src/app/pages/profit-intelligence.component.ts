@@ -870,12 +870,12 @@ import { StateComponent } from '../shared/ui/state/state.component';
     form { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
     label { display: grid; gap: 5px; color: #5d6f87; font-size: 11px; font-weight: 900; text-transform: uppercase; }
     input { min-height: 34px; border: 1px solid #bdcfe2; border-radius: 3px; padding: 7px 10px; font: inherit; color: #1d2430; background: #fff; }
-    .primary-button { min-height: 34px; border: 1px solid #0f8a7d; border-radius: 3px; padding: 7px 12px; background: #0f8a7d; color: #fff; font-weight: 900; cursor: pointer; }
+    .primary-button { min-height: 34px; border: 1px solid #55173D; border-radius: 3px; padding: 7px 12px; background: #55173D; color: #fff; font-weight: 900; cursor: pointer; }
     app-state { display: block; margin: 12px 14px 0; }
     .metrics-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; padding: 0 14px 12px; background: #fff; border-left: 1px solid #d9e1ea; border-right: 1px solid #d9e1ea; border-bottom: 1px solid #d9e1ea; }
     .metrics-grid article { display: grid; gap: 3px; min-height: 76px; padding: 12px 14px; border: 1px solid #d9e1ea; border-left: 0; border-top: 3px solid #0a78b6; }
     .metrics-grid article:first-child { border-left: 1px solid #d9e1ea; }
-    .metrics-grid .net-card { border-top-color: #0f8a7d; }
+    .metrics-grid .net-card { border-top-color: #55173D; }
     .metrics-grid span, .metrics-grid small, header > span { color: #64748b; font-size: 12px; font-weight: 800; }
     .metrics-grid strong { font-size: 20px; line-height: 1; white-space: nowrap; }
     .ceo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px 14px; background: #eef4f8; border: 1px solid #d9e1ea; }
@@ -888,14 +888,14 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .scenario-form .primary-button { width: 100%; }
     .twin-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .twin-metrics div { display: grid; gap: 4px; border: 1px solid #d9e1ea; padding: 10px; }
-    .twin-metrics .delta { border-top: 3px solid #0f8a7d; }
+    .twin-metrics .delta { border-top: 3px solid #55173D; }
     .twin-metrics span { color: #64748b; font-size: 12px; font-weight: 800; }
     .twin-metrics strong { font-size: 18px; white-space: nowrap; }
     .booking-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border: 1px solid #d9e1ea; }
     .booking-panel { border-top: 3px solid #0a78b6; }
     .booking-panel table { min-width: 980px; }
     .pricing-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid #d9e1ea; }
-    .pricing-panel { border-top: 3px solid #0f8a7d; }
+    .pricing-panel { border-top: 3px solid #55173D; }
     .pricing-panel table { min-width: 1040px; }
     .wastage-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border: 1px solid #d9e1ea; }
     .wastage-panel { border-top: 3px solid #9a3412; }
@@ -904,7 +904,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .leak-panel { border-top: 3px solid #991b1b; }
     .leak-panel table { min-width: 1040px; }
     .action-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid #d9e1ea; }
-    .action-panel { border-top: 3px solid #0f8a7d; }
+    .action-panel { border-top: 3px solid #55173D; }
     .action-panel table { min-width: 1040px; }
     .action-buttons { display: flex; flex-wrap: wrap; gap: 6px; min-width: 210px; }
     .action-buttons button { border: 1px solid #cbd5e1; background: #fff; color: #143d59; padding: 7px 9px; font-weight: 900; cursor: pointer; }
@@ -923,7 +923,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .guard-result strong { font-size: 13px; overflow-wrap: anywhere; }
     .pos-guard-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid #d9e1ea; }
     .pos-guard-panel { border-top: 3px solid #991b1b; }
-    .pos-result-panel { border-top: 3px solid #0f8a7d; }
+    .pos-result-panel { border-top: 3px solid #55173D; }
     .pos-guard-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; }
     .pos-guard-form .primary-button { width: 100%; }
     .copilot-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 10px; padding: 12px 14px; background: #eef4f8; border: 1px solid #d9e1ea; }
@@ -950,7 +950,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .severity-amber { color: #92400e; background: #fef3c7; border: 1px solid #fbbf24; }
     .severity-red { color: #991b1b; background: #fee2e2; border: 1px solid #fca5a5; }
     .enterprise-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 10px; padding: 12px 14px; background: #f6f8fb; border: 1px solid #d9e1ea; }
-    .analytics-card { border-top: 3px solid #0f8a7d; }
+    .analytics-card { border-top: 3px solid #55173D; }
     .analytics-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .analytics-metrics div { display: grid; gap: 4px; min-width: 0; border: 1px solid #d9e1ea; padding: 10px; }
     .analytics-metrics span, .analytics-metrics small, .mini-table span, .mini-table small { color: #64748b; font-size: 12px; font-weight: 800; }

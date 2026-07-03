@@ -2260,7 +2260,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
       min-height: 92px;
       padding: 13px;
       border: 1px solid rgba(75, 18, 56, 0.14);
-      border-left: 4px solid #0b8f7c;
+      border-left: 4px solid #55173D;
       border-radius: 10px;
       background: #fff;
       color: var(--ink);

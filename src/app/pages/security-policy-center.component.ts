@@ -459,7 +459,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     input, select { border: 1px solid #d7e2ea; border-radius: 4px; min-height: 38px; padding: 8px 10px; color: #111827; background: #fff; }
     .mini { padding: 6px 10px; }
     .policy-toggle { position: relative; }
-    .policy-toggle input { position: absolute; right: 16px; top: 16px; width: 20px; height: 20px; accent-color: #0f8f82; }
+    .policy-toggle input { position: absolute; right: 16px; top: 16px; width: 20px; height: 20px; accent-color: #5A153F; }
     .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
     .form-grid label span { display: block; margin-bottom: 8px; font-weight: 800; }
     .risk-heatmap { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }

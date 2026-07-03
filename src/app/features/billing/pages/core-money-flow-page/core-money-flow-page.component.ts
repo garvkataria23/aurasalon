@@ -36,7 +36,7 @@ type MoneyFlowCheck = {
     .hero-actions { justify-content: flex-end; }
     .button, button, input { min-height: 40px; border-radius: 8px; border: 1px solid #cfdde2; padding: 0 12px; font: inherit; }
     button, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-weight: 800; cursor: pointer; }
-    button.primary, .button.primary { background: #0f8f7d; border-color: #0f8f7d; color: #fff; }
+    button.primary, .button.primary { background: #5A153F; border-color: #5A153F; color: #fff; }
     button.ghost, .button.ghost { background: #fff; color: #172033; }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
     .score-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -53,7 +53,7 @@ type MoneyFlowCheck = {
     .pill[data-state="warn"] { background: #fff5db; color: #925400; }
     .pill[data-state="blocker"] { background: #fff0ed; color: #b42318; }
     .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #9aa8b5; flex: 0 0 auto; }
-    .status-dot[data-state="done"] { background: #0f8f7d; }
+    .status-dot[data-state="done"] { background: #5A153F; }
     .status-dot[data-state="warn"] { background: #e0a100; }
     .status-dot[data-state="blocker"] { background: #c33a2c; }
     .action-panel { padding: 14px; display: grid; gap: 10px; background: #fbfdfc; }

@@ -1636,7 +1636,7 @@ interface EngagementDetail extends ApiRecord {
     .brand-block small, .zenoti-search span { display: block; color: #8fa1b8; font-size: 11px; font-weight: 800; text-transform: uppercase; }
     .brand-block strong { display: block; color: #fff; font-size: 15px; }
     .zenoti-button, .zenoti-shortcuts button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
-    .zenoti-button.primary, .zenoti-shortcuts .active { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-button.primary, .zenoti-shortcuts .active { background: #55173D; border-color: #55173D; color: #fff; }
     .zenoti-header { background: #fff; }
     .zenoti-page-heading { background: #fff; border: 1px solid #d8e1ea; }
     .zenoti-shortcuts { background: #fff; border: 1px solid #d8e1ea; }

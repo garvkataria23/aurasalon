@@ -163,7 +163,7 @@ type MessageHistoryResponse = {
     p { margin: 0; color: #60716d; }
     .hero-actions, .table-actions, .row-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .primary-button, .ghost-button { border: 1px solid #d7e5e1; border-radius: 14px; padding: 12px 18px; font-weight: 800; text-decoration: none; cursor: pointer; }
-    .primary-button { background: #07966f; color: #fff; border-color: #07966f; }
+    .primary-button { background: #4D1538; color: #fff; border-color: #4D1538; }
     .primary-button:disabled, .ghost-button:disabled { opacity: .55; cursor: not-allowed; }
     .ghost-button { background: #fff; color: #162235; }
     .mini { padding: 8px 12px; font-size: 13px; }

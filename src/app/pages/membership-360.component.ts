@@ -354,7 +354,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       border-radius: 999px;
       background: #6b7280;
     }
-    .timeline-dot.success { background: #0f8f71; }
+    .timeline-dot.success { background: #55173D; }
     .timeline-dot.warning { background: #b7791f; }
     .timeline-dot.danger { background: #b42318; }
     .timeline-dot.info { background: #2563eb; }

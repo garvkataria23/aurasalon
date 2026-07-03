@@ -162,11 +162,11 @@ import { ComplianceRouteMeta } from '../domain/compliance.models';
     .eyebrow { margin: 0 0 3px; color: #5d6f87; font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .desk-tabs { display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid #d9e1ea; padding-bottom: 8px; }
     .desk-tabs button { border: 1px solid #c6d7ea; background: #fff; color: #0963a6; border-radius: 3px; padding: 7px 12px; font-weight: 900; }
-    .desk-tabs button:first-child { background: #0f8a7d; color: #fff; border-color: #0f8a7d; }
+    .desk-tabs button:first-child { background: #55173D; color: #fff; border-color: #55173D; }
     .workdesk-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: end; }
     label { display: grid; gap: 5px; color: #5d6f87; font-size: 11px; font-weight: 900; }
     input, select { border: 1px solid #bdcfe2; border-radius: 3px; min-height: 34px; padding: 7px 10px; font: inherit; color: #1d2430; background: #fff; min-width: 0; }
-    .workdesk button, .register-heading button { background: #0f8a7d; color: #fff; border-color: #0f8a7d; }
+    .workdesk button, .register-heading button { background: #55173D; color: #fff; border-color: #55173D; }
     .table-wrap { overflow: auto; border: 1px solid #d9e1ea; }
     table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }
     th { background: #f1f5f9; color: #4b5f78; text-align: left; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #d9e1ea; }

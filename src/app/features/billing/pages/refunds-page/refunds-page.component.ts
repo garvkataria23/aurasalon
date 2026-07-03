@@ -29,7 +29,7 @@ type InvoiceListResponse = { rows?: ApiRecord[]; total?: number } | ApiRecord[];
     button, .button, input, select, textarea { min-height: 40px; border-radius: 8px; border: 1px solid #cfdde2; padding: 0 12px; font: inherit; }
     textarea { min-height: 82px; padding: 10px 12px; resize: vertical; }
     button, .button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; font-weight: 800; text-decoration: none; cursor: pointer; }
-    button.primary, .button.primary { background: #0f8f7d; border-color: #0f8f7d; color: #fff; }
+    button.primary, .button.primary { background: #5A153F; border-color: #5A153F; color: #fff; }
     button.ghost, .button.ghost { background: #fff; color: #172033; }
     button.danger { background: #b42318; border-color: #b42318; color: #fff; }
     button:disabled { opacity: .55; cursor: not-allowed; }

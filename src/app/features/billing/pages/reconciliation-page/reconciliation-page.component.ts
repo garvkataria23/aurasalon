@@ -36,7 +36,7 @@ const PROVIDER_MODES: Record<ProviderKey, string[]> = {
     .grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
     button, .button, input, select { min-height: 40px; border-radius: 8px; border: 1px solid #cfdde2; padding: 0 12px; font: inherit; }
     button, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; text-decoration: none; cursor: pointer; }
-    button.primary, .button.primary { background: #0f8f7d; border-color: #0f8f7d; color: #fff; }
+    button.primary, .button.primary { background: #5A153F; border-color: #5A153F; color: #fff; }
     button.ghost, .button.ghost { background: #fff; color: #172033; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     .field { display: grid; gap: 6px; flex: 1 1 150px; }

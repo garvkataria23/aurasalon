@@ -244,13 +244,13 @@ type SaasViewKey = 'overview' | 'usage' | 'metering' | 'health' | 'features' | '
     .brand-block small { color: #8fa1b8; }
     .brand-block strong { display: block; color: #fff; font-size: 15px; }
     .zenoti-button, .primary-button, .ghost-button { border: 1px solid #b9cbe0; background: #fff; color: #0065a8; border-radius: 3px; padding: 8px 13px; font-weight: 800; cursor: pointer; }
-    .zenoti-button.primary, .primary-button { background: #0b8f7c; border-color: #0b8f7c; color: #fff; }
+    .zenoti-button.primary, .primary-button { background: #55173D; border-color: #55173D; color: #fff; }
     .zenoti-header { background: #fff; display: grid; gap: 10px; padding: 18px 16px 12px; }
     .page-heading { background: #fff; border: 1px solid #d8e1ea; }
     .metric-strip { background: #fff; border: 1px solid #d8e1ea; }
     .saas-section-workspace { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; align-items: start; }
     .saas-side-nav { position: sticky; top: 92px; display: grid; gap: 10px; }
-    .saas-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #0b8f7c; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
+    .saas-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; width: 100%; min-height: 92px; padding: 13px; border: 1px solid #d8e1ea; border-left: 4px solid #55173D; border-radius: 8px; background: #fff; color: #172033; text-align: left; box-shadow: 0 10px 24px rgba(15,23,42,.06); cursor: pointer; }
     .saas-nav-card:hover, .saas-nav-card.active { background: linear-gradient(135deg, #F1E8EE, #eef4ff); border-color: #9fc3dc; transform: translateY(-1px); }
     .saas-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #F1E8EE; color: #3D0F2C; font-weight: 950; font-size: 12px; }
     .saas-nav-card strong, .saas-nav-card small { display: block; }
@@ -266,7 +266,7 @@ type SaasViewKey = 'overview' | 'usage' | 'metering' | 'health' | 'features' | '
     .search-field { width: min(100%, 350px); display: grid; gap: 5px; }
     .search-field input, .field input, .field select { width: 100%; border: 1px solid #cbd8e5; border-radius: 3px; padding: 9px 11px; font: inherit; background: #fff; color: #172033; }
     .metric-strip { display: grid; grid-template-columns: repeat(6, minmax(155px, 1fr)); gap: 0; overflow-x: auto; background: #fff; border-left: 1px solid #d8e1ea; border-right: 1px solid #d8e1ea; border-bottom: 1px solid #d8e1ea; }
-    .metric-strip article { min-width: 155px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #0b8f7c; }
+    .metric-strip article { min-width: 155px; padding: 13px 16px; border-right: 1px solid #d8e1ea; border-top: 3px solid #55173D; }
     .metric-strip article:nth-child(2) { border-top-color: #bd7400; }
     .metric-strip article:nth-child(3) { border-top-color: #2b61d1; }
     .metric-strip article:nth-child(4) { border-top-color: #16834f; }
@@ -290,7 +290,7 @@ type SaasViewKey = 'overview' | 'usage' | 'metering' | 'health' | 'features' | '
     .form-actions { justify-content: flex-end; }
     .badge { display: inline-flex; width: max-content; padding: 4px 9px; border-radius: 999px; background: #dff7ee; color: #046452; font-weight: 800; font-size: 12px; }
     .stage-track { height: 7px; border-radius: 999px; background: #e5edf3; overflow: hidden; }
-    .stage-track span { display: block; height: 100%; background: #0b8f7c; }
+    .stage-track span { display: block; height: 100%; background: #55173D; }
     app-state { display: block; }
     @media (max-width: 1050px) {
       .saas-section-workspace, .dashboard-grid { grid-template-columns: 1fr; }

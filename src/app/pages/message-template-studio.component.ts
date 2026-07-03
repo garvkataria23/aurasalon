@@ -189,7 +189,7 @@ type PreferencesResponse = {
     h3 { font-size: 16px; }
     p { color: #63736f; margin-top: 8px; }
     .primary-button, .ghost-button { border: 1px solid #d7e5e1; border-radius: 13px; padding: 12px 16px; font-weight: 900; text-decoration: none; cursor: pointer; }
-    .primary-button { background: #07966f; color: #fff; border-color: #07966f; }
+    .primary-button { background: #4D1538; color: #fff; border-color: #4D1538; }
     .ghost-button { background: #fff; color: #14233a; }
     .mini { padding: 8px 11px; font-size: 13px; }
     button:disabled { opacity: .5; cursor: not-allowed; }

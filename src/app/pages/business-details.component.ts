@@ -561,10 +561,10 @@ type ContactVerificationResponse = ContactVerification & {
       gap: 12px;
       padding: 18px;
       min-height: 220px;
-      border-top: 4px solid #0f7f73;
+      border-top: 4px solid #4A1235;
     }
     .sms-route-card.client { border-top-color: #2563eb; }
-    .sms-route-card.staff { border-top-color: #0f7f73; }
+    .sms-route-card.staff { border-top-color: #4A1235; }
     .sms-route-card.owner { border-top-color: #b45309; }
     .sms-route-card.logs { border-top-color: #be185d; }
     .sms-route-card h3 {
@@ -644,7 +644,7 @@ type ContactVerificationResponse = ContactVerification & {
       font-weight: 700;
       cursor: pointer;
     }
-    .primary-button { background: #0f7f73; color: #fff; border-color: #0f7f73; }
+    .primary-button { background: #4A1235; color: #fff; border-color: #4A1235; }
     .ghost-button { background: #fff; color: #071524; }
     .alert { padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; }
     .alert.error { background: #fff1f0; color: #b42318; border: 1px solid #ffc9c2; }
@@ -763,8 +763,8 @@ type ContactVerificationResponse = ContactVerification & {
       transform: rotate(45deg) translate(-1px, -1px);
     }
     .check-card input:checked + .checkmark {
-      border-color: #0f7f73;
-      background: #0f7f73;
+      border-color: #4A1235;
+      background: #4A1235;
       color: #fff;
     }
     .check-card strong {
@@ -809,7 +809,7 @@ type ContactVerificationResponse = ContactVerification & {
       box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.02);
     }
     .token-editor:focus-within {
-      border-color: #0f7f73;
+      border-color: #4A1235;
       box-shadow: 0 0 0 3px rgba(15, 127, 115, 0.12);
     }
     .token-editor.has-error {
@@ -945,7 +945,7 @@ type ContactVerificationResponse = ContactVerification & {
       border: 0;
       border-radius: 8px;
       padding: 0 12px;
-      background: #0f7f73;
+      background: #4A1235;
       color: #fff;
       font-weight: 900;
       cursor: pointer;

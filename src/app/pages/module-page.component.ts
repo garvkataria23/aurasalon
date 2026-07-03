@@ -479,8 +479,8 @@ type ServiceProductLockDraft = {
     }
 
     .zenoti-button.primary {
-      background: #0b8f7c;
-      border-color: #0b8f7c;
+      background: #55173D;
+      border-color: #55173D;
       color: #fff;
     }
 
@@ -570,7 +570,7 @@ type ServiceProductLockDraft = {
       min-width: 150px;
       padding: 13px 16px;
       border-right: 1px solid #d8e1ea;
-      border-top: 3px solid #0b8f7c;
+      border-top: 3px solid #55173D;
     }
 
     .zenoti-metric-strip article:nth-child(2) { border-top-color: #16834f; }

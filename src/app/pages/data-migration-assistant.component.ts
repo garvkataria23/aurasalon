@@ -83,7 +83,7 @@ import { DataMigrationStore } from './data-migration.store';
     .form-input { flex: 1; min-height: 38px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fafcfb; padding: 8px 10px; color: #172033; font-weight: 700; box-sizing: border-box; font-size: 13px; }
     .form-input:focus { border-color: #5A153F; outline: 2px solid rgba(90,21,63,.12); background: #ffffff; }
     .btn-primary { min-height: 36px; border: 1px solid #5A153F; border-radius: 8px; padding: 0 16px; font-weight: 700; font-size: 12px; cursor: pointer; background: #5A153F; color: #ffffff; flex-shrink: 0; }
-    .btn-primary:hover { background: #0d7d6f; }
+    .btn-primary:hover { background: #451133; }
     .answer-card { padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fffd; }
     .answer-card p { margin: 0; font-size: 13px; line-height: 1.5; color: #172033; }
     .anomaly-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
