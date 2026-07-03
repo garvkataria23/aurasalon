@@ -13,8 +13,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
       <app-state [loading]="loading()" [error]="error()"></app-state>
 
       <div class="topbar dashboard-greeting" *ngIf="report()">
-        <div>
+        <div class="dashboard-greeting-copy">
+          <span class="dashboard-eyebrow">Today's command center</span>
           <h1>{{ greeting() }}</h1>
+          <p>Track revenue, bookings, payments, clients, and alerts from one operational view.</p>
         </div>
         <div class="topbar-actions">
           <a class="ghost-button" routerLink="/reports">Export</a>
@@ -471,6 +473,293 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .dashboard-hub-card b {
       color: #7a4d47;
       font-weight: 650;
+    }
+
+    :host .page-stack {
+      gap: 16px;
+      padding: 10px 8px 30px;
+      background: #f8f5f2;
+    }
+
+    :host .dashboard-greeting.topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 24px;
+      border: 1px solid rgba(126, 92, 82, 0.14);
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, #fffaf7 100%);
+      box-shadow: 0 16px 40px rgba(75, 53, 45, 0.08);
+    }
+
+    :host .dashboard-greeting-copy {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    :host .dashboard-eyebrow {
+      color: #8a6259;
+      font-size: 0.7rem;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    :host .dashboard-greeting h1 {
+      margin: 0;
+      color: #241c19;
+      font-size: clamp(1.45rem, 2vw, 2rem);
+      font-weight: 660;
+      letter-spacing: -0.026em;
+      line-height: 1.1;
+    }
+
+    :host .dashboard-greeting p {
+      max-width: 680px;
+      margin: 0;
+      color: #746763;
+      font-size: 0.88rem;
+      font-weight: 430;
+      line-height: 1.45;
+    }
+
+    :host .dashboard-greeting .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    :host .dashboard-greeting .ghost-button,
+    :host .dashboard-greeting .primary-button,
+    :host .dashboard-command-panel .ghost-button,
+    :host .dashboard-summary-grid .ghost-button {
+      min-height: 36px;
+      border-radius: 10px;
+      font-weight: 580;
+      box-shadow: none;
+    }
+
+    :host .dashboard-greeting .primary-button {
+      border: 1px solid #7a4d47;
+      background: #7a4d47;
+      color: #fff;
+    }
+
+    :host .dashboard-greeting .ghost-button,
+    :host .dashboard-command-panel .ghost-button,
+    :host .dashboard-summary-grid .ghost-button {
+      border-color: rgba(126, 92, 82, 0.18);
+      background: #fff;
+      color: #6a4a45;
+    }
+
+    :host .dashboard-panel,
+    :host .dashboard-command-panel,
+    :host .dashboard-summary-grid > .panel {
+      border: 1px solid rgba(126, 92, 82, 0.13);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 14px 34px rgba(75, 53, 45, 0.055);
+    }
+
+    :host .dashboard-panel {
+      padding: 4px 20px 20px;
+    }
+
+    :host .dashboard-command-panel {
+      padding: 4px 20px 18px;
+    }
+
+    :host .compact-title {
+      margin-bottom: 12px;
+      border-bottom-color: rgba(126, 92, 82, 0.1);
+    }
+
+    :host .section-title h2 {
+      color: #2b2220;
+      font-size: 1.02rem;
+      font-weight: 640;
+      letter-spacing: -0.012em;
+    }
+
+    :host .muted-text {
+      color: #8a7a74;
+      font-weight: 500;
+    }
+
+    :host .metrics-grid {
+      grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+      gap: 14px;
+    }
+
+    :host .dashboard-panel .metrics-grid > a.metric-card,
+    :host a.metric-card {
+      position: relative;
+      display: grid;
+      align-content: center;
+      gap: 8px;
+      min-height: 112px;
+      padding: 17px 18px 16px;
+      border: 1px solid rgba(126, 92, 82, 0.13) !important;
+      border-top: 1px solid rgba(126, 92, 82, 0.13) !important;
+      border-left: 4px solid #8f5c54 !important;
+      border-radius: 14px;
+      background: #fff !important;
+      background-image: linear-gradient(180deg, #fff 0%, #fffdfb 100%) !important;
+      box-shadow: 0 8px 22px rgba(75, 53, 45, 0.045);
+      color: #2b2220;
+      overflow: hidden;
+      text-decoration: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    :host .dashboard-panel .metrics-grid > a.metric-card::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: linear-gradient(180deg, #9b6a60, #d3a36e);
+    }
+
+    :host .dashboard-panel .metrics-grid > a.metric-card::after {
+      content: 'Live';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 3px 8px;
+      border: 1px solid rgba(143, 92, 84, 0.14);
+      border-radius: 999px;
+      background: #fff8f4;
+      color: #8a6259;
+      font-size: 0.62rem;
+      font-weight: 620;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    :host .dashboard-panel .metrics-grid > a.metric-card:hover,
+    :host .dashboard-panel .metrics-grid > a.metric-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(143, 92, 84, 0.24) !important;
+      box-shadow: 0 14px 30px rgba(75, 53, 45, 0.075);
+      outline: 0;
+    }
+
+    :host .metric-label {
+      color: #82746f;
+      font-size: 0.69rem;
+      font-weight: 590;
+      letter-spacing: 0.055em;
+    }
+
+    :host .metric-value,
+    :host .dashboard-panel .metric-card .metric-value {
+      color: #503a35 !important;
+      font-size: 1.32rem;
+      font-weight: 660;
+      line-height: 1.15;
+      letter-spacing: -0.012em;
+    }
+
+    :host .dashboard-hub-grid {
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+    }
+
+    :host .dashboard-command-panel .dashboard-hub-card {
+      position: relative;
+      min-height: 128px;
+      padding: 16px 16px 15px;
+      border: 1px solid rgba(126, 92, 82, 0.13) !important;
+      border-left: 4px solid rgba(143, 92, 84, 0.72) !important;
+      border-radius: 14px;
+      background: #fff !important;
+      background-image: linear-gradient(180deg, #fff 0%, #fffdfb 100%) !important;
+      box-shadow: 0 8px 22px rgba(75, 53, 45, 0.04);
+      color: #2b2220;
+      text-decoration: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    :host .dashboard-command-panel .dashboard-hub-card:hover,
+    :host .dashboard-command-panel .dashboard-hub-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(143, 92, 84, 0.24) !important;
+      box-shadow: 0 14px 30px rgba(75, 53, 45, 0.07);
+      outline: 0;
+    }
+
+    :host .dashboard-command-panel .hub-icon {
+      width: fit-content;
+      min-width: 34px;
+      height: 28px;
+      padding: 0 9px;
+      border: 1px solid rgba(143, 92, 84, 0.16);
+      border-radius: 999px;
+      color: #7a4d47;
+      background: #fff8f4;
+      font-size: 0.68rem;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+    }
+
+    :host .dashboard-command-panel .dashboard-hub-card strong {
+      color: #342723;
+      font-size: 0.92rem;
+      font-weight: 590;
+      line-height: 1.3;
+    }
+
+    :host .dashboard-command-panel .dashboard-hub-card small {
+      color: #7e716c;
+      font-weight: 430;
+    }
+
+    :host .dashboard-command-panel .dashboard-hub-card b {
+      color: #7a4d47;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    :host .dashboard-summary-grid > .panel,
+    :host .quick-grid .action-card,
+    :host .summary-tile,
+    :host .timeline {
+      border-color: rgba(126, 92, 82, 0.12);
+      background: #fff;
+      box-shadow: 0 8px 22px rgba(75, 53, 45, 0.035);
+    }
+
+    :host .quick-grid .action-card strong,
+    :host .summary-tile strong,
+    :host .timeline span {
+      font-weight: 560;
+    }
+
+    :host .timeline span {
+      background: #fff8f4;
+      color: #766763;
+    }
+
+    @media (max-width: 720px) {
+      :host .dashboard-greeting.topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      :host .dashboard-greeting .topbar-actions,
+      :host .dashboard-greeting .topbar-actions > * {
+        width: 100%;
+        justify-content: center;
+      }
+
+      :host .metrics-grid,
+      :host .dashboard-hub-grid {
+        grid-template-columns: 1fr;
+      }
     }
     @media (max-width: 1280px) {
       .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
