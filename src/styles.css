@@ -12486,3 +12486,103 @@ app-market-intelligence :where(.branch-dot) {
   }
 }
 /* End AuraSalon shell interaction polish layer. */
+
+/* AuraSalon controlled card surface normalization layer. */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class$='-card'], [class*='-card '],
+  [class$='-tile'], [class*='-tile '],
+  [class$='-kpi'], [class*='-kpi '],
+  [class$='-metric'], [class*='-metric '],
+  .card, .metric, .tile, article
+),
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a),
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div {
+  --aura-card-surface-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 249, 246, 0.94)),
+    var(--aura-surface-strong, #ffffff) !important;
+  border-color: var(--aura-border-soft, rgba(75, 18, 56, 0.12)) !important;
+  background: var(--aura-card-surface-bg) !important;
+  box-shadow: 0 10px 24px rgba(75, 18, 56, 0.06) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class$='-card'], [class*='-card '],
+  [class$='-tile'], [class*='-tile '],
+  [class$='-kpi'], [class*='-kpi '],
+  [class$='-metric'], [class*='-metric '],
+  .card, .metric, .tile, article
+)::after,
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a)::after,
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div::after {
+  opacity: 0 !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class$='-card'], [class*='-card '],
+  [class$='-tile'], [class*='-tile '],
+  [class$='-kpi'], [class*='-kpi '],
+  [class$='-metric'], [class*='-metric '],
+  .card, .metric, .tile, article
+)::before,
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a)::before,
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div::before {
+  inset: 0 auto 0 0 !important;
+  width: 3px !important;
+  height: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, var(--aura-primary, #4b1238), var(--aura-rose, #e8a7b8)) !important;
+  opacity: 0.68 !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class*='success'], [class*='complete'], [class*='paid'], [class*='good'], [class*='green']
+)::before {
+  background: var(--aura-success, #16a34a) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class*='warning'], [class*='pending'], [class*='amber'], [class*='pause']
+)::before {
+  background: var(--aura-warning, #f59e0b) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class*='danger'], [class*='error'], [class*='risk'], [class*='failed'], [class*='red']
+)::before {
+  background: var(--aura-danger, #e11d48) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  [class$='-card'], [class*='-card '],
+  [class$='-tile'], [class*='-tile '],
+  [class$='-kpi'], [class*='-kpi '],
+  [class$='-metric'], [class*='-metric '],
+  .card, .metric, .tile, article
+):where(:hover, :focus-within),
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):where(:hover, :focus-within),
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:where(:hover, :focus-within) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 20%, var(--aura-border-soft, rgba(75, 18, 56, 0.12))) !important;
+  box-shadow: 0 14px 32px rgba(75, 18, 56, 0.09) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.status-badge, .status-pill, .badge, .chip, .pill, .state) {
+  background-color: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 74%, white 26%);
+  color: var(--aura-primary, #4b1238);
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.status-badge, .status-pill, .badge, .chip, .pill, .state):where(.success, .complete, .completed, .paid, .active, .good) {
+  background-color: var(--aura-success-bg, rgba(22, 163, 74, 0.12));
+  color: var(--aura-success, #16a34a);
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.status-badge, .status-pill, .badge, .chip, .pill, .state):where(.warning, .pending, .paused, .draft) {
+  background-color: var(--aura-warning-bg, rgba(245, 158, 11, 0.14));
+  color: color-mix(in srgb, var(--aura-warning, #f59e0b) 74%, black 26%);
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.status-badge, .status-pill, .badge, .chip, .pill, .state):where(.danger, .error, .risk, .failed, .cancelled, .canceled, .expired) {
+  background-color: var(--aura-danger-bg, rgba(225, 29, 72, 0.12));
+  color: var(--aura-danger, #e11d48);
+}
+/* End AuraSalon controlled card surface normalization layer. */
