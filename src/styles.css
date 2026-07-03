@@ -12737,3 +12737,194 @@ app-market-intelligence :where(.branch-dot) {
   }
 }
 /* End AuraSalon auth entry premium brand polish layer. */
+
+/* AuraSalon security and settings surface polish layer. */
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) {
+  --settings-surface: var(--aura-surface-raised, rgba(255, 255, 255, 0.94));
+  --settings-soft: color-mix(in srgb, var(--aura-bg, #faf7f2) 76%, white 24%);
+  --settings-border: var(--aura-border-soft, rgba(75, 18, 56, 0.12));
+  --settings-radius: var(--aura-card-radius-premium, 14px);
+  --settings-shadow: 0 10px 26px rgba(75, 18, 56, 0.06);
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup) :where(.policy-workspace, .security-workspace, .security-page, .zenoti-page),
+app-tax-settings .tax-settings-page,
+:where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.settings-page, .marketplace-page, .white-label-page) {
+  background: transparent !important;
+  color: var(--aura-text, #1f2933) !important;
+  gap: 16px !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup) :where(.command-bar) {
+  border: 1px solid var(--settings-border) !important;
+  border-radius: var(--settings-radius) !important;
+  background: linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  box-shadow: 0 16px 38px rgba(75, 18, 56, 0.16) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup) :where(.command-bar p, .command-bar small, .command-bar span) {
+  color: rgba(255, 255, 255, 0.74) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup) :where(.command-bar strong, .command-bar h1, .command-bar h2) {
+  color: #fff !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup) :where(.brand-mark, .shield-mark, .security-mark) {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary, #4b1238), var(--aura-rose, #e8a7b8)) !important;
+  box-shadow: 0 10px 22px rgba(75, 18, 56, 0.18) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.zenoti-header, .page-heading, .page-title, .settings-hero, .settings-section, .settings-nav, .panel, .action-card, .risk-tile, .evidence-export, .switch-card, .radio-card, .preview-grid article, .table-wrap, .form-panel, .settings-card, .marketplace-card, .white-label-card, .section-card) {
+  border-color: var(--settings-border) !important;
+  border-radius: var(--settings-radius) !important;
+  background: var(--settings-surface) !important;
+  box-shadow: var(--settings-shadow) !important;
+  color: var(--aura-text, #1f2933) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.zenoti-header, .page-heading, .page-title, .settings-hero) {
+  padding: clamp(18px, 2.4vw, 26px) !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(h1, h2, h3, .section-title strong) {
+  color: var(--aura-text, #1f2933) !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(p, small, .muted, .hint, .section-title p, .settings-hero p, .switch-card small, .radio-card small) {
+  color: var(--aura-muted, #6b7280) !important;
+}
+
+app-tax-settings .settings-nav,
+:where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) .settings-nav {
+  gap: 8px !important;
+  padding: 12px !important;
+}
+
+app-tax-settings .settings-nav a,
+:where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) .settings-nav a {
+  border-radius: 10px !important;
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 84%, var(--aura-muted, #6b7280)) !important;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+app-tax-settings .settings-nav a:where(.active, :hover),
+:where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) .settings-nav a:where(.active, :hover) {
+  color: var(--aura-primary, #4b1238) !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 76%, white 24%) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.panel, .action-card, .risk-tile, .settings-section, .form-panel, .switch-card, .radio-card, .marketplace-card) {
+  padding: clamp(16px, 2vw, 22px) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.action-card, .risk-tile, .switch-card, .radio-card, .marketplace-card):where(:hover, :focus-within) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 22%, var(--settings-border)) !important;
+  box-shadow: 0 16px 34px rgba(75, 18, 56, 0.09) !important;
+  transform: translateY(-1px);
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(input, select, textarea) {
+  min-height: 42px !important;
+  border: 1px solid var(--settings-border) !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--aura-text, #1f2933) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.74) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(input, select, textarea):focus {
+  border-color: color-mix(in srgb, var(--aura-primary, #4b1238) 44%, var(--settings-border)) !important;
+  box-shadow: 0 0 0 3px rgba(75, 18, 56, 0.1) !important;
+  outline: none !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(button, .zenoti-button, .primary-button, .secondary-button, .hero-actions a) {
+  min-height: 40px !important;
+  border-radius: 11px !important;
+  border-color: var(--settings-border) !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.zenoti-button.primary, .primary-button, .hero-actions .primary, button.primary, button[type='submit']) {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--aura-primary-hover, #6d1b4d), var(--aura-primary, #4b1238)) !important;
+  box-shadow: 0 12px 24px rgba(75, 18, 56, 0.18) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.zenoti-button:not(.primary), .secondary-button, .hero-actions a:not(.primary), button:not(.primary):not([type='submit'])) {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: var(--aura-primary, #4b1238) !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.badge, .chip, .status, .status-pill, .risk, .state) {
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--aura-primary-soft, rgba(75, 18, 56, 0.1)) 78%, white 22%) !important;
+  color: var(--aura-primary, #4b1238) !important;
+  font-weight: 850 !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(table) {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(th) {
+  background: var(--settings-soft) !important;
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 78%, var(--aura-muted, #6b7280)) !important;
+  font-size: 0.76rem !important;
+  letter-spacing: 0.02em !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(td, th) {
+  border-bottom-color: var(--settings-border) !important;
+  padding: 12px 14px !important;
+}
+
+:where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.table-wrap) {
+  overflow-x: auto !important;
+}
+
+app-tax-settings :where(.switch-card input:checked + i, .toggle input:checked + i),
+:where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.switch-card input:checked + i, .toggle input:checked + i) {
+  background: var(--aura-primary, #4b1238) !important;
+}
+
+@media (max-width: 980px) {
+  app-tax-settings .tax-settings-page,
+  :where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.settings-page, .marketplace-page, .white-label-page) {
+    grid-template-columns: 1fr !important;
+    padding: 16px !important;
+  }
+
+  :where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.zenoti-header, .page-heading, .page-title, .settings-hero, .command-bar, .section-title) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  app-tax-settings .settings-nav,
+  :where(app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) .settings-nav {
+    position: static !important;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(.hero-actions, .actions, .toolbar, .button-row) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  :where(app-security-policy-center, app-security-layer, app-security-alerts, app-security-blocklist, app-enterprise-security-shield, app-compliance-audit, app-two-factor-setup, app-tax-settings, app-business-details, app-marketplace-settings, app-marketplace-integrations, app-white-label) :where(button, .zenoti-button, .primary-button, .secondary-button, .hero-actions a) {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+/* End AuraSalon security and settings surface polish layer. */
