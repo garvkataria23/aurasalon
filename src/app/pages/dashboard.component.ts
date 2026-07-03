@@ -14,11 +14,11 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
       <div class="topbar dashboard-greeting" *ngIf="report()">
         <div>
-          <h1>{{ greeting() }} 👋</h1>
+          <h1>{{ greeting() }}</h1>
         </div>
         <div class="topbar-actions">
-          <a class="ghost-button" routerLink="/reports">📥 Export</a>
-          <a class="primary-button" routerLink="/appointments">+ New Booking</a>
+          <a class="ghost-button" routerLink="/reports">Export</a>
+          <a class="primary-button" routerLink="/appointments">New Booking</a>
         </div>
       </div>
 
@@ -73,41 +73,41 @@ import { StateComponent } from '../shared/ui/state/state.component';
         </div>
         <div class="dashboard-hub-grid">
           <a class="dashboard-hub-card" routerLink="/appointments">
-            <span class="hub-icon">📅</span>
+            <span class="hub-icon">BK</span>
             <strong>{{ data.totalBookings }} bookings</strong>
             <b>Open calendar</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/pos">
-            <span class="hub-icon">🧾</span>
+            <span class="hub-icon">POS</span>
             <strong>{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }} received due</strong>
             <small>{{ data.pendingPayments | currency: 'INR':'symbol':'1.0-0' }} still pending</small>
             <b>Open POS</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/inventory">
-            <span class="hub-icon">📦</span>
+            <span class="hub-icon">ST</span>
             <strong>{{ data.lowStockAlerts.length || 0 }} alerts</strong>
             <small>{{ data.lowStockAlerts[0]?.name || 'Stock is healthy' }}</small>
             <b>Open stock</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/staff-os/employee-masters">
-            <span class="hub-icon">🧑‍💼</span>
+            <span class="hub-icon">TM</span>
             <strong>{{ data.staffPerformance[0]?.name || 'No ranking yet' }}</strong>
             <small>{{ (data.staffPerformance[0]?.revenue || 0) | currency: 'INR':'symbol':'1.0-0' }} top revenue</small>
             <b>Open Staff OS</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/customer-360">
-            <span class="hub-icon">👤</span>
+            <span class="hub-icon">CL</span>
             <strong>{{ data.repeatCustomerRate }}% repeat</strong>
             <small>{{ data.newClients }} new clients this month</small>
             <b>Open customer intelligence</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/smart-booking">
-            <span class="hub-icon">🌐</span>
+            <span class="hub-icon">WF</span>
             <strong>Workflow</strong>
             <b>Open workflow</b>
           </a>
           <a class="dashboard-hub-card" routerLink="/memberships">
-            <span class="hub-icon">💎</span>
+            <span class="hub-icon">MB</span>
             <strong>{{ data.membershipRevenue | currency: 'INR':'symbol':'1.0-0' }}</strong>
             <b>Open memberships</b>
           </a>
@@ -368,6 +368,110 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .ghost-button:hover { background: var(--color-primary-soft); border-color: var(--color-primary); }
 
+
+    .dashboard-greeting.topbar {
+      padding: 20px 22px;
+      border: 1px solid rgba(117, 79, 71, 0.12);
+      border-radius: 14px;
+      background: linear-gradient(180deg, #fff, #fffcfa);
+      box-shadow: 0 10px 28px rgba(89, 64, 54, 0.06);
+    }
+
+    .dashboard-greeting h1 {
+      font-size: clamp(1.35rem, 1.8vw, 1.9rem);
+      font-weight: 680;
+      letter-spacing: -0.025em;
+    }
+
+    .dashboard-panel,
+    .dashboard-command-panel,
+    .dashboard-summary-grid > .panel {
+      border-color: rgba(117, 79, 71, 0.12);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(89, 64, 54, 0.045);
+    }
+
+    .dashboard-panel { padding-top: 2px; }
+    .dashboard-command-panel { padding-top: 6px; }
+
+    .section-title h2 {
+      font-weight: 680;
+      letter-spacing: -0.015em;
+    }
+
+    .metric-card {
+      min-height: 112px;
+      padding: 16px 16px 14px;
+      border: 1px solid rgba(117, 79, 71, 0.12) !important;
+      border-top-width: 1px !important;
+      border-left: 3px solid #8f5c54 !important;
+      border-radius: 13px;
+      background: linear-gradient(180deg, #fff, #fffdfb);
+      box-shadow: 0 6px 18px rgba(89, 64, 54, 0.04);
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .metric-card:hover,
+    .metric-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(143, 92, 84, 0.24) !important;
+      box-shadow: 0 10px 24px rgba(89, 64, 54, 0.065);
+    }
+
+    .metric-label {
+      font-weight: 650;
+      letter-spacing: 0.055em;
+    }
+
+    .metric-value {
+      color: #5f3f3a !important;
+      font-size: 1.28rem;
+      font-weight: 720;
+      line-height: 1.18;
+    }
+
+    .hub-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      color: #7a4d47;
+      background: #fbf1ec;
+      font-size: 0.72rem;
+      font-weight: 760;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+
+    .dashboard-hub-card,
+    .quick-grid .action-card,
+    .summary-tile {
+      border-color: rgba(117, 79, 71, 0.12);
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(89, 64, 54, 0.035);
+    }
+
+    .dashboard-hub-card:hover,
+    .dashboard-hub-card:focus-visible,
+    .quick-grid .action-card:hover,
+    .summary-tile:hover {
+      border-color: rgba(143, 92, 84, 0.22);
+      box-shadow: 0 10px 24px rgba(89, 64, 54, 0.06);
+    }
+
+    .dashboard-hub-card strong,
+    .quick-grid .action-card strong,
+    .summary-tile strong {
+      font-weight: 620;
+    }
+
+    .dashboard-hub-card b {
+      color: #7a4d47;
+      font-weight: 650;
+    }
     @media (max-width: 1280px) {
       .metrics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .dashboard-hub-grid { grid-template-columns: repeat(4, minmax(138px, 1fr)); }

@@ -119,8 +119,11 @@ type PackageClientNotice = {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, CurrencyPipe, StateComponent],
   template: `
     <section class="page-stack">
-      <div class="module-hero">
-        <div>
+      <div class="module-hero pos-command-hero">
+        <div class="pos-command-copy">
+          <span class="pos-eyebrow">POS billing</span>
+          <h1>Counter checkout</h1>
+          <p>Search client, add services and products, collect payment, and save invoice.</p>
         </div>
         <div class="hero-actions">
           <a class="ghost-button" routerLink="/pos/invoices">Invoices</a>
@@ -678,8 +681,10 @@ type PackageClientNotice = {
         </section>
 
         <aside class="panel checkout-panel">
-          <div class="section-title">
+          <div class="section-title checkout-title">
             <div>
+              <span class="pos-eyebrow">Settlement</span>
+              <h2>Cart and payment</h2>
             </div>
           </div>
           <div class="summary-control-grid summary-control-grid--discount">
@@ -1630,6 +1635,60 @@ type PackageClientNotice = {
     :host .pos-search-results button:focus-visible {
       background: rgba(15, 118, 110, 0.09);
       outline: 0;
+    }
+    :host .page-stack { gap: 18px; padding: 8px 4px 28px; background: var(--color-surface-muted); }
+    :host .pos-command-hero { align-items: center; min-height: auto; padding: 18px 22px; border: 1px solid rgba(117, 79, 71, 0.12); border-radius: 14px; background: linear-gradient(180deg, #fff, #fffcfa); box-shadow: 0 10px 28px rgba(89, 64, 54, 0.06); }
+    :host .pos-command-copy { display: grid; gap: 4px; min-width: 0; }
+    :host .pos-eyebrow { color: #8a625b; font-size: 11px; font-weight: 680; letter-spacing: 0.08em; text-transform: uppercase; }
+    :host .pos-command-copy h1 { margin: 0; color: #241b19; font-size: clamp(1.28rem, 1.75vw, 1.82rem); font-weight: 690; letter-spacing: -0.025em; }
+    :host .pos-command-copy p { max-width: 620px; margin: 0; color: #6f625f; font-size: 13px; line-height: 1.45; }
+    :host .hero-actions { gap: 8px; align-items: center; }
+    :host .client-crm-strip { gap: 12px; }
+    :host .client-crm-tile { border: 1px solid rgba(117, 79, 71, 0.12); border-radius: 13px; background: #fff; box-shadow: 0 6px 18px rgba(89, 64, 54, 0.035); }
+    :host .client-crm-tile span, :host .field > span, :host .settlement-preview-metrics span, :host .summary-lines span, :host .payment-mode-card span, :host .package-billing-alert span, :host .package-redeem-header small, :host .package-redeem-expiry { font-weight: 620; letter-spacing: 0.035em; }
+    :host .client-crm-tile strong, :host .summary-lines strong, :host .payment-title-copy h2, :host .checkout-title h2 { color: #2f2421; font-weight: 680; }
+    :host .pos-layout { display: grid; grid-template-columns: minmax(0, 1.48fr) minmax(360px, 0.82fr); gap: 16px; align-items: start; }
+    :host .pos-layout > .panel, :host .checkout-panel, :host .form-panel, :host .invoice-preview, :host .tip-box { border: 1px solid rgba(117, 79, 71, 0.12); border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(89, 64, 54, 0.04); }
+    :host .pos-layout > .panel { min-width: 0; padding: 18px; }
+    :host .checkout-panel { position: sticky; top: 14px; display: grid; gap: 14px; padding: 18px; }
+    :host .pos-form, :host .catalog-picker, :host .benefit-lines, :host .summary-control-grid, :host .tip-draft-grid, :host .payment-grid { gap: 12px; }
+    :host .pos-form { padding: 0; }
+    :host .client-search-row, :host .catalog-picker, :host .benefit-lines, :host .summary-control-grid, :host .payment-grid, :host .tip-draft-grid { align-items: end; }
+    :host .field input, :host .field select, :host .field textarea, :host .small-input, :host .line-discount-control input, :host .line-discount-control select, :host .package-redeem-grid input, :host .package-redeem-grid select { border-color: rgba(117, 79, 71, 0.14); border-radius: 9px; background: #fff; box-shadow: none; }
+    :host .field input:focus, :host .field select:focus, :host .field textarea:focus, :host .small-input:focus, :host .line-discount-control input:focus, :host .line-discount-control select:focus { border-color: rgba(143, 92, 84, 0.32); box-shadow: 0 0 0 3px rgba(143, 92, 84, 0.08); outline: 0; }
+    :host .ghost-button, :host .primary-button, :host .dark-button, :host .icon-button { border-radius: 9px; font-weight: 620; box-shadow: none; }
+    :host .primary-button, :host .dark-button { border-color: #7a4d47; background: #7a4d47; color: #fff; }
+    :host .primary-button:hover, :host .dark-button:hover { background: #6b443f; transform: none; box-shadow: 0 10px 22px rgba(122, 77, 71, 0.18); }
+    :host .ghost-button { border-color: rgba(117, 79, 71, 0.16); background: #fff; color: #5f4742; }
+    :host .ghost-button:hover, :host .ghost-button:focus-visible { border-color: rgba(143, 92, 84, 0.28); background: #fff8f5; color: #6f4741; transform: none; }
+    :host .client-crm-history-button, :host .client-call-button, :host .client-call-button.whatsapp, :host .staff-clear-button, :host .client-badge.good, :host .client-badge.wallet, :host .client-badge.due, :host .client-badge.warning { background: #fbf1ec; color: #6f4741; border-color: rgba(143, 92, 84, 0.16); }
+    :host .client-avatar { color: #7a4d47; background: #fbf1ec; }
+    :host .pos-search-results { border-color: rgba(117, 79, 71, 0.16); border-radius: 14px; background: rgba(255, 255, 255, 0.99); box-shadow: 0 22px 56px rgba(89, 64, 54, 0.16); backdrop-filter: blur(10px); }
+    :host .pos-search-results button:hover, :host .pos-search-results button:focus-visible, :host .client-result-card:hover, :host .client-result-card:focus-visible, :host .client-result-card.active { background: #fff8f5; }
+    :host .service-result-option, :host .client-result-card, :host .benefit-mapping-line, :host .benefit-mapping-summary-list div, :host .tip-lines article, :host .generated-settlement-lines div { border-color: rgba(117, 79, 71, 0.1); border-radius: 10px; }
+    :host .package-billing-alert, :host .package-billing-alert--expired, :host .package-redeem-panel, :host .benefit-mapping-box, :host .membership-redemption-panel, :host .generated-settlement-card, :host .settlement-preview-bar, :host .unpaid-receive-box, :host .round-off-box { border: 1px solid rgba(117, 79, 71, 0.12); border-left: 3px solid rgba(143, 92, 84, 0.72); border-radius: 12px; background: #fffaf7; box-shadow: none; }
+    :host .package-redeem-grid, :host .settlement-preview-metrics article { border: 1px solid rgba(117, 79, 71, 0.1); border-radius: 10px; background: #fff; }
+    :host .settlement-preview-metrics article.is-due { border-color: rgba(185, 28, 28, 0.18); background: #fff7f5; }
+    :host .summary-lines { display: grid; gap: 0; border: 1px solid rgba(117, 79, 71, 0.1); border-radius: 12px; overflow: hidden; background: #fff; }
+    :host .summary-lines div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 12px; border-bottom: 1px solid rgba(117, 79, 71, 0.08); }
+    :host .summary-lines div:last-child { border-bottom: 0; }
+    :host .summary-lines .total { background: #fff8f5; }
+    :host .payment-header { align-items: start; gap: 12px; padding-top: 2px; }
+    :host .payment-title-copy h2, :host .checkout-title h2 { margin: 2px 0 0; font-size: 1.02rem; letter-spacing: -0.015em; }
+    :host .payment-mode-card { border: 1px solid rgba(117, 79, 71, 0.12); border-radius: 12px; background: #fff; transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease; }
+    :host .payment-mode-card:hover, :host .payment-mode-card.filled { border-color: rgba(143, 92, 84, 0.26); background: #fff8f5; box-shadow: 0 8px 18px rgba(89, 64, 54, 0.045); }
+    :host .full-button { min-height: 46px; font-size: 0.94rem; }
+    :host table { border-collapse: separate; border-spacing: 0; }
+    :host th { position: sticky; top: 0; z-index: 1; background: #fff8f5; color: #6b5a55; font-weight: 650; }
+    :host td { border-bottom-color: rgba(117, 79, 71, 0.08); vertical-align: middle; }
+    :host tbody tr:hover td { background: #fffaf7; }
+    @media (max-width: 1180px) { :host .pos-layout { grid-template-columns: 1fr; } :host .checkout-panel { position: static; } }
+    @media (max-width: 760px) {
+      :host .pos-command-hero, :host .payment-header, :host .package-billing-alert, :host .unpaid-receive-box { align-items: stretch; flex-direction: column; }
+      :host .hero-actions, :host .payment-actions, :host .client-search-actions { width: 100%; }
+      :host .hero-actions > *, :host .payment-actions > *, :host .client-search-actions > * { flex: 1 1 auto; justify-content: center; }
+      :host .pos-layout > .panel, :host .checkout-panel { padding: 14px; }
+      :host .summary-lines div { padding: 9px 10px; }
     }
   `]
 })
