@@ -66,7 +66,7 @@ import { DataMigrationStore } from './data-migration.store';
     .command-header { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 16px; align-items: center; padding: 18px 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: linear-gradient(135deg, #faf8f6, #ffffff 62%, #f0ece9); box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 6px rgba(0,0,0,0.04); }
     .command-header h1 { margin: 4px 0; font-size: 26px; line-height: 1.1; letter-spacing: -0.01em; }
     .command-header p { margin: 0; max-width: 800px; color: #64748b; font-size: 13px; line-height: 1.45; }
-    .eyebrow { color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .eyebrow { color: #4B1238; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
     .score-card, .control-strip article { border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; }
     .score-card { display: grid; align-content: center; gap: 4px; padding: 14px; }
     .score-card strong { font-size: 32px; line-height: 1; }
@@ -91,7 +91,7 @@ import { DataMigrationStore } from './data-migration.store';
     button { min-height: 36px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; font-weight: 700; font-size: 12px; cursor: pointer; background: #ffffff; color: #172033; }
     button:disabled { opacity: .5; cursor: not-allowed; }
     .ghost-button { background: #ffffff; }
-    .eyebrow { color: #2563eb; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .eyebrow { color: #4B1238; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
     @media (max-width: 1100px) { .command-header { grid-template-columns: 1fr; } }
     @media (max-width: 760px) {
       .migration-shell { padding: 10px; }

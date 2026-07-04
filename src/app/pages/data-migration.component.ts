@@ -928,7 +928,7 @@ type MigrationRecoveryReport = {
     .command-header { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; align-items: stretch; padding: 22px; border: 1px solid #d7e6e2; border-radius: 8px; background: linear-gradient(120deg, #faf8f6, #ffffff 62%, #F8EEF4); box-shadow: 0 18px 40px rgba(15,23,42,.08); }
     .command-header h1 { margin: 6px 0; font-size: 34px; line-height: 1.05; letter-spacing: 0; }
     .command-header p { margin: 0; max-width: 900px; color: #64748b; font-size: 15px; line-height: 1.55; }
-    .eyebrow { color: #2563eb; font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+    .eyebrow { color: #4B1238; font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
     .score-card, .control-strip article, .panel, .pipeline article, .risk-panel article, .mapping-list article, .entity-stack article, .recon-list article { border: 1px solid #d7e6e2; border-radius: 8px; background: #ffffff; }
     .score-card { display: grid; align-content: center; gap: 6px; padding: 18px; }
     .score-card strong { font-size: 42px; line-height: 1; }
@@ -974,15 +974,15 @@ type MigrationRecoveryReport = {
     .normalizer-files article { border: 1px solid #d7e6e2; border-radius: 8px; background: #ffffff; padding: 9px; min-width: 0; }
     .normalizer-files strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
     .normalizer-files small { color: #64748b; }
-    .migration-progress-panel { display: grid; gap: 10px; margin: 6px 0 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; padding: 12px; }
+    .migration-progress-panel { display: grid; gap: 10px; margin: 6px 0 12px; border: 1px solid #E7DDD6; border-radius: 8px; background: #F8EEF4; padding: 12px; }
     .migration-progress-panel > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; }
     .migration-progress-panel small { grid-column: 1 / -1; }
-    .progress-track { height: 10px; border-radius: 999px; background: #dbeafe; overflow: hidden; }
+    .progress-track { height: 10px; border-radius: 999px; background: #F8EEF4; overflow: hidden; }
     .progress-track span { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: linear-gradient(90deg, #4B1238, #6B1E4B); transition: width .25s ease; }
     button { min-height: 40px; border: 1px solid #cfe0dc; border-radius: 8px; padding: 0 14px; font-weight: 900; cursor: pointer; background: #ffffff; color: #172033; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     .primary-button { background: #5A153F; color: #ffffff; border-color: #5A153F; }
-    .secondary-button { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .secondary-button { background: #F8EEF4; color: #4B1238; border-color: #E7DDD6; }
     .ghost-button { background: #ffffff; }
     .danger-button { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     .success-text, .error-text { margin: 8px 0 0; font-weight: 900; }
@@ -991,7 +991,7 @@ type MigrationRecoveryReport = {
     .pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 14px; }
     .pipeline article { padding: 10px; display: grid; gap: 3px; border-left: 4px solid #cbd5e1; }
     .pipeline article.done { border-left-color: #10b981; background: #f0fdf4; }
-    .pipeline article.active { border-left-color: #2563eb; background: #eff6ff; }
+    .pipeline article.active { border-left-color: #4B1238; background: #F8EEF4; }
     .pipeline article.blocked { border-left-color: #ef4444; background: #fef2f2; }
     .pipeline strong { font-size: 13px; }
     .pipeline small { color: #64748b; }
@@ -1005,10 +1005,10 @@ type MigrationRecoveryReport = {
     .mapping-list, .entity-stack, .recon-list, .checklist { display: grid; gap: 8px; }
     .mapping-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 10px; }
     .mapping-list article { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto; align-items: center; gap: 12px; padding: 10px; }
-    .mapping-list article.required { border-color: #bfdbfe; background: #eff6ff; }
+    .mapping-list article.required { border-color: #E7DDD6; background: #F8EEF4; }
     .mapping-list strong, .entity-stack strong { display: block; }
     .mapping-list small, .entity-stack small { color: #64748b; }
-    .mapping-list article > span { color: #2563eb; font-size: 12px; font-weight: 900; }
+    .mapping-list article > span { color: #4B1238; font-size: 12px; font-weight: 900; }
     .mapping-list input { min-height: 36px; }
     .duplicate-list, .ops-queue { display: grid; gap: 8px; }
     .duplicate-list article { border: 1px solid #d7e6e2; border-radius: 8px; padding: 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
@@ -1047,7 +1047,7 @@ type MigrationRecoveryReport = {
     .recovery-grid strong { font-size: 22px; }
     .recovery-list { display: grid; gap: 8px; }
     .recovery-list article { border: 1px solid #d7e6e2; border-radius: 8px; padding: 10px; background: #ffffff; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: center; }
-    .recovery-list strong { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: #eff6ff; color: #1d4ed8; }
+    .recovery-list strong { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: #F8EEF4; color: #4B1238; }
     .control-strip.compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .worker-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
     .fresh-start-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 8px 12px; border: 1px solid #fca5a5; background: #fef2f2; border-radius: 8px; color: #b91c1c; font-size: 13px; font-weight: 600; }

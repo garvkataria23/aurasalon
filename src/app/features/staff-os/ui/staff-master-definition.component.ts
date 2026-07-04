@@ -373,7 +373,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
     dayCount: [1],
     paid: [true],
     availableForAppointment: [false],
-    color: ['#4f46e5'],
+    color: ['#4B1238'],
     sortOrder: [0],
     leaveQuota: [0],
     quotaPeriod: ['yearly'],
@@ -539,7 +539,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
   }
 
   recordColor(record: MasterRecord): string {
-    return (record as { color?: string }).color || '#4f46e5';
+    return (record as { color?: string }).color || '#4B1238';
   }
 
   recordSubline(record: MasterRecord): string {
@@ -603,7 +603,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
       dayCount: 1,
       paid: true,
       availableForAppointment: false,
-      color: this.isShift() ? '#bbf7d0' : '#4f46e5',
+      color: this.isShift() ? '#bbf7d0' : '#4B1238',
       sortOrder: 0,
       leaveQuota: 0,
       quotaPeriod: 'yearly',
@@ -724,7 +724,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
       dayCount: attendance.dayCount,
       paid: attendance.paid,
       availableForAppointment: attendance.availableForAppointment,
-      color: attendance.color || '#4f46e5',
+      color: attendance.color || '#4B1238',
       sortOrder: attendance.sortOrder || 0
     };
   }

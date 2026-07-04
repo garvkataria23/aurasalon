@@ -25,7 +25,7 @@ import { Component, Input } from '@angular/core';
     .success { background: #F3EAF0; border-color: #DCC4D4; color: #047857; }
     .warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
     .danger { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
-    .info { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .info { background: #F8EEF4; border-color: #E7DDD6; color: #4B1238; }
   `]
 })
 export class LegacyAuraBadgeComponent {

@@ -1139,7 +1139,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .toast { align-items: center; border-radius: 10px; display: flex; justify-content: space-between; padding: 0.8rem 1rem; }
     .toast.success { background: #F0E4EC; border: 1px solid #C9A8BA; color: var(--teal-deep); }
     .toast.error { background: #fef2f2; border: 1px solid #f3c6c6; color: #b91c1c; }
-    .toast.info { background: #f0ece9; border: 1px solid #bfdbfe; color: #1d4ed8; }
+    .toast.info { background: #f0ece9; border: 1px solid #E7DDD6; color: #4B1238; }
     .toast button { background: transparent; border: 0; cursor: pointer; font-size: 1.2rem; }
     .section-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
     .audit-filters { margin-bottom: 0.8rem; }
@@ -1216,7 +1216,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .calendar-board small { color: var(--muted); font-size: .72rem; line-height: 1.35; }
 
     /* ---- Enterprise Ads Command Center ---- */
-    .ads-command-center { border-top: 3px solid #1d4ed8; }
+    .ads-command-center { border-top: 3px solid #4B1238; }
     .section-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.55rem; justify-content: flex-end; }
     .ads-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 1rem; }
     .ads-grid.two-col { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
@@ -1227,7 +1227,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .ads-kpi-grid { margin-bottom: 0.35rem; }
     .table-wrap.compact { margin-top: 0; max-height: 340px; }
     .channel-strip, .approval-flow { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-    .channel-strip span, .approval-flow span { background: #dbeafe; border: 1px solid #bfdbfe; border-radius: 999px; color: #1d4ed8; font-size: 0.76rem; font-weight: 800; padding: 0.35rem 0.65rem; }
+    .channel-strip span, .approval-flow span { background: #F8EEF4; border: 1px solid #E7DDD6; border-radius: 999px; color: #4B1238; font-size: 0.76rem; font-weight: 800; padding: 0.35rem 0.65rem; }
     .recommendation-list, .health-list, .status-list { display: grid; gap: 0.55rem; }
     .recommendation-list article, .health-list article, .status-list article, .copy-output { background: #fff; border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 0.25rem; padding: 0.75rem; }
     .recommendation-list strong, .health-list strong, .status-list strong, .copy-output strong { color: var(--ink); font-family: var(--font-display); font-weight: 800; }

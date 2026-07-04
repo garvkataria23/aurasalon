@@ -260,7 +260,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
                 <span>Booking status</span>
               </div>
               <div class="snap-body snap-stats">
-                <div class="snap-stat"><span class="dot" style="background:#4f46e5"></span><strong>{{ r.bookings.booked || 0 }}</strong></div>
+                <div class="snap-stat"><span class="dot" style="background:#4B1238"></span><strong>{{ r.bookings.booked || 0 }}</strong></div>
                 <div class="snap-stat"><span class="dot" style="background:#059669"></span><strong>{{ r.bookings.completed || 0 }}</strong></div>
                 <div class="snap-stat"><span class="dot" style="background:#d97706"></span><strong>{{ r.bookings.noShow || 0 }}</strong></div>
                 <div class="snap-stat"><span class="dot" style="background:#ef4444"></span><strong>{{ r.bookings.cancelled || 0 }}</strong></div>

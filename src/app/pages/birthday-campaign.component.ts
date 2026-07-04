@@ -132,7 +132,7 @@ type Channel = 'whatsapp' | 'sms';
     button { min-height: 40px; border: 1px solid #cfe0dc; border-radius: 8px; padding: 0 14px; background: #fff; color: #172033; font-weight: 900; cursor: pointer; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     .primary-button { background: #5A153F; border-color: #E7DDD6; color: #fff; }
-    .secondary-button { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .secondary-button { background: #F8EEF4; border-color: #E7DDD6; color: #4B1238; }
     .ghost-button { background: #fff; }
     .metric-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
     .metric-strip article { border: 1px solid #d8e1ea; border-radius: 8px; background: #fff; padding: 14px; }

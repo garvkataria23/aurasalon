@@ -788,7 +788,7 @@ export class DesignSystemComponent implements OnInit {
     {
       name: 'Clinic Clean',
       industry: 'Skin clinic',
-      tokens: { primary: '#2563eb', hover: '#60a5fa', sidebar: '#0b1736', sidebarHover: '#17346f', sidebarActive: '#2563eb', accent: '#10b981', background: '#f4f8ff', border: '#cfe0ff', cardHover: '#eff6ff', tableHover: '#eef6ff' }
+      tokens: { primary: '#4B1238', hover: '#6B1E4B', sidebar: '#2D0B21', sidebarHover: '#3D0F2C', sidebarActive: '#4B1238', accent: '#4B1238', background: '#FAF8F6', border: '#E7DDD6', cardHover: '#F8EEF4', tableHover: '#F8EEF4' }
     },
     {
       name: 'Organic Spa',
