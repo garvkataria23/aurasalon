@@ -1074,7 +1074,7 @@ type MigrationRecoveryReport = {
     .chunk-list article.done { border-left-color: #10b981; background: #f0fdf4; }
     .chunk-list article.danger { border-left-color: #ef4444; background: #fef2f2; }
     .chunk-list span, .chunk-list small { color: #64748b; }
-    tr.selected td { background: #eff6ff; }
+    tr.selected td { background: #F8EEF4; }
     .segmented { display: inline-flex; border: 1px solid #cfe0dc; border-radius: 8px; overflow: hidden; }
     .segmented button { border: 0; border-radius: 0; min-height: 34px; background: #ffffff; }
     .segmented button.active { background: #5A153F; color: #ffffff; }

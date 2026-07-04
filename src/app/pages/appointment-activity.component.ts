@@ -1096,7 +1096,7 @@ interface ClientScoreRow {
     .badge.service,
     .badge.billing {
       background: #ecf3ff;
-      color: #2f5fbd;
+      color: #6B1E4B;
     }
 
     .detail-drawer {

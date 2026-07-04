@@ -1611,7 +1611,7 @@ export class ReportsComponent implements OnInit {
   libColor(module: string): string {
     const colors: Record<string, string> = {
       'FlexiSalon import': 'linear-gradient(135deg,#4B1238,#6B1E4B)',
-      'Invoice intelligence': 'linear-gradient(135deg,#10b981,#059669)',
+      'Invoice intelligence': 'linear-gradient(135deg,#4B1238,#6B1E4B)',
       'POS attribution': 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
       'Payroll': 'linear-gradient(135deg,#f59e0b,#d97706)',
       'Finance': 'linear-gradient(135deg,#64748b,#475569)',

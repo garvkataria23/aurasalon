@@ -190,7 +190,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .result-json { margin: 12px 14px; background: #111827; color: #f8fafc; border-radius: 3px; padding: 12px; overflow: auto; }
 
     :host .finance-engine,
-    :host .page-stack { background: #f8f5f2; }
+    :host .page-stack { background: var(--bg); }
     :host .module-hero,
     :host .metrics-grid,
     :host .metrics-grid article,

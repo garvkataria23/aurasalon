@@ -1210,7 +1210,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .chart-card p { background: #4f7bea; border-radius: 12px; color: #fff; line-height: 1.45; margin: 0; padding: .75rem; }
     .calendar-board { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
     .calendar-board span { background: #faf8f6; border: 1px solid #fed7aa; border-radius: 10px; display: grid; gap: .2rem; padding: .65rem; }
-    .calendar-board span.approved { background: #f0ece9; border-color: #bfdbfe; }
+    .calendar-board span.approved { background: #f0ece9; border-color: #E7DDD6; }
     .calendar-board span.posted { background: #F0E4EC; border-color: #C9A8BA; }
     .calendar-board strong, .calendar-board small { display: block; }
     .calendar-board small { color: var(--muted); font-size: .72rem; line-height: 1.35; }

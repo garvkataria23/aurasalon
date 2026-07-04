@@ -773,7 +773,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       background: #F3EAF0;
       border-color: rgba(16, 185, 129, .35);
       color: #047857;
-      box-shadow: inset 0 -3px 0 #10b981;
+      box-shadow: inset 0 -3px 0 #4B1238;
     }
     td strong,
     td small {

@@ -1103,7 +1103,7 @@ type PackageClientNotice = {
       margin-top: 6px;
       padding: 3px 8px;
       border-radius: 999px;
-      border: 1px solid #d8e2df;
+      border: 1px solid #E7DDD6;
       background: #f8fafc;
       color: #52625d;
       font-size: 11px;

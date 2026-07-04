@@ -294,7 +294,7 @@ import { HappyHoursBannerComponent } from './booking-portal/happy-hours-banner/h
       min-width: 0;
       min-height: 132px;
       padding: 14px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #E7DDD6;
       border-radius: 8px;
       background: #fff;
       text-align: left;

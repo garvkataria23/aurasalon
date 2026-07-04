@@ -2223,7 +2223,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .slot-summary div {
       border: 1px solid rgba(75, 18, 56, 0.18);
       border-radius: 9px;
-      background: #effaf7;
+      background: #F8EEF4;
       padding: 10px;
     }
 
@@ -2272,7 +2272,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .appointment-search-results button:hover {
-      background: #effaf7;
+      background: #F8EEF4;
     }
 
     .appointment-search-results strong {

@@ -89,7 +89,7 @@
   --aura-crm-text: var(--color-text);
   --aura-crm-muted: var(--color-muted);
   --aura-crm-primary: var(--color-primary);
-  --aura-crm-accent-blue: #2563eb;
+  --aura-crm-accent-blue: #4B1238;
   --aura-crm-accent-amber: var(--color-warning);
   --aura-crm-accent-green: var(--color-success);
   --aura-crm-accent-red: var(--color-danger);
@@ -153,7 +153,9 @@
   --muted: #6B7280;
   --line: #E7DED6;
   --teal: #4B1238;
+  --plum: #4B1238;
   --teal-2: #6D1B4D;
+  --plum-2: #6D1B4D;
   --teal-deep: #2D0B21;
   --blue: #4B1238;
   --amber: #F59E0B;
@@ -207,6 +209,15 @@
   --aura-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
   --aura-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.38);
   --aura-shadow-drawer: 0 28px 72px rgba(0, 0, 0, 0.48);
+  --teal: #d49cb4;
+  --plum: #d49cb4;
+  --teal-2: #e0b0c6;
+  --plum-2: #e0b0c6;
+  --teal-deep: #a06a88;
+  --blue: #d49cb4;
+  --violet: #d49cb4;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  --rose: #d49cb4;
 }
 
 :root[data-theme="high-contrast"] {
@@ -1837,7 +1848,7 @@ td small {
 
 .badge.badge-amber { color: #78350f; background: #fef3c7; }
 .badge.badge-red   { color: #7f1d1d; background: #fee2e2; }
-.badge.badge-blue  { color: #1e3a8a; background: #dbeafe; }
+.badge.badge-blue  { color: #4B1238; background: #F8EEF4; }
 .badge.badge-green { color: #14532d; background: #dcfce7; }
 .badge.badge-gray  { color: #374151; background: #f3f4f6; }
 .badge.badge-violet{ color: #4c1d95; background: #ede9fe; }
@@ -4792,7 +4803,7 @@ body::before {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #4B1238, #6B1E4B);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 900;
@@ -9433,73 +9444,17 @@ app-dashboard .dashboard-panel .metrics-grid {
 app-dashboard .dashboard-panel .metric-card {
   min-height: 118px !important;
   padding: 18px 18px 16px !important;
-  isolation: isolate !important;
-  border: 0 !important;
-  border-top: 0 !important;
-  border-radius: 16px !important;
-  box-shadow: 0 14px 28px rgba(31, 41, 51, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.64) !important;
+  border-radius: 14px !important;
+  background: var(--color-surface, #ffffff) !important;
+  border: 1px solid var(--color-border, rgba(75, 18, 56, 0.12)) !important;
+  box-shadow: 0 8px 24px rgba(75, 18, 56, 0.05) !important;
   transform: translateZ(0);
-}
-
-app-dashboard .dashboard-panel .metric-card::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: auto 12px 12px auto !important;
-  width: 46px !important;
-  height: 46px !important;
-  border-radius: 16px !important;
-  background: rgba(255, 255, 255, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.48) !important;
-  opacity: 1 !important;
-  z-index: -1 !important;
-}
-
-app-dashboard .dashboard-panel .metric-card::after {
-  content: '';
-  position: absolute;
-  right: -26px;
-  top: -28px;
-  width: 88px;
-  height: 88px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.36);
-  z-index: -1;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(1) {
-  background: linear-gradient(135deg, #c7fff0 0%, #d9f7ff 100%) !important;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(2) {
-  background: linear-gradient(135deg, #f0dcff 0%, #ffd7ef 100%) !important;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(3) {
-  background: linear-gradient(135deg, #dbeafe 0%, #d9f4ff 100%) !important;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(4) {
-  background: linear-gradient(135deg, #dcfce7 0%, #caf7e2 100%) !important;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(5) {
-  background: linear-gradient(135deg, #ffe1e8 0%, #ffe7c7 100%) !important;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(6) {
-  background: linear-gradient(135deg, #ffe9b8 0%, #ffd7d7 100%) !important;
-}
-
-app-dashboard .dashboard-panel .metric-card:nth-child(7) {
-  background: linear-gradient(135deg, #EAD9E5 0%, #dbeafe 100%) !important;
 }
 
 app-dashboard .dashboard-panel .metric-card:hover,
 app-dashboard .dashboard-panel .metric-card:focus-visible {
-  box-shadow: 0 20px 34px rgba(31, 41, 51, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
-  transform: translateY(-3px) !important;
-  outline: 2px solid rgba(75, 18, 56, 0.2) !important;
-  outline-offset: 2px !important;
+  box-shadow: 0 14px 32px rgba(75, 18, 56, 0.10) !important;
+  transform: translateY(-2px) !important;
 }
 
 app-dashboard .dashboard-panel .metric-label {
@@ -9549,7 +9504,7 @@ app-dashboard .dashboard-command-panel .dashboard-hub-card {
 }
 
 app-dashboard .dashboard-command-panel .dashboard-hub-card:nth-child(3n + 1) {
-  background: linear-gradient(135deg, #eef2ff 0%, #dff7ff 100%) !important;
+  background: linear-gradient(135deg, #F8EEF4 0%, #fff4f8 100%) !important;
 }
 
 app-dashboard .dashboard-command-panel .dashboard-hub-card:nth-child(3n + 2) {
@@ -9634,272 +9589,12 @@ app-dashboard .dashboard-command-panel .hub-icon {
   .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
 ) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button) {
   position: relative !important;
-  isolation: isolate !important;
-  overflow: hidden !important;
-  border: 1px solid rgba(255, 255, 255, 0.74) !important;
-  border-radius: 16px !important;
-  background: linear-gradient(135deg, #e0f7ff 0%, #f1e7ff 100%) !important;
-  box-shadow: 0 14px 30px rgba(31, 41, 51, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.74) !important;
-  color: var(--aura-text, #1F2933) !important;
-  transition: transform 160ms ease, box-shadow 160ms ease, outline-color 160ms ease !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-)::before,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button)::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: auto 12px 12px auto !important;
-  width: 46px !important;
-  height: 46px !important;
-  border-radius: 15px !important;
-  background: rgba(255, 255, 255, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.56) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-)::after,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button)::after {
-  content: '' !important;
-  position: absolute !important;
-  right: -30px !important;
-  top: -32px !important;
-  width: 92px !important;
-  height: 92px !important;
-  border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.34) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-):nth-child(6n + 1),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button):nth-child(6n + 1) {
-  background: linear-gradient(135deg, #bffbea 0%, #d9f4ff 100%) !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-):nth-child(6n + 2),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button):nth-child(6n + 2) {
-  background: linear-gradient(135deg, #f0dcff 0%, #ffd7ef 100%) !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-):nth-child(6n + 3),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button):nth-child(6n + 3) {
-  background: linear-gradient(135deg, #dbeafe 0%, #d9f4ff 100%) !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-):nth-child(6n + 4),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button):nth-child(6n + 4) {
-  background: linear-gradient(135deg, #dcfce7 0%, #caf7e2 100%) !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-):nth-child(6n + 5),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button):nth-child(6n + 5) {
-  background: linear-gradient(135deg, #ffe1e8 0%, #ffe7c7 100%) !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  aura-kpi-card .metric-card,
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-strip > article, .result-metrics > article, .approval-checklist > article,
-  .queue-stack > article, .governance-stack > article, .source-list > .source-row,
-  .record-grid > .record-card, .approval-grid > article, .plan-list > article,
-  .draft-action, .secondary-strip, .insight-card, .stat-card, .stat-tile,
-  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
-  .cash-category-tile, .suggestion-row, .record-row, .source-row
-):nth-child(6n),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .cards, .card-grid, .dashboard-grid, .dashboard-hub-grid, .summary-grid, .quick-grid,
-  .action-grid, .metric-grid, .kpi-grid, .kpi-stats-grid, .score-grid, .signal-grid,
-  .forecast-grid, .record-grid, .source-list, .approval-grid, .plan-list,
-  .owner-summary-grid, .client-stats-grid, .alert-grid, .insight-grid,
-  .approval-link-grid, .denom-grid, .manual-grid, .catalog-mini-grid, .product-grid,
-  .service-grid, .supplier-grid, .template-grid, .review-grid, .queue-grid
-) > :where(.card, .metric, .tile, .category-tile, .cash-category-tile, .record-row, .source-row, .suggestion-row, article, a, button):nth-child(6n) {
-  background: linear-gradient(135deg, #fff0bf 0%, #ffd9d9 100%) !important;
+  border: 1px solid var(--color-border, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: 14px !important;
+  background: var(--color-surface, #ffffff) !important;
+  box-shadow: 0 8px 24px rgba(75, 18, 56, 0.05) !important;
+  color: var(--color-text, #1F2933) !important;
+  transition: transform 160ms ease, box-shadow 160ms ease !important;
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
@@ -9917,32 +9612,13 @@ app-dashboard .dashboard-command-panel .hub-icon {
   .stat-card, .stat-tile, .snapshot-card, .kpi-tile, .forecast-card, .ai-card,
   .category-tile, .cash-category-tile, .suggestion-row, .record-row
 ):where(a, button):hover,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) a:where(.metric-card, .kpi-card, .dashboard-hub-card, .app-card, .action-card, .quick-card, .service-card, .product-card, .supplier-card, .client-card, .review-card, .template-card, .thread-card, .source-row):hover,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.workflow-card, .workflow-map-card, .source-row, .record-row, .suggestion-row):hover,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .metric-card, .kpi-card, .kpi-stat-card, .kpi-insight-card, .ai-kpi, .command-kpi,
-  .cc-metric-card, .status-card, .readiness-score, .summary-card, .report-card,
-  .daily-sheet-card, .score-card, .dashboard-hub-card, .app-card, .action-card,
-  .quick-card, .control-card, .platform-card, .attendance-op-card, .salary-summary,
-  .incentive-summary, .rule-card, .summary-tile, .signal-tile, .service-card,
-  .product-card, .supplier-card, .client-card, .review-card, .template-card,
-  .thread-card, .action-queue-card, .package-history-card, .membership-history-card,
-  .product-profile-card, .approval-item, .ledger-preview, .ledger-suggestion,
-  .marketplace-card, .agent-card, .queue-card, .run-card, .alert-card,
-  .executive-score-card, .workflow-card, .workflow-map-card, .answer-card,
-  .source-row, .record-card, .draft-action, .secondary-strip, .insight-card,
-  .stat-card, .stat-tile, .snapshot-card, .kpi-tile, .forecast-card, .ai-card,
-  .category-tile, .cash-category-tile, .suggestion-row, .record-row
-):focus-visible {
-  box-shadow: 0 20px 36px rgba(31, 41, 51, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
-  transform: translateY(-3px) !important;
-  outline: 2px solid rgba(75, 18, 56, 0.22) !important;
-  outline-offset: 2px !important;
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) a:where(.metric-card, .kpi-card, .dashboard-hub-card, .app-card, .action-card, .quick-card, .service-card, .product-card, .supplier-card, .client-card, .review-card, .template-card, .thread-card, .source-row):hover {
+  box-shadow: 0 14px 32px rgba(75, 18, 56, 0.10) !important;
+  transform: translateY(-2px) !important;
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.workflow-card.active, .workflow-map-card.active, .app-card.active, .action-card.active) {
-  outline: 2px solid var(--aura-primary, #4B1238) !important;
-  outline-offset: 2px !important;
+  box-shadow: 0 0 0 2px var(--color-primary, #4B1238) !important;
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
@@ -9960,7 +9636,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
   .stat-card, .stat-tile, .snapshot-card, .kpi-tile, .forecast-card, .ai-card,
   .category-tile, .cash-category-tile, .suggestion-row, .record-row
 ) :where(span, small, p, em, .eyebrow, .app-tags, .muted, .hint, .kpi-stat-label, .kpi-stat-hint) {
-  color: rgba(31, 41, 51, 0.74) !important;
+  color: var(--color-muted, #6B7280) !important;
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
@@ -9978,120 +9654,8 @@ app-dashboard .dashboard-command-panel .hub-icon {
   .stat-card, .stat-tile, .snapshot-card, .kpi-tile, .forecast-card, .ai-card,
   .category-tile, .cash-category-tile, .suggestion-row, .record-row
 ) :where(strong, b, h2, h3, h4, .metric-value, .kpi-stat-value) {
-  color: #111827 !important;
+  color: var(--color-text, #1F2933) !important;
   font-weight: 900 !important;
-  letter-spacing: 0 !important;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.app-icon, .hub-icon, .nav-icon, .metric-icon, .avatar, .client-avatar, .staff-avatar, .product-avatar, .supplier-avatar, .workflow-icon) {
-  background: rgba(255, 255, 255, 0.64) !important;
-  color: var(--aura-primary, #4B1238) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76) !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  [class$='-card'], [class*='-card '],
-  [class$='-tile'], [class*='-tile '],
-  [class$='-kpi'], [class*='-kpi '],
-  [class$='-metric'], [class*='-metric ']
-) {
-  position: relative !important;
-  isolation: isolate !important;
-  overflow: hidden !important;
-  border: 1px solid rgba(255, 255, 255, 0.74) !important;
-  border-radius: 16px !important;
-  background: var(--aura-card-surface-bg, linear-gradient(135deg, #e0f7ff 0%, #f1e7ff 100%)) !important;
-  box-shadow: 0 14px 30px rgba(31, 41, 51, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.74) !important;
-  color: var(--aura-text, #1F2933) !important;
-  transition: transform 160ms ease, box-shadow 160ms ease, outline-color 160ms ease !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  [class$='-card'], [class*='-card '],
-  [class$='-tile'], [class*='-tile '],
-  [class$='-kpi'], [class*='-kpi '],
-  [class$='-metric'], [class*='-metric ']
-)::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: auto 12px 12px auto !important;
-  width: 46px !important;
-  height: 46px !important;
-  border-radius: 15px !important;
-  background: rgba(255, 255, 255, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.56) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  [class$='-card'], [class*='-card '],
-  [class$='-tile'], [class*='-tile '],
-  [class$='-kpi'], [class*='-kpi '],
-  [class$='-metric'], [class*='-metric ']
-)::after {
-  content: '' !important;
-  position: absolute !important;
-  right: -30px !important;
-  top: -32px !important;
-  width: 92px !important;
-  height: 92px !important;
-  border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.34) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where([class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '], [class$='-kpi'], [class*='-kpi '], [class$='-metric'], [class*='-metric ']):nth-child(6n + 1) { --aura-card-surface-bg: linear-gradient(135deg, #bffbea 0%, #d9f4ff 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where([class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '], [class$='-kpi'], [class*='-kpi '], [class$='-metric'], [class*='-metric ']):nth-child(6n + 2) { --aura-card-surface-bg: linear-gradient(135deg, #f0dcff 0%, #ffd7ef 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where([class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '], [class$='-kpi'], [class*='-kpi '], [class$='-metric'], [class*='-metric ']):nth-child(6n + 3) { --aura-card-surface-bg: linear-gradient(135deg, #dbeafe 0%, #d9f4ff 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where([class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '], [class$='-kpi'], [class*='-kpi '], [class$='-metric'], [class*='-metric ']):nth-child(6n + 4) { --aura-card-surface-bg: linear-gradient(135deg, #dcfce7 0%, #caf7e2 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where([class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '], [class$='-kpi'], [class*='-kpi '], [class$='-metric'], [class*='-metric ']):nth-child(6n + 5) { --aura-card-surface-bg: linear-gradient(135deg, #ffe1e8 0%, #ffe7c7 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where([class$='-card'], [class*='-card '], [class$='-tile'], [class*='-tile '], [class$='-kpi'], [class*='-kpi '], [class$='-metric'], [class*='-metric ']):nth-child(6n) { --aura-card-surface-bg: linear-gradient(135deg, #fff0bf 0%, #ffd9d9 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .table-wrap, .tbl-wrap, .aura-table-wrap, .compact-table-wrap, .form-table-wrap,
-  .payment-table-wrap, .invoice-line-table-wrap, .client-invoice-table-wrap, .account-table,
-  .report-table, .form-panel, .checkout-panel, .billing-panel, .bill-panel, .bill-main,
-  .bill-side, .calendar-panel, .calendar-board, .day-board-scroll, .week-board,
-  .month-grid, .timeline-board, .resource-grid, .scheduler-grid-shell, .enterprise-scheduler,
-  .appointment-drawer, .scheduler-drawer, .booking-drawer, .drawer-panel, .drawer-section,
-  .modal, .entry-dialog, .pos-client-form, .pos-layout, .billing-shell
-) :where(
-  .metric-card, .kpi-card, .summary-card, .report-card, .score-card, .card, .metric,
-  .record-row, .source-row, .suggestion-row, article
-) {
-  background: #ffffff !important;
-  border: 1px solid var(--aura-border, #E7DED6) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .table-wrap, .tbl-wrap, .aura-table-wrap, .compact-table-wrap, .form-table-wrap,
-  .payment-table-wrap, .invoice-line-table-wrap, .client-invoice-table-wrap, .account-table,
-  .report-table, .form-panel, .checkout-panel, .billing-panel, .bill-panel, .bill-main,
-  .bill-side, .calendar-panel, .calendar-board, .day-board-scroll, .week-board,
-  .month-grid, .timeline-board, .resource-grid, .scheduler-grid-shell, .enterprise-scheduler,
-  .appointment-drawer, .scheduler-drawer, .booking-drawer, .drawer-panel, .drawer-section,
-  .modal, .entry-dialog, .pos-client-form, .pos-layout, .billing-shell
-) :where(
-  .metric-card, .kpi-card, .summary-card, .report-card, .score-card, .card, .metric,
-  .record-row, .source-row, .suggestion-row, article
-)::before,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
-  .table-wrap, .tbl-wrap, .aura-table-wrap, .compact-table-wrap, .form-table-wrap,
-  .payment-table-wrap, .invoice-line-table-wrap, .client-invoice-table-wrap, .account-table,
-  .report-table, .form-panel, .checkout-panel, .billing-panel, .bill-panel, .bill-main,
-  .bill-side, .calendar-panel, .calendar-board, .day-board-scroll, .week-board,
-  .month-grid, .timeline-board, .resource-grid, .scheduler-grid-shell, .enterprise-scheduler,
-  .appointment-drawer, .scheduler-drawer, .booking-drawer, .drawer-panel, .drawer-section,
-  .modal, .entry-dialog, .pos-client-form, .pos-layout, .billing-shell
-) :where(
-  .metric-card, .kpi-card, .summary-card, .report-card, .score-card, .card, .metric,
-  .record-row, .source-row, .suggestion-row, article
-)::after {
-  content: none !important;
 }
 
 @media (max-width: 1440px) {
@@ -10134,55 +9698,12 @@ app-dashboard .dashboard-command-panel .hub-icon {
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a),
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div {
   position: relative !important;
-  isolation: isolate !important;
-  overflow: hidden !important;
-  border: 1px solid rgba(255, 255, 255, 0.74) !important;
-  border-radius: 16px !important;
-  background: var(--aura-card-surface-bg, linear-gradient(135deg, #e0f7ff 0%, #f1e7ff 100%)) !important;
-  box-shadow: 0 14px 30px rgba(31, 41, 51, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.74) !important;
-  color: var(--aura-text, #1F2933) !important;
+  border: 1px solid var(--color-border, rgba(75, 18, 56, 0.12)) !important;
+  border-radius: 14px !important;
+  background: var(--color-surface, #ffffff) !important;
+  box-shadow: 0 8px 24px rgba(75, 18, 56, 0.05) !important;
+  color: var(--color-text, #1F2933) !important;
 }
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a)::before,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: auto 12px 12px auto !important;
-  width: 46px !important;
-  height: 46px !important;
-  border-radius: 15px !important;
-  background: rgba(255, 255, 255, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.56) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a)::after,
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div::after {
-  content: '' !important;
-  position: absolute !important;
-  right: -30px !important;
-  top: -32px !important;
-  width: 92px !important;
-  height: 92px !important;
-  border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.34) !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):nth-child(6n + 1),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:nth-child(6n + 1) { --aura-card-surface-bg: linear-gradient(135deg, #bffbea 0%, #d9f4ff 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):nth-child(6n + 2),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:nth-child(6n + 2) { --aura-card-surface-bg: linear-gradient(135deg, #f0dcff 0%, #ffd7ef 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):nth-child(6n + 3),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:nth-child(6n + 3) { --aura-card-surface-bg: linear-gradient(135deg, #dbeafe 0%, #d9f4ff 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):nth-child(6n + 4),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:nth-child(6n + 4) { --aura-card-surface-bg: linear-gradient(135deg, #dcfce7 0%, #caf7e2 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):nth-child(6n + 5),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:nth-child(6n + 5) { --aura-card-surface-bg: linear-gradient(135deg, #ffe1e8 0%, #ffe7c7 100%); }
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .preview-grid > :where(div, article, a):nth-child(6n),
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) .channel-grid > div:nth-child(6n) { --aura-card-surface-bg: linear-gradient(135deg, #fff0bf 0%, #ffd9d9 100%); }
 
 @media (max-width: 520px) {
   :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.preview-grid, .channel-grid) {
@@ -10195,11 +9716,11 @@ app-dashboard .dashboard-command-panel .hub-icon {
   --aura-crm-page-bg: #f6f7f8;
   --aura-crm-card-bg: #ffffff;
   --aura-crm-card-tint: #fbfcfe;
-  --aura-crm-border: #e2e8f0;
+  --aura-crm-border: #E7DDD6;
   --aura-crm-text: #172033;
-  --aura-crm-muted: #64748b;
+  --aura-crm-muted: #6F778A;
   --aura-crm-primary: #5A153F;
-  --aura-crm-accent-blue: #2563eb;
+  --aura-crm-accent-blue: #4B1238;
   --aura-crm-accent-amber: #d97706;
   --aura-crm-accent-green: #16a34a;
   --aura-crm-accent-red: #dc2626;
@@ -10359,9 +9880,9 @@ app-dashboard .dashboard-command-panel .hub-icon {
 :root {
   --aura-overview-bg: #f7f8fa;
   --aura-overview-card: #ffffff;
-  --aura-overview-border: #e2e8f0;
+  --aura-overview-border: #E7DDD6;
   --aura-overview-text: #172033;
-  --aura-overview-muted: #64748b;
+  --aura-overview-muted: #6F778A;
   --aura-overview-primary: #4B1238;
   --aura-overview-shadow: 0 8px 22px rgba(15, 23, 42, 0.055);
 }
@@ -11252,7 +10773,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
   --aura-plum: #4b1238;
   --aura-plum-2: #6d1b4d;
   --aura-rose-gold: #c98f9f;
-  --aura-indigo: #4338ca;
+  --aura-indigo: #4B1238;
   --aura-content-max: 100%;
   --aura-page-gap: 18px;
   --aura-card-radius-premium: 14px;
@@ -15780,4 +15301,113 @@ app-purchase-bill-drafts .warning-list {
   :is(.workspace-route-content > router-outlet + *) {
     padding-inline: 0 !important;
   }
+}
+
+/* ══════════════════════════════════════════════════
+   AuraSalon Design Unification Layer
+   — brand-consistent card/button/input system
+   — border-radius hierarchy (3 tiers)
+   — micro-interactions (hover lift, focus ring)
+   — additive overrides only, works with any theme
+   ══════════════════════════════════════════════════ */
+
+/* ── Border-Radius Hierarchy (3-tier) ── */
+:root {
+  --radius-control: 10px;   /* buttons, inputs, small controls */
+  --radius-card: 14px;      /* cards, panels, tiles */
+  --radius-modal: 22px;     /* modals, drawers, large overlays */
+}
+
+/* ── Button System — consolidated size/radius ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *,
+    app-dashboard, app-clients, app-inventory, app-pos, app-analytics-engine,
+    app-customer-360, app-client-detail, app-cash-drawer-eod, app-appointments,
+    app-appointments-enterprise, app-ai-marketing-automation, app-booking-wizard,
+    app-module-page, app-products-page, app-services-page, app-settings-page,
+    app-reports-page, app-marketplace, app-white-label, app-saas-onboarding,
+    app-birthday-campaign, app-finance-engine, app-balance-sheet, app-account-ledger,
+    app-outgoing-funds-entry, app-marketplace-settings, app-marketplace-integrations,
+    app-memberships, app-membership-360, app-membership-self-service, app-packages,
+    app-engagement-command-center, app-location-sharing-command-center)
+:where(
+  button:not(.ghost-button.mini):not(.danger-button.mini):not([class*="icon-only"]):not([class*="tab"]):not([class*="tag"]):not(.tag):not(.chip),
+  .primary-button, .dark-button, .ghost-button, .danger-button, .secondary-button,
+  .outline-button, .zenoti-button
+) {
+  min-height: 40px;
+  border-radius: var(--radius-control);
+  font-weight: 700;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .primary-button, .dark-button, .ghost-button, .danger-button,
+  .secondary-button, .outline-button
+):where(:not(:disabled)):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(75, 18, 56, 0.08);
+}
+
+/* ── Input / Select / Textarea — unified ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select, textarea
+) {
+  border-radius: var(--radius-control);
+}
+
+/* ── Card hover micro-interactions ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metric-card, .kpi-card, .summary-card, .report-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .client-card, .review-card,
+  .template-card, .workflow-card, .marketplace-card
+):where(a, button, [tabindex]:not([tabindex="-1"])):hover {
+  box-shadow: 0 14px 32px rgba(75, 18, 56, 0.08);
+  transform: translateY(-2px);
+}
+
+/* ── Focus ring — consistent brand accent ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 2.5px solid var(--color-primary, #4B1238);
+  outline-offset: 2px;
+}
+
+/* ── Accent border for interactive cards — subtle plum left edge ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metric-card, .kpi-card, .summary-card, .report-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .client-card, .template-card,
+  .workflow-card, .marketplace-card
+) {
+  border-left: 3px solid var(--color-primary, #4B1238);
+}
+
+/* ── Remove accent border for cards inside tables, panels, drawers — they look cramped ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .table-wrap, .tbl-wrap, .form-panel, .billing-panel, .bill-panel,
+  .drawer-panel, .modal, .entry-dialog, .pos-layout
+) :where(
+  .metric-card, .kpi-card, .summary-card, .report-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .client-card, .template-card,
+  .workflow-card, .marketplace-card
+) {
+  border-left: 1px solid var(--color-border, rgba(75, 18, 56, 0.12));
+}
+
+/* ── Transitions on page-stack children for smooth feel ── */
+:where(.page-stack) > * {
+  transition: opacity 180ms ease;
+}
+
+/* ── Tab / active state — plum underline ── */
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .tab-active, .active-tab, [class*="tab"].active, .tab-list button.active,
+  .nav-tab.active, .filter-tab.active
+) {
+  border-bottom-color: var(--color-primary, #4B1238) !important;
+  color: var(--color-primary, #4B1238) !important;
 }

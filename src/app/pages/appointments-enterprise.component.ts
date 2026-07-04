@@ -1189,7 +1189,7 @@ const STATUS_TONES: Record<string, string> = {
     .appointment-card.violet { background: #ddd6fe !important; border-color: #7c3aed !important; border-left-color: #7c3aed !important; }
     .appointment-card.green, .appointment-card.emerald { background: #bbf7d0 !important; border-color: #16a34a !important; border-left-color: #16a34a !important; }
     .appointment-card.red { background: #fecaca !important; border-color: #dc2626 !important; border-left-color: #dc2626 !important; }
-    .appointment-card.slate { background: #e2e8f0 !important; border-color: #64748b !important; border-left-color: #64748b !important; }
+    .appointment-card.slate { background: #E7DDD6 !important; border-color: #64748b !important; border-left-color: #64748b !important; }
     .appointment-card:hover, .appointment-card:focus-visible, .timeline-appointment:hover, .timeline-appointment:focus-visible { z-index: 45 !important; }
     .appointment-detail-popover { position: fixed; z-index: 140; width: min(340px, calc(100vw - 24px)); max-height: min(420px, calc(100vh - 24px)); overflow: auto; display: grid; gap: 8px; padding: 13px 14px; border: 1px solid #e7ded6; border-radius: 14px; background: #fff; color: #1f2933; box-shadow: 0 22px 55px rgba(31,41,51,.22); pointer-events: none; }
     .appointment-detail-popover .hover-title { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid #f0e7df; }
@@ -1203,10 +1203,10 @@ const STATUS_TONES: Record<string, string> = {
     .current-time-line { position: absolute; left: 0; right: 0; z-index: 3; height: 2px; background: #ff2f2f; box-shadow: 0 0 0 1px rgba(255,47,47,.1); pointer-events: none; }
     .current-time-line::before { content: ''; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 999px; background: #ff2f2f; }
     .staff-action-menu { position: absolute; left: 10px; z-index: 20; min-width: 178px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; box-shadow: 0 18px 40px rgba(15,23,42,.2); overflow: hidden; }
-    .staff-action-menu button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid #e2e8f0; background: #fff; padding: 9px 12px; color: #172033; font-size: 12px; font-weight: 900; text-align: left; cursor: pointer; }
+    .staff-action-menu button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid #E7DDD6; background: #fff; padding: 9px 12px; color: #172033; font-size: 12px; font-weight: 900; text-align: left; cursor: pointer; }
     .staff-action-menu button:hover { background: #F5EEF2; color: #4B1238; }
     .staff-action-menu button:last-child { border-bottom: 0; }
-    .staff-action-menu span { border-radius: 999px; background: #e2e8f0; padding: 2px 7px; font-size: 11px; }
+    .staff-action-menu span { border-radius: 999px; background: #E7DDD6; padding: 2px 7px; font-size: 11px; }
     .slot-hover { position: absolute; left: 96px; z-index: 10; background: #fff7ed; border: 1px solid #fb923c; padding: 4px 8px; border-radius: 6px; font-size: 12px; box-shadow: 0 10px 24px rgba(15,23,42,.12); pointer-events: none; }
     .scheduler-grid-shell--alternate { overflow-x: auto; }
     .calendar-timeline-view, .calendar-list-view { min-width: 780px; display: grid; gap: 10px; }
@@ -1223,7 +1223,7 @@ const STATUS_TONES: Record<string, string> = {
     .timeline-staff strong, .timeline-staff small { display: block; }
     .timeline-staff small { margin-top: 2px; color: #64748b; font-size: 11px; font-weight: 800; }
     .timeline-track { min-height: 68px; }
-    .timeline-marker { position: absolute; top: 0; bottom: 0; width: 1px; background: #e2e8f0; }
+    .timeline-marker { position: absolute; top: 0; bottom: 0; width: 1px; background: #E7DDD6; }
     .timeline-empty { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 12px; font-weight: 900; }
     .timeline-appointment { position: absolute; top: 7px; bottom: 7px; min-width: 76px; border: 1px solid #475569; border-radius: 8px; padding: 6px 8px; text-align: left; color: #172033; overflow: hidden; cursor: pointer; box-shadow: 0 10px 20px rgba(15,23,42,.1); }
     .timeline-appointment > strong, .timeline-appointment > span, .timeline-appointment > small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1235,7 +1235,7 @@ const STATUS_TONES: Record<string, string> = {
     .calendar-list-table { display: grid; gap: 6px; }
     .calendar-list-head, .calendar-list-row { display: grid; grid-template-columns: 170px minmax(190px, 1.2fr) minmax(150px, 1fr) 140px; align-items: center; gap: 12px; }
     .calendar-list-head { padding: 0 12px; color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
-    .calendar-list-row { width: 100%; min-height: 58px; border: 1px solid #dbe7e4; border-radius: 12px; background: #fff; color: #172033; padding: 10px 12px; text-align: left; cursor: pointer; }
+    .calendar-list-row { width: 100%; min-height: 58px; border: 1px solid #E7DDD6; border-radius: 12px; background: #fff; color: #172033; padding: 10px 12px; text-align: left; cursor: pointer; }
     .calendar-list-row:hover { border-color: #5A153F; background: #F5EEF2; }
     .list-time, .list-client strong { font-weight: 900; }
     .list-client small { display: block; margin-top: 3px; color: #64748b; font-size: 12px; }
@@ -1247,7 +1247,7 @@ const STATUS_TONES: Record<string, string> = {
     .timeline-appointment.violet, .status-pill.violet { background: #ddd6fe; border-color: #7c3aed; }
     .timeline-appointment.green, .timeline-appointment.emerald, .status-pill.green, .status-pill.emerald { background: #bbf7d0; border-color: #16a34a; }
     .timeline-appointment.red, .status-pill.red { background: #fecaca; border-color: #dc2626; }
-    .timeline-appointment.slate, .status-pill.slate { background: #e2e8f0; border-color: #64748b; }
+    .timeline-appointment.slate, .status-pill.slate { background: #E7DDD6; border-color: #64748b; }
     .operations-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
     .operations-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .ops-panel { border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; }
@@ -1255,9 +1255,9 @@ const STATUS_TONES: Record<string, string> = {
     .ops-launch p { margin: 0; color: #52627a; font-size: 13px; line-height: 1.4; }
     .ops-launch:focus-visible { outline: 3px solid rgba(90,21,63,.25); outline-offset: 3px; }
     .ops-launch:hover { border-color: #5A153F; box-shadow: 0 18px 42px rgba(90,21,63,.13); transform: translateY(-1px); }
-    .panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E7DDD6; padding-bottom: 10px; }
     .panel-head small { border: 1px solid #D4B8CC; border-radius: 999px; color: #4B1238; background: #F8EEF4; padding: 4px 9px; font-weight: 900; }
-    .ops-panel button, .waitlist-row { border: 1px solid #dbe7e4; border-radius: 10px; background: #fff; padding: 12px; text-align: left; display: grid; gap: 4px; }
+    .ops-panel button, .waitlist-row { border: 1px solid #E7DDD6; border-radius: 10px; background: #fff; padding: 12px; text-align: left; display: grid; gap: 4px; }
     .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .empty-state { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 18px; text-align: center; color: #64748b; background: #fff; }
     .drawer-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.42); z-index: 50; }
@@ -1266,14 +1266,14 @@ const STATUS_TONES: Record<string, string> = {
     .scheduler-drawer header button { border: 0; background: transparent; font-size: 34px; cursor: pointer; }
     .ai-slot-drawer { width: min(560px, 96vw); }
     .operations-drawer { width: min(640px, 96vw); }
-    .drawer-panel { border: 1px solid #dbe7e4; border-radius: 14px; background: #fff; padding: 16px; display: grid; gap: 12px; }
+    .drawer-panel { border: 1px solid #E7DDD6; border-radius: 14px; background: #fff; padding: 16px; display: grid; gap: 12px; }
     .drawer-panel .panel-head { margin-bottom: 2px; }
     .mini-action { border: 1px solid #D4B8CC; border-radius: 999px; background: #F8EEF4; color: #4B1238; padding: 6px 12px; font-size: 13px; font-weight: 900; cursor: pointer; }
     .mini-action:hover { border-color: #5A153F; background: #EAD9E5; }
     .pulse-grid.expanded div { min-height: 84px; align-content: start; }
     .pulse-grid strong { font-size: 20px; }
     .ai-slot-detail-grid { display: grid; gap: 12px; }
-    .ai-slot-detail-grid button { border: 1px solid #dbe7e4; border-radius: 12px; background: #fff; padding: 14px; text-align: left; display: grid; gap: 5px; cursor: pointer; }
+    .ai-slot-detail-grid button { border: 1px solid #E7DDD6; border-radius: 12px; background: #fff; padding: 14px; text-align: left; display: grid; gap: 5px; cursor: pointer; }
     .ai-slot-detail-grid button:hover { border-color: #5A153F; background: #F5EEF2; }
     .ai-slot-detail-grid strong { font-size: 18px; }
     .ai-slot-detail-grid small { color: #64748b; }
@@ -1329,7 +1329,7 @@ const STATUS_TONES: Record<string, string> = {
     .activity-log-panel strong, .activity-log-panel span { display: block; }
     .activity-log-panel span { margin-top: 4px; color: #64748b; font-size: 12px; }
     .drawer-stack { display: grid; gap: 14px; }
-    .service-line { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; align-items: end; border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
+    .service-line { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; align-items: end; border: 1px solid #E7DDD6; border-radius: 12px; padding: 12px; }
     .service-field-wide, .staff-field-wide { grid-column: span 6; }
     .start-field-wide { grid-column: span 5; }
     .duration-field-compact { grid-column: span 2; }
@@ -1339,7 +1339,7 @@ const STATUS_TONES: Record<string, string> = {
     .previous-service-panel { display: grid; gap: 10px; border: 1px solid rgba(75, 18, 56, .18); border-radius: 12px; padding: 12px; background: #f8fffd; }
     .previous-service-panel small, .previous-service-list span { display: block; color: #64748b; margin-top: 3px; }
     .previous-service-list { display: grid; gap: 8px; max-height: 280px; overflow: auto; }
-    .previous-service-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid #dbe7e4; border-radius: 10px; padding: 10px; background: #fff; }
+    .previous-service-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid #E7DDD6; border-radius: 10px; padding: 10px; background: #fff; }
     .previous-service-list strong { color: #172033; }
     .edit-action { border-color: rgba(75, 18, 56, .35); background: #F5EEF2; color: #4B1238; font-weight: 900; }
     .search-select { display: grid; gap: 6px; align-content: start; }
@@ -1363,7 +1363,7 @@ const STATUS_TONES: Record<string, string> = {
     .picker-search:focus { border-color: #5A153F; outline: 3px solid rgba(90,21,63,.14); background: #fff; }
     .line-staff-input-wrap { position: relative; }
     .line-staff-input-wrap .picker-search { width: 100%; padding-right: 38px; }
-    .line-staff-clear-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 999px; background: #dff7ef; color: #4B1238; cursor: pointer; font-weight: 900; line-height: 1; }
+    .line-staff-clear-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 999px; background: #F8EEF4; color: #4B1238; cursor: pointer; font-weight: 900; line-height: 1; }
     .line-staff-clear-button:hover { background: #baf3de; }
     .smart-search-results .line-staff-result { grid-template-columns: minmax(0, 1fr); }
     .picker-meta, .picker-empty { font-size: 11px; font-weight: 800; text-transform: none; color: #64748b; }
@@ -1376,11 +1376,11 @@ const STATUS_TONES: Record<string, string> = {
     .client-booking-note { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; text-transform: none; line-height: 1.35; }
     .client-booking-note strong { color: #14532d; }
     .two-col, .status-grid, .notify-box, .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .notify-box { border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
+    .notify-box { border: 1px solid #E7DDD6; border-radius: 12px; padding: 12px; }
     .notify-box label { display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 14px; color: #172033; }
     .notify-box input { width: auto; min-height: auto; }
-    .detail-card { border: 1px solid #dbe7e4; border-radius: 12px; padding: 14px; display: grid; gap: 4px; background: #f8fafc; }
-    .status-grid button { min-height: 40px; border: 1px solid #dbe7e4; border-radius: 10px; background: white; font-weight: 800; }
+    .detail-card { border: 1px solid #E7DDD6; border-radius: 12px; padding: 14px; display: grid; gap: 4px; background: #f8fafc; }
+    .status-grid button { min-height: 40px; border: 1px solid #E7DDD6; border-radius: 10px; background: white; font-weight: 800; }
     .wrap { flex-wrap: wrap; }
     .toast { position: fixed; right: 24px; bottom: 24px; z-index: 70; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #5A153F; color: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 18px 36px rgba(15,23,42,.22); font-weight: 900; }
     .toast-link { border: 1px solid rgba(255,255,255,.6); background: rgba(255,255,255,.16); color: white; border-radius: 999px; padding: 7px 10px; font-weight: 900; cursor: pointer; }

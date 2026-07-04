@@ -873,7 +873,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
 
-    :host .page-stack { background: #f8f5f2; }
+    :host .page-stack { background: var(--bg); }
 
     :host .client-command-hero,
     :host .salonist-kpis,

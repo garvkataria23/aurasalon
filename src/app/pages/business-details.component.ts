@@ -591,7 +591,7 @@ type ContactVerificationResponse = ContactVerification & {
     .route-kicker {
       width: fit-content;
       border-radius: 999px;
-      background: #eef6ff;
+      background: #F8EEF4;
       color: #4B1238;
       padding: 5px 9px;
       font-size: 11px;

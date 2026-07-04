@@ -295,7 +295,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
     input[type="color"] { min-height: 40px; padding: 3px; }
     textarea { min-height: 72px; resize: vertical; }
     .record-table { display: grid; gap: 6px; max-height: 400px; overflow: auto; }
-    .record-row { align-items: center; background: #fff; border: 1px solid #eef2ff; border-radius: 8px; color: inherit; cursor: pointer; display: grid; gap: 10px; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 50px; padding: 8px 10px; text-align: left; transition: all .15s; }
+    .record-row { align-items: center; background: #fff; border: 1px solid #E7DDD6; border-radius: 8px; color: inherit; cursor: pointer; display: grid; gap: 10px; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 50px; padding: 8px 10px; text-align: left; transition: all .15s; }
     .record-row:hover { border-color: #c7d2fe; background: #f8f9ff; }
     .record-row.active { border-color: #4B1238; box-shadow: 0 0 0 2px rgba(75,18,56,.15); background: #F8EEF4; }
     .record-row strong, .record-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -307,7 +307,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
     .sub-panel { border: 1px solid #e0e7ff; border-radius: 8px; background: #f8f9ff; display: grid; gap: 12px; padding: 14px; }
     .sub-panel h3 { font-size: 14px; font-weight: 800; color: #4B1238; }
     .form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .check-field { align-items: center; border: 1px solid #eef2ff; border-radius: 8px; color: #374151; display: grid; font-size: 13px; font-weight: 700; gap: 8px; grid-template-columns: auto 1fr; min-height: 40px; padding: 8px 11px; }
+    .check-field { align-items: center; border: 1px solid #E7DDD6; border-radius: 8px; color: #374151; display: grid; font-size: 13px; font-weight: 700; gap: 8px; grid-template-columns: auto 1fr; min-height: 40px; padding: 8px 11px; }
     .check-field input, .hide-toggle input, .choice-field input { width: auto; }
     input[type='checkbox'] { accent-color: #4B1238; height: 16px; margin: 0; width: 16px; cursor: pointer; }
     .hide-toggle { align-items: center; color: #374151; display: inline-flex; font-size: 13px; font-weight: 700; gap: 8px; cursor: pointer; }

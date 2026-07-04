@@ -312,8 +312,8 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       padding: 24px;
       border-left: 5px solid #55173D;
       background:
-        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--accent, #7a6c66) 18%, transparent), transparent 34%),
-        linear-gradient(135deg, color-mix(in srgb, var(--accent, #7a6c66) 8%, white), var(--surface));
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--accent, #4B1238) 18%, transparent), transparent 34%),
+        linear-gradient(135deg, color-mix(in srgb, var(--accent, #4B1238) 8%, white), var(--surface));
     }
 
     .report-hero.blue { --accent: #4B1238; }

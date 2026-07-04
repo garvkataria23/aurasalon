@@ -194,7 +194,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       display: flex;
       flex-direction: column;
       gap: 20px;
-      background: #f8f5f2;
+      background: var(--bg);
     }
 
     /* ── Greeting ── */

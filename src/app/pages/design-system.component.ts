@@ -758,7 +758,7 @@ export class DesignSystemComponent implements OnInit {
     { key: 'primary', label: 'Primary button color', value: '#4B1238', help: 'Main actions like save and book.' },
     { key: 'buttonText', label: 'Button text color', value: '#ffffff', help: 'Text shown inside primary buttons.' },
     { key: 'hover', label: 'Hover color', value: '#6D1B4D', help: 'Mouse hover and selected states.' },
-    { key: 'border', label: 'Border color', value: '#dbe7e4', help: 'Card, table, input and divider borders.' },
+    { key: 'border', label: 'Border color', value: '#E7DDD6', help: 'Card, table, input and divider borders.' },
     { key: 'sidebar', label: 'Sidebar color', value: '#071b18', help: 'Left navigation and admin shell.' },
     { key: 'sidebarText', label: 'Sidebar text color', value: '#eefcf8', help: 'Navigation text and icon color.' },
     { key: 'sidebarHover', label: 'Sidebar hover color', value: '#123f38', help: 'Menu item hover background.' },
@@ -778,7 +778,7 @@ export class DesignSystemComponent implements OnInit {
     {
       name: 'Luxury Emerald',
       industry: 'Premium salon',
-      tokens: { primary: '#4B1238', hover: '#6D1B4D', sidebar: '#071b18', sidebarHover: '#123f38', sidebarActive: '#4B1238', accent: '#f97316', background: '#f4f7f6', border: '#dbe7e4', cardHover: '#F1E8EE', tableHover: '#F5EEF2' }
+      tokens: { primary: '#4B1238', hover: '#6D1B4D', sidebar: '#071b18', sidebarHover: '#123f38', sidebarActive: '#4B1238', accent: '#f97316', background: '#f4f7f6', border: '#E7DDD6', cardHover: '#F1E8EE', tableHover: '#F5EEF2' }
     },
     {
       name: 'Rose Studio',
