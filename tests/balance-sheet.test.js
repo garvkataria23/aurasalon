@@ -193,7 +193,7 @@ import { ApiService } from '../core/api.service';
     h3.sub { margin: 14px 0 6px; font-size: 14px; color: #52627a; }
     .status-card, .kpis article, .panel { border: 1px solid #dbe6f3; border-radius: 8px; background: #fff; padding: 16px; box-shadow: 0 14px 30px rgba(15,23,42,.06); }
     .status-card strong, .kpis strong { display: block; font-size: 28px; margin-top: 6px; }
-    .status-card.good { border-left: 5px solid #16a34a; }
+    .status-card.good { border-left: 5px solid #C87D4B; }
     .status-card.warn { border-right: 5px solid #f59e0b; }
     .toolbar { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
     label { display: grid; gap: 5px; font-weight: 800; color: #52627a; }
@@ -211,7 +211,7 @@ import { ApiService } from '../core/api.service';
     .line, .metric-list div, .summary-row, .check, .alert { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #eef2f7; padding: 10px 0; }
     .control-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 12px; }
     .readiness-banner { display: grid; gap: 4px; padding: 12px; border-radius: 8px; margin-bottom: 8px; background: #f1f5f9; }
-    .readiness-banner.good { background: #ecfdf5; border-left: 4px solid #16a34a; }
+    .readiness-banner.good { background: #FBF0E8; border-left: 4px solid #C87D4B; }
     .readiness-banner.warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
     .readiness-banner strong { font-size: 15px; }
     .recon-result { margin-top: 12px; border-top: 1px dashed #cbd7e6; padding-top: 8px; }
@@ -221,7 +221,7 @@ import { ApiService } from '../core/api.service';
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eef2f7; }
     th { color: #52627a; }
     .danger, .danger-text, .error-text { color: #b91c1c; }
-    .success-text { color: #047857; font-weight: 800; }
+    .success-text { color: #7A4A28; font-weight: 800; }
     .muted { color: #64748b; font-weight: 600; }
     @media (max-width: 900px) { .hero, .kpis, .grid.three, .grid.two { grid-template-columns: 1fr; } }
   `]

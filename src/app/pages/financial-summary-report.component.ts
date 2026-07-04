@@ -1,4 +1,4 @@
-﻿import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -1346,7 +1346,7 @@ type WalletLedgerRow = ApiRecord & {
     .payment-card-strip button:hover,
     .payment-card-strip button.active {
       border-color: #4B1238;
-      box-shadow: 0 12px 26px rgba(16, 185, 129, 0.16);
+      box-shadow: 0 12px 26px rgba(200, 125, 75, 0.16);
       transform: translateY(-1px);
     }
 

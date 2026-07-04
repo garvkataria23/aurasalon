@@ -1059,7 +1059,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .metric-card strong, .summary-grid strong, .action-grid strong, .result-strip strong, .portal-preview strong { color: var(--ink); display: block; }
     .metric-card strong, .summary-grid strong { font-family: var(--font-display); font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; margin: 0.3rem 0; }
     .link-check-grid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .link-check-grid article { background: #F3EAF0; border: 1px solid #bbf7d0; border-radius: 10px; padding: .8rem; }
+    .link-check-grid article { background: #F3EAF0; border: 1px solid #FBF0E8; border-radius: 10px; padding: .8rem; }
     .link-check-grid article.warn { background: #faf8f6; border-color: #fed7aa; }
     .link-check-grid span, .link-check-grid small { color: var(--muted); display: block; font-size: .78rem; }
     .link-check-grid strong { color: var(--teal-deep); display: block; font-family: var(--font-display); font-size: 1rem; margin: .15rem 0; }
@@ -1199,9 +1199,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .mini-table div:last-child { border-bottom: 0; }
     .mini-table span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mini-table strong { color: #111827; }
-    .calendar-days span.active { background: #e0f2fe; color: #0284c7; font-weight: 850; }
+    .calendar-days span.active { background: #F5EEF2; color: #8B5E7C; font-weight: 850; }
     .pill-tabs button.active { background: #071036; color: #fff; }
-    .report-metrics span { color: #16a34a; display: block; font-size: .72rem; font-weight: 850; }
+    .report-metrics span { color: #C87D4B; display: block; font-size: .72rem; font-weight: 850; }
     .report-metrics span.down { color: #dc2626; }
     .chart-card { display: grid; gap: .65rem; }
     .chart-card div:first-child { align-items: center; display: flex; justify-content: space-between; }
@@ -2297,7 +2297,7 @@ export class GrowthRankBotComponent implements OnInit {
     const approvals = Array.isArray(audit.workspace?.approvals) ? audit.workspace.approvals : [];
     const reviewStats = this.dhandaCustomerStats(audit);
     return [
-      { icon: 'P', title: 'Complete Profile', done: this.profileCompletionCount(audit), target: 6, action: 'Improve profile', color: '#22c55e' },
+      { icon: 'P', title: 'Complete Profile', done: this.profileCompletionCount(audit), target: 6, action: 'Improve profile', color: '#C87D4B' },
       { icon: 'R', title: 'Request Review', done: reviewStats.sent, target: reviewStats.target, action: 'Request reviews', color: '#c855e8' },
       { icon: 'M', title: 'Upload Media', done: planner.filter((item: ApiRecord) => /media|photo|reel|post/i.test(String(item.channel || item.title || ''))).length, target: 5, action: 'Plan media', color: '#f05273' },
       { icon: 'A', title: 'Approve Post', done: approvals.filter((item: ApiRecord) => String(item.status || item.approvalStatus || '').includes('approved')).length, target: Math.max(1, planner.length || tasks.length), action: 'Approve content', color: '#f97316' }

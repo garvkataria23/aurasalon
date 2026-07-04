@@ -643,8 +643,8 @@ interface StaffPreview {
     }
     .rating-pill.good,
     .rating-pill.awesome {
-      background: #e8f7f1;
-      color: #047857;
+      background: #FBF0E8;
+      color: #7A4A28;
     }
     .action-cell {
       min-width: 210px;
@@ -713,7 +713,7 @@ interface StaffPreview {
     .avatar { width: 38px; height: 38px; border-radius: 50%; flex: 0 0 auto; }
     .feed-row p { margin: 3px 0; max-width: 680px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sentiment { margin-left: auto; border-radius: 999px; padding: 6px 10px; font-weight: 900; font-size: 12px; background: #eef2f7; color: #475569; white-space: nowrap; }
-    .sentiment.positive, .sentiment.very_positive { background: #e8f7f1; color: #047857; }
+    .sentiment.positive, .sentiment.very_positive { background: #FBF0E8; color: #7A4A28; }
     .sentiment.negative, .sentiment.very_negative { background: #fff1f2; color: #be123c; }
     .analytics-panel { display: grid; gap: 22px; }
     .analytics-panel section + section { border-top: 1px solid #e5edf1; padding-top: 20px; }

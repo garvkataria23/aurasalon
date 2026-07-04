@@ -1,4 +1,4 @@
-﻿import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -352,7 +352,7 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
       border: 1px solid color-mix(in srgb, #4B1238 36%, var(--line));
       border-radius: 999px;
       background: color-mix(in srgb, #EAD9E5 40%, var(--surface));
-      color: #064e3b;
+      color: #7A4A28;
       text-decoration: none;
       font-size: 12px;
       font-weight: 900;
@@ -500,14 +500,14 @@ const CLIENT_REPORT_CONFIG: Record<string, ClientReportConfig> = {
     }
 
     .status-pill.member {
-      background: #dcfce7;
-      color: #166534;
+      background: #FBF0E8;
+      color: #7A4A28;
     }
 
     .mini-link {
       border: 1px solid color-mix(in srgb, #4B1238 36%, var(--line));
       background: color-mix(in srgb, #EAD9E5 35%, var(--surface));
-      color: #064e3b;
+      color: #7A4A28;
     }
 
     .report-row {

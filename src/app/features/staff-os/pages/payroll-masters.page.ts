@@ -173,24 +173,24 @@ type PenaltyPreviewRow = {
     input[type='checkbox'] { height: 18px; padding: 0; width: 18px; }
     .rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .select-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-    .mini-action { border: 1px solid #E7DDD6; border-radius: 6px; background: #f8fbf9; color: #34483f; cursor: pointer; font-weight: 900; min-height: 40px; padding: 0 10px; white-space: nowrap; }
+    .mini-action { border: 1px solid #E7DDD6; border-radius: 6px; background: #FAF8F6; color: #34483f; cursor: pointer; font-weight: 900; min-height: 40px; padding: 0 10px; white-space: nowrap; }
     .table { border: 1px solid #E7DDD6; border-radius: 8px; display: grid; overflow: hidden; }
     .head, .row { align-items: center; display: grid; gap: 8px; grid-template-columns: 1fr 70px 100px; min-height: 42px; padding: 0 12px; }
-    .head { background: #f8fbf9; color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .head { background: #FAF8F6; color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .row { background: #fff; border: 0; border-top: 1px solid #edf2ef; color: #10201a; cursor: pointer; font: inherit; text-align: left; }
-    .row.active { background: #f8fbf9; }
+    .row.active { background: #FAF8F6; }
     .actions { border-top: 1px solid #edf2ef; padding-top: 12px; }
     .live-panel { background: #fff; border: 1px solid #E7DDD6; border-radius: 8px; display: grid; gap: 14px; padding: 16px; }
     .live-head { align-items: center; display: flex; justify-content: space-between; gap: 14px; }
     h2 { font-size: 20px; letter-spacing: 0; margin: 0; }
     .period-filter { min-width: 170px; }
     .metric-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .metric-strip article { background: #f8fbf9; border: 1px solid #E7DDD6; border-radius: 8px; padding: 12px; }
+    .metric-strip article { background: #FAF8F6; border: 1px solid #E7DDD6; border-radius: 8px; padding: 12px; }
     .metric-strip span { color: #60766d; display: block; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .metric-strip strong { display: block; font-size: 22px; margin-top: 5px; }
     .preview-table { border: 1px solid #E7DDD6; border-radius: 8px; display: grid; overflow: hidden; }
     .preview-head, .preview-row { align-items: center; display: grid; gap: 10px; grid-template-columns: 1fr 1.1fr 80px 120px 1.3fr; min-height: 42px; padding: 0 12px; }
-    .preview-head { background: #f8fbf9; color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .preview-head { background: #FAF8F6; color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .preview-row { border-top: 1px solid #edf2ef; color: #10201a; }
     .preview-row.empty { grid-template-columns: 1fr; color: #60766d; padding: 14px; }
     @media (max-width: 920px) { .shell { grid-template-columns: 1fr; } }
@@ -702,7 +702,7 @@ export class AllowanceDeductionPage {}
     .side, .structure, .block, .state { padding: 16px; }
     .structure { display: grid; gap: 14px; }
     .summary { display: grid; gap: 10px; margin-top: 14px; }
-    .summary article { background: #f8fbf9; border: 1px solid #edf2ef; border-radius: 8px; padding: 12px; }
+    .summary article { background: #FAF8F6; border: 1px solid #edf2ef; border-radius: 8px; padding: 12px; }
     .summary span { color: #60766d; font-size: 12px; font-weight: 850; text-transform: uppercase; }
     .summary strong { display: block; font-size: 20px; margin-top: 4px; }
     .block { display: grid; gap: 12px; }

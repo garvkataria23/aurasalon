@@ -12,11 +12,11 @@ function scope(access, branchId = "") {
 }
 
 const defaultTheme = {
-  primary: "#0f766e",
+  primary: "#4B1238",
   accent: "#4B1238",
   surface: "#ffffff",
   ink: "#17202d",
-  bookingButton: "#0f766e"
+  bookingButton: "#4B1238"
 };
 
 export class WhiteLabelService {

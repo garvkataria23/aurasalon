@@ -108,7 +108,7 @@
 }
 
 .campaign-preview {
-  background: #ecfdf3;
+  background: #FBF0E8;
   border-color: #a6f4c5;
   margin-bottom: 14px;
 }
@@ -177,7 +177,7 @@
 .status-paid,
 .status-scheduled {
   background: #e7f7ef;
-  color: #067647;
+  color: #7A4A28;
 }
 
 .status-draft,

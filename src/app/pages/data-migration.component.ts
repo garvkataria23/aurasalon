@@ -918,7 +918,7 @@ type MigrationRecoveryReport = {
     .migration-shell > :not(.command-header):not(.control-strip):not(.migration-page-workspace) { grid-column: 2; }
     .migration-side-nav { grid-column: 1; grid-row: 3 / span 80; position: sticky; top: 92px; display: grid; gap: 10px; align-self: start; }
     .migration-nav-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; align-items: center; min-height: 92px; padding: 13px; border: 1px solid #d7e6e2; border-left: 4px solid #55173D; border-radius: 8px; background: #fff; color: #172033; text-decoration: none; box-shadow: 0 12px 26px rgba(15,23,42,.07); cursor: pointer; }
-    .migration-nav-card:hover, .migration-nav-card.active { background: #F8EEF4; border-color: #9fc3dc; transform: translateY(-1px); }
+    .migration-nav-card:hover, .migration-nav-card.active { background: #F8EEF4; border-color: #D4C0CF; transform: translateY(-1px); }
     .migration-nav-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: #F8EEF4; color: #3D0F2C; font-weight: 950; font-size: 12px; }
     .migration-nav-card strong, .migration-nav-card small { display: block; }
     .migration-nav-card small { margin-top: 4px; color: #64748b; font-size: 12px; font-weight: 700; line-height: 1.3; }
@@ -955,7 +955,7 @@ type MigrationRecoveryReport = {
     input, select, textarea { width: 100%; min-height: 42px; border: 1px solid #cfe0dc; border-radius: 8px; background: #faf8f6; padding: 10px 11px; color: #172033; font-weight: 800; box-sizing: border-box; }
     input:focus, select:focus, textarea:focus { border-color: #5A153F; outline: 3px solid rgba(90,21,63,.14); background: #ffffff; }
     textarea { resize: vertical; font-family: inherit; text-transform: none; }
-    .file-drop { grid-column: 1 / -1; border: 1px dashed #93c5fd; border-radius: 8px; padding: 12px; background: #f8fbff; }
+    .file-drop { grid-column: 1 / -1; border: 1px dashed #C8A0B8; border-radius: 8px; padding: 12px; background: #f8fbff; }
     .file-drop small, .muted { color: #64748b; text-transform: none; font-weight: 700; }
     .migration-warning { margin: 10px 0 0; border: 1px solid #f59e0b; border-radius: 8px; background: #fffbeb; color: #92400e; padding: 10px 12px; font-weight: 900; }
     .inline-toggle { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 4px; color: #92400e; font-size: 13px; font-weight: 900; text-transform: none; }
@@ -986,11 +986,11 @@ type MigrationRecoveryReport = {
     .ghost-button { background: #ffffff; }
     .danger-button { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     .success-text, .error-text { margin: 8px 0 0; font-weight: 900; }
-    .success-text { color: #047857; }
+    .success-text { color: #7A4A28; }
     .error-text { color: #b91c1c; }
     .pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 14px; }
     .pipeline article { padding: 10px; display: grid; gap: 3px; border-left: 4px solid #cbd5e1; }
-    .pipeline article.done { border-left-color: #10b981; background: #f0fdf4; }
+    .pipeline article.done { border-left-color: #C87D4B; background: #FBF0E8; }
     .pipeline article.active { border-left-color: #4B1238; background: #F8EEF4; }
     .pipeline article.blocked { border-left-color: #ef4444; background: #fef2f2; }
     .pipeline strong { font-size: 13px; }
@@ -998,7 +998,7 @@ type MigrationRecoveryReport = {
     .risk-panel { display: grid; gap: 10px; }
     .risk-panel .panel-head { margin-bottom: 0; }
     .risk-panel article { padding: 12px; display: grid; gap: 4px; border-left: 4px solid #94a3b8; }
-    .risk-panel article.good { border-left-color: #10b981; }
+    .risk-panel article.good { border-left-color: #C87D4B; }
     .risk-panel article.warning { border-left-color: #f59e0b; background: #fffbeb; }
     .risk-panel article.danger { border-left-color: #ef4444; background: #fef2f2; }
     .risk-panel strong { font-size: 24px; }
@@ -1032,12 +1032,12 @@ type MigrationRecoveryReport = {
     .reconcile-table, .approval-list { display: grid; gap: 8px; }
     .reconcile-table article, .approval-list article, .job-detail { border: 1px solid #d7e6e2; border-radius: 8px; padding: 10px; background: #ffffff; }
     .reconcile-table article { display: grid; gap: 4px; border-left: 4px solid #94a3b8; }
-    .reconcile-table article.match { border-left-color: #10b981; background: #f0fdf4; }
+    .reconcile-table article.match { border-left-color: #C87D4B; background: #FBF0E8; }
     .reconcile-table article.mismatch { border-left-color: #ef4444; background: #fef2f2; }
     .reconcile-table span, .approval-list small, .approval-list span { color: #64748b; }
     .approval-list article { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, .6fr); gap: 10px; border-left: 4px solid #94a3b8; }
     .approval-list article.pending { border-left-color: #f59e0b; background: #fffbeb; }
-    .approval-list article.approved { border-left-color: #10b981; background: #f0fdf4; }
+    .approval-list article.approved { border-left-color: #C87D4B; background: #FBF0E8; }
     .approval-list article.rejected { border-left-color: #ef4444; background: #fef2f2; }
     .job-detail { margin-top: 14px; display: grid; gap: 12px; }
     .recovery-panel { margin-top: 14px; border: 1px solid #d7e6e2; border-radius: 8px; padding: 12px; background: #faf8f6; display: grid; gap: 12px; }
@@ -1071,7 +1071,7 @@ type MigrationRecoveryReport = {
     .difference-list article.danger { border-left-color: #ef4444; background: #fef2f2; }
     .chunk-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
     .chunk-list article { border: 1px solid #d7e6e2; border-left: 4px solid #94a3b8; border-radius: 8px; padding: 10px; display: grid; gap: 4px; background: #ffffff; }
-    .chunk-list article.done { border-left-color: #10b981; background: #f0fdf4; }
+    .chunk-list article.done { border-left-color: #C87D4B; background: #FBF0E8; }
     .chunk-list article.danger { border-left-color: #ef4444; background: #fef2f2; }
     .chunk-list span, .chunk-list small { color: #64748b; }
     tr.selected td { background: #F8EEF4; }

@@ -25,7 +25,7 @@ import { BillingRepository } from '../../data/billing.repository';
     .invoice-meta span, .invoice-main span { color: var(--aura-muted, #6b7280); font-size: 0.78rem; font-weight: 750; }
     .amount { font-weight: 900; color: var(--aura-text, #1f2933); text-align: right; }
     .status-chip { justify-self: end; border: 1px solid color-mix(in srgb, var(--aura-primary, #4b1238) 16%, var(--aura-border-soft, rgba(75,18,56,.12))); border-radius: 999px; padding: 5px 10px; color: var(--aura-primary, #4b1238); background: color-mix(in srgb, var(--aura-primary-soft, rgba(75,18,56,.1)) 78%, white 22%); font-size: 0.75rem; font-weight: 900; text-transform: capitalize; }
-    .status-chip.paid { color: var(--aura-success, #16a34a); background: var(--aura-success-bg, rgba(22,163,74,.12)); border-color: rgba(22, 163, 74, 0.24); }
+    .status-chip.paid { color: var(--aura-success, #C87D4B); background: var(--aura-success-bg, rgba(200,125,75,.12)); border-color: rgba(200, 125, 75, 0.24); }
     .status-chip.due { color: var(--aura-danger, #e11d48); background: var(--aura-danger-bg, rgba(225,29,72,.12)); border-color: rgba(225, 29, 72, 0.24); }
     .invoice-empty-state, .state-message { display: grid; gap: 5px; padding: 22px; text-align: center; color: var(--aura-muted, #6b7280); }
     .state-message.error { color: var(--aura-danger, #e11d48); background: var(--aura-danger-bg, rgba(225,29,72,.12)); }

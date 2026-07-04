@@ -40,7 +40,7 @@ type InvoiceListResponse = { rows?: ApiRecord[]; total?: number } | ApiRecord[];
     .pill { border-radius: 999px; padding: 5px 9px; font-size: .78rem; font-weight: 800; background: #eef4f6; color: #526174; }
     .pill.warn { background: #fff5db; color: #925400; }
     .pill.bad { background: #fff0ed; color: #b42318; }
-    .pill.ok { background: #e6f7ee; color: #067647; }
+    .pill.ok { background: #FBF0E8; color: #7A4A28; }
     .action-box { padding: 14px; background: #fbfdfc; }
     .field { display: grid; gap: 6px; }
     .field span { font-size: .82rem; color: #526174; font-weight: 800; }

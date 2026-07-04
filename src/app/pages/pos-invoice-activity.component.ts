@@ -1320,7 +1320,7 @@ interface InvoiceActivityRow {
     }
 
     .amount-up {
-      color: #047857;
+      color: #7A4A28;
     }
 
     .review-actions {

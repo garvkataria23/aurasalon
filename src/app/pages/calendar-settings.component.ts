@@ -226,7 +226,7 @@ const DEFAULT_SETTINGS: CalendarSettingsState = {
 
     .settings-nav a.active,
     .settings-nav a:hover {
-      background: #eefbf6;
+      background: #FBF0E8;
       color: #08745f;
     }
 

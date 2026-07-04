@@ -1,4 +1,4 @@
-﻿import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -1982,7 +1982,7 @@ type ClientNoteFocus = 'frontDesk' | 'internal' | 'followUp';
       height: 76px;
       flex: 0 0 76px;
       border: 1px solid #c7d2fe;
-      background: #e0f2fe;
+      background: #F5EEF2;
       color: #083344;
       box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
     }

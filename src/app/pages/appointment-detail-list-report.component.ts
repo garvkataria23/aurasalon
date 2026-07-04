@@ -169,7 +169,7 @@ type AppointmentDetailReport = {
     .status-card { min-height: 86px; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: var(--surface); display: grid; align-content: center; gap: 8px; }
     .status-card strong { font-size: 20px; }
     .status-card span { color: var(--muted); font-weight: 900; font-size: 12px; text-transform: uppercase; }
-    .confirmed { background: #dff8ed; } .arrived { background: #e0f2fe; } .started { background: #fff4d6; } .completed { background: #e8e9ff; } .cancelled { background: #ffe3e6; } .not-came { background: #e1f7df; } .not-confirmed { background: #eef1ff; }
+    .confirmed { background: #FBF0E8; } .arrived { background: #F5EEF2; } .started { background: #fff4d6; } .completed { background: #F5EEF2; } .cancelled { background: #ffe3e6; } .not-came { background: #FBF0E8; } .not-confirmed { background: #F5EEF2; }
     .table-panel { display: grid; gap: 12px; overflow: hidden; }
     .table-controls { justify-content: flex-end; }
     .page-size-field { width: 112px; }
@@ -182,7 +182,7 @@ type AppointmentDetailReport = {
     td { font-weight: 650; }
     .avatar { display: inline-grid; place-items: center; width: 34px; height: 34px; margin-right: 8px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 900; }
     .status-pill { display: inline-flex; min-width: 90px; justify-content: center; border-radius: 999px; padding: 6px 10px; color: var(--ink); background: var(--surface-2); font-weight: 900; }
-    .status-pill.completed { background: #e8e9ff; } .status-pill.cancelled { background: #ffe3e6; } .status-pill.not_came { background: #e1f7df; } .status-pill.confirmed { background: #dff8ed; } .status-pill.arrived { background: #e0f2fe; } .status-pill.started { background: #fff4d6; }
+    .status-pill.completed { background: #F5EEF2; } .status-pill.cancelled { background: #ffe3e6; } .status-pill.not_came { background: #FBF0E8; } .status-pill.confirmed { background: #FBF0E8; } .status-pill.arrived { background: #F5EEF2; } .status-pill.started { background: #fff4d6; }
     .empty-state { padding: 34px 12px; text-align: center; color: var(--muted); }
     .pager { justify-content: space-between; color: var(--muted); font-weight: 800; }
     .mini { min-height: 32px; padding: 0 10px; font-size: 12px; }

@@ -979,8 +979,8 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
     .solid { min-height: 40px; padding: 0 16px; border-radius: 9px; border: 0; background: var(--brandink); color: #fff; font-weight: 800; }
     .solid.full, .full { width: 100%; } .ghost { min-height: 40px; padding: 0 14px; border-radius: 9px; border: 1px solid #E7DDD6; background: #fff; color: var(--brand); font-weight: 800; }
     .ready-chip { font-size: 12px; font-weight: 800; padding: 7px 12px; border-radius: 999px; background: #fff4e0; color: #9a6207; border: 1px solid #f3d9a6; }
-    .ready-chip.on { background: #e6f7ee; color: #0a7a44; border-color: #b9e7cd; }
-    .banner { margin: 0; padding: 10px 14px; border-radius: 10px; font-weight: 700; } .banner.err { background: #fdecea; color: #a4271f; } .banner.ok { background: #e7f7ee; color: #0a7a44; }
+    .ready-chip.on { background: #FBF0E8; color: #7A4A28; border-color: #E8C8A8; }
+    .banner { margin: 0; padding: 10px 14px; border-radius: 10px; font-weight: 700; } .banner.err { background: #fdecea; color: #a4271f; } .banner.ok { background: #FBF0E8; color: #7A4A28; }
     .tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
     .tabs button { padding: 9px 14px; border: 0; background: transparent; color: var(--muted); font-weight: 800; border-radius: 8px 8px 0 0; border-bottom: 2px solid transparent; }
     .tabs button.active { color: var(--brandink); border-bottom-color: var(--brand); background: var(--soft); }
@@ -1026,7 +1026,7 @@ export const LEDGER_GROUPING: Record<string, LedgerGroupingSuggestion> = {
     .scroll { overflow: auto; } table { width: 100%; border-collapse: collapse; min-width: 640px; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; } th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
     td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; } tfoot td { font-weight: 800; border-top: 2px solid var(--ink); }
-    .pill { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #F8EEF4; color: var(--brand); } .pill.bad { background: #fdecea; color: var(--bad); } .pill.done { background: #e7f7ee; color: var(--good); }
+    .pill { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #F8EEF4; color: var(--brand); } .pill.bad { background: #fdecea; color: var(--bad); } .pill.done { background: #FBF0E8; color: var(--good); }
     .row-controls, .form-row, .ctl, .inline-run { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; } .inline-run { margin: 0; } .inline-run input { min-width: 0; flex: 1; }
     .cc-rows { display: grid; gap: 10px; } .cc-row { display: grid; grid-template-columns: 160px 1fr 120px; gap: 12px; align-items: center; }
     .cc-name { display: flex; flex-direction: column; } .tag { font-size: 11px; color: var(--muted); } .cc-bar { height: 14px; background: var(--soft); border-radius: 999px; overflow: hidden; }
@@ -1564,7 +1564,7 @@ export class BalanceSheetComponent implements OnInit {
     return this.act(async () => firstValueFrom(this.api.post('balance-sheet/cost-classifications', { accountCode, behavior })), 'Cost reclassified.');
   }
   scoreColor(score: number): string {
-    return score >= 80 ? 'var(--good)' : score >= 65 ? '#3b82f6' : score >= 50 ? 'var(--warn)' : 'var(--bad)';
+    return score >= 80 ? 'var(--good)' : score >= 65 ? '#8B5E7C' : score >= 50 ? 'var(--warn)' : 'var(--bad)';
   }
   resetSim(): void { this.simPrice.set(0); this.simVolume.set(0); this.simProduct.set(0); this.simFixed.set(0); }
 

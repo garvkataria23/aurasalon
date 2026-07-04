@@ -22,7 +22,7 @@ import { VoidInvoiceModalComponent } from '../../ui/void-invoice-modal/void-invo
     .status-card strong { color: #fff; text-transform: capitalize; }
     .invoice-workspace { display: grid; gap: 16px; padding: 16px; }
     .invoice-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 0.48fr); gap: 16px; align-items: start; }
-    .message-card { padding: 12px 14px; color: var(--aura-success, #16a34a); background: var(--aura-success-bg, rgba(22, 163, 74, 0.12)); }
+    .message-card { padding: 12px 14px; color: var(--aura-success, #C87D4B); background: var(--aura-success-bg, rgba(200, 125, 75, 0.12)); }
 
     .billing-hero {
       border-color: rgba(118, 85, 76, 0.13) !important;

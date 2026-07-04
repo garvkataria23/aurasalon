@@ -58,7 +58,7 @@
 
 .status-active {
   background: #e7f7ef;
-  color: #067647;
+  color: #7A4A28;
 }
 
 .status-paused {
@@ -78,7 +78,7 @@
 
 .active-dot.on {
   background: #dcfae6;
-  color: #067647;
+  color: #7A4A28;
 }
 
 .danger {

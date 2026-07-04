@@ -1,4 +1,4 @@
-﻿import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -2255,14 +2255,14 @@ type PlanLifecycleDialog = {
     }
 
     .wallet-preview {
-      border: 1px solid #bbf7d0;
-      background: #f0fdf4;
-      color: #14532d;
+      border: 1px solid #FBF0E8;
+      background: #FBF0E8;
+      color: #7A4A28;
       gap: 4px;
     }
 
     .wallet-preview span {
-      color: #166534;
+      color: #7A4A28;
       font-size: 12px;
       font-weight: 700;
     }

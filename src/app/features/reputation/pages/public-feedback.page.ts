@@ -76,7 +76,7 @@ type PublicReviewRequest = {
     .primary { border: 0; border-radius: 8px; background: #4B1238; color: #fff; cursor: pointer; font-weight: 900; min-height: 44px; padding: 0 16px; }
     .primary:disabled { cursor: not-allowed; opacity: .65; }
     .state { border-radius: 8px; margin: 12px 0; padding: 12px; background: #eef4f4; color: #334155; }
-    .state.success { background: #F3EAF0; color: #166534; }
+    .state.success { background: #F3EAF0; color: #7A4A28; }
     .state.error { background: #fef2f2; color: #991b1b; }
   `]
 })

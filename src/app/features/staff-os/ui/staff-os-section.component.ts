@@ -2171,7 +2171,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .control-card span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .control-card strong { font-size: 25px; line-height: 1; }
     .control-card small { color: #60766d; font-weight: 700; }
-    .control-card.green { border-left-color: #16a34a; }
+    .control-card.green { border-left-color: #C87D4B; }
     .control-card.amber { border-left-color: #b7791f; }
     .control-card.red { border-left-color: #dc2626; }
     .control-card.blue { border-left-color: #4B1238; }
@@ -2286,7 +2286,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .staff-category-tile { align-content: center; background: #fff; border: 1px solid #E7DDD6; border-left: 4px solid #4B1238; border-radius: 8px; color: #10201a; cursor: pointer; display: grid; gap: 4px; min-height: 82px; padding: 12px; text-align: left; width: 100%; }
     .staff-category-tile:hover, .staff-category-tile.active { background: #F8EEF4; border-color: #E7DDD6; }
     .staff-category-tile.active { box-shadow: 0 10px 24px rgba(16, 32, 56, .08); }
-    .staff-category-tile[data-state='ok'] { border-left-color: #16a34a; }
+    .staff-category-tile[data-state='ok'] { border-left-color: #C87D4B; }
     .staff-category-tile[data-state='warn'] { border-left-color: #b7791f; }
     .staff-category-tile[data-state='bad'] { border-left-color: #dc2626; }
     .staff-category-tile span { font-size: 13px; font-weight: 900; line-height: 1.25; }
@@ -2402,7 +2402,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .exception-table .row.header { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
     .badge.bad { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
     .badge.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
-    .badge.good { background: #F3EAF0; border-color: #bbf7d0; color: #047857; }
+    .badge.good { background: #F3EAF0; border-color: #FBF0E8; color: #7A4A28; }
     .staff-attendance-mode .attendance-workspace { gap: 10px; }
     .staff-attendance-mode .attendance-workspace .panel { border-color: #d8e1ea; padding: 13px; }
     .staff-attendance-mode .attendance-register-panel { border-color: #d8e1ea; overflow: hidden; padding: 0; }
@@ -2574,14 +2574,14 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .drawer::after { content: '⌕\A⌂\A☷\A◎\A◇\A▣\A⋯'; white-space: pre; position: fixed; margin-left: -60px; margin-top: 82px; color: rgba(255,255,255,.86); font-size: 20px; line-height: 2.15; text-align: center; width: 24px; }
     .drawer-header { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; background: #fff; border-bottom: 1px solid #e4ebe7; padding: 18px 0 12px; }
     .drawer-header span { color: #60766d; font-size: 13px; }
-    .editor-breadcrumb { color: #0f6eb3; font-size: 12px; font-weight: 800; margin: 0 0 7px; }
+    .editor-breadcrumb { color: #4B1238; font-size: 12px; font-weight: 800; margin: 0 0 7px; }
     .editor-title-row { align-items: center; display: flex; gap: 12px; min-width: 0; }
     .editor-title-row h2 { color: #111827; font-size: 24px; }
     .status-pill { background: #d7f7d1; border: 1px solid #b7ebb0; border-radius: 4px; color: #20843b !important; font-size: 12px !important; font-weight: 900; padding: 4px 10px; }
     .detail-tabs { position: sticky; top: 76px; z-index: 2; display: flex; gap: 0; overflow-x: auto; background: #fff; border-bottom: 1px solid #d6dee0; padding-top: 12px; }
     .detail-tabs button { border: 1px solid #d6dee0; border-bottom: 0; background: #f8fafb; border-radius: 0; color: #4b5563; cursor: pointer; font-size: 12px; font-weight: 900; min-height: 34px; padding: 7px 11px; text-transform: uppercase; white-space: nowrap; }
     .detail-tabs button.active { background: #fff; border-top: 3px solid #f97316; color: #111827; padding-top: 5px; }
-    .live-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 10px; border: 1px solid #E7DDD6; border-radius: 4px; background: #f8fbf9; margin-top: 14px; padding: 12px; }
+    .live-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 10px; border: 1px solid #E7DDD6; border-radius: 4px; background: #FAF8F6; margin-top: 14px; padding: 12px; }
     .live-context article { display: grid; gap: 4px; min-width: 0; }
     .live-context span { color: #60766d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
     .live-context strong { color: #10201a; font-size: 13px; overflow-wrap: anywhere; }
@@ -2634,8 +2634,8 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .live-panel-title { border-bottom: 1px solid #e4ebe7; display: grid; gap: 3px; padding-bottom: 9px; }
     .live-panel-title span, .live-employee-panel article span, .catalog-mini-grid span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
     .live-panel-title strong { color: #111827; font-size: 13px; overflow-wrap: anywhere; }
-    .live-employee-panel > article { border: 1px solid #E7DDD6; border-left: 4px solid #0f6eb3; border-radius: 4px; display: grid; gap: 3px; min-height: 64px; padding: 9px; }
-    .live-employee-panel > article.green { border-left-color: #16a34a; }
+    .live-employee-panel > article { border: 1px solid #E7DDD6; border-left: 4px solid #4B1238; border-radius: 4px; display: grid; gap: 3px; min-height: 64px; padding: 9px; }
+    .live-employee-panel > article.green { border-left-color: #C87D4B; }
     .live-employee-panel > article.amber { border-left-color: #f59e0b; }
     .live-employee-panel > article.violet { border-left-color: #7c3aed; }
     .live-employee-panel > article.neutral { border-left-color: #94a3b8; }
@@ -2645,7 +2645,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
     .catalog-mini-grid article { border: 1px solid #e4ebe7; border-radius: 4px; display: grid; gap: 3px; padding: 8px; }
     .catalog-mini-grid strong { color: #111827; font-size: 15px; }
     .live-panel-links { display: grid; gap: 7px; }
-    .live-panel-links a { border: 1px solid #E7DDD6; border-radius: 4px; color: #0f6eb3; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
+    .live-panel-links a { border: 1px solid #E7DDD6; border-radius: 4px; color: #4B1238; font-size: 12px; font-weight: 900; min-height: 32px; padding: 8px 9px; text-align: center; text-decoration: none; }
     .drawer-action-buttons { display: grid; gap: 10px; }
     .drawer-action-buttons .refresh, .drawer-action-buttons .primary { width: 100%; }
       .attendance-dashboard-workspace {

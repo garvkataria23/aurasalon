@@ -756,7 +756,7 @@ const DENOMINATION_TEMPLATE: DenominationRow[] = [
     .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 1px solid #e5edf0; padding-bottom: 14px; }
     .detail-head h3 { margin: 2px 0 4px; color: #0f172a; letter-spacing: 0; }
     .detail-head p { margin: 0; color: #64748b; }
-    .status-pill { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .status-pill { border: 1px solid #FBF0E8; background: #FBF0E8; color: #7A4A28; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .status-pill[data-state="warn"] { border-color: #fde68a; background: #fffbeb; color: #92400e; }
     .status-pill[data-state="bad"] { border-color: #fecaca; background: #fff1f2; color: #9f1239; }
     .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }

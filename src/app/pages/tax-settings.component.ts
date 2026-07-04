@@ -263,7 +263,7 @@ const DEFAULT_SETTINGS: TaxSettingsState = {
     .tax-settings-page { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; padding: 20px; background: #f6f8f7; min-height: calc(100vh - 74px); color: var(--ink); }
     .settings-nav { position: sticky; top: 90px; align-self: start; display: grid; gap: 6px; padding: 14px; border-radius: 8px; background: #fff; border: 1px solid var(--line); }
     .settings-nav a { color: var(--ink); text-decoration: none; font-weight: 850; padding: 10px 12px; border-radius: 6px; }
-    .settings-nav a.active, .settings-nav a:hover { background: #e8fbf3; color: #047857; }
+    .settings-nav a.active, .settings-nav a:hover { background: #FBF0E8; color: #7A4A28; }
     .settings-content { display: grid; gap: 18px; min-width: 0; }
     .settings-hero, .settings-section { background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-soft); }
     .settings-hero { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 22px 24px; }
@@ -294,9 +294,9 @@ const DEFAULT_SETTINGS: TaxSettingsState = {
     .preview-grid small { color: var(--muted); font-weight: 700; }
     .apply-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .radio-card { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: #fff; cursor: pointer; }
-    .radio-card input { margin-top: 3px; width: 18px; height: 18px; accent-color: #059669; }
+    .radio-card input { margin-top: 3px; width: 18px; height: 18px; accent-color: #C87D4B; }
     .state { margin: 0; padding: 12px 14px; border-radius: 8px; font-weight: 850; }
-    .state.success { color: #047857; background: #F3EAF0; border: 1px solid #DCC4D4; }
+    .state.success { color: #7A4A28; background: #F3EAF0; border: 1px solid #DCC4D4; }
     .state.danger { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
 
     :host .settings-nav,

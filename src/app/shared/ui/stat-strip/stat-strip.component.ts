@@ -68,7 +68,7 @@ export type LegacyAuraStat = {
       text-overflow: ellipsis;
     }
     .aura-stat b { margin-right: 4px; }
-    .success b { color: var(--success-500, #10b981); }
+    .success b { color: var(--success-500, #C87D4B); }
     .warning b { color: var(--warning-500, #f59e0b); }
     .danger b { color: var(--danger-500, #ef4444); }
     .info b { color: var(--aura-primary, #4B1238); }

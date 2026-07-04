@@ -71,7 +71,7 @@ import { Subscription } from 'rxjs';
     .mkt-metrics .metric-card strong { font-size: 18px; }
     .mkt-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .chart-container { height: 240px; }
-    .roi-badge { padding: 2px 8px; border-radius: 4px; background: #d1fae5; color: var(--green); font-weight: 700; font-size: 12px; }
+    .roi-badge { padding: 2px 8px; border-radius: 4px; background: #FBF0E8; color: var(--green); font-weight: 700; font-size: 12px; }
     .skeleton-card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: var(--surface); display: grid; gap: 10px; }
     .skeleton-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
     .skeleton-line.w-60 { width: 60%; } .skeleton-line.w-80 { width: 80%; } .skeleton-line.h-8 { height: 20px; }
@@ -91,7 +91,7 @@ export class ReportMarketingComponent implements OnInit, OnDestroy {
   readonly campaigns = computed(() => this.d()?.campaigns || []);
   readonly campLabels = computed(() => this.campaigns().map((c: any) => c.name));
   readonly campRevenueDataset = computed(() => [{ label: 'Revenue', data: this.campaigns().map((c: any) => c.revenue), backgroundColor: '#4B1238' }]);
-  readonly campRoiDataset = computed(() => [{ label: 'ROI %', data: this.campaigns().map((c: any) => c.roi), backgroundColor: '#10b981' }]);
+  readonly campRoiDataset = computed(() => [{ label: 'ROI %', data: this.campaigns().map((c: any) => c.roi), backgroundColor: '#C87D4B' }]);
   private subs: Subscription[] = [];
 
   constructor(private service: ReportsEnterpriseService) {}

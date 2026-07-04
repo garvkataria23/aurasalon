@@ -699,7 +699,7 @@ type BrandPreset = {
       border: 1px solid var(--studio-border);
       border-radius: 12px;
       background: #0f172a;
-      color: #d1fae5;
+      color: #FBF0E8;
       font-size: 0.82rem;
       line-height: 1.7;
       font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
@@ -751,7 +751,7 @@ export class DesignSystemComponent implements OnInit {
   readonly savedMessage = signal('');
 
   private readonly tokenState = signal<BrandToken[]>([
-    { key: 'background', label: 'Background color', value: '#f4f7f6', help: 'Main app page background.' },
+    { key: 'background', label: 'Background color', value: '#FAF8F6', help: 'Main app page background.' },
     { key: 'surface', label: 'Card background color', value: '#ffffff', help: 'Panels, cards, forms and tables.' },
     { key: 'text', label: 'Text color', value: '#142033', help: 'Primary readable text.' },
     { key: 'muted', label: 'Muted text color', value: '#64748b', help: 'Subtitles, labels and helper text.' },
@@ -759,14 +759,14 @@ export class DesignSystemComponent implements OnInit {
     { key: 'buttonText', label: 'Button text color', value: '#ffffff', help: 'Text shown inside primary buttons.' },
     { key: 'hover', label: 'Hover color', value: '#6D1B4D', help: 'Mouse hover and selected states.' },
     { key: 'border', label: 'Border color', value: '#E7DDD6', help: 'Card, table, input and divider borders.' },
-    { key: 'sidebar', label: 'Sidebar color', value: '#071b18', help: 'Left navigation and admin shell.' },
+    { key: 'sidebar', label: 'Sidebar color', value: '#2D0B21', help: 'Left navigation and admin shell.' },
     { key: 'sidebarText', label: 'Sidebar text color', value: '#eefcf8', help: 'Navigation text and icon color.' },
-    { key: 'sidebarHover', label: 'Sidebar hover color', value: '#123f38', help: 'Menu item hover background.' },
+    { key: 'sidebarHover', label: 'Sidebar hover color', value: '#3D0F2C', help: 'Menu item hover background.' },
     { key: 'sidebarActive', label: 'Sidebar active color', value: '#4B1238', help: 'Selected menu item background.' },
     { key: 'inputBg', label: 'Input background color', value: '#ffffff', help: 'Text fields, selects and textarea background.' },
     { key: 'cardHover', label: 'Card hover color', value: '#F1E8EE', help: 'Cards, buttons and panels on hover.' },
     { key: 'tableHover', label: 'Table row hover color', value: '#F5EEF2', help: 'Table and list row hover state.' },
-    { key: 'success', label: 'Success status color', value: '#16a34a', help: 'Confirmed, paid and completed states.' },
+    { key: 'success', label: 'Success status color', value: '#C87D4B', help: 'Confirmed, paid and completed states.' },
     { key: 'warning', label: 'Warning status color', value: '#f59e0b', help: 'Arrived, pending review and attention states.' },
     { key: 'danger', label: 'Danger status color', value: '#e11d48', help: 'Risk, failed and overdue states.' },
     { key: 'accent', label: 'Accent color', value: '#f97316', help: 'Badges, highlights and brand mark.' }
@@ -778,7 +778,7 @@ export class DesignSystemComponent implements OnInit {
     {
       name: 'Luxury Emerald',
       industry: 'Premium salon',
-      tokens: { primary: '#4B1238', hover: '#6D1B4D', sidebar: '#071b18', sidebarHover: '#123f38', sidebarActive: '#4B1238', accent: '#f97316', background: '#f4f7f6', border: '#E7DDD6', cardHover: '#F1E8EE', tableHover: '#F5EEF2' }
+      tokens: { primary: '#4B1238', hover: '#6D1B4D', sidebar: '#2D0B21', sidebarHover: '#3D0F2C', sidebarActive: '#4B1238', accent: '#f97316', background: '#FAF8F6', border: '#E7DDD6', cardHover: '#F1E8EE', tableHover: '#F5EEF2' }
     },
     {
       name: 'Rose Studio',
@@ -793,12 +793,12 @@ export class DesignSystemComponent implements OnInit {
     {
       name: 'Organic Spa',
       industry: 'Wellness spa',
-      tokens: { primary: '#3f7d20', hover: '#84cc16', sidebar: '#12210f', sidebarHover: '#27461f', sidebarActive: '#3f7d20', accent: '#ca8a04', background: '#f7fbef', border: '#dcebc4', cardHover: '#f0f9dd', tableHover: '#f3fbe8' }
+      tokens: { primary: '#7A4A28', hover: '#C87D4B', sidebar: '#2D0B21', sidebarHover: '#3D0F2C', sidebarActive: '#7A4A28', accent: '#8B5E7C', background: '#FAF8F6', border: '#E7DDD6', cardHover: '#FBF0E8', tableHover: '#F5EEF2' }
     },
     {
       name: 'Mono Elite',
       industry: 'Enterprise neutral',
-      tokens: { primary: '#1f2937', hover: '#64748b', sidebar: '#080b12', sidebarHover: '#1f2937', sidebarActive: '#334155', accent: '#0ea5e9', background: '#f6f7f9', border: '#d9dee7', cardHover: '#f1f5f9', tableHover: '#f8fafc' }
+      tokens: { primary: '#1f2937', hover: '#64748b', sidebar: '#080b12', sidebarHover: '#1f2937', sidebarActive: '#334155', accent: '#8B5E7C', background: '#f6f7f9', border: '#d9dee7', cardHover: '#F5EEF2', tableHover: '#FAF8F6' }
     }
   ];
 

@@ -771,8 +771,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .report-tabs button.active {
       background: #F3EAF0;
-      border-color: rgba(16, 185, 129, .35);
-      color: #047857;
+      border-color: rgba(200, 125, 75, .35);
+      color: #7A4A28;
       box-shadow: inset 0 -3px 0 #4B1238;
     }
     td strong,
@@ -860,8 +860,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
       padding: 6px 10px;
     }
     .score-pill.good {
-      background: #dcfce7;
-      color: #166534;
+      background: #FBF0E8;
+      color: #7A4A28;
     }
     .score-pill.warn {
       background: #fee2e2;

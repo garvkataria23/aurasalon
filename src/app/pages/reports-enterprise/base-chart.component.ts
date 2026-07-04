@@ -37,7 +37,7 @@ export class BaseChartComponent implements AfterViewInit, OnDestroy {
       type: this.type === 'horizontalBar' ? 'bar' : this.type,
       data: { labels: this.labels, datasets: this.datasets.map(d => ({
         ...d,
-        backgroundColor: d.backgroundColor || (isBar ? ['#4B1238', '#6B1E4B', '#10b981', '#f59e0b', '#ef4444', '#6d4cc2'] : '#4B1238'),
+        backgroundColor: d.backgroundColor || (isBar ? ['#4B1238', '#6B1E4B', '#C87D4B', '#f59e0b', '#ef4444', '#6d4cc2'] : '#4B1238'),
         borderColor: d.borderColor || '#4B1238',
         fill: d.fill ?? true,
         tension: d.tension ?? 0.4,

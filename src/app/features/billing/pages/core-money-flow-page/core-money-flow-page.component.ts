@@ -49,7 +49,7 @@ type MoneyFlowCheck = {
     .check-main { display: grid; gap: 5px; }
     .check-title { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .pill { border-radius: 999px; padding: 5px 9px; font-size: 0.78rem; font-weight: 800; background: #eef4f6; color: #526174; }
-    .pill[data-state="done"] { background: #e6f7ee; color: #067647; }
+    .pill[data-state="done"] { background: #FBF0E8; color: #7A4A28; }
     .pill[data-state="warn"] { background: #fff5db; color: #925400; }
     .pill[data-state="blocker"] { background: #fff0ed; color: #b42318; }
     .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #9aa8b5; flex: 0 0 auto; }

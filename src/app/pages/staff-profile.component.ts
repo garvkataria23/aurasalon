@@ -459,7 +459,7 @@ type RosterView = 'day' | 'week' | 'month';
       border: 1px solid rgba(14, 116, 144, 0.18);
       border-radius: 8px;
       background: rgba(240, 249, 255, 0.84);
-      color: #075985;
+      color: #8B5E7C;
     }
 
     .service-matrix-wrap {

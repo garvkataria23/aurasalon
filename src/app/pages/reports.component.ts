@@ -261,7 +261,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
               </div>
               <div class="snap-body snap-stats">
                 <div class="snap-stat"><span class="dot" style="background:#4B1238"></span><strong>{{ r.bookings.booked || 0 }}</strong></div>
-                <div class="snap-stat"><span class="dot" style="background:#059669"></span><strong>{{ r.bookings.completed || 0 }}</strong></div>
+                <div class="snap-stat"><span class="dot" style="background:#C87D4B"></span><strong>{{ r.bookings.completed || 0 }}</strong></div>
                 <div class="snap-stat"><span class="dot" style="background:#d97706"></span><strong>{{ r.bookings.noShow || 0 }}</strong></div>
                 <div class="snap-stat"><span class="dot" style="background:#ef4444"></span><strong>{{ r.bookings.cancelled || 0 }}</strong></div>
               </div>
@@ -722,7 +722,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     .kpi-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
     .kpi-icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .kpi-trend { font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
-    .kpi-trend.up { background: rgba(5,150,105,0.1); color: #059669; }
+    .kpi-trend.up { background: rgba(5,150,105,0.1); color: #C87D4B; }
     .kpi-trend.down { background: rgba(220,38,38,0.08); color: #dc2626; }
     .kpi-val { display: block; font-size: 1.55rem; font-weight: 750; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 6px; }
     .kpi-label { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 500; margin-top: auto; }
@@ -746,7 +746,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     .ea-bar:hover { background: linear-gradient(180deg, rgba(75,18,56,0.7), rgba(75,18,56,0.15)); transform: scaleY(1.02); transform-origin: bottom; }
     .ea-bar.is-peak { background: linear-gradient(180deg, rgba(79,70,229,0.7), rgba(79,70,229,0.15)); }
     .ea-chart-footer { display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--muted); }
-    .ea-chart-up { color: #059669; font-weight: 600; }
+    .ea-chart-up { color: #C87D4B; font-weight: 600; }
 
     .ea-side { display: flex; flex-direction: column; gap: 12px; }
     .ea-side-card {
@@ -762,10 +762,10 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     .ea-side-card-accent {
       border-color: rgba(5,150,105,0.18);
     }
-    .ea-side-card-accent::before { background: #059669; }
+    .ea-side-card-accent::before { background: #C87D4B; }
     .ea-side-label { font-size: 0.75rem; color: var(--muted); font-weight: 600; display: block; text-transform: uppercase; letter-spacing: 0.04em; }
     .ea-side-card strong { font-size: 1.15rem; font-weight: 700; display: block; margin: 5px 0 4px; letter-spacing: -0.02em; }
-    .ea-side-card-accent strong { color: #059669; }
+    .ea-side-card-accent strong { color: #C87D4B; }
 
     /* ─── SNAPSHOT GRID (4-col) ─── */
     .snap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -788,7 +788,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     .snap-row span:first-child { width: 80px; color: var(--muted); flex-shrink: 0; font-weight: 500; }
     .snap-row strong { flex: 1; text-align: right; font-weight: 650; font-size: 0.88rem; }
     .snap-total { border-top: 2px solid var(--line); margin-top: 6px; padding-top: 10px; }
-    .snap-total strong { color: #059669; }
+    .snap-total strong { color: #C87D4B; }
     .snap-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 2px; }
     .snap-stat { text-align: center; padding: 10px 4px; border-radius: 8px; background: var(--color-surface-muted); transition: transform 140ms ease; }
     .snap-stat:hover { transform: scale(1.03); }
@@ -797,7 +797,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-bottom: 5px; }
 
     .stg { padding: 2px 8px; border-radius: 5px; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; border: 1px solid transparent; }
-    .stg-green { background: rgba(5,150,105,0.06); color: #059669; border-color: rgba(5,150,105,0.15); }
+    .stg-green { background: rgba(5,150,105,0.06); color: #C87D4B; border-color: rgba(5,150,105,0.15); }
     .stg-blue { background: rgba(75,18,56,0.06); color: #4B1238; border-color: rgba(75,18,56,0.15); }
     .stg-purple { background: rgba(124,58,237,0.06); color: #7c3aed; border-color: rgba(124,58,237,0.15); }
     .stg-amber { background: rgba(217,119,6,0.06); color: #d97706; border-color: rgba(217,119,6,0.15); }
@@ -834,12 +834,12 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     tbody tr:nth-child(3) .staff-rank { background: linear-gradient(135deg, rgba(180,83,9,0.15), rgba(180,83,9,0.05)); color: #92400e; }
     .role-badge { padding: 3px 9px; border-radius: 6px; font-size: 0.73rem; font-weight: 600; background: var(--color-surface-muted); color: var(--muted); white-space: nowrap; }
     .compl-badge { font-weight: 700; padding: 3px 9px; border-radius: 6px; }
-    .compl-badge.high { color: #059669; background: rgba(5,150,105,0.1); }
+    .compl-badge.high { color: #C87D4B; background: rgba(5,150,105,0.1); }
     .compl-badge.mid { color: #d97706; background: rgba(217,119,6,0.1); }
     .compl-badge.low { color: #dc2626; background: rgba(220,38,38,0.08); }
 
     .sch-badge { padding: 3px 9px; border-radius: 6px; font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-    .sch-badge.active { background: rgba(5,150,105,0.1); color: #059669; }
+    .sch-badge.active { background: rgba(5,150,105,0.1); color: #C87D4B; }
     .sch-badge.paused { background: rgba(217,119,6,0.1); color: #d97706; }
     .sch-badge.error { background: rgba(220,38,38,0.08); color: #dc2626; }
     .sch-row { cursor: pointer; transition: background 120ms ease; }
@@ -908,12 +908,12 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     .is-ins-item:hover { background: var(--color-surface-muted); border-color: rgba(79,70,229,0.1); border-left-color: var(--color-primary); }
     .is-ins-item:has(.is-dot.high) { border-left-color: #dc2626; }
     .is-ins-item:has(.is-dot.medium) { border-left-color: #d97706; }
-    .is-ins-item:has(.is-dot.low) { border-left-color: #059669; }
+    .is-ins-item:has(.is-dot.low) { border-left-color: #C87D4B; }
     .is-ins-item:has(.is-dot.info) { border-left-color: var(--color-primary); }
     .is-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(75,18,56,0.04); }
     .is-dot.high { background: #dc2626; }
     .is-dot.medium { background: #d97706; }
-    .is-dot.low { background: #059669; }
+    .is-dot.low { background: #C87D4B; }
     .is-dot.info { background: var(--color-primary); }
     .is-ins-item strong { font-size: 0.84rem; font-weight: 600; display: block; }
     .is-ins-item span { font-size: 0.76rem; color: var(--muted); display: block; margin-top: 2px; line-height: 1.35; }

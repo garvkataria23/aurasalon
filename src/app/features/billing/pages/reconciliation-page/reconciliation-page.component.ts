@@ -47,7 +47,7 @@ const PROVIDER_MODES: Record<ProviderKey, string[]> = {
     .row-list { display: grid; gap: 10px; }
     .row-card { padding: 14px; display: grid; gap: 8px; }
     .pill { border-radius: 999px; padding: 5px 9px; font-size: .78rem; font-weight: 800; background: #eef4f6; color: #526174; }
-    .pill.ok { background: #e6f7ee; color: #067647; }
+    .pill.ok { background: #FBF0E8; color: #7A4A28; }
     .pill.warn { background: #fff5db; color: #925400; }
     .pill.bad { background: #fff0ed; color: #b42318; }
     .empty, .error { padding: 14px; border-radius: 8px; background: #f8faf9; color: #617086; }

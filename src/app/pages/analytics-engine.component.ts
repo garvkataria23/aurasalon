@@ -1,4 +1,4 @@
-﻿import { CommonModule, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder } from '@angular/forms';
 
@@ -388,7 +388,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
       padding: 3px 9px;
       border: 1px solid var(--success-border, #DCC4D4);
       border-radius: 999px;
-      color: var(--success-text, #065F46);
+      color: var(--success-text, #7A4A28);
       background: var(--success-bg, #F3EAF0);
       font-size: 0.75rem;
       font-weight: 900;

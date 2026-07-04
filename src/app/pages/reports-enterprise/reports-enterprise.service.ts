@@ -107,7 +107,7 @@ export class ReportsEnterpriseService {
   }
 
   getRevenueByCategory(): Observable<{ labels: string[]; values: number[]; colors: string[] }> {
-    return of({ labels: ['Hair Services', 'Skin Care', 'Nail Services', 'Makeup', 'Products'], values: [48, 20, 12, 8, 12], colors: ['#4B1238', '#6B1E4B', '#10b981', '#f59e0b', '#ef4444'] });
+    return of({ labels: ['Hair Services', 'Skin Care', 'Nail Services', 'Makeup', 'Products'], values: [48, 20, 12, 8, 12], colors: ['#4B1238', '#6B1E4B', '#C87D4B', '#f59e0b', '#ef4444'] });
   }
 
   getTodayPerformance(): Observable<{ revenue: number; bookings: number; clients: number; rating: number }> {
@@ -146,7 +146,7 @@ export class ReportsEnterpriseService {
       topSpenders: CLIENTS.slice(0, 5).map(n => ({ name: n, spent: rand(12000, 45000), visits: rand(4, 18) })),
       atRisk: rand(12, 32),
       segments: [
-        { label: 'VIP', value: rand(15, 25), color: '#4B1238' }, { label: 'Loyal', value: rand(30, 45), color: '#10b981' },
+        { label: 'VIP', value: rand(15, 25), color: '#4B1238' }, { label: 'Loyal', value: rand(30, 45), color: '#C87D4B' },
         { label: 'New', value: rand(20, 30), color: '#6B1E4B' }, { label: 'At-Risk', value: rand(8, 18), color: '#f59e0b' },
         { label: 'Lost', value: rand(3, 10), color: '#ef4444' }
       ]

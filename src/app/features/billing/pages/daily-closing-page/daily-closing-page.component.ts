@@ -37,7 +37,7 @@ import { AppStateService } from '../../../../core/state/app-state.service';
     .step-list { display: grid; gap: 10px; }
     .step-row { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
     .pill { border-radius: 999px; padding: 5px 9px; font-size: .78rem; font-weight: 800; background: #eef4f6; color: #526174; }
-    .pill.ok { background: #e6f7ee; color: #067647; }
+    .pill.ok { background: #FBF0E8; color: #7A4A28; }
     .pill.warn { background: #fff5db; color: #925400; }
     .pill.bad { background: #fff0ed; color: #b42318; }
     .action-panel { padding: 14px; background: #fbfdfc; }

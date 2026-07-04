@@ -160,7 +160,7 @@ type Channel = 'whatsapp' | 'sms';
     .suggestion { display: grid; gap: 5px; min-height: 82px; padding: 10px; text-align: left; align-content: start; }
     .suggestion span { color: #64748b; font-size: 13px; line-height: 1.35; font-weight: 700; }
     .preview-panel { margin-top: 12px; background: #f8fffd; }
-    .success { color: #047857; font-weight: 900; }
+    .success { color: #7A4A28; font-weight: 900; }
     .error { color: #b91c1c; font-weight: 900; }
     .empty, .empty-state p { color: #64748b; font-weight: 700; }
     @media (max-width: 1100px) { .campaign-layout, .suggestion-grid { grid-template-columns: 1fr; } .selector-panel { position: static; } .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

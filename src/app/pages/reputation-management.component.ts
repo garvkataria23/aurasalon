@@ -360,11 +360,11 @@ interface SegmentRow {
       line-height: 1;
     }
     .platform-pill { background: #eef6f4; color: #4B1238; }
-    .sentiment-pill.positive { background: #e8f7f1; color: #047857; }
+    .sentiment-pill.positive { background: #FBF0E8; color: #7A4A28; }
     .sentiment-pill.neutral, .sentiment-pill.unknown { background: var(--surface-2); color: var(--muted); }
     .sentiment-pill.negative { background: #fff1f2; color: #be123c; }
     .sentiment-pill.mixed { background: #fef3c7; color: #92400e; }
-    .rating-badge { background: #e8f7f1; color: #047857; white-space: nowrap; }
+    .rating-badge { background: #FBF0E8; color: #7A4A28; white-space: nowrap; }
     .rating-badge.mid { background: #fef3c7; color: #92400e; }
     .rating-badge.low { background: #fff1f2; color: #be123c; }
 
@@ -392,7 +392,7 @@ interface SegmentRow {
     .platform-row strong { color: var(--ink); }
     .action-list { margin: 0; padding-left: 18px; color: var(--ink); display: grid; gap: 10px; line-height: 1.5; }
 
-    .health-pill { background: #e8f7f1; color: #047857; }
+    .health-pill { background: #FBF0E8; color: #7A4A28; }
     .health-pill.alert { background: #fff1f2; color: #be123c; }
 
     .notice {

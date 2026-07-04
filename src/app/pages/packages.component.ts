@@ -862,7 +862,7 @@ type RedemptionLine = {
 
     tbody tr:hover,
     tbody tr.active {
-      background: #edfdf8;
+      background: #FBF0E8;
     }
 
     td small,
@@ -937,8 +937,8 @@ type RedemptionLine = {
       justify-content: center;
       border-radius: 999px;
       padding: 6px 10px;
-      background: #dcfce7;
-      color: #047857;
+      background: #FBF0E8;
+      color: #7A4A28;
       font-size: 12px;
       font-weight: 900;
       text-transform: capitalize;

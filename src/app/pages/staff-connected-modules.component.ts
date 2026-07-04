@@ -244,7 +244,7 @@ type StaffModuleGroup = {
       padding: 3px 8px;
       border-radius: 999px;
       background: #F3EAF0;
-      color: #047857;
+      color: #7A4A28;
       font-size: 0.72rem;
       font-weight: 850;
     }

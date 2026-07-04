@@ -296,7 +296,7 @@ type MarketingViewKey = 'overview' | 'workdesk' | 'offers' | 'output' | 'registe
     .output-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
     .output-grid article { min-height: 82px; padding: 12px; border: 1px solid #d8e1ea; background: #FAF8F6; display: flex; flex-direction: column; justify-content: center; }
     app-state { display: block; }
-    .state.success { margin: 0 16px; padding: 12px 14px; border-radius: 8px; font-weight: 850; color: #047857; background: #F8EEF4; border: 1px solid #E7DDD6; }
+    .state.success { margin: 0 16px; padding: 12px 14px; border-radius: 8px; font-weight: 850; color: #7A4A28; background: #F8EEF4; border: 1px solid #E7DDD6; }
     .empty-row { text-align: center; color: #8a9aa8; padding: 24px 12px !important; font-style: italic; }
 
     :host .page-stack,

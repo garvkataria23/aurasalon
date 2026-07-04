@@ -374,7 +374,7 @@ const emptyRecords: Record<ClientMasterKind, ClientMasterRecord[]> = {
     .master-tabs span, .swatch { align-items: center; border-radius: 8px; display: inline-flex; font-size: 12px; font-weight: 900; height: 34px; justify-content: center; width: 42px; }
     .master-tabs small { color: var(--muted); font-weight: 750; }
     .master-tabs .blue span { background: #F8EEF4; color: #4B1238; }
-    .master-tabs .green span { background: #edf7ef; color: #15803d; }
+    .master-tabs .green span { background: #FBF0E8; color: #C87D4B; }
     .master-tabs .violet span { background: #f3efff; color: #6d28d9; }
     .master-tabs .amber span { background: #fff7e6; color: #a16207; }
     .master-tabs .rose span { background: #fff1f2; color: #be123c; }

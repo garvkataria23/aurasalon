@@ -102,7 +102,7 @@ import { CommandCenterModule } from '../domain/command-center.models';
     .cc-actions { display: flex; gap: 8px; flex-shrink: 0; }
     .cc-actions button { border-radius: 8px; min-height: 34px; padding: 0 14px; cursor: pointer; font-weight: 700; font-size: 12px; transition: box-shadow 140ms ease; }
     .cc-primary { border: 0; background: #174f3a; color: #fff; }
-    .cc-ghost { border: 1px solid #d9e5de; background: #fff; color: #2d3f38; }
+    .cc-ghost { border: 1px solid #E7DDD6; background: #fff; color: #2d3f38; }
     .cc-metrics {
       display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;
     }

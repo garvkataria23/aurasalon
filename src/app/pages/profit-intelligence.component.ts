@@ -946,7 +946,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .customer-score-panel table { min-width: 1060px; }
     .liability-panel table { min-width: 1080px; }
     .severity-pill { display: inline-flex; min-width: 58px; justify-content: center; border-radius: 3px; padding: 4px 7px; font-size: 11px; text-transform: uppercase; }
-    .severity-green { color: #166534; background: #dcfce7; border: 1px solid #86efac; }
+    .severity-green { color: #7A4A28; background: #FBF0E8; border: 1px solid #E8C8A8; }
     .severity-amber { color: #92400e; background: #fef3c7; border: 1px solid #fbbf24; }
     .severity-red { color: #991b1b; background: #fee2e2; border: 1px solid #fca5a5; }
     .enterprise-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 10px; padding: 12px 14px; background: #f6f8fb; border: 1px solid #d9e1ea; }

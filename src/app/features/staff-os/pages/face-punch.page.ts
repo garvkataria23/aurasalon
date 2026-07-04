@@ -117,7 +117,7 @@ type PunchType = 'in' | 'out';
     .empty { padding: 26px; text-align: center; color: #607086; }
     .banner { margin: 0; padding: 10px 14px; border-radius: 8px; font-weight: 800; }
     .banner.err { background: #fee2e2; color: #991b1b; }
-    .banner.ok { background: #dcfce7; color: #166534; }
+    .banner.ok { background: #FBF0E8; color: #7A4A28; }
     @media (max-width: 920px) { .hero, .grid { grid-template-columns: 1fr; } .hero { flex-direction: column; align-items: stretch; } .form-grid, .cards { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
   `]
 })

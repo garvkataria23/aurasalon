@@ -40,7 +40,7 @@ import { AuraToastService } from './toast.service';
       font-size: var(--aura-fs-sm, 13px);
       font-weight: 700;
     }
-    .success { border-left-color: var(--success-500, #10b981); }
+    .success { border-left-color: var(--success-500, #C87D4B); }
     .warning { border-left-color: var(--warning-500, #f59e0b); }
     .danger { border-left-color: var(--danger-500, #ef4444); }
     .info { border-left-color: var(--aura-primary, #4B1238); }

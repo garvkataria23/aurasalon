@@ -363,7 +363,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .badge.high,
     .badge.critical { background: #fee2e2; color: #991b1b; }
     .badge.medium { background: #fef3c7; color: #92400e; }
-    .badge.low { background: #e0f2fe; color: #075985; }
+    .badge.low { background: #F5EEF2; color: #8B5E7C; }
     @media (max-width: 760px) {
       .timeline-event { grid-template-columns: 12px minmax(0, 1fr); }
       .timeline-event > b { grid-column: 2; }

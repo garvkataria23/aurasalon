@@ -22,10 +22,10 @@ import { InvoiceItem } from '../../domain/invoice.model';
     .line-price { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--aura-text, #1f2933); }
     .happy-hour-line { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .happy-hour-line s { color: var(--aura-muted, #6b7280); }
-    .hh-badge { display: inline-flex; align-items: center; border: 1px solid rgba(22, 163, 74, 0.24); border-radius: 999px; background: var(--aura-success-bg, rgba(22,163,74,.12)); color: var(--aura-success, #16a34a); font-size: 11px; font-weight: 900; padding: 3px 8px; }
+    .hh-badge { display: inline-flex; align-items: center; border: 1px solid rgba(200, 125, 75, 0.24); border-radius: 999px; background: var(--aura-success-bg, rgba(200,125,75,.12)); color: var(--aura-success, #C87D4B); font-size: 11px; font-weight: 900; padding: 3px 8px; }
     .remove-button { min-height: 36px; border: 1px solid rgba(225, 29, 72, .22); border-radius: 10px; background: var(--aura-danger-bg, rgba(225,29,72,.12)); color: var(--aura-danger, #e11d48); font-weight: 850; cursor: pointer; }
     .discounts { display: grid; gap: 8px; }
-    .discount-row { border: 1px solid rgba(22, 163, 74, 0.22); border-radius: 12px; background: var(--aura-success-bg, rgba(22,163,74,.12)); color: var(--aura-success, #16a34a); font-weight: 850; padding: 10px 12px; }
+    .discount-row { border: 1px solid rgba(200, 125, 75, 0.22); border-radius: 12px; background: var(--aura-success-bg, rgba(200,125,75,.12)); color: var(--aura-success, #C87D4B); font-weight: 850; padding: 10px 12px; }
     .discount-amount { font-weight: 950; }
     @media (max-width: 620px) { .cart-head, .hh-controls, .discount-row { align-items: stretch; flex-direction: column; } .cart-row { grid-template-columns: 1fr; } .line-price { justify-content: flex-start; } }
   `],

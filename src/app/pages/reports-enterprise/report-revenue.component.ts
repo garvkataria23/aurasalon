@@ -97,7 +97,7 @@ export class ReportRevenueComponent implements OnInit, OnDestroy {
   readonly payMethodLabels = computed(() => (this.d()?.byPayment || []).map((p: any) => p.mode));
   readonly payMethodDataset = computed(() => {
     const data = (this.d()?.byPayment || []).map((p: any) => p.amount);
-    return [{ label: 'Amount', data, backgroundColor: ['#4B1238','#10b981','#f59e0b','#ef4444','#6d4cc2'] }];
+    return [{ label: 'Amount', data, backgroundColor: ['#4B1238','#C87D4B','#f59e0b','#ef4444','#6d4cc2'] }];
   });
   readonly staffLabels = computed(() => (this.d()?.byStaff || []).map((s: any) => s.name));
   readonly staffDataset = computed(() => [{ label: 'Revenue', data: (this.d()?.byStaff || []).map((s: any) => s.amount), backgroundColor: '#4B1238' }]);

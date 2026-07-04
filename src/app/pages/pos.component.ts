@@ -1,4 +1,4 @@
-﻿import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, effect, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -1114,7 +1114,7 @@ type PackageClientNotice = {
     :host .membership-line-badge--unlimited {
       border-color: #9bd8c4;
       background: #F3EAF0;
-      color: #047857;
+      color: #7A4A28;
     }
 
     :host .membership-line-badge--discount {
@@ -1391,8 +1391,8 @@ type PackageClientNotice = {
     }
 
     :host .client-badge.good {
-      color: #047857;
-      background: #d1fae5;
+      color: #7A4A28;
+      background: #FBF0E8;
     }
 
     :host .client-badge.wallet {
@@ -1413,11 +1413,11 @@ type PackageClientNotice = {
       gap: 16px;
       align-items: center;
       min-height: 58px;
-      border: 2px solid #22c55e;
+      border: 2px solid #C87D4B;
       border-radius: 8px;
       padding: 10px 14px;
       background: #F3EAF0;
-      box-shadow: inset 4px 0 0 #16a34a;
+      box-shadow: inset 4px 0 0 #C87D4B;
     }
 
     :host .package-billing-alert div {
@@ -1427,7 +1427,7 @@ type PackageClientNotice = {
     }
 
     :host .package-billing-alert span {
-      color: #047857;
+      color: #7A4A28;
       font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
@@ -1440,7 +1440,7 @@ type PackageClientNotice = {
     }
 
     :host .package-billing-alert small {
-      color: #166534;
+      color: #7A4A28;
       line-height: 1.35;
     }
 
@@ -1545,8 +1545,8 @@ type PackageClientNotice = {
     }
 
     :host .client-call-button.whatsapp {
-      color: #15803d;
-      background: #dcfce7;
+      color: #C87D4B;
+      background: #FBF0E8;
     }
 
     :host .client-empty-state {
@@ -1602,7 +1602,7 @@ type PackageClientNotice = {
     }
 
     :host .inline-hint.success {
-      color: #047857;
+      color: #7A4A28;
     }
 
     :host .inline-hint.danger {

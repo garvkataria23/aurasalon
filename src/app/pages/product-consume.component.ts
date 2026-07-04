@@ -1013,7 +1013,7 @@ const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
     .zenoti-register-table th, .zenoti-register-table td { padding: 10px 12px; border-bottom: 1px solid #dfe7ef; text-align: left; vertical-align: middle; }
     .zenoti-register-table th { background: #f4f7fa; color: #5b6b81; font-size: 12px; text-transform: uppercase; }
     .zenoti-register-table tbody tr { cursor: pointer; }
-    .zenoti-register-table tbody tr:hover, .zenoti-register-table tbody tr.selected { background: #eef7fc; }
+    .zenoti-register-table tbody tr:hover, .zenoti-register-table tbody tr.selected { background: #F5EEF2; }
     .zenoti-register-table td small { display: block; margin-top: 3px; }
     .mini-action { padding: 6px 10px; background: #fff; color: #0b72b5; }
     .table-empty { text-align: center; color: #64748b; padding: 18px; }
@@ -1024,7 +1024,7 @@ const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
     .draft-card { text-align: left; background: white; display: grid; gap: 5px; }
     .draft-card.active { background: #e8f4f2; border-color: #6D1B4D; }
     .badge { width: max-content; border-radius: 999px; padding: 5px 10px; background: #fff7ed; color: #9a3412; font-size: 12px; font-weight: 900; }
-    .badge.done { background: #dcfce7; color: #166534; }
+    .badge.done { background: #FBF0E8; color: #7A4A28; }
     .editor { border: 0; box-shadow: none; padding: 16px; display: grid; gap: 14px; }
     .info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .info-grid label { border: 1px solid #d8e1ea; border-radius: 3px; padding: 10px; display: grid; gap: 6px; }
@@ -1120,7 +1120,7 @@ const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
     .ledger-alerts { display: flex; flex-wrap: wrap; gap: 8px; }
     .ledger-actions { display: grid; grid-template-columns: .8fr .7fr 1fr auto; gap: 8px; align-items: center; }
     .ledger-actions.override { grid-template-columns: 1fr auto; }
-    .mini-alert { border-radius: 999px; background: #e0f2fe; color: #075985; padding: 6px 10px; font-size: 12px; font-weight: 900; }
+    .mini-alert { border-radius: 999px; background: #F5EEF2; color: #8B5E7C; padding: 6px 10px; font-size: 12px; font-weight: 900; }
     .mini-alert.high { background: #fee2e2; color: #991b1b; }
     .ledger-history { display: grid; gap: 6px; }
     .history-row { display: grid; grid-template-columns: 1.2fr 1.4fr .8fr .8fr; gap: 10px; padding: 8px 0; border-top: 1px solid #edf4f3; }
@@ -1148,7 +1148,7 @@ const PRODUCT_CONSUME_WASTAGE_OWNER_APPROVAL_PCT = 25;
     .confirm-lock { color: #991b1b; font-weight: 900; }
     .alert, .success { border-radius: 14px; padding: 12px 16px; font-weight: 800; }
     .alert { background: #fee2e2; color: #991b1b; }
-    .success { background: #dcfce7; color: #166534; }
+    .success { background: #FBF0E8; color: #7A4A28; }
     .empty, .empty-editor { color: #64748b; padding: 18px; }
     @media (max-width: 900px) {
       .module-hero, .workspace { display: grid; }

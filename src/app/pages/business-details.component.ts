@@ -586,7 +586,7 @@ type ContactVerificationResponse = ContactVerification & {
       color: #0f5f56;
       font-weight: 800;
       text-decoration: none;
-      background: #f7fffc;
+      background: #FBF0E8;
     }
     .route-kicker {
       width: fit-content;
@@ -610,7 +610,7 @@ type ContactVerificationResponse = ContactVerification & {
       color: #b42318;
     }
     .route-status strong.ready {
-      color: #067647;
+      color: #7A4A28;
     }
     .route-status small {
       color: #64748b;
@@ -648,7 +648,7 @@ type ContactVerificationResponse = ContactVerification & {
     .ghost-button { background: #fff; color: #071524; }
     .alert { padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; }
     .alert.error { background: #fff1f0; color: #b42318; border: 1px solid #ffc9c2; }
-    .alert.success { background: #ecfdf3; color: #05603a; border: 1px solid #abefc6; }
+    .alert.success { background: #FBF0E8; color: #7A4A28; border: 1px solid #E8C8A8; }
     .toggle-panel {
       display: grid;
       gap: 8px;
@@ -685,10 +685,10 @@ type ContactVerificationResponse = ContactVerification & {
     }
     .recipient-count {
       flex: 0 0 auto;
-      border: 1px solid #bfe5df;
+      border: 1px solid #E7DDD6;
       border-radius: 999px;
       padding: 6px 10px;
-      background: #ecfdf9;
+      background: #FBF0E8;
       color: #0f5f56;
       font-size: 12px;
       font-weight: 900;
@@ -831,18 +831,18 @@ type ContactVerificationResponse = ContactVerification & {
       align-items: center;
       gap: 7px;
       max-width: 100%;
-      border: 1px solid #bfe5df;
+      border: 1px solid #E7DDD6;
       border-radius: 999px;
       padding: 7px 8px 7px 11px;
-      background: #ecfdf9;
-      color: #0b4f48;
+      background: #FBF0E8;
+      color: #7A4A28;
       font-size: 13px;
       font-weight: 800;
       overflow-wrap: anywhere;
     }
     .contact-chip.phone {
-      background: #f7fbff;
-      border-color: #bfd7ff;
+      background: #F5EEF2;
+      border-color: #D4C0CF;
       color: #4B1238;
     }
     .contact-chip.invalid {
@@ -859,7 +859,7 @@ type ContactVerificationResponse = ContactVerification & {
       border-radius: 999px;
       padding: 3px 7px;
       background: rgba(0, 0, 0, 0.12);
-      color: #0b4f48;
+      color: #7A4A28;
       font-size: 10px;
       font-style: normal;
       font-weight: 900;
@@ -887,7 +887,7 @@ type ContactVerificationResponse = ContactVerification & {
       min-width: 54px;
       padding: 0 8px;
       background: rgba(0, 0, 0, 0.14);
-      color: #0b4f48;
+      color: #7A4A28;
       font-size: 11px;
     }
     .contact-chip.unverified button.chip-verify {
@@ -910,11 +910,11 @@ type ContactVerificationResponse = ContactVerification & {
     .verify-contact-button {
       justify-self: start;
       min-height: 36px;
-      border: 1px solid #bfe5df;
+      border: 1px solid #E7DDD6;
       border-radius: 999px;
       padding: 0 13px;
-      background: #ecfdf9;
-      color: #0b4f48;
+      background: #FBF0E8;
+      color: #7A4A28;
       font-weight: 900;
       cursor: pointer;
     }
@@ -925,17 +925,17 @@ type ContactVerificationResponse = ContactVerification & {
     .otp-panel {
       display: grid;
       gap: 8px;
-      border: 1px solid #bfd7ff;
+      border: 1px solid #D4C0CF;
       border-radius: 8px;
       padding: 10px;
-      background: #f7fbff;
+      background: #F5EEF2;
     }
     .otp-panel strong {
-      color: #1e3a8a;
+      color: #8B5E7C;
       font-size: 13px;
     }
     .otp-panel span {
-      color: #0b4f48;
+      color: #7A4A28;
       font-weight: 900;
       font-size: 12px;
     }

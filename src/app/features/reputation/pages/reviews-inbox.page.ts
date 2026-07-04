@@ -266,12 +266,12 @@ type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
     .review-main p { margin: 6px 0; color: #334155; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .meta-row { display: flex; flex-wrap: wrap; gap: 8px; color: #53657d; font-size: 12px; font-weight: 700; }
     .sentiment, .status, .rating { border-radius: 999px; padding: 5px 9px; font-weight: 900; font-size: 12px; background: #eef2f7; color: #475569; }
-    .sentiment.positive, .sentiment.very_positive, .rating.good { background: #e8f7f1; color: #047857; }
+    .sentiment.positive, .sentiment.very_positive, .rating.good { background: #FBF0E8; color: #7A4A28; }
     .sentiment.negative, .sentiment.very_negative, .rating.low { background: #fff1f2; color: #be123c; }
     .sentiment.mixed, .rating.mid { background: #fef3c7; color: #92400e; }
     .status-stack { display: grid; justify-items: end; align-content: center; gap: 5px; }
     .status-stack small, .link-grid, .translation, .reply-history small, .empty-box span, .analysis-grid small { color: #53657d; }
-    .status.resolved { background: #e8f7f1; color: #047857; }
+    .status.resolved { background: #FBF0E8; color: #7A4A28; }
     .status.flagged { background: #fff1f2; color: #be123c; }
     .detail-panel { min-height: 520px; }
     .rating { font-size: 18px; padding: 9px 12px; }

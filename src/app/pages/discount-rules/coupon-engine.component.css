@@ -108,7 +108,7 @@
 }
 
 .validation-card.valid {
-  background: #ecfdf3;
+  background: #FBF0E8;
   border-color: #a6f4c5;
 }
 
@@ -137,7 +137,7 @@
 }
 
 .status-active {
-  background: #ecfdf3;
+  background: #FBF0E8;
   color: #027a48;
 }
 

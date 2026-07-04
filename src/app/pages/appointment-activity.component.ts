@@ -841,7 +841,7 @@ interface ClientScoreRow {
     .metric-card.red { border-top-color: var(--danger); }
     .metric-card.amber { border-top-color: #b7791f; }
     .metric-card.blue { border-top-color: #4B1238; }
-    .metric-card.green { border-top-color: #15803d; }
+    .metric-card.green { border-top-color: #C87D4B; }
 
     .metric-card span,
     .report-grid span,
@@ -1010,7 +1010,7 @@ interface ClientScoreRow {
       border: 1px solid var(--success-border, #DCC4D4);
       border-radius: 999px;
       background: var(--success-bg, #F3EAF0);
-      color: var(--success-text, #065F46);
+      color: var(--success-text, #7A4A28);
       padding: 6px 10px;
       font-weight: 800;
       font-size: 0.82rem;
@@ -1077,7 +1077,7 @@ interface ClientScoreRow {
     .badge.booking,
     .risk-pill.low {
       background: var(--success-bg, #F3EAF0);
-      color: var(--success-text, #065F46);
+      color: var(--success-text, #7A4A28);
     }
 
     .badge.change,
@@ -1095,7 +1095,7 @@ interface ClientScoreRow {
 
     .badge.service,
     .badge.billing {
-      background: #ecf3ff;
+      background: #F5EEF2;
       color: #6B1E4B;
     }
 

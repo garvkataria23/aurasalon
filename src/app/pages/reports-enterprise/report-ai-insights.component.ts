@@ -69,7 +69,7 @@ import { Subscription } from 'rxjs';
     .insight-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
     .insight-footer { display: flex; justify-content: flex-end; }
     .severity-tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-    .tag-positive { background: #d1fae5; color: var(--green); }
+    .tag-positive { background: #FBF0E8; color: var(--green); }
     .tag-warning { background: #fef3c7; color: #b7791f; }
     .tag-info { background: #F8EEF4; color: var(--blue); }
     .insights-empty { text-align: center; padding: 48px 16px; }

@@ -244,26 +244,39 @@ const SUITE_GROUPS: SuiteGroup[] = [
       padding: 24px 32px 40px;
       background: #f8f5f2;
       min-height: 100vh;
+      perspective: 1200px;
     }
 
     :host .btn-ghost {
       display: inline-flex; align-items: center;
       height: 30px; padding: 0 12px; border-radius: 6px;
       font-size: 12px; font-weight: 500; color: #6b7280;
-      background: #fff; border: 1px solid #e5e0db;
+      background: rgba(255,255,255,.78); border: 1px solid #e5e0db;
       text-decoration: none; cursor: pointer;
-      transition: background .15s, color .15s;
+      transition: background .15s, color .15s, transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
-    :host .btn-ghost:hover { background: #f5f2ef; color: #1a1a1a; }
+    :host .btn-ghost:hover,
+    :host .btn-ghost:focus-visible {
+      background: #f5f2ef; color: #1a1a1a;
+      box-shadow: 0 8px 18px rgba(75,18,56,.08), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateY(-1px);
+    }
     :host .btn-primary {
       display: inline-flex; align-items: center;
       height: 30px; padding: 0 14px; border-radius: 6px;
       font-size: 12px; font-weight: 500; color: #fff;
       background: #4B1238; border: 0;
       text-decoration: none; cursor: pointer;
-      transition: background .15s;
+      transition: background .15s, transform .2s ease, box-shadow .2s ease;
     }
-    :host .btn-primary:hover { background: #3d0e2e; }
+    :host .btn-primary:hover,
+    :host .btn-primary:focus-visible {
+      background: #3d0e2e;
+      box-shadow: 0 10px 22px rgba(75,18,56,.18), inset 0 1px 0 rgba(255,255,255,.22);
+      transform: translateY(-1px);
+    }
 
     :host .lp-header {
       display: flex;
@@ -271,10 +284,14 @@ const SUITE_GROUPS: SuiteGroup[] = [
       align-items: center;
       gap: 18px;
       padding: 16px 24px;
-      background: #fff;
+      background: rgba(255,255,255,.74);
       border: 1px solid #ede8e3;
       border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+      box-shadow: 0 16px 34px rgba(75,18,56,.08), 0 4px 12px rgba(0,0,0,.035), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateZ(0);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     :host .lp-header h2 {
       margin: 0;
@@ -290,9 +307,18 @@ const SUITE_GROUPS: SuiteGroup[] = [
     :host .lp-signal {
       display: flex; flex-direction: column; gap: 5px;
       padding: 18px 18px 16px; border-radius: 8px;
-      background: #fff; border: 1px solid #ede8e3;
+      background: rgba(255,255,255,.72); border: 1px solid #ede8e3;
       border-left: 3px solid #4B1238;
-      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+      box-shadow: 0 14px 30px rgba(75,18,56,.075), 0 3px 10px rgba(0,0,0,.03), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateZ(0);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      will-change: transform;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    :host .lp-signal:hover {
+      box-shadow: 0 20px 42px rgba(75,18,56,.11), 0 6px 16px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.66);
+      transform: translateY(-2px) rotateX(.6deg);
     }
     :host .ls-l {
       font-size: 11px; font-weight: 500; color: #8b7a74;
@@ -308,10 +334,14 @@ const SUITE_GROUPS: SuiteGroup[] = [
       align-items: center;
       gap: 20px;
       padding: 14px 20px;
-      background: #fff;
+      background: rgba(255,255,255,.74);
       border: 1px solid #ede8e3;
       border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+      box-shadow: 0 16px 34px rgba(75,18,56,.075), 0 4px 12px rgba(0,0,0,.03), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateZ(0);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     :host .lp-search {
       display: flex;
@@ -326,11 +356,17 @@ const SUITE_GROUPS: SuiteGroup[] = [
     }
     :host .lp-search input {
       height: 36px; padding: 0 14px; border-radius: 6px;
-      border: 1px solid #e5e0db; background: #faf9f7;
+      border: 1px solid #e5e0db; background: rgba(250,249,247,.82);
       font-size: 13px; color: #1a1a1a; width: 220px;
-      outline: none; transition: border-color .15s, background .15s;
+      outline: none; transition: border-color .15s, background .15s, box-shadow .2s ease, transform .2s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
-    :host .lp-search input:focus { border-color: #8f5c54; background: #fff; }
+    :host .lp-search input:focus {
+      border-color: #8f5c54; background: #fff;
+      box-shadow: 0 8px 18px rgba(75,18,56,.08), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateY(-1px);
+    }
 
     :host .lp-tabs {
       display: flex;
@@ -340,12 +376,19 @@ const SUITE_GROUPS: SuiteGroup[] = [
     }
     :host .lp-tabs button {
       height: 32px; padding: 0 14px; border-radius: 6px;
-      border: 1px solid #ede8e3; background: #fff;
+      border: 1px solid #ede8e3; background: rgba(255,255,255,.78);
       font-size: 12px; font-weight: 500; color: #6F778A;
-      cursor: pointer; transition: all .15s;
+      cursor: pointer; transition: background .15s, color .15s, border-color .15s, transform .2s ease, box-shadow .2s ease;
       font-family: inherit;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
-    :host .lp-tabs button:hover { background: #f5f2ef; border-color: #d5cec7; color: #2b2220; }
+    :host .lp-tabs button:hover,
+    :host .lp-tabs button:focus-visible {
+      background: #f5f2ef; border-color: #d5cec7; color: #2b2220;
+      box-shadow: 0 8px 18px rgba(75,18,56,.07), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateY(-1px);
+    }
     :host .lp-tabs button.active {
       background: #4B1238; border-color: #4B1238; color: #fff;
     }
@@ -367,10 +410,14 @@ const SUITE_GROUPS: SuiteGroup[] = [
       flex-direction: column;
       gap: 14px;
       padding: 18px 20px 20px;
-      background: #fff;
+      background: rgba(255,255,255,.74);
       border: 1px solid #ede8e3;
       border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+      box-shadow: 0 18px 38px rgba(75,18,56,.075), 0 4px 12px rgba(0,0,0,.03), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateZ(0);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     :host .lp-group-h {
       display: flex; align-items: center; gap: 10px;
@@ -400,15 +447,20 @@ const SUITE_GROUPS: SuiteGroup[] = [
       border: 1px solid #ede8e3;
       border-left: 3px solid #4B1238;
       border-radius: 8px;
-      background: #fff;
+      background: rgba(255,255,255,.70);
       text-decoration: none;
-      transition: box-shadow .2s, border-color .2s, transform .2s;
-      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+      transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+      box-shadow: 0 12px 26px rgba(75,18,56,.065), 0 3px 10px rgba(0,0,0,.025), inset 0 1px 0 rgba(255,255,255,.6);
+      transform: translateZ(0);
+      will-change: transform;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     :host .lp-app:hover {
-      box-shadow: 0 6px 16px rgba(75,18,56,.08);
+      box-shadow: 0 22px 46px rgba(75,18,56,.12), 0 8px 18px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.68);
       border-color: #d5cec7;
-      transform: translateY(-1px);
+      transform: translateY(-2px) rotateX(.7deg) rotateY(-.45deg);
+      background: rgba(255,255,255,.82);
     }
     :host .lp-app strong {
       font-size: 13px; font-weight: 600; color: #2b2220;
@@ -440,7 +492,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
 
     :host .tone-blue .lp-icon { background: #4B1238; }
     :host .tone-amber .lp-icon { background: #d97706; }
-    :host .tone-green .lp-icon { background: #059669; }
+    :host .tone-green .lp-icon { background: #C87D4B; }
     :host .tone-red .lp-icon { background: #dc2626; }
     :host .tone-violet .lp-icon { background: #7c3aed; }
     :host .tone-neutral .lp-icon { background: #9ca3af; }

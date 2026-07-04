@@ -1,4 +1,4 @@
-﻿import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -1093,7 +1093,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
 
     .month-date-strip button.active {
       border-color: var(--teal);
-      background: #e6f7f3;
+      background: #FBF0E8;
       color: var(--teal-2);
       box-shadow: inset 0 -3px 0 var(--teal);
     }
@@ -1165,7 +1165,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .booking-guard.guard-success {
-      border-color: rgba(22, 163, 74, 0.3);
+      border-color: rgba(200, 125, 75, 0.3);
       background: #f1fbf5;
     }
 
@@ -1246,7 +1246,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .ops-pulse-grid button.success {
-      border-color: rgba(22, 163, 74, 0.28);
+      border-color: rgba(200, 125, 75, 0.28);
       background: #f1fbf5;
     }
 
@@ -1740,7 +1740,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .staff-action-menu span {
       min-width: 22px;
       border-radius: 999px;
-      background: #e6f7f3;
+      background: #FBF0E8;
       color: var(--teal-2);
       padding: 1px 7px;
       text-align: center;
@@ -1819,8 +1819,8 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .scheduler-card.tone-in-service {
-      border-color: rgba(22, 163, 74, 0.5);
-      background: #dcfce7;
+      border-color: rgba(200, 125, 75, 0.5);
+      background: #FBF0E8;
     }
 
     .scheduler-card.tone-completed,
@@ -4597,7 +4597,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   staffAvatarColor(person: ApiRecord): string {
     const seed = String(person.id || person.name || 'staff').split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const palette = ['#dbeafe', '#dcfce7', '#fef3c7', '#fce7f3', '#ede9fe', '#cffafe', '#ffedd5'];
+    const palette = ['#F5EEF2', '#FBF0E8', '#fef3c7', '#fce7f3', '#ede9fe', '#F5EEF2', '#ffedd5'];
     return palette[seed % palette.length];
   }
 

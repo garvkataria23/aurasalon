@@ -1187,7 +1187,7 @@ const STATUS_TONES: Record<string, string> = {
     .appointment-card.teal { background: #D4B8CC !important; border-color: #4B1238 !important; border-left-color: #4B1238 !important; }
     .appointment-card.amber { background: #fde68a !important; border-color: #d97706 !important; border-left-color: #d97706 !important; }
     .appointment-card.violet { background: #ddd6fe !important; border-color: #7c3aed !important; border-left-color: #7c3aed !important; }
-    .appointment-card.green, .appointment-card.emerald { background: #bbf7d0 !important; border-color: #16a34a !important; border-left-color: #16a34a !important; }
+    .appointment-card.green, .appointment-card.emerald { background: #FBF0E8 !important; border-color: #C87D4B !important; border-left-color: #C87D4B !important; }
     .appointment-card.red { background: #fecaca !important; border-color: #dc2626 !important; border-left-color: #dc2626 !important; }
     .appointment-card.slate { background: #E7DDD6 !important; border-color: #64748b !important; border-left-color: #64748b !important; }
     .appointment-card:hover, .appointment-card:focus-visible, .timeline-appointment:hover, .timeline-appointment:focus-visible { z-index: 45 !important; }
@@ -1245,7 +1245,7 @@ const STATUS_TONES: Record<string, string> = {
     .timeline-appointment.teal, .status-pill.teal { background: #D4B8CC; border-color: #4B1238; }
     .timeline-appointment.amber, .status-pill.amber { background: #fde68a; border-color: #d97706; }
     .timeline-appointment.violet, .status-pill.violet { background: #ddd6fe; border-color: #7c3aed; }
-    .timeline-appointment.green, .timeline-appointment.emerald, .status-pill.green, .status-pill.emerald { background: #bbf7d0; border-color: #16a34a; }
+    .timeline-appointment.green, .timeline-appointment.emerald, .status-pill.green, .status-pill.emerald { background: #FBF0E8; border-color: #C87D4B; }
     .timeline-appointment.red, .status-pill.red { background: #fecaca; border-color: #dc2626; }
     .timeline-appointment.slate, .status-pill.slate { background: #E7DDD6; border-color: #64748b; }
     .operations-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
@@ -1307,8 +1307,8 @@ const STATUS_TONES: Record<string, string> = {
     .bill-panel-head h4 { margin: 0; }
     .appointment-notes-panel { display: grid; gap: 10px; }
     .appointment-note-box { min-height: 92px; resize: vertical; text-transform: none; }
-    .client-note-preview { display: grid; gap: 4px; border: 1px solid #bbf7d0; border-radius: 8px; background: #f0fdf4; padding: 10px; }
-    .client-note-preview strong { color: #166534; font-size: 12px; text-transform: uppercase; }
+    .client-note-preview { display: grid; gap: 4px; border: 1px solid #FBF0E8; border-radius: 8px; background: #FBF0E8; padding: 10px; }
+    .client-note-preview strong { color: #7A4A28; font-size: 12px; text-transform: uppercase; }
     .client-note-preview span { color: #334155; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
     .bill-status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .bill-status-row select { min-height: 40px; max-width: 160px; background: #9bd8c5; border-color: #4B1238; }
@@ -1351,9 +1351,9 @@ const STATUS_TONES: Record<string, string> = {
     .smart-search-results strong { font-size: 13px; }
     .smart-search-results span { font-size: 12px; color: #64748b; text-transform: none; }
     .smart-search-results .multi-select-box { width: 18px; height: 18px; border: 1px solid #cfe0dc; border-radius: 5px; background: #fff; align-self: center; }
-    .smart-search-results .multi-select-box.checked { border-color: #10b981; background: #d1fae5; box-shadow: inset 0 0 0 4px #fff; }
+    .smart-search-results .multi-select-box.checked { border-color: #C87D4B; background: #FBF0E8; box-shadow: inset 0 0 0 4px #fff; }
     .smart-search-results .result-copy { display: grid; gap: 2px; min-width: 0; }
-    .smart-search-results .select-pill { align-self: center; justify-self: end; border: 1px solid #bbf7d0; border-radius: 999px; background: #f0fdf4; color: #059669; font-size: 11px; font-weight: 900; padding: 5px 9px; }
+    .smart-search-results .select-pill { align-self: center; justify-self: end; border: 1px solid #FBF0E8; border-radius: 999px; background: #FBF0E8; color: #C87D4B; font-size: 11px; font-weight: 900; padding: 5px 9px; }
     .smart-search-results .service-result-actions { display: flex; gap: 8px; padding: 6px; }
     .smart-search-results .service-result-actions button { width: auto; border: 1px solid #cfe0dc; border-radius: 999px; padding: 6px 10px; font-weight: 900; }
     .smart-search-results .service-result-actions button:hover { background: #F8EEF4; }
@@ -1367,14 +1367,14 @@ const STATUS_TONES: Record<string, string> = {
     .line-staff-clear-button:hover { background: #baf3de; }
     .smart-search-results .line-staff-result { grid-template-columns: minmax(0, 1fr); }
     .picker-meta, .picker-empty { font-size: 11px; font-weight: 800; text-transform: none; color: #64748b; }
-    .picker-meta.selected { color: #059669; }
+    .picker-meta.selected { color: #C87D4B; }
     .picker-empty { color: #b45309; }
     .inline-form-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; }
     .inline-hint { margin: 0; border-radius: 10px; padding: 10px 12px; font-weight: 900; }
     .inline-hint.danger { background: #fee2e2; color: #991b1b; }
-    .inline-hint.success { background: #dcfce7; color: #166534; }
-    .client-booking-note { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; text-transform: none; line-height: 1.35; }
-    .client-booking-note strong { color: #14532d; }
+    .inline-hint.success { background: #FBF0E8; color: #7A4A28; }
+    .client-booking-note { border: 1px solid #FBF0E8; background: #FBF0E8; color: #7A4A28; text-transform: none; line-height: 1.35; }
+    .client-booking-note strong { color: #7A4A28; }
     .two-col, .status-grid, .notify-box, .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .notify-box { border: 1px solid #E7DDD6; border-radius: 12px; padding: 12px; }
     .notify-box label { display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 14px; color: #172033; }

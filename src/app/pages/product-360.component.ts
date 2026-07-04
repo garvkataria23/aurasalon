@@ -365,8 +365,8 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .control-card-grid article.clean {
-      border-color: #bbf7d0;
-      background: #f0fdf4;
+      border-color: #FBF0E8;
+      background: #FBF0E8;
     }
 
     .control-card-grid span,
@@ -411,7 +411,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       display: grid;
       gap: 8px;
       border-color: rgba(75, 18, 56, 0.28);
-      background: #f4fbf9;
+      background: #FBF0E8;
     }
 
     .table-wrap {

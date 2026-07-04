@@ -85,7 +85,7 @@ import { Subscription } from 'rxjs';
     .stock-info strong { font-size: 13px; }
     .stock-qty { font-size: 11px; color: var(--muted); }
     .stock-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
-    .badge-green { background: #d1fae5; color: var(--green); }
+    .badge-green { background: #FBF0E8; color: var(--green); }
     .badge-amber { background: #fef3c7; color: #b7791f; }
     .badge-red { background: #fee2e2; color: var(--red); }
     .reorder-list { display: grid; gap: 8px; }

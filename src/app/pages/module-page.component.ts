@@ -371,8 +371,8 @@ type ServiceProductLockDraft = {
     .service-category-panel strong {
       min-width: 34px;
       border-radius: 999px;
-      background: #d1fae5;
-      color: #065f46;
+      background: #FBF0E8;
+      color: #7A4A28;
       padding: 4px 8px;
       text-align: center;
       font-size: 0.78rem;
@@ -662,7 +662,7 @@ type ServiceProductLockDraft = {
     }
 
     .zenoti-module-page tr:hover td {
-      background: #eef7fc;
+      background: #F5EEF2;
     }
 
     @media (max-width: 900px) {

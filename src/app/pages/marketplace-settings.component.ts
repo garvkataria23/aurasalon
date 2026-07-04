@@ -311,7 +311,7 @@ const DEFAULT_SUMMARY: ReputationSummary = {
 
     .settings-nav a.active,
     .settings-nav a:hover {
-      background: #e8f7f1;
+      background: #FBF0E8;
       color: #08785d;
     }
 
@@ -398,7 +398,7 @@ const DEFAULT_SUMMARY: ReputationSummary = {
     }
 
     .state.success {
-      background: #e8f7f1;
+      background: #FBF0E8;
       color: #08785d;
       border: 1px solid #9bddca;
     }

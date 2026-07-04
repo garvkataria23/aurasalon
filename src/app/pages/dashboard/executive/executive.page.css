@@ -103,7 +103,7 @@
 .priority-card.tone-money::before,
 .kpi-tile.tone-profit::before,
 .priority-card.tone-profit::before {
-  background: linear-gradient(90deg, #16a34a, #4B1238);
+  background: linear-gradient(90deg, #C87D4B, #4B1238);
 }
 
 .kpi-tile.tone-risk::before,

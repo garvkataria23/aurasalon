@@ -80,7 +80,7 @@ import { DEFAULT_STAFF_PAYROLL_RULES, normalizeStaffPayrollRules, readStaffPayro
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; } article { padding: 16px; display: grid; gap: 12px; }
     label { display: grid; gap: 6px; font-weight: 900; color: #31445c; } label span { font-size: 12px; text-transform: uppercase; } input, select { min-height: 40px; border: 1px solid #b7c5cf; border-radius: 6px; padding: 0 10px; font: inherit; }
     .check { display: flex; align-items: center; gap: 9px; } .check input { min-height: auto; }
-    .msg { padding: 10px 14px; border-radius: 8px; background: #dcfce7; color: #166534; font-weight: 900; }
+    .msg { padding: 10px 14px; border-radius: 8px; background: #FBF0E8; color: #7A4A28; font-weight: 900; }
     .msg.err { background: #fee2e2; color: #991b1b; }
     .example { display: grid; gap: 5px; padding: 12px; border-radius: 8px; background: #f6faf9; color: #31445c; }
     @media (max-width: 900px) { .topbar, .grid { grid-template-columns: 1fr; display: grid; } }

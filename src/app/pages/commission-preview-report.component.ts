@@ -228,7 +228,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       background: #F3EAF0;
       border: 1px solid #DCC4D4;
       border-radius: 999px;
-      color: #047857;
+      color: #7A4A28;
       font-weight: 800;
       padding: 8px 10px;
       white-space: nowrap;

@@ -762,7 +762,7 @@ interface SupplierCommandRow {
       border: 1px solid rgba(75, 18, 56, 0.28);
       border-radius: 12px;
       padding: 14px;
-      background: #f4fbf9;
+      background: #FBF0E8;
       white-space: pre-wrap;
       line-height: 1.5;
     }

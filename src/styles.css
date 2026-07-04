@@ -8,7 +8,7 @@
   --color-primary: #4B1238;
   --color-primary-strong: #6D1B4D;
   --color-info: #4B1238;
-  --color-success: #16A34A;
+  --color-success: #C87D4B;
   --color-warning: #F59E0B;
   --color-danger: #E11D48;
   --color-accent: #E8A7B8;
@@ -32,7 +32,7 @@
   --aura-warning: var(--color-warning);
   --aura-danger: var(--color-danger);
   --aura-info: var(--color-info);
-  --aura-success-bg: rgba(22, 163, 74, 0.12);
+  --aura-success-bg: rgba(200, 125, 75, 0.12);
   --aura-warning-bg: rgba(245, 158, 11, 0.14);
   --aura-danger-bg: rgba(225, 29, 72, 0.12);
   --aura-info-bg: rgba(75, 18, 56, 0.1);
@@ -160,7 +160,7 @@
   --blue: #4B1238;
   --amber: #F59E0B;
   --red: #E11D48;
-  --green: #16A34A;
+  --green: #C87D4B;
   --violet: #4B1238;
   --rose: #E8A7B8;
   --shadow: 0 12px 30px rgba(75, 18, 56, 0.08);
@@ -178,8 +178,8 @@
   --color-border: #26302c;
   --color-primary: #f0a8c2;
   --color-primary-strong: #f6bdd2;
-  --color-info: #93c5fd;
-  --color-success: #34d399;
+  --color-info: #C8A0B8;
+  --color-success: #D4A574;
   --color-warning: #fbbf24;
   --color-danger: #fb7185;
   --color-accent: #f0a8c2;
@@ -191,10 +191,10 @@
   --line: #26302c;
   --color-primary-soft: rgba(75, 18, 56, 0.15);
   --color-surface-sunken: #0e1210;
-  --aura-success-bg: rgba(52, 211, 153, 0.14);
+  --aura-success-bg: rgba(212, 165, 116, 0.14);
   --aura-warning-bg: rgba(251, 191, 36, 0.15);
   --aura-danger-bg: rgba(251, 113, 133, 0.15);
-  --aura-info-bg: rgba(147, 197, 253, 0.14);
+  --aura-info-bg: rgba(200, 160, 184, 0.14);
   --aura-white: #111827;
   --aura-gray-50: #0f172a;
   --aura-gray-100: #111827;
@@ -227,14 +227,14 @@
   --color-text: #fff;
   --color-muted: #e6e6e6;
   --color-border: #fff;
-  --color-primary: #00ff9d;
+  --color-primary: #E8B880;
   --color-primary-strong: #7dffca;
-  --color-info: #00ccff;
-  --color-success: #00ff9d;
+  --color-info: #D4A0C0;
+  --color-success: #E8B880;
   --color-warning: #ffea00;
   --color-danger: #ff4d4d;
-  --color-accent: #00ccff;
-  --color-primary-soft: #003d27;
+  --color-accent: #D4A0C0;
+  --color-primary-soft: #3D2A15;
   --color-surface-sunken: #000;
   --bg: #000;
   --surface: #050505;
@@ -242,10 +242,10 @@
   --ink: #fff;
   --muted: #e6e6e6;
   --line: #fff;
-  --aura-success-bg: #003d27;
+  --aura-success-bg: #3D2A15;
   --aura-warning-bg: #332f00;
   --aura-danger-bg: #3d0000;
-  --aura-info-bg: #002b36;
+  --aura-info-bg: #2D1A28;
   --aura-white: #000;
   --aura-gray-50: #000;
   --aura-gray-100: #111;
@@ -262,7 +262,7 @@
   --aura-shadow-card: none;
   --aura-shadow-lg: none;
   --aura-shadow-drawer: none;
-  --aura-focus: 0 0 0 3px #00ff9d;
+  --aura-focus: 0 0 0 3px #E8B880;
 }
 
 /* Aura shared UI foundation: variable-backed only, scoped to Aura primitives. */
@@ -1849,7 +1849,7 @@ td small {
 .badge.badge-amber { color: #78350f; background: #fef3c7; }
 .badge.badge-red   { color: #7f1d1d; background: #fee2e2; }
 .badge.badge-blue  { color: #4B1238; background: #F8EEF4; }
-.badge.badge-green { color: #14532d; background: #dcfce7; }
+.badge.badge-green { color: #7A4A28; background: #FBF0E8; }
 .badge.badge-gray  { color: #374151; background: #f3f4f6; }
 .badge.badge-violet{ color: #4c1d95; background: #ede9fe; }
 
@@ -2556,13 +2556,13 @@ td small {
 }
 
 .wallet-action-button.ready {
-  color: #075e54;
+  color: #7A4A28;
   border-color: rgba(75, 18, 56, 0.42);
-  background: #ecfdf8;
+  background: #FBF0E8;
 }
 
 .wallet-status {
-  color: #075e54;
+  color: #7A4A28;
   font-weight: 800;
 }
 
@@ -2580,14 +2580,14 @@ td small {
 
 .payment-mode-card:hover {
   border-color: rgba(75, 18, 56, 0.3);
-  background: #f4fbf9;
+  background: #F8EEF4;
   box-shadow: 0 2px 8px rgba(75, 18, 56, 0.06);
   transform: translateY(-1px);
 }
 
 .payment-mode-card.filled {
   border-color: var(--teal);
-  background: #ecfdf8;
+  background: #F8EEF4;
   box-shadow: 0 0 0 3px rgba(75, 18, 56, 0.12);
 }
 
@@ -2866,7 +2866,7 @@ td small {
 }
 
 .invoice-paid-amount {
-  color: #2563eb;
+  color: #C87D4B;
   font-weight: 900;
 }
 
@@ -4281,7 +4281,7 @@ body::before {
   padding: 0;
   gap: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
-  color: #f4f7f6;
+  color: #FAF8F6;
   background: #0b1512;
   box-shadow: 6px 0 32px rgba(0, 0, 0, 0.3);
   overflow: hidden;
@@ -4341,7 +4341,7 @@ body::before {
 }
 
 .app-shell > .enterprise-sidebar .rail-nav a:hover {
-  color: #f4f7f6;
+  color: #FAF8F6;
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -4383,7 +4383,7 @@ body::before {
 }
 
 .app-shell > .enterprise-sidebar .rail-footer button:hover {
-  color: #f4f7f6;
+  color: #FAF8F6;
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -4408,7 +4408,7 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   background: #101d19;
-  color: #f4f7f6;
+  color: #FAF8F6;
   text-decoration: none;
   cursor: pointer;
   transition: border-color 150ms ease, background 150ms ease;
@@ -4493,7 +4493,7 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   background: #101d19;
-  color: #f4f7f6;
+  color: #FAF8F6;
   font-size: 0.75rem;
   font-weight: 700;
   outline: none;
@@ -4541,7 +4541,7 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   background: #101d19;
-  color: #f4f7f6;
+  color: #FAF8F6;
   font-size: 0.78rem;
   outline: none;
   transition: border-color 150ms ease;
@@ -4575,7 +4575,7 @@ body::before {
 
 .app-shell > .enterprise-sidebar .search-clear:hover {
   background: rgba(255, 255, 255, 0.12);
-  color: #f4f7f6;
+  color: #FAF8F6;
 }
 
 /* ── Quick Actions ─────────────────────── */
@@ -4645,7 +4645,7 @@ body::before {
 
 .app-shell > .enterprise-sidebar .group-header:hover {
   background: rgba(255, 255, 255, 0.04);
-  color: #f4f7f6;
+  color: #FAF8F6;
 }
 
 .app-shell > .enterprise-sidebar .group-dot {
@@ -4675,7 +4675,7 @@ body::before {
 }
 
 .app-shell > .enterprise-sidebar .nav-group.active-section > .group-header {
-  color: #f4f7f6;
+  color: #FAF8F6;
 }
 
 .app-shell > .enterprise-sidebar .nav-group.active-section > .group-header .group-dot {
@@ -4708,12 +4708,12 @@ body::before {
 
 .app-shell > .enterprise-sidebar .nav-item:hover {
   background: rgba(255, 255, 255, 0.04);
-  color: #f4f7f6;
+  color: #FAF8F6;
 }
 
 .app-shell > .enterprise-sidebar .nav-item.active {
   background: rgba(123, 33, 86, 0.1);
-  color: #f4f7f6;
+  color: #FAF8F6;
   padding-left: 14px;
 }
 
@@ -4757,7 +4757,7 @@ body::before {
 
 
 .app-shell > .enterprise-sidebar .nav-item.active .nav-text {
-  color: #f4f7f6;
+  color: #FAF8F6;
 }
 
 /* Empty state */
@@ -4773,7 +4773,7 @@ body::before {
 }
 
 .app-shell > .enterprise-sidebar .nav-empty strong {
-  color: #f4f7f6;
+  color: #FAF8F6;
 }
 
 /* ── Bottom User Profile ───────────────── */
@@ -5580,13 +5580,13 @@ tbody tr:hover {
 }
 
 :where(.staff-shell-nav a):hover {
-  border-color: rgba(45, 212, 191, 0.28);
-  box-shadow: inset 3px 0 0 rgba(45, 212, 191, 0.8);
+  border-color: rgba(200, 160, 184, 0.28);
+  box-shadow: inset 3px 0 0 rgba(200, 160, 184, 0.8);
 }
 
 :where(.staff-shell-nav a.active) {
-  border-color: rgba(45, 212, 191, 0.34);
-  box-shadow: inset 3px 0 0 rgba(45, 212, 191, 0.95);
+  border-color: rgba(200, 160, 184, 0.34);
+  box-shadow: inset 3px 0 0 rgba(200, 160, 184, 0.95);
 }
 
 :where(tbody tr, .click-row, .clickable-client-row, .row) {
@@ -5671,16 +5671,16 @@ tbody tr:hover {
 }
 
 /* Staff OS live context panel rules moved out of component CSS budget. */
-app-staff-os-section .live-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 10px; border: 1px solid #d9e5de; border-radius: 4px; background: #f8fbf9; margin-top: 14px; padding: 12px; }
+app-staff-os-section .live-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr; gap: 10px; border: 1px solid #E7DDD6; border-radius: 4px; background: #FAF8F6; margin-top: 14px; padding: 12px; }
 app-staff-os-section .live-context article { display: grid; gap: 4px; min-width: 0; }
 app-staff-os-section .live-context span { color: #60766d; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 app-staff-os-section .live-context strong { color: #10201a; font-size: 13px; overflow-wrap: anywhere; }
 app-staff-os-section .context-links { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-app-staff-os-section .context-links a { background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #4B1238; font-size: 12px; font-weight: 800; min-height: 30px; padding: 6px 9px; text-decoration: none; }
+app-staff-os-section .context-links a { background: #fff; border: 1px solid #E7DDD6; border-radius: 6px; color: #4B1238; font-size: 12px; font-weight: 800; min-height: 30px; padding: 6px 9px; text-decoration: none; }
 app-staff-os-section .live-employee-panel { display: grid; gap: 9px; }
 app-staff-os-section .live-panel-title span, app-staff-os-section .live-employee-panel article span, app-staff-os-section .catalog-mini-grid span { color: #60766d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
-app-staff-os-section .live-employee-panel > article { border: 1px solid #d9e5de; border-left: 4px solid #0f6eb3; border-radius: 4px; display: grid; gap: 3px; min-height: 64px; padding: 9px; }
-app-staff-os-section .live-employee-panel > article.green { border-left-color: #16a34a; }
+app-staff-os-section .live-employee-panel > article { border: 1px solid #E7DDD6; border-left: 4px solid #4B1238; border-radius: 4px; display: grid; gap: 3px; min-height: 64px; padding: 9px; }
+app-staff-os-section .live-employee-panel > article.green { border-left-color: #C87D4B; }
 app-staff-os-section .live-employee-panel > article.amber { border-left-color: #f59e0b; }
 app-staff-os-section .live-employee-panel > article.violet { border-left-color: #7c3aed; }
 app-staff-os-section .live-employee-panel > article.neutral { border-left-color: #94a3b8; }
@@ -7364,9 +7364,9 @@ aura-command-palette .cmdk-foot {
 }
 
 .workspace > router-outlet + * :where(.state.success, .state.good, .inline-hint.success, .success-text) {
-  color: #166534 !important;
-  background: #ecfdf3 !important;
-  border-color: rgba(22, 101, 52, 0.18) !important;
+  color: #7A4A28 !important;
+  background: #FBF0E8 !important;
+  border-color: rgba(200, 125, 75, 0.18) !important;
 }
 
 .workspace > router-outlet + * :where(.state.error, .state.danger, .inline-hint.danger, .danger-text) {
@@ -8253,7 +8253,7 @@ app-enterprise-sidebar .group-header {
   --aura-primary: #4B1238;
   --aura-primary-hover: #6D1B4D;
   --aura-rose: #E8A7B8;
-  --aura-success: #16A34A;
+  --aura-success: #C87D4B;
   --aura-warning: #F59E0B;
   --aura-danger: #E11D48;
   --aura-text: #1F2933;
@@ -8527,8 +8527,8 @@ body,
 }
 
 .workspace > router-outlet + * :where(.green, .success, .good, .ok, .live, .completed, .approved, .resolved, .status-success, .status-completed, .status-approved, .status-paid, .status-live, .badge.success, .badge.good, .badge.green, .status-badge.status-paid, .status-pill.status-completed) {
-  border-color: rgba(22, 163, 74, 0.28) !important;
-  background: rgba(22, 163, 74, 0.1) !important;
+  border-color: rgba(200, 125, 75, 0.28) !important;
+  background: rgba(200, 125, 75, 0.1) !important;
   color: var(--aura-success) !important;
 }
 
@@ -9424,7 +9424,7 @@ app-dashboard .dashboard-panel {
   padding: 0 20px 22px !important;
   background:
     radial-gradient(circle at 12% 18%, rgba(232, 167, 184, 0.18), transparent 30%),
-    radial-gradient(circle at 88% 4%, rgba(22, 163, 74, 0.12), transparent 24%),
+    radial-gradient(circle at 88% 4%, rgba(200, 125, 75, 0.12), transparent 24%),
     linear-gradient(180deg, #ffffff 0%, #fffaf6 100%) !important;
   border-color: rgba(231, 222, 214, 0.95) !important;
   box-shadow: 0 18px 42px rgba(75, 18, 56, 0.08) !important;
@@ -9482,7 +9482,7 @@ app-dashboard .dashboard-panel .metric-change {
 }
 
 app-dashboard .dashboard-panel .metric-change.up {
-  color: #047857 !important;
+  color: #7A4A28 !important;
 }
 
 app-dashboard .dashboard-panel .metric-change.down {
@@ -9722,7 +9722,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
   --aura-crm-primary: #5A153F;
   --aura-crm-accent-blue: #4B1238;
   --aura-crm-accent-amber: #d97706;
-  --aura-crm-accent-green: #16a34a;
+  --aura-crm-accent-green: #C87D4B;
   --aura-crm-accent-red: #dc2626;
 }
 
@@ -10103,7 +10103,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
   --aura-primary: #f0a8c2;
   --aura-primary-hover: #f6bdd2;
   --aura-rose: #f0a8c2;
-  --aura-success: #34d399;
+  --aura-success: #D4A574;
   --aura-warning: #fbbf24;
   --aura-danger: #fb7185;
   --aura-text: #f8fafc;
@@ -10129,7 +10129,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
 :root[data-theme="dark"] .workspace-route-shell {
   background:
     radial-gradient(circle at 12% 0%, rgba(240, 168, 194, 0.13), transparent 310px),
-    radial-gradient(circle at 92% 12%, rgba(45, 212, 191, 0.09), transparent 280px),
+    radial-gradient(circle at 92% 12%, rgba(200, 160, 184, 0.09), transparent 280px),
     linear-gradient(180deg, #0b1020 0%, #080b12 42%, #06080d 100%) !important;
   color: var(--aura-text) !important;
 }
@@ -10332,7 +10332,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
   --dashboard-dark-border: rgba(148, 163, 184, 0.24);
   --dashboard-dark-text: #f8fafc;
   --dashboard-dark-muted: #a7b0c0;
-  --dashboard-dark-accent: #2dd4bf;
+  --dashboard-dark-accent: #D4A574;
   color: var(--dashboard-dark-text) !important;
 }
 
@@ -10381,14 +10381,14 @@ app-dashboard .dashboard-command-panel .hub-icon {
 }
 
 :root[data-theme="dark"] app-dashboard :where(.dashboard-hub-card, .action-card, .summary-tile) {
-  border-left: 3px solid rgba(45, 212, 191, 0.72) !important;
+  border-left: 3px solid rgba(200, 160, 184, 0.72) !important;
 }
 
 :root[data-theme="dark"] app-dashboard :where(.metric-card:hover, .metric-card:focus-visible, .dashboard-hub-card:hover, .dashboard-hub-card:focus-visible, .action-card:hover, .action-card:focus-visible, .summary-tile:hover) {
   background: var(--dashboard-dark-card-hover) !important;
-  border-color: rgba(45, 212, 191, 0.36) !important;
+  border-color: rgba(200, 160, 184, 0.36) !important;
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34) !important;
-  outline: 2px solid rgba(45, 212, 191, 0.18) !important;
+  outline: 2px solid rgba(200, 160, 184, 0.18) !important;
   outline-offset: 2px !important;
   transform: translateY(-2px) !important;
 }
@@ -10454,7 +10454,7 @@ app-dashboard .dashboard-command-panel .hub-icon {
 }
 
 :root[data-theme="dark"] app-dashboard .dashboard-hub-card b {
-  color: #7dd3fc !important;
+  color: #C8A0B8 !important;
   line-height: 1.2 !important;
 }
 
@@ -10464,9 +10464,9 @@ app-dashboard .dashboard-command-panel .hub-icon {
   display: inline-grid !important;
   place-items: center !important;
   border-radius: 10px !important;
-  background: rgba(45, 212, 191, 0.12) !important;
+  background: rgba(200, 160, 184, 0.12) !important;
   color: #D4B8CC !important;
-  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(200, 160, 184, 0.18) !important;
 }
 
 :root[data-theme="dark"] app-dashboard .quick-grid {
@@ -10603,11 +10603,11 @@ app-dashboard .dashboard-command-panel .hub-icon {
 }
 
 :root[data-theme="dark"] app-dashboard :where(.metric-card, .dashboard-hub-card, .action-card, .summary-tile) {
-  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(75, 18, 56, 0.32), rgba(34, 211, 238, 0.16));
-  --dashboard-dark-card-accent: #2dd4bf;
-  --dashboard-dark-card-border: rgba(45, 212, 191, 0.36);
-  --dashboard-dark-card-glow: rgba(45, 212, 191, 0.14);
-  --dashboard-dark-card-orb: rgba(45, 212, 191, 0.18);
+  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(75, 18, 56, 0.32), rgba(200, 125, 75, 0.16));
+  --dashboard-dark-card-accent: #D4A574;
+  --dashboard-dark-card-border: rgba(212, 165, 116, 0.36);
+  --dashboard-dark-card-glow: rgba(212, 165, 116, 0.14);
+  --dashboard-dark-card-orb: rgba(212, 165, 116, 0.18);
   background:
     radial-gradient(circle at 92% 18%, var(--dashboard-dark-card-orb), transparent 96px),
     var(--dashboard-dark-card-gradient),
@@ -10672,11 +10672,11 @@ app-dashboard .dashboard-command-panel .hub-icon {
 :root[data-theme="dark"] app-dashboard .metrics-grid > .metric-card:nth-child(1),
 :root[data-theme="dark"] app-dashboard .dashboard-hub-grid > .dashboard-hub-card:nth-child(1),
 :root[data-theme="dark"] app-dashboard .quick-grid > .action-card:nth-child(1) {
-  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(75, 18, 56, 0.34), rgba(34, 211, 238, 0.17));
-  --dashboard-dark-card-accent: #2dd4bf;
-  --dashboard-dark-card-border: rgba(45, 212, 191, 0.42);
-  --dashboard-dark-card-glow: rgba(45, 212, 191, 0.16);
-  --dashboard-dark-card-orb: rgba(45, 212, 191, 0.20);
+  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(75, 18, 56, 0.34), rgba(200, 125, 75, 0.17));
+  --dashboard-dark-card-accent: #D4A574;
+  --dashboard-dark-card-border: rgba(212, 165, 116, 0.42);
+  --dashboard-dark-card-glow: rgba(212, 165, 116, 0.16);
+  --dashboard-dark-card-orb: rgba(212, 165, 116, 0.20);
 }
 
 :root[data-theme="dark"] app-dashboard .metrics-grid > .metric-card:nth-child(2),
@@ -10693,22 +10693,22 @@ app-dashboard .dashboard-command-panel .hub-icon {
 :root[data-theme="dark"] app-dashboard .metrics-grid > .metric-card:nth-child(3),
 :root[data-theme="dark"] app-dashboard .dashboard-hub-grid > .dashboard-hub-card:nth-child(3),
 :root[data-theme="dark"] app-dashboard .quick-grid > .action-card:nth-child(3) {
-  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.34), rgba(14, 165, 233, 0.18));
-  --dashboard-dark-card-accent: #7dd3fc;
-  --dashboard-dark-card-border: rgba(125, 211, 252, 0.38);
-  --dashboard-dark-card-glow: rgba(125, 211, 252, 0.14);
-  --dashboard-dark-card-orb: rgba(59, 130, 246, 0.20);
+  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(139, 94, 124, 0.34), rgba(200, 160, 184, 0.18));
+  --dashboard-dark-card-accent: #C8A0B8;
+  --dashboard-dark-card-border: rgba(200, 160, 184, 0.38);
+  --dashboard-dark-card-glow: rgba(200, 160, 184, 0.14);
+  --dashboard-dark-card-orb: rgba(139, 94, 124, 0.20);
 }
 
 :root[data-theme="dark"] app-dashboard .metrics-grid > .metric-card:nth-child(4),
 :root[data-theme="dark"] app-dashboard .dashboard-hub-grid > .dashboard-hub-card:nth-child(4),
 :root[data-theme="dark"] app-dashboard .quick-grid > .action-card:nth-child(4),
 :root[data-theme="dark"] app-dashboard .dashboard-summary-grid > .panel:nth-child(3) .summary-tile {
-  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(34, 197, 94, 0.31), rgba(45, 212, 191, 0.17));
-  --dashboard-dark-card-accent: #86efac;
+  --dashboard-dark-card-gradient: linear-gradient(135deg, rgba(200, 125, 75, 0.31), rgba(200, 160, 184, 0.17));
+  --dashboard-dark-card-accent: #E8C8A8;
   --dashboard-dark-card-border: rgba(134, 239, 172, 0.36);
   --dashboard-dark-card-glow: rgba(134, 239, 172, 0.13);
-  --dashboard-dark-card-orb: rgba(34, 197, 94, 0.19);
+  --dashboard-dark-card-orb: rgba(200, 125, 75, 0.19);
 }
 
 :root[data-theme="dark"] app-dashboard .metrics-grid > .metric-card:nth-child(5),
@@ -11441,6 +11441,37 @@ app-inventory :where(.zenoti-table-footer, .section-title, .panel-heading) {
   flex-wrap: wrap;
 }
 
+app-inventory :where(.zenoti-page-heading a, .zenoti-link-button, .zenoti-shortcuts a) {
+  color: var(--aura-primary, #4B1238) !important;
+}
+
+app-inventory :where(.zenoti-mini-button, .zenoti-filter-button, .zenoti-row-action) {
+  border-color: #D4C0CF !important;
+  background: #FFFFFF !important;
+  color: var(--aura-primary, #4B1238) !important;
+}
+
+app-inventory :where(.zenoti-mini-button:hover, .zenoti-mini-button:focus-visible, .zenoti-filter-button:hover, .zenoti-filter-button:focus-visible, .zenoti-row-action:hover, .zenoti-row-action:focus-visible, .zenoti-shortcuts a:hover, .zenoti-shortcuts a:focus-visible) {
+  border-color: color-mix(in srgb, var(--aura-primary, #4B1238) 42%, #D4C0CF) !important;
+  background: #F8EEF4 !important;
+  color: var(--aura-primary, #4B1238) !important;
+}
+
+app-inventory .zenoti-products-table th {
+  background: #FAF8F6 !important;
+  color: #6F778A !important;
+}
+
+app-inventory .zenoti-products-table :where(tbody tr:hover td, tbody tr.active td) {
+  background: #F8EEF4 !important;
+}
+
+app-inventory .zenoti-status-pill:not(.inactive) {
+  border: 1px solid #E8C8A8 !important;
+  background: #FBF0E8 !important;
+  color: #7A4A28 !important;
+}
+
 @media (max-width: 1180px) {
   app-pos .pos-layout {
     grid-template-columns: 1fr !important;
@@ -12067,7 +12098,7 @@ app-market-intelligence :where(.branch-dot) {
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
   [class*='success'], [class*='complete'], [class*='paid'], [class*='good'], [class*='green']
 )::before {
-  background: var(--aura-success, #16a34a) !important;
+  background: var(--aura-success, #C87D4B) !important;
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
@@ -12101,8 +12132,8 @@ app-market-intelligence :where(.branch-dot) {
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.status-badge, .status-pill, .badge, .chip, .pill, .state):where(.success, .complete, .completed, .paid, .active, .good) {
-  background-color: var(--aura-success-bg, rgba(22, 163, 74, 0.12));
-  color: var(--aura-success, #16a34a);
+  background-color: var(--aura-success-bg, rgba(200, 125, 75, 0.12));
+  color: var(--aura-success, #C87D4B);
 }
 
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(.status-badge, .status-pill, .badge, .chip, .pill, .state):where(.warning, .pending, .paused, .draft) {
@@ -12584,8 +12615,8 @@ app-ai-assistant .ai-command-page,
 }
 
 .ai-workforce-page :where(.badge.good, .badge.success, .metric-card.good) {
-  background: var(--aura-success-bg, rgba(22, 163, 74, 0.12)) !important;
-  color: var(--aura-success, #16a34a) !important;
+  background: var(--aura-success-bg, rgba(200, 125, 75, 0.12)) !important;
+  color: var(--aura-success, #C87D4B) !important;
 }
 
 .ai-workforce-page :where(.badge.warning, .metric-card.warning, .alert-card.warning) {
@@ -12909,8 +12940,8 @@ app-account-master :where(.group-overlay) {
 }
 
 :where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-product-360, app-inventory, app-reviews-inbox-page) :where(.status.success, .badge.success, .chip.success, .state.success, .active, .paid, .completed) {
-  background: var(--aura-success-bg, rgba(22, 163, 74, 0.12)) !important;
-  color: var(--aura-success, #16a34a) !important;
+  background: var(--aura-success-bg, rgba(200, 125, 75, 0.12)) !important;
+  color: var(--aura-success, #C87D4B) !important;
 }
 
 :where(app-client-detail, app-clients, app-memberships, app-packages, app-suppliers, app-product-360, app-inventory, app-reviews-inbox-page) :where(.status.warning, .badge.warning, .chip.warning, .state.warning, .pending, .low, .amber) {
@@ -13054,8 +13085,8 @@ app-account-master :where(.group-overlay) {
 }
 
 :where(app-staff-os-section, app-staff-enterprise, app-staff-management, app-staff-profile, app-super-admin) :where(.success, .good, .active, .complete, .paid) {
-  background-color: var(--aura-success-bg, rgba(22, 163, 74, 0.12)) !important;
-  color: var(--aura-success, #16a34a) !important;
+  background-color: var(--aura-success-bg, rgba(200, 125, 75, 0.12)) !important;
+  color: var(--aura-success, #C87D4B) !important;
 }
 
 :where(app-staff-os-section, app-staff-enterprise, app-staff-management, app-staff-profile, app-super-admin) :where(.warning, .pending, .trial, .paused) {
@@ -14160,10 +14191,10 @@ app-staff-my-work .filters {
 :where(app-compliance-section-page, app-staff-my-work) :where(.badge) {
   min-height: 26px;
   align-items: center;
-  border: 1px solid rgba(34, 197, 94, 0.22);
+  border: 1px solid rgba(200, 125, 75, 0.22);
   border-radius: 999px;
-  background: rgba(34, 197, 94, 0.10);
-  color: #166534;
+  background: rgba(200, 125, 75, 0.10);
+  color: #7A4A28;
   padding: 4px 10px;
 }
 
@@ -14494,7 +14525,7 @@ app-birthday-campaign .preview-panel {
 }
 
 app-birthday-campaign .success {
-  color: #166534;
+  color: #7A4A28;
 }
 
 app-birthday-campaign .error {
@@ -14821,9 +14852,9 @@ app-purchase-bill-drafts .warning-list {
 }
 
 :where(app-purchase-orders, app-purchase-bill-drafts) :where(.badge.success, .state.success) {
-  border-color: rgba(34, 197, 94, 0.24);
-  background: rgba(34, 197, 94, 0.10);
-  color: #166534;
+  border-color: rgba(200, 125, 75, 0.24);
+  background: rgba(200, 125, 75, 0.10);
+  color: #7A4A28;
 }
 
 @media (max-width: 1180px) {
@@ -15012,9 +15043,9 @@ app-purchase-bill-drafts .warning-list {
 }
 
 .workspace > router-outlet + * :where(.success, .good, .complete, .completed, .paid, .active):where(.badge, .chip, .pill, .status, .state, .status-pill) {
-  border-color: rgba(34, 197, 94, 0.24) !important;
-  background: rgba(34, 197, 94, 0.09) !important;
-  color: #166534 !important;
+  border-color: rgba(200, 125, 75, 0.24) !important;
+  background: rgba(200, 125, 75, 0.09) !important;
+  color: #7A4A28 !important;
 }
 
 .workspace > router-outlet + * :where(.warning, .warn, .pending, .trial, .paused, .low, .amber):where(.badge, .chip, .pill, .status, .state, .status-pill) {
@@ -15410,4 +15441,98 @@ app-purchase-bill-drafts .warning-list {
 ) {
   border-bottom-color: var(--color-primary, #4B1238) !important;
   color: var(--color-primary, #4B1238) !important;
+}
+
+/* ══════════════════════════════════════════════════
+   AuraSalon Route Glass Depth Layer
+   — routed page content only; sidebar/topbar untouched
+   — same palette, translucent surfaces, layered 3D depth
+   ══════════════════════════════════════════════════ */
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) {
+  perspective: 1200px;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .page-header, .page-heading, .page-title, .module-hero, .studio-hero,
+  .apps-header, .lp-header, .client-command-hero, .inventory-hero,
+  .panel, .card, .form-panel, .settings-panel, .template-panel,
+  .history-panel, .report-panel, .dashboard-panel, .checkout-panel,
+  .billing-panel, .bill-panel, .calendar-panel, .drawer-section,
+  .table-wrap, .tbl-wrap, .aura-table-wrap, .compact-table-wrap,
+  .toolbar, .table-toolbar, .filter-bar, .filters, .lp-toolbar,
+  .suite-toolbar, .search-panel, .search-bar, .control-panel,
+  .metric-card, .kpi-card, .summary-card, .report-card, .score-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .supplier-card, .client-card,
+  .review-card, .template-card, .workflow-card, .marketplace-card,
+  .alert-card, .queue-card, .run-card, .record-card, .source-row,
+  .record-row, .suggestion-row, .insight-card, .stat-card, .stat-tile,
+  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
+  .cash-category-tile, .lp-signal, .lp-section, .lp-app, .hub-tile,
+  .shortcut, .staff-row, .alert-row
+) {
+  background: color-mix(in srgb, var(--color-surface, #fff) 76%, transparent) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow:
+    0 18px 42px rgba(75, 18, 56, 0.08),
+    0 5px 16px rgba(0, 0, 0, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+  transform: translateZ(0);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metric-card, .kpi-card, .summary-card, .report-card, .score-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .supplier-card, .client-card,
+  .review-card, .template-card, .workflow-card, .marketplace-card,
+  .alert-card, .queue-card, .run-card, .record-card, .source-row,
+  .record-row, .suggestion-row, .insight-card, .stat-card, .stat-tile,
+  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
+  .cash-category-tile, .lp-signal, .lp-app, .hub-tile, .shortcut,
+  .staff-row, .alert-row
+) {
+  will-change: transform;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  a.metric-card, a.kpi-card, a.dashboard-hub-card, a.app-card,
+  a.action-card, a.quick-card, a.service-card, a.product-card,
+  a.supplier-card, a.client-card, a.review-card, a.template-card,
+  a.workflow-card, a.marketplace-card, a.source-row, a.record-row,
+  a.lp-app, a.hub-tile, a.shortcut,
+  button.metric-card, button.kpi-card, button.action-card, button.quick-card,
+  .metric-card:hover, .kpi-card:hover, .summary-card:hover,
+  .dashboard-hub-card:hover, .app-card:hover, .action-card:hover,
+  .quick-card:hover, .service-card:hover, .product-card:hover,
+  .supplier-card:hover, .client-card:hover, .review-card:hover,
+  .template-card:hover, .workflow-card:hover, .marketplace-card:hover,
+  .record-card:hover, .source-row:hover, .record-row:hover,
+  .suggestion-row:hover, .insight-card:hover, .stat-card:hover,
+  .stat-tile:hover, .lp-signal:hover, .lp-app:hover,
+  .hub-tile:hover, .shortcut:hover, .staff-row:hover, .alert-row:hover
+) {
+  box-shadow:
+    0 26px 58px rgba(75, 18, 56, 0.13),
+    0 10px 22px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  transform: translateY(-2px) rotateX(.55deg) rotateY(-.35deg) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .primary-button, .dark-button, .ghost-button, .danger-button,
+  .secondary-button, .outline-button, .btn-primary, .btn-ghost,
+  .zenoti-button, button
+):where(:not(:disabled)):hover,
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .primary-button, .dark-button, .ghost-button, .danger-button,
+  .secondary-button, .outline-button, .btn-primary, .btn-ghost,
+  .zenoti-button, button
+):focus-visible {
+  box-shadow:
+    0 10px 24px rgba(75, 18, 56, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  transform: translateY(-1px) !important;
 }

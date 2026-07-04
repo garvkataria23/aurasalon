@@ -603,7 +603,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
       dayCount: 1,
       paid: true,
       availableForAppointment: false,
-      color: this.isShift() ? '#bbf7d0' : '#4B1238',
+      color: this.isShift() ? '#FBF0E8' : '#4B1238',
       sortOrder: 0,
       leaveQuota: 0,
       quotaPeriod: 'yearly',
@@ -699,7 +699,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
         startTime: shift.startTime,
         endTime: shift.endTime,
         breakMinutes: shift.breakMinutes || 0,
-        color: shift.color || '#bbf7d0',
+        color: shift.color || '#FBF0E8',
         shiftType: shift.shiftType
       };
     }
@@ -747,7 +747,7 @@ export class StaffMasterDefinitionComponent implements OnInit {
         startTime: value.startTime,
         endTime: value.endTime,
         breakMinutes: Number(value.breakMinutes || 0),
-        color: value.color || '#bbf7d0',
+        color: value.color || '#FBF0E8',
         shiftType: value.shiftType || 'regular'
       };
     }

@@ -387,7 +387,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
                   </span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-                  <span class="badge" [style.background]="signal.status === 'critical' ? 'var(--danger,#dc2626)' : signal.status === 'watch' ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="color:#fff">{{ signal.status }}</span>
+                  <span class="badge" [style.background]="signal.status === 'critical' ? 'var(--danger,#dc2626)' : signal.status === 'watch' ? 'var(--warning,#f59e0b)' : 'var(--success,#C87D4B)'" style="color:#fff">{{ signal.status }}</span>
                   <strong>{{ signal.score | number: '1.0-1' }}</strong>
                 </div>
               </article>
@@ -444,7 +444,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
             <div>
               <h2>Login risk, enterprise gaps and sensitive actions</h2>
             </div>
-            <span class="badge" [style.background]="risk.metrics.criticalLogins ? 'var(--danger,#dc2626)' : risk.metrics.suspiciousLogins ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="color:#fff">{{ risk.metrics.suspiciousLogins }} suspicious</span>
+            <span class="badge" [style.background]="risk.metrics.criticalLogins ? 'var(--danger,#dc2626)' : risk.metrics.suspiciousLogins ? 'var(--warning,#f59e0b)' : 'var(--success,#C87D4B)'" style="color:#fff">{{ risk.metrics.suspiciousLogins }} suspicious</span>
           </div>
           <div class="quick-grid">
             <article class="action-card">
@@ -900,7 +900,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
             <div>
               <h2>{{ leakage.totalLeakage | currency: 'INR':'symbol':'1.0-0' }} leakage across billing, adoption and rollout gaps</h2>
             </div>
-            <span class="badge" [style.background]="leakage.lowUsageExpiringCount ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)'" style="color:#fff">{{ leakage.lowUsageExpiringCount }} churn-risk badges</span>
+            <span class="badge" [style.background]="leakage.lowUsageExpiringCount ? 'var(--danger,#dc2626)' : 'var(--success,#C87D4B)'" style="color:#fff">{{ leakage.lowUsageExpiringCount }} churn-risk badges</span>
           </div>
           <div class="quick-grid">
             <article class="action-card">
@@ -959,7 +959,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
             <div>
               <h2>Failed payments, paused subscriptions and dunning status</h2>
             </div>
-            <span class="badge" [style.background]="billingOps.criticalDunning ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)'" style="color:#fff">{{ billingOps.criticalDunning }} escalations</span>
+            <span class="badge" [style.background]="billingOps.criticalDunning ? 'var(--danger,#dc2626)' : 'var(--success,#C87D4B)'" style="color:#fff">{{ billingOps.criticalDunning }} escalations</span>
           </div>
           <div class="quick-grid">
             <article class="action-card">
@@ -1006,7 +1006,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
               <h2>{{ quota.quotaAlertCount }} quota alerts and {{ quota.billingAlertCount }} billing alerts</h2>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <span class="badge" [style.background]="quota.overLimitCount ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)'" style="color:#fff">{{ quota.overLimitCount }} over limit</span>
+              <span class="badge" [style.background]="quota.overLimitCount ? 'var(--danger,#dc2626)' : 'var(--success,#C87D4B)'" style="color:#fff">{{ quota.overLimitCount }} over limit</span>
               <button class="ghost-button mini" type="button" [disabled]="!quota.overLimitCount || saving()" (click)="dispatchQuotaAlerts()">Auto email/webhook</button>
             </div>
           </div>
@@ -1078,7 +1078,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
               <strong>{{ row.month }}</strong>
               <div style="min-width:0">
                 <span style="display:block;height:10px;background:var(--surface-muted,#e5e7eb);border-radius:999px;overflow:hidden">
-                  <span [style.width.%]="revenueBarWidth(row.mrr, graph)" style="display:block;height:100%;background:var(--success,#16a34a)"></span>
+                  <span [style.width.%]="revenueBarWidth(row.mrr, graph)" style="display:block;height:100%;background:var(--success,#C87D4B)"></span>
                 </span>
                 <span *ngIf="row.churnedMrr" style="display:block;height:5px;background:var(--danger,#dc2626);border-radius:999px;margin-top:6px" [style.width.%]="revenueBarWidth(row.churnedMrr, graph)"></span>
                 <small style="color:var(--text-muted)">Growth {{ row.growth | currency: 'INR':'symbol':'1.0-0' }} · churn {{ row.churnedMrr | currency: 'INR':'symbol':'1.0-0' }}</small>
@@ -1558,7 +1558,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
                     <strong>{{ branch.label }}</strong>
                     <span>{{ branch.value }} used of {{ branch.limit }} · {{ branch.percent }}% utilization</span>
                     <span style="display:block;height:7px;background:var(--surface-muted,#e5e7eb);border-radius:999px;margin-top:8px;overflow:hidden">
-                      <span [style.width.%]="branch.percent" [style.background]="branch.percent >= 90 ? 'var(--danger,#dc2626)' : branch.percent >= 70 ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="display:block;height:100%"></span>
+                      <span [style.width.%]="branch.percent" [style.background]="branch.percent >= 90 ? 'var(--danger,#dc2626)' : branch.percent >= 70 ? 'var(--warning,#f59e0b)' : 'var(--success,#C87D4B)'" style="display:block;height:100%"></span>
                     </span>
                   </div>
                   <span class="badge" [style.background]="branch.percent >= 90 ? 'var(--danger,#dc2626)' : 'var(--accent,#4B1238)'" style="color:#fff">{{ branch.status }}</span>
@@ -1643,11 +1643,11 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
                       <strong>{{ geo.label }}</strong>
                       <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ geo.users.join(', ') || 'No user' }} · {{ geo.ipAddresses.join(', ') || 'No IP' }}</span>
                       <span style="display:block;height:6px;background:var(--surface-muted,#e5e7eb);border-radius:999px;margin-top:8px;overflow:hidden">
-                        <span [style.width.%]="usageBarWidth(geo.value, tenant.drilldown.loginActivityMap?.geoMap || [])" [style.background]="geo.critical ? 'var(--danger,#dc2626)' : geo.suspicious ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="display:block;height:100%"></span>
+                        <span [style.width.%]="usageBarWidth(geo.value, tenant.drilldown.loginActivityMap?.geoMap || [])" [style.background]="geo.critical ? 'var(--danger,#dc2626)' : geo.suspicious ? 'var(--warning,#f59e0b)' : 'var(--success,#C87D4B)'" style="display:block;height:100%"></span>
                       </span>
                     </div>
                     <div style="text-align:right">
-                      <span class="badge" [style.background]="geo.critical ? 'var(--danger,#dc2626)' : geo.suspicious ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)'" style="color:#fff">{{ geo.suspicious }} suspicious</span>
+                      <span class="badge" [style.background]="geo.critical ? 'var(--danger,#dc2626)' : geo.suspicious ? 'var(--warning,#f59e0b)' : 'var(--success,#C87D4B)'" style="color:#fff">{{ geo.suspicious }} suspicious</span>
                       <strong style="display:block">{{ geo.value }}</strong>
                     </div>
                   </article>
@@ -2154,8 +2154,8 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
                 <strong>{{ item.tenantName }}</strong>
                 <span style="display:block;font-size:0.8em;color:var(--text-muted)">{{ item.name }} · {{ item.key }} · {{ item.rolloutPercentage }}% rollout</span>
               </div>
-              <span class="badge" [style.background]="item.globalEnabled ? 'var(--success,#16a34a)' : 'var(--muted,#6b7280)'" style="color:#fff">Global {{ item.globalEnabled ? 'ON' : 'OFF' }}</span>
-              <span class="badge" [style.background]="item.tenantEnabled ? 'var(--success,#16a34a)' : 'var(--danger,#dc2626)'" style="color:#fff">Tenant {{ item.tenantEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="badge" [style.background]="item.globalEnabled ? 'var(--success,#C87D4B)' : 'var(--muted,#6b7280)'" style="color:#fff">Global {{ item.globalEnabled ? 'ON' : 'OFF' }}</span>
+              <span class="badge" [style.background]="item.tenantEnabled ? 'var(--success,#C87D4B)' : 'var(--danger,#dc2626)'" style="color:#fff">Tenant {{ item.tenantEnabled ? 'ON' : 'OFF' }}</span>
               <span class="badge">{{ item.precedence }}</span>
             </article>
             <article *ngIf="!overrides.overrides?.length">
@@ -2393,7 +2393,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
 
     .command-kpi.danger { border-left-color: var(--danger, #dc2626); }
     .command-kpi.warning { border-left-color: var(--warning, #f59e0b); }
-    .command-kpi.success { border-left-color: var(--success, #16a34a); }
+    .command-kpi.success { border-left-color: var(--success, #C87D4B); }
     .command-kpi.security { border-left-color: #4B1238; }
 
     .command-kpi span,
@@ -2499,7 +2499,7 @@ type SuperAdminViewKey = 'overview' | 'revenue' | 'command' | 'intelligence' | '
     }
 
     .bar-paid {
-      background: var(--success, #16a34a);
+      background: var(--success, #C87D4B);
     }
 
     .bar-due {
@@ -4104,7 +4104,7 @@ export class SuperAdminComponent implements OnInit {
   tenantRiskTone(tenant: ApiRecord = {}): string {
     if (this.paymentDueTenant(tenant) || this.highRiskTenant(tenant)) return 'var(--danger,#dc2626)';
     if (this.trialExpiringTenant(tenant) || this.securityGapTenant(tenant)) return 'var(--warning,#f59e0b)';
-    return 'var(--success,#16a34a)';
+    return 'var(--success,#C87D4B)';
   }
 
   riskTone(label = ''): string {
@@ -4112,7 +4112,7 @@ export class SuperAdminComponent implements OnInit {
     if (value === 'critical' || value === 'high') return 'var(--danger,#dc2626)';
     if (value === 'watch' || value === 'medium' || value === 'snoozed') return 'var(--warning,#f59e0b)';
     if (value === 'escalated') return 'var(--danger,#dc2626)';
-    return 'var(--success,#16a34a)';
+    return 'var(--success,#C87D4B)';
   }
 
   toggleActionMenu(tenantId: string): void {
@@ -4414,8 +4414,8 @@ export class SuperAdminComponent implements OnInit {
     const summary = tenant.drilldown?.invoiceSummary || {};
     return [
       { label: 'MRR', value: this.moneyText(tenant.monthlyRecurringRevenue || 0), badge: tenant.planName || 'Plan', tone: 'var(--accent,#4B1238)' },
-      { label: 'Outstanding', value: this.moneyText(summary.outstanding || tenant.outstanding || 0), badge: Number(summary.outstanding || tenant.outstanding || 0) ? 'Due' : 'Clear', tone: Number(summary.outstanding || tenant.outstanding || 0) ? 'var(--danger,#dc2626)' : 'var(--success,#16a34a)' },
-      { label: 'Invoices', value: `${summary.paid || 0}/${summary.total || 0}`, badge: `${summary.unpaid || 0} unpaid`, tone: Number(summary.unpaid || 0) ? 'var(--warning,#f59e0b)' : 'var(--success,#16a34a)' }
+      { label: 'Outstanding', value: this.moneyText(summary.outstanding || tenant.outstanding || 0), badge: Number(summary.outstanding || tenant.outstanding || 0) ? 'Due' : 'Clear', tone: Number(summary.outstanding || tenant.outstanding || 0) ? 'var(--danger,#dc2626)' : 'var(--success,#C87D4B)' },
+      { label: 'Invoices', value: `${summary.paid || 0}/${summary.total || 0}`, badge: `${summary.unpaid || 0} unpaid`, tone: Number(summary.unpaid || 0) ? 'var(--warning,#f59e0b)' : 'var(--success,#C87D4B)' }
     ];
   }
 
@@ -4756,12 +4756,12 @@ export class SuperAdminComponent implements OnInit {
     if (toggle.statusLabel === 'killed') return 'var(--danger,#dc2626)';
     if (toggle.statusLabel === 'expired') return 'var(--warning,#f59e0b)';
     if (toggle.statusLabel === 'partial') return 'var(--accent,#4B1238)';
-    if (toggle.statusLabel === 'enabled') return 'var(--success,#16a34a)';
+    if (toggle.statusLabel === 'enabled') return 'var(--success,#C87D4B)';
     return 'var(--muted,#6b7280)';
   }
 
   healthTone(score: number): string {
-    if (Number(score || 0) >= 75) return 'var(--success,#16a34a)';
+    if (Number(score || 0) >= 75) return 'var(--success,#C87D4B)';
     if (Number(score || 0) >= 45) return 'var(--warning,#f59e0b)';
     return 'var(--danger,#dc2626)';
   }
@@ -4769,13 +4769,13 @@ export class SuperAdminComponent implements OnInit {
   healthFlagTone(severity: string): string {
     if (severity === 'critical') return 'var(--danger,#dc2626)';
     if (severity === 'warning' || severity === 'watch') return 'var(--warning,#f59e0b)';
-    return 'var(--success,#16a34a)';
+    return 'var(--success,#C87D4B)';
   }
 
   churnTone(probability: string): string {
     if (probability === 'high') return 'var(--danger,#dc2626)';
     if (probability === 'medium') return 'var(--warning,#f59e0b)';
-    return 'var(--success,#16a34a)';
+    return 'var(--success,#C87D4B)';
   }
 
   toggleEnabled(toggle: { id: string; enabled: number | boolean; name: string }): void {

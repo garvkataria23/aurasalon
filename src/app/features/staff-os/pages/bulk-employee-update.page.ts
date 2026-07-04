@@ -175,7 +175,7 @@ type BulkField = keyof EditableBulkEmployeeRow;
     .grid-shell { max-height: 64vh; overflow: auto; }
     table { border-collapse: separate; border-spacing: 0; min-width: 1680px; width: 100%; }
     th, td { border-bottom: 1px solid #e8efeb; border-right: 1px solid #eef3f0; font-size: 13px; min-width: 126px; padding: 6px; text-align: left; vertical-align: middle; }
-    th { background: #f8fbf9; color: #34483f; font-weight: 900; position: sticky; top: 34px; z-index: 3; }
+    th { background: #FAF8F6; color: #34483f; font-weight: 900; position: sticky; top: 34px; z-index: 3; }
     .group-row th { background: #EBE1E8; top: 0; z-index: 4; text-align: center; }
     .sticky { left: 0; position: sticky; z-index: 5; }
     .select-col { min-width: 46px; width: 46px; }
@@ -191,7 +191,7 @@ type BulkField = keyof EditableBulkEmployeeRow;
     .job-panel header { align-items: center; display: flex; justify-content: space-between; }
     .job-panel header span { color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .job-results { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .job-results article { background: #f8fbf9; border: 1px solid #e8efeb; border-radius: 8px; display: grid; gap: 4px; padding: 10px; }
+    .job-results article { background: #FAF8F6; border: 1px solid #e8efeb; border-radius: 8px; display: grid; gap: 4px; padding: 10px; }
     .job-results article.failed { background: #fff5f5; border-color: #e7b1b1; }
     .job-results small { color: #a52828; }
     @media (max-width: 900px) {

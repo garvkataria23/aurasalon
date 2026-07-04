@@ -191,7 +191,7 @@ type MessageHistoryResponse = {
     .pill, .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 7px 11px; font-weight: 800; background: #f2f6f5; border: 1px solid #dce8e4; }
     .badge { color: #4B1238; background: #F0E6EE; border-color: #CEB6C4; text-transform: capitalize; }
     .badge.failed { color: #b42318; background: #fff1f0; border-color: #ffd5d0; }
-    .badge.ok { color: #047857; }
+    .badge.ok { color: #7A4A28; }
     .badge.neutral { color: #334155; background: #f5f7f9; border-color: #dce4ea; }
     .empty-state { display: grid; place-items: center; min-height: 260px; gap: 8px; text-align: center; color: #65736f; }
     .empty-state strong { color: #122033; font-size: 20px; }

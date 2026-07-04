@@ -171,7 +171,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     }
 
     .badge.success {
-      background: #dff7ee !important;
+      background: #FBF0E8 !important;
       color: #0f5f56 !important;
       border-color: #bde9dc !important;
     }
@@ -199,7 +199,7 @@ import { AuraKpiCardComponent } from '../shared/ui/aura-kpi-card/aura-kpi-card.c
     :host-context([data-theme="dark"]) .badge.success {
       background: rgba(214, 79, 146, 0.18) !important;
       color: #D4B8CC !important;
-      border-color: rgba(45, 212, 191, 0.36) !important;
+      border-color: rgba(200, 160, 184, 0.36) !important;
     }
 
     @media (max-width: 900px) {

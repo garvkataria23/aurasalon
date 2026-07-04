@@ -44,7 +44,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </a>
           <a class="kpi" routerLink="/pos/invoices" [queryParams]="{ filter: 'received-due' }">
             <span class="kpi-l">Received due</span>
-            <strong class="kpi-v" style="color:#059669">{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }}</strong>
+            <strong class="kpi-v" style="color:#C87D4B">{{ data.receivedDue | currency: 'INR':'symbol':'1.0-0' }}</strong>
           </a>
           <a class="kpi" routerLink="/kpi-details/dashboard/pending-payments">
             <span class="kpi-l">Pending payments</span>
@@ -56,7 +56,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
           </a>
           <a class="kpi" routerLink="/customer-360">
             <span class="kpi-l">Client retention</span>
-            <strong class="kpi-v" style="color:#059669">{{ data.clientRetention }}%</strong>
+            <strong class="kpi-v" style="color:#C87D4B">{{ data.clientRetention }}%</strong>
           </a>
         </div>
       </section>
@@ -189,15 +189,19 @@ import { StateComponent } from '../shared/ui/state/state.component';
   `,
   styles: [`
     :host { display: contents; }
+
     .page-stack {
       padding: 24px 32px;
       display: flex;
       flex-direction: column;
       gap: 20px;
-      background: var(--bg);
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 8%, rgba(232, 167, 184, 0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 90% 92%, rgba(75, 18, 56, 0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 50% 50%, rgba(200, 170, 160, 0.06) 0%, transparent 70%),
+        var(--bg);
     }
 
-    /* ── Greeting ── */
     .greeting {
       display: flex;
       justify-content: space-between;
@@ -218,13 +222,17 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .greeting-actions { display: flex; gap: 8px; }
 
-    /* ── Shared card ── */
     .card {
-      background: #fff;
-      border: 1px solid #e8e2dc;
-      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.52);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 14px;
       padding: 20px 24px;
-      box-shadow: 0 1px 3px rgba(75,18,56,.04), 0 1px 2px rgba(0,0,0,.02);
+      box-shadow:
+        0 8px 32px rgba(75, 18, 56, 0.04),
+        0 2px 8px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
     }
     .card-h {
       display: flex;
@@ -240,27 +248,39 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .card-h .card-h-actions { display: flex; gap: 6px; align-items: center; }
     .card-date { font-size: 11px; color: #b0a49c; font-weight: 500; }
 
-    /* ── Buttons ── */
     .btn-ghost {
       display: inline-flex; align-items: center;
-      height: 30px; padding: 0 12px; border-radius: 6px;
+      height: 30px; padding: 0 12px; border-radius: 8px;
       font-size: 12px; font-weight: 500; color: #6F778A;
-      background: #fff; border: 1px solid #e8e2dc;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       text-decoration: none; cursor: pointer;
-      transition: background .15s, border-color .15s;
+      transition: background .2s, border-color .2s, box-shadow .2s, transform .2s;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
-    .btn-ghost:hover { background: #f5f2ef; border-color: #d5cec7; color: #2b2220; }
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(200, 190, 185, 0.5);
+      color: #2b2220;
+      box-shadow: 0 4px 12px rgba(75, 18, 56, 0.05);
+      transform: translateY(-1px);
+    }
     .btn-primary {
       display: inline-flex; align-items: center;
-      height: 32px; padding: 0 16px; border-radius: 6px;
+      height: 32px; padding: 0 16px; border-radius: 8px;
       font-size: 12px; font-weight: 500; color: #fff;
       background: #4B1238; border: 0;
       text-decoration: none; cursor: pointer;
-      transition: background .15s;
+      transition: background .2s, box-shadow .2s, transform .2s;
+      box-shadow: 0 2px 8px rgba(75, 18, 56, 0.15);
     }
-    .btn-primary:hover { background: #3d0e2e; }
+    .btn-primary:hover {
+      background: #3d0e2e;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(75, 18, 56, 0.2);
+    }
 
-    /* ── Metrics ── */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
@@ -268,16 +288,27 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .kpi {
       display: flex; flex-direction: column; gap: 4px;
-      padding: 16px 16px 14px; border-radius: 8px;
-      background: #fff; border: 1px solid #ede8e3;
-      text-decoration: none; transition: box-shadow .2s, border-color .2s, transform .2s;
+      padding: 16px 16px 14px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      text-decoration: none;
+      transition: box-shadow .25s, border-color .25s, transform .25s, background .25s;
       border-left: 3px solid #4B1238;
-      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+      box-shadow:
+        0 4px 16px rgba(75, 18, 56, 0.03),
+        0 1px 4px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
     .kpi:hover {
-      box-shadow: 0 4px 12px rgba(75,18,56,.07);
-      border-color: #d5cec7;
-      transform: translateY(-1px);
+      box-shadow:
+        0 12px 36px rgba(75, 18, 56, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      border-color: rgba(200, 190, 185, 0.6);
+      background: rgba(255, 255, 255, 0.6);
+      transform: translateY(-2px);
     }
     .kpi-l {
       font-size: 11px; color: #8b7a74; font-weight: 500;
@@ -285,7 +316,6 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .kpi-v { font-size: 20px; font-weight: 550; line-height: 1.2; color: #2b2220; }
 
-    /* ── Hub tiles ── */
     .hub-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -296,19 +326,28 @@ import { StateComponent } from '../shared/ui/state/state.component';
       flex-direction: column;
       gap: 6px;
       padding: 16px;
-      border-radius: 8px;
-      background: #fff;
-      border: 1px solid #ede8e3;
-      border-left: 3px solid #e2dbd4;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-left: 3px solid rgba(200, 190, 185, 0.5);
       text-decoration: none;
-      transition: box-shadow .2s, border-color .2s, transform .2s;
-      box-shadow: 0 1px 2px rgba(0,0,0,.02);
+      transition: box-shadow .25s, border-color .25s, transform .25s, background .25s;
+      box-shadow:
+        0 4px 16px rgba(75, 18, 56, 0.03),
+        0 1px 4px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
     .hub-tile:hover {
-      box-shadow: 0 4px 12px rgba(75,18,56,.06);
-      border-color: #d5cec7;
+      box-shadow:
+        0 12px 36px rgba(75, 18, 56, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      border-color: rgba(200, 190, 185, 0.6);
       border-left-color: #8f5c54;
-      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.58);
+      transform: translateY(-2px);
     }
     .hub-tile strong {
       font-size: 14px; font-weight: 600; color: #2b2220; line-height: 1.3;
@@ -326,19 +365,20 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .hub-badge {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 26px; border-radius: 5px;
-      background: #f5f2ef; color: #4B1238;
+      width: 28px; height: 26px; border-radius: 6px;
+      background: rgba(75, 18, 56, 0.08); color: #4B1238;
       font-size: 10px; font-weight: 700; letter-spacing: .03em;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
-    /* ── Bottom grid ── */
     .bottom-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
     }
 
-    /* shortcuts */
     .shortcut-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
     }
@@ -347,69 +387,94 @@ import { StateComponent } from '../shared/ui/state/state.component';
       align-items: center;
       gap: 10px;
       padding: 16px 14px;
-      border-radius: 8px;
-      background: #fff;
-      border: 1px solid #ede8e3;
-      border-left: 3px solid #e2dbd4;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-left: 3px solid rgba(200, 190, 185, 0.5);
       text-decoration: none;
-      transition: box-shadow .2s, border-color .2s, transform .2s;
-      box-shadow: 0 1px 2px rgba(0,0,0,.02);
+      transition: box-shadow .25s, border-color .25s, transform .25s, background .25s;
+      box-shadow:
+        0 4px 16px rgba(75, 18, 56, 0.03),
+        0 1px 4px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
     .shortcut:hover {
-      box-shadow: 0 4px 12px rgba(75,18,56,.06);
-      border-color: #d5cec7;
+      box-shadow:
+        0 12px 36px rgba(75, 18, 56, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      border-color: rgba(200, 190, 185, 0.6);
       border-left-color: #8f5c54;
-      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.58);
+      transform: translateY(-2px);
     }
     .shortcut strong {
       font-size: 13px; font-weight: 500; color: #2b2220;
     }
     .shortcut-i {
       display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 26px; border-radius: 5px;
-      background: #f5f2ef; color: #4B1238;
+      width: 28px; height: 26px; border-radius: 6px;
+      background: rgba(75, 18, 56, 0.08); color: #4B1238;
       font-size: 9px; font-weight: 700; letter-spacing: .03em;
       flex-shrink: 0;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
-    /* staff */
     .staff-card { padding: 0; margin-top: -4px; }
     .staff-row {
       display: flex; align-items: center; gap: 12px;
-      padding: 14px 16px; border-radius: 8px;
-      background: #fff; border: 1px solid #ede8e3;
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
       border-left: 3px solid #4B1238;
-      box-shadow: 0 1px 2px rgba(0,0,0,.02);
+      box-shadow:
+        0 4px 16px rgba(75, 18, 56, 0.03),
+        0 1px 4px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
     .staff-rank {
       display: inline-flex; align-items: center; justify-content: center;
       width: 26px; height: 26px; border-radius: 50%;
       background: #4B1238; color: #fff;
       font-size: 11px; font-weight: 600; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(75, 18, 56, 0.15);
     }
     .staff-row div { display: flex; flex-direction: column; gap: 2px; }
     .staff-row strong { font-size: 13px; font-weight: 600; color: #2b2220; }
     .staff-row span { font-size: 12px; color: #6F778A; }
 
-    /* alerts */
     .alert-card { padding: 0; margin-top: -4px; }
     .alert-row {
-      padding: 14px 16px; border-radius: 8px;
-      background: #fff; border: 1px solid #ede8e3;
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
       border-left: 3px solid #d97706;
-      box-shadow: 0 1px 2px rgba(0,0,0,.02);
+      box-shadow:
+        0 4px 16px rgba(75, 18, 56, 0.03),
+        0 1px 4px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
     .alert-row div { display: flex; flex-direction: column; gap: 2px; }
     .alert-row strong { font-size: 13px; font-weight: 600; color: #2b2220; }
     .alert-row span { font-size: 12px; color: #6F778A; }
     .alert-empty {
       padding: 20px 16px; text-align: center;
-      border-radius: 8px;
-      background: #fff; border: 1px dashed #e8e2dc;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px dashed rgba(255, 255, 255, 0.5);
       font-size: 12px; color: #b0a49c;
     }
 
-    /* ── Stepper ── */
     .stepper {
       display: flex;
       align-items: center;
@@ -427,7 +492,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       content: '';
       display: inline-block;
       width: 28px; height: 2px;
-      background: #e8e2dc;
+      background: rgba(200, 190, 185, 0.5);
       margin: 0 4px;
       border-radius: 1px;
     }
@@ -435,7 +500,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       display: inline-block;
       width: 8px; height: 8px;
       border-radius: 50%;
-      background: #e8e2dc;
+      background: rgba(200, 190, 185, 0.6);
       flex-shrink: 0;
     }
     .step.done { color: #4B1238; font-weight: 600; }

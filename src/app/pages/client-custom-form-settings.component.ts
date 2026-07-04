@@ -145,8 +145,8 @@ const DEFAULT_FIELDS: ClientCustomField[] = [
 
     .settings-nav a.active,
     .settings-nav a:hover {
-      background: #e8fbf3;
-      color: #047857;
+      background: #FBF0E8;
+      color: #7A4A28;
     }
 
     .settings-content {
@@ -307,7 +307,7 @@ const DEFAULT_FIELDS: ClientCustomField[] = [
     }
 
     .state.success {
-      color: #047857;
+      color: #7A4A28;
       background: #F3EAF0;
       border: 1px solid #DCC4D4;
     }

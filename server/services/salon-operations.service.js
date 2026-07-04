@@ -741,10 +741,10 @@ function renderInvoiceHtml({ invoice, sale, client, branch, payments }) {
     * { box-sizing: border-box; }
     body { margin: 0; background: #eef2f4; color: #111827; font-family: Arial, sans-serif; font-size: 12px; }
     .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm; background: #fff; }
-    .top { display: flex; justify-content: space-between; gap: 18px; border-bottom: 2px solid #0f766e; padding-bottom: 12px; }
+    .top { display: flex; justify-content: space-between; gap: 18px; border-bottom: 2px solid #4B1238; padding-bottom: 12px; }
     h1, h2, h3, p { margin: 0; }
     h1 { font-size: 24px; letter-spacing: 0; }
-    h2 { font-size: 18px; color: #0f766e; text-align: right; }
+    h2 { font-size: 18px; color: #4B1238; text-align: right; }
     h3 { font-size: 13px; margin: 16px 0 8px; text-transform: uppercase; color: #475569; }
     .muted { color: #64748b; }
     .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
@@ -758,7 +758,7 @@ function renderInvoiceHtml({ invoice, sale, client, branch, payments }) {
     .summary { margin-left: auto; margin-top: 14px; width: 86mm; border: 1px solid #dbe4e8; border-radius: 6px; overflow: hidden; }
     .summary div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 1px solid #e5edf0; }
     .summary div:last-child { border-bottom: 0; }
-    .summary .grand { background: #0f766e; color: #fff; font-size: 15px; font-weight: 700; }
+    .summary .grand { background: #4B1238; color: #fff; font-size: 15px; font-weight: 700; }
     .footer { margin-top: 18px; border-top: 1px solid #dbe4e8; padding-top: 10px; display: flex; justify-content: space-between; color: #64748b; }
     .printbar { position: sticky; top: 0; padding: 10px; background: #0f172a; text-align: center; }
     .printbar button { border: 0; border-radius: 6px; padding: 10px 16px; font-weight: 700; cursor: pointer; }

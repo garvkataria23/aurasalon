@@ -1513,21 +1513,21 @@ interface EngagementDetail extends ApiRecord {
     .toggle-grid label { border: 1px solid #e1ebe7; border-radius: 8px; background: #fff; padding: 10px; display: flex; align-items: center; gap: 8px; text-transform: none; }
     .warning-stack { display: flex; gap: 8px; flex-wrap: wrap; }
     .slot-list { display: grid; gap: 8px; }
-    .slot-list button { text-align: left; border: 1px solid #dfe8e5; background: #fff; border-radius: 8px; padding: 11px 12px; display: grid; gap: 4px; cursor: pointer; }
+    .slot-list button { text-align: left; border: 1px solid #E7DDD6; background: #fff; border-radius: 8px; padding: 11px 12px; display: grid; gap: 4px; cursor: pointer; }
     .slot-list button.active { border-color: #55173D; box-shadow: inset 3px 0 0 #55173D; background: #EEE3EB; }
     .slot-list span { color: #607083; }
     .review-box .primary-button { width: 100%; justify-content: center; }
     .review-center-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; min-height: 0; }
     .review-list-panel, .review-detail-panel { border: 1px solid #e1ebe7; border-radius: 8px; background: #fbfdfc; padding: 12px; display: grid; gap: 10px; align-content: start; }
     .review-list-panel { max-height: calc(100vh - 150px); overflow: auto; }
-    .review-row { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 11px; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; cursor: pointer; }
+    .review-row { border: 1px solid #E7DDD6; border-radius: 8px; background: #fff; padding: 11px; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; cursor: pointer; }
     .review-row.active { border-color: #55173D; box-shadow: inset 3px 0 0 #55173D; background: #F0E6EE; }
     .review-row span, .review-row p { color: #607083; }
     .review-row p { grid-column: 1 / -1; margin: 0; line-height: 1.4; }
     .review-title-row { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
     .review-title-row h3 { margin: 4px 0; }
     .review-text-block { margin: 0; line-height: 1.6; color: #26364b; background: #fff; border: 1px solid #edf2f0; border-radius: 8px; padding: 12px; }
-    .risk-pill { border-radius: 999px; padding: 5px 9px; font-weight: 900; font-size: 12px; background: #e7f7ef; color: #067647; text-transform: uppercase; white-space: nowrap; }
+    .risk-pill { border-radius: 999px; padding: 5px 9px; font-weight: 900; font-size: 12px; background: #e7f7ef; color: #7A4A28; text-transform: uppercase; white-space: nowrap; }
     .risk-pill.medium { background: #fff3d1; color: #8a5a00; }
     .risk-pill.high, .risk-pill.critical { background: #fdecec; color: #b42318; }
     .review-detail-panel textarea { min-height: 150px; resize: vertical; border: 1px solid #d8e3df; border-radius: 8px; padding: 10px 12px; font: inherit; color: #111827; background: #fff; }
@@ -1538,7 +1538,7 @@ interface EngagementDetail extends ApiRecord {
     .recovery-kpis small { color: #607083; font-weight: 800; text-transform: uppercase; }
     .recovery-kpis strong { font-size: 22px; }
     .recovery-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .recovery-card { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 14px; display: grid; gap: 10px; }
+    .recovery-card { border: 1px solid #E7DDD6; border-radius: 8px; background: #fff; padding: 14px; display: grid; gap: 10px; }
     .recovery-card-head, .recovery-footer { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
     .recovery-card h4 { margin: 3px 0 0; font-size: 18px; }
     .recovery-reason, .suggested-message { margin: 0; color: #526173; line-height: 1.45; }
@@ -1551,7 +1551,7 @@ interface EngagementDetail extends ApiRecord {
     .risk-kpis small { color: #607083; font-weight: 800; text-transform: uppercase; }
     .risk-kpis strong { font-size: 22px; }
     .risk-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .risk-card { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 14px; display: grid; gap: 10px; }
+    .risk-card { border: 1px solid #E7DDD6; border-radius: 8px; background: #fff; padding: 14px; display: grid; gap: 10px; }
     .risk-card-head, .risk-footer, .risk-evidence { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
     .risk-card h4 { margin: 3px 0 0; font-size: 18px; }
     .risk-reason { margin: 0; color: #526173; line-height: 1.45; }
@@ -1566,7 +1566,7 @@ interface EngagementDetail extends ApiRecord {
     .section-title-row, .sla-row { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
     .section-title-row h4, .drawer-section h4 { margin: 3px 0 0; }
     .sla-overdue-list { display: grid; gap: 10px; }
-    .sla-row { border: 1px solid #dfe8e5; border-radius: 8px; background: #fff; padding: 12px; align-items: center; }
+    .sla-row { border: 1px solid #E7DDD6; border-radius: 8px; background: #fff; padding: 12px; align-items: center; }
     .sla-row > div:first-child { display: grid; gap: 4px; min-width: 0; }
     .sla-row span, .sla-row small { color: #607083; }
     .sla-row-metrics { display: grid; gap: 5px; justify-items: end; min-width: 150px; }
@@ -1606,7 +1606,7 @@ interface EngagementDetail extends ApiRecord {
     .audit-table-head { background: #f5f8f7; color: #53657d; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     .audit-table-row:last-child { border-bottom: 0; }
     .audit-table-row span { color: #526173; }
-    .priority-pill { border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 900; text-transform: uppercase; background: #e7f7ef; color: #067647; white-space: nowrap; }
+    .priority-pill { border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 900; text-transform: uppercase; background: #e7f7ef; color: #7A4A28; white-space: nowrap; }
     .priority-pill.normal { background: #eef5f3; color: #4B1238; }
     .priority-pill.high { background: #fff3d1; color: #8a5a00; }
     .priority-pill.urgent { background: #fdecec; color: #b42318; }

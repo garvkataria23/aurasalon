@@ -73,7 +73,7 @@ import { Subscription } from 'rxjs';
     .full-width { grid-column: 1 / -1; }
     .chart-container { height: 220px; }
     .trend-indicator { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 900; font-size: 14px; }
-    .trend-indicator.trend-up { background: #d1fae5; color: var(--green); }
+    .trend-indicator.trend-up { background: #FBF0E8; color: var(--green); }
     .trend-indicator.trend-down { background: #fee2e2; color: var(--red); }
     .skeleton-card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: var(--surface); }
     .skeleton-line { border-radius: 6px; background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
@@ -93,11 +93,11 @@ export class ReportServicesComponent implements OnInit, OnDestroy {
   readonly d = signal<any>(null);
   readonly services = computed(() => this.d()?.services || []);
   readonly popularLabels = computed(() => this.services().slice(0, 5).map((s: any) => s.name));
-  readonly popularDataset = computed(() => [{ label: 'Bookings', data: this.services().slice(0, 5).map((s: any) => s.bookings), backgroundColor: '#10b981' }]);
+  readonly popularDataset = computed(() => [{ label: 'Bookings', data: this.services().slice(0, 5).map((s: any) => s.bookings), backgroundColor: '#C87D4B' }]);
   readonly topRevenueLabels = computed(() => [...this.services()].sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5).map((s: any) => s.name));
   readonly topRevenueDataset = computed(() => [{ label: 'Revenue', data: [...this.services()].sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5).map((s: any) => s.revenue), backgroundColor: '#4B1238' }]);
   readonly catLabels = computed(() => (this.d()?.categoryBreakdown || []).map((c: any) => c.category));
-  readonly catDataset = computed(() => [{ label: 'Revenue', data: (this.d()?.categoryBreakdown || []).map((c: any) => c.revenue), backgroundColor: ['#4B1238','#6B1E4B','#10b981','#f59e0b','#6d4cc2'] }]);
+  readonly catDataset = computed(() => [{ label: 'Revenue', data: (this.d()?.categoryBreakdown || []).map((c: any) => c.revenue), backgroundColor: ['#4B1238','#6B1E4B','#C87D4B','#f59e0b','#6d4cc2'] }]);
   private subs: Subscription[] = [];
 
   constructor(private service: ReportsEnterpriseService) {}

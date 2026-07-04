@@ -57,7 +57,7 @@ test("employee master definitions are persisted, versioned and exposed on api su
         dayCount: 1,
         paid: true,
         availableForAppointment: true,
-        color: "#0f766e",
+        color: "#4B1238",
         sortOrder: 5,
         notes: "Flexi attendance master equivalent"
       }
@@ -111,7 +111,7 @@ test("employee master definitions are persisted, versioned and exposed on api su
         startTime: "10:00",
         endTime: "20:00",
         breakMinutes: 30,
-        color: "#bbf7d0",
+        color: "#FBF0E8",
         shiftType: "regular"
       }
     });

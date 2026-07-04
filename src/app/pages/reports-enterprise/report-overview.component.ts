@@ -28,7 +28,7 @@ import { Subscription } from 'rxjs';
             <button class="ghost-button mini" (click)="exportSection()">Export</button>
           </div>
           <div class="chart-container" *ngIf="bookingsTrend() as data">
-            <base-chart type="bar" [labels]="data.labels" [datasets]="[{label:'Bookings', data: data.values, backgroundColor: '#10b981'}]"></base-chart>
+            <base-chart type="bar" [labels]="data.labels" [datasets]="[{label:'Bookings', data: data.values, backgroundColor: '#C87D4B'}]"></base-chart>
           </div>
         </section>
 
@@ -38,7 +38,7 @@ import { Subscription } from 'rxjs';
             <button class="ghost-button mini" (click)="exportSection()">Export</button>
           </div>
           <div class="chart-container" *ngIf="newVsReturning() as data">
-            <base-chart type="bar" [labels]="data.labels" [datasets]="[{label:'New', data: data.newClients, backgroundColor: '#2f5fbd'},{label:'Returning', data: data.returning, backgroundColor: '#10b981'}]"></base-chart>
+            <base-chart type="bar" [labels]="data.labels" [datasets]="[{label:'New', data: data.newClients, backgroundColor: '#2f5fbd'},{label:'Returning', data: data.returning, backgroundColor: '#C87D4B'}]"></base-chart>
           </div>
         </section>
 

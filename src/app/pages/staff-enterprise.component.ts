@@ -709,7 +709,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
     }
 
     .kpi-card.teal { border-top-color: #4B1238; }
-    .kpi-card.green { border-top-color: #16a34a; }
+    .kpi-card.green { border-top-color: #C87D4B; }
     .kpi-card.amber { border-top-color: #b7791f; }
     .kpi-card.red { border-top-color: #dc2626; }
     .kpi-card.blue { border-top-color: #4B1238; }
@@ -775,7 +775,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
       font-weight: 700;
     }
 
-    .module-link-card.green { border-left-color: #16a34a; }
+    .module-link-card.green { border-left-color: #C87D4B; }
     .module-link-card.blue { border-left-color: #4B1238; }
     .module-link-card.amber { border-left-color: #b7791f; }
     .module-link-card.red { border-left-color: #dc2626; }
@@ -961,9 +961,9 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
     .badge.ready,
     .badge.approved,
     .badge.active {
-      color: #166534;
-      background: #dcfce7;
-      border-color: #86efac;
+      color: #7A4A28;
+      background: #FBF0E8;
+      border-color: #E8C8A8;
     }
 
     .badge.medium,
@@ -992,7 +992,7 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
     .badge.draft {
       color: #4B1238;
       background: #F8EEF4;
-      border-color: #93c5fd;
+      border-color: #C8A0B8;
     }
 
     .detail-drawer {

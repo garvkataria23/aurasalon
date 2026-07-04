@@ -616,7 +616,7 @@ const catalog: IntegrationCategory[] = [
     .drawer-heading h3 { margin: 2px 0 0; color: #333; font-size: 24px; letter-spacing: 0; }
     .close-button { border: 0; background: transparent; font-size: 34px; line-height: 1; cursor: pointer; color: #222; width: 32px; height: 32px; }
     .connection-pill { margin-left: auto; border-radius: 999px; padding: 7px 12px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 900; }
-    .connection-pill.connected { background: #e8f7f1; color: #047857; }
+    .connection-pill.connected { background: #FBF0E8; color: #7A4A28; }
     .drawer-content { display: grid; grid-template-columns: minmax(360px, 1fr) 485px; gap: 60px; padding: 34px 48px; overflow: auto; }
     .setup-form { display: grid; align-content: start; gap: 14px; }
     .field { display: grid; gap: 7px; color: #444; font-weight: 800; }
@@ -633,13 +633,13 @@ const catalog: IntegrationCategory[] = [
     .ghost-button.slim { padding: 7px 10px; font-size: 12px; }
     .primary-button:disabled, .ghost-button:disabled { opacity: .55; cursor: not-allowed; }
     .field-error { color: #dc2626; font-weight: 800; }
-    .save-message { color: #047857; font-weight: 800; }
+    .save-message { color: #7A4A28; font-weight: 800; }
     .setup-guide { color: #444; padding-top: 4px; }
     .guide-logo { --accent: #55173D; width: 92px; height: 92px; border-radius: 999px; display: grid; place-items: center; color: var(--accent); border: 2px solid #eef2f7; font-weight: 950; margin-bottom: 18px; box-shadow: 0 2px 9px rgba(15, 23, 42, .14); }
     .setup-guide h3 { margin: 0 0 16px; font-size: 24px; color: #333; line-height: 1.25; letter-spacing: 0; }
     .setup-guide p { margin: 0; color: #666; line-height: 1.5; }
     .drawer-mode-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    .drawer-mode-list span { border-radius: 999px; background: #edfdf8; color: #047857; padding: 7px 10px; font-weight: 900; font-size: 12px; }
+    .drawer-mode-list span { border-radius: 999px; background: #FBF0E8; color: #7A4A28; padding: 7px 10px; font-weight: 900; font-size: 12px; }
     .guide-rule { border-top: 1px solid #e5e7eb; margin: 20px 0; }
     .setup-guide ol { margin: 12px 0 0; padding-left: 22px; color: #777; display: grid; gap: 10px; line-height: 1.4; }
     .setup-guide li::marker { color: #555; font-weight: 900; }

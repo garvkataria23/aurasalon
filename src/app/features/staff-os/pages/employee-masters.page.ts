@@ -211,7 +211,7 @@ const payrollFlow = [
     .money .tile-icon, .primary-tile.money span { background: #fff4e4; color: #8a5a00; }
     .services .tile-icon { background: #f4efff; color: #5f4aa3; }
     .payroll .tile-icon, .primary-tile.payroll span { background: #f3f5f7; color: #445261; }
-    .payroll-flow { background: #f8fbf9; border: 1px solid #E7DDD6; border-radius: 8px; display: grid; gap: 12px; padding: 16px; }
+    .payroll-flow { background: #FAF8F6; border: 1px solid #E7DDD6; border-radius: 8px; display: grid; gap: 12px; padding: 16px; }
     .flow-head { align-items: center; display: flex; justify-content: space-between; gap: 12px; }
     .flow-head h2 { font-size: 20px; letter-spacing: 0; margin: 0; }
     .flow-head a { background: #10201a; border-radius: 6px; color: #fff; font-weight: 850; padding: 9px 12px; text-decoration: none; white-space: nowrap; }
@@ -219,7 +219,7 @@ const payrollFlow = [
     .flow-grid a { background: #fff; border: 1px solid #E7DDD6; border-radius: 8px; color: #10201a; display: grid; gap: 6px; min-height: 86px; padding: 13px; text-decoration: none; }
     .flow-grid strong { font-size: 15px; letter-spacing: 0; }
     .flow-grid small { color: #60766d; line-height: 1.35; }
-    .group-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px; border: 1px solid #E7DDD6; border-radius: 8px; background: #f8fbf9; }
+    .group-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px; border: 1px solid #E7DDD6; border-radius: 8px; background: #FAF8F6; }
     .group-tabs button { background: #fff; border: 1px solid #E7DDD6; border-radius: 6px; color: #34483f; cursor: pointer; font-weight: 850; min-height: 36px; padding: 8px 11px; white-space: nowrap; }
     .group-tabs button.active { background: #10201a; border-color: #10201a; color: #fff; }
     .tile-grid { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 12px; }
