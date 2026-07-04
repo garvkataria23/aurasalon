@@ -71,7 +71,7 @@ export type LegacyAuraStat = {
     .success b { color: var(--success-500, #10b981); }
     .warning b { color: var(--warning-500, #f59e0b); }
     .danger b { color: var(--danger-500, #ef4444); }
-    .info b { color: var(--info-500, #3b82f6); }
+    .info b { color: var(--aura-primary, #4B1238); }
     @media (max-width: 760px) {
       .aura-stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .aura-stat { border-bottom: 1px solid var(--line); }

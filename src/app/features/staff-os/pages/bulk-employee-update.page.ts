@@ -155,12 +155,12 @@ type BulkField = keyof EditableBulkEmployeeRow;
     .topbar-actions { align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     .eyebrow { color: #547066; font-size: 12px; font-weight: 850; letter-spacing: .08em; margin: 0 0 5px; text-transform: uppercase; }
     h1 { font-size: 30px; letter-spacing: 0; margin: 0; }
-    .refresh, .primary { border: 1px solid #cbd8d2; border-radius: 6px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 12px; text-decoration: none; }
+    .refresh, .primary { border: 1px solid #E7DDD6; border-radius: 6px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 12px; text-decoration: none; }
     .refresh { background: #fff; color: #34483f; }
     .primary { background: #4B1238; border-color: #4B1238; color: #fff; }
     .compact { min-height: 34px; padding: 7px 10px; }
     button:disabled { cursor: not-allowed; opacity: .58; }
-    .filter-bar, .metrics article, .state, .grid-shell, .job-panel { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; }
+    .filter-bar, .metrics article, .state, .grid-shell, .job-panel { background: #fff; border: 1px solid #E7DDD6; border-radius: 8px; }
     .filter-bar { align-items: center; justify-content: flex-start; flex-wrap: wrap; padding: 12px; }
     .filter-bar span, .filter-bar strong { color: #34483f; font-weight: 900; }
     .filter-bar label { align-items: center; display: inline-flex; font-size: 13px; font-weight: 850; gap: 7px; }
@@ -183,7 +183,7 @@ type BulkField = keyof EditableBulkEmployeeRow;
     td.sticky { background: #fff; }
     tr.dirty td { background: #fffaf0; }
     tr.dirty td.sticky { background: #fffaf0; }
-    input, select { border: 1px solid #cbd8d2; border-radius: 6px; color: #10201a; font: inherit; min-height: 34px; padding: 7px 8px; width: 100%; }
+    input, select { border: 1px solid #E7DDD6; border-radius: 6px; color: #10201a; font: inherit; min-height: 34px; padding: 7px 8px; width: 100%; }
     input[type='checkbox'] { height: 18px; min-height: 0; padding: 0; width: 18px; }
     .center { text-align: center; }
     .empty { color: #60766d; font-weight: 850; padding: 22px; text-align: center; }

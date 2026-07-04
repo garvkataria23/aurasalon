@@ -136,7 +136,7 @@ function categoryRow(payload, access, existing = null) {
   return {
     ...common,
     description: String(payload.description ?? existing?.description ?? ""),
-    color: String(payload.color ?? existing?.color ?? "#2563eb"),
+    color: String(payload.color ?? existing?.color ?? "#4B1238"),
     discount_percent: parseNumber(payload.discountPercent ?? payload.discount_percent ?? existing?.discount_percent, 0),
     loyalty_multiplier: parseNumber(payload.loyaltyMultiplier ?? payload.loyalty_multiplier ?? existing?.loyalty_multiplier, 1),
     visit_threshold: parseIntValue(payload.visitThreshold ?? payload.visit_threshold ?? existing?.visit_threshold, 0),

@@ -29,7 +29,7 @@ function seedDefaultClientMasters() {
   const stamp = new Date().toISOString();
   const base = { tenant_id: DEFAULT_TENANT_ID, branch_id: "", created_by: "system", created_at: stamp, updated_at: stamp };
   const categories = [
-    { id: "ccat_default_new", code: "NEW", name: "New Client", description: "First-time client category", color: "#2563eb", discount_percent: 0, loyalty_multiplier: 1, visit_threshold: 0, spend_threshold: 0 },
+    { id: "ccat_default_new", code: "NEW", name: "New Client", description: "First-time client category", color: "#4B1238", discount_percent: 0, loyalty_multiplier: 1, visit_threshold: 0, spend_threshold: 0 },
     { id: "ccat_default_regular", code: "REGULAR", name: "Regular Client", description: "Repeat guest with standard loyalty", color: "#15803d", discount_percent: 0, loyalty_multiplier: 1.25, visit_threshold: 3, spend_threshold: 10000 },
     { id: "ccat_default_vip", code: "VIP", name: "VIP Client", description: "High value guest with elevated service rules", color: "#7c3aed", discount_percent: 10, loyalty_multiplier: 1.5, visit_threshold: 6, spend_threshold: 25000 }
   ];

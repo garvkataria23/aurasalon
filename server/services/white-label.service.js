@@ -13,7 +13,7 @@ function scope(access, branchId = "") {
 
 const defaultTheme = {
   primary: "#0f766e",
-  accent: "#2f5fbd",
+  accent: "#4B1238",
   surface: "#ffffff",
   ink: "#17202d",
   bookingButton: "#0f766e"

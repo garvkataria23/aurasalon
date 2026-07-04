@@ -204,13 +204,13 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
     h1 { font-size: 30px; }
     h2 { font-size: 20px; }
     h3 { font-size: 15px; }
-    .primary, .refresh { border: 1px solid #cbd8d2; border-radius: 6px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 12px; text-decoration: none; }
+    .primary, .refresh { border: 1px solid #E7DDD6; border-radius: 6px; cursor: pointer; font-weight: 850; min-height: 38px; padding: 9px 12px; text-decoration: none; }
     .primary { background: #4B1238; border-color: #4B1238; color: #fff; }
     .refresh { background: #fff; color: #34483f; }
     .danger { color: #a52828; }
     .mini { min-height: 32px; padding: 6px 9px; }
     .metrics { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; }
-    .metrics article, .state, .list-panel, .editor-panel { background: #fff; border: 1px solid #d9e5de; border-radius: 8px; }
+    .metrics article, .state, .list-panel, .editor-panel { background: #fff; border: 1px solid #E7DDD6; border-radius: 8px; }
     .metrics article { padding: 14px; }
     .metrics span { color: #60766d; font-size: 12px; font-weight: 850; text-transform: uppercase; }
     .metrics strong { display: block; font-size: 24px; margin-top: 6px; }
@@ -223,7 +223,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
     .editor-panel { border-color: #b9d9d0; box-shadow: 0 18px 44px rgba(75, 18, 56, .08); min-width: 0; }
     .filters { display: grid; grid-template-columns: 1fr; gap: 10px; }
     .filters label, .field { display: grid; gap: 6px; color: #34483f; font-size: 13px; font-weight: 850; }
-    input, select, textarea { background: #fff; border: 1px solid #cbd8d2; border-radius: 8px; color: #10201a; font: inherit; padding: 10px 11px; width: 100%; }
+    input, select, textarea { background: #fff; border: 1px solid #E7DDD6; border-radius: 8px; color: #10201a; font: inherit; padding: 10px 11px; width: 100%; }
     .list { display: grid; border-top: 1px solid #edf2ef; }
     .list-row { align-items: center; background: #fff; border: 0; border-bottom: 1px solid #edf2ef; cursor: pointer; display: grid; gap: 10px; grid-template-columns: 1fr auto; min-height: 58px; padding: 10px 2px; text-align: left; }
     .list-row.active { color: #4B1238; }
@@ -231,15 +231,15 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
     .list-row em { background: #eef6f1; border-radius: 999px; color: #286345; font-size: 12px; font-style: normal; font-weight: 850; padding: 4px 9px; }
     .list-row em.hide { background: #f5f0e6; color: #8a5a00; }
     form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
-    .form-title { background: #f6fbf9; border: 1px solid #d9e5de; border-radius: 8px; padding: 12px 14px; }
+    .form-title { background: #f6fbf9; border: 1px solid #E7DDD6; border-radius: 8px; padding: 12px 14px; }
     .full { grid-column: 1 / -1; }
     .check-inline, .check-field { align-items: center; display: inline-flex; gap: 8px; font-weight: 850; }
     .check-inline input, .check-field input, .shift-row input { width: 18px; height: 18px; padding: 0; }
     .check-field { border: 1px solid #edf2ef; border-radius: 8px; min-height: 43px; padding: 10px 11px; }
-    .rule-band, .slab-panel, .shift-panel { border: 1px solid #d9e5de; border-radius: 8px; display: grid; gap: 10px; padding: 12px; }
+    .rule-band, .slab-panel, .shift-panel { border: 1px solid #E7DDD6; border-radius: 8px; display: grid; gap: 10px; padding: 12px; }
     .rule-band { grid-template-columns: minmax(260px, 1fr) 160px auto; align-items: end; background: #fbfdfc; }
     .segmented { display: flex; gap: 6px; flex-wrap: wrap; }
-    .segmented button { background: #fff; border: 1px solid #cbd8d2; border-radius: 6px; color: #34483f; cursor: pointer; font-weight: 850; min-height: 36px; padding: 8px 10px; }
+    .segmented button { background: #fff; border: 1px solid #E7DDD6; border-radius: 6px; color: #34483f; cursor: pointer; font-weight: 850; min-height: 36px; padding: 8px 10px; }
     .segmented button.active { background: #10201a; border-color: #10201a; color: #fff; }
     .slab-grid { align-items: center; display: grid; gap: 8px; grid-template-columns: 44px 1fr 1fr 1.5fr 36px; }
     .slab-grid.header { color: #60766d; font-size: 12px; font-weight: 900; text-transform: uppercase; }

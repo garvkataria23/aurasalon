@@ -38,7 +38,7 @@
 
 .eyebrow,
 .kicker {
-  color: #1d4ed8;
+  color: #4B1238;
   display: block;
   font-size: 12px;
   font-weight: 900;
@@ -72,7 +72,7 @@
 .category-tile {
   background: #ffffff;
   border: 1px solid #dbe5ef;
-  border-left: 4px solid #10b981;
+  border-left: 4px solid #4B1238;
   border-radius: 8px;
   cursor: pointer;
   display: grid;
@@ -95,7 +95,7 @@
 .category-tile.active {
   background: #f1f7ff;
   border-color: #b8cdf8;
-  border-left-color: #2563eb;
+  border-left-color: #4B1238;
   box-shadow: 0 10px 24px rgba(29, 78, 216, 0.12);
 }
 
@@ -153,7 +153,7 @@
 }
 
 .status-pill[data-state="ready"] {
-  background: #eef2ff;
+  background: #F8EEF4;
   color: #3730a3;
 }
 

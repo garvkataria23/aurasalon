@@ -228,7 +228,7 @@ type PreferencesResponse = {
     .chips button { border: 1px solid #cfe6df; border-radius: 999px; background: #eefbf6; color: #047857; padding: 7px 10px; font-weight: 800; cursor: pointer; }
     .provider-map { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; color: #5f706c; }
     .provider-map b { background: #f4f7f6; border: 1px solid #dfe8e5; border-radius: 999px; padding: 7px 10px; color: #243447; }
-    .preview-box { border: 1px dashed #b9d8ce; background: #f0fbf7; border-radius: 12px; padding: 12px; }
+    .preview-box { border: 1px dashed #E7DDD6; background: #F8EEF4; border-radius: 12px; padding: 12px; }
     .preview-box span { font-size: 12px; font-weight: 900; color: #047857; text-transform: uppercase; }
     .preview-box p { color: #122033; margin-top: 5px; }
     .warn { color: #b45309 !important; }

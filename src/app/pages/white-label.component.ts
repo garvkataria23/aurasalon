@@ -126,10 +126,10 @@ export class WhiteLabelComponent implements OnInit {
     domain: ['booking.aurasalon.example'],
     logoUrl: ['/assets/aura-logo.svg'],
     primary: ['#4B1238'],
-    accent: ['#2f5fbd'],
+    accent: ['#4B1238'],
     isDefault: [false]
   });
-  readonly branchForm = this.fb.group({ branchId: ['', Validators.required], brandName: ['Aura Signature Branch'], primary: ['#2f5fbd'], accent: ['#4B1238'] });
+  readonly branchForm = this.fb.group({ branchId: ['', Validators.required], brandName: ['Aura Signature Branch'], primary: ['#4B1238'], accent: ['#4B1238'] });
   readonly domainForm = this.fb.group({ domain: ['booking.aurasalon.example', Validators.required], status: ['pending'] });
 
   constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}

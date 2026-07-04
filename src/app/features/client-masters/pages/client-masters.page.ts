@@ -41,7 +41,7 @@ const configs: MasterConfig[] = [
       { key: 'code', label: 'Short Code', type: 'text' },
       { key: 'name', label: 'Category Name', type: 'text', required: true },
       { key: 'description', label: 'Description', type: 'textarea', span: 'full' },
-      { key: 'color', label: 'Color', type: 'color', defaultValue: '#2563eb' },
+      { key: 'color', label: 'Color', type: 'color', defaultValue: '#4B1238' },
       { key: 'discountPercent', label: 'Discount %', type: 'number', defaultValue: 0 },
       { key: 'loyaltyMultiplier', label: 'Loyalty Multiplier', type: 'number', defaultValue: 1 },
       { key: 'visitThreshold', label: 'Visit Threshold', type: 'number', defaultValue: 0 },
@@ -373,7 +373,7 @@ const emptyRecords: Record<ClientMasterKind, ClientMasterRecord[]> = {
     .master-tabs button.active { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
     .master-tabs span, .swatch { align-items: center; border-radius: 8px; display: inline-flex; font-size: 12px; font-weight: 900; height: 34px; justify-content: center; width: 42px; }
     .master-tabs small { color: var(--muted); font-weight: 750; }
-    .master-tabs .blue span { background: #eff6ff; color: #1d4ed8; }
+    .master-tabs .blue span { background: #F8EEF4; color: #4B1238; }
     .master-tabs .green span { background: #edf7ef; color: #15803d; }
     .master-tabs .violet span { background: #f3efff; color: #6d28d9; }
     .master-tabs .amber span { background: #fff7e6; color: #a16207; }
@@ -630,7 +630,7 @@ export class ClientMastersPage implements OnInit {
   }
 
   recordColor(row: ClientMasterRecord): string {
-    return String((row as ApiRecord)['color'] || '#e2e8f0');
+    return String((row as ApiRecord)['color'] || '#E7DDD6');
   }
 
   initials(value: string): string {

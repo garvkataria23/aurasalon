@@ -89,10 +89,10 @@ type HeatmapCell = {
     h2 { font-size: 18px; }
     .filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-items: end; }
     label { display: grid; gap: 6px; color: #52685f; font-size: 12px; }
-    input, select { border: 1px solid #cbd8d2; border-radius: 6px; padding: 9px 10px; min-width: 0; }
-    .button { border: 1px solid #cbd8d2; background: #fff; border-radius: 6px; padding: 9px 12px; cursor: pointer; }
+    input, select { border: 1px solid #E7DDD6; border-radius: 6px; padding: 9px 10px; min-width: 0; }
+    .button { border: 1px solid #E7DDD6; background: #fff; border-radius: 6px; padding: 9px 12px; cursor: pointer; }
     .primary { background: #183d2d; color: #fff; border-color: #183d2d; }
-    .state, .drawer { border: 1px solid #d9e5de; border-radius: 8px; background: #fff; padding: 14px; }
+    .state, .drawer { border: 1px solid #E7DDD6; border-radius: 8px; background: #fff; padding: 14px; }
     .error { color: #a52828; border-color: #e7b1b1; }
     .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
     .grid { display: grid; grid-template-columns: repeat(14, minmax(34px, 1fr)); gap: 6px; }

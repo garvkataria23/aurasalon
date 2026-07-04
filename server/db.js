@@ -3446,8 +3446,8 @@ export function seedDatabase() {
       logoUrl: "/assets/aura-logo.svg",
       domain: "aura.localhost",
       theme: {
-        primary: "#0f766e",
-        accent: "#2f5fbd",
+        primary: "#4B1238",
+        accent: "#4B1238",
         surface: "#ffffff",
         ink: "#17202d"
       },
@@ -3577,7 +3577,7 @@ export function seedDatabase() {
       profileId: "brand_aura_default",
       brandName: "Aura Salon Jubilee Hills",
       logoUrl: "/assets/aura-logo.svg",
-      theme: { primary: "#0f766e", accent: "#2f5fbd", bookingButton: "#0f766e" },
+      theme: { primary: "#4B1238", accent: "#4B1238", bookingButton: "#4B1238" },
       assets: { qrPoster: "branch_hyd_qr" },
       createdAt: stamp,
       updatedAt: stamp
@@ -3589,7 +3589,7 @@ export function seedDatabase() {
       profileId: "brand_aura_default",
       brandName: "Aura Salon Indiranagar",
       logoUrl: "/assets/aura-logo.svg",
-      theme: { primary: "#2f5fbd", accent: "#0f766e", bookingButton: "#2f5fbd" },
+      theme: { primary: "#4B1238", accent: "#4B1238", bookingButton: "#4B1238" },
       assets: { qrPoster: "branch_blr_qr" },
       createdAt: stamp,
       updatedAt: stamp

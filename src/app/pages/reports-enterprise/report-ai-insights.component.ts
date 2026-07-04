@@ -51,7 +51,7 @@ import { Subscription } from 'rxjs';
     </ng-template>
   `,
   styles: [`
-    .ai-insights-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); }
+    .ai-insights-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(135deg, #F8EEF4 0%, #f5f3ff 100%); }
     .ai-brand { display: flex; align-items: center; gap: 12px; }
     .ai-icon { font-size: 32px; }
     .ai-brand h3 { margin: 0; font-size: 18px; }
@@ -71,7 +71,7 @@ import { Subscription } from 'rxjs';
     .severity-tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
     .tag-positive { background: #d1fae5; color: var(--green); }
     .tag-warning { background: #fef3c7; color: #b7791f; }
-    .tag-info { background: #dbeafe; color: var(--blue); }
+    .tag-info { background: #F8EEF4; color: var(--blue); }
     .insights-empty { text-align: center; padding: 48px 16px; }
     .empty-icon { font-size: 48px; display: block; margin-bottom: 8px; }
     .insights-empty strong { display: block; font-size: 16px; }

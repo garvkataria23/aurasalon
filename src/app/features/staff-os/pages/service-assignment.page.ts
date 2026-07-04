@@ -138,10 +138,10 @@ import { StaffOsBranch, StaffOsServiceAssignment, StaffOsServiceOption, StaffOsS
     h1 { font-size: 28px; }
     h2 { font-size: 18px; font-weight: 800; }
     .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .metrics article { background: #fff; border: 1px solid #e0e7ff; border-radius: 10px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(79,70,229,.06); }
+    .metrics article { background: #fff; border: 1px solid #e0e7ff; border-radius: 10px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(75,18,56,.06); }
     .metrics article:hover { border-color: #c7d2fe; }
     .metrics span { color: #6b7280; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-    .metrics strong { display: block; font-size: 22px; margin-top: 5px; color: #4f46e5; }
+    .metrics strong { display: block; font-size: 22px; margin-top: 5px; color: #4B1238; }
     .state { background: #fff; border: 1px solid #e0e7ff; border-radius: 8px; padding: 14px; color: #6b7280; }
     .error { color: #dc2626; border-color: #fecaca; }
     .employee-section, .services-section { background: #fff; border: 1px solid #e0e7ff; border-radius: 10px; display: grid; gap: 14px; padding: 18px; }
@@ -150,19 +150,19 @@ import { StaffOsBranch, StaffOsServiceAssignment, StaffOsServiceOption, StaffOsS
     .toggles { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
     .toggles label, .copy, .hide-toggle { align-items: center; color: #374151; display: inline-flex; font-size: 13px; font-weight: 600; gap: 6px; cursor: pointer; }
     .hide-toggle { gap: 8px; font-weight: 700; }
-    input[type='checkbox'] { accent-color: #4f46e5; height: 16px; margin: 0; width: 16px; cursor: pointer; }
+    input[type='checkbox'] { accent-color: #4B1238; height: 16px; margin: 0; width: 16px; cursor: pointer; }
     .employee-controls { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
     .filters { display: flex; gap: 10px; flex: 1; min-width: 260px; }
     .filters label { flex: 1; }
     .role-tabs { display: flex; gap: 4px; background: #f8f9ff; border: 1px solid #e0e7ff; border-radius: 8px; padding: 3px; }
     .role-tabs button, .refresh, .primary { border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-weight: 700; min-height: 36px; padding: 8px 14px; text-decoration: none; transition: all .15s; }
     .role-tabs button { background: transparent; border-color: transparent; color: #374151; font-weight: 700; min-height: 30px; padding: 5px 12px; }
-    .role-tabs button.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-    .role-tabs button:not(.active):hover { background: #eef2ff; }
+    .role-tabs button.active { background: #4B1238; color: #fff; border-color: #4B1238; }
+    .role-tabs button:not(.active):hover { background: #F8EEF4; }
     .refresh { background: #fff; color: #374151; }
     .refresh:hover { background: #f9fafb; border-color: #9ca3af; }
-    .primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
-    .primary:hover { background: #4338ca; border-color: #4338ca; }
+    .primary { background: #4B1238; border-color: #4B1238; color: #fff; }
+    .primary:hover { background: #6B1E4B; border-color: #6B1E4B; }
     .primary:disabled { opacity: .55; cursor: not-allowed; }
     .primary.secondary { background: #1e1b2e; border-color: #1e1b2e; }
     .primary.secondary:hover { background: #111827; }
@@ -173,16 +173,16 @@ import { StaffOsBranch, StaffOsServiceAssignment, StaffOsServiceOption, StaffOsS
     .service-toolbar label { min-width: 160px; flex: 1; }
     label { color: #374151; display: grid; font-size: 13px; font-weight: 700; gap: 4px; }
     input, select, textarea { border: 1px solid #d1d5db; border-radius: 8px; color: #1e1b2e; font: inherit; padding: 9px 11px; width: 100%; transition: border-color .15s; background: #fff; box-sizing: border-box; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #4B1238; box-shadow: 0 0 0 3px rgba(75,18,56,.12); }
     .list { border: 1px solid #e0e7ff; border-radius: 8px; display: grid; max-height: 320px; overflow: auto; }
-    .row { align-items: center; border-bottom: 1px solid #eef2ff; display: grid; gap: 8px; grid-template-columns: auto 1fr auto; min-height: 44px; padding: 0 8px; }
+    .row { align-items: center; border-bottom: 1px solid #F8EEF4; display: grid; gap: 8px; grid-template-columns: auto 1fr auto; min-height: 44px; padding: 0 8px; }
     .row:last-child { border-bottom: 0; }
-    .row.active { background: #eef2ff; }
+    .row.active { background: #F8EEF4; }
     .row:hover { background: #f8f9ff; }
     .row button { background: transparent; border: 0; cursor: pointer; padding: 6px 0; text-align: left; width: 100%; }
     .row button strong { font-size: 14px; }
     .row small { color: #6b7280; display: block; font-weight: 500; margin-top: 2px; font-size: 12px; }
-    .row em { background: #eef2ff; border-radius: 999px; color: #4f46e5; font-size: 11px; font-style: normal; font-weight: 800; padding: 3px 8px; }
+    .row em { background: #F8EEF4; border-radius: 999px; color: #4B1238; font-size: 11px; font-style: normal; font-weight: 800; padding: 3px 8px; }
     .selected-band { border: 1px solid #e0e7ff; border-radius: 8px; padding: 12px 16px; background: #f8f9ff; display: grid; gap: 2px; }
     .selected-band .eyebrow { margin: 0; }
     .selected-band h2 { font-size: 16px; margin: 0; }
@@ -190,7 +190,7 @@ import { StaffOsBranch, StaffOsServiceAssignment, StaffOsServiceOption, StaffOsS
     .service-grid { border: 1px solid #e0e7ff; border-radius: 8px; display: grid; max-height: 480px; overflow: auto; }
     .service-head, .service-row { align-items: center; display: grid; gap: 10px; grid-template-columns: minmax(140px, .55fr) 1fr 72px; min-height: 38px; padding: 0 12px; }
     .service-head { background: #f8f9ff; border-bottom: 1px solid #e0e7ff; font-size: 11px; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; z-index: 1; }
-    .service-row { border-bottom: 1px solid #eef2ff; font-size: 13px; }
+    .service-row { border-bottom: 1px solid #F8EEF4; font-size: 13px; }
     .service-row:last-child { border-bottom: 0; }
     .service-row:hover { background: #f8f9ff; }
     .service-row strong { font-size: 14px; font-weight: 600; }

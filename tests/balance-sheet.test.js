@@ -202,12 +202,12 @@ import { ApiService } from '../core/api.service';
     button { min-height: 42px; border-radius: 8px; border: 1px solid #cbd7e6; padding: 0 16px; font-weight: 900; cursor: pointer; }
     button:disabled { opacity: .55; cursor: not-allowed; }
     .primary-button { background: #152033; color: #fff; }
-    .secondary-button { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .secondary-button { background: #F8EEF4; color: #4B1238; border-color: #E7DDD6; }
     .kpis, .grid.three { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-    .tabs button.active { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; }
+    .tabs button.active { background: #F8EEF4; border-color: #6B1E4B; color: #4B1238; }
     .line, .metric-list div, .summary-row, .check, .alert { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #eef2f7; padding: 10px 0; }
     .control-row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 12px; }
     .readiness-banner { display: grid; gap: 4px; padding: 12px; border-radius: 8px; margin-bottom: 8px; background: #f1f5f9; }

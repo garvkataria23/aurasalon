@@ -43,7 +43,7 @@ import { AuraToastService } from './toast.service';
     .success { border-left-color: var(--success-500, #10b981); }
     .warning { border-left-color: var(--warning-500, #f59e0b); }
     .danger { border-left-color: var(--danger-500, #ef4444); }
-    .info { border-left-color: var(--info-500, #3b82f6); }
+    .info { border-left-color: var(--aura-primary, #4B1238); }
     button {
       width: 26px;
       height: 26px;

@@ -115,7 +115,7 @@
 .priority-card.tone-stock::before,
 .kpi-tile.tone-service::before,
 .priority-card.tone-service::before {
-  background: linear-gradient(90deg, #2563eb, #6D1B4D);
+  background: linear-gradient(90deg, #4B1238, #6D1B4D);
 }
 
 .kpi-tile.tone-branch::before,
@@ -282,7 +282,7 @@
 .mini-bar span {
   min-height: 3px;
   border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, #6D1B4D, #2563eb);
+  background: linear-gradient(180deg, #6D1B4D, #4B1238);
 }
 
 .mini-bar small {

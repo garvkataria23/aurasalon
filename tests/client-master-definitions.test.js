@@ -53,7 +53,7 @@ test("client masters persist Flexi-style CRM definitions with v1 coverage and te
       body: {
         code: `VIP${String(stamp).slice(-5)}`,
         name: `VIP Client ${stamp}`,
-        color: "#2563eb",
+        color: "#4B1238",
         discountPercent: 10,
         loyaltyMultiplier: 1.5,
         visitThreshold: 4,
@@ -76,7 +76,7 @@ test("client masters persist Flexi-style CRM definitions with v1 coverage and te
         version: category.payload.version,
         code: category.payload.code,
         name: category.payload.name,
-        color: "#1d4ed8",
+        color: "#4B1238",
         discountPercent: 12,
         loyaltyMultiplier: 2,
         visitThreshold: 5,

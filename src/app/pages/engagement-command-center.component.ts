@@ -1617,7 +1617,7 @@ interface EngagementDetail extends ApiRecord {
     .risk-item em { background: #fdecec; color: #b42318; }
     .conversation-empty { min-height: calc(100vh - 220px); display: grid; place-items: center; align-content: center; gap: 10px; color: #53657d; text-align: center; padding: 30px; }
     .conversation-empty strong { color: #111827; font-size: 22px; }
-    .state.info { background: #eef8ff; border: 1px solid #bfdbfe; color: #1d4e89; padding: 12px 14px; border-radius: 8px; }
+    .state.info { background: #eef8ff; border: 1px solid #E7DDD6; color: #1d4e89; padding: 12px 14px; border-radius: 8px; }
     .action-queue-strip { border: 1px solid #dce5e2; background: #fff; border-radius: 8px; padding: 14px; display: grid; gap: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .05); }
     .action-queue-strip p { margin: 3px 0 0; color: #53657d; line-height: 1.45; }
     .action-queue-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }

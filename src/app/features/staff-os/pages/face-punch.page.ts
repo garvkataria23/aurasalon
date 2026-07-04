@@ -96,7 +96,7 @@ type PunchType = 'in' | 'out';
     .panel { padding: 16px; }
     .camera-frame { min-height: 300px; background: #0f172a; border-radius: 8px; overflow: hidden; position: relative; display: grid; place-items: center; }
     video { width: 100%; height: 100%; object-fit: cover; min-height: 300px; }
-    .camera-empty { position: absolute; color: #dbeafe; font-weight: 800; }
+    .camera-empty { position: absolute; color: #F8EEF4; font-weight: 800; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
     button, .primary { min-height: 40px; border: 1px solid #9fb2b8; border-radius: 6px; padding: 0 14px; background: #fff; color: #0f172a; font-weight: 900; cursor: pointer; }
     button.active, .primary { background: #55173D; border-color: #55173D; color: #fff; }

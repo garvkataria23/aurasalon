@@ -214,7 +214,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       text-transform: uppercase; color: #8f5c54; font-weight: 600;
     }
     .greeting-copy p {
-      font-size: 13px; line-height: 1.45; color: #7a6c66; margin: 2px 0 0;
+      font-size: 13px; line-height: 1.45; color: #6F778A; margin: 2px 0 0;
     }
     .greeting-actions { display: flex; gap: 8px; }
 
@@ -244,7 +244,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     .btn-ghost {
       display: inline-flex; align-items: center;
       height: 30px; padding: 0 12px; border-radius: 6px;
-      font-size: 12px; font-weight: 500; color: #7a6c66;
+      font-size: 12px; font-weight: 500; color: #6F778A;
       background: #fff; border: 1px solid #e8e2dc;
       text-decoration: none; cursor: pointer;
       transition: background .15s, border-color .15s;
@@ -314,7 +314,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
       font-size: 14px; font-weight: 600; color: #2b2220; line-height: 1.3;
     }
     .hub-tile .hub-sub {
-      font-size: 12px; color: #7a6c66; line-height: 1.35;
+      font-size: 12px; color: #6F778A; line-height: 1.35;
     }
     .hub-tile .hub-cta {
       font-size: 12px; font-weight: 600; color: #8f5c54; margin-top: 2px;
@@ -389,7 +389,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .staff-row div { display: flex; flex-direction: column; gap: 2px; }
     .staff-row strong { font-size: 13px; font-weight: 600; color: #2b2220; }
-    .staff-row span { font-size: 12px; color: #7a6c66; }
+    .staff-row span { font-size: 12px; color: #6F778A; }
 
     /* alerts */
     .alert-card { padding: 0; margin-top: -4px; }
@@ -401,7 +401,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
     .alert-row div { display: flex; flex-direction: column; gap: 2px; }
     .alert-row strong { font-size: 13px; font-weight: 600; color: #2b2220; }
-    .alert-row span { font-size: 12px; color: #7a6c66; }
+    .alert-row span { font-size: 12px; color: #6F778A; }
     .alert-empty {
       padding: 20px 16px; text-align: center;
       border-radius: 8px;

@@ -341,7 +341,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
     :host .lp-tabs button {
       height: 32px; padding: 0 14px; border-radius: 6px;
       border: 1px solid #ede8e3; background: #fff;
-      font-size: 12px; font-weight: 500; color: #7a6c66;
+      font-size: 12px; font-weight: 500; color: #6F778A;
       cursor: pointer; transition: all .15s;
       font-family: inherit;
     }
@@ -415,7 +415,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
       line-height: 1.3; margin-top: 1px;
     }
     :host .lp-app small {
-      font-size: 12px; color: #7a6c66; line-height: 1.4;
+      font-size: 12px; color: #6F778A; line-height: 1.4;
     }
     :host .lp-icon {
       display: inline-flex; align-items: center; justify-content: center;
@@ -438,7 +438,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
       margin-top: 6px;
     }
 
-    :host .tone-blue .lp-icon { background: #3b82f6; }
+    :host .tone-blue .lp-icon { background: #4B1238; }
     :host .tone-amber .lp-icon { background: #d97706; }
     :host .tone-green .lp-icon { background: #059669; }
     :host .tone-red .lp-icon { background: #dc2626; }
