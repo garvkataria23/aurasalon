@@ -16655,3 +16655,193 @@ app-purchase-bill-drafts .warning-list {
     font-size: 0.62rem !important;
   }
 }
+
+/* AuraSalon Mobile Access Layer
+   Mobile-only usability pass. Desktop remains controlled by existing styles. */
+@media (max-width: 900px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .page-stack, .page, .module-shell, .settings-shell, .reports-shell,
+    .billing-shell, .inventory-shell, .client-page, .product-page,
+    .supplier-page, .membership-page, .package-page, .cash-page,
+    .finance-page, .account-page, .command-center-shell,
+    .ai-command-page, .care-shell, .zenoti-inventory-shell
+  ) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding-inline: 10px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .page-header, .page-heading, .page-hero, .module-hero, .command-bar,
+    .workspace-hero, .inventory-hero, .product-hero, .supplier-hero,
+    .membership-hero, .package-hero, .reports-hero, .summary-hero,
+    .profile-header, .client360-profile-header, .apps-header, .lp-header,
+    .zenoti-page-heading, .zenoti-center-bar, .zenoti-results-line,
+    .section-title, .panel-heading, .card-heading, .detail-header
+  ) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .toolbar, .table-toolbar, .filter-bar, .filters, .filter-grid,
+    .page-filters, .control-strip, .control-filters, .suite-toolbar,
+    .search-panel, .search-bar, .lp-toolbar, .zenoti-filter-grid,
+    .action-strip, .submit-section, .profile-bar, .quick-row,
+    .zenoti-center-actions, .zenoti-grid-actions, .zenoti-shortcuts,
+    .section-actions, .answer-actions, .form-actions
+  ) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .stats-grid,
+    .quick-grid, .card-grid, .dashboard-grid, .dashboard-hub-grid,
+    .inventory-module-grid, .workspace-grid, .detail-grid, .form-grid,
+    .product-grid, .supplier-grid, .template-grid, .review-grid,
+    .apps-grid, .app-grid, .lp-grid, .ai-kpi-grid, .ai-page-card-grid,
+    .owner-workspace, .activity-workspace, .care-grid, .zenoti-filter-grid,
+    .compact-form, .split-grid, .two-column-grid, .three-column-grid
+  ) {
+    grid-template-columns: 1fr !important;
+    min-width: 0 !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .table-wrap, .table-shell, .zenoti-table-shell, .zenoti-table-wrap,
+    .aura-table-wrap, .compact-table-wrap, .scroll, .report-table,
+    .supplier-scroll-rail, .inventory-table-wrap
+  ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    table, .clients-crm-table, .zenoti-products-table, .data-table,
+    .compact-table, .list-table, .report-table table
+  ) {
+    width: max-content !important;
+    min-width: 720px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    select, textarea, button, .primary-button, .secondary-button,
+    .ghost-button, .outline-button, .dark-button, .danger-button,
+    .btn-primary, .btn-secondary, .btn-ghost, .zenoti-mini-button,
+    .zenoti-row-action, .action-button, .row-action
+  ) {
+    min-height: 44px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .toolbar button, .table-toolbar button, .filter-bar button,
+    .filters button, .suite-toolbar button, .zenoti-grid-actions > *,
+    .zenoti-center-actions > *, .section-actions > *, .form-actions > *,
+    .answer-actions > *, .quick-row > *, .action-strip > *
+  ) {
+    flex: 1 1 150px;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    h1, h2, h3, p, span, small, strong, em, a, button, td, th, label
+  ) {
+    overflow-wrap: anywhere;
+  }
+
+  app-inventory .zenoti-products-table th:first-child,
+  app-inventory .zenoti-products-table td:first-child {
+    min-width: 240px !important;
+    max-width: 320px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .page-stack, .page, .module-shell, .settings-shell, .reports-shell,
+    .billing-shell, .inventory-shell, .client-page, .product-page,
+    .supplier-page, .membership-page, .package-page, .cash-page,
+    .finance-page, .account-page, .command-center-shell,
+    .ai-command-page, .care-shell, .zenoti-inventory-shell
+  ) {
+    padding-inline: 8px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .page-header, .page-heading, .page-hero, .module-hero, .command-bar,
+    .workspace-hero, .inventory-hero, .product-hero, .supplier-hero,
+    .membership-hero, .package-hero, .reports-hero, .summary-hero,
+    .profile-header, .client360-profile-header, .apps-header, .lp-header,
+    .zenoti-page-heading, .zenoti-center-bar, .zenoti-results-line,
+    .panel, .card, .form-panel, .settings-panel, .inventory-card,
+    .stock-card, .recipe-card, .scanner-card, .filter-card
+  ) {
+    padding: 12px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .toolbar, .table-toolbar, .filter-bar, .filters, .filter-grid,
+    .page-filters, .control-strip, .control-filters, .suite-toolbar,
+    .search-panel, .search-bar, .lp-toolbar, .zenoti-filter-grid,
+    .action-strip, .submit-section, .profile-bar
+  ) {
+    padding: 10px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .toolbar > *, .table-toolbar > *, .filter-bar > *, .filters > *,
+    .filter-grid > *, .page-filters > *, .control-strip > *,
+    .control-filters > *, .suite-toolbar > *, .search-panel > *,
+    .search-bar > *, .lp-toolbar > *, .zenoti-filter-grid > *,
+    .action-strip > *, .submit-section > *, .profile-bar > *,
+    .zenoti-grid-actions > *, .zenoti-center-actions > *,
+    .section-actions > *, .form-actions > *, .answer-actions > *
+  ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    table, .clients-crm-table, .zenoti-products-table, .data-table,
+    .compact-table, .list-table, .report-table table
+  ) {
+    min-width: 680px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    th, td
+  ) {
+    padding: 10px !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .modal, .dialog, .drawer, .side-panel, .slide-panel, .overlay-panel
+  ) {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 16px) !important;
+    overflow: auto !important;
+  }
+}

@@ -145,7 +145,7 @@ export function createCustomerCareTicket(payload = {}, access = {}) {
   const id = makeId("care_ticket");
   const relatedModules = arrayOfText(payload.relatedModules, 10, 80);
   const callSlot = sanitizeCallSlot(payload.supportCallSlot || payload.callSlot);
-  const callNote = callSlot ? ` Support call slot: ${callSlot.label} (${callSlot.window}, ${callSlot.mode}). Outcome: ${cleanText(payload.requestedOutcome, 260) || "Customer and support team join live and solve the issue."}` : "";
+  const callNote = callSlot ? ` Support call slot: ${callSlot.label}${callSlot.date ? `, ${callSlot.date}` : ""} (${callSlot.window}, ${callSlot.mode}). Outcome: ${cleanText(payload.requestedOutcome, 260) || "Customer and support team join live and solve the issue."}` : "";
   const audit = [{ action: "created", at: stamp, role: cleanText(access.role, 40), status: "open" }];
   if (callSlot) audit.push({ action: "support_call_slot_reserved", at: stamp, role: cleanText(access.role, 40), status: "scheduled", callSlot, callMode: cleanText(payload.callMode, 80) || "screen-share-guided-support" });
   const row = {
@@ -338,6 +338,9 @@ function sanitizeCallSlot(value) {
   return {
     id: cleanText(value.id, 80),
     label: cleanText(value.label, 80),
+    date: cleanText(value.date, 40),
+    start: cleanText(value.start, 20),
+    end: cleanText(value.end, 20),
     window: cleanText(value.window, 120),
     mode: cleanText(value.mode, 120)
   };
