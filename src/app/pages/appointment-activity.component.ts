@@ -727,12 +727,14 @@ interface ClientScoreRow {
       grid-template-columns: 315px minmax(0, 1fr);
       gap: 12px;
       align-items: start;
+      min-width: 0;
     }
 
     .activity-side-nav,
     .activity-detail {
       display: grid;
       gap: 10px;
+      min-width: 0;
     }
 
     .activity-side-nav {
@@ -879,6 +881,15 @@ interface ClientScoreRow {
       display: grid;
       grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
       gap: 12px;
+      align-items: stretch;
+      min-width: 0;
+    }
+
+    .insight-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
     }
 
     .owner-summary-grid {
@@ -933,6 +944,7 @@ interface ClientScoreRow {
 
     .compact-table-wrap {
       overflow-x: auto;
+      min-width: 0;
     }
 
     .compact-table {
@@ -942,8 +954,10 @@ interface ClientScoreRow {
     .client-score-list {
       display: grid;
       gap: 10px;
-      max-height: 420px;
-      overflow: auto;
+      align-content: start;
+      min-width: 0;
+      min-height: 0;
+      overflow: visible;
     }
 
     .client-score-list article {
@@ -951,6 +965,16 @@ interface ClientScoreRow {
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 6px 10px;
       align-items: center;
+      min-width: 0;
+    }
+
+    .client-score-list article > div {
+      min-width: 0;
+    }
+
+    .client-score-list strong,
+    .client-score-list small {
+      overflow-wrap: anywhere;
     }
 
     .client-score-list article > small {

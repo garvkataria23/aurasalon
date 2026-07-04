@@ -7,6 +7,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
 type CareShortcut = { label: string; route: string };
 type CareCitation = { source: string; route: string; note: string };
+type CareCallSlot = { id: string; label: string; window: string; mode: string };
 type CareMessage = {
   role: 'customer' | 'assistant';
   text: string;
@@ -109,7 +110,7 @@ type CareContext = {
                 </details>
                 <em *ngIf="message.escalation">{{ message.escalation }}</em>
                 <div class="answer-actions" *ngIf="message.role === 'assistant'">
-                  <button type="button" (click)="createTicket(message)">Create ticket</button>
+                  <button type="button" (click)="createTicket(message)">Create ticket + call slot</button>
                   <button type="button" (click)="escalate(message)">Escalate</button>
                   <button type="button" (click)="speak(message.text)">Speak</button>
                 </div>
@@ -133,6 +134,16 @@ type CareContext = {
           <div class="panel-head"><h2>Answer Controls</h2></div>
           <div class="metric-card"><span>Provider</span><strong>{{ lastProvider() }}</strong><small>{{ context()?.configured ? 'Server OpenAI key active' : 'Set OPENAI_API_KEY on server' }}</small></div>
           <div class="metric-card"><span>Coverage</span><strong>{{ moduleCount() }}</strong><small>knowledge areas loaded</small></div>
+
+          <section class="call-slot-panel">
+            <strong>Call with support</strong>
+            <small>Ticket will reserve this screen-share support window.</small>
+            <label *ngFor="let slot of supportCallSlots" [class.active]="selectedCallSlot() === slot.id">
+              <input type="radio" name="supportCallSlot" [ngModel]="selectedCallSlot()" [value]="slot.id" (ngModelChange)="selectedCallSlot.set($event)" />
+              <span><b>{{ slot.label }}</b><small>{{ slot.window }} - {{ slot.mode }}</small></span>
+            </label>
+            <p>{{ ticketNotice() || 'Customer and support person join at the selected time to understand the problem and solve it live.' }}</p>
+          </section>
 
           <section class="customer-box" *ngIf="selectedCustomer() as customer">
             <strong>{{ customer.name }}</strong>
@@ -185,9 +196,9 @@ type CareContext = {
     select, input, textarea { width: 100%; min-width: 0; border: 1px solid #dbe5ee; border-radius: 8px; padding: 10px 12px; color: #172033; background: #fff; }
     select { max-width: 360px; }
     .context-panel, .insight-panel { height: 100%; overflow-y: auto; overflow-x: hidden; }
-    .knowledge-list, .guardrail-box, .insight-panel, .playbook, .side-list { display: grid; gap: 10px; padding: 14px; }
-    .knowledge-card, .side-list article, .customer-box { display: grid; gap: 5px; padding: 12px; border: 1px solid #edf2f7; border-radius: 8px; background: #fbfdff; color: inherit; text-decoration: none; }
-    .knowledge-card p, .side-list small, .customer-box small, .customer-box span { color: #64748b; font-size: 13px; line-height: 1.45; }
+    .knowledge-list, .guardrail-box, .insight-panel, .playbook, .side-list, .call-slot-panel { display: grid; gap: 10px; padding: 14px; }
+    .knowledge-card, .side-list article, .customer-box, .call-slot-panel label { display: grid; gap: 5px; padding: 12px; border: 1px solid #edf2f7; border-radius: 8px; background: #fbfdff; color: inherit; text-decoration: none; }
+    .knowledge-card p, .side-list small, .customer-box small, .customer-box span, .call-slot-panel small, .call-slot-panel p { color: #64748b; font-size: 13px; line-height: 1.45; }
     .guardrail-box { margin: 0 14px 14px; border: 1px solid #fde2b8; background: #fffbeb; border-radius: 8px; }
     .guardrail-box span { color: #92400e; font-size: 13px; }
     .chat-panel { height: 100%; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; }
@@ -214,6 +225,12 @@ type CareContext = {
     .send-button:disabled { opacity: .55; cursor: not-allowed; }
     .metric-card { display: grid; gap: 5px; padding: 14px; border: 1px solid #edf2f7; border-radius: 8px; background: #fbfdff; }
     .metric-card strong { font-size: 22px; }
+    .call-slot-panel { margin: 0 14px; border: 1px solid #edf2f7; border-radius: 8px; background: #fff; }
+    .call-slot-panel label { grid-template-columns: auto minmax(0, 1fr); align-items: center; cursor: pointer; }
+    .call-slot-panel label.active { border-color: #4B1238; background: #F8EEF4; }
+    .call-slot-panel input { width: auto; }
+    .call-slot-panel b, .call-slot-panel small { display: block; }
+    .call-slot-panel p { margin: 0; }
     .playbook button { display: grid; gap: 3px; text-align: left; }
     .playbook small { color: #64748b; }
     @media (max-width: 1280px) { .care-grid { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); } .insight-panel { display: none; } .quick-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -234,6 +251,8 @@ export class CustomerCareAiComponent implements OnInit {
   readonly tickets = signal<ApiRecord[]>([]);
   readonly history = signal<ApiRecord[]>([]);
   readonly sessionId = signal('');
+  readonly selectedCallSlot = signal('today-evening');
+  readonly ticketNotice = signal('');
   readonly moduleCount = computed(() => this.context()?.knowledge?.length || 0);
 
   draft = '';
@@ -241,12 +260,20 @@ export class CustomerCareAiComponent implements OnInit {
   customerPhone = '';
 
   readonly topics = ['General support', 'Booking', 'Billing', 'Data Migration', 'Membership', 'POS', 'Inventory', 'Reports', 'Marketing', 'Security'];
+  readonly supportCallSlots: CareCallSlot[] = [
+    { id: 'today-evening', label: 'Today evening', window: '5:00 PM - 5:30 PM', mode: 'Call + screen share' },
+    { id: 'tomorrow-morning', label: 'Tomorrow morning', window: '11:00 AM - 11:30 AM', mode: 'Call + screen share' },
+    { id: 'tomorrow-evening', label: 'Tomorrow evening', window: '4:00 PM - 4:30 PM', mode: 'Call + screen share' },
+    { id: 'priority-next', label: 'Priority next slot', window: 'Next available team slot', mode: 'Call + guided fix' }
+  ];
   readonly playbook = [
     { title: 'Booking issue', detail: 'Slots, staff, deposits', prompt: 'A customer wants to reschedule an appointment. What should support check?' },
     { title: 'Billing help', detail: 'Invoices, dues, refunds', prompt: 'A customer says their invoice payment is wrong. What is the support workflow?' },
     { title: 'Migration help', detail: 'Imports, mapping, validation', prompt: 'How do I do data migration from old salon software?' },
     { title: 'Membership help', detail: 'Benefits and balances', prompt: 'How should support explain membership benefits and package balance?' },
-    { title: 'Branch question', detail: 'Multi-location handling', prompt: 'How does branch-specific pricing and availability work for customers?' }
+    { title: 'Branch question', detail: 'Multi-location handling', prompt: 'How does branch-specific pricing and availability work for customers?' },
+    { title: 'Screen-share call', detail: 'Book a live support slot', prompt: 'Create a support ticket and guide the customer to choose a call slot with screen sharing.' },
+    { title: 'Navigate me', detail: 'Step-by-step software help', prompt: 'Act as an advanced AuraSalon product guide. Tell me exactly where to click and what to check inside the software.' }
   ];
 
   constructor(private readonly api: ApiService) {}
@@ -296,7 +323,7 @@ export class CustomerCareAiComponent implements OnInit {
     this.draft = '';
     this.sending.set(true);
     this.error.set('');
-    this.api.post<ApiRecord>('customer-care-ai/chat', { sessionId: this.sessionId(), message: text, topic: this.selectedTopic(), customerName: this.customerName, customerPhone: this.customerPhone, history, includeAllBranches: true }).subscribe({
+    this.api.post<ApiRecord>('customer-care-ai/chat', { sessionId: this.sessionId(), message: text, topic: this.selectedTopic(), customerName: this.customerName, customerPhone: this.customerPhone, history, includeAllBranches: true, supportMode: this.advancedSupportMode() }).subscribe({
       next: (answer) => {
         this.sessionId.set(String(answer['sessionId'] || this.sessionId()));
         this.lastProvider.set(String(answer['provider'] || 'customer-care-ai'));
@@ -313,14 +340,19 @@ export class CustomerCareAiComponent implements OnInit {
 
   createTicket(message: CareMessage): void {
     const draft = message.ticketDraft || {};
-    this.api.post<ApiRecord>('customer-care-ai/tickets', { ...draft, sessionId: this.sessionId(), customerName: this.customerName, customerPhone: this.customerPhone, topic: this.selectedTopic(), summary: message.text, relatedModules: message.relatedModules || [] }).subscribe({
-      next: () => this.loadSideData(),
+    const callSlot = this.selectedSupportCallSlot();
+    this.api.post<ApiRecord>('customer-care-ai/tickets', { ...draft, sessionId: this.sessionId(), customerName: this.customerName, customerPhone: this.customerPhone, topic: this.selectedTopic(), summary: message.text, relatedModules: message.relatedModules || [], supportCallSlot: callSlot, callMode: 'screen-share-guided-support', requestedOutcome: 'Customer and support team join the selected slot, share screen if needed, understand the issue, and solve it live.' }).subscribe({
+      next: () => {
+        this.ticketNotice.set(`Ticket created with ${callSlot.label} (${callSlot.window}) support call slot.`);
+        this.loadSideData();
+      },
       error: (error) => this.error.set(this.api.errorText(error, 'Ticket could not be created.'))
     });
   }
 
   escalate(message: CareMessage): void {
-    this.api.post<ApiRecord>('customer-care-ai/escalations', { sessionId: this.sessionId(), customerName: this.customerName, customerPhone: this.customerPhone, topic: this.selectedTopic(), summary: message.text, escalationReason: message.escalation || 'Human handoff requested.', relatedModules: message.relatedModules || [] }).subscribe({
+    const callSlot = this.selectedSupportCallSlot();
+    this.api.post<ApiRecord>('customer-care-ai/escalations', { sessionId: this.sessionId(), customerName: this.customerName, customerPhone: this.customerPhone, topic: this.selectedTopic(), summary: message.text, escalationReason: message.escalation || 'Human handoff requested.', relatedModules: message.relatedModules || [], supportCallSlot: callSlot, callMode: 'screen-share-guided-support' }).subscribe({
       next: () => this.loadSideData(),
       error: (error) => this.error.set(this.api.errorText(error, 'Escalation could not be created.'))
     });
@@ -351,7 +383,20 @@ export class CustomerCareAiComponent implements OnInit {
   }
 
   private seedWelcome(provider: string): void {
-    this.messages.set([{ role: 'assistant', text: 'Hi, I am Aura Customer Care AI. Ask me about bookings, invoices, data migration, memberships, packages, loyalty, POS, inventory, campaigns, reviews, reports, settings or branch operations.', at: this.timeLabel(), relatedModules: ['Home', 'Bookings', 'Clients CRM', 'POS'], nextSteps: ['Lookup a customer by phone/name when available.', 'Choose a quick question or type the customer issue.', 'Create a ticket or escalate when manager action is required.'], provider, shortcuts: [{ label: 'Home', route: '/home' }, { label: 'Bookings', route: '/appointments' }, { label: 'Clients CRM', route: '/clients' }, { label: 'POS', route: '/pos' }] }]);
+    this.messages.set([{ role: 'assistant', text: 'Hi, I am Aura Customer Care AI. I can answer software questions, explain workflows, guide navigation step by step, create tickets, and reserve a call + screen-share slot when a human support person should join.', at: this.timeLabel(), relatedModules: ['Home', 'Bookings', 'Clients CRM', 'POS', 'Reports', 'Inventory'], nextSteps: ['Lookup a customer by phone/name when available.', 'Ask the issue in plain language; I will map it to the right module and steps.', 'Choose a call slot before creating a ticket when live screen-share support is needed.'], provider, shortcuts: [{ label: 'Home', route: '/home' }, { label: 'Bookings', route: '/appointments' }, { label: 'Clients CRM', route: '/clients' }, { label: 'POS', route: '/pos' }, { label: 'Inventory', route: '/inventory' }, { label: 'Reports', route: '/reports' }] }]);
+  }
+
+  private selectedSupportCallSlot(): CareCallSlot {
+    return this.supportCallSlots.find((slot) => slot.id === this.selectedCallSlot()) || this.supportCallSlots[0]!;
+  }
+
+  private advancedSupportMode(): ApiRecord {
+    return {
+      role: 'advanced-aura-product-support',
+      behavior: 'Answer like a senior AuraSalon software support expert. Understand the full salon CRM/POS workflow, give exact navigation paths, explain what to click/check, cite related modules, and suggest ticket/call-slot handoff only when needed.',
+      callSlot: this.selectedSupportCallSlot(),
+      screenShare: true
+    };
   }
 
   private answerMessage(answer: ApiRecord): CareMessage {

@@ -1040,6 +1040,25 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
       white-space: nowrap;
     }
 
+    .zenoti-products-table th:first-child,
+    .zenoti-products-table td:first-child {
+      min-width: 280px;
+      max-width: 360px;
+      white-space: normal;
+    }
+
+    .zenoti-products-table td:first-child .zenoti-link-button {
+      max-width: 100%;
+      white-space: normal;
+      line-height: 1.25;
+      text-align: left;
+    }
+
+    .zenoti-products-table td:first-child small {
+      max-width: 100%;
+      white-space: normal;
+    }
+
     .zenoti-products-table th {
       position: sticky;
       top: 0;

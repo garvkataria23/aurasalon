@@ -24,7 +24,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   styles: [`
     .inventory-zenoti-chrome {
       background: #fff;
-      border: 1px solid #d8e1ea;
+      border: 1px solid #E7DDD6;
       color: #1d2733;
       display: grid;
       gap: 10px;
@@ -59,9 +59,9 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     .zenoti-actions button,
     .zenoti-shortcuts a {
       background: #fff;
-      border: 1px solid #b9d0e7;
+      border: 1px solid #D4C0CF;
       border-radius: 3px;
-      color: #075f9e;
+      color: #4B1238;
       cursor: pointer;
       font: inherit;
       font-size: 12px;
@@ -72,7 +72,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .zenoti-command {
-      border: 1px solid #b9cce1;
+      border: 1px solid #D4C0CF;
       border-radius: 3px;
       font-weight: 900;
       justify-self: end;
@@ -83,7 +83,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .zenoti-heading {
-      border-top: 1px solid #d8e1ea;
+      border-top: 1px solid #E7DDD6;
       justify-content: space-between;
       padding-top: 12px;
     }
@@ -95,20 +95,20 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .zenoti-heading p {
-      color: #38516e;
+      color: #6f6470;
       font-size: 13px;
       margin: 6px 0 0;
     }
 
     .zenoti-shortcuts {
-      border-top: 1px solid #d8e1ea;
+      border-top: 1px solid #E7DDD6;
       justify-content: flex-start;
       padding-top: 10px;
     }
 
     .zenoti-shortcuts a.active {
-      background: #eaf6ff;
-      box-shadow: inset 0 -3px 0 #f25a1d;
+      background: #F8EEF4;
+      box-shadow: inset 0 -3px 0 #B7791F;
     }
 
     @media (max-width: 760px) {

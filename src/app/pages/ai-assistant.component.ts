@@ -1338,6 +1338,127 @@ type AiPageCard = {
     .answer-card {
       border-left-color: rgba(109, 18, 71, 0.34);
     }
+
+    /* /ai scoped glass + soft motion layer */
+    .ai-command-page {
+      perspective: 1200px;
+      animation: aiRouteEnter .32s ease both;
+    }
+
+    .ai-hero,
+    .panel,
+    .ai-open-page,
+    .ai-kpi,
+    .ai-page-card,
+    .workflow-card,
+    .table-wrap,
+    .answer-card,
+    .source-strip article,
+    .result-metrics article,
+    .approval-checklist article,
+    .governance-stack article,
+    .queue-stack article,
+    .prompt-registry,
+    .mini-feed div,
+    .action-card,
+    .empty-command,
+    .safety-strip,
+    .hero-signal-row span,
+    .category-tabs button,
+    .badge,
+    .panel-count,
+    .registry-flags span {
+      background: rgba(255, 255, 255, 0.74) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow:
+        0 18px 42px rgba(109, 18, 71, 0.08),
+        0 5px 16px rgba(0, 0, 0, 0.035),
+        inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+      transform: translateZ(0);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      animation: aiSurfaceEnter .34s ease both;
+    }
+
+    .ai-search input,
+    .field input,
+    .field select,
+    .field textarea {
+      background: rgba(255, 255, 255, 0.78) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .ai-page-card:hover,
+    .ai-page-card:focus-visible,
+    .workflow-card:hover,
+    .workflow-card:focus-visible,
+    .ai-kpi:hover,
+    .answer-card:hover,
+    .source-strip article:hover,
+    .result-metrics article:hover,
+    .approval-checklist article:hover,
+    .governance-stack article:hover,
+    .queue-stack article:hover,
+    .action-card:hover {
+      box-shadow:
+        0 26px 58px rgba(109, 18, 71, 0.13),
+        0 10px 22px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+      transform: translateY(-2px) rotateX(.55deg) rotateY(-.35deg) !important;
+    }
+
+    .ghost-button:hover,
+    .dark-button:hover,
+    .primary-button:hover,
+    .ghost-button:focus-visible,
+    .dark-button:focus-visible,
+    .primary-button:focus-visible {
+      box-shadow:
+        0 10px 24px rgba(109, 18, 71, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+      transform: translateY(-1px);
+    }
+
+    .ai-page-card-grid > :nth-child(1),
+    .ai-kpi-grid > :nth-child(1),
+    .workflow-list > :nth-child(1) { animation-delay: .02s; }
+
+    .ai-page-card-grid > :nth-child(2),
+    .ai-kpi-grid > :nth-child(2),
+    .workflow-list > :nth-child(2) { animation-delay: .045s; }
+
+    .ai-page-card-grid > :nth-child(3),
+    .ai-kpi-grid > :nth-child(3),
+    .workflow-list > :nth-child(3) { animation-delay: .07s; }
+
+    .ai-page-card-grid > :nth-child(n + 4),
+    .ai-kpi-grid > :nth-child(n + 4),
+    .workflow-list > :nth-child(n + 4) { animation-delay: .095s; }
+
+    @keyframes aiRouteEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes aiSurfaceEnter {
+      from { opacity: 0; transform: translateY(10px) scale(.995); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ai-command-page,
+      .ai-command-page *,
+      .ai-command-page *::before,
+      .ai-command-page *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+
     @media (max-width: 1280px) {
       .ai-workspace-grid {
         grid-template-columns: minmax(240px, 0.82fr) minmax(0, 1.18fr);

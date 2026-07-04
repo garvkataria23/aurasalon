@@ -15536,3 +15536,1122 @@ app-purchase-bill-drafts .warning-list {
     inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
   transform: translateY(-1px) !important;
 }
+
+/* ══════════════════════════════════════════════════
+   AuraSalon Route Motion Layer
+   — subtle animations for routed pages only
+   — sidebar/topbar/app shell untouched
+   ══════════════════════════════════════════════════ */
+
+@keyframes auraRouteEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auraSurfaceEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auraSoftFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) {
+  animation: auraRouteEnter .32s ease both;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .page-header, .page-heading, .page-title, .module-hero, .studio-hero,
+  .apps-header, .lp-header, .client-command-hero, .inventory-hero,
+  .panel, .card, .form-panel, .settings-panel, .template-panel,
+  .history-panel, .report-panel, .dashboard-panel, .checkout-panel,
+  .billing-panel, .bill-panel, .calendar-panel, .drawer-section,
+  .table-wrap, .tbl-wrap, .aura-table-wrap, .compact-table-wrap,
+  .toolbar, .table-toolbar, .filter-bar, .filters, .lp-toolbar,
+  .suite-toolbar, .search-panel, .search-bar, .control-panel,
+  .metric-card, .kpi-card, .summary-card, .report-card, .score-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .supplier-card, .client-card,
+  .review-card, .template-card, .workflow-card, .marketplace-card,
+  .alert-card, .queue-card, .run-card, .record-card, .source-row,
+  .record-row, .suggestion-row, .insight-card, .stat-card, .stat-tile,
+  .snapshot-card, .kpi-tile, .forecast-card, .ai-card, .category-tile,
+  .cash-category-tile, .lp-signal, .lp-section, .lp-app, .hub-tile,
+  .shortcut, .staff-row, .alert-row
+) {
+  animation: auraSurfaceEnter .34s ease both;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .quick-grid,
+  .card-grid, .dashboard-grid, .dashboard-hub-grid, .hub-grid,
+  .apps-grid, .app-grid, .lp-grid, .product-grid, .service-grid,
+  .supplier-grid, .template-grid, .review-grid, .record-grid
+) > :nth-child(1) { animation-delay: .02s; }
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .quick-grid,
+  .card-grid, .dashboard-grid, .dashboard-hub-grid, .hub-grid,
+  .apps-grid, .app-grid, .lp-grid, .product-grid, .service-grid,
+  .supplier-grid, .template-grid, .review-grid, .record-grid
+) > :nth-child(2) { animation-delay: .045s; }
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .quick-grid,
+  .card-grid, .dashboard-grid, .dashboard-hub-grid, .hub-grid,
+  .apps-grid, .app-grid, .lp-grid, .product-grid, .service-grid,
+  .supplier-grid, .template-grid, .review-grid, .record-grid
+) > :nth-child(3) { animation-delay: .07s; }
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .quick-grid,
+  .card-grid, .dashboard-grid, .dashboard-hub-grid, .hub-grid,
+  .apps-grid, .app-grid, .lp-grid, .product-grid, .service-grid,
+  .supplier-grid, .template-grid, .review-grid, .record-grid
+) > :nth-child(n + 4) { animation-delay: .095s; }
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metric-card, .kpi-card, .summary-card, .dashboard-hub-card,
+  .app-card, .action-card, .quick-card, .lp-signal, .lp-app
+):not(:hover) {
+  animation-name: auraSurfaceEnter, auraSoftFloat;
+  animation-duration: .34s, 5.5s;
+  animation-timing-function: ease, ease-in-out;
+  animation-fill-mode: both, none;
+  animation-iteration-count: 1, infinite;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  input, select, textarea, button, a, [tabindex]:not([tabindex="-1"])
+) {
+  transition-duration: .2s;
+  transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *),
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) *,
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) *::before,
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   Inventory Palette Normalization Layer
+   — inventory + purchase pages only
+   — removes blue/cyan/violet accents in favor of plum/mauve/gold
+   ══════════════════════════════════════════════════ */
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) {
+  --inventory-plum: #4B1238;
+  --inventory-mauve: #8B5E7C;
+  --inventory-gold: #B7791F;
+  --inventory-gold-soft: #fef3c7;
+  --inventory-mauve-soft: #F8EEF4;
+  --blue: var(--inventory-mauve);
+  --violet: var(--inventory-mauve);
+  --teal: var(--inventory-plum);
+  --teal-2: #6D1B4D;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .blue,
+  .tone-blue,
+  .accent-blue,
+  .indigo,
+  .sky,
+  .cyan,
+  .teal
+) {
+  --accent: var(--inventory-mauve) !important;
+  --tone: var(--inventory-mauve) !important;
+  --card-accent: var(--inventory-mauve) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .violet,
+  .tone-violet,
+  .accent-violet
+) {
+  --accent: var(--inventory-plum) !important;
+  --tone: var(--inventory-plum) !important;
+  --card-accent: var(--inventory-plum) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .amber,
+  .yellow,
+  .gold,
+  .warn,
+  .warning
+) {
+  --accent: var(--inventory-gold) !important;
+  --tone: var(--inventory-gold) !important;
+  --card-accent: var(--inventory-gold) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .metric-card.blue,
+  .metric-card.teal,
+  .command-metric.blue,
+  .inventory-module-card.blue,
+  .inventory-module-card.teal,
+  .report-hero.blue,
+  .summary-card.blue,
+  .status-card.blue
+) {
+  border-color: color-mix(in srgb, var(--inventory-mauve) 36%, var(--color-border, #E7DDD6)) !important;
+  border-top-color: var(--inventory-mauve) !important;
+  border-left-color: var(--inventory-mauve) !important;
+  box-shadow: 0 18px 42px rgba(75, 18, 56, 0.09), inset 0 1px 0 rgba(255,255,255,.62) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .metric-card.violet,
+  .inventory-module-card.violet,
+  .recipe-kpi-grid .accent-violet,
+  .report-hero.violet,
+  .summary-card.violet,
+  .status-card.violet
+) {
+  border-color: color-mix(in srgb, var(--inventory-plum) 34%, var(--color-border, #E7DDD6)) !important;
+  border-top-color: var(--inventory-plum) !important;
+  border-left-color: var(--inventory-plum) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .metric-card.amber,
+  .metric-card.yellow,
+  .command-metric.amber,
+  .inventory-module-card.amber,
+  .badge.warn,
+  .status-pill.warn,
+  .warning-card,
+  .warning-list
+) {
+  border-color: color-mix(in srgb, var(--inventory-gold) 34%, var(--color-border, #E7DDD6)) !important;
+  border-top-color: var(--inventory-gold) !important;
+  border-left-color: var(--inventory-gold) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .lp-icon,
+  .hub-icon,
+  .metric-icon,
+  .workflow-icon,
+  .module-icon,
+  .app-icon,
+  .product-avatar,
+  .supplier-avatar
+) {
+  background: var(--inventory-mauve-soft) !important;
+  color: var(--inventory-plum) !important;
+  box-shadow: inset 0 0 0 1px rgba(75, 18, 56, 0.10) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .badge.success,
+  .status-pill.success,
+  .chip.success,
+  .pill.done,
+  .state.success
+) {
+  background: var(--inventory-mauve-soft) !important;
+  border-color: color-mix(in srgb, var(--inventory-mauve) 28%, var(--color-border, #E7DDD6)) !important;
+  color: var(--inventory-plum) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .badge.warn,
+  .status-pill.warn,
+  .chip.warn,
+  .warning-list,
+  .alert-row
+) {
+  background: var(--inventory-gold-soft) !important;
+  color: #7A4A28 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-inventory-zenoti-chrome
+) :where(
+  a:not(.primary-button):not(.dark-button):not(.danger-button),
+  .zenoti-mini-button,
+  .zenoti-shortcuts a,
+  .zenoti-actions a,
+  .zenoti-actions button,
+  .ghost-button,
+  .outline-button,
+  .secondary-button
+) {
+  border-color: #D4C0CF !important;
+  color: var(--inventory-plum, #4B1238) !important;
+  box-shadow: 0 10px 24px rgba(75, 18, 56, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-inventory-zenoti-chrome
+) :where(
+  a:not(.primary-button):not(.dark-button):not(.danger-button):hover,
+  .zenoti-mini-button:hover,
+  .zenoti-shortcuts a:hover,
+  .zenoti-shortcuts a.active,
+  .zenoti-actions a:hover,
+  .zenoti-actions button:hover,
+  .ghost-button:hover,
+  .outline-button:hover,
+  .secondary-button:hover
+) {
+  background: var(--inventory-mauve-soft, #F8EEF4) !important;
+  border-color: var(--inventory-mauve, #8B5E7C) !important;
+  color: var(--inventory-plum, #4B1238) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  table a,
+  td a,
+  td strong a,
+  .product-name,
+  .product-link,
+  .item-link,
+  .item-name,
+  .stock-link
+) {
+  color: var(--inventory-plum, #4B1238) !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(
+  .zenoti-result-bar,
+  .zenoti-filter-row,
+  .zenoti-scan-form,
+  .inventory-table,
+  .table-wrap,
+  th,
+  td
+) {
+  border-color: #E7DDD6 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360
+) :where(th, thead th, .table-head, .result-header) {
+  background: #FAF8F6 !important;
+  color: #5C4E57 !important;
+}
+
+/* Final inventory/supplier blue-removal pass: links, result status chips, action buttons. */
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  .zenoti-result-bar,
+  .supplier-filter-row,
+  .zenoti-supplier-workspace,
+  .zenoti-supplier-header,
+  .zenoti-table-wrap,
+  .supplier-scroll-rail,
+  .zenoti-footer
+) {
+  border-color: #E7DDD6 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  .status-chip,
+  .zenoti-result-bar .status-chip,
+  .filter-chip,
+  .score-pill,
+  .mini-status,
+  .badge,
+  .pill,
+  .chip
+) {
+  background: #F8EEF4 !important;
+  border-color: #D4C0CF !important;
+  color: #4B1238 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  .filter-chip.active,
+  .score-pill.score-good,
+  .mini-status.ok,
+  .badge.success,
+  .state.success
+) {
+  background: #F8EEF4 !important;
+  border-color: #D4C0CF !important;
+  color: #4B1238 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  .filter-chip.warn,
+  .filter-chip.risk,
+  .score-pill.score-warn,
+  .mini-status.warn,
+  .badge.warn,
+  .status-pill.warn,
+  .pill.warn,
+  .chip.warn
+) {
+  background: #fef3c7 !important;
+  border-color: color-mix(in srgb, #B7791F 42%, #E7DDD6) !important;
+  color: #7A4A28 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  table a,
+  tbody a,
+  tbody td a,
+  tbody td:first-child a,
+  tbody td:first-child strong,
+  .supplier-link,
+  .supplier-link strong,
+  .zenoti-table-wrap a,
+  .zenoti-table-wrap strong,
+  .zenoti-table-wrap td:first-child strong,
+  .table-wrap a,
+  .table-wrap td:first-child strong,
+  .product-name,
+  .product-link,
+  .item-name,
+  .stock-link
+) {
+  color: #4B1238 !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  .zenoti-mini-button,
+  .ghost-button.mini,
+  .supplier-actions .ghost-button,
+  td button,
+  td a.ghost-button,
+  td a.zenoti-mini-button
+) {
+  border-color: #D4C0CF !important;
+  color: #4B1238 !important;
+  background: #fff !important;
+}
+
+:where(
+  app-inventory,
+  app-inventory-financial,
+  app-inventory-fifo,
+  app-inventory-product-edit,
+  app-inventory-recipes,
+  app-inventory-reorder,
+  app-inventory-reports,
+  app-inventory-scanner,
+  app-inventory-stock-audit,
+  app-inventory-workspace-detail,
+  app-purchase-bill-drafts,
+  app-purchase-orders,
+  app-purchase-order-detail,
+  app-product-360,
+  app-supplier-360,
+  app-suppliers,
+  app-inventory-zenoti-chrome
+) :where(
+  .zenoti-mini-button:hover,
+  .ghost-button.mini:hover,
+  .supplier-actions .ghost-button:hover,
+  td button:hover,
+  td a.ghost-button:hover,
+  td a.zenoti-mini-button:hover
+) {
+  border-color: #8B5E7C !important;
+  color: #4B1238 !important;
+  background: #F8EEF4 !important;
+}
+
+/* AuraSalon Layout Refinement Layer
+   Visual-only: tighter rhythm, cleaner tables, better hierarchy. */
+:root {
+  --aura-layout-gap: 16px;
+  --aura-section-gap: 14px;
+  --aura-page-pad: 18px;
+  --aura-card-pad: 16px;
+  --aura-control-height: 42px;
+  --aura-table-row: 48px;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .page-stack, .page, .module-shell, .settings-shell, .reports-shell,
+  .billing-shell, .inventory-shell, .client-page, .product-page,
+  .supplier-page, .membership-page, .package-page, .cash-page,
+  .finance-page, .account-page, .command-center-shell
+) {
+  gap: var(--aura-layout-gap) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .page-header, .page-heading, .page-hero, .module-hero, .command-bar,
+  .workspace-hero, .inventory-hero, .product-hero, .supplier-hero,
+  .membership-hero, .package-hero, .reports-hero, .summary-hero,
+  .profile-header, .client360-profile-header, .apps-header, .lp-header
+) {
+  align-items: center !important;
+  gap: 18px !important;
+  padding: clamp(16px, 2vw, 24px) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .page-header h1, .page-heading h1, .page-hero h1, .module-hero h1,
+  .command-bar h1, .workspace-hero h1, .inventory-hero h1,
+  .product-hero h1, .supplier-hero h1, .membership-hero h1,
+  .package-hero h1, .reports-hero h1, .summary-hero h1,
+  .profile-header h1, .client360-profile-header h1, .apps-header h1,
+  .lp-header h1
+) {
+  margin-bottom: 4px !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .toolbar, .table-toolbar, .filter-bar, .filters, .filter-grid,
+  .page-filters, .control-strip, .control-filters, .suite-toolbar,
+  .search-panel, .search-bar, .lp-toolbar, .zenoti-filter-grid,
+  .action-strip, .submit-section, .profile-bar
+) {
+  align-items: end !important;
+  gap: 10px !important;
+  padding: 14px !important;
+  border-radius: var(--radius-card, 14px) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  label, .field, .form-field
+) > :where(span:first-child, small:first-child, label:first-child),
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .card-label, .section-label, .field-label
+) {
+  letter-spacing: 0.025em !important;
+  text-transform: uppercase !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select, textarea, .form-input
+) {
+  min-height: var(--aura-control-height) !important;
+  padding-inline: 12px !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  button, .primary-button, .secondary-button, .ghost-button, .outline-button,
+  .dark-button, .danger-button, .btn-primary, .btn-secondary, .btn-ghost,
+  .zenoti-mini-button, .zenoti-row-action, .action-button, .row-action
+) {
+  min-height: var(--aura-control-height) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metrics-grid, .metric-grid, .kpi-grid, .summary-grid, .stats-grid,
+  .quick-grid, .card-grid, .dashboard-grid, .dashboard-hub-grid,
+  .inventory-module-grid, .workspace-grid, .detail-grid, .form-grid,
+  .product-grid, .supplier-grid, .template-grid, .review-grid
+) {
+  gap: var(--aura-section-gap) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .metric-card, .kpi-card, .summary-card, .report-card, .score-card,
+  .dashboard-hub-card, .app-card, .action-card, .quick-card,
+  .service-card, .product-card, .supplier-card, .client-card,
+  .review-card, .template-card, .workflow-card, .marketplace-card,
+  .panel, .card, .form-panel, .settings-panel, .inventory-card,
+  .stock-card, .recipe-card, .scanner-card, .filter-card
+) {
+  padding: var(--aura-card-pad) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .table-wrap, .table-shell, .zenoti-table-shell, .aura-table-wrap,
+  .compact-table-wrap, .scroll, .report-table
+) {
+  overflow: auto !important;
+  scrollbar-width: thin;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  table, .clients-crm-table, .zenoti-products-table, .data-table,
+  .report-table table, .list-table
+) {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  th, td, .table-head span, .table-row span
+) {
+  height: var(--aura-table-row);
+  vertical-align: middle !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  thead th, th, .table-head
+) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  tbody tr, .table-row, .record-row, .client-row, .product-row
+) {
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .badge, .chip, .pill, .status, .status-pill, .state, .tag,
+  .stock-badge, .impact-badge, .roi-badge
+) {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 10px !important;
+  line-height: 1.1 !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .empty-state, .empty-card, .empty-cell, .empty-text, .layout-empty,
+  .timeline-empty, .no-data, .blank-state
+) {
+  text-align: center;
+  border-style: dashed !important;
+  padding: clamp(18px, 3vw, 32px) !important;
+}
+
+:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+  .section-title, .panel-heading, .card-heading, .table-title,
+  .detail-header, .job-header, .mapping-header
+) {
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --aura-layout-gap: 12px;
+    --aura-section-gap: 10px;
+    --aura-page-pad: 12px;
+    --aura-card-pad: 14px;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    .page-header, .page-heading, .page-hero, .module-hero, .command-bar,
+    .workspace-hero, .inventory-hero, .product-hero, .supplier-hero,
+    .membership-hero, .package-hero, .reports-hero, .summary-hero,
+    .profile-header, .client360-profile-header, .apps-header, .lp-header,
+    .toolbar, .table-toolbar, .filter-bar, .filters, .filter-grid,
+    .page-filters, .control-strip, .control-filters, .suite-toolbar
+  ) {
+    align-items: stretch !important;
+  }
+
+  :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
+    button, .primary-button, .secondary-button, .ghost-button, .outline-button,
+    .dark-button, .danger-button, .btn-primary, .btn-secondary, .btn-ghost
+  ) {
+    min-width: 0;
+  }
+}
+
+/* AuraSalon Compact Local Tile Rail
+   Desktop-only layout balance for page-local section tiles. */
+:root {
+  --aura-local-rail-width: minmax(220px, 240px);
+  --aura-local-rail-gap: 8px;
+  --aura-local-tile-pad: 10px;
+  --aura-local-tile-min-height: 76px;
+  --aura-local-icon-size: 38px;
+}
+
+@media (min-width: 1181px) {
+  app-appointment-activity .activity-workspace,
+  app-smart-booking .smart-booking-workspace,
+  app-analytics-engine .analytics-workspace,
+  app-reports .report-workspace,
+  app-purchase-orders .po-workspace,
+  app-staff-os-section .attendance-dashboard-workspace,
+  app-ai-marketing-automation .marketing-section-workspace,
+  app-whatsapp-automation .whatsapp-section-workspace,
+  app-saas-onboarding .saas-section-workspace,
+  app-permission-matrix .permission-section-workspace,
+  app-future-features .future-workspace,
+  app-data-migration .migration-shell {
+    grid-template-columns: var(--aura-local-rail-width) minmax(0, 1fr) !important;
+    column-gap: 12px !important;
+    min-width: 0 !important;
+  }
+
+  :where(
+    app-appointment-activity, app-smart-booking, app-analytics-engine,
+    app-reports, app-purchase-orders, app-staff-os-section,
+    app-ai-marketing-automation, app-whatsapp-automation, app-saas-onboarding,
+    app-permission-matrix, app-future-features, app-data-migration
+  ) :where(
+    .activity-side-nav, .smart-booking-side-nav, .analytics-side-nav,
+    .report-side-nav, .po-side-nav, .attendance-dashboard-side-nav,
+    .marketing-side-nav, .whatsapp-side-nav, .saas-side-nav,
+    .permission-side-nav, .future-side-nav, .migration-side-nav
+  ) {
+    gap: var(--aura-local-rail-gap) !important;
+    min-width: 0 !important;
+  }
+
+  :where(
+    app-appointment-activity, app-smart-booking, app-analytics-engine,
+    app-reports, app-purchase-orders, app-staff-os-section,
+    app-ai-marketing-automation, app-whatsapp-automation, app-saas-onboarding,
+    app-permission-matrix, app-future-features, app-data-migration
+  ) :where(
+    .activity-nav-card, .smart-booking-nav-card, .analytics-nav-card,
+    .report-nav-card, .po-nav-card, .attendance-dashboard-nav-card,
+    .marketing-nav-card, .whatsapp-nav-card, .saas-nav-card,
+    .permission-nav-card, .future-nav-card, .migration-nav-card
+  ) {
+    grid-template-columns: var(--aura-local-icon-size) minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    min-height: var(--aura-local-tile-min-height) !important;
+    padding: var(--aura-local-tile-pad) !important;
+    min-width: 0 !important;
+  }
+
+  :where(
+    app-appointment-activity, app-smart-booking, app-analytics-engine,
+    app-reports, app-purchase-orders, app-staff-os-section,
+    app-ai-marketing-automation, app-whatsapp-automation, app-saas-onboarding,
+    app-permission-matrix, app-future-features, app-data-migration
+  ) :where(
+    .activity-nav-icon, .smart-booking-nav-icon, .nav-icon,
+    .report-nav-icon, .po-nav-icon, .attendance-dashboard-nav-icon,
+    .marketing-nav-icon, .whatsapp-nav-icon, .saas-nav-icon,
+    .permission-nav-icon, .future-nav-icon, .migration-nav-icon
+  ) {
+    width: var(--aura-local-icon-size) !important;
+    height: var(--aura-local-icon-size) !important;
+    min-width: var(--aura-local-icon-size) !important;
+    border-radius: 10px !important;
+  }
+
+  :where(
+    app-appointment-activity, app-smart-booking, app-analytics-engine,
+    app-reports, app-purchase-orders, app-staff-os-section,
+    app-ai-marketing-automation, app-whatsapp-automation, app-saas-onboarding,
+    app-permission-matrix, app-future-features, app-data-migration
+  ) :where(
+    .activity-nav-card strong, .smart-booking-nav-card strong,
+    .analytics-nav-card strong, .report-nav-card strong, .po-nav-card strong,
+    .attendance-dashboard-nav-card strong, .marketing-nav-card strong,
+    .whatsapp-nav-card strong, .saas-nav-card strong,
+    .permission-nav-card strong, .future-nav-card strong,
+    .migration-nav-card strong
+  ) {
+    font-size: 0.9rem !important;
+    line-height: 1.16 !important;
+  }
+
+  :where(
+    app-appointment-activity, app-smart-booking, app-analytics-engine,
+    app-reports, app-purchase-orders, app-staff-os-section,
+    app-ai-marketing-automation, app-whatsapp-automation, app-saas-onboarding,
+    app-permission-matrix, app-future-features, app-data-migration
+  ) :where(
+    .activity-nav-card small, .smart-booking-nav-card small,
+    .analytics-nav-card small, .report-nav-card small, .po-nav-card small,
+    .attendance-dashboard-nav-card small, .marketing-nav-card small,
+    .whatsapp-nav-card small, .saas-nav-card small,
+    .permission-nav-card small, .future-nav-card small,
+    .migration-nav-card small
+  ) {
+    margin-top: 3px !important;
+    font-size: 0.7rem !important;
+    line-height: 1.22 !important;
+  }
+
+  :where(
+    app-appointment-activity, app-smart-booking, app-analytics-engine,
+    app-reports, app-purchase-orders, app-staff-os-section,
+    app-ai-marketing-automation, app-whatsapp-automation, app-saas-onboarding,
+    app-permission-matrix, app-future-features, app-data-migration
+  ) :where(
+    .activity-nav-card i, .smart-booking-nav-card i, .analytics-nav-card i,
+    .report-nav-card i, .po-nav-card i, .attendance-dashboard-nav-card i,
+    .marketing-nav-card em, .whatsapp-nav-card em, .saas-nav-card em,
+    .permission-nav-card em, .future-nav-card i, .migration-nav-card em
+  ) {
+    padding: 3px 6px !important;
+    font-size: 0.62rem !important;
+  }
+}
