@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
+import { serviceTotalMinutes } from '../shared/appointment-capacity';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type SchedulerDrawer = '' | 'booking' | 'blocked-time' | 'appointment' | 'ai-slots' | 'waitlist' | 'operations';
@@ -39,6 +40,7 @@ type StaffLane = {
 
 type BookingLineDraft = {
   id: string;
+  appointmentId?: string;
   serviceId: string;
   staffId: string;
   startAt: string;
@@ -62,6 +64,7 @@ type ClientServiceHistoryRow = {
 type AppointmentBillLine = {
   id: string;
   name: string;
+  startAt: string;
   staffName: string;
   quantity: number;
   price: number;
@@ -134,6 +137,8 @@ type AppointmentCard = {
   appointment: ApiRecord;
   top: number;
   height: number;
+  leftPct: number;
+  widthPct: number;
   status: string;
   clientName: string;
   serviceLabel: string;
@@ -172,6 +177,7 @@ const DAY_END_MINUTES = 22 * 60;
 const ROW_HEIGHT = 44;
 const COMPACT_ROW_HEIGHT = 32;
 const STAFF_LIMIT = 30;
+const PROCESSING_HANDOFF_MINUTES = 15;
 const CALENDAR_LAYOUT_STORAGE_KEY = 'aura.appointments.calendarLayout.v1';
 const SCHEDULED_STAFF_STORAGE_PREFIX = 'aura.appointments.scheduledStaff.v1';
 const CALENDAR_LAYOUT_OPTIONS: CalendarLayoutOption[] = [
@@ -374,7 +380,8 @@ const STATUS_TONES: Record<string, string> = {
                 [title]="slot.label + ' - ' + person.name + ' | ' + cellCount(person.id, slot.minute)"
                 (click)="openQuickBooking(person, slot)"
                 (contextmenu)="openAddBlockedTime(person, slot, $event)"
-                (mouseenter)="hoverSlot.set({ staffName: person.name, label: slot.label, top: minuteTop(slot.minute) })"
+                (mouseenter)="showSlotHover(person, slot, $event)"
+                (mousemove)="showSlotHover(person, slot, $event)"
                 (mouseleave)="hoverSlot.set(null)"
               ></button>
               <span class="current-time-line" *ngIf="currentTimeBodyTop() >= 0" [style.top.px]="currentTimeBodyTop()"></span>
@@ -410,6 +417,8 @@ const STATUS_TONES: Record<string, string> = {
                 [ngClass]="statusTone(card.status)"
                 [style.top.px]="card.top"
                 [style.height.px]="card.height"
+                [style.left.%]="card.leftPct"
+                [style.width.%]="card.widthPct"
                 draggable="true"
                 (dragstart)="beginDrag(card.appointment)"
                 (dragend)="clearDrag()"
@@ -428,7 +437,7 @@ const STATUS_TONES: Record<string, string> = {
               </button>
             </div>
 
-            <div class="slot-hover" *ngIf="hoverSlot() as hover" [style.top.px]="hover.top">
+            <div class="slot-hover" *ngIf="hoverSlot() as hover" [style.left.px]="hover.left" [style.top.px]="hover.top">
               {{ hover.label }} - {{ hover.staffName }} | {{ hoverSummary() }}
             </div>
           </div>
@@ -941,7 +950,7 @@ const STATUS_TONES: Record<string, string> = {
             <section class="bill-main">
               <article class="service-bill-card" *ngFor="let line of appointmentBillLines(appointment); trackBy: trackBillLine">
                 <h4>Service</h4>
-                <p>{{ line.name }}, {{ appointment.startAt | date: 'shortTime' }}, {{ line.staffName }}</p>
+                <p>{{ line.name }}, {{ line.startAt | date: 'shortTime' }}, {{ line.staffName }}</p>
                 <div class="service-chip-row">
                   <span class="chip warm">Qty: {{ line.quantity }}</span>
                   <span class="chip cool">Price: {{ line.price | currency: 'INR':'symbol':'1.0-0' }}</span>
@@ -950,7 +959,7 @@ const STATUS_TONES: Record<string, string> = {
                 </div>
               </article>
               <div class="drawer-actions wrap">
-                <button class="ghost-button" type="button" *ngIf="!isCompletedAppointment(appointment)" (click)="openEditAppointment(appointment)">Edit Booking</button>
+                <button class="ghost-button" type="button" (click)="openEditAppointment(appointment)">Edit Booking</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'client')">SMS client</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'staff')">SMS staff</button>
                 <button class="ghost-button" type="button" (click)="queueSms(appointment, 'owner')">SMS owner</button>
@@ -1005,7 +1014,7 @@ const STATUS_TONES: Record<string, string> = {
       padding: 12px 16px;
       border: 1px solid #f7d7a5;
       border-radius: 14px;
-      background: linear-gradient(135deg, #faf8f6, #ffffff);
+      background: linear-gradient(135deg, #fff8ec, #ffffff);
       box-shadow: 0 14px 30px rgba(148, 96, 9, 0.08);
     }
     .deposit-followup-strip strong,
@@ -1016,7 +1025,7 @@ const STATUS_TONES: Record<string, string> = {
     h2 { font-size: 34px; line-height: 1.05; }
     h3 { font-size: 22px; }
     p { margin: 8px 0 0; color: #64748b; max-width: 760px; }
-    .eyebrow { color: #4B1238; font-size: 12px; font-weight: 900; letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow { color: #2563eb; font-size: 12px; font-weight: 900; letter-spacing: 0; text-transform: uppercase; }
     .calendar-actions, .drawer-actions, .staff-window-controls, .scheduler-view-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .primary-button, .ghost-button {
       border: 1px solid #cfe0dc;
@@ -1028,7 +1037,7 @@ const STATUS_TONES: Record<string, string> = {
       text-decoration: none;
       cursor: pointer;
     }
-    .primary-button { background: #5A153F; color: white; border-color: #5A153F; }
+    .primary-button { background: #0f8f7f; color: white; border-color: #0f8f7f; }
     .ghost-button.mini { padding: 8px 11px; font-size: 12px; }
     .danger { color: #b91c1c; }
     .month-strip-band { display: grid; grid-template-columns: auto minmax(76px, auto) auto 1fr; gap: 8px; align-items: center; min-height: 54px; padding: 8px 14px; border-radius: 14px; }
@@ -1036,8 +1045,8 @@ const STATUS_TONES: Record<string, string> = {
     .month-strip-band > button { height: 40px; width: 40px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-weight: 900; }
     .month-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
     .month-strip button { min-width: 54px; min-height: 48px; border: 1px solid #d9e5e2; background: #f8fafc; border-radius: 10px; padding: 6px; color: #334155; }
-    .month-strip button.active { border-color: #5A153F; box-shadow: inset 0 -3px 0 #5A153F; background: #F8EEF4; }
-    .month-strip button.today { color: #5A153F; }
+    .month-strip button.active { border-color: #0f8f7f; box-shadow: inset 0 -3px 0 #0f8f7f; background: #ecfdf5; }
+    .month-strip button.today { color: #0f8f7f; }
     .month-strip span, .month-strip small { display: block; font-size: 11px; }
     .scheduler-view-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: center; gap: 12px; min-height: 58px; padding: 10px 14px; border-radius: 14px; }
     .scheduler-view-copy { display: grid; gap: 2px; }
@@ -1121,19 +1130,19 @@ const STATUS_TONES: Record<string, string> = {
     .view-control-field select { min-height: 38px; border-radius: 999px; padding: 7px 12px; }
     .calendar-layout-toggle { display: flex; gap: 4px; max-width: 100%; overflow-x: auto; padding: 4px; border: 1px solid #d5e2df; border-radius: 999px; background: #f8fafc; }
     .calendar-layout-toggle button { min-height: 34px; border: 0; border-radius: 999px; background: transparent; color: #334155; padding: 0 12px; font-weight: 900; white-space: nowrap; cursor: pointer; }
-    .calendar-layout-toggle button.active { background: #5A153F; color: #fff; box-shadow: 0 6px 14px rgba(90, 21, 63, .18); }
+    .calendar-layout-toggle button.active { background: #0f8f7f; color: #fff; box-shadow: 0 6px 14px rgba(15, 143, 127, .18); }
     .scheduler-staff-window button { min-height: 34px; border: 1px solid #cfe0dc; border-radius: 999px; background: #fff; color: #172033; padding: 0 12px; font-weight: 900; cursor: pointer; }
     .scheduler-staff-window button:disabled { opacity: .42; cursor: not-allowed; }
     .scheduler-staff-window span { color: #64748b; font-size: 12px; font-weight: 900; white-space: nowrap; }
     label { display: grid; gap: 6px; color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
     input, select, textarea { width: 100%; min-height: 42px; border: 1px solid #d5e2df; border-radius: 10px; padding: 9px 11px; font: inherit; background: white; color: #172033; }
     .summary-strip { display: grid; grid-template-columns: repeat(7, minmax(116px, 1fr)); justify-content: start; gap: 12px; min-height: 54px; padding: 8px 12px; border-radius: 16px; }
-    .summary-strip article, .summary-strip button, .pulse-grid div { border: 1px solid #d8e7e3; border-radius: 12px; padding: 8px 12px; background: linear-gradient(135deg, #ffffff, #faf8f6); }
+    .summary-strip article, .summary-strip button, .pulse-grid div { border: 1px solid #d8e7e3; border-radius: 12px; padding: 8px 12px; background: linear-gradient(135deg, #ffffff, #f5fbfa); }
     .summary-strip button { cursor: pointer; text-align: left; font: inherit; color: #172033; }
-    .summary-strip .pending-summary-card { border-color: #facc15; background: linear-gradient(135deg, #faf8f6, #ffffff); }
+    .summary-strip .pending-summary-card { border-color: #facc15; background: linear-gradient(135deg, #fffbeb, #ffffff); }
     .summary-strip .pending-summary-card strong { color: #b45309; }
-    .summary-strip .waitlist-summary-action { border-color: #D4A8C0; background: linear-gradient(135deg, #F8EEF4, #ffffff); box-shadow: inset 0 0 0 1px rgba(90, 21, 63, 0.12); }
-    .summary-strip .waitlist-summary-action small { color: #4B1238; font-weight: 900; }
+    .summary-strip .waitlist-summary-action { border-color: #5eead4; background: linear-gradient(135deg, #ecfdf5, #ffffff); box-shadow: inset 0 0 0 1px rgba(15, 143, 127, 0.12); }
+    .summary-strip .waitlist-summary-action small { color: #0f766e; font-weight: 900; }
     .summary-strip span, .pulse-grid span { color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; display: block; }
     .summary-strip strong { display: block; font-size: 20px; margin-top: 2px; line-height: 1.05; }
     .summary-strip small, .pulse-grid small { color: #64748b; }
@@ -1160,21 +1169,21 @@ const STATUS_TONES: Record<string, string> = {
     .staff-head strong { max-width: 100%; font-size: 12px; line-height: 1.15; display: block; color: #1f2937; white-space: normal; overflow: visible; overflow-wrap: anywhere; word-break: break-word; }
     .staff-head small { max-width: 100%; font-size: 11px; line-height: 1.2; color: #64748b; white-space: normal; overflow: visible; overflow-wrap: anywhere; word-break: break-word; }
     .staff-menu-button { justify-self: end; height: 28px; width: 28px; min-width: 28px; border: 1px solid #cbd5e1; border-radius: 50%; background: #fff; cursor: pointer; font-weight: 900; }
-    .staff-menu-button:hover { border-color: #5A153F; color: #4B1238; background: #F8EEF4; }
-    .avatar { height: 30px; width: 30px; border-radius: 50%; display: grid; place-items: center; background: #d9f99d; color: #2D0B21; font-size: 11px; font-weight: 900; flex: 0 0 auto; }
+    .staff-menu-button:hover { border-color: #0f8f7f; color: #0f766e; background: #ecfdf5; }
+    .avatar { height: 30px; width: 30px; border-radius: 50%; display: grid; place-items: center; background: #d9f99d; color: #115e59; font-size: 11px; font-weight: 900; flex: 0 0 auto; }
     .scheduler-grid--compact .avatar { height: 26px; width: 26px; font-size: 10px; }
     .time-column { position: sticky; left: 0; z-index: 5; grid-column: 1; grid-row: 2; background: #f8fbfb; min-height: calc(var(--row-height) * var(--slot-count)); }
     .time-row { height: var(--row-height); border-bottom: 1px solid #e5ecea; display: flex; align-items: start; justify-content: flex-end; padding: 8px 10px 0 0; font-size: 12px; font-weight: 900; color: #64748b; }
     .scheduler-grid--compact .time-row { padding-top: 5px; font-size: 11px; }
     .staff-lane { position: relative; min-height: calc(var(--row-height) * var(--slot-count)); border-left: 1px solid #d7e4e1; grid-row: 2; }
     .lane-cell { display: block; width: 100%; height: var(--row-height); border: 0; border-bottom: 1px solid #edf2f1; background: white; cursor: crosshair; }
-    .lane-cell:hover { background: #F5EEF2; outline: 1px solid #D4B8CC; }
+    .lane-cell:hover { background: #f0fdfa; outline: 1px solid #99f6e4; }
     .lane-block { position: absolute; left: 0; right: 0; z-index: 1; border: 1px solid rgba(15,23,42,.08); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; overflow: hidden; }
     .lane-block.shift { background: rgba(254, 215, 170, .82); color: #7c2d12; pointer-events: none; }
     .lane-block.blocked { background: repeating-linear-gradient(135deg, rgba(148,163,184,.25), rgba(148,163,184,.25) 8px, rgba(226,232,240,.7) 8px, rgba(226,232,240,.7) 16px); color: #334155; cursor: pointer; }
     .lane-block.roster-closed { background: repeating-linear-gradient(135deg, rgba(148,163,184,.2), rgba(148,163,184,.2) 8px, rgba(241,245,249,.82) 8px, rgba(241,245,249,.82) 16px); color: #64748b; cursor: not-allowed; }
-    .appointment-card { position: absolute !important; left: 8px !important; right: 8px !important; z-index: 4 !important; border-radius: 8px !important; border: 1px solid #475569 !important; padding: 8px 10px; text-align: left; color: #172033; overflow: hidden !important; cursor: grab; box-shadow: 0 10px 20px rgba(15,23,42,.12) !important; isolation: auto !important; transform: none !important; }
-    .scheduler-grid--compact .appointment-card { left: 5px !important; right: 5px !important; padding: 5px 7px; border-radius: 7px !important; }
+    .appointment-card { position: absolute !important; z-index: 4 !important; box-sizing: border-box; border-radius: 8px !important; border: 1px solid #475569 !important; padding: 8px 10px; text-align: left; color: #172033; overflow: hidden !important; cursor: grab; box-shadow: 0 10px 20px rgba(15,23,42,.12) !important; isolation: auto !important; transform: none !important; }
+    .scheduler-grid--compact .appointment-card { padding: 5px 7px; border-radius: 7px !important; }
     .appointment-card strong, .appointment-card b, .appointment-card span, .appointment-card small { display: block; line-height: 1.2; }
     .appointment-card strong { font-size: 12px; }
     .appointment-card b { font-size: 15px; margin-top: 4px; }
@@ -1182,14 +1191,14 @@ const STATUS_TONES: Record<string, string> = {
     .scheduler-grid--compact .appointment-card b { font-size: 12px; margin-top: 2px; }
     .scheduler-grid--compact .appointment-card span, .scheduler-grid--compact .appointment-card small { font-size: 11px; }
     .appointment-card::before, .appointment-card::after { content: none !important; }
-    .appointment-card.blue { background: #E7DDD6 !important; border-color: #4B1238 !important; border-left-color: #4B1238 !important; }
-    .appointment-card.indigo { background: #EBD9E5 !important; border-color: #4B1238 !important; border-left-color: #4B1238 !important; }
-    .appointment-card.teal { background: #D4B8CC !important; border-color: #4B1238 !important; border-left-color: #4B1238 !important; }
+    .appointment-card.blue { background: #bfdbfe !important; border-color: #2563eb !important; border-left-color: #2563eb !important; }
+    .appointment-card.indigo { background: #c7d2fe !important; border-color: #4f46e5 !important; border-left-color: #4f46e5 !important; }
+    .appointment-card.teal { background: #99f6e4 !important; border-color: #0f766e !important; border-left-color: #0f766e !important; }
     .appointment-card.amber { background: #fde68a !important; border-color: #d97706 !important; border-left-color: #d97706 !important; }
     .appointment-card.violet { background: #ddd6fe !important; border-color: #7c3aed !important; border-left-color: #7c3aed !important; }
-    .appointment-card.green, .appointment-card.emerald { background: #FBF0E8 !important; border-color: #C87D4B !important; border-left-color: #C87D4B !important; }
+    .appointment-card.green, .appointment-card.emerald { background: #bbf7d0 !important; border-color: #16a34a !important; border-left-color: #16a34a !important; }
     .appointment-card.red { background: #fecaca !important; border-color: #dc2626 !important; border-left-color: #dc2626 !important; }
-    .appointment-card.slate { background: #E7DDD6 !important; border-color: #64748b !important; border-left-color: #64748b !important; }
+    .appointment-card.slate { background: #e2e8f0 !important; border-color: #64748b !important; border-left-color: #64748b !important; }
     .appointment-card:hover, .appointment-card:focus-visible, .timeline-appointment:hover, .timeline-appointment:focus-visible { z-index: 45 !important; }
     .appointment-detail-popover { position: fixed; z-index: 140; width: min(340px, calc(100vw - 24px)); max-height: min(420px, calc(100vh - 24px)); overflow: auto; display: grid; gap: 8px; padding: 13px 14px; border: 1px solid #e7ded6; border-radius: 14px; background: #fff; color: #1f2933; box-shadow: 0 22px 55px rgba(31,41,51,.22); pointer-events: none; }
     .appointment-detail-popover .hover-title { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid #f0e7df; }
@@ -1203,11 +1212,11 @@ const STATUS_TONES: Record<string, string> = {
     .current-time-line { position: absolute; left: 0; right: 0; z-index: 3; height: 2px; background: #ff2f2f; box-shadow: 0 0 0 1px rgba(255,47,47,.1); pointer-events: none; }
     .current-time-line::before { content: ''; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 999px; background: #ff2f2f; }
     .staff-action-menu { position: absolute; left: 10px; z-index: 20; min-width: 178px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; box-shadow: 0 18px 40px rgba(15,23,42,.2); overflow: hidden; }
-    .staff-action-menu button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid #E7DDD6; background: #fff; padding: 9px 12px; color: #172033; font-size: 12px; font-weight: 900; text-align: left; cursor: pointer; }
-    .staff-action-menu button:hover { background: #F5EEF2; color: #4B1238; }
+    .staff-action-menu button { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid #e2e8f0; background: #fff; padding: 9px 12px; color: #172033; font-size: 12px; font-weight: 900; text-align: left; cursor: pointer; }
+    .staff-action-menu button:hover { background: #f0fdfa; color: #0f766e; }
     .staff-action-menu button:last-child { border-bottom: 0; }
-    .staff-action-menu span { border-radius: 999px; background: #E7DDD6; padding: 2px 7px; font-size: 11px; }
-    .slot-hover { position: absolute; left: 96px; z-index: 10; background: #fff7ed; border: 1px solid #fb923c; padding: 4px 8px; border-radius: 6px; font-size: 12px; box-shadow: 0 10px 24px rgba(15,23,42,.12); pointer-events: none; }
+    .staff-action-menu span { border-radius: 999px; background: #e2e8f0; padding: 2px 7px; font-size: 11px; }
+    .slot-hover { position: absolute; z-index: 10; max-width: 260px; background: #fff7ed; border: 1px solid #fb923c; padding: 4px 8px; border-radius: 6px; font-size: 12px; box-shadow: 0 10px 24px rgba(15,23,42,.12); pointer-events: none; transform: translateY(-100%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .scheduler-grid-shell--alternate { overflow-x: auto; }
     .calendar-timeline-view, .calendar-list-view { min-width: 780px; display: grid; gap: 10px; }
     .layout-empty { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 22px; display: grid; gap: 5px; text-align: center; color: #64748b; background: #fff; }
@@ -1223,7 +1232,7 @@ const STATUS_TONES: Record<string, string> = {
     .timeline-staff strong, .timeline-staff small { display: block; }
     .timeline-staff small { margin-top: 2px; color: #64748b; font-size: 11px; font-weight: 800; }
     .timeline-track { min-height: 68px; }
-    .timeline-marker { position: absolute; top: 0; bottom: 0; width: 1px; background: #E7DDD6; }
+    .timeline-marker { position: absolute; top: 0; bottom: 0; width: 1px; background: #e2e8f0; }
     .timeline-empty { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 12px; font-weight: 900; }
     .timeline-appointment { position: absolute; top: 7px; bottom: 7px; min-width: 76px; border: 1px solid #475569; border-radius: 8px; padding: 6px 8px; text-align: left; color: #172033; overflow: hidden; cursor: pointer; box-shadow: 0 10px 20px rgba(15,23,42,.1); }
     .timeline-appointment > strong, .timeline-appointment > span, .timeline-appointment > small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1235,29 +1244,29 @@ const STATUS_TONES: Record<string, string> = {
     .calendar-list-table { display: grid; gap: 6px; }
     .calendar-list-head, .calendar-list-row { display: grid; grid-template-columns: 170px minmax(190px, 1.2fr) minmax(150px, 1fr) 140px; align-items: center; gap: 12px; }
     .calendar-list-head { padding: 0 12px; color: #64748b; font-size: 11px; font-weight: 900; text-transform: uppercase; }
-    .calendar-list-row { width: 100%; min-height: 58px; border: 1px solid #E7DDD6; border-radius: 12px; background: #fff; color: #172033; padding: 10px 12px; text-align: left; cursor: pointer; }
-    .calendar-list-row:hover { border-color: #5A153F; background: #F5EEF2; }
+    .calendar-list-row { width: 100%; min-height: 58px; border: 1px solid #dbe7e4; border-radius: 12px; background: #fff; color: #172033; padding: 10px 12px; text-align: left; cursor: pointer; }
+    .calendar-list-row:hover { border-color: #0f8f7f; background: #f0fdfa; }
     .list-time, .list-client strong { font-weight: 900; }
     .list-client small { display: block; margin-top: 3px; color: #64748b; font-size: 12px; }
     .status-pill { justify-self: start; border: 1px solid #cbd5e1; border-radius: 999px; padding: 6px 10px; color: #172033; font-size: 12px; font-weight: 900; }
-    .timeline-appointment.blue, .status-pill.blue { background: #E7DDD6; border-color: #4B1238; }
-    .timeline-appointment.indigo, .status-pill.indigo { background: #EBD9E5; border-color: #4B1238; }
-    .timeline-appointment.teal, .status-pill.teal { background: #D4B8CC; border-color: #4B1238; }
+    .timeline-appointment.blue, .status-pill.blue { background: #bfdbfe; border-color: #2563eb; }
+    .timeline-appointment.indigo, .status-pill.indigo { background: #c7d2fe; border-color: #4f46e5; }
+    .timeline-appointment.teal, .status-pill.teal { background: #99f6e4; border-color: #0f766e; }
     .timeline-appointment.amber, .status-pill.amber { background: #fde68a; border-color: #d97706; }
     .timeline-appointment.violet, .status-pill.violet { background: #ddd6fe; border-color: #7c3aed; }
-    .timeline-appointment.green, .timeline-appointment.emerald, .status-pill.green, .status-pill.emerald { background: #FBF0E8; border-color: #C87D4B; }
+    .timeline-appointment.green, .timeline-appointment.emerald, .status-pill.green, .status-pill.emerald { background: #bbf7d0; border-color: #16a34a; }
     .timeline-appointment.red, .status-pill.red { background: #fecaca; border-color: #dc2626; }
-    .timeline-appointment.slate, .status-pill.slate { background: #E7DDD6; border-color: #64748b; }
+    .timeline-appointment.slate, .status-pill.slate { background: #e2e8f0; border-color: #64748b; }
     .operations-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
     .operations-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .ops-panel { border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; }
     .ops-launch { min-height: 92px; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
     .ops-launch p { margin: 0; color: #52627a; font-size: 13px; line-height: 1.4; }
-    .ops-launch:focus-visible { outline: 3px solid rgba(90,21,63,.25); outline-offset: 3px; }
-    .ops-launch:hover { border-color: #5A153F; box-shadow: 0 18px 42px rgba(90,21,63,.13); transform: translateY(-1px); }
-    .panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E7DDD6; padding-bottom: 10px; }
-    .panel-head small { border: 1px solid #D4B8CC; border-radius: 999px; color: #4B1238; background: #F8EEF4; padding: 4px 9px; font-weight: 900; }
-    .ops-panel button, .waitlist-row { border: 1px solid #E7DDD6; border-radius: 10px; background: #fff; padding: 12px; text-align: left; display: grid; gap: 4px; }
+    .ops-launch:focus-visible { outline: 3px solid rgba(15,143,127,.25); outline-offset: 3px; }
+    .ops-launch:hover { border-color: #0f8f7f; box-shadow: 0 18px 42px rgba(15,143,127,.13); transform: translateY(-1px); }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+    .panel-head small { border: 1px solid #99f6e4; border-radius: 999px; color: #0f766e; background: #ecfdf5; padding: 4px 9px; font-weight: 900; }
+    .ops-panel button, .waitlist-row { border: 1px solid #dbe7e4; border-radius: 10px; background: #fff; padding: 12px; text-align: left; display: grid; gap: 4px; }
     .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .empty-state { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 18px; text-align: center; color: #64748b; background: #fff; }
     .drawer-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.42); z-index: 50; }
@@ -1266,15 +1275,15 @@ const STATUS_TONES: Record<string, string> = {
     .scheduler-drawer header button { border: 0; background: transparent; font-size: 34px; cursor: pointer; }
     .ai-slot-drawer { width: min(560px, 96vw); }
     .operations-drawer { width: min(640px, 96vw); }
-    .drawer-panel { border: 1px solid #E7DDD6; border-radius: 14px; background: #fff; padding: 16px; display: grid; gap: 12px; }
+    .drawer-panel { border: 1px solid #dbe7e4; border-radius: 14px; background: #fff; padding: 16px; display: grid; gap: 12px; }
     .drawer-panel .panel-head { margin-bottom: 2px; }
-    .mini-action { border: 1px solid #D4B8CC; border-radius: 999px; background: #F8EEF4; color: #4B1238; padding: 6px 12px; font-size: 13px; font-weight: 900; cursor: pointer; }
-    .mini-action:hover { border-color: #5A153F; background: #EAD9E5; }
+    .mini-action { border: 1px solid #99f6e4; border-radius: 999px; background: #ecfdf5; color: #0f766e; padding: 6px 12px; font-size: 13px; font-weight: 900; cursor: pointer; }
+    .mini-action:hover { border-color: #0f8f7f; background: #ccfbf1; }
     .pulse-grid.expanded div { min-height: 84px; align-content: start; }
     .pulse-grid strong { font-size: 20px; }
     .ai-slot-detail-grid { display: grid; gap: 12px; }
-    .ai-slot-detail-grid button { border: 1px solid #E7DDD6; border-radius: 12px; background: #fff; padding: 14px; text-align: left; display: grid; gap: 5px; cursor: pointer; }
-    .ai-slot-detail-grid button:hover { border-color: #5A153F; background: #F5EEF2; }
+    .ai-slot-detail-grid button { border: 1px solid #dbe7e4; border-radius: 12px; background: #fff; padding: 14px; text-align: left; display: grid; gap: 5px; cursor: pointer; }
+    .ai-slot-detail-grid button:hover { border-color: #0f8f7f; background: #f0fdfa; }
     .ai-slot-detail-grid strong { font-size: 18px; }
     .ai-slot-detail-grid small { color: #64748b; }
     .bill-drawer { width: min(980px, 98vw); background: #fff; padding: 0; }
@@ -1307,11 +1316,11 @@ const STATUS_TONES: Record<string, string> = {
     .bill-panel-head h4 { margin: 0; }
     .appointment-notes-panel { display: grid; gap: 10px; }
     .appointment-note-box { min-height: 92px; resize: vertical; text-transform: none; }
-    .client-note-preview { display: grid; gap: 4px; border: 1px solid #FBF0E8; border-radius: 8px; background: #FBF0E8; padding: 10px; }
-    .client-note-preview strong { color: #7A4A28; font-size: 12px; text-transform: uppercase; }
+    .client-note-preview { display: grid; gap: 4px; border: 1px solid #bbf7d0; border-radius: 8px; background: #f0fdf4; padding: 10px; }
+    .client-note-preview strong { color: #166534; font-size: 12px; text-transform: uppercase; }
     .client-note-preview span { color: #334155; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
     .bill-status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .bill-status-row select { min-height: 40px; max-width: 160px; background: #9bd8c5; border-color: #4B1238; }
+    .bill-status-row select { min-height: 40px; max-width: 160px; background: #9bd8c5; border-color: #0f766e; }
     .bill-lines { display: grid; gap: 10px; }
     .bill-lines div { display: flex; justify-content: space-between; gap: 16px; color: #64748b; }
     .bill-lines strong { color: #0f172a; }
@@ -1322,67 +1331,67 @@ const STATUS_TONES: Record<string, string> = {
     .service-chip-row { display: flex; flex-wrap: wrap; gap: 10px; }
     .chip { border-radius: 6px; padding: 6px 10px; font-size: 13px; font-weight: 900; }
     .chip.warm { background: #fed7aa; color: #9a3412; }
-    .chip.cool { background: #F8EEF4; color: #4B1238; }
+    .chip.cool { background: #dbeafe; color: #1d4ed8; }
     .chip.pink { background: #f5d0fe; color: #86198f; }
-    .chip.teal { background: #D4B8CC; color: #2D0B21; }
+    .chip.teal { background: #99f6e4; color: #115e59; }
     .activity-log-panel { display: grid; gap: 12px; padding: 0 22px 28px; }
     .activity-log-panel strong, .activity-log-panel span { display: block; }
     .activity-log-panel span { margin-top: 4px; color: #64748b; font-size: 12px; }
     .drawer-stack { display: grid; gap: 14px; }
-    .service-line { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; align-items: end; border: 1px solid #E7DDD6; border-radius: 12px; padding: 12px; }
+    .service-line { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; align-items: end; border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
     .service-field-wide, .staff-field-wide { grid-column: span 6; }
     .start-field-wide { grid-column: span 5; }
     .duration-field-compact { grid-column: span 2; }
     .chair-field-compact { grid-column: span 3; }
     .service-remove-button { grid-column: span 2; min-height: 42px; }
     .service-line-head, .remove-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .previous-service-panel { display: grid; gap: 10px; border: 1px solid rgba(75, 18, 56, .18); border-radius: 12px; padding: 12px; background: #f8fffd; }
+    .previous-service-panel { display: grid; gap: 10px; border: 1px solid rgba(15, 118, 110, .18); border-radius: 12px; padding: 12px; background: #f8fffd; }
     .previous-service-panel small, .previous-service-list span { display: block; color: #64748b; margin-top: 3px; }
     .previous-service-list { display: grid; gap: 8px; max-height: 280px; overflow: auto; }
-    .previous-service-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid #E7DDD6; border-radius: 10px; padding: 10px; background: #fff; }
+    .previous-service-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid #dbe7e4; border-radius: 10px; padding: 10px; background: #fff; }
     .previous-service-list strong { color: #172033; }
-    .edit-action { border-color: rgba(75, 18, 56, .35); background: #F5EEF2; color: #4B1238; font-weight: 900; }
+    .edit-action { border-color: rgba(15, 118, 110, .35); background: #f0fdfa; color: #0f766e; font-weight: 900; }
     .search-select { display: grid; gap: 6px; align-content: start; }
     .smart-picker { position: relative; min-width: 0; }
     .smart-search-results { position: absolute; z-index: 95; top: calc(100% + 6px); left: 0; right: 0; display: grid; max-height: 260px; overflow: auto; border: 1px solid #cfe0dc; border-radius: 12px; background: #ffffff; box-shadow: 0 18px 36px rgba(15,23,42,.18); padding: 6px; }
     .smart-search-results button { width: 100%; border: 0; border-radius: 10px; background: transparent; padding: 9px 10px; text-align: left; display: grid; gap: 2px; color: #172033; cursor: pointer; }
-    .smart-search-results button:hover, .smart-search-results button.selected { background: #F1E8EE; }
-    .smart-search-results button.selected { color: #4B1238; }
+    .smart-search-results button:hover, .smart-search-results button.selected { background: #e8f7f4; }
+    .smart-search-results button.selected { color: #0f766e; }
     .smart-search-results strong { font-size: 13px; }
     .smart-search-results span { font-size: 12px; color: #64748b; text-transform: none; }
     .smart-search-results .multi-select-box { width: 18px; height: 18px; border: 1px solid #cfe0dc; border-radius: 5px; background: #fff; align-self: center; }
-    .smart-search-results .multi-select-box.checked { border-color: #C87D4B; background: #FBF0E8; box-shadow: inset 0 0 0 4px #fff; }
+    .smart-search-results .multi-select-box.checked { border-color: #10b981; background: #d1fae5; box-shadow: inset 0 0 0 4px #fff; }
     .smart-search-results .result-copy { display: grid; gap: 2px; min-width: 0; }
-    .smart-search-results .select-pill { align-self: center; justify-self: end; border: 1px solid #FBF0E8; border-radius: 999px; background: #FBF0E8; color: #C87D4B; font-size: 11px; font-weight: 900; padding: 5px 9px; }
+    .smart-search-results .select-pill { align-self: center; justify-self: end; border: 1px solid #bbf7d0; border-radius: 999px; background: #f0fdf4; color: #059669; font-size: 11px; font-weight: 900; padding: 5px 9px; }
     .smart-search-results .service-result-actions { display: flex; gap: 8px; padding: 6px; }
     .smart-search-results .service-result-actions button { width: auto; border: 1px solid #cfe0dc; border-radius: 999px; padding: 6px 10px; font-weight: 900; }
-    .smart-search-results .service-result-actions button:hover { background: #F8EEF4; }
+    .smart-search-results .service-result-actions button:hover { background: #ecfdf5; }
     .service-field-wide .smart-search-results button { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
     .service-field-wide .smart-search-results .service-result-actions button { display: inline-flex; grid-template-columns: none; }
     .picker-search { min-height: 38px; border-radius: 10px; border: 1px solid #cfe0dc; background: #f8fffd; padding: 9px 10px; font-weight: 800; color: #172033; }
-    .picker-search:focus { border-color: #5A153F; outline: 3px solid rgba(90,21,63,.14); background: #fff; }
+    .picker-search:focus { border-color: #0f8f7f; outline: 3px solid rgba(15,143,127,.14); background: #fff; }
     .line-staff-input-wrap { position: relative; }
     .line-staff-input-wrap .picker-search { width: 100%; padding-right: 38px; }
-    .line-staff-clear-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 999px; background: #F8EEF4; color: #4B1238; cursor: pointer; font-weight: 900; line-height: 1; }
+    .line-staff-clear-button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 999px; background: #dff7ef; color: #0f766e; cursor: pointer; font-weight: 900; line-height: 1; }
     .line-staff-clear-button:hover { background: #baf3de; }
     .smart-search-results .line-staff-result { grid-template-columns: minmax(0, 1fr); }
     .picker-meta, .picker-empty { font-size: 11px; font-weight: 800; text-transform: none; color: #64748b; }
-    .picker-meta.selected { color: #C87D4B; }
+    .picker-meta.selected { color: #059669; }
     .picker-empty { color: #b45309; }
     .inline-form-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; }
     .inline-hint { margin: 0; border-radius: 10px; padding: 10px 12px; font-weight: 900; }
     .inline-hint.danger { background: #fee2e2; color: #991b1b; }
-    .inline-hint.success { background: #FBF0E8; color: #7A4A28; }
-    .client-booking-note { border: 1px solid #FBF0E8; background: #FBF0E8; color: #7A4A28; text-transform: none; line-height: 1.35; }
-    .client-booking-note strong { color: #7A4A28; }
+    .inline-hint.success { background: #dcfce7; color: #166534; }
+    .client-booking-note { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; text-transform: none; line-height: 1.35; }
+    .client-booking-note strong { color: #14532d; }
     .two-col, .status-grid, .notify-box, .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .notify-box { border: 1px solid #E7DDD6; border-radius: 12px; padding: 12px; }
+    .notify-box { border: 1px solid #dbe7e4; border-radius: 12px; padding: 12px; }
     .notify-box label { display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 14px; color: #172033; }
     .notify-box input { width: auto; min-height: auto; }
-    .detail-card { border: 1px solid #E7DDD6; border-radius: 12px; padding: 14px; display: grid; gap: 4px; background: #f8fafc; }
-    .status-grid button { min-height: 40px; border: 1px solid #E7DDD6; border-radius: 10px; background: white; font-weight: 800; }
+    .detail-card { border: 1px solid #dbe7e4; border-radius: 12px; padding: 14px; display: grid; gap: 4px; background: #f8fafc; }
+    .status-grid button { min-height: 40px; border: 1px solid #dbe7e4; border-radius: 10px; background: white; font-weight: 800; }
     .wrap { flex-wrap: wrap; }
-    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 70; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #5A153F; color: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 18px 36px rgba(15,23,42,.22); font-weight: 900; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 70; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #0f8f7f; color: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 18px 36px rgba(15,23,42,.22); font-weight: 900; }
     .toast-link { border: 1px solid rgba(255,255,255,.6); background: rgba(255,255,255,.16); color: white; border-radius: 999px; padding: 7px 10px; font-weight: 900; cursor: pointer; }
 @media (max-width: 1100px) {
       .scheduler-view-toolbar { grid-template-columns: 1fr; }
@@ -1400,185 +1409,6 @@ const STATUS_TONES: Record<string, string> = {
       .summary-strip, .operations-grid, .service-line, .inline-form-grid, .two-col, .pulse-grid, .bill-layout { grid-template-columns: 1fr; }
       .scheduled-staff-control { position: static; }
       .scheduled-staff-panel { position: fixed; top: 96px; left: 12px; right: 12px; width: auto; max-height: calc(100vh - 118px); }
-    }
-    .enterprise-scheduler {
-      background: #FAF8F6;
-      color: #151827;
-    }
-
-    .deposit-followup-strip,
-    .month-strip-band,
-    .summary-strip,
-    .scheduler-view-toolbar,
-    .scheduler-grid-shell,
-    .calendar-timeline-view,
-    .calendar-list-view,
-    .drawer-panel,
-    .panel-head,
-    .smart-slots,
-    .waitlist-panel {
-      border-color: rgba(75, 18, 56, 0.13) !important;
-      border-radius: 14px !important;
-      background: #fff !important;
-      background-image: none !important;
-      box-shadow: 0 1px 2px rgba(75, 18, 56, 0.03), 0 10px 26px rgba(75, 18, 56, 0.045) !important;
-    }
-
-    .month-strip-band,
-    .scheduler-view-toolbar {
-      padding: 14px 16px;
-    }
-
-    .month-strip button,
-    .summary-strip article,
-    .summary-strip button,
-    .calendar-list-row,
-    .scheduled-staff-row,
-    .smart-slots button {
-      border-color: rgba(75, 18, 56, 0.12) !important;
-      border-radius: 12px !important;
-      background: #fff !important;
-      box-shadow: none !important;
-    }
-
-    .month-strip button.active,
-    .month-strip button.today,
-    .calendar-layout-toggle button.active,
-    .scheduled-staff-button.active,
-    .waitlist-summary-action {
-      border-color: rgba(75, 18, 56, 0.28) !important;
-      background: #F8EEF4 !important;
-      color: #4B1238 !important;
-      box-shadow: inset 3px 0 0 #4B1238 !important;
-    }
-
-    .summary-strip article,
-    .summary-strip button {
-      min-height: 76px;
-      border-left: 3px solid rgba(75, 18, 56, 0.62) !important;
-    }
-
-    .summary-strip span,
-    .view-control-field span,
-    .calendar-list-head,
-    .panel-head small,
-    .scheduler-view-copy small {
-      color: #4B1238 !important;
-      font-weight: 560 !important;
-      letter-spacing: 0.035em;
-    }
-
-    .summary-strip strong,
-    .scheduler-view-copy strong,
-    .calendar-list-header strong,
-    .staff-head strong,
-    .appointment-card strong,
-    .timeline-card strong,
-    .drawer-panel h2,
-    .drawer-panel h3 {
-      color: #151827 !important;
-      font-weight: 630 !important;
-    }
-
-    .scheduler-view-controls select,
-    .view-control-field select,
-    .staff-window-controls button,
-    .staff-window-controls span,
-    .scheduled-staff-button,
-    .calendar-layout-toggle,
-    .calendar-layout-toggle button {
-      border-color: rgba(75, 18, 56, 0.14) !important;
-      border-radius: 10px !important;
-      background: #fff !important;
-      color: #151827 !important;
-      font-weight: 560 !important;
-    }
-
-    .scheduler-grid-shell {
-      padding: 12px;
-      overflow: auto;
-    }
-
-    .scheduler-grid {
-      border: 1px solid rgba(75, 18, 56, 0.12);
-      border-radius: 14px;
-      overflow: hidden;
-      background: #fff;
-    }
-
-    .time-head,
-    .staff-head {
-      background: #F8EEF4 !important;
-      border-bottom-color: rgba(75, 18, 56, 0.12) !important;
-    }
-
-    .staff-head,
-    .staff-lane,
-    .time-column {
-      border-left-color: rgba(75, 18, 56, 0.1) !important;
-    }
-
-    .time-row,
-    .slot-cell {
-      border-color: rgba(75, 18, 56, 0.07) !important;
-    }
-
-    .appointment-card,
-    .timeline-card {
-      border: 1px solid rgba(75, 18, 56, 0.14) !important;
-      border-left: 3px solid #4B1238 !important;
-      border-radius: 10px !important;
-      background: #fff !important;
-      box-shadow: 0 8px 18px rgba(75, 18, 56, 0.07) !important;
-    }
-
-    .appointment-card:hover,
-    .calendar-list-row:hover,
-    .smart-slots button:hover {
-      border-color: rgba(75, 18, 56, 0.24) !important;
-      background: #F8EEF4 !important;
-      transform: translateY(-1px);
-    }
-
-    .status-pill,
-    .panel-head small,
-    .staff-action-menu span,
-    .current-time-badge {
-      border-color: rgba(75, 18, 56, 0.16) !important;
-      border-radius: 999px !important;
-      background: #F8EEF4 !important;
-      color: #4B1238 !important;
-      font-weight: 620 !important;
-    }
-
-    .staff-action-menu,
-    .scheduled-staff-panel {
-      border-color: rgba(75, 18, 56, 0.14) !important;
-      border-radius: 14px !important;
-      box-shadow: 0 24px 60px rgba(75, 18, 56, 0.18) !important;
-    }
-
-    .staff-action-menu button:hover {
-      background: #F8EEF4 !important;
-      color: #4B1238 !important;
-    }
-
-    @media (max-width: 720px) {
-      .month-strip-band,
-      .scheduler-view-toolbar,
-      .summary-strip {
-        padding: 12px;
-      }
-
-      .summary-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .scheduler-grid-shell,
-      .calendar-timeline-view,
-      .calendar-list-view {
-        min-width: 0;
-      }
     }
   `]
 })
@@ -1641,7 +1471,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly draggingAppointment = signal<ApiRecord | null>(null);
   readonly schedulerActionMenu = signal<SchedulerActionMenu | null>(null);
   readonly now = signal(new Date());
-  readonly hoverSlot = signal<{ staffName: string; label: string; top: number } | null>(null);
+  readonly hoverSlot = signal<{ staffName: string; label: string; left: number; top: number } | null>(null);
   readonly hoveredAppointment = signal<AppointmentHoverState | null>(null);
   readonly bookingLines = signal<BookingLineDraft[]>([]);
   readonly bookingClientSearch = signal('');
@@ -1754,13 +1584,14 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     const map = new Map<string, AppointmentCard[]>();
     const visibleStaffIds = new Set(this.visibleStaff().map((person) => person.id));
     for (const appointment of this.context()?.appointments || []) {
+      if (!this.shouldShowOnAppointmentCalendar(appointment)) continue;
       const staffId = appointment.staffId || '';
       if (visibleStaffIds.size && !visibleStaffIds.has(staffId)) continue;
       const card = this.appointmentCard(appointment);
       if (!map.has(staffId)) map.set(staffId, []);
       map.get(staffId)?.push(card);
     }
-    for (const cards of map.values()) cards.sort((a, b) => a.top - b.top);
+    for (const cards of map.values()) this.applyAppointmentCardOverlapLayout(cards);
     return map;
   });
   readonly calendarAppointmentCards = computed(() =>
@@ -2025,6 +1856,24 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     this.hoveredAppointment.set(null);
   }
 
+  showSlotHover(person: StaffLane, slot: TimeSlot, event: MouseEvent): void {
+    const grid = (event.currentTarget as HTMLElement | null)?.closest('.scheduler-grid') as HTMLElement | null;
+    const rect = grid?.getBoundingClientRect();
+    const tooltipWidth = 260;
+    if (!rect) {
+      this.hoverSlot.set({ staffName: person.name, label: slot.label, left: 96, top: this.minuteTop(slot.minute) });
+      return;
+    }
+    let left = event.clientX - rect.left + 12;
+    if (left + tooltipWidth > rect.width - 8) left = event.clientX - rect.left - tooltipWidth - 12;
+    this.hoverSlot.set({
+      staffName: person.name,
+      label: slot.label,
+      left: Math.max(8, left),
+      top: Math.max(10, event.clientY - rect.top - 10)
+    });
+  }
+
   private appointmentHoverPoint(event: MouseEvent | FocusEvent): { x: number; y: number } {
     const width = 340;
     const height = 360;
@@ -2229,9 +2078,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   openEditAppointment(appointment: ApiRecord): void {
     this.error.set('');
-    const staffId = String(appointment.staffId || this.visibleStaff()[0]?.id || '');
-    const serviceIds = this.appointmentServiceIds(appointment);
-    const startAt = this.localInputFromIso(appointment.startAt || appointment.createdAt || new Date().toISOString());
+    const groupRows = this.appointmentEditRows(appointment);
     this.selectedAppointment.set(appointment);
     this.editingAppointmentId.set(String(appointment.id || ''));
     this.bookingClientSearch.set(this.clientName(appointment.clientId));
@@ -2250,19 +2097,43 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       notifyStaff: true,
       notifyOwner: false
     });
-    const baseLine = this.blankLine(staffId, startAt);
-    this.bookingLines.set([
-      {
-        ...baseLine,
-        serviceId: serviceIds[0] || '',
-        staffId,
-        startAt,
-        durationMinutes: this.appointmentDuration(appointment),
-        chair: appointment.chair || '',
-        room: appointment.room || ''
-      }
-    ]);
+    this.bookingLines.set(groupRows.map((row, index) => this.bookingLineFromAppointment(row, index)));
     this.drawer.set('booking');
+  }
+
+  private appointmentEditRows(appointment: ApiRecord): ApiRecord[] {
+    const selectedId = String(appointment.id || '');
+    const rows = this.appointmentGroupRows(appointment)
+      .filter((row) => String(row.id || '') || row === appointment);
+    const unique = new Map<string, ApiRecord>();
+    for (const row of rows) {
+      const id = String(row.id || '');
+      if (!id) continue;
+      unique.set(id, row);
+    }
+    if (selectedId && !unique.has(selectedId)) unique.set(selectedId, appointment);
+    return Array.from(unique.values()).sort((left, right) =>
+      new Date(String(left.startAt || left.createdAt || '')).getTime() - new Date(String(right.startAt || right.createdAt || '')).getTime()
+      || String(left.groupMemberRole || left.group_member_role || '').localeCompare(String(right.groupMemberRole || right.group_member_role || ''))
+      || String(left.id || '').localeCompare(String(right.id || ''))
+    );
+  }
+
+  private bookingLineFromAppointment(appointment: ApiRecord, index: number): BookingLineDraft {
+    const staffId = String(appointment.staffId || this.visibleStaff()[0]?.id || '');
+    const serviceIds = this.appointmentServiceIds(appointment);
+    const startAt = this.localInputFromIso(appointment.startAt || appointment.createdAt || new Date().toISOString());
+    return {
+      ...this.blankLine(staffId, startAt),
+      id: `edit_${appointment.id || index}`,
+      appointmentId: String(appointment.id || ''),
+      serviceId: serviceIds[0] || '',
+      staffId,
+      startAt,
+      durationMinutes: this.appointmentDuration(appointment),
+      chair: appointment.chair || '',
+      room: appointment.room || ''
+    };
   }
 
   setBookingClientSearch(value: string): void {
@@ -2311,7 +2182,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     }
     const lines = this.bookingLines();
     const last = lines.at(-1);
-    const nextStart = last ? this.addLocalMinutes(last.startAt, Number(last.durationMinutes || 30)) : this.localDateTime(10 * 60);
+    const nextStart = this.nextServiceStartTime();
     this.bookingLines.set([...lines, this.blankLine(last?.staffId || this.visibleStaff()[0]?.id || '', nextStart)]);
   }
 
@@ -2328,17 +2199,19 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       if (lineIndex < 0) continue;
       const baseLine = lines[lineIndex];
       const builtLines: BookingLineDraft[] = [];
-      let startAt = baseLine.startAt;
       for (let index = 0; index < serviceIds.length; index += 1) {
         const serviceId = serviceIds[index];
         const service = (this.serviceById().get(serviceId) || { id: serviceId }) as ApiRecord;
-        const durationMinutes = Number(service.durationMinutes || baseLine.durationMinutes || 30);
+        const durationMinutes = this.serviceBlockDuration(service, baseLine.durationMinutes || 30);
+        const previousLine = builtLines.at(-1);
+        const startAt = previousLine
+          ? this.nextServiceStartAfter(previousLine, { serviceId, staffId: baseLine.staffId })
+          : baseLine.startAt;
         const nextLine = index === 0
           ? { ...baseLine, serviceId, durationMinutes }
           : { ...this.blankLine(baseLine.staffId, startAt), serviceId, durationMinutes, chair: baseLine.chair, room: baseLine.room };
         builtLines.push(nextLine);
         nextServiceSearch[nextLine.id] = this.bookingServiceOption(service);
-        startAt = this.addLocalMinutes(nextLine.startAt, durationMinutes);
       }
       lines = [...lines.slice(0, lineIndex), ...builtLines, ...lines.slice(lineIndex + 1)];
     }
@@ -2355,14 +2228,22 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   updateLine(idValue: string, key: keyof BookingLineDraft, value: string): void {
-    this.bookingLines.set(this.bookingLines().map((line) => {
+    let changedIndex = -1;
+    const lines = this.bookingLines().map((line, index) => {
       if (line.id !== idValue) return line;
+      changedIndex = index;
       const next = { ...line, [key]: key === 'durationMinutes' ? Number(value || 30) : value };
       if (key === 'serviceId') {
-        next.durationMinutes = Number(this.serviceById().get(value)?.durationMinutes || next.durationMinutes || 30);
+        next.durationMinutes = this.serviceBlockDuration(this.serviceById().get(String(value || '')), next.durationMinutes || 30);
       }
       return next;
-    }));
+    });
+    const resequenceFrom = key === 'serviceId' || key === 'staffId'
+      ? Math.max(1, changedIndex)
+      : changedIndex + 1;
+    this.bookingLines.set(['serviceId', 'staffId', 'durationMinutes', 'startAt'].includes(String(key)) && changedIndex >= 0
+      ? this.resequenceBookingLines(lines, resequenceFrom)
+      : lines);
   }
 
   filteredServices(line: BookingLineDraft): ApiRecord[] {
@@ -2492,16 +2373,19 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     }
     const lines = this.bookingLines();
     const emptyLine = lines.find((line) => !line.serviceId);
-    const target = emptyLine || this.blankLine(item.staffId || this.visibleStaff()[0]?.id || '', this.nextServiceStartTime());
+    const targetStaffId = item.staffId || this.visibleStaff()[0]?.id || '';
+    const targetStartAt = this.nextServiceStartTime({ serviceId: String(service.id), staffId: targetStaffId });
+    const target = emptyLine || this.blankLine(targetStaffId, targetStartAt);
     const nextLine = {
       ...target,
       serviceId: String(service.id),
       staffId: item.staffId || target.staffId || this.visibleStaff()[0]?.id || '',
       durationMinutes: Number(item.durationMinutes || service.durationMinutes || 30)
     };
-    this.bookingLines.set(emptyLine
+    const nextLines = emptyLine
       ? lines.map((line) => line.id === emptyLine.id ? nextLine : line)
-      : [...lines, nextLine]);
+      : [...lines, nextLine];
+    this.bookingLines.set(this.resequenceBookingLines(nextLines, Math.max(1, nextLines.findIndex((line) => line.id === nextLine.id))));
     this.setLineSearch('service', nextLine.id, this.bookingServiceOption(service));
     if (nextLine.staffId) {
       this.setLineSearch('staff', nextLine.id, this.bookingStaffOption(this.staffById().get(nextLine.staffId) || { id: nextLine.staffId, name: item.staffName || nextLine.staffId }));
@@ -2756,25 +2640,32 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
         }))
       };
       if (this.editingAppointmentId()) {
-        const line = lines[0];
         const editingAppointment = this.selectedAppointment();
-        const updatedAppointment = await firstValueFrom(this.api.update<ApiRecord>('appointments', this.editingAppointmentId(), {
-          branchId: payload.branchId,
-          clientId: payload.clientId,
-          status: payload.status,
-          notes: payload.notes,
-          version: editingAppointment?.version || 1,
-          serviceIds: [line.serviceId],
-          staffId: line.staffId,
-          startAt: this.isoFromLocal(line.startAt),
-          endAt: this.isoFromLocal(this.addLocalMinutes(line.startAt, Number(line.durationMinutes || 30))),
-          durationMinutes: Number(line.durationMinutes || 30),
-          chair: String(line.chair || '').trim(),
-          room: String(line.room || '').trim()
+        const editRows = this.appointmentEditRows(editingAppointment || {});
+        if (lines.length !== editRows.length) {
+          this.error.set('Group booking service lines add/remove nahi ki ja sakti. Har existing service line ko edit karke save karein.');
+          return;
+        }
+        const updatedAppointments = await Promise.all(editRows.map((row, index) => {
+          const line = lines.find((item) => item.appointmentId && item.appointmentId === String(row.id || '')) || lines[index];
+          return firstValueFrom(this.api.update<ApiRecord>('appointments', String(row.id || ''), {
+            branchId: payload.branchId,
+            clientId: payload.clientId,
+            status: payload.status,
+            notes: payload.notes,
+            version: row.version || 1,
+            serviceIds: [line.serviceId],
+            staffId: line.staffId,
+            startAt: this.isoFromLocal(line.startAt),
+            endAt: this.isoFromLocal(this.addLocalMinutes(line.startAt, Number(line.durationMinutes || 30))),
+            durationMinutes: Number(line.durationMinutes || 30),
+            chair: String(line.chair || '').trim(),
+            room: String(line.room || '').trim()
+          }));
         }));
-        committedAppointments = updatedAppointment ? [updatedAppointment] : [];
+        committedAppointments = updatedAppointments.filter(Boolean);
         this.lastBookedClientId.set(bookedClientId);
-        this.showNotice('Appointment updated');
+        this.showNotice(`${committedAppointments.length || 1} service line(s) updated`);
       } else {
         const result = await firstValueFrom(this.api.post<ApiRecord>('appointment-deposits/multi-service-bookings', payload));
         committedAppointments = Array.isArray(result.appointments) ? result.appointments : [];
@@ -2794,53 +2685,6 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   private bookingConflictMessage(lines: BookingLineDraft[]): string {
-    const drafts = lines.map((line, index) => {
-      const startAt = this.isoFromLocal(line.startAt);
-      const endAt = this.isoFromLocal(this.addLocalMinutes(line.startAt, Number(line.durationMinutes || 30)));
-      return {
-        index,
-        line,
-        startAt,
-        endAt,
-        startMs: new Date(startAt).getTime(),
-        endMs: new Date(endAt).getTime(),
-        chair: String(line.chair || '').trim()
-      };
-    });
-    for (let left = 0; left < drafts.length; left += 1) {
-      for (let right = left + 1; right < drafts.length; right += 1) {
-        const first = drafts[left];
-        const second = drafts[right];
-        if (!this.timeRangesOverlap(first.startMs, first.endMs, second.startMs, second.endMs)) continue;
-        const sameStaff = first.line.staffId && first.line.staffId === second.line.staffId;
-        const sameChair = first.chair && first.chair === second.chair;
-        if (sameStaff || sameChair) {
-          return `Service ${first.index + 1} and ${second.index + 1} overlap on the same ${sameStaff ? 'staff' : 'chair'}. Choose a different time.`;
-        }
-      }
-    }
-
-    const editingId = this.editingAppointmentId();
-    const activeAppointments = (this.context()?.appointments || []).filter((appointment) => {
-      if (editingId && String(appointment.id || '') === editingId) return false;
-      return !['cancelled', 'canceled', 'no-show', 'deleted'].includes(String(appointment.status || '').toLowerCase());
-    });
-    for (const draft of drafts) {
-      for (const appointment of activeAppointments) {
-        const appointmentStart = new Date(String(appointment.startAt || '')).getTime();
-        const appointmentEnd = new Date(String(appointment.endAt || appointment.startAt || '')).getTime();
-        if (!this.timeRangesOverlap(draft.startMs, draft.endMs, appointmentStart, appointmentEnd)) continue;
-        const sameStaff = draft.line.staffId && String(appointment.staffId || '') === draft.line.staffId;
-        const sameChair = draft.chair && String(appointment.chair || '') === draft.chair;
-        if (sameStaff || sameChair) {
-          const staff = this.staffName(String(appointment.staffId || draft.line.staffId || ''));
-          const client = this.clientName(String(appointment.clientId || ''));
-          const service = this.serviceNames(this.appointmentServiceIds(appointment));
-          const time = `${this.shortTime(String(appointment.startAt || ''))}-${this.shortTime(String(appointment.endAt || appointment.startAt || ''))}`;
-          return `Service ${draft.index + 1}: ${staff} is busy at ${time}${client ? ` (${client}${service ? ` · ${service}` : ''})` : ''}. Change time or staff.`;
-        }
-      }
-    }
     return '';
   }
 
@@ -2862,11 +2706,6 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     const details = payload.details || (payload.error as ApiRecord | undefined)?.details || {};
     const conflicts = (details as ApiRecord)?.conflicts;
     return Array.isArray(conflicts) ? conflicts : [];
-  }
-
-  private timeRangesOverlap(leftStart: number, leftEnd: number, rightStart: number, rightEnd: number): boolean {
-    if (![leftStart, leftEnd, rightStart, rightEnd].every(Number.isFinite)) return false;
-    return leftStart < rightEnd && leftEnd > rightStart;
   }
 
   openAddBlockedTime(staff: StaffLane, slot: TimeSlot, event: Event): void {
@@ -2997,16 +2836,14 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   async setStatus(appointment: ApiRecord, status: string): Promise<void> {
     try {
       const localGroupRows = this.appointmentGroupRows(appointment);
-      const idsToUpdate = Array.from(new Set(localGroupRows.map((row) => String(row.id || '')).filter(Boolean)));
-      const result = await firstValueFrom(this.api.post<ApiRecord>(`appointments/${appointment.id}/status`, { status, applyGroup: true }));
-      await Promise.all(idsToUpdate
-        .filter((id) => id !== String(appointment.id || ''))
-        .map((id) => firstValueFrom(this.api.post<ApiRecord>(`appointments/${id}/status`, { status, applyGroup: true }))));
+      const appointmentIds = localGroupRows.map((row) => String(row.id || '')).filter(Boolean);
+      const result = await firstValueFrom(this.api.post<ApiRecord>(`appointment-lifecycle/appointments/${appointment.id}/status`, { status, applyGroup: true, appointmentIds }));
       const updatedAppointment = (result['appointment'] as ApiRecord | undefined) || appointment;
-      const groupAppointments = this.appointmentGroupRows(
-        updatedAppointment,
-        Array.isArray(result['appointments']) ? result['appointments'] as ApiRecord[] : localGroupRows
-      );
+      const groupAppointments = Array.isArray(result['appointments']) && result['appointments'].length
+        ? result['appointments'] as ApiRecord[]
+        : localGroupRows.map((row) => ({ ...row, status }));
+      this.mergeAppointmentsIntoContext(groupAppointments);
+      if (this.selectedAppointment()) this.selectedAppointment.set({ ...updatedAppointment, status });
       const serviceCount = this.groupAppointmentServiceIds(appointment, groupAppointments).length || groupAppointments.length || 1;
       this.showNotice(`${serviceCount} service line${serviceCount === 1 ? '' : 's'} marked ${this.label(status)}`);
       if (status === 'completed') {
@@ -3285,12 +3122,54 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       appointment,
       top,
       height,
+      leftPct: 1,
+      widthPct: 98,
       status,
       clientName,
       serviceLabel,
       timeLabel,
       detailRows: this.appointmentDetailRows(appointment, { clientName, serviceLabel, timeLabel })
     };
+  }
+
+  private applyAppointmentCardOverlapLayout(cards: AppointmentCard[]): void {
+    cards.sort((a, b) => a.top - b.top || a.height - b.height || String(a.appointment.id || '').localeCompare(String(b.appointment.id || '')));
+    let cluster: AppointmentCard[] = [];
+    let clusterEnd = -1;
+    const flush = () => {
+      if (!cluster.length) return;
+      this.layoutAppointmentCardCluster(cluster);
+      cluster = [];
+      clusterEnd = -1;
+    };
+    for (const card of cards) {
+      const cardEnd = card.top + card.height;
+      if (cluster.length && card.top >= clusterEnd) flush();
+      cluster.push(card);
+      clusterEnd = Math.max(clusterEnd, cardEnd);
+    }
+    flush();
+  }
+
+  private layoutAppointmentCardCluster(cluster: AppointmentCard[]): void {
+    const columnEnds: number[] = [];
+    const assigned = new Map<AppointmentCard, number>();
+    for (const card of cluster) {
+      let column = columnEnds.findIndex((end) => end <= card.top);
+      if (column < 0) {
+        column = columnEnds.length;
+        columnEnds.push(0);
+      }
+      assigned.set(card, column);
+      columnEnds[column] = card.top + card.height;
+    }
+    const columns = Math.max(1, columnEnds.length);
+    const gapPct = columns > 1 ? 1.5 : 0;
+    for (const card of cluster) {
+      const column = assigned.get(card) || 0;
+      card.leftPct = columns === 1 ? 1 : (column * 100) / columns + gapPct / 2;
+      card.widthPct = columns === 1 ? 98 : Math.max(18, 100 / columns - gapPct);
+    }
   }
 
   appointmentDetailRows(appointment: ApiRecord, summary: { clientName: string; serviceLabel: string; timeLabel: string }): AppointmentDetailRow[] {
@@ -3433,33 +3312,37 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   appointmentBillLines(appointment: ApiRecord): AppointmentBillLine[] {
-    const serviceIds = this.appointmentServiceIds(appointment);
-    const fallbackName = this.serviceNames(serviceIds);
-    const discountTotal = this.appointmentDiscount(appointment);
-    const subtotal = Math.max(1, serviceIds.reduce((sum, id) => sum + this.serviceBasePrice(id, appointment), 0));
-    const ids = serviceIds.length ? serviceIds : [''];
+    const rows = this.appointmentEditRows(appointment);
+    return rows.flatMap((row, rowIndex) => {
+      const serviceIds = this.appointmentServiceIds(row);
+      const fallbackName = this.serviceNames(serviceIds);
+      const discountTotal = this.rawAppointmentDiscount(row);
+      const subtotal = Math.max(1, serviceIds.reduce((sum, id) => sum + this.serviceBasePrice(id, row), 0));
+      const ids = serviceIds.length ? serviceIds : [''];
 
-    return ids.map((id, index) => {
-      const service = this.serviceById().get(id);
-      const price = this.serviceBasePrice(id, appointment);
-      const discount = Math.max(0, Math.min(price, index === ids.length - 1
-        ? discountTotal - ids.slice(0, -1).reduce((sum, previousId) => sum + Math.round((this.serviceBasePrice(previousId, appointment) / subtotal) * discountTotal), 0)
-        : Math.round((price / subtotal) * discountTotal)));
-      const taxable = Math.max(0, price - discount);
-      const gstRate = this.numberValue(service?.gstRate, service?.gst, service?.taxRate, appointment.gstRate, appointment.gst, 0);
-      const gstAmount = Math.round(taxable * gstRate / 100);
-      return {
-        id: id || `${appointment.id || 'appointment'}-${index}`,
-        name: service?.name || fallbackName || 'Service',
-        staffName: this.staffName(appointment.staffId || service?.staffId || ''),
-        quantity: 1,
-        price,
-        discount,
-        taxable,
-        gstRate,
-        gstAmount,
-        total: taxable + gstAmount
-      };
+      return ids.map((id, index) => {
+        const service = this.serviceById().get(id);
+        const price = this.serviceBasePrice(id, row);
+        const discount = Math.max(0, Math.min(price, index === ids.length - 1
+          ? discountTotal - ids.slice(0, -1).reduce((sum, previousId) => sum + Math.round((this.serviceBasePrice(previousId, row) / subtotal) * discountTotal), 0)
+          : Math.round((price / subtotal) * discountTotal)));
+        const taxable = Math.max(0, price - discount);
+        const gstRate = this.numberValue(service?.gstRate, service?.gst, service?.taxRate, row.gstRate, row.gst, 0);
+        const gstAmount = Math.round(taxable * gstRate / 100);
+        return {
+          id: `${row.id || appointment.id || 'appointment'}-${id || index}-${rowIndex}`,
+          name: service?.name || fallbackName || 'Service',
+          startAt: String(row.startAt || appointment.startAt || ''),
+          staffName: this.staffName(row.staffId || service?.staffId || ''),
+          quantity: 1,
+          price,
+          discount,
+          taxable,
+          gstRate,
+          gstAmount,
+          total: taxable + gstAmount
+        };
+      });
     });
   }
 
@@ -3468,7 +3351,9 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   appointmentDiscount(appointment: ApiRecord): number {
-    return Math.max(0, this.numberValue(appointment.discountAmount, appointment.discount_amount, appointment.discount, appointment.manualDiscount, 0));
+    const rows = this.appointmentEditRows(appointment);
+    if (rows.length > 1) return rows.reduce((sum, row) => sum + this.rawAppointmentDiscount(row), 0);
+    return this.rawAppointmentDiscount(appointment);
   }
 
   appointmentTaxable(appointment: ApiRecord): number {
@@ -3480,11 +3365,23 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   appointmentTotal(appointment: ApiRecord): number {
+    const rows = this.appointmentEditRows(appointment);
+    if (rows.length > 1) return this.appointmentBillLines(appointment).reduce((sum, line) => sum + line.total, 0);
     const explicitTotal = this.numberValue(appointment.total, appointment.totalAmount, appointment.amount, 0);
     return explicitTotal || this.appointmentBillLines(appointment).reduce((sum, line) => sum + line.total, 0);
   }
 
   appointmentPaid(appointment: ApiRecord): number {
+    const rows = this.appointmentEditRows(appointment);
+    if (rows.length > 1) return rows.reduce((sum, row) => sum + this.rawAppointmentPaid(row), 0);
+    return this.rawAppointmentPaid(appointment);
+  }
+
+  private rawAppointmentDiscount(appointment: ApiRecord): number {
+    return Math.max(0, this.numberValue(appointment.discountAmount, appointment.discount_amount, appointment.discount, appointment.manualDiscount, 0));
+  }
+
+  private rawAppointmentPaid(appointment: ApiRecord): number {
     return this.numberValue(appointment.paid, appointment.paidAmount, appointment.paid_amount, appointment.collectedAmount, 0);
   }
 
@@ -3530,8 +3427,73 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   bookingServiceOption(service: ApiRecord): string {
-    const duration = service.durationMinutes ? ` · ${service.durationMinutes}m` : '';
+    const duration = service ? ` · ${this.serviceBlockDuration(service)}m` : '';
     return String(`${service.name || service.id || 'Service'}${duration}`);
+  }
+
+  private serviceBlockDuration(service: ApiRecord | undefined, fallback = 30): number {
+    return service ? serviceTotalMinutes(service) : Math.max(15, Number(fallback || 30));
+  }
+
+  private nextServiceStartAfter(previous: BookingLineDraft, next?: Pick<BookingLineDraft, 'serviceId' | 'staffId'>): string {
+    return this.addLocalMinutes(previous.startAt, this.serviceHandoffMinutes(previous, next));
+  }
+
+  private nextServiceStartTime(next?: Pick<BookingLineDraft, 'serviceId' | 'staffId'>): string {
+    const last = this.bookingLines().at(-1);
+    return last ? this.nextServiceStartAfter(last, next) : this.localDateTime(10 * 60);
+  }
+
+  private resequenceBookingLines(lines: BookingLineDraft[], fromIndex = 1): BookingLineDraft[] {
+    const nextLines = [...lines];
+    for (let index = Math.max(1, fromIndex); index < nextLines.length; index += 1) {
+      const previous = nextLines[index - 1];
+      const current = nextLines[index];
+      nextLines[index] = { ...current, startAt: this.nextServiceStartAfter(previous, current) };
+    }
+    return nextLines;
+  }
+
+  private serviceHandoffMinutes(previous: BookingLineDraft, next?: Pick<BookingLineDraft, 'serviceId' | 'staffId'>): number {
+    const previousService = this.serviceById().get(previous.serviceId);
+    const fullDuration = Math.max(15, Number(previous.durationMinutes || this.serviceBlockDuration(previousService, 30)));
+    if (!previousService || !this.isProcessingService(previousService)) return fullDuration;
+
+    const previousStaffId = String(previous.staffId || '').trim();
+    const nextStaffId = String(next?.staffId || '').trim();
+    const nextService = next?.serviceId ? this.serviceById().get(String(next.serviceId)) : undefined;
+    const differentStaff = !!previousStaffId && !!nextStaffId && previousStaffId !== nextStaffId;
+    const nextNeedsHairSequence = nextService ? this.isHairService(nextService) : false;
+    if (!differentStaff || nextNeedsHairSequence) return fullDuration;
+
+    return Math.min(fullDuration, this.processingHandoffMinutes(previousService));
+  }
+
+  private processingHandoffMinutes(service: ApiRecord): number {
+    const explicit = this.numberValue(service.applicationMinutes, service.applicationTimeMin, service.staffTimeMin, service.handoffMinutes);
+    if (explicit > 0) return Math.max(5, Math.min(60, explicit));
+    return PROCESSING_HANDOFF_MINUTES;
+  }
+
+  private isProcessingService(service: ApiRecord): boolean {
+    if (this.numberValue(service.processingTimeMin, service.processingMinutes, service.processTimeMin) > 0) return true;
+    return /\b(root touch ?up|root|touch ?up|touchup|color|colour|tint|bleach|highlight|global|balayage|toner|smooth|keratin|botox|perm|rebond|chemical)\b/.test(this.serviceSearchText(service));
+  }
+
+  private isHairService(service: ApiRecord): boolean {
+    return /\b(hair|root|touch ?up|touchup|color|colour|tint|bleach|highlight|global|balayage|toner|smooth|keratin|botox|perm|rebond|chemical|wash|cut|blow|scalp)\b/.test(this.serviceSearchText(service));
+  }
+
+  private serviceSearchText(service: ApiRecord): string {
+    return [
+      service.name,
+      service.serviceName,
+      service.title,
+      service.category,
+      service.subCategory,
+      service.serviceCode,
+      service.description
+    ].map((value) => String(value || '').toLowerCase()).join(' ').replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
   bookingStaffOption(person: StaffLane): string {
@@ -3654,6 +3616,11 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private isPendingAppointment(appointment: ApiRecord): boolean {
     const status = this.normalizedAppointmentStatus(appointment.status || 'booked');
     return !['completed', 'billed', 'paid', 'cancelled', 'canceled', 'no-show', 'deleted'].includes(status);
+  }
+
+  private shouldShowOnAppointmentCalendar(appointment: ApiRecord): boolean {
+    const status = this.normalizedAppointmentStatus(appointment.status || 'booked');
+    return !['cancelled', 'canceled', 'deleted'].includes(status);
   }
 
   private appointmentKey(appointment: ApiRecord): string {
@@ -3785,11 +3752,6 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   private isoAtMinute(minute: number): string {
     return this.isoFromLocal(this.localDateTime(minute));
-  }
-
-  private nextServiceStartTime(): string {
-    const last = this.bookingLines().at(-1);
-    return last ? this.addLocalMinutes(last.startAt, Number(last.durationMinutes || 30)) : this.localDateTime(10 * 60);
   }
 
   private clearClientServiceHistory(): void {

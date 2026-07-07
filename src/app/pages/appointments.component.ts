@@ -1094,13 +1094,13 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
 
     .month-date-strip button.active {
       border-color: var(--teal);
-      background: #FBF0E8;
+      background: #e6f7f3;
       color: var(--teal-2);
       box-shadow: inset 0 -3px 0 var(--teal);
     }
 
     .month-date-strip button.today:not(.active) {
-      border-color: rgba(75, 18, 56, 0.34);
+      border-color: rgba(15, 118, 110, 0.34);
     }
 
     .month-date-strip span,
@@ -1166,7 +1166,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .booking-guard.guard-success {
-      border-color: rgba(200, 125, 75, 0.3);
+      border-color: rgba(22, 163, 74, 0.3);
       background: #f1fbf5;
     }
 
@@ -1219,7 +1219,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .smart-slot-grid button.selected {
       border-color: var(--teal);
       background: #e7f7f2;
-      box-shadow: 0 0 0 2px rgba(75, 18, 56, 0.12);
+      box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.12);
     }
 
     .smart-slot-grid button b {
@@ -1247,7 +1247,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .ops-pulse-grid button.success {
-      border-color: rgba(200, 125, 75, 0.28);
+      border-color: rgba(22, 163, 74, 0.28);
       background: #f1fbf5;
     }
 
@@ -1297,8 +1297,8 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .appointment-kpis .waitlist-kpi-action {
-      border-color: rgba(75, 18, 56, 0.34);
-      background: linear-gradient(135deg, #FAF8F6, #ffffff);
+      border-color: rgba(15, 118, 110, 0.34);
+      background: linear-gradient(135deg, #ecfdf5, #ffffff);
     }
 
     .appointment-kpis .waitlist-kpi-action span,
@@ -1585,7 +1585,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
       transform: translateY(-50%);
       max-width: calc(100% - 20px);
       overflow: hidden;
-      border: 1px solid rgba(75, 18, 56, 0.36);
+      border: 1px solid rgba(15, 118, 110, 0.36);
       border-radius: 4px;
       background: #fffbe8;
       color: var(--ink);
@@ -1741,7 +1741,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .staff-action-menu span {
       min-width: 22px;
       border-radius: 999px;
-      background: #FBF0E8;
+      background: #e6f7f3;
       color: var(--teal-2);
       padding: 1px 7px;
       text-align: center;
@@ -1768,7 +1768,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .queue-list button,
     .waitlist-list button {
       width: 100%;
-      border: 1px solid rgba(75, 18, 56, 0.24);
+      border: 1px solid rgba(15, 118, 110, 0.24);
       border-radius: 8px;
       background: #d4f1e8;
       color: var(--ink);
@@ -1820,8 +1820,8 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .scheduler-card.tone-in-service {
-      border-color: rgba(200, 125, 75, 0.5);
-      background: #FBF0E8;
+      border-color: rgba(22, 163, 74, 0.5);
+      background: #dcfce7;
     }
 
     .scheduler-card.tone-completed,
@@ -1904,7 +1904,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     .queue-list button:hover,
     .waitlist-list button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 12px 22px rgba(75, 18, 56, 0.12);
+      box-shadow: 0 12px 22px rgba(15, 118, 110, 0.12);
     }
 
     .appointment-card.late {
@@ -2034,7 +2034,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
       gap: 2px;
       border: 1px solid var(--line);
       border-radius: 10px;
-      background: linear-gradient(135deg, rgba(75, 18, 56, calc(var(--heat) * 0.06)), #fff);
+      background: linear-gradient(135deg, rgba(15, 118, 110, calc(var(--heat) * 0.13)), #fff);
       padding: 10px;
       text-align: left;
     }
@@ -2222,9 +2222,9 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .slot-summary div {
-      border: 1px solid rgba(75, 18, 56, 0.18);
+      border: 1px solid rgba(15, 118, 110, 0.18);
       border-radius: 9px;
-      background: #F8EEF4;
+      background: #effaf7;
       padding: 10px;
     }
 
@@ -2273,7 +2273,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .appointment-search-results button:hover {
-      background: #F8EEF4;
+      background: #effaf7;
     }
 
     .appointment-search-results strong {
@@ -2370,7 +2370,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
 
     .quick-time-row button {
       min-height: 32px;
-      border: 1px solid rgba(75, 18, 56, 0.22);
+      border: 1px solid rgba(15, 118, 110, 0.22);
       border-radius: 999px;
       background: #f3fbf8;
       color: var(--teal-2);
@@ -2434,8 +2434,8 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
     }
 
     .sms-desk {
-      border-color: rgba(75, 18, 56, 0.24);
-      background: linear-gradient(135deg, #faf8f6, #fff);
+      border-color: rgba(15, 118, 110, 0.24);
+      background: linear-gradient(135deg, #f7fffc, #fff);
     }
 
     .sms-route-grid {
@@ -3767,7 +3767,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       for (let next = index + 1; next < rows.length; next += 1) {
         const sameStaff = rows[index].staffId && rows[index].staffId === rows[next].staffId;
         const sameResource = this.resourceName(rows[index]) !== 'Unassigned' && this.resourceName(rows[index]) === this.resourceName(rows[next]);
-        if ((sameStaff || sameResource) && this.overlaps(rows[index], rows[next])) conflicts += 1;
+        if ((sameStaff || sameResource) && appointmentConflictBlocks(rows[index], rows[next], this.serviceByIdMap())) conflicts += 1;
       }
     }
     return conflicts;
@@ -4213,7 +4213,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   dropStatus(status: string, event?: DragEvent): void {
     event?.preventDefault();
     if (!this.draggingId) return;
-    this.api.post<{ appointment?: ApiRecord }>(`appointment-lifecycle/appointments/${this.draggingId}/status`, { status }).subscribe({
+    this.api.postSecure<{ appointment?: ApiRecord }>(`appointment-lifecycle/appointments/${this.draggingId}/status`, { status }).subscribe({
       next: (result) => this.afterAppointmentChange(result.appointment || { id: this.draggingId, status }),
       error: (error) => this.error.set(error?.error?.error || error?.message || 'Unable to update status')
     });
@@ -4444,7 +4444,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       const planConflict = planProbes.find((existing) => {
         const sameStaff = existing.staffId === probe.staffId;
         const sameChair = this.resourceName(existing) !== 'Unassigned' && this.resourceName(existing) === this.resourceName(probe);
-        return (sameStaff || sameChair) && appointmentConflictBlocks(probe, existing, this.serviceByIdMap());
+        return (sameStaff || sameChair) && appointmentConflictBlocks(existing, probe, this.serviceByIdMap());
       });
       if (planConflict) {
         hardBlock = true;
@@ -4500,7 +4500,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   auditDetails(event: ApiRecord): string {
     if (event.reason || event.riskReason || event.suggestedAction) {
-        return [event.reason, event.riskReason, event.suggestedAction].filter(Boolean).join(' · ');
+      return [event.reason, event.riskReason, event.suggestedAction].filter(Boolean).join(' · ');
     }
     if (Array.isArray(event.changes) && event.changes.length) {
       return event.changes.slice(0, 2).map((change: ApiRecord) => `${change.field}: ${change.oldValue} -> ${change.newValue}`).join(' · ');
@@ -4572,7 +4572,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     return serviceTotalMinutes(service);
   }
 
-  serviceByIdMap(): Map<string, ApiRecord> {
+  private serviceByIdMap(): Map<string, ApiRecord> {
     return new Map(this.services().map((service) => [String(service.id || ''), service]));
   }
 
@@ -4600,7 +4600,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   staffAvatarColor(person: ApiRecord): string {
     const seed = String(person.id || person.name || 'staff').split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    const palette = ['#F5EEF2', '#FBF0E8', '#fef3c7', '#fce7f3', '#ede9fe', '#F5EEF2', '#ffedd5'];
+    const palette = ['#dbeafe', '#dcfce7', '#fef3c7', '#fce7f3', '#ede9fe', '#cffafe', '#ffedd5'];
     return palette[seed % palette.length];
   }
 
@@ -4675,7 +4675,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       .filter((appointment) => {
         const sameStaff = appointment.staffId && appointment.staffId === probe.staffId;
         const sameResource = this.resourceName(appointment) !== 'Unassigned' && this.resourceName(appointment) === this.resourceName(probe);
-        return (sameStaff || sameResource) && appointmentConflictBlocks(probe, appointment, this.serviceByIdMap());
+        return (sameStaff || sameResource) && appointmentConflictBlocks(appointment, probe, this.serviceByIdMap());
       });
   }
 
