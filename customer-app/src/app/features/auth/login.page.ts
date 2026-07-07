@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChildren } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon, IonInput, IonItem, IonList } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { callOutline, closeOutline, logoApple, logoFacebook, logoGoogle, logoWhatsapp, mailOutline, personOutline, shieldCheckmarkOutline, sparklesOutline } from "ionicons/icons";
@@ -13,7 +13,7 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
 
 @Component({
   standalone: true,
-  imports: [FormsModule, IonButton, IonContent, IonIcon, IonInput, IonItem, IonList],
+  imports: [FormsModule, RouterLink, IonButton, IonContent, IonIcon, IonInput, IonItem, IonList],
   template: `
     <ion-content>
       <main class="auth-shell">
@@ -27,6 +27,7 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
             <span>Rewards</span>
             <span>Fast OTP</span>
           </div>
+          <a class="staff-switch" routerLink="/staff/login">Staff? Open staff login</a>
 
           @if (notice) {
             <p class="notice-text">{{ notice }}</p>
@@ -350,6 +351,21 @@ type AuthStep = "choices" | "email" | "emailCode" | "completeProfile" | "mobile"
       background: rgba(244, 213, 141, 0.16);
       font-size: 0.76rem;
       font-weight: 950;
+    }
+
+    .staff-switch {
+      justify-self: center;
+      display: inline-grid;
+      place-items: center;
+      min-height: 38px;
+      padding: 0 16px;
+      border: 1px solid rgba(214, 169, 74, 0.32);
+      border-radius: 999px;
+      color: #6E4810;
+      background: rgba(255, 255, 255, 0.66);
+      font-size: 0.84rem;
+      font-weight: 950;
+      text-decoration: none;
     }
 
     .subtitle,

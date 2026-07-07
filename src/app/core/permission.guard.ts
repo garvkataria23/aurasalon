@@ -8,7 +8,17 @@ export const GRANTS: Record<string, string[]> = {
   owner: ['*'],
   admin: ['*'],
   manager: [
-    'read:*',
+    'read:dashboard',
+    'read:appointments',
+    'read:clients',
+    'read:services',
+    'read:products',
+    'read:inventory',
+    'read:sales',
+    'read:invoices',
+    'read:payments',
+    'read:staff',
+    'read:reports',
     'write:clients',
     'write:appointments',
     'write:services',
@@ -21,7 +31,14 @@ export const GRANTS: Record<string, string[]> = {
     'write:staff'
   ],
   receptionist: [
-    'read:*',
+    'read:dashboard',
+    'read:appointments',
+    'read:clients',
+    'read:services',
+    'read:products',
+    'read:sales',
+    'read:invoices',
+    'read:payments',
     'write:clients',
     'write:appointments',
     'write:sales',
@@ -30,7 +47,14 @@ export const GRANTS: Record<string, string[]> = {
     'write:appointment_deposits'
   ],
   frontDesk: [
-    'read:*',
+    'read:dashboard',
+    'read:appointments',
+    'read:clients',
+    'read:services',
+    'read:products',
+    'read:sales',
+    'read:invoices',
+    'read:payments',
     'write:clients',
     'write:appointments',
     'write:sales',
@@ -38,9 +62,11 @@ export const GRANTS: Record<string, string[]> = {
     'write:payments',
     'write:appointment_deposits'
   ],
-  cashier: ['read:*', 'write:clients', 'write:sales', 'write:invoices', 'write:payments', 'read:appointment_deposits', 'read:finance', 'write:finance'],
-  accountant: ['read:*', 'write:finance', 'write:invoices', 'write:payments', 'read:appointment_deposits'],
-  inventoryManager: ['read:*', 'write:products', 'write:inventory', 'write:suppliers'],
+  cashier: ['read:dashboard', 'read:clients', 'read:services', 'read:products', 'read:sales', 'read:invoices', 'read:payments', 'write:clients', 'write:sales', 'write:invoices', 'write:payments', 'read:appointment_deposits', 'read:finance', 'write:finance'],
+  accountant: ['read:dashboard', 'read:finance', 'read:invoices', 'read:payments', 'write:finance', 'write:invoices', 'write:payments', 'read:appointment_deposits'],
+  inventoryManager: ['read:dashboard', 'read:products', 'read:inventory', 'read:suppliers', 'write:products', 'write:inventory', 'write:suppliers'],
+  marketingLead: ['read:dashboard', 'read:marketing', 'write:marketing', 'read:campaigns', 'write:campaigns', 'read:clients', 'read:leads', 'write:leads', 'read:coupons', 'write:coupons', 'read:whatsapp', 'write:whatsapp', 'read:notifications', 'write:notifications', 'read:reviews'],
+  customMarketingLead: ['read:dashboard', 'read:marketing', 'write:marketing', 'read:campaigns', 'write:campaigns', 'read:clients', 'read:leads', 'write:leads', 'read:coupons', 'write:coupons', 'read:whatsapp', 'write:whatsapp', 'read:notifications', 'write:notifications', 'read:reviews'],
   staff: ['read:staff', 'read:appointments', 'read:clients', 'read:services', 'write:appointments'],
   analyst: ['read:*', 'write:analytics']
 };
@@ -51,6 +77,7 @@ function normalizeRole(role: string): string {
   if (compact === 'frontdesk') return 'frontDesk';
   if (compact === 'inventorymanager') return 'inventoryManager';
   if (compact === 'custommarketinglead') return 'customMarketingLead';
+  if (compact === 'marketinglead') return 'marketingLead';
   return role;
 }
 

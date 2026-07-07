@@ -1,12 +1,13 @@
 import { CurrencyPipe, DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } from "../../core/staff-app.service";
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink, IonSpinner],
+  imports: [CurrencyPipe, DatePipe, FormsModule, RouterLink, IonSpinner],
   template: `
     <section class="page">
       <header class="page-head"><div><p class="eyebrow">Appointments</p><h1>Appointments</h1><p>Assigned bookings with service actions and Client 360 links.</p></div></header>
@@ -57,7 +58,9 @@ import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } fro
           <div class="panel-title"><h2>Appointment detail</h2><button class="link-button" type="button" (click)="closeDrawers()">Close</button></div>
           <section class="grid two compact-grid"><article class="kpi"><span>Client</span><strong>{{ item.clientName || 'Walk-in' }}</strong></article><article class="kpi"><span>Status</span><strong>{{ item.status }}</strong></article></section>
           <div class="list"><div class="row"><strong>Time</strong><span>{{ item.startAt | date:'short' }} - {{ item.endAt | date:'shortTime' }}</span></div><div class="row"><strong>Services</strong><span>{{ item.serviceNames.join(', ') || '-' }}</span></div><div class="row"><strong>Duration</strong><span>{{ item.durationMinutes || 0 }} min</span></div><div class="row"><strong>Chair</strong><span>{{ item.chair || '-' }}</span></div><div class="row"><strong>Phone</strong><span>{{ item.clientPhone || '-' }}</span></div></div>
+          <div class="form-grid drawer-form"><label>Status<input [(ngModel)]="editStatus" /></label><label>Chair<input [(ngModel)]="editChair" /></label><label>Start ISO<input [(ngModel)]="editStartAt" /></label><label>End ISO<input [(ngModel)]="editEndAt" /></label><label>Services CSV<input [(ngModel)]="editServiceIds" /></label><label>Notes<input [(ngModel)]="editNotes" /></label></div>
           <div class="row-actions drawer-actions">@if (canUpdateAppointments()) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button><button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> } @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Client preview</button><a class="button primary" [routerLink]="['/staff/client-360', item.clientId]">Full Client 360</a> }</div>
+          <button class="button primary" type="button" (click)="saveAppointment(item.id)">Save changes</button>
         </aside>
       }
 
@@ -80,6 +83,12 @@ export class StaffAppointmentsPage implements OnInit {
   readonly message = signal("");
   readonly selectedAppointment = signal<StaffAppointment | null>(null);
   readonly selectedClient = signal<StaffClient360 | null>(null);
+  editNotes = "";
+  editChair = "";
+  editStatus = "";
+  editStartAt = "";
+  editEndAt = "";
+  editServiceIds = "";
 
   constructor(readonly staff: StaffAppService) {}
 
@@ -96,10 +105,11 @@ export class StaffAppointmentsPage implements OnInit {
   async startService(appointmentId: string) { await this.staff.startService(appointmentId).then(() => this.afterAction("Service started.")); }
   async completeService(appointmentId: string) { await this.staff.completeService(appointmentId).then(() => this.afterAction("Service completed.")); }
 
-  openAppointment(item: StaffAppointment) { this.selectedAppointment.set(item); }
+  openAppointment(item: StaffAppointment) { this.editNotes = item.notes || ""; this.editChair = item.chair || ""; this.editStatus = item.status || ""; this.editStartAt = item.startAt || ""; this.editEndAt = item.endAt || ""; this.editServiceIds = (item.serviceIds || []).join(", "); this.selectedAppointment.set(item); }
   closeDrawers() { this.selectedAppointment.set(null); this.selectedClient.set(null); }
   closeClientPreview() { this.selectedClient.set(null); }
   async openClientPreview(clientId: string) { this.selectedAppointment.set(null); this.selectedClient.set(await this.staff.client360(clientId)); }
+  async saveAppointment(appointmentId: string) { const updated = await this.staff.updateAppointment(appointmentId, { notes: this.editNotes, chair: this.editChair, status: this.editStatus, startAt: this.editStartAt, endAt: this.editEndAt, serviceIds: this.editServiceIds.split(",").map((item) => item.trim()).filter(Boolean) }); this.message.set("Appointment updated."); this.selectedAppointment.set(updated); await this.load(); }
 
   private async afterAction(message: string) { this.message.set(message); await this.load(); }
 }

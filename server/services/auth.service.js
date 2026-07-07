@@ -4,6 +4,7 @@ import { repositories } from "../repositories/repository-registry.js";
 import { can, staticGrantsForRole } from "../middleware/rbac.js";
 import { AppError, badRequest, forbidden, unauthorized } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
+import { assertLoginBranchScope, ensureTenantUserAccessColumns, normalizeRole } from "./access-control.service.js";
 import { twoFactorService } from "./two-factor.service.js";
 import { intrusionDetectionService } from "./intrusion-detection.service.js";
 import { permissionResources } from "../config/staff-permission-catalog.js";
@@ -94,6 +95,7 @@ function applyActionGrant(grants, resource, action) {
 
 export class AuthService {
   login(payload = {}, request = {}) {
+    ensureTenantUserAccessColumns();
     const tenant = tenantService.resolveTenant({ tenantId: payload.tenantId || request.tenantId || "", host: request.host || "" });
     if (!tenant) throw badRequest("Tenant not found");
     tenantService.ensureSubscriptionActive(tenant.id);
@@ -113,11 +115,12 @@ export class AuthService {
       intrusionDetectionService.recordFailedLogin({ tenantId: tenant.id, email: loginIdentity, ip: request.ip || "", userAgent: request.userAgent || "" });
       throw unauthorized("Invalid login credentials");
     }
+    user = { ...user, role: normalizeRole(user.role) };
     if (user.status && user.status !== "active") throw forbidden("User is not active");
     if (user.lockedUntil && user.lockedUntil > now()) throw forbidden("User is temporarily locked after repeated failed logins");
     this.verifyPassword(user, payload.password, { tenantId: tenant.id, ip: request.ip || "", userAgent: request.userAgent || "" });
     this.verifyTwoFactor(user, payload, tenant.id);
-    const branchId = payload.branchId || user.branchIds?.[0] || "";
+    const branchId = assertLoginBranchScope(user, payload.branchId || "");
     if (branchId) tenantService.assertBranchAccess({ tenantId: tenant.id, role: user.role, branchIds: user.branchIds || [], branchId }, branchId);
     const device = payload.device ? this.registerDevice({ ...payload.device, userId: user.id, branchId }, { tenantId: tenant.id, userId: user.id, role: user.role, branchId, branchIds: user.branchIds || [] }) : null;
     repositories.tenantUsers.update(user.id, { failedLoginCount: 0, lockedUntil: "", lastLoginAt: now() }, { tenantId: tenant.id });
@@ -156,6 +159,7 @@ export class AuthService {
   }
 
   refresh(refreshToken) {
+    ensureTenantUserAccessColumns();
     if (!refreshToken) throw unauthorized("Refresh token is required");
     const tokenHash = hashToken(refreshToken);
     const record = repositories.authRefreshTokens.list({ limit: 100000 }, {}).find((item) => item.tokenHash === tokenHash);
@@ -164,7 +168,8 @@ export class AuthService {
     const user = repositories.tenantUsers.getById(record.userId, { tenantId: record.tenantId });
     if (!tenant || !user) throw unauthorized("Refresh token account no longer exists");
     repositories.authRefreshTokens.update(record.id, { revokedAt: now() }, { tenantId: record.tenantId });
-    return this.issueTokenPair({ tenant, user, branchId: record.branchId || user.branchIds?.[0] || "", deviceId: record.deviceId || "" });
+    const branchId = assertLoginBranchScope({ ...user, role: normalizeRole(user.role) }, record.branchId || "");
+    return this.issueTokenPair({ tenant, user: { ...user, role: normalizeRole(user.role) }, branchId, deviceId: record.deviceId || "" });
   }
 
   logout(refreshToken, access = {}) {
@@ -177,22 +182,24 @@ export class AuthService {
   }
 
   permissionsForUser(user, tenantId) {
-    const staticGrants = staticGrantsForRole(user.role || "");
+    const role = normalizeRole(user.role || "");
+    const staticGrants = staticGrantsForRole(role);
     if (staticGrants.includes("*")) return ["*"];
     const permissionRows = repositories.securityPermissions.list({ limit: 5000 }, { tenantId })
-      .filter((row) => row.role === user.role && (row.status || "active") === "active");
+      .filter((row) => normalizeRole(row.role) === role && (row.status || "active") === "active");
     if (!permissionRows.length) return Array.from(new Set(staticGrants)).sort();
 
     const actions = ["read", "write", "create", "update", "delete", "back", "print", "export", "admin", "allow"];
-    const grants = new Set();
+    const grants = new Set(staticGrants);
     permissionResources.forEach((resource) => {
       actions.forEach((action) => {
-        if (can(user.role || "staff", action, resource, { tenantId })) grants.add(`${action}:${resource}`);
+        if (can(role || "staff", action, resource, { tenantId })) grants.add(`${action}:${resource}`);
       });
     });
     return Array.from(grants).sort();
   }
   issueTokenPair({ tenant, user, branchId = "", deviceId = "" }) {
+    ensureTenantUserAccessColumns();
     const permissions = this.permissionsForUser(user, tenant.id);
     const accessPayload = {
       iss: "aura-salon-api",
@@ -207,6 +214,7 @@ export class AuthService {
       branchId,
       branchIds: user.branchIds || [],
       permissions,
+      permissionVersion: Number(user.permissionVersion || 1),
       deviceId,
       jti: makeId("jwt")
     };
@@ -237,7 +245,8 @@ export class AuthService {
         staffId: user.staffId || "",
         branchId,
         branchIds: user.branchIds || [],
-        permissions
+        permissions,
+        permissionVersion: Number(user.permissionVersion || 1)
       },
       tenant: {
         id: tenant.id,

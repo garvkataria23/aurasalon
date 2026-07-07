@@ -6,7 +6,17 @@ const permissions = {
   owner: ["*"],
   admin: ["*"],
   manager: [
-    "read:*",
+    "read:dashboard",
+    "read:appointments",
+    "read:clients",
+    "read:services",
+    "read:products",
+    "read:inventory",
+    "read:sales",
+    "read:invoices",
+    "read:payments",
+    "read:staff",
+    "read:reports",
     "write:clients",
     "write:appointments",
     "write:services",
@@ -50,7 +60,14 @@ const permissions = {
     "write:migration"
   ],
   receptionist: [
-    "read:*",
+    "read:dashboard",
+    "read:appointments",
+    "read:clients",
+    "read:services",
+    "read:products",
+    "read:sales",
+    "read:invoices",
+    "read:payments",
     "write:clients",
     "write:appointments",
     "write:sales",
@@ -72,7 +89,14 @@ const permissions = {
     "write:notifications"
   ],
   frontDesk: [
-    "read:*",
+    "read:dashboard",
+    "read:appointments",
+    "read:clients",
+    "read:services",
+    "read:products",
+    "read:sales",
+    "read:invoices",
+    "read:payments",
     "write:clients",
     "write:appointments",
     "write:sales",
@@ -95,7 +119,13 @@ const permissions = {
     "write:notifications"
   ],
   cashier: [
-    "read:*",
+    "read:dashboard",
+    "read:clients",
+    "read:services",
+    "read:products",
+    "read:sales",
+    "read:invoices",
+    "read:payments",
     "write:clients",
     "write:sales",
     "write:invoices",
@@ -111,7 +141,10 @@ const permissions = {
     "write:notifications"
   ],
   accountant: [
-    "read:*",
+    "read:dashboard",
+    "read:finance",
+    "read:invoices",
+    "read:payments",
     "read:finance",
     "write:finance",
     "read:invoices",
@@ -129,7 +162,7 @@ const permissions = {
     "write:deployment"
   ],
   inventoryManager: [
-    "read:*",
+    "read:dashboard",
     "read:products",
     "write:products",
     "read:inventory",
@@ -140,6 +173,40 @@ const permissions = {
     "write:suppliers",
     "read:branches",
     "write:branches"
+  ],
+  marketingLead: [
+    "read:dashboard",
+    "read:marketing",
+    "write:marketing",
+    "read:campaigns",
+    "write:campaigns",
+    "read:clients",
+    "read:leads",
+    "write:leads",
+    "read:coupons",
+    "write:coupons",
+    "read:whatsapp",
+    "write:whatsapp",
+    "read:notifications",
+    "write:notifications",
+    "read:reviews"
+  ],
+  customMarketingLead: [
+    "read:dashboard",
+    "read:marketing",
+    "write:marketing",
+    "read:campaigns",
+    "write:campaigns",
+    "read:clients",
+    "read:leads",
+    "write:leads",
+    "read:coupons",
+    "write:coupons",
+    "read:whatsapp",
+    "write:whatsapp",
+    "read:notifications",
+    "write:notifications",
+    "read:reviews"
   ],
   staff: [
     "read:appointments",
@@ -162,13 +229,14 @@ const permissions = {
   analyst: ["read:*", "read:reports", "read:analytics", "write:analytics", "read:ai", "read:whatsapp", "write:ai", "read:security", "read:quality", "read:deployment", "read:future-features", "write:future-features", "read:finance", "read:customer-360", "read:workflows"]
 };
 
-function normalizeRole(role = "") {
+export function normalizeRole(role = "") {
   const value = String(role || "").trim();
   const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
   if (compact === "superadmin") return "superAdmin";
   if (compact === "frontdesk") return "frontDesk";
   if (compact === "inventorymanager") return "inventoryManager";
   if (compact === "custommarketinglead") return "customMarketingLead";
+  if (compact === "marketinglead") return "marketingLead";
   return value;
 }
 

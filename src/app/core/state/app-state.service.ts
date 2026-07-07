@@ -11,6 +11,7 @@ export type UserRole =
   | 'staff'
   | 'accountant'
   | 'inventoryManager'
+  | 'marketingLead'
   | 'analyst'
   | 'customMarketingLead'
   | (string & {});
@@ -57,6 +58,7 @@ export class AppStateService {
     if (compact === 'superadmin') return 'superAdmin';
     if (compact === 'frontdesk') return 'frontDesk';
     if (compact === 'inventorymanager') return 'inventoryManager';
+    if (compact === 'marketinglead') return 'marketingLead';
     if (compact === 'custommarketinglead') return 'customMarketingLead';
     return (role as UserRole) || 'owner';
   }

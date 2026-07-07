@@ -5,12 +5,13 @@ import { repositories } from "../repositories/repository-registry.js";
 import { securityService } from "../services/security.service.js";
 import { twoFactorService } from "../services/two-factor.service.js";
 import { badRequest, forbidden } from "../utils/app-error.js";
+import { isOwnerControlRole } from "../services/access-control.service.js";
 
 const ALLOWED_ROLES = new Set(["owner", "admin", "superAdmin"]);
 const now = () => new Date().toISOString();
 
 function requireTwoFactorRole(access = {}) {
-  if (!ALLOWED_ROLES.has(access.role)) throw forbidden("Two-factor authentication is available for owner/admin accounts only");
+  if (!isOwnerControlRole(access.role) && !ALLOWED_ROLES.has(access.role)) throw forbidden("Two-factor authentication is available for owner/admin accounts only");
 }
 
 function parseRecoveryCodes(value) {

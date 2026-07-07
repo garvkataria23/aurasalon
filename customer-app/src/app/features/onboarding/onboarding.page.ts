@@ -28,6 +28,7 @@ import { IonButton, IonContent } from "@ionic/angular/standalone";
           </div>
           <ion-button expand="block" size="large" class="primary-gradient" routerLink="/login">Get started</ion-button>
           <ion-button expand="block" fill="clear" routerLink="/tabs/home">Explore as guest</ion-button>
+          <a class="staff-switch" routerLink="/staff/login">Staff? Open staff login</a>
         </section>
       </main>
     </ion-content>
@@ -187,6 +188,19 @@ import { IonButton, IonContent } from "@ionic/angular/standalone";
     }
 
     ion-button { margin-top: 14px; }
+
+    .staff-switch {
+      display: grid;
+      place-items: center;
+      min-height: 44px;
+      margin-top: 10px;
+      border: 1px solid rgba(125, 89, 32, 0.16);
+      border-radius: 999px;
+      color: #6e4810;
+      background: rgba(255, 255, 255, 0.64);
+      font-weight: 950;
+      text-decoration: none;
+    }
 
     @media (max-width: 520px) {
       .onboarding {

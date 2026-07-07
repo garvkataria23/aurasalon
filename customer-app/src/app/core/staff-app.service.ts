@@ -6,6 +6,7 @@ import { environment } from "../../environments/environment";
 const STAFF_ACCESS_TOKEN_KEY = "auraStaffAccessToken";
 const STAFF_REFRESH_TOKEN_KEY = "auraStaffRefreshToken";
 const STAFF_SESSION_KEY = "auraStaffSession";
+const STAFF_OFFLINE_QUEUE_KEY = "auraStaffOfflineQueue";
 
 export type StaffUser = {
   id: string;
@@ -26,6 +27,7 @@ export type StaffAppointment = {
   clientPhone: string;
   staffId: string;
   branchId: string;
+  serviceIds: string[];
   serviceNames: string[];
   durationMinutes: number;
   value: number;
@@ -88,7 +90,7 @@ export type StaffEnterpriseOs = {
   gamification: { points: number; level: number; stars: number; dailyStreak: number; monthlyStreak: number; badges: Array<{ label: string; description: string; earned: boolean }> };
   notifications: Array<{ id: string; title: string; body: string; status: string; createdAt: string }>;
   tasks: Array<{ id: string; title: string; priority: string; status: string; dueAt: string; assignedBy: string; checklist: unknown[] }>;
-  calendar: Array<{ id: string; date: string; startTime: string; endTime: string; type: string; status: string }>;
+  calendar: Array<{ id: string; date: string; startTime: string; endTime: string; type: string; status: string; version?: number }>;
   reports: Record<string, { days: number; revenue: number; services: number; productivityScore: number; rating: number }>;
 };
 
@@ -100,12 +102,19 @@ export type StaffClient360 = {
   previousServices: Array<{ id: string; startAt: string; status: string; serviceIds: string[] }>;
   productsBought: Array<{ id: string; total: number; createdAt: string; status: string }>;
   cancellationHistory: Array<{ id: string; startAt: string; status: string; notes: string }>;
+  preferences?: { notes: string; allergies: string; tags: string[]; preferredStylist: string };
+  mediaPortfolio?: Array<{ id: string; title: string; type: string; url: string; createdAt: string }>;
   lifetimeSpend: number;
   visitFrequency: number;
   lastVisit: string;
   retentionScore: number;
   aiRecommendations: string[];
 };
+
+export type StaffChatThread = { id: string; tenantId: string; branchId: string; title: string; channel: string; messageCount?: number; lastMessageAt?: string };
+export type StaffChatMessage = { id: string; threadId: string; senderStaffId: string; senderName: string; body: string; createdAt: string; readByJson?: string };
+export type StaffLearningModule = { id: string; title: string; description: string; category: string; durationMinutes: number; progressStatus: string; completedAt: string };
+export type StaffLearning = { modules: StaffLearningModule[]; summary: { total: number; completed: number; progress: number } };
 
 export type StaffAttendance = {
   id: string;
@@ -273,6 +282,46 @@ export class StaffAppService {
     return this.get<StaffClient360>(`/staff-self/clients/${encodeURIComponent(clientId)}/360`);
   }
 
+  async updateNotification(id: string, status: "read" | "unread" | "archived" = "read"): Promise<unknown> {
+    return this.patch(`/staff-self/notifications/${encodeURIComponent(id)}`, { status });
+  }
+
+  async updateAppointment(appointmentId: string, payload: { notes?: string; chair?: string; status?: string; startAt?: string; endAt?: string; serviceIds?: string[] }): Promise<StaffAppointment> {
+    return this.patch<StaffAppointment>(`/staff-self/appointments/${encodeURIComponent(appointmentId)}`, payload);
+  }
+
+  async addClientMedia(clientId: string, payload: { title: string; type?: string; url?: string; dataUrl?: string }): Promise<{ id: string; title: string; type: string; url: string; createdAt: string }> {
+    return this.post(`/staff-self/clients/${encodeURIComponent(clientId)}/media`, payload);
+  }
+
+  async updateSchedule(scheduleId: string, payload: { version: number; scheduleDate?: string; startTime?: string; endTime?: string; status?: string; notes?: string }): Promise<unknown> {
+    return this.patch(`/staff-self/calendar/${encodeURIComponent(scheduleId)}`, payload);
+  }
+
+  async chatThreads(): Promise<StaffChatThread[]> {
+    return this.get<StaffChatThread[]>("/staff-self/chat/threads");
+  }
+
+  async chatMessages(threadId: string): Promise<StaffChatMessage[]> {
+    return this.get<StaffChatMessage[]>(`/staff-self/chat/threads/${encodeURIComponent(threadId)}/messages`);
+  }
+
+  async sendChatMessage(threadId: string, body: string): Promise<StaffChatMessage> {
+    if (!this.isOnline()) {
+      this.queueOfflineAction("POST", "/staff-self/chat/messages", { threadId, body });
+      return { id: `queued_${Date.now()}`, threadId, senderStaffId: this.staffId(), senderName: this.user()?.name || "Queued", body, createdAt: new Date().toISOString() };
+    }
+    return this.post<StaffChatMessage>("/staff-self/chat/messages", { threadId, body });
+  }
+
+  async learning(): Promise<StaffLearning> {
+    return this.get<StaffLearning>("/staff-self/learning");
+  }
+
+  async completeLearningModule(moduleId: string, status: "completed" | "open" = "completed"): Promise<StaffLearning> {
+    return this.patch<StaffLearning>(`/staff-self/learning/${encodeURIComponent(moduleId)}`, { status });
+  }
+
   async today(date = new Date().toISOString().slice(0, 10)): Promise<StaffToday> {
     return this.get<StaffToday>("/staff-os/mobile/today", { date, staffId: this.staffId() });
   }
@@ -325,6 +374,10 @@ export class StaffAppService {
     return this.patch(`/staff-os/tasks/${taskId}`, { status: "completed", version });
   }
 
+  async moveTask(taskId: string, version: number, status: string): Promise<unknown> {
+    return this.patch(`/staff-os/tasks/${taskId}`, { status, version });
+  }
+
   logout() {
     localStorage.removeItem(STAFF_ACCESS_TOKEN_KEY);
     localStorage.removeItem(STAFF_REFRESH_TOKEN_KEY);
@@ -334,6 +387,43 @@ export class StaffAppService {
 
   openSession(session: { accessToken: string; refreshToken?: string; user: StaffUser }) {
     this.saveSession({ accessToken: session.accessToken, refreshToken: session.refreshToken || "", user: session.user });
+  }
+
+  realtimeSocketUrl(): string {
+    const token = this.accessToken();
+    if (!token) return "";
+    const branchId = this.user()?.branchId || this.user()?.branchIds?.[0] || "";
+    const base = this.baseUrl.startsWith("http")
+      ? new URL(this.baseUrl)
+      : new URL(this.baseUrl, window.location.origin);
+    base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
+    base.pathname = `${base.pathname.replace(/\/$/, "")}/realtime`;
+    base.searchParams.set("token", token);
+    if (branchId) base.searchParams.set("branchId", branchId);
+    return base.toString();
+  }
+
+  async flushOfflineActions(): Promise<number> {
+    if (!this.isOnline()) return 0;
+    const queue = this.readOfflineQueue();
+    if (!queue.length) return 0;
+    let flushed = 0;
+    const remaining = [];
+    for (const item of queue) {
+      try {
+        if (item.method === "POST") await this.post(item.path, item.body, true);
+        else await this.patch(item.path, item.body, true);
+        flushed += 1;
+      } catch {
+        remaining.push(item);
+      }
+    }
+    localStorage.setItem(STAFF_OFFLINE_QUEUE_KEY, JSON.stringify(remaining.slice(-30)));
+    return flushed;
+  }
+
+  offlineQueueSize(): number {
+    return this.readOfflineQueue().length;
   }
 
   private accessToken(): string {
@@ -367,9 +457,14 @@ export class StaffAppService {
     }
   }
 
-  private async post<T = unknown>(path: string, body: Record<string, unknown>): Promise<T> {
+  private async post<T = unknown>(path: string, body: Record<string, unknown>, flushing = false): Promise<T> {
     this.loading.set(true);
     this.error.set("");
+    if (!flushing && !this.isOnline()) {
+      this.queueOfflineAction("POST", path, body);
+      this.loading.set(false);
+      return { queued: true } as T;
+    }
     try {
       const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
       return this.unwrap(response);
@@ -382,9 +477,14 @@ export class StaffAppService {
     }
   }
 
-  private async patch<T = unknown>(path: string, body: Record<string, unknown>): Promise<T> {
+  private async patch<T = unknown>(path: string, body: Record<string, unknown>, flushing = false): Promise<T> {
     this.loading.set(true);
     this.error.set("");
+    if (!flushing && !this.isOnline()) {
+      this.queueOfflineAction("PATCH", path, body);
+      this.loading.set(false);
+      return { queued: true } as T;
+    }
     try {
       const response = await firstValueFrom(this.http.patch<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
       return this.unwrap(response);
@@ -415,6 +515,25 @@ export class StaffAppService {
 
   private isStaffRole(role: string): boolean {
     return ["staff", "frontDesk", "cashier", "manager"].includes(String(role || ""));
+  }
+
+  private isOnline(): boolean {
+    return typeof navigator === "undefined" ? true : navigator.onLine;
+  }
+
+  private queueOfflineAction(method: "POST" | "PATCH", path: string, body: Record<string, unknown>) {
+    const queue = this.readOfflineQueue();
+    queue.push({ method, path, body, queuedAt: new Date().toISOString() });
+    localStorage.setItem(STAFF_OFFLINE_QUEUE_KEY, JSON.stringify(queue.slice(-30)));
+  }
+
+  private readOfflineQueue(): Array<{ method: "POST" | "PATCH"; path: string; body: Record<string, unknown>; queuedAt: string }> {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STAFF_OFFLINE_QUEUE_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 
   private unwrap<T>(response: T | ApiEnvelope<T>): T {

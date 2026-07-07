@@ -3,11 +3,12 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { authenticateJwt } from "../middleware/auth.js";
 import { intrusionDetectionService } from "../services/intrusion-detection.service.js";
 import { forbidden } from "../utils/app-error.js";
+import { isOwnerControlRole } from "../services/access-control.service.js";
 
 const ALLOWED_ROLES = new Set(["owner", "admin", "superAdmin"]);
 
 function requireSecurityOwner(access = {}) {
-  if (!ALLOWED_ROLES.has(access.role)) throw forbidden("Security alerts are available for owner/admin accounts only");
+  if (!isOwnerControlRole(access.role) && !ALLOWED_ROLES.has(access.role)) throw forbidden("Security alerts are available for owner/admin accounts only");
 }
 
 export const securityAlertsRouter = Router();

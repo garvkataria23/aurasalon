@@ -1,10 +1,14 @@
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
-import { columnsFor, db } from "../db.js";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { columnsFor, dataDir, db } from "../db.js";
 import { badRequest, forbidden, notFound } from "../utils/app-error.js";
+import { realtimeService } from "./realtime.service.js";
+import { ensureTenantUserAccessColumns, normalizeBranchIdsForRole } from "./access-control.service.js";
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
-const privilegedRoles = new Set(["superAdmin", "owner", "admin", "manager"]);
+const privilegedRoles = new Set(["superAdmin", "owner", "admin"]);
 
 function normalizeRole(role = "") {
   const value = String(role || "").trim();
@@ -197,8 +201,62 @@ function ensureStaffSelfAppSchema() {
       url TEXT DEFAULT '',
       createdAt TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS staffSelfAudit (
+      id TEXT PRIMARY KEY,
+      tenantId TEXT NOT NULL,
+      branchId TEXT NOT NULL,
+      staffId TEXT NOT NULL,
+      action TEXT NOT NULL,
+      targetType TEXT DEFAULT '',
+      targetId TEXT DEFAULT '',
+      detailsJson TEXT DEFAULT '{}',
+      createdAt TEXT NOT NULL
+    );
   `);
   staffSelfAppSchemaReady = true;
+}
+
+function writeStaffSelfAudit(action, targetType, targetId, access = {}, branchId = "", staffId = "", details = {}) {
+  ensureStaffSelfAppSchema();
+  const row = {
+    id: makeId("audit"),
+    tenantId: access.tenantId || "tenant_aura",
+    branchId: branchId || access.branchId || "",
+    staffId: staffId || access.staffId || "",
+    action,
+    targetType,
+    targetId,
+    detailsJson: JSON.stringify(details || {}),
+    createdAt: now()
+  };
+  safeRun(`INSERT INTO staffSelfAudit (id, tenantId, branchId, staffId, action, targetType, targetId, detailsJson, createdAt)
+    VALUES (@id, @tenantId, @branchId, @staffId, @action, @targetType, @targetId, @detailsJson, @createdAt)`, row);
+  return row;
+}
+
+function safeRun(sql, params = {}) {
+  try {
+    return db.prepare(sql).run(params);
+  } catch {
+    return null;
+  }
+}
+
+function writeDataUrlMedia(payload = {}, mediaId = makeId("media")) {
+  const dataUrl = String(payload.dataUrl || payload.data_url || "").trim();
+  if (!dataUrl) return String(payload.url || "").trim();
+  const match = dataUrl.match(/^data:([\w/+.-]+);base64,(.+)$/);
+  if (!match) throw badRequest("Media dataUrl must be base64 data URL");
+  const mime = match[1];
+  const base64 = match[2];
+  const buffer = Buffer.from(base64, "base64");
+  if (buffer.length > 5 * 1024 * 1024) throw badRequest("Media upload must be under 5 MB");
+  const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : mime.includes("gif") ? "gif" : "jpg";
+  const dir = join(dataDir, "uploads", "staff-client-media");
+  mkdirSync(dir, { recursive: true });
+  const fileName = `${mediaId}.${ext}`;
+  writeFileSync(join(dir, fileName), buffer);
+  return `/uploads/staff-client-media/${fileName}`;
 }
 
 function scopedFilters(table, access, branchId = "") {
@@ -259,15 +317,16 @@ export class StaffLoginService {
   }
 
   upsertStaffLogin(staffOrId, payload = {}, access) {
+    ensureTenantUserAccessColumns();
     const staff = typeof staffOrId === "string" ? this.getStaff(staffOrId, access) : staffOrId;
     if (!staff?.id) throw notFound("Staff record not found");
-    if (!privilegedRoles.has(normalizeRole(access.role))) throw forbidden("Only managers and admins can provision staff login");
+    if (!privilegedRoles.has(normalizeRole(access.role))) throw forbidden("Only owner, admin or super admin can provision staff login");
     const loginId = normalizeLoginId(payload.loginId || payload.login_id || payload.email || staff.email || staff.mobile || staff.id);
     if (!loginId) throw badRequest("Staff login ID is required");
     const email = safeEmail(loginId, payload.email || staff.email);
     const requestedRole = String(payload.role || payload.roleId || staff.roleId || "staff").trim();
-    const authRole = ["manager", "frontDesk", "cashier", "staff"].includes(requestedRole) ? requestedRole : "staff";
-    const branchIds = [staff.branchId].filter(Boolean);
+    const authRole = ["manager", "frontDesk", "cashier", "staff", "marketingLead", "customMarketingLead", "inventoryManager", "accountant"].includes(normalizeRole(requestedRole)) ? normalizeRole(requestedRole) : "staff";
+    const branchIds = normalizeBranchIdsForRole(payload.branchIds || [staff.branchId].filter(Boolean), authRole);
     const existingByStaff = db.prepare("SELECT * FROM tenant_users WHERE tenantId = ? AND staffId = ?").get(access.tenantId, staff.id);
     const existingByLogin = db.prepare(`SELECT * FROM tenant_users
       WHERE tenantId = ? AND (lower(loginId) = lower(?) OR lower(email) = lower(?))`)
@@ -296,6 +355,9 @@ export class StaffLoginService {
       lockedUntil: "",
       lastLoginAt: existing?.lastLoginAt || "",
       status: payload.status || existing?.status || "active",
+      accessApprovedBy: access.userId || existing?.accessApprovedBy || "",
+      accessApprovedAt: existing?.accessApprovedAt || now(),
+      permissionVersion: Number(existing?.permissionVersion || 1) + (existing ? 1 : 0),
       createdAt: existing?.createdAt || now(),
       updatedAt: now()
     };
@@ -304,15 +366,16 @@ export class StaffLoginService {
         name = @name, loginId = @loginId, email = @email, role = @role, branchIds = @branchIds,
         staffId = @staffId, passwordSalt = @passwordSalt, passwordHash = @passwordHash,
         failedLoginCount = @failedLoginCount, lockedUntil = @lockedUntil, status = @status,
+        accessApprovedBy = @accessApprovedBy, accessApprovedAt = @accessApprovedAt, permissionVersion = @permissionVersion,
         updatedAt = @updatedAt
         WHERE id = @id AND tenantId = @tenantId`).run(row);
     } else {
       db.prepare(`INSERT INTO tenant_users (
         id, tenantId, name, loginId, email, role, branchIds, staffId, passwordSalt, passwordHash,
-        failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+        failedLoginCount, lockedUntil, lastLoginAt, status, accessApprovedBy, accessApprovedAt, permissionVersion, createdAt, updatedAt
       ) VALUES (
         @id, @tenantId, @name, @loginId, @email, @role, @branchIds, @staffId, @passwordSalt, @passwordHash,
-        @failedLoginCount, @lockedUntil, @lastLoginAt, @status, @createdAt, @updatedAt
+        @failedLoginCount, @lockedUntil, @lastLoginAt, @status, @accessApprovedBy, @accessApprovedAt, @permissionVersion, @createdAt, @updatedAt
       )`).run(row);
     }
     return rowToAuthUser(db.prepare("SELECT * FROM tenant_users WHERE id = ? AND tenantId = ?").get(row.id, access.tenantId));
@@ -491,7 +554,8 @@ export class StaffLoginService {
         startTime: row.start_time || row.startTime || "",
         endTime: row.end_time || row.endTime || "",
         type: row.shift_type || row.shiftType || "roster",
-        status: row.status || "planned"
+        status: row.status || "planned",
+        version: number(row.version || 1)
       })),
       quickActions: [
         { key: "clock-in", label: "Clock in", enabled: true },
@@ -509,6 +573,7 @@ export class StaffLoginService {
   }
 
   client360(clientId, query = {}, access) {
+    ensureStaffSelfAppSchema();
     const dashboard = this.staffDashboard(query, access);
     const branchId = dashboard.staff.branchId || access.branchId || "";
     const client = this.clientRecord(access.tenantId, branchId, clientId);
@@ -538,12 +603,277 @@ export class StaffLoginService {
       previousServices: appointments.map((row) => ({ id: row.id, startAt: row.startAt, status: row.status, serviceIds: parseServiceIds(row.serviceIds) })),
       productsBought: sales.map((row) => ({ id: row.id, total: number(row.total), createdAt: row.createdAt, status: row.status })),
       cancellationHistory: cancellations.map((row) => ({ id: row.id, startAt: row.startAt, status: row.status, notes: row.notes || "" })),
+      preferences: {
+        notes: client.notes || "",
+        allergies: client.allergies || "",
+        tags: parseJsonArray(client.tags),
+        preferredStylist: client.preferredStylist || client.preferredStaffId || dashboard.staff.fullName || ""
+      },
+      mediaPortfolio: this.clientMedia(access.tenantId, branchId, clientId),
       lifetimeSpend,
       visitFrequency: appointments.length,
       lastVisit: lastVisit?.startAt || "",
       retentionScore,
       aiRecommendations: this.clientRecommendations({ client, appointments, sales, lifetimeSpend, retentionScore })
     };
+  }
+
+  updateStaffNotification(id, payload = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId({}, access);
+    const status = ["read", "unread", "archived"].includes(String(payload.status || "")) ? String(payload.status) : "read";
+    const row = safeGet(
+      `SELECT * FROM staff_notifications WHERE id = @id AND tenantId = @tenantId AND staffId = @staffId`,
+      { id, tenantId: access.tenantId, staffId }
+    );
+    if (!row) throw notFound("Notification not found");
+    db.prepare(`UPDATE staff_notifications SET status = @status, updatedAt = @updatedAt WHERE id = @id AND tenantId = @tenantId AND staffId = @staffId`)
+      .run({ id, tenantId: access.tenantId, staffId, status, updatedAt: now() });
+    const updated = safeGet(`SELECT * FROM staff_notifications WHERE id = @id AND tenantId = @tenantId AND staffId = @staffId`, { id, tenantId: access.tenantId, staffId });
+    writeStaffSelfAudit("staff.notification_status", "staff_notifications", id, access, updated?.branchId || row.branchId || "", staffId, { status });
+    realtimeService.broadcast("staff-self.notification", { id, status }, { tenantId: access.tenantId, branchId: updated?.branchId || row.branchId || "" });
+    return updated;
+  }
+
+  updateStaffAppointment(id, payload = {}, access) {
+    const dashboard = this.staffDashboard({}, access);
+    const appointment = dashboard.appointments.find((item) => item.id === id) || dashboard.todayAppointments.find((item) => item.id === id);
+    if (!appointment) throw notFound("Appointment not found for this staff member");
+    const columns = columnsFor("appointments");
+    const patch = {
+      id,
+      notes: String(payload.notes ?? appointment.notes ?? ""),
+      chair: String(payload.chair ?? appointment.chair ?? ""),
+      status: String(payload.status || appointment.status || "booked"),
+      startAt: String(payload.startAt || appointment.startAt || ""),
+      endAt: String(payload.endAt || appointment.endAt || ""),
+      serviceIds: payload.serviceIds ? json(payload.serviceIds) : json(appointment.serviceIds || []),
+      updatedAt: now()
+    };
+    const sets = [];
+    if (columns.includes("notes")) sets.push("notes = @notes");
+    if (columns.includes("chair")) sets.push("chair = @chair");
+    if (columns.includes("status")) sets.push("status = @status");
+    if (columns.includes("startAt")) sets.push("startAt = @startAt");
+    if (columns.includes("endAt")) sets.push("endAt = @endAt");
+    if (columns.includes("serviceIds")) sets.push("serviceIds = @serviceIds");
+    if (columns.includes("updatedAt")) sets.push("updatedAt = @updatedAt");
+    if (!sets.length) return appointment;
+    db.prepare(`UPDATE appointments SET ${sets.join(", ")} WHERE id = @id`).run(patch);
+    const updated = this.staffDashboard({}, access).appointments.find((item) => item.id === id) || { ...appointment, ...patch };
+    writeStaffSelfAudit("staff.appointment_updated", "appointments", id, access, appointment.branchId || access.branchId || "", appointment.staffId || "", patch);
+    realtimeService.broadcast("staff-self.appointment_updated", { appointment: updated }, { tenantId: access.tenantId, branchId: appointment.branchId || access.branchId || "" });
+    return updated;
+  }
+
+  updateStaffCalendarItem(id, payload = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId({}, access);
+    const staff = this.getStaff(staffId, access);
+    const existing = safeGet(`SELECT * FROM staff_schedules WHERE id = @id AND tenant_id = @tenantId AND staff_id = @staffId`, {
+      id,
+      tenantId: access.tenantId,
+      staffId
+    });
+    if (!existing) throw notFound("Schedule not found for this staff member");
+    const branchId = existing.branch_id || staff.branchId || access.branchId || "";
+    const next = {
+      id,
+      tenantId: access.tenantId,
+      staffId,
+      branchId,
+      scheduleDate: String(payload.scheduleDate || payload.schedule_date || payload.date || existing.schedule_date),
+      startTime: String(payload.startTime || payload.start_time || existing.start_time),
+      endTime: String(payload.endTime || payload.end_time || existing.end_time),
+      status: String(payload.status || existing.status || "scheduled"),
+      notes: String(payload.notes ?? existing.notes ?? ""),
+      version: Number(existing.version || 1) + 1,
+      updatedAt: now()
+    };
+    if (payload.version !== undefined && Number(payload.version) !== Number(existing.version || 1)) throw badRequest("Schedule was updated by another request");
+    if (next.endTime <= next.startTime) throw badRequest("Schedule end time must be after start time");
+    const conflict = safeGet(
+      `SELECT id FROM staff_schedules
+        WHERE tenant_id = @tenantId AND staff_id = @staffId AND branch_id = @branchId
+          AND schedule_date = @scheduleDate AND id != @id AND status != 'cancelled'
+          AND NOT (@endTime <= start_time OR @startTime >= end_time)
+        LIMIT 1`,
+      next
+    );
+    if (conflict) throw badRequest("Schedule overlaps another shift");
+    db.prepare(`UPDATE staff_schedules SET schedule_date = @scheduleDate, start_time = @startTime, end_time = @endTime,
+      status = @status, notes = @notes, version = @version, updated_at = @updatedAt
+      WHERE id = @id AND tenant_id = @tenantId AND staff_id = @staffId`).run(next);
+    const updated = safeGet(`SELECT * FROM staff_schedules WHERE id = @id AND tenant_id = @tenantId`, { id, tenantId: access.tenantId });
+    writeStaffSelfAudit("staff.schedule_rescheduled", "staff_schedules", id, access, branchId, staffId, next);
+    realtimeService.broadcast("staff-self.calendar_updated", { schedule: updated }, { tenantId: access.tenantId, branchId });
+    return updated;
+  }
+
+  addClientMedia(clientId, payload = {}, access) {
+    ensureStaffSelfAppSchema();
+    const dashboard = this.staffDashboard({}, access);
+    const branchId = dashboard.staff.branchId || access.branchId || "";
+    const client = this.clientRecord(access.tenantId, branchId, clientId);
+    if (!client) throw notFound("Client record not found");
+    const row = {
+      id: makeId("media"),
+      tenantId: access.tenantId,
+      branchId,
+      clientId,
+      title: String(payload.title || "Client media").trim(),
+      type: String(payload.type || "photo").trim(),
+      url: "",
+      createdAt: now()
+    };
+    if (!row.title) throw badRequest("Media title is required");
+    row.url = writeDataUrlMedia(payload, row.id) || String(payload.url || "").trim();
+    db.prepare(`INSERT INTO staffClientMedia (id, tenantId, branchId, clientId, title, type, url, createdAt)
+      VALUES (@id, @tenantId, @branchId, @clientId, @title, @type, @url, @createdAt)`).run(row);
+    writeStaffSelfAudit("staff.client_media_added", "staffClientMedia", row.id, access, branchId, dashboard.staff.id, { clientId, title: row.title, type: row.type });
+    realtimeService.broadcast("staff-self.client_media_added", { media: row }, { tenantId: access.tenantId, branchId });
+    return row;
+  }
+
+  chatThreads(query = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId(query, access);
+    const staff = this.getStaff(staffId, access);
+    const branchId = staff.branchId || access.branchId || "branch_hyd";
+    const thread = this.ensureBranchThread(access.tenantId, branchId, access.userId || staffId);
+    const rows = safeAll(
+      `SELECT t.*, COUNT(m.id) AS messageCount, MAX(m.createdAt) AS lastMessageAt
+         FROM staffChatThreads t
+         LEFT JOIN staffChatMessages m ON m.threadId = t.id AND m.tenantId = t.tenantId AND m.branchId = t.branchId
+        WHERE t.tenantId = @tenantId AND t.branchId = @branchId
+        GROUP BY t.id
+        ORDER BY COALESCE(lastMessageAt, t.updatedAt) DESC`,
+      { tenantId: access.tenantId, branchId }
+    );
+    return rows.length ? rows : [thread];
+  }
+
+  chatMessages(threadId, query = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId(query, access);
+    const staff = this.getStaff(staffId, access);
+    const branchId = staff.branchId || access.branchId || "branch_hyd";
+    const thread = this.ensureBranchThread(access.tenantId, branchId, access.userId || staffId, threadId);
+    return safeAll(
+      `SELECT * FROM staffChatMessages WHERE tenantId = @tenantId AND branchId = @branchId AND threadId = @threadId ORDER BY createdAt ASC LIMIT 200`,
+      { tenantId: access.tenantId, branchId, threadId: thread.id }
+    );
+  }
+
+  sendChatMessage(payload = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId({}, access);
+    const staff = this.getStaff(staffId, access);
+    const branchId = staff.branchId || access.branchId || "branch_hyd";
+    const thread = this.ensureBranchThread(access.tenantId, branchId, access.userId || staffId, payload.threadId || payload.thread_id || "");
+    const body = String(payload.body || payload.message || "").trim();
+    if (!body) throw badRequest("Message body is required");
+    const row = {
+      id: makeId("msg"),
+      tenantId: access.tenantId,
+      branchId,
+      threadId: thread.id,
+      senderStaffId: staffId,
+      senderName: staff.fullName || access.loginId || "Staff",
+      body,
+      createdAt: now(),
+      readByJson: JSON.stringify([staffId])
+    };
+    db.prepare(`INSERT INTO staffChatMessages (id, tenantId, branchId, threadId, senderStaffId, senderName, body, createdAt, readByJson)
+      VALUES (@id, @tenantId, @branchId, @threadId, @senderStaffId, @senderName, @body, @createdAt, @readByJson)`).run(row);
+    db.prepare(`UPDATE staffChatThreads SET updatedAt = @updatedAt WHERE id = @threadId AND tenantId = @tenantId AND branchId = @branchId`)
+      .run({ updatedAt: row.createdAt, threadId: thread.id, tenantId: access.tenantId, branchId });
+    writeStaffSelfAudit("staff.chat_message_sent", "staffChatMessages", row.id, access, branchId, staffId, { threadId: thread.id });
+    realtimeService.broadcast("staff-self.chat_message", { message: row }, { tenantId: access.tenantId, branchId });
+    return row;
+  }
+
+  learning(query = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId(query, access);
+    const staff = this.getStaff(staffId, access);
+    const branchId = staff.branchId || access.branchId || "branch_hyd";
+    this.ensureLearningModules(access.tenantId, branchId);
+    const modules = safeAll(
+      `SELECT m.*, COALESCE(p.status, 'open') AS progressStatus, COALESCE(p.completedAt, '') AS completedAt
+         FROM staffLearningModules m
+         LEFT JOIN staffLearningProgress p ON p.moduleId = m.id AND p.staffId = @staffId AND p.tenantId = m.tenantId AND p.branchId = m.branchId
+        WHERE m.tenantId = @tenantId AND m.branchId = @branchId AND m.status = 'active'
+        ORDER BY m.createdAt ASC`,
+      { tenantId: access.tenantId, branchId, staffId }
+    );
+    const completed = modules.filter((item) => item.progressStatus === "completed").length;
+    return { modules, summary: { total: modules.length, completed, progress: modules.length ? Math.round((completed / modules.length) * 100) : 0 } };
+  }
+
+  completeLearningModule(moduleId, payload = {}, access) {
+    ensureStaffSelfAppSchema();
+    const staffId = this.resolveStaffId({}, access);
+    const staff = this.getStaff(staffId, access);
+    const branchId = staff.branchId || access.branchId || "branch_hyd";
+    this.ensureLearningModules(access.tenantId, branchId);
+    const module = safeGet(`SELECT * FROM staffLearningModules WHERE id = @moduleId AND tenantId = @tenantId AND branchId = @branchId`, {
+      moduleId,
+      tenantId: access.tenantId,
+      branchId
+    });
+    if (!module) throw notFound("Learning module not found");
+    const status = String(payload.status || "completed");
+    const row = {
+      id: makeId("learn"),
+      tenantId: access.tenantId,
+      branchId,
+      staffId,
+      moduleId,
+      status,
+      completedAt: status === "completed" ? now() : "",
+      updatedAt: now()
+    };
+    db.prepare(`INSERT INTO staffLearningProgress (id, tenantId, branchId, staffId, moduleId, status, completedAt, updatedAt)
+      VALUES (@id, @tenantId, @branchId, @staffId, @moduleId, @status, @completedAt, @updatedAt)
+      ON CONFLICT(tenantId, branchId, staffId, moduleId) DO UPDATE SET status = excluded.status, completedAt = excluded.completedAt, updatedAt = excluded.updatedAt`).run(row);
+    writeStaffSelfAudit("staff.learning_progress", "staffLearningModules", moduleId, access, branchId, staffId, { status });
+    realtimeService.broadcast("staff-self.learning_progress", { moduleId, status, staffId }, { tenantId: access.tenantId, branchId });
+    return this.learning({}, access);
+  }
+
+  ensureBranchThread(tenantId, branchId, createdBy = "", requestedThreadId = "") {
+    const existing = requestedThreadId
+      ? safeGet(`SELECT * FROM staffChatThreads WHERE id = @id AND tenantId = @tenantId AND branchId = @branchId`, { id: requestedThreadId, tenantId, branchId })
+      : safeGet(`SELECT * FROM staffChatThreads WHERE tenantId = @tenantId AND branchId = @branchId AND channel = 'branch' ORDER BY createdAt ASC LIMIT 1`, { tenantId, branchId });
+    if (existing) return existing;
+    const row = {
+      id: makeId("thread"),
+      tenantId,
+      branchId,
+      title: "Branch Team Chat",
+      channel: "branch",
+      createdBy,
+      createdAt: now(),
+      updatedAt: now()
+    };
+    db.prepare(`INSERT INTO staffChatThreads (id, tenantId, branchId, title, channel, createdBy, createdAt, updatedAt)
+      VALUES (@id, @tenantId, @branchId, @title, @channel, @createdBy, @createdAt, @updatedAt)`).run(row);
+    return row;
+  }
+
+  ensureLearningModules(tenantId, branchId) {
+    const existing = safeGet(`SELECT id FROM staffLearningModules WHERE tenantId = @tenantId AND branchId = @branchId LIMIT 1`, { tenantId, branchId });
+    if (existing) return;
+    const stamp = now();
+    const modules = [
+      { id: makeId("module"), tenantId, branchId, title: "Premium Consultation Flow", description: "Client greeting, preference capture and consultation notes.", category: "client", durationMinutes: 12, status: "active", createdAt: stamp, updatedAt: stamp },
+      { id: makeId("module"), tenantId, branchId, title: "Add-on Recommendation Basics", description: "Use service context to suggest relevant add-ons without overselling.", category: "sales", durationMinutes: 9, status: "active", createdAt: stamp, updatedAt: stamp },
+      { id: makeId("module"), tenantId, branchId, title: "Checkout Handoff", description: "Review summary, payment handoff and rebooking reminder.", category: "operations", durationMinutes: 8, status: "active", createdAt: stamp, updatedAt: stamp }
+    ];
+    const insert = db.prepare(`INSERT INTO staffLearningModules (id, tenantId, branchId, title, description, category, durationMinutes, status, createdAt, updatedAt)
+      VALUES (@id, @tenantId, @branchId, @title, @description, @category, @durationMinutes, @status, @createdAt, @updatedAt)`);
+    modules.forEach((module) => insert.run(module));
   }
 
   clientSpendMap(tenantId, clientIds = []) {
@@ -773,6 +1103,25 @@ export class StaffLoginService {
     if (columns.includes("tenantId")) filters.push("tenantId = @tenantId");
     if (columns.includes("branchId") && branchId) filters.push("branchId = @branchId");
     return safeGet(`SELECT * FROM clients WHERE ${filters.join(" AND ")} LIMIT 1`, { tenantId, branchId, clientId });
+  }
+
+  clientMedia(tenantId, branchId, clientId) {
+    ensureStaffSelfAppSchema();
+    const rows = safeAll(
+      `SELECT * FROM staffClientMedia WHERE tenantId = @tenantId AND branchId = @branchId AND clientId = @clientId ORDER BY createdAt DESC LIMIT 24`,
+      { tenantId, branchId, clientId }
+    );
+    if (rows.length) return rows;
+    return [{
+      id: `media_${clientId}_placeholder`,
+      tenantId,
+      branchId,
+      clientId,
+      title: "Portfolio media can be attached after service completion",
+      type: "placeholder",
+      url: "",
+      createdAt: ""
+    }];
   }
 
   clientAppointments(tenantId, branchId, clientId) {

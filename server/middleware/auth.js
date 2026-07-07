@@ -1,5 +1,7 @@
 import { authService } from "../services/auth.service.js";
 import { tenantService } from "../services/tenant.service.js";
+import { db } from "../db.js";
+import { ensureTenantUserAccessColumns, normalizeRole } from "../services/access-control.service.js";
 import { unauthorized } from "../utils/app-error.js";
 
 function bearerToken(req) {
@@ -21,6 +23,11 @@ export function authenticateJwt({ required = true } = {}) {
     }
     try {
       const payload = authService.verifyAccessToken(token);
+      ensureTenantUserAccessColumns();
+      const userRow = db.prepare("SELECT status, permissionVersion FROM tenant_users WHERE tenantId = @tenantId AND id = @id").get({ tenantId: payload.tenantId, id: payload.sub });
+      if (!userRow || userRow.status !== "active") throw unauthorized("User session is no longer active");
+      if (Number(userRow.permissionVersion || 1) !== Number(payload.permissionVersion || 1)) throw unauthorized("User permissions changed; please sign in again");
+      payload.role = normalizeRole(payload.role);
       const requestedBranchId = req.get("x-branch-id") || payload.branchId || "";
       if (requestedBranchId) tenantService.assertBranchAccess(payload, requestedBranchId);
       const tenant = tenantService.resolveTenant({ tenantId: payload.tenantId, host: req.get("host") || "" });

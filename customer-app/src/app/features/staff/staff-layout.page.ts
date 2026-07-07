@@ -1,9 +1,9 @@
-import { Component, HostListener, OnInit, computed, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { StaffAppService, StaffEnterpriseOs } from "../../core/staff-app.service";
 
-type StaffNavItem = { label: string; path: string; icon: string; group: string; permission?: string };
+type StaffNavItem = { label: string; path: string; iconPath: string; group: string; permission?: string };
 type StaffRecentItem = { label: string; path: string };
 
 @Component({
@@ -33,7 +33,7 @@ type StaffRecentItem = { label: string; path: string };
           @for (group of navGroups(); track group) {
             <p class="nav-group">{{ group }}</p>
             @for (item of navByGroup(group); track item.path) {
-              <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.path === '/staff/dashboard' }" (click)="activateNav(item)"><span>{{ item.icon }}</span>{{ item.label }}</a>
+              <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.path === '/staff/dashboard' }" (click)="activateNav(item)"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.iconPath"></path></svg></span>{{ item.label }}</a>
             }
           }
         </nav>
@@ -49,8 +49,15 @@ type StaffRecentItem = { label: string; path: string };
           </div>
           <div class="topbar-actions">
             <button type="button" class="search-button" (click)="openCommand()">Search <small>Ctrl K</small></button>
-            <button type="button" class="bell-button" (click)="toggleNotifications()" aria-label="Notifications">N<span>{{ unreadCount() }}</span></button>
+            <button type="button" class="bell-button" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" aria-label="Open notifications">
+              <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 10.8c0-3.5-2.1-6.1-5-6.7V3a1 1 0 0 0-2 0v1.1c-2.9.6-5 3.2-5 6.7V15l-1.6 2.4A1 1 0 0 0 5.2 19h13.6a1 1 0 0 0 .8-1.6L18 15v-4.2zM9.7 20a2.4 2.4 0 0 0 4.6 0H9.7z"></path>
+              </svg>
+              <span class="bell-badge">{{ unreadCount() }}</span>
+            </button>
+            <span class="net-status" [class.offline]="!realtimeConnected()">{{ realtimeConnected() ? 'Live' : 'Polling' }}</span>
             <span class="net-status" [class.offline]="!online()">{{ online() ? 'Online' : 'Offline' }}</span>
+            @if (offlinePending()) { <span class="queue-status">{{ offlinePending() }} queued</span> }
             <span>{{ staff.user()?.branchId || 'branch scoped' }}</span>
           </div>
         </header>
@@ -59,12 +66,12 @@ type StaffRecentItem = { label: string; path: string };
 
       @if (commandOpen()) {
         <section class="command-backdrop" (click)="closeCommand()">
-          <div class="command-palette" (click)="$event.stopPropagation()">
+          <div class="command-palette" role="dialog" aria-modal="true" tabindex="-1" #commandDialog (keydown)="trapFocus($event, commandDialog)" (click)="$event.stopPropagation()">
             <div class="command-head"><strong>Command palette</strong><button type="button" (click)="closeCommand()">Close</button></div>
-            <input [(ngModel)]="query" placeholder="Search pages, appointments, AI notes..." autofocus />
+            <input [(ngModel)]="query" placeholder="Search pages, appointments, AI notes..." #commandInput autofocus />
             <div class="command-list">
               @for (item of commandResults(); track item.path + item.label) {
-                <button type="button" (click)="go(item)"><span>{{ item.icon }}</span><div><strong>{{ item.label }}</strong><small>{{ item.group }}</small></div></button>
+                <button type="button" (click)="go(item)"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.iconPath"></path></svg></span><div><strong>{{ item.label }}</strong><small>{{ item.group }}</small></div></button>
               } @empty {
                 <p>No matching staff command.</p>
               }
@@ -74,54 +81,61 @@ type StaffRecentItem = { label: string; path: string };
       }
 
       <button type="button" class="drawer-backdrop" [class.open]="notificationsOpen()" (click)="closeNotifications()" aria-label="Close notifications"></button>
-      <aside class="notification-drawer" [class.open]="notificationsOpen()">
+      <aside class="notification-drawer" [class.open]="notificationsOpen()" role="dialog" aria-modal="true" tabindex="-1" #notificationDialog (keydown)="trapFocus($event, notificationDialog)">
         <div class="drawer-title"><strong>Notifications</strong><button type="button" (click)="closeNotifications()">Close</button></div>
         @if (os()?.aiCoach?.[0]; as card) { <p class="ai-brief"><b>{{ card.title }}</b><br />{{ card.body }}</p> }
         <div class="notice-list">
           @for (note of os()?.notifications || []; track note.id) {
-            <article><strong>{{ note.title }}</strong><small>{{ note.body || note.status }}</small><span>{{ note.status }}</span></article>
+            <article><strong>{{ note.title }}</strong><small>{{ note.body || note.status }}</small><span>{{ note.status }}</span><button type="button" (click)="markNotification(note.id, note.status === 'read' ? 'unread' : 'read')">{{ note.status === 'read' ? 'Mark unread' : 'Mark read' }}</button></article>
           } @empty {
             <p>No notifications yet.</p>
           }
         </div>
       </aside>
+
+      @if (toastMessage()) { <section class="staff-toast" role="status">{{ toastMessage() }}</section> }
     </section>
   `,
   styles: [`
-    .staff-app-shell { min-height: 100vh; display: grid; grid-template-columns: 272px minmax(0, 1fr); background: radial-gradient(circle at 18% 0, #ffe09a 0, transparent 26%), radial-gradient(circle at 88% 10%, #7a4510 0, transparent 28%), linear-gradient(135deg, #1b1008, #fff2d1 58%, #fff8ea); }
-    .staff-sidebar { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 16px; border-right: 1px solid rgba(234,210,162,.5); background: linear-gradient(180deg, rgba(34,19,5,.96), rgba(103,63,13,.92)); box-shadow: 18px 0 60px rgba(63,39,7,.24); }
-    .brand-card { padding: 18px; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; color: #fff8e8; background: rgba(255,255,255,.09); }
-    .brand-card span { display: block; color: #f7d98c; font-size: .74rem; font-weight: 950; letter-spacing: .16em; text-transform: uppercase; }
+    .staff-app-shell { min-height: 100vh; display: grid; grid-template-columns: 272px minmax(0, 1fr); background: linear-gradient(145deg, #fffdf8 0%, #fff8ea 48%, #fff4dd 100%); }
+    .staff-sidebar { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 16px; border-right: 1px solid rgba(214,170,85,.26); background: rgba(255, 253, 248, .94); box-shadow: 14px 0 38px rgba(126,85,20,.08); backdrop-filter: blur(18px); }
+    .brand-card { padding: 18px; border: 1px solid rgba(214,170,85,.24); border-radius: 24px; color: #241609; background: linear-gradient(145deg, #ffffff, #fff8ea); box-shadow: 0 14px 28px rgba(139,93,21,.07); }
+    .brand-card span { display: block; color: #9b6b22; font-size: .74rem; font-weight: 950; letter-spacing: .16em; text-transform: uppercase; }
     .brand-card strong { display: block; margin-top: 5px; font-size: 1.45rem; }
-    .brand-card small { display: block; margin-top: 4px; color: #f8dfaa; font-weight: 850; text-transform: capitalize; }
+    .brand-card small { display: block; margin-top: 4px; color: #7b5b2a; font-weight: 850; text-transform: capitalize; }
     .drawer-backdrop, .menu-button, .drawer-close { display: none; }
     .menu-button span { display: block; width: 18px; height: 2px; border-radius: 999px; background: #5d3607; }
-    .user-card { display: grid; grid-template-columns: 42px 1fr; gap: 10px; align-items: center; margin-top: 12px; padding: 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: rgba(255,255,255,.08); color: #fff8e8; }
-    .user-card b { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 15px; background: #fff8ea; color: #5d3607; }
+    .user-card { display: grid; grid-template-columns: 42px 1fr; gap: 10px; align-items: center; margin-top: 12px; padding: 10px; border: 1px solid rgba(214,170,85,.24); border-radius: 18px; background: rgba(255,255,255,.72); color: #241609; }
+    .user-card b { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 15px; background: #f1c768; color: #3b2608; }
     .user-card strong, .user-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-card small { color: #f8dfaa; font-weight: 800; }
-    .recent-card { display: grid; gap: 6px; margin-top: 12px; padding: 10px; border-radius: 18px; background: rgba(255,255,255,.07); }
-    .recent-card span, .nav-group { margin: 12px 2px 4px; color: #f7d98c; font-size: .68rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
-    .recent-card a { color: #ffefd0; font-size: .82rem; font-weight: 850; text-decoration: none; }
+    .user-card small { color: #7b5b2a; font-weight: 800; }
+    .recent-card { display: grid; gap: 6px; margin-top: 12px; padding: 10px; border: 1px solid rgba(214,170,85,.18); border-radius: 18px; background: rgba(255,255,255,.56); }
+    .recent-card span, .nav-group { margin: 12px 2px 4px; color: #9b6b22; font-size: .68rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
+    .recent-card a { color: #5d3607; font-size: .82rem; font-weight: 850; text-decoration: none; }
     nav { display: grid; gap: 5px; margin-top: 14px; }
-    nav a { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid transparent; border-radius: 16px; color: #ffefd0; font-weight: 900; text-decoration: none; }
-    nav a span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 12px; background: rgba(255,255,255,.1); color: #f7d98c; font-size: .7rem; font-weight: 950; }
-    nav a.active, nav a:hover { border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.13); color: #fff; }
-    nav a.active span { background: #fff8ea; color: #5d3607; }
-    .nav-logout { width: 100%; margin-top: 12px; padding: 11px 13px; border: 1px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,248,234,.12); color: #fff8e8; font-weight: 950; text-align: left; }
+    nav a { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid transparent; border-radius: 16px; color: #4a2d08; font-weight: 900; text-decoration: none; }
+    nav a span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 12px; background: #fff2cf; color: #9b6b22; font-size: .7rem; font-weight: 950; }
+    svg { width: 17px; height: 17px; fill: currentColor; }
+    nav a.active, nav a:hover { border-color: rgba(214,170,85,.3); background: #fff7e4; color: #1d1307; box-shadow: 0 10px 24px rgba(139,93,21,.1); }
+    nav a.active span { background: #f1c768; color: #3b2608; }
+    .nav-logout { width: 100%; margin-top: 12px; padding: 11px 13px; border: 1px solid rgba(214,170,85,.34); border-radius: 16px; background: #fff8ea; color: #7a4510; font-weight: 950; text-align: left; }
     .staff-main-shell { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
-    .staff-topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(234,210,162,.72); background: rgba(255,255,255,.78); backdrop-filter: blur(16px); }
+    .staff-topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(234,210,162,.58); background: rgba(255,255,255,.94); backdrop-filter: blur(16px); }
     .staff-topbar p { margin: 0; color: #8a611e; font-size: .74rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
     .staff-topbar strong { color: #1d1307; }
     .topbar-actions { display: flex; align-items: center; gap: 10px; }
     .topbar-actions span { color: #75552b; font-weight: 900; }
-    .search-button, .bell-button { border: 1px solid #d6aa55; border-radius: 999px; background: #fff8ea; color: #6e4810; font-weight: 950; padding: 8px 12px; }
+    .search-button, .bell-button { border: 1px solid #d6aa55; border-radius: 999px; background: #fffdf7; color: #6e4810; font-weight: 950; padding: 8px 12px; box-shadow: 0 8px 20px rgba(139,93,21,.08); }
     .search-button small { margin-left: 6px; opacity: .72; }
-    .bell-button { position: relative; min-width: 42px; }
-    .bell-button span { position: absolute; right: -5px; top: -7px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #7a4510; color: #fff8e8; font-size: .68rem; }
-    .net-status { padding: 7px 10px; border-radius: 999px; background: #effbea; color: #1f6b2d !important; }
+    .bell-button { position: relative; display: inline-grid; place-items: center; width: 42px; height: 42px; min-width: 42px; padding: 0; border-radius: 16px; background: linear-gradient(145deg, #ffffff, #fff4d8); }
+    .bell-button:hover, .bell-button.has-unread { border-color: #c88d23; color: #3b2608; background: linear-gradient(145deg, #fffaf0, #f4cf73); }
+    .bell-icon { width: 20px; height: 20px; fill: currentColor; }
+    .bell-badge { position: absolute; right: -6px; top: -7px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid #fffdf8; border-radius: 999px; background: #b77916; color: #fffdf8 !important; font-size: .66rem; font-weight: 950; line-height: 1; box-shadow: 0 8px 16px rgba(183,121,22,.22); }
+    .bell-button:not(.has-unread) .bell-badge { background: #ead5aa; color: #6e4810 !important; }
+    .net-status, .queue-status { padding: 7px 10px; border-radius: 999px; background: #effbea; color: #1f6b2d !important; }
     .net-status.offline { background: #fff1ec; color: #9c2f21 !important; }
-    .staff-content { min-width: 0; overflow: auto; padding: 20px; }
+    .queue-status { background: #fff1cc; color: #7b4d0d !important; }
+    .staff-content { min-width: 0; overflow: auto; padding: 20px; background: linear-gradient(160deg, rgba(255,255,255,.46), rgba(255,244,221,.72)); }
     .command-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: start center; padding-top: 8vh; background: rgba(20,12,5,.5); backdrop-filter: blur(3px); }
     .command-palette { width: min(720px, calc(100vw - 24px)); max-height: 78vh; overflow: auto; border: 1px solid rgba(234,210,162,.9); border-radius: 24px; background: #fff8ea; box-shadow: 0 30px 90px rgba(34,19,5,.35); }
     .command-head, .drawer-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border-bottom: 1px solid #ead5aa; }
@@ -142,6 +156,8 @@ type StaffRecentItem = { label: string; path: string };
     .notice-list strong { color: #1d1307; }
     .notice-list small { margin-top: 4px; color: #75552b; font-weight: 800; }
     .notice-list span { margin-top: 6px; color: #8a611e; font-size: .76rem; font-weight: 950; text-transform: capitalize; }
+    .notice-list button { margin-top: 8px; border: 1px solid #d6aa55; border-radius: 999px; background: #fff8ea; color: #6e4810; font-weight: 950; padding: 7px 10px; }
+    .staff-toast { position: fixed; left: 50%; bottom: 18px; z-index: 80; transform: translateX(-50%); max-width: min(420px, calc(100vw - 24px)); padding: 11px 14px; border: 1px solid #d6aa55; border-radius: 999px; background: #1d1307; color: #fff8e8; font-weight: 950; box-shadow: 0 18px 44px rgba(34,19,5,.28); }
     @media (max-width: 900px) {
       .staff-app-shell { display: block; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
       .staff-main-shell { display: block; min-height: 100dvh; height: auto; overflow: visible; }
@@ -149,16 +165,18 @@ type StaffRecentItem = { label: string; path: string };
       .menu-button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 0 0 auto; width: 40px; height: 40px; border: 1px solid #d6aa55; border-radius: 14px; background: #fff8ea; color: #5d3607; font-size: .78rem; font-weight: 950; }
       .staff-topbar p { font-size: .66rem; }
       .topbar-actions { gap: 7px; }
-      .search-button small, .topbar-actions > span:not(.net-status) { display: none; }
+      .search-button small, .topbar-actions > span:not(.net-status):not(.queue-status) { display: none; }
       .search-button { padding: 8px 10px; }
       .topbar-actions span { max-width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; }
       .topbar-actions button { padding: 7px 10px; }
+      .topbar-actions .bell-button { width: 40px; height: 40px; min-width: 40px; padding: 0; border-radius: 15px; }
+      .bell-icon { width: 19px; height: 19px; }
       .staff-content { overflow: visible; padding: 14px 12px 18px; }
-      .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; opacity: 0; pointer-events: none; background: rgba(20,12,5,.48); backdrop-filter: blur(2px); transition: opacity .18s ease; }
+      .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; opacity: 0; pointer-events: none; background: rgba(75,48,12,.28); backdrop-filter: blur(2px); transition: opacity .18s ease; }
       .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
-      .staff-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; width: min(84vw, 318px); height: 100dvh; overflow: auto; padding: 14px; border-right: 1px solid rgba(255,255,255,.18); transform: translateX(-104%); transition: transform .2s ease; box-shadow: 24px 0 60px rgba(34,19,5,.34); }
+      .staff-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; width: min(84vw, 318px); height: 100dvh; overflow: auto; padding: 14px; border-right: 1px solid rgba(214,170,85,.3); transform: translateX(-104%); transition: transform .2s ease; box-shadow: 24px 0 60px rgba(34,19,5,.18); }
       .staff-sidebar.open { transform: translateX(0); }
-      .drawer-close { display: block; width: 100%; margin-bottom: 10px; padding: 9px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,255,255,.1); color: #fff8e8; font-weight: 950; text-align: left; }
+      .drawer-close { display: block; width: 100%; margin-bottom: 10px; padding: 9px 12px; border: 1px solid rgba(214,170,85,.3); border-radius: 16px; background: #fff8ea; color: #7a4510; font-weight: 950; text-align: left; }
       .brand-card { display: block; }
       nav { display: grid; gap: 6px; margin-top: 14px; overflow: visible; }
       nav a { min-width: 0; padding: 12px 13px; border-radius: 16px; text-align: left; font-size: .92rem; white-space: normal; background: transparent; }
@@ -172,44 +190,52 @@ type StaffRecentItem = { label: string; path: string };
     }
   `]
 })
-export class StaffLayoutPage implements OnInit {
+export class StaffLayoutPage implements OnInit, OnDestroy {
+  @ViewChild("commandInput") private commandInput?: ElementRef<HTMLInputElement>;
   readonly menuOpen = signal(false);
   readonly commandOpen = signal(false);
   readonly notificationsOpen = signal(false);
   readonly online = signal(typeof navigator === "undefined" ? true : navigator.onLine);
+  readonly realtimeConnected = signal(false);
+  readonly offlinePending = signal(0);
+  readonly toastMessage = signal("");
   readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly recent = signal<StaffRecentItem[]>(this.readRecent());
   query = "";
+  private pollTimer = 0;
+  private reconnectTimer = 0;
+  private toastTimer = 0;
+  private socket: WebSocket | null = null;
 
   private readonly nav: StaffNavItem[] = [
-    { label: "Dashboard", path: "/staff/dashboard", icon: "DB", group: "Home" },
-    { label: "Appointments", path: "/staff/appointments", icon: "AP", group: "Work" },
-    { label: "Today's Queue", path: "/staff/queue", icon: "Q", group: "Work" },
-    { label: "Tasks", path: "/staff/tasks", icon: "TK", group: "Work", permission: "read:staff" },
-    { label: "Attendance", path: "/staff/attendance", icon: "AT", group: "Work" },
-    { label: "Roster", path: "/staff/roster", icon: "RS", group: "Work", permission: "read:staff" },
-    { label: "Calendar", path: "/staff/calendar", icon: "CL", group: "Work" },
-    { label: "Clients", path: "/staff/clients", icon: "CU", group: "Clients" },
-    { label: "Client 360", path: "/staff/client-360", icon: "360", group: "Clients" },
-    { label: "AI Coach", path: "/staff/ai-coach", icon: "AI", group: "Intelligence" },
-    { label: "Performance", path: "/staff/performance", icon: "PF", group: "Intelligence" },
-    { label: "Leaderboard", path: "/staff/leaderboard", icon: "LB", group: "Intelligence" },
-    { label: "Reports", path: "/staff/reports", icon: "RP", group: "Intelligence" },
-    { label: "Notifications", path: "/staff/notifications", icon: "NT", group: "Comms" },
-    { label: "Chat", path: "/staff/chat", icon: "CH", group: "Comms" },
-    { label: "Learning", path: "/staff/learning", icon: "LR", group: "Growth" },
-    { label: "Payroll", path: "/staff/payroll", icon: "PY", group: "Account", permission: "read:payroll" },
-    { label: "Leaves", path: "/staff/leaves", icon: "LV", group: "Account", permission: "read:staff" },
-    { label: "Profile", path: "/staff/profile", icon: "ME", group: "Account" },
-    { label: "Settings", path: "/staff/settings", icon: "ST", group: "Account" }
+    { label: "Dashboard", path: "/staff/dashboard", iconPath: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z", group: "Home" },
+    { label: "Appointments", path: "/staff/appointments", iconPath: "M7 2v2H5a2 2 0 0 0-2 2v14h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5V7h14v3z", group: "Work" },
+    { label: "Today's Queue", path: "/staff/queue", iconPath: "M4 6h16v2H4V6zm0 5h12v2H4v-2zm0 5h8v2H4v-2z", group: "Work" },
+    { label: "Tasks", path: "/staff/tasks", iconPath: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z", group: "Work", permission: "read:staff" },
+    { label: "Attendance", path: "/staff/attendance", iconPath: "M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z", group: "Work" },
+    { label: "Roster", path: "/staff/roster", iconPath: "M4 4h16v4H4V4zm0 6h7v10H4V10zm9 0h7v10h-7V10z", group: "Work", permission: "read:staff" },
+    { label: "Calendar", path: "/staff/calendar", iconPath: "M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v16h18V5a2 2 0 0 0-2-2zm0 16H5V9h14v10z", group: "Work" },
+    { label: "Clients", path: "/staff/clients", iconPath: "M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zM8 11c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.7 0-1.1.1 1.1.8 2.1 1.9 2.1 3.4V19h6v-2.5C23 14.2 18.3 13 16 13z", group: "Clients" },
+    { label: "Client 360", path: "/staff/client-360", iconPath: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.9V17h-2v2.9A8 8 0 0 1 4.1 13H7v-2H4.1A8 8 0 0 1 11 4.1V7h2V4.1A8 8 0 0 1 19.9 11H17v2h2.9A8 8 0 0 1 13 19.9z", group: "Clients" },
+    { label: "AI Coach", path: "/staff/ai-coach", iconPath: "M12 2 9.5 8H3l5.2 3.8L6 18l6-4 6 4-2.2-6.2L21 8h-6.5L12 2z", group: "Intelligence" },
+    { label: "Performance", path: "/staff/performance", iconPath: "M3 17h3v4H3v-4zm5-6h3v10H8V11zm5 3h3v7h-3v-7zm5-9h3v16h-3V5z", group: "Intelligence" },
+    { label: "Leaderboard", path: "/staff/leaderboard", iconPath: "M7 21h10v-2H7v2zM5 3h14v4a7 7 0 0 1-6 6.9V17h-2v-3.1A7 7 0 0 1 5 7V3zm2 2v2a5 5 0 0 0 10 0V5H7z", group: "Intelligence" },
+    { label: "Reports", path: "/staff/reports", iconPath: "M5 3h11l3 3v15H5V3zm10 1.5V7h2.5L15 4.5zM8 11h8v2H8v-2zm0 4h8v2H8v-2z", group: "Intelligence" },
+    { label: "Notifications", path: "/staff/notifications", iconPath: "M12 22a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z", group: "Comms" },
+    { label: "Chat", path: "/staff/chat", iconPath: "M4 4h16v12H7l-3 3V4zm4 5h8V7H8v2zm0 4h6v-2H8v2z", group: "Comms" },
+    { label: "Learning", path: "/staff/learning", iconPath: "M12 3 1 8l11 5 9-4.1V16h2V8L12 3zm-6 9v4c0 2 4 4 6 4s6-2 6-4v-4l-6 2.7L6 12z", group: "Growth" },
+    { label: "Payroll", path: "/staff/payroll", iconPath: "M4 6h16v12H4V6zm2 2v8h12V8H6zm6 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", group: "Account", permission: "read:payroll" },
+    { label: "Leaves", path: "/staff/leaves", iconPath: "M12 2C8 6 6 9 6 12a6 6 0 0 0 12 0c0-3-2-6-6-10z", group: "Account", permission: "read:staff" },
+    { label: "Profile", path: "/staff/profile", iconPath: "M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-3.3 0-6 1.7-6 3.8V20h12v-2.2c0-2.1-2.7-3.8-6-3.8z", group: "Account" },
+    { label: "Settings", path: "/staff/settings", iconPath: "M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.5-2-3.5-2.4 1a7 7 0 0 0-2.6-1.5L14 2h-4l-.4 2.5A7 7 0 0 0 7 6L4.6 5l-2 3.5 2 1.5A8 8 0 0 0 4.5 12c0 .5 0 1 .1 1.5l-2 1.5 2 3.5L7 17a7 7 0 0 0 2.6 1.5L10 21h4l.4-2.5A7 7 0 0 0 17 17l2.4 1 2-3.5-2-1.5zM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z", group: "Account" }
   ];
 
   readonly commandResults = computed(() => {
     const text = this.query.trim().toLowerCase();
     const navItems = this.visibleNav().map((item) => ({ ...item }));
-    const notices = (this.os()?.notifications || []).map((note) => ({ label: note.title, path: "/staff/notifications", icon: "NT", group: note.body || "Notification" }));
-    const coach = (this.os()?.aiCoach || []).map((card) => ({ label: card.title, path: "/staff/ai-coach", icon: "AI", group: card.body }));
-    const queue = (this.os()?.timeline || []).map((item) => ({ label: item.clientName, path: "/staff/queue", icon: "Q", group: item.serviceNames?.join(", ") || "Appointment" }));
+    const notices = (this.os()?.notifications || []).map((note) => ({ label: note.title, path: "/staff/notifications", iconPath: this.iconFor("Notifications"), group: note.body || "Notification" }));
+    const coach = (this.os()?.aiCoach || []).map((card) => ({ label: card.title, path: "/staff/ai-coach", iconPath: this.iconFor("AI Coach"), group: card.body }));
+    const queue = (this.os()?.timeline || []).map((item) => ({ label: item.clientName, path: "/staff/queue", iconPath: this.iconFor("Today's Queue"), group: item.serviceNames?.join(", ") || "Appointment" }));
     const all = [...navItems, ...notices, ...coach, ...queue];
     return (text ? all.filter((item) => `${item.label} ${item.group}`.toLowerCase().includes(text)) : all).slice(0, 12);
   });
@@ -218,10 +244,22 @@ export class StaffLayoutPage implements OnInit {
 
   ngOnInit() {
     void this.loadShellData();
+    void this.flushOfflineQueue();
+    this.connectRealtime();
+    this.pollTimer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && !this.realtimeConnected()) void this.loadShellData();
+    }, 60000);
   }
 
-  @HostListener("window:online") onOnline() { this.online.set(true); }
-  @HostListener("window:offline") onOffline() { this.online.set(false); }
+  ngOnDestroy() {
+    window.clearInterval(this.pollTimer);
+    window.clearTimeout(this.reconnectTimer);
+    window.clearTimeout(this.toastTimer);
+    this.socket?.close();
+  }
+
+  @HostListener("window:online") onOnline() { this.online.set(true); void this.flushOfflineQueue(); this.connectRealtime(); }
+  @HostListener("window:offline") onOffline() { this.online.set(false); this.realtimeConnected.set(false); }
   @HostListener("window:keydown", ["$event"])
   onKeydown(event: KeyboardEvent) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -234,6 +272,20 @@ export class StaffLayoutPage implements OnInit {
       this.closeNotifications();
     }
   }
+
+  @HostListener("window:touchstart", ["$event"])
+  onTouchStart(event: TouchEvent) {
+    this.touchStartX = event.touches[0]?.clientX || 0;
+  }
+
+  @HostListener("window:touchend", ["$event"])
+  onTouchEnd(event: TouchEvent) {
+    const endX = event.changedTouches[0]?.clientX || 0;
+    if (this.touchStartX < 24 && endX - this.touchStartX > 70) this.openMenu();
+    if (this.menuOpen() && this.touchStartX - endX > 70) this.closeMenu();
+  }
+
+  private touchStartX = 0;
 
   visibleNav(): StaffNavItem[] {
     return this.nav.filter((item) => !item.permission || this.staff.hasPermission(item.permission) || item.permission === "read:payroll" && this.staff.hasPermission("read:finance"));
@@ -253,6 +305,15 @@ export class StaffLayoutPage implements OnInit {
 
   unreadCount(): number {
     return (this.os()?.notifications || []).filter((note) => String(note.status || "unread") !== "read").length;
+  }
+
+  iconFor(label: string): string {
+    return this.nav.find((item) => item.label === label)?.iconPath || this.nav[0].iconPath;
+  }
+
+  async markNotification(id: string, status: "read" | "unread" | "archived") {
+    await this.staff.updateNotification(id, status);
+    await this.loadShellData();
   }
 
   activateNav(item: StaffNavItem) {
@@ -275,6 +336,7 @@ export class StaffLayoutPage implements OnInit {
 
   openCommand() {
     this.commandOpen.set(true);
+    window.setTimeout(() => this.commandInput?.nativeElement.focus(), 0);
   }
 
   closeCommand() {
@@ -284,6 +346,7 @@ export class StaffLayoutPage implements OnInit {
 
   toggleNotifications() {
     this.notificationsOpen.update((open) => !open);
+    window.setTimeout(() => document.querySelector<HTMLElement>(".notification-drawer.open button")?.focus(), 0);
   }
 
   closeNotifications() {
@@ -305,9 +368,73 @@ export class StaffLayoutPage implements OnInit {
   private async loadShellData() {
     try {
       this.os.set(await this.staff.enterpriseOs());
+      this.offlinePending.set(this.staff.offlineQueueSize());
     } catch {
       this.os.set(null);
     }
+  }
+
+  private connectRealtime() {
+    if (!this.online() || !this.staff.isAuthenticated()) return;
+    if (this.socket && [WebSocket.CONNECTING, WebSocket.OPEN].includes(this.socket.readyState)) return;
+    const url = this.staff.realtimeSocketUrl();
+    if (!url) return;
+    try {
+      const socket = new WebSocket(url);
+      this.socket = socket;
+      socket.onopen = () => {
+        this.realtimeConnected.set(true);
+        socket.send(JSON.stringify({ type: "ping" }));
+      };
+      socket.onmessage = (event) => this.handleRealtimeMessage(event.data);
+      socket.onerror = () => socket.close();
+      socket.onclose = () => {
+        this.realtimeConnected.set(false);
+        if (this.online() && this.staff.isAuthenticated()) this.scheduleRealtimeReconnect();
+      };
+    } catch {
+      this.scheduleRealtimeReconnect();
+    }
+  }
+
+  private scheduleRealtimeReconnect() {
+    window.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = window.setTimeout(() => this.connectRealtime(), 5000);
+  }
+
+  private handleRealtimeMessage(raw: unknown) {
+    let frame: { type?: string } = {};
+    try { frame = JSON.parse(String(raw)); } catch { return; }
+    if (!frame.type || ["connection.ready", "pong", "subscription.updated"].includes(frame.type)) return;
+    if (frame.type.startsWith("staff-self.") || ["dashboard.updated", "booking.updated", "queue.updated"].includes(frame.type)) {
+      void this.loadShellData();
+    }
+  }
+
+  private async flushOfflineQueue() {
+    this.offlinePending.set(this.staff.offlineQueueSize());
+    const flushed = await this.staff.flushOfflineActions();
+    this.offlinePending.set(this.staff.offlineQueueSize());
+    if (flushed) {
+      this.showToast(`${flushed} queued staff action${flushed === 1 ? "" : "s"} synced.`);
+      void this.loadShellData();
+    }
+  }
+
+  private showToast(message: string) {
+    this.toastMessage.set(message);
+    window.clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => this.toastMessage.set(""), 3600);
+  }
+
+  trapFocus(event: KeyboardEvent, root: HTMLElement) {
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
   private remember(item: StaffRecentItem) {

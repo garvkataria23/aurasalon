@@ -3,17 +3,50 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { authenticateJwt } from "../middleware/auth.js";
 import { forbidden } from "../utils/app-error.js";
 import { securityAdvancedService } from "../services/security-advanced.service.js";
+import { isOwnerControlRole } from "../services/access-control.service.js";
 
 const ALLOWED_ROLES = new Set(["owner", "admin", "superAdmin"]);
+const ADVANCED_SECURITY_PREFIXES = [
+  "/security/policy",
+  "/security/compliance-readiness",
+  "/security/compliance-evidence",
+  "/security/pin",
+  "/security/devices",
+  "/security/access/devices",
+  "/security/access/sign-out-all",
+  "/security/field-audit",
+  "/security/risk",
+  "/security/approvals",
+  "/security/access-rules",
+  "/security/data-masks",
+  "/security/playbooks",
+  "/security/sso-settings",
+  "/security/privileged-sessions",
+  "/security/api-clients",
+  "/security/payment-guard",
+  "/security/subscription-guard",
+  "/security/account-sharing",
+  "/security/fraud-warnings",
+  "/security/disclosure-reports",
+  "/security/privacy-requests"
+];
+
+function isAdvancedSecurityPath(path = "") {
+  return ADVANCED_SECURITY_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+function originalPath(req) {
+  return String(req.originalUrl || req.url || "").split("?")[0].replace(/^\/api(?:\/v1)?/, "");
+}
 
 function requireSecurityOwner(access = {}) {
-  if (!ALLOWED_ROLES.has(access.role)) throw forbidden("Advanced security controls are available for owner/admin accounts only");
+  if (!isOwnerControlRole(access.role) && !ALLOWED_ROLES.has(access.role)) throw forbidden("Advanced security controls are available for owner/admin accounts only");
 }
 
 export const securityAdvancedRouter = Router();
 
 securityAdvancedRouter.use("/security", authenticateJwt(), (req, _res, next) => {
-  requireSecurityOwner(req.access);
+  if (isAdvancedSecurityPath(originalPath(req))) requireSecurityOwner(req.access);
   next();
 });
 

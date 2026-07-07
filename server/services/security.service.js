@@ -5,14 +5,14 @@ import { dataDir, db, dbPath } from "../db.js";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { builtinRoles, can, staticGrantsForRole } from "../middleware/rbac.js";
-import { badRequest, forbidden, notFound } from "../utils/app-error.js";
+import { badRequest, notFound } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
 import { permissionResources, staffPermissionCatalog } from "../config/staff-permission-catalog.js";
+import { assertOwnerControl, ensureTenantUserAccessColumns, normalizeBranchIdsForRole, normalizeRole, ownerControlRoles } from "./access-control.service.js";
 
 const backupDir = join(dataDir, "backups");
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
-const ownerControlRoles = new Set(["owner", "admin", "superAdmin"]);
 const tenantUserStatuses = new Set(["active", "hidden", "disabled", "suspended"]);
 
 
@@ -40,14 +40,6 @@ function safeJsonArray(value) {
   }
 }
 
-function normalizeBranchIds(value) {
-  if (Array.isArray(value)) return safeJsonArray(value);
-  return String(value || "")
-    .split(/[\n,;]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function publicTenantUser(row, sessionsByUser = {}, activityByUser = {}) {
   const branchIds = safeJsonArray(row.branchIds);
   const locked = Boolean(row.lockedUntil && row.lockedUntil > now());
@@ -65,18 +57,15 @@ function publicTenantUser(row, sessionsByUser = {}, activityByUser = {}) {
     lockedUntil: row.lockedUntil || "",
     isLocked: locked,
     status: row.status || "active",
+    accessApprovedBy: row.accessApprovedBy || "",
+    accessApprovedAt: row.accessApprovedAt || "",
+    permissionVersion: Number(row.permissionVersion || 1),
     lastLoginAt: row.lastLoginAt || "",
     activeSessions: sessionsByUser[row.id] || 0,
     lastActivityAt: activityByUser[row.id] || "",
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   };
-}
-
-function assertOwnerControl(access) {
-  if (!ownerControlRoles.has(access?.role || "")) {
-    throw forbidden("Only owner, admin or super admin can manage users and roles");
-  }
 }
 
 export class SecurityService {
@@ -155,10 +144,11 @@ export class SecurityService {
   }
 
   userManagement(access) {
+    ensureTenantUserAccessColumns();
     const base = this.permissionMatrix(access);
     const userRows = db.prepare(
       `SELECT id, tenantId, name, loginId, email, role, branchIds, staffId,
-              failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+              failedLoginCount, lockedUntil, lastLoginAt, status, accessApprovedBy, accessApprovedAt, permissionVersion, createdAt, updatedAt
          FROM tenant_users
         WHERE tenantId = @tenantId
         ORDER BY CASE WHEN role IN ('owner', 'superAdmin', 'admin') THEN 0 ELSE 1 END, name COLLATE NOCASE`
@@ -192,10 +182,11 @@ export class SecurityService {
   }
 
   createTenantUser(payload = {}, access, req = null) {
+    ensureTenantUserAccessColumns();
     assertOwnerControl(access);
     const name = String(payload.name || "").trim();
     const email = String(payload.email || "").trim().toLowerCase();
-    const role = String(payload.role || "").trim();
+    const role = normalizeRole(payload.role || "");
     const password = String(payload.password || payload.tempPassword || "").trim();
     if (!name || !email || !role || !password) throw badRequest("name, email, role and temporary password are required");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw badRequest("Valid email is required");
@@ -216,7 +207,7 @@ export class SecurityService {
       loginId: String(payload.loginId || "").trim(),
       email,
       role,
-      branchIds: JSON.stringify(normalizeBranchIds(payload.branchIds || payload.branchIdsText)),
+      branchIds: JSON.stringify(normalizeBranchIdsForRole(payload.branchIds || payload.branchIdsText, role)),
       staffId: String(payload.staffId || "").trim(),
       passwordSalt: salt,
       passwordHash: passwordHashFor(password, salt),
@@ -224,16 +215,19 @@ export class SecurityService {
       lockedUntil: "",
       lastLoginAt: "",
       status: tenantUserStatuses.has(payload.status) ? payload.status : "active",
+      accessApprovedBy: access.userId || "",
+      accessApprovedAt: stamp,
+      permissionVersion: 1,
       createdAt: stamp,
       updatedAt: stamp
     };
     db.prepare(
       `INSERT INTO tenant_users (
         id, tenantId, name, loginId, email, role, branchIds, staffId,
-        passwordSalt, passwordHash, failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+        passwordSalt, passwordHash, failedLoginCount, lockedUntil, lastLoginAt, status, accessApprovedBy, accessApprovedAt, permissionVersion, createdAt, updatedAt
       ) VALUES (
         @id, @tenantId, @name, @loginId, @email, @role, @branchIds, @staffId,
-        @passwordSalt, @passwordHash, @failedLoginCount, @lockedUntil, @lastLoginAt, @status, @createdAt, @updatedAt
+        @passwordSalt, @passwordHash, @failedLoginCount, @lockedUntil, @lastLoginAt, @status, @accessApprovedBy, @accessApprovedAt, @permissionVersion, @createdAt, @updatedAt
       )`
     ).run(user);
     this.audit({ action: "tenant_user.created", targetType: "tenant_user", targetId: user.id, details: { name, email, role, branchIds: safeJsonArray(user.branchIds), status: user.status } }, access, req);
@@ -241,11 +235,12 @@ export class SecurityService {
   }
 
   updateTenantUser(userId, payload = {}, access, req = null) {
+    ensureTenantUserAccessColumns();
     assertOwnerControl(access);
     if (!userId) throw badRequest("userId is required");
     const existing = db.prepare(
       `SELECT id, tenantId, name, loginId, email, role, branchIds, staffId,
-              passwordSalt, passwordHash, failedLoginCount, lockedUntil, lastLoginAt, status, createdAt, updatedAt
+              passwordSalt, passwordHash, failedLoginCount, lockedUntil, lastLoginAt, status, accessApprovedBy, accessApprovedAt, permissionVersion, createdAt, updatedAt
          FROM tenant_users
         WHERE tenantId = @tenantId AND id = @id`
     ).get({ tenantId: access.tenantId, id: userId });
@@ -256,8 +251,8 @@ export class SecurityService {
       name: payload.name === undefined ? existing.name : String(payload.name || "").trim(),
       loginId: payload.loginId === undefined ? existing.loginId || "" : String(payload.loginId || "").trim(),
       email: payload.email === undefined ? existing.email : String(payload.email || "").trim().toLowerCase(),
-      role: payload.role === undefined ? existing.role : String(payload.role || "").trim(),
-      branchIds: payload.branchIds === undefined && payload.branchIdsText === undefined ? existing.branchIds : JSON.stringify(normalizeBranchIds(payload.branchIds || payload.branchIdsText)),
+      role: payload.role === undefined ? normalizeRole(existing.role) : normalizeRole(payload.role || ""),
+      branchIds: payload.branchIds === undefined && payload.branchIdsText === undefined ? existing.branchIds : JSON.stringify(normalizeBranchIdsForRole(payload.branchIds || payload.branchIdsText, normalizeRole(payload.role === undefined ? existing.role : payload.role))),
       staffId: payload.staffId === undefined ? existing.staffId || "" : String(payload.staffId || "").trim(),
       passwordSalt: existing.passwordSalt || "",
       passwordHash: existing.passwordHash || "",
@@ -265,12 +260,16 @@ export class SecurityService {
       lockedUntil: payload.unlock ? "" : existing.lockedUntil || "",
       lastLoginAt: existing.lastLoginAt || "",
       status: payload.status === undefined ? existing.status || "active" : String(payload.status || "active").trim(),
+      accessApprovedBy: existing.accessApprovedBy || access.userId || "",
+      accessApprovedAt: existing.accessApprovedAt || now(),
+      permissionVersion: Number(existing.permissionVersion || 1),
       createdAt: existing.createdAt,
       updatedAt: now()
     };
     if (!next.name || !next.email || !next.role) throw badRequest("name, email and role are required");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.email)) throw badRequest("Valid email is required");
     if (!tenantUserStatuses.has(next.status)) throw badRequest("Invalid user status");
+    next.branchIds = JSON.stringify(normalizeBranchIdsForRole(safeJsonArray(next.branchIds), next.role));
     this.assertRoleExists(next.role, access);
     const duplicate = db.prepare(
       `SELECT id FROM tenant_users
@@ -291,6 +290,11 @@ export class SecurityService {
       next.failedLoginCount = 0;
       next.lockedUntil = "";
     }
+    if (next.role !== normalizeRole(existing.role) || next.branchIds !== existing.branchIds || next.status !== (existing.status || "active") || newPassword) {
+      next.permissionVersion += 1;
+      next.accessApprovedBy = access.userId || next.accessApprovedBy;
+      next.accessApprovedAt = now();
+    }
     this.assertNotLastOwner(existing, next, access);
     db.prepare(
       `UPDATE tenant_users
@@ -306,6 +310,9 @@ export class SecurityService {
               lockedUntil = @lockedUntil,
               lastLoginAt = @lastLoginAt,
               status = @status,
+              accessApprovedBy = @accessApprovedBy,
+              accessApprovedAt = @accessApprovedAt,
+              permissionVersion = @permissionVersion,
               updatedAt = @updatedAt
         WHERE tenantId = @tenantId AND id = @id`
     ).run(next);
@@ -351,7 +358,7 @@ export class SecurityService {
     }
     const permissions = Array.isArray(payload.permissions) ? payload.permissions : [];
     if (!permissions.length) throw badRequest("permissions array is required");
-    const existing = db.prepare("SELECT id FROM role_definitions WHERE tenantId = ? AND role = ?").get(access.tenantId, role);
+    const existing = db.prepare("SELECT id FROM role_definitions WHERE tenantId = @tenantId AND role = @role").get({ tenantId: access.tenantId, role });
     const data = {
       role,
       name: payload.name,
@@ -518,10 +525,13 @@ export class SecurityService {
   }
 
   upsertPermission(payload = {}, access, req = null) {
+    ensureTenantUserAccessColumns();
+    assertOwnerControl(access);
     if (!payload.role || !payload.resource) throw badRequest("role and resource are required");
-    const existing = db.prepare("SELECT id FROM security_permissions WHERE tenantId = @tenantId AND role = @role AND resource = @resource").get({ tenantId: access.tenantId, role: payload.role, resource: payload.resource });
+    const role = normalizeRole(payload.role);
+    const existing = db.prepare("SELECT id FROM security_permissions WHERE tenantId = @tenantId AND role = @role AND resource = @resource").get({ tenantId: access.tenantId, role, resource: payload.resource });
     const data = {
-      role: payload.role,
+      role,
       resource: payload.resource,
       actions: payload.actions || ["read"],
       effect: payload.effect || "allow",
@@ -532,7 +542,16 @@ export class SecurityService {
       ? repositories.securityPermissions.update(existing.id, data, scope(access))
       : repositories.securityPermissions.create({ id: makeId("perm"), ...data }, scope(access));
     this.audit({ action: "permission.upserted", targetType: "security_permission", targetId: permission.id, details: data }, access, req);
+    this.bumpRolePermissionVersion(role, access);
     return permission;
+  }
+
+  bumpRolePermissionVersion(role, access) {
+    db.prepare(`UPDATE tenant_users
+                   SET permissionVersion = COALESCE(permissionVersion, 1) + 1,
+                       updatedAt = @updatedAt
+                 WHERE tenantId = @tenantId AND role = @role`)
+      .run({ tenantId: access.tenantId, role: normalizeRole(role), updatedAt: now() });
   }
 
   encryptSecret(payload = {}, access, req = null) {

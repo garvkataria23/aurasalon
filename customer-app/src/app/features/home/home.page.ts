@@ -58,6 +58,7 @@ interface ConsultationChatMessage {
             </div>
           </div>
           <div class="toolbar-actions">
+            <ion-button fill="clear" shape="round" class="staff-toolbar-button" routerLink="/staff/login">Staff?</ion-button>
             <ion-button fill="clear" shape="round" routerLink="/notifications" aria-label="Open notifications">
               <ion-icon name="notifications-outline"></ion-icon>
             </ion-button>
@@ -427,6 +428,18 @@ interface ConsultationChatMessage {
 
     .near-you-button:disabled {
       opacity: 0.7;
+    }
+
+    .staff-toolbar-button {
+      --color: #6E4810;
+      --background: rgba(255, 249, 236, 0.96);
+      --border-color: rgba(214, 169, 74, 0.34);
+      --border-style: solid;
+      --border-width: 1px;
+      --box-shadow: 0 8px 18px rgba(92, 65, 28, 0.08);
+      min-width: 78px;
+      font-weight: 950;
+      text-transform: none;
     }
 
     .hero {

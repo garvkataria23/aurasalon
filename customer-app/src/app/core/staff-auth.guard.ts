@@ -13,6 +13,10 @@ export const staffPermissionGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   if (!staff.isAuthenticated()) return router.createUrlTree(["/staff/login"]);
   const required = route.data?.["permissions"];
+  const anyRequired = route.data?.["anyPermissions"];
   const permissions = Array.isArray(required) ? required : required ? [required] : [];
-  return staff.hasEveryPermission(permissions) || router.createUrlTree(["/staff/login"]);
+  const anyPermissions = Array.isArray(anyRequired) ? anyRequired : anyRequired ? [anyRequired] : [];
+  const allowed = permissions.length ? staff.hasEveryPermission(permissions) : true;
+  const anyAllowed = anyPermissions.length ? staff.hasAnyPermission(anyPermissions) : true;
+  return allowed && anyAllowed ? true : router.createUrlTree(["/staff/permission-denied"], { queryParams: { required: [...permissions, ...anyPermissions].join(",") } });
 };

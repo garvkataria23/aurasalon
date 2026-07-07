@@ -16,6 +16,7 @@
     "seed:demo": "node scripts/seed-demo-data.mjs",
     "seed:ai-knowledge": "node scripts/seed-aurashine-ai-knowledge.mjs",
     "backup:db": "node scripts/backup-database.mjs",
+    "smoke:staff-mobile": "node scripts/smoke-staff-mobile.mjs",
     "build": "npm run build:client",
     "build:client": "ng build",
     "start": "node server/index.js",

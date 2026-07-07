@@ -35,6 +35,19 @@ type StaffPermissionGroup = {
 };
 
 const OWNER_ROLES = new Set(['owner', 'admin', 'superAdmin']);
+const BUILTIN_ROLE_OPTIONS: ApiRecord[] = [
+  { role: 'owner', name: 'Owner', isSystem: 1 },
+  { role: 'superAdmin', name: 'Super Admin', isSystem: 1 },
+  { role: 'admin', name: 'Admin', isSystem: 1 },
+  { role: 'manager', name: 'Manager', isSystem: 1 },
+  { role: 'frontDesk', name: 'Front Desk', isSystem: 1 },
+  { role: 'staff', name: 'Staff', isSystem: 1 },
+  { role: 'accountant', name: 'Accountant', isSystem: 1 },
+  { role: 'inventoryManager', name: 'Inventory Manager', isSystem: 1 },
+  { role: 'marketingLead', name: 'Marketing Lead', isSystem: 1 },
+  { role: 'customMarketingLead', name: 'Custom Marketing Lead', isSystem: 1 }
+];
+const ROLE_ORDER = new Map(BUILTIN_ROLE_OPTIONS.map((item, index) => [item.role, index]));
 const ACTION_COLUMNS: { key: PermissionAction; label: string; backend: string[] }[] = [
   { key: 'access', label: 'Access', backend: ['read'] },
   { key: 'add', label: 'Add', backend: ['write', 'create'] },
@@ -634,7 +647,27 @@ export class PermissionMatrixComponent implements OnInit {
     actions: ['read,write', Validators.required]
   });
 
-  readonly roles = computed<ApiRecord[]>(() => this.matrix()?.roles || []);
+  readonly roles = computed<ApiRecord[]>(() => {
+    const data = this.matrix() || {};
+    const rows = new Map<string, ApiRecord>();
+    const addRole = (item: ApiRecord | string) => {
+      const row = typeof item === 'string' ? { role: item } : item;
+      const role = String(row?.role || '').trim();
+      if (!role || rows.has(role)) return;
+      rows.set(role, { ...row, role, name: row.name || this.roleNameFallback(role) });
+    };
+    BUILTIN_ROLE_OPTIONS.forEach(addRole);
+    if (Array.isArray(data.roles)) data.roles.forEach(addRole);
+    if (Array.isArray(data.customRoles)) data.customRoles.forEach(addRole);
+    if (Array.isArray(data.users)) data.users.forEach((user) => addRole(String(user.role || '')));
+    return Array.from(rows.values()).sort((left, right) => {
+      const leftOrder = ROLE_ORDER.get(left.role) ?? 1000;
+      const rightOrder = ROLE_ORDER.get(right.role) ?? 1000;
+      return leftOrder === rightOrder
+        ? String(left.name || left.role).localeCompare(String(right.name || right.role))
+        : leftOrder - rightOrder;
+    });
+  });
   readonly users = computed<TenantUser[]>(() => this.matrix()?.users || []);
   readonly metrics = computed(() => this.matrix()?.metrics || {});
   readonly permissionCatalog = computed<StaffPermissionCatalogItem[]>(() => Array.isArray(this.matrix()?.permissionCatalog) ? this.matrix()?.permissionCatalog as StaffPermissionCatalogItem[] : []);
@@ -1046,7 +1079,11 @@ export class PermissionMatrixComponent implements OnInit {
   }
 
   roleName(role: string): string {
-    return this.roles().find((item) => item.role === role)?.name || role?.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase()) || 'Role';
+    return this.roles().find((item) => item.role === role)?.name || this.roleNameFallback(role);
+  }
+
+  private roleNameFallback(role: string): string {
+    return role?.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase()) || 'Role';
   }
 
   initials(value: string): string {

@@ -1,6 +1,7 @@
 import { DEFAULT_TENANT_ID, columnsFor, db } from "../db.js";
 import { repositories, repositoryForTable } from "../repositories/repository-registry.js";
 import { badRequest, conflict, forbidden, notFound } from "../utils/app-error.js";
+import { isOwnerControlRole, normalizeRole } from "./access-control.service.js";
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
@@ -67,7 +68,7 @@ export class TenantService {
 
   accessScope(access, resource = "") {
     const scope = { tenantId: access.tenantId };
-    const branchLimited = ["staff", "frontDesk"].includes(access.role);
+    const branchLimited = !isOwnerControlRole(access.role);
     if (access.branchId && (branchLimited || access.requestedBranchId)) {
       scope.branchId = access.branchId;
     }
@@ -75,7 +76,7 @@ export class TenantService {
   }
 
   assertBranchAccess(access, branchId) {
-    if (!branchId || ["superAdmin", "owner", "admin", "manager", "analyst"].includes(access.role)) return;
+    if (!branchId || isOwnerControlRole(normalizeRole(access.role))) return;
     const allowed = access.branchIds || [];
     if (!allowed.length || !allowed.includes(branchId)) {
       throw forbidden("This user does not have access to the requested branch");

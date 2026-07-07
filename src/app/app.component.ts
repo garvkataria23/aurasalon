@@ -1633,11 +1633,16 @@ export class AppComponent implements OnDestroy {
     this.api.list<ApiRecord[]>('branches').subscribe({
       next: (branches) => {
         const rows = (branches || []).filter((branch) => branch && branch.id);
-        this.branches.set(rows);
+        const user = this.session.currentUser();
+        const role = this.state.userRole();
+        const adminScope = ['superAdmin', 'owner', 'admin'].includes(role);
+        const allowedBranchIds = new Set(user?.branchIds || []);
+        const scopedRows = adminScope || !allowedBranchIds.size ? rows : rows.filter((branch) => allowedBranchIds.has(String(branch.id)));
+        this.branches.set(scopedRows);
         const selectedBranchId = this.state.selectedBranchId();
-        const selectedExists = rows.some((branch) => branch.id === selectedBranchId);
-        if (rows.length && (!selectedBranchId || !selectedExists)) {
-          this.state.setBranch(rows[0].id);
+        const selectedExists = scopedRows.some((branch) => branch.id === selectedBranchId);
+        if (scopedRows.length && (!selectedBranchId || !selectedExists)) {
+          this.state.setBranch(scopedRows[0].id);
         }
       },
       error: () => this.branches.set([])

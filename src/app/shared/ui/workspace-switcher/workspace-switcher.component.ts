@@ -17,6 +17,7 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: 'accountant', label: 'Accountant' },
   { value: 'inventoryManager', label: 'Inventory manager' },
   { value: 'analyst', label: 'Analyst' },
+  { value: 'marketingLead', label: 'Marketing lead' },
   { value: 'customMarketingLead', label: 'Marketing lead' }
 ];
 

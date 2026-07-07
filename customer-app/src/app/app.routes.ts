@@ -1,6 +1,6 @@
 import { Routes } from "@angular/router";
 import { customerAuthGuard } from "./core/auth.guard";
-import { staffAuthGuard } from "./core/staff-auth.guard";
+import { staffAuthGuard, staffPermissionGuard } from "./core/staff-auth.guard";
 
 export const routes: Routes = [
   { path: "", redirectTo: "onboarding", pathMatch: "full" },
@@ -41,9 +41,9 @@ export const routes: Routes = [
       { path: "clients", loadComponent: () => import("./features/staff/staff-clients.page").then((m) => m.StaffClientsPage) },
       { path: "client-360", loadComponent: () => import("./features/staff/staff-client360.page").then((m) => m.StaffClient360Page) },
       { path: "client-360/:id", loadComponent: () => import("./features/staff/staff-client360.page").then((m) => m.StaffClient360Page) },
-      { path: "tasks", loadComponent: () => import("./features/staff/staff-tasks.page").then((m) => m.StaffTasksPage) },
+      { path: "tasks", canActivate: [staffPermissionGuard], data: { permissions: "read:staff" }, loadComponent: () => import("./features/staff/staff-tasks.page").then((m) => m.StaffTasksPage) },
       { path: "attendance", loadComponent: () => import("./features/staff/staff-attendance.page").then((m) => m.StaffAttendancePage) },
-      { path: "roster", loadComponent: () => import("./features/staff/staff-roster.page").then((m) => m.StaffRosterPage) },
+      { path: "roster", canActivate: [staffPermissionGuard], data: { permissions: "read:staff" }, loadComponent: () => import("./features/staff/staff-roster.page").then((m) => m.StaffRosterPage) },
       { path: "performance", loadComponent: () => import("./features/staff/staff-performance.page").then((m) => m.StaffPerformancePage) },
       { path: "leaderboard", loadComponent: () => import("./features/staff/staff-leaderboard.page").then((m) => m.StaffLeaderboardPage) },
       { path: "ai-coach", loadComponent: () => import("./features/staff/staff-ai-coach.page").then((m) => m.StaffAiCoachPage) },
@@ -52,10 +52,11 @@ export const routes: Routes = [
       { path: "calendar", loadComponent: () => import("./features/staff/staff-calendar.page").then((m) => m.StaffCalendarPage) },
       { path: "chat", loadComponent: () => import("./features/staff/staff-chat.page").then((m) => m.StaffChatPage) },
       { path: "learning", loadComponent: () => import("./features/staff/staff-learning.page").then((m) => m.StaffLearningPage) },
-      { path: "payroll", loadComponent: () => import("./features/staff/staff-payroll.page").then((m) => m.StaffPayrollPage) },
-      { path: "leaves", loadComponent: () => import("./features/staff/staff-leaves.page").then((m) => m.StaffLeavesPage) },
+      { path: "payroll", canActivate: [staffPermissionGuard], data: { anyPermissions: ["read:payroll", "read:finance"] }, loadComponent: () => import("./features/staff/staff-payroll.page").then((m) => m.StaffPayrollPage) },
+      { path: "leaves", canActivate: [staffPermissionGuard], data: { permissions: "read:staff" }, loadComponent: () => import("./features/staff/staff-leaves.page").then((m) => m.StaffLeavesPage) },
       { path: "profile", loadComponent: () => import("./features/staff/staff-profile.page").then((m) => m.StaffProfilePage) },
-      { path: "settings", loadComponent: () => import("./features/staff/staff-settings.page").then((m) => m.StaffSettingsPage) }
+      { path: "settings", loadComponent: () => import("./features/staff/staff-settings.page").then((m) => m.StaffSettingsPage) },
+      { path: "permission-denied", loadComponent: () => import("./features/staff/staff-permission-denied.page").then((m) => m.StaffPermissionDeniedPage) }
     ]
   },
   {
