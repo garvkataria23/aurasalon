@@ -746,7 +746,7 @@ export class BookingSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/booking').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/booking').subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings);
       },
@@ -762,7 +762,7 @@ export class BookingSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/booking', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/booking', { settings }).subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || settings);
         this.message.set('Booking settings saved');

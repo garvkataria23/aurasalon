@@ -76,7 +76,7 @@ type PanelId = 'notifications' | 'profile' | null;
             </span>
           </button>
           <nav class="hdr-menu-links">
-            <a routerLink="/settings" (click)="closeAll()"><span class="hdr-link-icon">⚙</span> Settings</a>
+            <a routerLink="/settings/general" (click)="closeAll()"><span class="hdr-link-icon">⚙</span> Settings</a>
             <a routerLink="/two-factor" (click)="closeAll()"><span class="hdr-link-icon">🛡</span> Security &amp; 2FA</a>
             <a routerLink="/business-details" (click)="closeAll()"><span class="hdr-link-icon">🏢</span> Business details</a>
           </nav>

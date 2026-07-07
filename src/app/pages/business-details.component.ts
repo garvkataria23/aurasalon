@@ -92,7 +92,7 @@ type ContactVerificationResponse = ContactVerification & {
       </div>
       <div class="hero-actions">
         <a class="ghost-button link-button" routerLink="/clients">Client page</a>
-        <a class="ghost-button link-button" routerLink="/staff">Staff page</a>
+        <a class="ghost-button link-button" routerLink="/staff-os/staff-list">Staff page</a>
         <button class="ghost-button" type="button" (click)="load()" [disabled]="loading()">Refresh</button>
         <button class="primary-button" type="button" (click)="save()" [disabled]="saving()">Save business details</button>
       </div>
@@ -118,7 +118,7 @@ type ContactVerificationResponse = ContactVerification & {
         <div class="route-status">
           <strong class="ready">Connected</strong>
         </div>
-        <a routerLink="/staff">Open staff page</a>
+        <a routerLink="/staff-os/staff-list">Open staff page</a>
       </article>
 
       <article class="sms-route-card owner">

@@ -13,14 +13,24 @@ export const now = () => new Date().toISOString();
 export const today = () => now().slice(0, 10);
 export const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 
+export function normalizeRole(role = "") {
+  const value = String(role || "").trim();
+  const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
+  if (compact === "superadmin") return "superAdmin";
+  if (compact === "frontdesk") return "frontDesk";
+  if (compact === "inventorymanager") return "inventoryManager";
+  if (compact === "custommarketinglead") return "customMarketingLead";
+  return value;
+}
+
 export function requireTenant(access = {}) {
   if (!access.tenantId) throw forbidden("Tenant context is required");
-  return access;
+  return { ...access, role: normalizeRole(access.role) };
 }
 
 export function requireRole(access, roles, message = "This action is not allowed for your role") {
-  requireTenant(access);
-  if (!roles.has(access.role)) throw forbidden(message);
+  const scopedAccess = requireTenant(access);
+  if (!roles.has(scopedAccess.role)) throw forbidden(message);
 }
 
 export function requireManager(access) {

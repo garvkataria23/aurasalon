@@ -561,7 +561,7 @@ export class PaymentMethodSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/payment-methods').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/payment-methods').subscribe({
       next: (response) => {
         this.settings = this.normalize(response?.settings);
       },
@@ -577,7 +577,7 @@ export class PaymentMethodSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/payment-methods', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/payment-methods', { settings }).subscribe({
       next: (response) => {
         this.settings = this.normalize(response?.settings || settings);
         this.message.set('Payment method settings saved');

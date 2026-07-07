@@ -489,7 +489,7 @@ export class InventorySettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/inventory').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/inventory').subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings);
       },
@@ -505,7 +505,7 @@ export class InventorySettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/inventory', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/inventory', { settings }).subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || settings);
         this.message.set('Inventory settings saved');

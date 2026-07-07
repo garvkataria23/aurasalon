@@ -14,3 +14,21 @@ staffSelfRouter.get(
     res.json(staffLoginService.staffDashboard(req.query, req.access));
   })
 );
+
+staffSelfRouter.get(
+  "/staff-self/enterprise-os",
+  authenticateJwt(),
+  requirePermission("read", () => "appointments"),
+  asyncHandler((req, res) => {
+    res.json(staffLoginService.enterpriseOs(req.query, req.access));
+  })
+);
+
+staffSelfRouter.get(
+  "/staff-self/clients/:clientId/360",
+  authenticateJwt(),
+  requirePermission("read", () => "appointments"),
+  asyncHandler((req, res) => {
+    res.json(staffLoginService.client360(req.params.clientId, req.query, req.access));
+  })
+);

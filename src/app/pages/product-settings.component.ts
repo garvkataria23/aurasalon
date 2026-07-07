@@ -505,7 +505,7 @@ export class ProductSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/products').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/products').subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings);
       },
@@ -521,7 +521,7 @@ export class ProductSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/products', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/products', { settings }).subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || settings);
         this.message.set('Product settings saved');

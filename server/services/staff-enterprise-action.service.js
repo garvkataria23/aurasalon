@@ -16,6 +16,16 @@ const sensitiveActions = new Set([
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
 
+function normalizeRole(role = "") {
+  const value = String(role || "").trim();
+  const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
+  if (compact === "superadmin") return "superAdmin";
+  if (compact === "frontdesk") return "frontDesk";
+  if (compact === "inventorymanager") return "inventoryManager";
+  if (compact === "custommarketinglead") return "customMarketingLead";
+  return value;
+}
+
 function parseJson(value, fallback) {
   if (Array.isArray(value) || (value && typeof value === "object")) return value;
   if (!value || typeof value !== "string") return fallback;
@@ -37,12 +47,12 @@ function money(value) {
 
 function requireTenant(access = {}) {
   if (!access.tenantId) throw forbidden("Tenant context is required");
-  return access;
+  return { ...access, role: normalizeRole(access.role) };
 }
 
 function requireManager(access = {}) {
-  requireTenant(access);
-  if (!managerRoles.has(access.role)) throw forbidden("Manager approval is required");
+  const scopedAccess = requireTenant(access);
+  if (!managerRoles.has(scopedAccess.role)) throw forbidden("Manager approval is required");
 }
 
 function branchAccess(access, branchId = "") {

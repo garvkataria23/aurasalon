@@ -192,8 +192,8 @@ type StaffEnterpriseFilterKey = 'periodStart' | 'periodEnd' | 'branchId' | 'staf
           <h1>Workforce Center</h1>
         </div>
         <nav class="header-actions" aria-label="Staff enterprise navigation">
-          <a routerLink="/staff" class="ghost-button">Staff</a>
-          <a routerLink="/staff-os" class="ghost-button">Staff OS</a>
+          <a routerLink="/staff-os/staff-list" class="ghost-button">Staff</a>
+          <a routerLink="/staff-os/staff-list" class="ghost-button">Staff OS</a>
           <button type="button" class="primary-button" (click)="loadDashboard()" [disabled]="loading()">Refresh</button>
         </nav>
       </header>

@@ -34,7 +34,7 @@ export class NavigationPrefetchService {
 
   warmHighUseRoutes(): void {
     if (!this.session.isAuthenticated()) return;
-    ['/home', '/appointments', '/pos', '/clients', '/staff-os', '/inventory', '/reports', '/marketing']
+    ['/home', '/appointments', '/pos', '/clients', '/staff-os/staff-list', '/inventory', '/reports', '/marketing']
       .forEach((path, index) => setTimeout(() => this.prefetch(path), 120 + index * 140));
   }
 

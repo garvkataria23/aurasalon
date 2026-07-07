@@ -152,8 +152,8 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
 
         <div class="zenoti-shortcuts">
           <a routerLink="/inventory/reorder">Reorder plan</a>
-          <a routerLink="/inventory/product-360">Product 360</a>
-          <a routerLink="/inventory/supplier-360">Supplier 360</a>
+          <a [routerLink]="selectedProductId() ? ['/inventory/products', selectedProductId()] : ['/inventory']">Product 360</a>
+          <a [routerLink]="selectedSupplierId() ? ['/suppliers', selectedSupplierId()] : ['/suppliers']">Supplier 360</a>
           <a routerLink="/inventory/recipes">Service Recipes</a>
           <a routerLink="/inventory/fifo">FIFO Batches</a>
           <a routerLink="/inventory/stock-audit">Stock Audit</a>
@@ -1444,12 +1444,12 @@ export class InventoryComponent implements OnInit {
 
   readonly product360Link = computed(() => {
     const id = this.selectedProduct()?.id;
-    return id ? `/inventory/products/${id}` : '/inventory/product-360';
+    return id ? `/inventory/products/${id}` : '/inventory';
   });
 
   readonly supplier360Link = computed(() => {
     const id = this.selectedSupplier()?.id;
-    return id ? `/suppliers/${id}` : '/inventory/supplier-360';
+    return id ? `/suppliers/${id}` : '/suppliers';
   });
 
   readonly inventoryReadinessScore = computed(() => {
@@ -1583,35 +1583,45 @@ export class InventoryComponent implements OnInit {
     this.loading.set(true);
     Promise.all([
       this.api.list<ApiRecord[]>('products', { branchId: this.api.selectedBranchId() }).toPromise(),
-      this.api.list<ApiRecord[]>('products', { limit: 10000 }).toPromise(),
       this.api.list<ApiRecord[]>('inventory', { branchId: this.api.selectedBranchId(), limit: 100 }).toPromise(),
       this.api.list<ApiRecord[]>('branches').toPromise(),
       this.api.list<ApiRecord[]>('suppliers').toPromise(),
       this.api.list<ApiRecord[]>('inventoryBatches', { branchId: this.api.selectedBranchId(), limit: 100 }).toPromise(),
-      this.api.list<ApiRecord[]>('services', { limit: 1000 }).toPromise(),
-      this.api.list<ApiRecord[]>('sales', { branchId: this.api.selectedBranchId(), limit: 1000 }).toPromise(),
-      this.api.list<ApiRecord[]>('inventory-intelligence/predictions', { limit: 5 }).toPromise(),
-      this.api.list<ApiRecord>('inventory-intelligence/summary', { branchId: this.api.selectedBranchId() }).toPromise()
+      this.api.list<ApiRecord[]>('services', { limit: 500 }).toPromise()
     ])
-      .then(([products, allProducts, transactions, branches, suppliers, batches, services, sales, predictions, intelligence]) => {
+      .then(([products, transactions, branches, suppliers, batches, services]) => {
         this.products.set(products || []);
-        this.allProducts.set(allProducts || products || []);
+        this.allProducts.set(products || []);
         this.transactions.set(transactions || []);
         this.branches.set(branches || []);
         this.suppliers.set(suppliers || []);
         this.batches.set(batches || []);
         this.services.set(services || []);
-        this.sales.set(sales || []);
-        this.predictions.set(predictions || []);
-        this.intelligence.set(intelligence || null);
         if (!this.selectedProductId() && products?.[0]?.id) this.selectedProductId.set(products[0].id);
         if (!this.selectedSupplierId() && suppliers?.[0]?.id) this.selectedSupplierId.set(suppliers[0].id);
         this.loading.set(false);
+        this.loadInventoryInsights();
       })
       .catch((error) => {
         this.error.set(error?.error?.error || 'Unable to load inventory');
         this.loading.set(false);
       });
+  }
+
+  private loadInventoryInsights(): void {
+    Promise.all([
+      this.api.list<ApiRecord[]>('products', { limit: 10000 }).toPromise(),
+      this.api.list<ApiRecord[]>('sales', { branchId: this.api.selectedBranchId(), limit: 1000 }).toPromise(),
+      this.api.list<ApiRecord[]>('inventory-intelligence/predictions', { limit: 5 }).toPromise(),
+      this.api.list<ApiRecord>('inventory-intelligence/summary', { branchId: this.api.selectedBranchId() }).toPromise()
+    ])
+      .then(([allProducts, sales, predictions, intelligence]) => {
+        if (allProducts?.length) this.allProducts.set(allProducts);
+        this.sales.set(sales || []);
+        this.predictions.set(predictions || []);
+        this.intelligence.set(intelligence || null);
+      })
+      .catch(() => undefined);
   }
 
   saveProduct(): void {

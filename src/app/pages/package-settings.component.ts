@@ -484,7 +484,7 @@ export class PackageSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: PackageSettingsAudit }>('v1/settings/packages').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: PackageSettingsAudit }>('settings/packages').subscribe({
       next: (response) => {
         this.settings = this.normalizeSettings(response.settings || {});
         this.audit = this.normalizeAudit(response.audit);
@@ -502,7 +502,7 @@ export class PackageSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalizeSettings(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: PackageSettingsAudit }>('v1/settings/packages', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: PackageSettingsAudit }>('settings/packages', { settings }).subscribe({
       next: (response) => {
         this.settings = this.normalizeSettings(response.settings || settings);
         this.audit = this.normalizeAudit(response.audit);

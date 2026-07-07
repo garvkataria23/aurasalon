@@ -17,7 +17,7 @@ type RosterView = 'day' | 'week' | 'month';
   template: `
     <section class="page-stack">
       <div class="profile-command-bar">
-        <a class="ghost-button fit" routerLink="/staff">Back to staff</a>
+        <a class="ghost-button fit" routerLink="/staff-os/staff-list">Back to staff</a>
         <div class="command-actions" *ngIf="staff() as staff">
           <button class="ghost-button" type="button" routerLink="/appointments">Open calendar</button>
           <button class="ghost-button" type="button" routerLink="/pos">Open POS</button>
@@ -53,7 +53,7 @@ type RosterView = 'day' | 'week' | 'month';
             <button class="ghost-button" type="button" disabled title="Password actions require a linked auth user">Update password</button>
             <button class="ghost-button" type="button" disabled title="Password actions require a linked auth user">Reset password</button>
             <button class="ghost-button danger-action" type="button" (click)="terminateStaff()" [disabled]="saving() || profile.staff.status === 'inactive'">Terminate</button>
-            <a class="ghost-button fit" routerLink="/staff">Back to search</a>
+            <a class="ghost-button fit" routerLink="/staff-os/staff-list">Back to search</a>
           </aside>
         </section>
 

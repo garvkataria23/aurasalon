@@ -516,7 +516,7 @@ export class SmsTemplateSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/sms-template').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/sms-template').subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings);
       },
@@ -532,7 +532,7 @@ export class SmsTemplateSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/sms-template', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/sms-template', { settings }).subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || settings);
         this.message.set('SMS template settings saved');

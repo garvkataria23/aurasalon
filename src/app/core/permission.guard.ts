@@ -45,6 +45,15 @@ export const GRANTS: Record<string, string[]> = {
   analyst: ['read:*', 'write:analytics']
 };
 
+function normalizeRole(role: string): string {
+  const compact = String(role || '').trim().replace(/[\s_-]+/g, '').toLowerCase();
+  if (compact === 'superadmin') return 'superAdmin';
+  if (compact === 'frontdesk') return 'frontDesk';
+  if (compact === 'inventorymanager') return 'inventoryManager';
+  if (compact === 'custommarketinglead') return 'customMarketingLead';
+  return role;
+}
+
 export function grantsAllow(grants: string[], perm: string): boolean {
   if (grants.includes('*')) return true;
   if (grants.includes(perm)) return true;
@@ -56,12 +65,12 @@ export function grantsAllow(grants: string[], perm: string): boolean {
     (resource && writeAliases.has(action) ? grants.includes(`write:${resource}`) || grants.includes('write:*') : false);
 }
 export function staticGrantsForRole(role: string): string[] {
-  return GRANTS[role] || [];
+  return GRANTS[normalizeRole(role)] || [];
 }
 
 function grantsForSession(role: string, session: AuthSessionService): string[] {
   const dynamicGrants = session.currentUser()?.permissions || [];
-  return dynamicGrants.length ? dynamicGrants : staticGrantsForRole(role);
+  return Array.from(new Set([...staticGrantsForRole(role), ...dynamicGrants]));
 }
 
 export const permissionGuard: CanActivateFn = (route) => {

@@ -7,6 +7,7 @@ import {
   emitStaffEvent,
   makeId,
   managerRoles,
+  normalizeRole,
   now,
   number,
   requireManager,
@@ -146,7 +147,8 @@ export class StaffApprovalService {
     const step = db.prepare("SELECT * FROM approval_steps WHERE tenant_id = ? AND approval_request_id = ? AND status = 'pending' ORDER BY step_order LIMIT 1")
       .get(access.tenantId, id);
     if (!step) throw conflict("No pending approval step");
-    if (!managerRoles.has(access.role) && access.role !== step.approver_role) throw forbidden("Current role cannot approve this step");
+    const role = normalizeRole(access.role);
+    if (!managerRoles.has(role) && role !== step.approver_role) throw forbidden("Current role cannot approve this step");
     db.transaction(() => {
       db.prepare("UPDATE approval_steps SET status = ?, decided_by = ?, decided_at = ?, comments = ? WHERE id = ? AND tenant_id = ?")
         .run(decision, access.userId || "", now(), payload.comments || "", step.id, access.tenantId);

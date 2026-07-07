@@ -474,12 +474,17 @@ export class GeneralSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: ApiRecord }>('v1/settings/general').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: ApiRecord }>('settings/general').subscribe({
       next: (res) => {
         this.settings = this.normalize(res.settings || {});
         this.audit = this.normalizeAudit(res.audit || {});
       },
-      error: () => {
+      error: (error) => {
+        if (error?.status === 404) {
+          this.settings = cloneSettings(DEFAULT_SETTINGS);
+          this.audit = { ...DEFAULT_AUDIT };
+          return;
+        }
         this.error.set('Unable to load general settings');
       }
     });
@@ -490,7 +495,7 @@ export class GeneralSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: ApiRecord }>('v1/settings/general', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: ApiRecord }>('settings/general', { settings }).subscribe({
       next: (res) => {
         this.settings = this.normalize(res.settings || settings);
         this.audit = this.normalizeAudit(res.audit || {});

@@ -595,13 +595,13 @@ export class MultipleLocationSettingsComponent implements OnInit {
   }
 
   private loadSettings(): Observable<{ settings?: ApiRecord }> {
-    return this.api.list<{ settings?: ApiRecord }>('v1/settings/multiple-location').pipe(
+    return this.api.list<{ settings?: ApiRecord }>('settings/multiple-location').pipe(
       catchError((err) => this.isNotFound(err) ? this.api.list<{ settings?: ApiRecord }>('settings/multiple-location') : throwError(() => err))
     );
   }
 
   private saveSettings(settings: MultipleLocationSettingsState): Observable<{ settings?: ApiRecord }> {
-    return this.api.put<{ settings?: ApiRecord }>('v1/settings/multiple-location', { settings }).pipe(
+    return this.api.put<{ settings?: ApiRecord }>('settings/multiple-location', { settings }).pipe(
       catchError((err) => this.isNotFound(err) ? this.api.put<{ settings?: ApiRecord }>('settings/multiple-location', { settings }) : throwError(() => err))
     );
   }

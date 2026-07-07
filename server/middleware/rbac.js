@@ -162,8 +162,18 @@ const permissions = {
   analyst: ["read:*", "read:reports", "read:analytics", "write:analytics", "read:ai", "read:whatsapp", "write:ai", "read:security", "read:quality", "read:deployment", "read:future-features", "write:future-features", "read:finance", "read:customer-360", "read:workflows"]
 };
 
+function normalizeRole(role = "") {
+  const value = String(role || "").trim();
+  const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
+  if (compact === "superadmin") return "superAdmin";
+  if (compact === "frontdesk") return "frontDesk";
+  if (compact === "inventorymanager") return "inventoryManager";
+  if (compact === "custommarketinglead") return "customMarketingLead";
+  return value;
+}
+
 export function staticGrantsForRole(role) {
-  return permissions[role] || [];
+  return permissions[normalizeRole(role)] || [];
 }
 
 export function builtinRoles() {
@@ -212,6 +222,7 @@ function requestAction(action, req) {
   return action;
 }
 export function can(role, action, resource, access = {}) {
+  role = normalizeRole(role);
   if (staticGrantAllows(access.permissions || [], action, resource)) return true;
   const grants = permissions[role] || [];
   if (grants.includes("*")) return true;

@@ -530,7 +530,7 @@ export class MessageHistorySettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: ApiRecord }>('v1/settings/message-history').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: ApiRecord }>('settings/message-history').subscribe({
       next: (res) => {
         this.settings = this.normalize(res.settings || {});
         this.audit = this.normalizeAudit(res.audit || {});
@@ -546,7 +546,7 @@ export class MessageHistorySettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: ApiRecord }>('v1/settings/message-history', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: ApiRecord }>('settings/message-history', { settings }).subscribe({
       next: (res) => {
         this.settings = this.normalize(res.settings || settings);
         this.audit = this.normalizeAudit(res.audit || {});

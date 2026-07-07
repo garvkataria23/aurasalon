@@ -6,9 +6,19 @@ const payrollRoles = new Set(["owner", "admin", "superAdmin", "accountant"]);
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const today = () => new Date().toISOString().slice(0, 10);
 
+function normalizeRole(role = "") {
+  const value = String(role || "").trim();
+  const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
+  if (compact === "superadmin") return "superAdmin";
+  if (compact === "frontdesk") return "frontDesk";
+  if (compact === "inventorymanager") return "inventoryManager";
+  if (compact === "custommarketinglead") return "customMarketingLead";
+  return value;
+}
+
 function requirePayrollAccess(access = {}) {
   if (!access.tenantId) throw forbidden("Tenant context is required");
-  if (!payrollRoles.has(access.role)) throw forbidden("Payroll history is restricted");
+  if (!payrollRoles.has(normalizeRole(access.role))) throw forbidden("Payroll history is restricted");
 }
 
 function parseJson(value, fallback = {}) {

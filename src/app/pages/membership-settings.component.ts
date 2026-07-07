@@ -496,7 +496,7 @@ export class MembershipSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: MembershipSettingsAudit }>('v1/settings/membership').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: MembershipSettingsAudit }>('settings/membership').subscribe({
       next: (response) => {
         this.settings = this.normalizeSettings(response.settings || {});
         this.audit = this.normalizeAudit(response.audit);
@@ -514,7 +514,7 @@ export class MembershipSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalizeSettings(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: MembershipSettingsAudit }>('v1/settings/membership', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: MembershipSettingsAudit }>('settings/membership', { settings }).subscribe({
       next: (response) => {
         this.settings = this.normalizeSettings(response.settings || settings);
         this.audit = this.normalizeAudit(response.audit);

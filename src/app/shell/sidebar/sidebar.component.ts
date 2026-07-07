@@ -48,9 +48,9 @@ export class EnterpriseSidebarComponent implements OnInit, OnDestroy {
     { label: 'POS', path: '/pos', icon: 'P' },
     { label: 'Clients', path: '/clients', icon: 'U' },
     { label: 'AI', path: '/command-center', icon: 'AI' },
-    { label: 'Staff', path: '/staff-os', icon: 'S' },
+    { label: 'Staff', path: '/staff-os/staff-list', icon: 'S' },
     { label: 'Reports', path: '/reports', icon: 'R' },
-    { label: 'More', path: '/settings', icon: 'M' }
+    { label: 'Settings', path: '/settings/general', icon: 'SET' }
   ];
 
   constructor(

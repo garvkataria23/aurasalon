@@ -200,7 +200,8 @@ export class CommandPaletteComponent {
     { id: 'n-ai', kind: 'nav', label: 'AI Assistant', hint: 'AI workspace', icon: 'AI', path: '/ai', keywords: 'assistant ai chat copilot' },
     { id: 'n-finance', kind: 'nav', label: 'Finance', hint: 'Cash, expenses & ledger', icon: 'FN', path: '/finance', keywords: 'cash expense ledger accounting' },
     { id: 'n-branches', kind: 'nav', label: 'Branches', hint: 'Multi-branch management', icon: 'B', path: '/branches', keywords: 'branch location multi outlet' },
-    { id: 'n-settings', kind: 'nav', label: 'Settings', hint: 'Workspace configuration', icon: 'G', path: '/settings', keywords: 'settings config preferences' }
+    { id: 'n-settings', kind: 'nav', label: 'Settings', hint: 'Settings records', icon: 'G', path: '/settings', keywords: 'settings records config preferences' },
+    { id: 'n-general-settings', kind: 'nav', label: 'General Settings', hint: 'Workspace defaults', icon: 'GS', path: '/settings/general', keywords: 'general settings workspace defaults preferences' }
   ];
 
   readonly filtered = computed(() => {

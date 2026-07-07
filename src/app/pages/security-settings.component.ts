@@ -506,7 +506,7 @@ export class SecuritySettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: ApiRecord }>('v1/settings/security').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: ApiRecord }>('settings/security').subscribe({
       next: (res) => {
         this.settings = this.normalize(res.settings || {});
         this.audit = this.normalizeAudit(res.audit || {});
@@ -522,7 +522,7 @@ export class SecuritySettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: ApiRecord }>('v1/settings/security', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: ApiRecord }>('settings/security', { settings }).subscribe({
       next: (res) => {
         this.settings = this.normalize(res.settings || settings);
         this.audit = this.normalizeAudit(res.audit || {});

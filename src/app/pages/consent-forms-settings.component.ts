@@ -482,7 +482,7 @@ export class ConsentFormsSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/consent-forms').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/consent-forms').subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings);
       },
@@ -498,7 +498,7 @@ export class ConsentFormsSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/consent-forms', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/consent-forms', { settings }).subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || settings);
         this.message.set('Consent forms settings saved');

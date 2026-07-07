@@ -2,7 +2,7 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -1441,9 +1441,9 @@ export class ClientsComponent implements OnInit {
         q: this.query.trim(),
         branchId
       }),
-      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000, branchId }),
-      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000, branchId }),
-      clientSummary: this.api.list<ApiRecord>('client-masters/summary', { branchId })
+      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000, branchId }).pipe(catchError(() => of([]))),
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 1000, branchId }).pipe(catchError(() => of([]))),
+      clientSummary: this.api.list<ApiRecord>('client-masters/summary', { branchId }).pipe(catchError(() => of({} as ApiRecord)))
     }).subscribe({
       next: ({ clients, invoices, walletTransactions, clientSummary }) => {
         const rows = clients || [];

@@ -30,7 +30,7 @@ type StaffModuleGroup = {
         <div>
           <h2>Connected modules</h2>
         </div>
-        <a class="ghost-button" routerLink="/staff">Back to staff directory</a>
+        <a class="ghost-button" routerLink="/staff-os/staff-list">Back to staff directory</a>
       </section>
 
       <form class="connected-filter-bar" [formGroup]="filterForm" (ngSubmit)="load()">
@@ -334,7 +334,7 @@ export class StaffConnectedModulesComponent implements OnInit {
           { label: 'Staff Sales Report', path: '/reports/staff-sales', description: 'Staff revenue, services and product sales report', badge: badge('pos') },
           { label: 'Commission Preview', path: '/reports/commission-preview', description: 'Payroll-ready commission audit before payout', badge: badge('commission') },
           { label: 'Staff Enterprise OS', path: '/staff-enterprise', description: 'Documents, leave, reviews, transfers and enterprise actions', badge: 'OS' },
-          { label: 'Staff OS', path: '/staff-os', description: 'Advanced roster, mobile, tasks, heatmaps and staff tools', badge: 'Tools' }
+          { label: 'Staff OS', path: '/staff-os/staff-list', description: 'Advanced roster, mobile, tasks, heatmaps and staff tools', badge: 'Tools' }
         ]
       }
     ];

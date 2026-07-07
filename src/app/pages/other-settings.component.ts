@@ -561,7 +561,7 @@ export class OtherSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: OtherSettingsAudit }>('v1/settings/others').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: OtherSettingsAudit }>('settings/others').subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || {});
         this.audit = { ...DEFAULT_AUDIT, ...(result.audit || {}) };
@@ -577,7 +577,7 @@ export class OtherSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: OtherSettingsAudit }>('v1/settings/others', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: OtherSettingsAudit }>('settings/others', { settings }).subscribe({
       next: (result) => {
         this.settings = this.normalize(result.settings || settings);
         this.audit = { ...DEFAULT_AUDIT, ...(result.audit || this.audit) };

@@ -7,6 +7,16 @@ const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 const managerRoles = new Set(["owner", "admin", "superAdmin", "manager"]);
 
+function normalizeRole(role = "") {
+  const value = String(role || "").trim();
+  const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
+  if (compact === "superadmin") return "superAdmin";
+  if (compact === "frontdesk") return "frontDesk";
+  if (compact === "inventorymanager") return "inventoryManager";
+  if (compact === "custommarketinglead") return "customMarketingLead";
+  return value;
+}
+
 function parseJson(value, fallback) {
   if (Array.isArray(value) || (value && typeof value === "object")) return value;
   if (!value || typeof value !== "string") return fallback;
@@ -18,7 +28,7 @@ function parseJson(value, fallback) {
 }
 
 function requireManager(access) {
-  if (!managerRoles.has(access?.role)) throw forbidden("Manager approval is required");
+  if (!managerRoles.has(normalizeRole(access?.role))) throw forbidden("Manager approval is required");
 }
 
 function branchAccess(access, branchId = "") {

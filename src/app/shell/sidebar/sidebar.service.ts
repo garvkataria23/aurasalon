@@ -35,7 +35,7 @@ const GROUPS: GroupConfig[] = [
     label: 'Operate',
     hint: 'Core salon ops',
     accent: 'neutral',
-    paths: ['/clients', '/customer-360', '/staff', '/staff-os', '/inventory', '/services', '/memberships', '/packages']
+    paths: ['/clients', '/customer-360', '/staff', '/staff-os/staff-list', '/staff-os', '/inventory', '/services', '/memberships', '/packages']
   },
   {
     id: 'ai',

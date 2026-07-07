@@ -1,9 +1,10 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { AppointmentToolbarService } from '../core/appointment-toolbar.service';
 import { AppStateService } from '../core/state/app-state.service';
 import { serviceTotalMinutes } from '../shared/appointment-capacity';
 import { StateComponent } from '../shared/ui/state/state.component';
@@ -216,6 +217,56 @@ const STATUS_TONES: Record<string, string> = {
           <button class="ghost-button mini" type="button" (click)="openDepositFollowUpReport()">Open deposit report</button>
         </section>
 
+        <section class="scheduled-staff-panel" *ngIf="staffPanelOpen()" aria-label="Scheduled staff panel">
+          <header>
+            <div>
+              <h3>Scheduled Staff</h3>
+              <span>{{ scheduledStaffVisibleCount() }} of {{ scheduledStaffRows().length }} visible</span>
+            </div>
+            <button type="button" aria-label="Close scheduled staff" (click)="cancelScheduledStaffPanel()">×</button>
+          </header>
+          <div class="scheduled-staff-list" *ngIf="scheduledStaffRows().length; else noScheduledStaffTop">
+            <div
+              class="scheduled-staff-row"
+              *ngFor="let person of scheduledStaffRows(); trackBy: trackStaff"
+              draggable="true"
+              [class.dragging]="staffPanelDragId() === person.id"
+              [class.hidden-staff]="isScheduledStaffHidden(person.id)"
+              (dragstart)="beginScheduledStaffDrag(person.id, $event)"
+              (dragover)="allowScheduledStaffDrop($event)"
+              (drop)="dropScheduledStaff(person.id, $event)"
+              (dragend)="endScheduledStaffDrag()"
+            >
+              <span class="scheduled-staff-handle" aria-hidden="true">⋮⋮</span>
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="!isScheduledStaffHidden(person.id)"
+                  [disabled]="!canToggleScheduledStaff(person.id)"
+                  (change)="toggleScheduledStaffVisibility(person.id, $any($event.target).checked)"
+                />
+                <span class="avatar">{{ initials(person.name) }}</span>
+                <span class="scheduled-staff-copy">
+                  <strong>{{ person.name }}</strong>
+                  <small>{{ person.role || 'Staff' }}</small>
+                </span>
+              </label>
+              <div class="scheduled-staff-row-actions" aria-label="Reorder staff">
+                <button type="button" aria-label="Move staff up" (click)="moveScheduledStaffByOffset(person.id, -1)">↑</button>
+                <button type="button" aria-label="Move staff down" (click)="moveScheduledStaffByOffset(person.id, 1)">↓</button>
+              </div>
+            </div>
+          </div>
+          <ng-template #noScheduledStaffTop>
+            <p class="scheduled-staff-empty">No staff loaded for this branch.</p>
+          </ng-template>
+          <footer>
+            <button type="button" class="ghost-button mini" (click)="resetScheduledStaffPanel()">Reset</button>
+            <button type="button" class="ghost-button mini" (click)="cancelScheduledStaffPanel()">Cancel</button>
+            <button type="button" class="primary-button mini" (click)="saveScheduledStaffPanel()">Save</button>
+          </footer>
+        </section>
+
         <section class="month-strip-band">
           <button type="button" (click)="shiftMonth(-1)" aria-label="Previous month">&lt;&lt;</button>
           <strong class="month-range-label">{{ selectedDate() | date: 'MMM yyyy' }}</strong>
@@ -248,97 +299,6 @@ const STATUS_TONES: Record<string, string> = {
           <article><span>Revenue</span><strong>{{ money(summaryValue('revenue')) }}</strong></article>
         </section>
 
-        <section class="scheduler-view-toolbar" aria-label="Calendar view controls">
-          <div class="scheduler-view-copy">
-            <strong>{{ selectedCalendarLayoutLabel() }}</strong>
-            <small>{{ selectedDate() | date: 'EEE, dd MMM y' }} - {{ staffWindowLabel() }}</small>
-          </div>
-          <div class="scheduler-view-controls">
-            <label class="view-control-field">
-              <span>Slot</span>
-              <select [value]="slotMinutes()" (change)="setSlotMinutes($any($event.target).value)">
-                <option value="15">15 mins</option>
-                <option value="30">30 mins</option>
-              </select>
-            </label>
-            <label class="view-control-field calendar-layout-field">
-              <span>View</span>
-              <select [value]="calendarLayout()" aria-label="Calendar layout" (change)="setCalendarLayout($any($event.target).value)">
-                <option *ngFor="let option of calendarLayoutOptions; trackBy: trackCalendarLayoutOption" [value]="option.value" [title]="option.description">
-                  {{ option.label }}
-                </option>
-              </select>
-            </label>
-            <div class="scheduled-staff-control">
-              <button
-                class="scheduled-staff-button"
-                type="button"
-                title="Scheduled staff"
-                aria-label="Scheduled staff"
-                [class.active]="staffPanelOpen()"
-                [attr.aria-expanded]="staffPanelOpen()"
-                (click)="toggleScheduledStaffPanel()"
-              >
-                <span aria-hidden="true">☷</span>
-                <small>{{ scheduledStaffVisibleCount() }}</small>
-              </button>
-              <section class="scheduled-staff-panel" *ngIf="staffPanelOpen()" aria-label="Scheduled staff panel">
-                <header>
-                  <div>
-                    <h3>Scheduled Staff</h3>
-                    <span>{{ scheduledStaffVisibleCount() }} of {{ scheduledStaffRows().length }} visible</span>
-                  </div>
-                  <button type="button" aria-label="Close scheduled staff" (click)="cancelScheduledStaffPanel()">×</button>
-                </header>
-                <div class="scheduled-staff-list" *ngIf="scheduledStaffRows().length; else noScheduledStaff">
-                  <div
-                    class="scheduled-staff-row"
-                    *ngFor="let person of scheduledStaffRows(); trackBy: trackStaff"
-                    draggable="true"
-                    [class.dragging]="staffPanelDragId() === person.id"
-                    [class.hidden-staff]="isScheduledStaffHidden(person.id)"
-                    (dragstart)="beginScheduledStaffDrag(person.id, $event)"
-                    (dragover)="allowScheduledStaffDrop($event)"
-                    (drop)="dropScheduledStaff(person.id, $event)"
-                    (dragend)="endScheduledStaffDrag()"
-                  >
-                    <span class="scheduled-staff-handle" aria-hidden="true">⋮⋮</span>
-                    <label>
-                      <input
-                        type="checkbox"
-                        [checked]="!isScheduledStaffHidden(person.id)"
-                        [disabled]="!canToggleScheduledStaff(person.id)"
-                        (change)="toggleScheduledStaffVisibility(person.id, $any($event.target).checked)"
-                      />
-                      <span class="avatar">{{ initials(person.name) }}</span>
-                      <span class="scheduled-staff-copy">
-                        <strong>{{ person.name }}</strong>
-                        <small>{{ person.role || 'Staff' }}</small>
-                      </span>
-                    </label>
-                    <div class="scheduled-staff-row-actions" aria-label="Reorder staff">
-                      <button type="button" aria-label="Move staff up" (click)="moveScheduledStaffByOffset(person.id, -1)">↑</button>
-                      <button type="button" aria-label="Move staff down" (click)="moveScheduledStaffByOffset(person.id, 1)">↓</button>
-                    </div>
-                  </div>
-                </div>
-                <ng-template #noScheduledStaff>
-                  <p class="scheduled-staff-empty">No staff loaded for this branch.</p>
-                </ng-template>
-                <footer>
-                  <button type="button" class="ghost-button mini" (click)="resetScheduledStaffPanel()">Reset</button>
-                  <button type="button" class="ghost-button mini" (click)="cancelScheduledStaffPanel()">Cancel</button>
-                  <button type="button" class="primary-button mini" (click)="saveScheduledStaffPanel()">Save</button>
-                </footer>
-              </section>
-            </div>
-            <div class="staff-window-controls scheduler-staff-window" aria-label="Staff window">
-              <button type="button" (click)="moveStaffWindow(-1)" [disabled]="staffOffset() === 0">Prev</button>
-              <span>{{ staffWindowLabel() }}</span>
-              <button type="button" (click)="moveStaffWindow(1)" [disabled]="!canMoveNextStaff()">Next</button>
-            </div>
-          </div>
-        </section>
         <section class="scheduler-grid-shell" [class.scheduler-grid-shell--compact]="calendarLayout() === 'compact-grid'" *ngIf="isGridCalendarLayout(); else alternateCalendarLayout">
           <div class="scheduler-grid" [class.scheduler-grid--compact]="calendarLayout() === 'compact-grid'" [style.--staff-count]="visibleStaff().length" [style.--slot-count]="timeSlots().length" [style.--row-height.px]="rowHeight()">
             <div class="time-head">Time</div>
@@ -429,10 +389,10 @@ const STATUS_TONES: Record<string, string> = {
                 (focus)="showAppointmentDetails(card, $event)"
                 (blur)="hideAppointmentDetails()"
               >
-                <strong>{{ card.timeLabel }}</strong>
-                <b>{{ card.clientName }}</b>
-                <span>{{ card.serviceLabel }}</span>
-                <small>{{ label(card.status) }}</small>
+                <strong class="card-time">{{ card.timeLabel }}</strong>
+                <b class="card-client">{{ card.clientName }}</b>
+                <span class="card-service">{{ card.serviceLabel }}</span>
+                <small class="card-status">{{ label(card.status) }}</small>
                 <span class="resize-handle" (pointerdown)="beginResize(card.appointment, $event)"></span>
               </button>
             </div>
@@ -509,43 +469,6 @@ const STATUS_TONES: Record<string, string> = {
             </ng-template>
           </section>
         </ng-template>
-        <section class="operations-grid compact">
-          <article
-            class="ops-panel ops-launch ai-slot-launch"
-            role="button"
-            tabindex="0"
-            aria-label="Open slot suggestions"
-            (click)="openAiSlotPilot()"
-            (keydown.enter)="openAiSlotPilot()"
-            (keydown.space)="openAiSlotPilot(); $event.preventDefault()"
-          >
-            <div class="panel-head"><strong>Best safe slots</strong></div>
-            <p>{{ smartSlots().length }} safe slot suggestions ready</p>
-          </article>
-          <article
-            class="ops-panel ops-launch"
-            role="button"
-            tabindex="0"
-            aria-label="Open waitlist demand queue"
-            (click)="openOperationsPulse()"
-            (keydown.enter)="openOperationsPulse()"
-            (keydown.space)="openOperationsPulse(); $event.preventDefault()"
-          >
-            <div class="panel-head"><strong>Demand queue</strong><small>{{ waitlist().length }}</small></div>
-          </article>
-          <article
-            class="ops-panel ops-launch pulse"
-            role="button"
-            tabindex="0"
-            aria-label="Open operations queue"
-            (click)="openOperationsPulse()"
-            (keydown.enter)="openOperationsPulse()"
-            (keydown.space)="openOperationsPulse(); $event.preventDefault()"
-          >
-            <div class="panel-head"><strong>Risk radar</strong></div>
-            <p>{{ actionQueue().length }} action(s) - {{ summaryValue('capacityPct') }}% capacity - {{ summaryValue('conflicts') }} conflicts - {{ summaryValue('blockedTimes') }} blocked</p>
-          </article>
-        </section>
       </ng-container>
 
       <div class="drawer-backdrop" *ngIf="drawer()" (click)="closeDrawer()"></div>
@@ -1000,8 +923,10 @@ const STATUS_TONES: Record<string, string> = {
   `,
   styles: [`
     :host { display: block; }
-    .enterprise-scheduler { display: grid; gap: 16px; }
-    .month-strip-band, .scheduler-view-toolbar, .summary-strip, .scheduler-grid-shell, .operations-grid, .scheduler-drawer {
+    .enterprise-scheduler { position: relative; z-index: 40; display: grid; gap: 16px; }
+    .enterprise-scheduler > ng-container { display: contents; }
+    .enterprise-scheduler .month-strip-band:first-of-type { margin-top: -16px; margin-bottom: -16px; }
+    .month-strip-band, .scheduler-top-controls, .scheduler-view-toolbar, .summary-strip, .scheduler-grid-shell, .operations-grid, .scheduler-drawer {
       border: 1px solid #dbe8e4;
       background: rgba(255,255,255,.94);
       box-shadow: 0 18px 42px rgba(15, 23, 42, .08);
@@ -1040,10 +965,13 @@ const STATUS_TONES: Record<string, string> = {
     .primary-button { background: #0f8f7f; color: white; border-color: #0f8f7f; }
     .ghost-button.mini { padding: 8px 11px; font-size: 12px; }
     .danger { color: #b91c1c; }
-    .month-strip-band { display: grid; grid-template-columns: auto minmax(84px, auto) auto minmax(0, 1fr); gap: 8px; align-items: center; min-height: 76px; padding: 10px 14px; border-radius: 14px; }
-    .month-range-label { min-width: 84px; color: #172033; font-size: 14px; font-weight: 900; white-space: nowrap; }
+    .month-strip-band { display: grid; grid-template-columns: 42px 84px 42px minmax(0, 1fr); gap: 8px; align-items: center; min-height: 76px; padding: 10px 14px; border-radius: 14px; }
+    .month-range-label { min-width: 84px; color: #172033; font-size: 14px; font-weight: 900; text-align: center; white-space: nowrap; }
     .month-strip-band > button { height: 40px; width: 40px; border-radius: 10px; border: 1px solid #e2d5df; background: #fff; color: #4b1238; font-weight: 900; }
-    .month-strip { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 0 0 8px; min-width: 0; scrollbar-gutter: stable; }
+    .month-strip { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 0 0 5px; min-width: 0; scrollbar-gutter: stable; scrollbar-width: thin; }
+    .month-strip::-webkit-scrollbar { height: 4px; }
+    .month-strip::-webkit-scrollbar-track { background: transparent; }
+    .month-strip::-webkit-scrollbar-thumb { background: #c8cdd3; border-radius: 999px; }
     .month-strip button { flex: 0 0 52px; width: 52px; min-width: 52px; min-height: 58px; border: 1px solid #eadde6; background: #fff; border-radius: 10px; padding: 6px 4px; color: #4b1238; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; font-weight: 800; line-height: 1; }
     .month-strip button.active { border-color: #9b6b89; box-shadow: inset 0 -3px 0 #0f8f7f; background: #f8eef4; }
     .month-strip button.today { color: #0f8f7f; }
@@ -1093,10 +1021,10 @@ const STATUS_TONES: Record<string, string> = {
       justify-content: center;
     }
     .scheduled-staff-panel {
-      position: absolute;
-      top: calc(100% + 10px);
+      position: fixed;
+      top: 158px;
       right: 0;
-      z-index: 55;
+      z-index: 2100;
       width: min(340px, calc(100vw - 32px));
       max-height: min(580px, calc(100vh - 170px));
       display: grid;
@@ -1184,14 +1112,16 @@ const STATUS_TONES: Record<string, string> = {
     .lane-block.shift { background: rgba(254, 215, 170, .82); color: #7c2d12; pointer-events: none; }
     .lane-block.blocked { background: repeating-linear-gradient(135deg, rgba(148,163,184,.25), rgba(148,163,184,.25) 8px, rgba(226,232,240,.7) 8px, rgba(226,232,240,.7) 16px); color: #334155; cursor: pointer; }
     .lane-block.roster-closed { background: repeating-linear-gradient(135deg, rgba(148,163,184,.2), rgba(148,163,184,.2) 8px, rgba(241,245,249,.82) 8px, rgba(241,245,249,.82) 16px); color: #64748b; cursor: not-allowed; }
-    .appointment-card { position: absolute !important; z-index: 4 !important; box-sizing: border-box; border-radius: 8px !important; border: 1px solid #475569 !important; padding: 8px 10px; text-align: left; color: #172033; overflow: hidden !important; cursor: grab; box-shadow: 0 10px 20px rgba(15,23,42,.12) !important; isolation: auto !important; transform: none !important; }
-    .scheduler-grid--compact .appointment-card { padding: 5px 7px; border-radius: 7px !important; }
-    .appointment-card strong, .appointment-card b, .appointment-card span, .appointment-card small { display: block; line-height: 1.2; }
-    .appointment-card strong { font-size: 12px; }
-    .appointment-card b { font-size: 15px; margin-top: 4px; }
-    .appointment-card span, .appointment-card small { font-size: 12px; }
-    .scheduler-grid--compact .appointment-card b { font-size: 12px; margin-top: 2px; }
-    .scheduler-grid--compact .appointment-card span, .scheduler-grid--compact .appointment-card small { font-size: 11px; }
+    .appointment-card { position: absolute !important; z-index: 4 !important; box-sizing: border-box; container-type: size; border-radius: 8px !important; border: 1px solid #475569 !important; padding: clamp(5px, 5%, 10px) 7px; text-align: left; color: #172033; overflow: hidden !important; cursor: grab; box-shadow: 0 10px 20px rgba(15,23,42,.12) !important; isolation: auto !important; transform: none !important; display: grid; align-content: center; gap: 1px; }
+    .scheduler-grid--compact .appointment-card { padding: 4px 6px; border-radius: 7px !important; }
+    .appointment-card strong, .appointment-card b, .appointment-card span, .appointment-card small { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.05; }
+    .appointment-card .card-time { font-size: clamp(10px, 8cqh, 13px); font-weight: 950; }
+    .appointment-card .card-client { font-size: clamp(12px, 10cqh, 16px); font-weight: 950; }
+    .appointment-card .card-service, .appointment-card .card-status { font-size: clamp(10px, 8cqh, 13px); font-weight: 850; }
+    .scheduler-grid--compact .appointment-card .card-time { font-size: clamp(10px, 7cqh, 13px); }
+    .scheduler-grid--compact .appointment-card .card-client { font-size: clamp(12px, 9cqh, 16px); }
+    .scheduler-grid--compact .appointment-card .card-service,
+    .scheduler-grid--compact .appointment-card .card-status { font-size: clamp(10px, 7cqh, 13px); }
     .appointment-card::before, .appointment-card::after { content: none !important; }
     .appointment-card.blue { background: #bfdbfe !important; border-color: #2563eb !important; border-left-color: #2563eb !important; }
     .appointment-card.indigo { background: #c7d2fe !important; border-color: #4f46e5 !important; border-left-color: #4f46e5 !important; }
@@ -1260,14 +1190,20 @@ const STATUS_TONES: Record<string, string> = {
     .timeline-appointment.red, .status-pill.red { background: #fecaca; border-color: #dc2626; }
     .timeline-appointment.slate, .status-pill.slate { background: #e2e8f0; border-color: #64748b; }
     .operations-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; }
-    .operations-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .operations-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     .ops-panel { border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; }
+    .operations-grid.compact .ops-panel { min-height: 46px; padding: 8px 10px; gap: 4px; border-radius: 10px; }
     .ops-launch { min-height: 92px; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .operations-grid.compact .ops-launch { min-height: 46px; }
     .ops-launch p { margin: 0; color: #52627a; font-size: 13px; line-height: 1.4; }
+    .operations-grid.compact .ops-launch p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 1.2; }
     .ops-launch:focus-visible { outline: 3px solid rgba(15,143,127,.25); outline-offset: 3px; }
     .ops-launch:hover { border-color: #0f8f7f; box-shadow: 0 18px 42px rgba(15,143,127,.13); transform: translateY(-1px); }
     .panel-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+    .operations-grid.compact .panel-head { min-height: 0; border-bottom: 0; padding-bottom: 0; gap: 8px; }
+    .operations-grid.compact .panel-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 1.15; color: #172033; }
     .panel-head small { border: 1px solid #99f6e4; border-radius: 999px; color: #0f766e; background: #ecfdf5; padding: 4px 9px; font-weight: 900; }
+    .operations-grid.compact .panel-head small { min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; padding: 0 7px; font-size: 11px; }
     .ops-panel button, .waitlist-row { border: 1px solid #dbe7e4; border-radius: 10px; background: #fff; padding: 12px; text-align: left; display: grid; gap: 4px; }
     .pulse-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .empty-state { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 18px; text-align: center; color: #64748b; background: #fff; }
@@ -1359,6 +1295,8 @@ const STATUS_TONES: Record<string, string> = {
     .smart-search-results button { width: 100%; border: 0; border-radius: 10px; background: transparent; padding: 9px 10px; text-align: left; display: grid; gap: 2px; color: #172033; cursor: pointer; }
     .smart-search-results button:hover, .smart-search-results button.selected { background: #e8f7f4; }
     .smart-search-results button.selected { color: #0f766e; }
+    .client-search-results button { justify-items: start; align-items: start; text-align: left; }
+    .client-search-results strong, .client-search-results span { width: 100%; text-align: left; }
     .smart-search-results strong { font-size: 13px; }
     .smart-search-results span { font-size: 12px; color: #64748b; text-transform: none; }
     .smart-search-results .multi-select-box { width: 18px; height: 18px; border: 1px solid #cfe0dc; border-radius: 5px; background: #fff; align-self: center; }
@@ -1417,9 +1355,11 @@ const STATUS_TONES: Record<string, string> = {
 export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly resizeState = signal<{ appointment: ApiRecord; startY: number; originalEnd: string } | null>(null);
+  private handledStaffToggleRequests = 0;
   private timer = 0;
   private noticeTimer = 0;
   readonly api = inject(ApiService);
+  readonly appointmentToolbar = inject(AppointmentToolbarService);
   readonly state = inject(AppStateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -1557,6 +1497,8 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return this.scheduledStaffRows().filter((person) => !hidden.has(person.id));
   });
   readonly scheduledStaffVisibleCount = computed(() => this.visibleStaff().length);
+  private handledSafeSlotRequests = 0;
+  private handledOperationsRequests = 0;
   readonly clients = computed(() => this.context()?.clients || []);
   readonly services = computed(() => this.context()?.services || []);
   readonly waitlist = computed(() => this.context()?.waitlist || []);
@@ -1652,7 +1594,53 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return slots;
   });
 
+  private readonly toolbarStateSync = effect(() => {
+    const toolbarSlot = this.appointmentToolbar.slotMinutes();
+    const nextSlot = toolbarSlot === 30 ? 30 : 15;
+    if (nextSlot !== this.slotMinutes()) this.slotMinutes.set(nextSlot);
+
+    const toolbarLayout = this.normalizeCalendarLayout(this.appointmentToolbar.calendarLayout());
+    if (toolbarLayout !== this.calendarLayout()) {
+      this.calendarLayout.set(toolbarLayout);
+      this.draggingAppointment.set(null);
+      this.resizeState.set(null);
+      this.hoverSlot.set(null);
+      this.closeSchedulerActionMenu();
+      this.saveCalendarLayout(toolbarLayout);
+    }
+
+    this.appointmentToolbar.scheduledStaffVisibleCount.set(this.scheduledStaffVisibleCount());
+    this.appointmentToolbar.staffPanelOpen.set(this.staffPanelOpen());
+    this.appointmentToolbar.safeSlotCount.set(this.smartSlots().length);
+    this.appointmentToolbar.waitlistCount.set(this.waitlist().length);
+    this.appointmentToolbar.riskText.set(`${this.actionQueue().length} / ${this.summaryValue('capacityPct')}% / ${this.summaryValue('conflicts')}`);
+  }, { allowSignalWrites: true });
+
+  private readonly toolbarStaffToggleSync = effect(() => {
+    const requests = this.appointmentToolbar.staffToggleRequests();
+    if (requests <= this.handledStaffToggleRequests) return;
+    this.handledStaffToggleRequests = requests;
+    untracked(() => this.toggleScheduledStaffPanel());
+  }, { allowSignalWrites: true });
+
+  private readonly toolbarSafeSlotSync = effect(() => {
+    const requests = this.appointmentToolbar.safeSlotRequests();
+    if (requests <= this.handledSafeSlotRequests) return;
+    this.handledSafeSlotRequests = requests;
+    untracked(() => this.openAiSlotPilot());
+  }, { allowSignalWrites: true });
+
+  private readonly toolbarOperationsSync = effect(() => {
+    const requests = this.appointmentToolbar.operationsRequests();
+    if (requests <= this.handledOperationsRequests) return;
+    this.handledOperationsRequests = requests;
+    untracked(() => this.openOperationsPulse());
+  }, { allowSignalWrites: true });
+
   ngOnInit(): void {
+    this.appointmentToolbar.visible.set(true);
+    this.appointmentToolbar.setSlotMinutes(this.slotMinutes());
+    this.appointmentToolbar.setCalendarLayout(this.calendarLayout());
     this.applyRouteDateSelection();
     this.load();
     this.timer = window.setInterval(() => this.now.set(new Date()), 60000);
@@ -1661,6 +1649,8 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.appointmentToolbar.visible.set(false);
+    this.appointmentToolbar.staffPanelOpen.set(false);
     window.clearInterval(this.timer);
     window.clearTimeout(this.noticeTimer);
     window.removeEventListener('pointermove', this.onResizeMove);
@@ -1897,7 +1887,9 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     return { x: Math.max(12, x), y: Math.max(12, y) };
   }
   setSlotMinutes(value: string): void {
-    this.slotMinutes.set(Number(value) === 30 ? 30 : 15);
+    const next = Number(value) === 30 ? 30 : 15;
+    this.slotMinutes.set(next);
+    if (this.appointmentToolbar.slotMinutes() !== next) this.appointmentToolbar.setSlotMinutes(next);
   }
 
   toggleScheduledStaffPanel(): void {
@@ -2008,6 +2000,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   setCalendarLayout(value: string): void {
     const next = this.normalizeCalendarLayout(value);
+    if (this.appointmentToolbar.calendarLayout() !== next) this.appointmentToolbar.setCalendarLayout(next);
     this.calendarLayout.set(next);
     this.draggingAppointment.set(null);
     this.resizeState.set(null);

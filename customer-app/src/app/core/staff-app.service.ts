@@ -21,6 +21,7 @@ export type StaffUser = {
 
 export type StaffAppointment = {
   id: string;
+  clientId: string;
   clientName: string;
   clientPhone: string;
   staffId: string;
@@ -64,6 +65,46 @@ export type StaffDashboard = {
   workReport: StaffAppointment[];
   appointments: StaffAppointment[];
   sales: Array<{ id: string; total: number; commissionTotal: number; status: string; createdAt: string }>;
+};
+
+export type StaffEnterpriseOs = {
+  home: {
+    greeting: string;
+    todayAppointments: number;
+    expectedRevenue: number;
+    tasks: number;
+    lateClients: number;
+    vipClients: number;
+    birthdayClients: number;
+    pendingPayments: number;
+    recentNotifications: number;
+    targetProgress: { label: string; targetValue: number; achievedValue: number; percentage: number; remaining: number };
+  };
+  aiCoach: Array<{ priority: string; title: string; body: string; action: string }>;
+  timeline: Array<{ id: string; clientId: string; clientName: string; serviceNames: string[]; startAt: string; endAt: string; status: string; state: string; minutesToStart: number; durationMinutes: number }>;
+  serviceTimers: Array<{ appointmentId: string; clientName: string; status: string; elapsedMinutes: number; totalMinutes: number; remainingMinutes: number; progress: number }>;
+  performance: { revenue: number; completedServices: number; avgUtilization: number; avgRating: number; productivityScore: number; strengths: string[]; opportunities: string[] };
+  leaderboard: Array<{ rank: number; staffId: string; staffName: string; revenue: number; score: number; rating: number; days: number; isMe: boolean }>;
+  gamification: { points: number; level: number; stars: number; dailyStreak: number; monthlyStreak: number; badges: Array<{ label: string; description: string; earned: boolean }> };
+  notifications: Array<{ id: string; title: string; body: string; status: string; createdAt: string }>;
+  tasks: Array<{ id: string; title: string; priority: string; status: string; dueAt: string; assignedBy: string; checklist: unknown[] }>;
+  calendar: Array<{ id: string; date: string; startTime: string; endTime: string; type: string; status: string }>;
+  reports: Record<string, { days: number; revenue: number; services: number; productivityScore: number; rating: number }>;
+};
+
+export type StaffClient360 = {
+  profile: { id: string; name: string; phone: string; email: string; birthday: string; notes: string; allergies: string; preferredStylist: string };
+  membership: { status: string; plan: string };
+  wallet: { balance: number };
+  outstandingBalance: number;
+  previousServices: Array<{ id: string; startAt: string; status: string; serviceIds: string[] }>;
+  productsBought: Array<{ id: string; total: number; createdAt: string; status: string }>;
+  cancellationHistory: Array<{ id: string; startAt: string; status: string; notes: string }>;
+  lifetimeSpend: number;
+  visitFrequency: number;
+  lastVisit: string;
+  retentionScore: number;
+  aiRecommendations: string[];
 };
 
 export type StaffAttendance = {
@@ -146,6 +187,19 @@ export class StaffAppService {
     return !!this.accessToken() && !!this.user()?.staffId;
   }
 
+  async ensureDemoSession(): Promise<boolean> {
+    if (this.isAuthenticated()) return true;
+    try {
+      const response = await firstValueFrom(this.http.get<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/demo-staff-session`));
+      const session = this.unwrap(response);
+      if (!session.user?.staffId) return false;
+      this.saveSession(session);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   hasPermission(permission: string): boolean {
     const grants = this.user()?.permissions || [];
     if (!permission) return true;
@@ -211,6 +265,14 @@ export class StaffAppService {
     }
   }
 
+  async enterpriseOs(): Promise<StaffEnterpriseOs> {
+    return this.get<StaffEnterpriseOs>("/staff-self/enterprise-os");
+  }
+
+  async client360(clientId: string): Promise<StaffClient360> {
+    return this.get<StaffClient360>(`/staff-self/clients/${encodeURIComponent(clientId)}/360`);
+  }
+
   async today(date = new Date().toISOString().slice(0, 10)): Promise<StaffToday> {
     return this.get<StaffToday>("/staff-os/mobile/today", { date, staffId: this.staffId() });
   }
@@ -268,6 +330,10 @@ export class StaffAppService {
     localStorage.removeItem(STAFF_REFRESH_TOKEN_KEY);
     localStorage.removeItem(STAFF_SESSION_KEY);
     this.user.set(null);
+  }
+
+  openSession(session: { accessToken: string; refreshToken?: string; user: StaffUser }) {
+    this.saveSession({ accessToken: session.accessToken, refreshToken: session.refreshToken || "", user: session.user });
   }
 
   private accessToken(): string {

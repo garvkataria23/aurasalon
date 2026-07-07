@@ -38,7 +38,7 @@ const DEFAULT_FIELDS: ClientCustomField[] = [
   template: `
     <section class="client-custom-form-page">
       <aside class="settings-nav" aria-label="Settings sections">
-        <a routerLink="/settings">General Settings</a>
+        <a routerLink="/settings/general">General Settings</a>
         <a routerLink="/setting/calendar">Calendar Settings</a>
         <a class="active" routerLink="/settings/clients/custom-form">Clients - Custom Form</a>
         <a routerLink="/settings/taxes">Tax Settings</a>

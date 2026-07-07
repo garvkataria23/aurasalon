@@ -430,7 +430,7 @@ export class BusinessDetailsSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord }>('v1/settings/business-details').subscribe({
+    this.api.list<{ settings?: ApiRecord }>('settings/business-details').subscribe({
       next: (response) => {
         this.settings = this.normalize(response?.settings);
       },
@@ -446,7 +446,7 @@ export class BusinessDetailsSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalize(this.settings);
-    this.api.put<{ settings?: ApiRecord }>('v1/settings/business-details', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord }>('settings/business-details', { settings }).subscribe({
       next: (response) => {
         this.settings = this.normalize(response?.settings || settings);
         this.message.set('Business details settings saved');

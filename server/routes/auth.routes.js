@@ -56,6 +56,20 @@ function refreshTokenFromRequest(req) {
   return env.allowLegacyRefreshTokenBody ? String(req.body?.refreshToken || "") : "";
 }
 
+function demoStaffLogin(req) {
+  return authService.login({
+    tenantId: "tenant_aura",
+    loginId: "isha.staff",
+    password: process.env.DEMO_STAFF_PASSWORD || "",
+    device: { type: "staff-app", name: "Aura Staff App", platform: "web" }
+  }, {
+    tenantId: "tenant_aura",
+    host: req.get("x-forwarded-host") || req.get("host") || "",
+    ip: req.ip || "",
+    userAgent: req.get("user-agent") || ""
+  });
+}
+
 authRouter.get(
   "/auth/csrf",
   asyncHandler((_req, res) => {
@@ -95,6 +109,24 @@ authRouter.post(
     }, req);
     setRefreshCookie(res, result);
     res.status(201).json(publicSession(result));
+  })
+);
+
+authRouter.get(
+  "/auth/demo-staff-open",
+  asyncHandler((req, res) => {
+    const result = demoStaffLogin(req);
+    setRefreshCookie(res, result);
+    res.redirect(302, "/staff/open");
+  })
+);
+
+authRouter.get(
+  "/auth/demo-staff-session",
+  asyncHandler((req, res) => {
+    const result = demoStaffLogin(req);
+    setRefreshCookie(res, result);
+    res.json(publicSession(result));
   })
 );
 

@@ -140,7 +140,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <section class="card">
           <div class="card-h">
             <h2>{{ data.staffPerformance.length }} ranked staff</h2>
-            <a class="btn-ghost" routerLink="/staff">Open staff</a>
+            <a class="btn-ghost" routerLink="/staff-os/staff-list">Open staff</a>
           </div>
           <div class="staff-card">
             <div class="staff-row">

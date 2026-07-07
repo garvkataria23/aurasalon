@@ -915,7 +915,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
               <button class="ghost-button" type="button" (click)="queueAppointmentSms(selected, 'staff')" [disabled]="smsQueueTarget() === 'staff'">SMS staff</button>
               <button class="primary-button" type="button" (click)="queueAppointmentSms(selected, 'owner')" [disabled]="smsQueueTarget() === 'owner'">SMS owner</button>
               <a class="ghost-button link-button" *ngIf="selected.clientId" [routerLink]="['/clients', selected.clientId]">Client History</a>
-              <a class="ghost-button link-button" routerLink="/staff" [queryParams]="{ q: staffName(selected.staffId) }">Staff page</a>
+              <a class="ghost-button link-button" routerLink="/staff-os/staff-list" [queryParams]="{ q: staffName(selected.staffId) }">Staff page</a>
               <a class="ghost-button link-button" routerLink="/business-details">SMS settings</a>
             </div>
           </div>

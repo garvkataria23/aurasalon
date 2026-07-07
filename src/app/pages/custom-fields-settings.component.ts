@@ -488,7 +488,7 @@ export class CustomFieldsSettingsComponent implements OnInit {
   load(): void {
     this.error.set('');
     this.message.set('');
-    this.api.list<{ settings?: ApiRecord; audit?: CustomFieldsSettingsAudit }>('v1/settings/custom-fields').subscribe({
+    this.api.list<{ settings?: ApiRecord; audit?: CustomFieldsSettingsAudit }>('settings/custom-fields').subscribe({
       next: (response) => {
         this.settings = this.normalizeSettings(response.settings || {});
         this.audit = this.normalizeAudit(response.audit);
@@ -506,7 +506,7 @@ export class CustomFieldsSettingsComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const settings = this.normalizeSettings(this.settings);
-    this.api.put<{ settings?: ApiRecord; audit?: CustomFieldsSettingsAudit }>('v1/settings/custom-fields', { settings }).subscribe({
+    this.api.put<{ settings?: ApiRecord; audit?: CustomFieldsSettingsAudit }>('settings/custom-fields', { settings }).subscribe({
       next: (response) => {
         this.settings = this.normalizeSettings(response.settings || settings);
         this.audit = this.normalizeAudit(response.audit);

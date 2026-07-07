@@ -4,6 +4,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { ApiRecord, ApiService } from './core/api.service';
+import { AppointmentToolbarService } from './core/appointment-toolbar.service';
 import { AuthSessionService } from './core/auth-session.service';
 import { I18nService, LocalePreference } from './core/i18n.service';
 import { NavigationPrefetchService } from './core/navigation-prefetch.service';
@@ -387,6 +388,43 @@ type ActiveModuleTabs = {
                   <span>{{ tab.label }}</span>
                 </a>
               </nav>
+              <div class="appointment-tab-controls" *ngIf="appointmentToolbar.visible()" aria-label="Calendar slot and view controls">
+                <button class="appointment-tab-chip" type="button" (click)="appointmentToolbar.requestSafeSlots()">
+                  <span>Safe slots</span>
+                  <strong>{{ appointmentToolbar.safeSlotCount() }}</strong>
+                </button>
+                <button class="appointment-tab-chip" type="button" (click)="appointmentToolbar.requestOperations()">
+                  <span>Demand</span>
+                  <strong>{{ appointmentToolbar.waitlistCount() }}</strong>
+                </button>
+                <label>
+                  <span>Slot</span>
+                  <select [value]="appointmentToolbar.slotMinutes()" (change)="appointmentToolbar.setSlotMinutes($any($event.target).value)">
+                    <option value="15">15 mins</option>
+                    <option value="30">30 mins</option>
+                  </select>
+                </label>
+                <label class="appointment-tab-view-field">
+                  <span>View</span>
+                  <select [value]="appointmentToolbar.calendarLayout()" (change)="appointmentToolbar.setCalendarLayout($any($event.target).value)">
+                    <option value="grid">Staff Grid</option>
+                    <option value="compact-grid">Compact Grid</option>
+                    <option value="timeline">Timeline</option>
+                    <option value="list">List</option>
+                  </select>
+                </label>
+                <button
+                  class="appointment-tab-staff-button"
+                  type="button"
+                  title="Scheduled staff"
+                  aria-label="Scheduled staff"
+                  [class.active]="appointmentToolbar.staffPanelOpen()"
+                  (click)="appointmentToolbar.requestStaffPanelToggle()"
+                >
+                  <span aria-hidden="true">☷</span>
+                  <small>{{ appointmentToolbar.scheduledStaffVisibleCount() }}</small>
+                </button>
+              </div>
             </section>
             <router-outlet></router-outlet>
           </div>
@@ -413,6 +451,10 @@ type ActiveModuleTabs = {
 
     .topbar {
       margin-bottom: 0;
+    }
+
+    .topbar-actions {
+      margin-right: -8px;
     }
 
     .topbar-brand-title {
@@ -496,8 +538,135 @@ type ActiveModuleTabs = {
       min-height: 52px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 16px;
       padding: 8px 0;
       background: #FAF8F6;
+    }
+
+    .appointment-tab-controls {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-left: auto;
+      padding-right: 6px;
+    }
+
+    .appointment-tab-chip {
+      width: 92px;
+      height: 44px;
+      min-height: 44px;
+      border: 1px solid #eadde6;
+      border-radius: 10px;
+      padding: 5px 10px;
+      background: #fff;
+      color: #2c1525;
+      display: grid;
+      gap: 1px;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(75, 18, 56, .06);
+    }
+
+    .appointment-tab-chip span {
+      color: #6f5f6c;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .appointment-tab-chip strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 1.15;
+      font-weight: 900;
+    }
+
+    .appointment-tab-chip--risk { width: 92px; max-width: 92px; }
+
+    .appointment-tab-chip:hover { border-color: #4B1238; }
+
+    .appointment-tab-controls label {
+      display: grid;
+      gap: 1px;
+      color: #6f5f6c;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      line-height: 1;
+      text-transform: uppercase;
+      min-height: 44px;
+      height: 44px;
+      width: 92px;
+      border: 1px solid #eadde6;
+      border-radius: 10px;
+      padding: 5px 10px;
+      background: #fff;
+      box-shadow: 0 8px 16px rgba(75, 18, 56, .06);
+      box-sizing: border-box;
+    }
+
+    .appointment-tab-controls select {
+      width: 72px;
+      min-width: 72px;
+      min-height: 16px;
+      border: 0;
+      border-radius: 0;
+      padding: 0 20px 0 0;
+      background: transparent;
+      color: #2c1525;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0;
+      outline: none;
+    }
+
+    .appointment-tab-controls .appointment-tab-view-field { width: 128px; min-width: 128px; }
+    .appointment-tab-controls .appointment-tab-view-field select { width: 100%; min-width: 0; }
+
+    .appointment-tab-staff-button {
+      position: relative;
+      width: 38px;
+      height: 44px;
+      min-height: 44px;
+      border: 1px solid #eadde6;
+      border-radius: 10px;
+      background: #fff;
+      color: #4B1238;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+      box-shadow: 0 10px 20px rgba(75, 18, 56, .08);
+      cursor: pointer;
+    }
+
+    .appointment-tab-staff-button.active,
+    .appointment-tab-staff-button:hover { background: #4B1238; color: #fff; border-color: #4B1238; }
+
+    .appointment-tab-staff-button small {
+      position: absolute;
+      right: -6px;
+      top: -8px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #E8A7B8;
+      color: #4B1238;
+      border: 2px solid #fff;
+      font-size: 10px;
+      line-height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .workspace-local-rail {
@@ -589,6 +758,13 @@ type ActiveModuleTabs = {
       .workspace-route-content > .workspace-module-tabs {
         position: static;
         border-top: 1px solid #E7DDD6;
+      }
+
+      .appointment-tab-controls {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 8px 0 0;
       }
 
       .workspace-local-nav {
@@ -1076,10 +1252,10 @@ export class AppComponent implements OnDestroy {
       id: 'admin',
       label: 'Admin',
       icon: 'AD',
-      primaryPath: '/settings',
+      primaryPath: '/settings/general',
       items: [
         {
-          path: '/settings',
+          path: '/settings/general',
           label: 'Tenant Setup',
           icon: 'TS',
           keywords: 'tenant admin saas branches settings permissions business white label quality',
@@ -1087,7 +1263,8 @@ export class AppComponent implements OnDestroy {
             { path: '/super-admin', label: 'Super Admin', icon: 'SA', keywords: 'tenant admin platform' },
             { path: '/saas', label: 'SaaS', icon: 'X', keywords: 'saas onboarding tenant' },
             { path: '/branches', label: 'Branches', icon: 'B', keywords: 'branch location' },
-            { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
+            { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings records configuration raw' },
+            { path: '/settings/general', label: 'General Settings', icon: 'GS', keywords: 'general settings tenant defaults workspace' },
             { path: '/permissions', label: 'Permissions', icon: 'PM', keywords: 'role rbac permission' },
             { path: '/business-details', label: 'Business Details', icon: 'BD', keywords: 'business profile details' },
             { path: '/white-label', label: 'White Label', icon: 'WL', keywords: 'brand theme white label' },
@@ -1152,15 +1329,15 @@ export class AppComponent implements OnDestroy {
       id: 'settings',
       label: 'Settings',
       icon: 'SE',
-      primaryPath: '/settings',
+      primaryPath: '/settings/general',
       items: [
         {
-          path: '/settings',
+          path: '/settings/general',
           label: 'Business Settings',
           icon: 'BS',
           keywords: 'settings business configuration calendar tax marketplace client custom form',
           children: [
-            { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
+            { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings records configuration raw' },
             { path: '/settings/general', label: 'General Settings', icon: 'GS', keywords: 'general settings tenant defaults workspace' },
             { path: '/settings/products', label: 'Products Settings', icon: 'PS', keywords: 'product settings sku retail inventory' },
             { path: '/settings/supplier', label: 'Supplier Settings', icon: 'SS', keywords: 'supplier settings vendor purchase gst' },
@@ -1327,6 +1504,7 @@ export class AppComponent implements OnDestroy {
     readonly state: AppStateService,
     readonly session: AuthSessionService,
     readonly i18n: I18nService,
+    readonly appointmentToolbar: AppointmentToolbarService,
     private readonly router: Router,
     private readonly prefetcher: NavigationPrefetchService
   ) {
@@ -1890,7 +2068,7 @@ export class AppComponent implements OnDestroy {
     if (!permission || (Array.isArray(permission) && !permission.length)) return true;
     const permissions = Array.isArray(permission) ? permission : [permission];
     const dynamicGrants = this.session.currentUser()?.permissions || [];
-    const grants = dynamicGrants.length ? dynamicGrants : staticGrantsForRole(this.state.userRole());
+    const grants = Array.from(new Set([...staticGrantsForRole(this.state.userRole()), ...dynamicGrants]));
     if (!grants.length) return false;
     return permissions.some((item) => grantsAllow(grants, item));
   }

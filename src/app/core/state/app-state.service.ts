@@ -21,7 +21,7 @@ const DEFAULT_TENANT_ID = 'tenant_aura';
 export class AppStateService {
   readonly selectedTenantId = signal(this.normalizeTenantId(localStorage.getItem('aura.selectedTenantId')));
   readonly selectedBranchId = signal(localStorage.getItem('aura.selectedBranchId') || '');
-  readonly userRole = signal<UserRole>((localStorage.getItem('aura.userRole') as UserRole) || 'owner');
+  readonly userRole = signal<UserRole>(this.normalizeRole(localStorage.getItem('aura.userRole')));
   readonly globalSearch = signal('');
 
   readonly tenantScopeLabel = computed(() => this.selectedTenantId());
@@ -41,13 +41,23 @@ export class AppStateService {
   }
 
   setRole(role: UserRole): void {
-    this.userRole.set(role);
-    localStorage.setItem('aura.userRole', role);
+    const normalizedRole = this.normalizeRole(role);
+    this.userRole.set(normalizedRole);
+    localStorage.setItem('aura.userRole', normalizedRole);
   }
 
   private normalizeTenantId(tenantId: string | null): string {
     const value = tenantId || DEFAULT_TENANT_ID;
     if (/^tenant_(ai|import)_/i.test(value)) return DEFAULT_TENANT_ID;
     return value;
+  }
+
+  private normalizeRole(role: string | null): UserRole {
+    const compact = String(role || 'owner').trim().replace(/[\s_-]+/g, '').toLowerCase();
+    if (compact === 'superadmin') return 'superAdmin';
+    if (compact === 'frontdesk') return 'frontDesk';
+    if (compact === 'inventorymanager') return 'inventoryManager';
+    if (compact === 'custommarketinglead') return 'customMarketingLead';
+    return (role as UserRole) || 'owner';
   }
 }

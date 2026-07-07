@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS: CalendarSettingsState = {
   template: `
     <section class="calendar-settings-page">
       <aside class="settings-nav" aria-label="Settings sections">
-        <a routerLink="/settings">General Settings</a>
+        <a routerLink="/settings/general">General Settings</a>
         <a class="active" routerLink="/setting/calendar">Calendar Settings</a>
         <a routerLink="/settings/clients/custom-form">Clients - Custom Form</a>
         <a routerLink="/settings/taxes">Tax Settings</a>

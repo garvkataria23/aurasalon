@@ -22,11 +22,21 @@ const targetIncentiveTypes = new Set(["service", "product", "membership", "branc
 const targetAssigneeTypes = new Set(["staff", "branch", "standard"]);
 const allowanceDeductionTypes = new Set(["allowance", "deduction"]);
 const finePenaltyRuleTypes = new Set(["manual", "late_count", "absent_day", "half_day", "short_hours", "no_clock_out", "weekend_penalty", "sandwich_penalty", "unpaid_week_off"]);
+
+function normalizeRole(role = "") {
+  const value = String(role || "").trim();
+  const compact = value.replace(/[\s_-]+/g, "").toLowerCase();
+  if (compact === "superadmin") return "superAdmin";
+  if (compact === "frontdesk") return "frontDesk";
+  if (compact === "inventorymanager") return "inventoryManager";
+  if (compact === "custommarketinglead") return "customMarketingLead";
+  return value;
+}
 const finePenaltyApplyModes = new Set(["per_occurrence", "fixed"]);
 
 function normalizeAccess(access = {}) {
   if (!access.tenantId) throw forbidden("Tenant context is required");
-  return access;
+  return { ...access, role: normalizeRole(access.role) };
 }
 
 function pickBranch(payload = {}, access = {}) {
@@ -50,7 +60,7 @@ function branchScopedWhere(access, params, alias = "") {
 }
 
 function requireRole(access, allowed, message = "This action is not allowed for your role") {
-  if (!allowed.has(access.role)) throw forbidden(message);
+  if (!allowed.has(normalizeRole(access.role))) throw forbidden(message);
 }
 
 function requireManager(access) {

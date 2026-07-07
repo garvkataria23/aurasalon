@@ -26,8 +26,8 @@ type StaffSection = 'directory' | 'performance' | 'incentives' | 'payroll' | 'sc
           <button class="ghost-button" type="button" (click)="load()" [disabled]="loading()">Refresh</button>
           <button class="primary-button" type="button" *ngIf="section() === 'incentives'" (click)="runCommission()" [disabled]="saving()">Run commission</button>
           <button class="primary-button" type="button" *ngIf="section() === 'payroll'" (click)="exportPayroll()" [disabled]="saving()">Export payroll</button>
-          <a class="primary-button" *ngIf="section() === 'schedule'" routerLink="/staff">Plan shift</a>
-          <a class="ghost-button" routerLink="/staff">Back to staff</a>
+          <a class="primary-button" *ngIf="section() === 'schedule'" routerLink="/staff-os/staff-list">Plan shift</a>
+          <a class="ghost-button" routerLink="/staff-os/staff-list">Back to staff</a>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ type StaffSection = 'directory' | 'performance' | 'incentives' | 'payroll' | 'sc
         <section class="panel" *ngSwitchCase="'directory'">
           <div class="section-title">
             <div><h2>Staff directory full page</h2></div>
-            <a class="primary-button" routerLink="/staff">+ Add staff</a>
+            <a class="primary-button" routerLink="/staff-os/staff-list">+ Add staff</a>
           </div>
           <div class="section-toolbar">
             <label class="field compact-field">
@@ -261,7 +261,7 @@ type StaffSection = 'directory' | 'performance' | 'incentives' | 'payroll' | 'sc
             <div>
               <h2>Employee schedule week view</h2>
             </div>
-            <a class="ghost-button" routerLink="/staff">Open shift planner</a>
+            <a class="ghost-button" routerLink="/staff-os/staff-list">Open shift planner</a>
           </div>
           <div class="schedule-board">
             <div class="schedule-row schedule-head">
@@ -293,7 +293,7 @@ type StaffSection = 'directory' | 'performance' | 'incentives' | 'payroll' | 'sc
             <div>
               <h2>Employee attendance summary</h2>
             </div>
-            <a class="ghost-button" routerLink="/staff">Open attendance form</a>
+            <a class="ghost-button" routerLink="/staff-os/staff-list">Open attendance form</a>
           </div>
           <div class="table-wrap tall-table">
             <table>
