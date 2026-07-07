@@ -7,8 +7,8 @@ import { auditChainService } from "../services/audit-chain.service.js";
 
 /** Tamper-evident audit chain endpoints (ADD-ONLY). */
 export const auditChainRouter = Router();
-auditChainRouter.use(rateLimit({ windowMs: 5 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
-auditChainRouter.use(persistentFixedWindowRateLimit({
+auditChainRouter.use("/audit-chain", rateLimit({ windowMs: 5 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
+auditChainRouter.use("/audit-chain", persistentFixedWindowRateLimit({
   scope: "audit-chain",
   max: 20,
   windowMs: 5 * 60 * 1000,

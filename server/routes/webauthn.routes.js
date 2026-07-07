@@ -67,8 +67,8 @@ const webauthnProtectedRateLimit = persistentFixedWindowRateLimit({
   windowMs: 5 * 60 * 1000,
   keyFn: (req) => [req.access?.tenantId || "public", req.access?.userId || req.ip || "anonymous", req.path].join(":")
 });
-webauthnRouter.use(webauthnProtectedEdgeRateLimit);
-webauthnRouter.use(webauthnProtectedRateLimit);
+webauthnRouter.use("/auth/webauthn", webauthnProtectedEdgeRateLimit);
+webauthnRouter.use("/auth/webauthn", webauthnProtectedRateLimit);
 
 webauthnRouter.get(
   "/auth/webauthn/credentials",

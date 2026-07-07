@@ -20,16 +20,18 @@ import { persistentFixedWindowRateLimit } from "./persistent-rate-limit.middlewa
 const STEP_UP_TTL = 300;
 
 export const stepUpRouter = Router();
-stepUpRouter.use(rateLimit({ windowMs: 5 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
-stepUpRouter.use(persistentFixedWindowRateLimit({
+const stepUpEdgeRateLimit = rateLimit({ windowMs: 5 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+const stepUpPersistentRateLimit = persistentFixedWindowRateLimit({
   scope: "step-up",
   max: 20,
   windowMs: 5 * 60 * 1000,
   keyFn: (req) => [req.access?.tenantId || "public", req.access?.userId || req.ip || "anonymous", req.path].join(":")
-}));
+});
 
 stepUpRouter.post(
   "/auth/step-up",
+  stepUpEdgeRateLimit,
+  stepUpPersistentRateLimit,
   authenticateJwt(),
   validateBody({ required: ["code"] }),
   asyncHandler((req, res) => {

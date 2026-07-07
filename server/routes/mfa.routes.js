@@ -143,8 +143,8 @@ const mfaProtectedRateLimit = persistentFixedWindowRateLimit({
   windowMs: 5 * 60 * 1000,
   keyFn: (req) => [req.access?.tenantId || "public", req.access?.userId || req.ip || "anonymous", req.path].join(":")
 });
-mfaRouter.use(mfaProtectedEdgeRateLimit);
-mfaRouter.use(mfaProtectedRateLimit);
+mfaRouter.use(["/auth/mfa", "/auth/sessions"], mfaProtectedEdgeRateLimit);
+mfaRouter.use(["/auth/mfa", "/auth/sessions"], mfaProtectedRateLimit);
 
 mfaRouter.get(
   "/auth/mfa/status",

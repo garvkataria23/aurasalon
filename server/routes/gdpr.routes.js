@@ -17,8 +17,8 @@ import { securityService } from "../services/security.service.js";
  * Every action is written to the security audit trail.
  */
 export const gdprRouter = Router();
-gdprRouter.use(rateLimit({ windowMs: 5 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
-gdprRouter.use(persistentFixedWindowRateLimit({
+gdprRouter.use("/gdpr", rateLimit({ windowMs: 5 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
+gdprRouter.use("/gdpr", persistentFixedWindowRateLimit({
   scope: "gdpr",
   max: 30,
   windowMs: 5 * 60 * 1000,
