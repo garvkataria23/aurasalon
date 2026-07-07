@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
@@ -8,7 +9,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 @Component({
   selector: 'app-inventory-product-edit',
   standalone: true,
-  imports: [CommonModule, RouterLink, StateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StateComponent],
   template: `
     <section class="page-stack product-edit-page">
       <div class="module-hero compact-hero">
@@ -74,6 +75,22 @@ import { StateComponent } from '../shared/ui/state/state.component';
               <div><span>Low stock threshold</span><strong>{{ item.lowStockThreshold || 0 }}</strong></div>
               <div><span>Current stock</span><strong>{{ item.stock || 0 }} {{ item.unit || 'pcs' }}</strong></div>
               <div><span>Nearest expiry</span><strong>{{ nearestExpiry(item.id) }}</strong></div>
+              <div class="laundry-config">
+                <label class="switch-row">
+                  <input type="checkbox" [ngModel]="laundryEnabled()" (ngModelChange)="laundryEnabled.set($event)" />
+                  <span>
+                    <strong>Laundry</strong>
+                    <small>Tick karne par product Laundry Inward / Outward page me dikhega.</small>
+                  </span>
+                </label>
+                <label class="laundry-rate">
+                  <span>Laundry Rate</span>
+                  <input type="number" min="0" [ngModel]="laundryRate()" (ngModelChange)="laundryRate.set(numberValue($event))" />
+                </label>
+                <button type="button" class="primary-button" (click)="saveLaundrySettings(item)" [disabled]="saving()">
+                  {{ saving() ? 'Saving...' : 'Save laundry setup' }}
+                </button>
+              </div>
             </div>
 
             <div class="table-wrap" *ngSwitchCase="'variants'">
@@ -283,6 +300,10 @@ export class InventoryProductEditComponent implements OnInit {
   readonly transactions = signal<ApiRecord[]>([]);
   readonly intelligence = signal<ApiRecord | null>(null);
   readonly activeTab = signal('general');
+  readonly saving = signal(false);
+  readonly success = signal('');
+  readonly laundryEnabled = signal(false);
+  readonly laundryRate = signal(0);
 
   readonly tabs = [
     { key: 'general', label: 'GENERAL' },
@@ -294,6 +315,69 @@ export class InventoryProductEditComponent implements OnInit {
   ];
 
   constructor(private readonly api: ApiService, private readonly route: ActivatedRoute) {}
+
+  saveLaundrySettings(product: ApiRecord): void {
+    const id = String(product.id || '');
+    if (!id) return;
+    const patch: ApiRecord = {
+      isLaundry: this.laundryEnabled(),
+      laundry: this.laundryEnabled(),
+      laundryProduct: this.laundryEnabled(),
+      laundryRate: this.laundryRate()
+    };
+    this.saving.set(true);
+    this.error.set('');
+    this.success.set('');
+    this.api.update<ApiRecord>('products', id, patch).subscribe({
+      next: (updated) => {
+        const next = { ...product, ...patch, ...(updated || {}) };
+        this.saveLocalLaundryProduct(id, patch);
+        this.product.set(next);
+        this.products.set(this.products().map((item) => (item.id === id ? next : item)));
+        this.syncLaundryForm(next);
+        this.success.set('Laundry setup saved.');
+        this.saving.set(false);
+      },
+      error: (error) => {
+        this.saveLocalLaundryProduct(id, patch);
+        const next = { ...product, ...patch };
+        this.product.set(next);
+        this.products.set(this.products().map((item) => (item.id === id ? next : item)));
+        this.syncLaundryForm(next);
+        this.success.set('Laundry setup saved locally.');
+        this.error.set(this.api.errorText(error, 'Backend save failed, local setup saved.'));
+        this.saving.set(false);
+      }
+    });
+  }
+
+  numberValue(value: unknown): number {
+    const next = Number(value || 0);
+    return Number.isFinite(next) ? next : 0;
+  }
+
+  private syncLaundryForm(product: ApiRecord): void {
+    const local = this.localLaundryProduct(product.id);
+    const merged = { ...product, ...local };
+    this.laundryEnabled.set(this.isLaundryProduct(merged));
+    this.laundryRate.set(this.numberValue(merged.laundryRate ?? merged.unitCost ?? merged.costPrice ?? merged.price ?? 0));
+  }
+
+  private isLaundryProduct(product: ApiRecord): boolean {
+    return product.isLaundry === true || product.laundry === true || product.laundryProduct === true;
+  }
+
+  private saveLocalLaundryProduct(productId: string, patch: ApiRecord): void {
+    localStorage.setItem(`aura_laundry_product_${productId}`, JSON.stringify(patch));
+  }
+
+  private localLaundryProduct(productId: unknown): ApiRecord {
+    try {
+      return JSON.parse(localStorage.getItem(`aura_laundry_product_${String(productId || '')}`) || '{}');
+    } catch {
+      return {};
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -316,6 +400,7 @@ export class InventoryProductEditComponent implements OnInit {
       this.transactions.set(transactions || []);
       this.intelligence.set(intelligence || null);
       this.product.set((products || []).find((item) => item.id === id) || null);
+      if (this.product()) this.syncLaundryForm(this.product() as ApiRecord);
       if (!this.product()) this.error.set('Product not found');
     } catch (error: any) {
       this.error.set(error?.error?.error || 'Unable to load product');

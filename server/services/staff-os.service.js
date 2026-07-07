@@ -5,6 +5,7 @@ import { jobQueueService } from "./job-queue.service.js";
 import { realtimeService } from "./realtime.service.js";
 import { securityService } from "./security.service.js";
 import { staffLoginService } from "./staff-login.service.js";
+import { appointmentLifecycleService } from "./appointment-lifecycle.service.js";
 import { tenantService } from "./tenant.service.js";
 
 const now = () => new Date().toISOString();
@@ -3392,11 +3393,17 @@ export class StaffOsService {
   }
 
   startService(payload = {}, access) {
-    return { started: true, staffId: payload.staffId || access.userId, appointmentId: payload.appointmentId || "", startedAt: now() };
+    const appointmentId = payload.appointmentId || payload.appointment_id || "";
+    if (!appointmentId) throw badRequest("appointmentId is required");
+    const result = appointmentLifecycleService.startService(appointmentId, access);
+    return { started: true, staffId: payload.staffId || access.staffId || access.userId, appointmentId, startedAt: now(), ...result };
   }
 
   completeService(payload = {}, access) {
-    return { completed: true, staffId: payload.staffId || access.userId, appointmentId: payload.appointmentId || "", completedAt: now(), notes: payload.notes || "" };
+    const appointmentId = payload.appointmentId || payload.appointment_id || "";
+    if (!appointmentId) throw badRequest("appointmentId is required");
+    const result = appointmentLifecycleService.complete(appointmentId, { notes: payload.notes || "" }, access);
+    return { completed: true, staffId: payload.staffId || access.staffId || access.userId, appointmentId, completedAt: now(), notes: payload.notes || "", ...result };
   }
 
   mobilePayroll(query = {}, access) {

@@ -6,6 +6,18 @@ import { calendarOutline, checkmarkCircleOutline, personOutline, sparklesOutline
 import { MarketplaceService } from "../../core/marketplace.service";
 import { AvailabilityDay } from "../../core/api.types";
 
+const PENDING_BOOKING_INTENT_KEY = "auraCustomerPendingBookingIntent";
+
+type PendingBookingIntent = {
+  slug: string;
+  serviceId: string;
+  staffId: string | null;
+  date: string;
+  slotStartAt: string;
+  step: number;
+  savedAt: number;
+};
+
 @Component({
   standalone: true,
   imports: [IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonToolbar],
@@ -305,6 +317,7 @@ export class BookingFlowPage implements OnInit {
     const slug = this.slug();
     if (!slug) return;
     await this.marketplace.loadBusiness(slug).catch(() => undefined);
+    this.restorePendingIntent();
     if (!this.selectedServiceId() && this.business()?.services[0]) this.selectedServiceId.set(this.business()?.services[0].id ?? "");
     if (this.step() < 1 || this.step() > 4) this.step.set(1);
     await this.reloadAvailability();
@@ -382,10 +395,18 @@ export class BookingFlowPage implements OnInit {
     const business = this.business();
     const service = this.selectedService();
     if (!business || !service || !this.selectedSlotStartAt()) return;
+    this.savePendingIntent();
     if (!this.marketplace.isAuthenticated()) {
       this.router.navigate(["/login"], { queryParams: { returnUrl: this.router.url } });
       return;
     }
+    const customer = this.marketplace.customer();
+    if (customer && !this.profileComplete(customer)) {
+      this.router.navigate(["/login"], { queryParams: { returnUrl: this.router.url, complete: "profile" } });
+      return;
+    }
+    const slotStillAvailable = await this.revalidateSelectedSlot();
+    if (!slotStillAvailable) return;
     await this.marketplace.createBooking({
       businessSlug: business.slug,
       businessId: business.id,
@@ -395,7 +416,23 @@ export class BookingFlowPage implements OnInit {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       paymentMode: "pay_at_venue"
     });
+    this.clearPendingIntent();
     this.router.navigateByUrl("/booking/success");
+  }
+
+  private async revalidateSelectedSlot(): Promise<boolean> {
+    const slot = this.selectedSlotStartAt();
+    await this.reloadAvailability();
+    const available = this.marketplace.availability()
+      .flatMap((day) => day.periods)
+      .flatMap((period) => period.slots)
+      .some((item) => item.startAt === slot && item.available);
+    if (!available) {
+      this.selectedSlotStartAt.set("");
+      this.step.set(3);
+      this.marketplace.error.set("That slot was just taken. Please choose another time.");
+    }
+    return available;
   }
 
   private async reloadAvailability() {
@@ -410,5 +447,60 @@ export class BookingFlowPage implements OnInit {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     }).catch(() => []);
     if (!this.selectedDate() && days[0]) this.selectedDate.set(days[0].date);
+  }
+
+  private savePendingIntent() {
+    const slug = this.slug();
+    if (!slug) return;
+    const intent: PendingBookingIntent = {
+      slug,
+      serviceId: this.selectedServiceId(),
+      staffId: this.selectedStaffId(),
+      date: this.selectedDate(),
+      slotStartAt: this.selectedSlotStartAt(),
+      step: this.step(),
+      savedAt: Date.now()
+    };
+    try {
+      localStorage.setItem(PENDING_BOOKING_INTENT_KEY, JSON.stringify(intent));
+    } catch {
+      // Booking can continue without local draft persistence.
+    }
+  }
+
+  private restorePendingIntent() {
+    try {
+      const raw = localStorage.getItem(PENDING_BOOKING_INTENT_KEY);
+      if (!raw) return;
+      const intent = JSON.parse(raw) as PendingBookingIntent;
+      if (intent.slug !== this.slug()) return;
+      if (Date.now() - Number(intent.savedAt || 0) > 30 * 60 * 1000) {
+        this.clearPendingIntent();
+        return;
+      }
+      if (intent.serviceId) this.selectedServiceId.set(intent.serviceId);
+      this.selectedStaffId.set(intent.staffId || null);
+      if (intent.date) this.selectedDate.set(intent.date);
+      if (intent.slotStartAt) this.selectedSlotStartAt.set(intent.slotStartAt);
+      if (intent.step >= 1 && intent.step <= 4) this.step.set(intent.step);
+    } catch {
+      this.clearPendingIntent();
+    }
+  }
+
+  private clearPendingIntent() {
+    try {
+      localStorage.removeItem(PENDING_BOOKING_INTENT_KEY);
+    } catch {
+      // Ignore unavailable storage.
+    }
+  }
+
+  private profileComplete(customer: { profileComplete?: boolean; firstName?: string; lastName?: string; email?: string; phone?: string }): boolean {
+    return Boolean(customer.profileComplete)
+      || (!!String(customer.firstName || "").trim()
+        && !!String(customer.lastName || "").trim()
+        && !!String(customer.email || "").trim()
+        && !!String(customer.phone || "").trim());
   }
 }

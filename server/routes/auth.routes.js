@@ -1,12 +1,67 @@
 import { Router } from "express";
+import { env } from "../config/env.js";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { authenticateJwt } from "../middleware/auth.js";
 import { authService } from "../services/auth.service.js";
+import { issueCsrfToken } from "../services/csrf-token.service.js";
 import { intrusionDetectionService } from "../services/intrusion-detection.service.js";
 import { securityService } from "../services/security.service.js";
 import { validateBody } from "../validators/request-validator.js";
 
 export const authRouter = Router();
+
+function parseCookies(req) {
+  return Object.fromEntries(
+    String(req.get("cookie") || "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const equalsAt = part.indexOf("=");
+        const key = equalsAt >= 0 ? part.slice(0, equalsAt) : part;
+        const value = equalsAt >= 0 ? part.slice(equalsAt + 1) : "";
+        return [decodeURIComponent(key), decodeURIComponent(value)];
+      })
+  );
+}
+
+function cookieOptions(maxAgeSeconds) {
+  return {
+    httpOnly: true,
+    secure: env.nodeEnv === "production",
+    sameSite: env.refreshCookieSameSite,
+    path: "/",
+    maxAge: maxAgeSeconds * 1000
+  };
+}
+
+function publicSession(result) {
+  if (env.allowRefreshTokenInResponse) return result;
+  const { refreshToken: _refreshToken, ...safeResult } = result;
+  return safeResult;
+}
+
+function setRefreshCookie(res, result) {
+  if (!result?.refreshToken) return;
+  res.cookie(env.refreshCookieName, result.refreshToken, cookieOptions(env.jwtRefreshTtlDays * 24 * 60 * 60));
+}
+
+function clearRefreshCookie(res) {
+  res.clearCookie(env.refreshCookieName, cookieOptions(0));
+}
+
+function refreshTokenFromRequest(req) {
+  const cookieToken = parseCookies(req)[env.refreshCookieName] || "";
+  if (cookieToken) return cookieToken;
+  return env.allowLegacyRefreshTokenBody ? String(req.body?.refreshToken || "") : "";
+}
+
+authRouter.get(
+  "/auth/csrf",
+  asyncHandler((_req, res) => {
+    res.json(issueCsrfToken(res));
+  })
+);
 
 authRouter.post(
   "/auth/login",
@@ -38,15 +93,17 @@ authRouter.post(
       branchId: result.user.branchId,
       branchIds: result.user.branchIds || []
     }, req);
-    res.status(201).json(result);
+    setRefreshCookie(res, result);
+    res.status(201).json(publicSession(result));
   })
 );
 
 authRouter.post(
   "/auth/refresh",
-  validateBody({ required: ["refreshToken"] }),
   asyncHandler((req, res) => {
-    res.json(authService.refresh(req.body.refreshToken));
+    const result = authService.refresh(refreshTokenFromRequest(req));
+    setRefreshCookie(res, result);
+    res.json(publicSession(result));
   })
 );
 
@@ -54,7 +111,9 @@ authRouter.post(
   "/auth/logout",
   authenticateJwt(),
   asyncHandler((req, res) => {
-    res.json(authService.logout(req.body.refreshToken || "", req.access));
+    const result = authService.logout(refreshTokenFromRequest(req), req.access);
+    clearRefreshCookie(res);
+    res.json(result);
   })
 );
 

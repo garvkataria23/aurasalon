@@ -28,6 +28,16 @@ appointmentSafetyRouter.post(
 );
 
 appointmentSafetyRouter.post(
+  "/appointment-lifecycle/appointments/:id/status",
+  requirePermission("write", () => "appointments"),
+  asyncHandler((req, res) => {
+    const result = appointmentLifecycleService.setStatus(req.params.id, req.body, req.access);
+    securityService.audit({ action: "appointment.status_changed", targetType: "appointment", targetId: req.params.id, details: { status: req.body.status } }, req.access, req);
+    res.json(result);
+  })
+);
+
+appointmentSafetyRouter.post(
   "/appointments/:id/cancel",
   requirePermission("write", () => "appointments"),
   asyncHandler((req, res) => {

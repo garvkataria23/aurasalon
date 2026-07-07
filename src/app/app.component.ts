@@ -751,6 +751,7 @@ export class AppComponent implements OnDestroy {
             { path: '/command-center/owner-command-center', label: 'Owner Command', icon: 'OC', keywords: 'owner command center' },
             { path: '/command-center/ai-ceo-daily-brief', label: 'CEO Brief', icon: 'CB', keywords: 'ceo daily brief ai' },
             { path: '/command-center/approval-hub', label: 'Approval Hub', icon: 'AH', keywords: 'approval hub command center' },
+            { path: '/command-center/oversight', label: 'Oversight', icon: 'OV', keywords: 'scrutiny oversight fraud audit verify staff risk reconciliation siem' },
             { path: '/command-center/engagement', label: 'Engagement', icon: 'EC', keywords: 'hyperconnect unified inbox whatsapp client engagement' },
             { path: '/command-center/data-warehouse', label: 'Data Warehouse', icon: 'DW', keywords: 'data warehouse snapshots command center' }
           ]
@@ -816,7 +817,9 @@ export class AppComponent implements OnDestroy {
             { path: '/pos', label: 'POS Billing', icon: 'P', keywords: 'checkout bill billing' },
             { path: '/pos/holds', label: 'Hold Invoices', icon: 'HI', keywords: 'hold pending invoice' },
             { path: '/pos/tips', label: 'Tip Register', icon: 'TP', keywords: 'tips staff tip' },
-            { path: '/pos/payment-modes', label: 'Payment Modes', icon: 'PM', keywords: 'cash card upi payment' }
+            { path: '/pos/payment-modes', label: 'Payment Modes', icon: 'PM', keywords: 'cash card upi payment' },
+            { path: '/pos/payment-mode-report', label: 'Payment Mode Report', icon: 'PR', keywords: 'payment mode report cash card upi settlement' },
+            { path: '/pos/cash-drawer-eod', label: 'Cash Drawer Tally', icon: 'CD', keywords: 'cash drawer tally day close settlement eod register close' }
           ]
         },
         {
@@ -854,9 +857,13 @@ export class AppComponent implements OnDestroy {
           keywords: 'stock products inventory purchase reorder supplier audit barcode scanner',
           children: [
             { path: '/inventory', label: 'Inventory', icon: 'I', keywords: 'stock products inventory' },
+            { path: '/inventory/purchase-bill-entry', label: 'Purchase Bill Entry', icon: 'PB', keywords: 'purchase bill vendor paid unpaid record payment' },
+            { path: '/inventory/purchase-bill-register', label: 'Purchase Bill Register', icon: 'BR', keywords: 'saved purchase bill find vendor payment unpaid paid' },
             { path: '/inventory/purchase-bill-drafts', label: 'AI Bill Drafts', icon: 'AI', keywords: 'ai purchase bill scanner draft invoice receiving' },
             { path: '/inventory/purchase-orders', label: 'Purchase Orders', icon: 'PO', keywords: 'purchase order po vendor' },
             { path: '/inventory/reorder', label: 'AI Reorder', icon: 'AR', keywords: 'low stock reorder purchase prediction approval' },
+            { path: '/inventory/laundry-entry', label: 'Laundry Entry', icon: 'LE', keywords: 'laundry inward outward towel linen' },
+            { path: '/inventory/laundry-report', label: 'Laundry Report', icon: 'LR', keywords: 'laundry report inward outward saved entries' },
             { path: '/suppliers', label: 'Suppliers', icon: 'SP', keywords: 'supplier vendor gst purchase' },
             { path: '/inventory/stock-audit', label: 'Stock Audit', icon: 'SA', keywords: 'audit count stock' },
             { path: '/inventory/scanner', label: 'Inventory Scanner', icon: 'QR', keywords: 'barcode scanner qr' }
@@ -1004,7 +1011,9 @@ export class AppComponent implements OnDestroy {
             { path: '/finance', label: 'Finance', icon: 'FN', keywords: 'cash expense finance' },
             { path: '/account-master', label: 'Account Master', icon: 'AM', keywords: 'ledger accounts chart' },
             { path: '/reports/account-ledger', label: 'Account Ledger', icon: 'AL', keywords: 'account ledger debit credit journal drilldown' },
-            { path: '/transactions/outgoing-funds', label: 'Outgoing Fund', icon: 'OF', keywords: 'outgoing funds payments expense cash bank balance sheet' }
+            { path: '/transactions/outgoing-funds', label: 'Outgoing Fund', icon: 'OF', keywords: 'outgoing funds payments expense cash bank balance sheet' },
+            { path: '/transactions/petty-cash', label: 'Petty Cash Entry', icon: 'PC', keywords: 'petty cash in out debit credit expense' },
+            { path: '/transactions/petty-cash-report', label: 'Petty Cash Report', icon: 'PR', keywords: 'petty cash report ledger debit credit balance' }
           ]
         },
         {
@@ -1032,7 +1041,9 @@ export class AppComponent implements OnDestroy {
           keywords: 'campaign marketing engagement whatsapp messages reviews growth ai rank bot',
           children: [
             { path: '/marketing', label: 'Marketing', icon: 'W', keywords: 'campaign marketing automation' },
+            { path: '/sales-tools', label: 'Sales Tools', icon: 'ST', keywords: 'sales tools referral gift card campaigns coupons rewards marketplace deals boost automation' },
             { path: '/marketing/birthdays', label: 'Birthdays', icon: 'BD', keywords: 'birthday campaign ai whatsapp sms offers clients' },
+            { path: '/leads', label: 'Lead Management', icon: 'LM', keywords: 'leads pipeline follow up kanban sales crm prospect enquiry' },
             { path: '/engagement', label: 'Engagement Center', icon: 'EC', keywords: 'unified inbox hyperconnect client engagement whatsapp email calls' },
             { path: '/whatsapp', label: 'WhatsApp', icon: 'WA', keywords: 'whatsapp campaign chat' },
             { path: '/message-logs', label: 'Messages', icon: 'ML', keywords: 'message logs communication' },
@@ -1095,7 +1106,10 @@ export class AppComponent implements OnDestroy {
             { path: '/security-blocklist', label: 'Security Blocklist', icon: 'BL', keywords: 'security blocklist ip block active defense' },
             { path: '/security-policy-center', label: 'Policy Center', icon: 'PC', keywords: 'security policy center device trust pin export field audit' },
             { path: '/two-factor', label: 'Two-Factor Auth', icon: '2F', keywords: 'security 2fa totp authenticator recovery code' },
+            { path: '/mfa-security', label: 'MFA Security', icon: 'MF', keywords: 'security mfa totp sessions recovery step up' },
+            { path: '/passkeys', label: 'Passkeys', icon: 'PK', keywords: 'security passkey webauthn biometric phishing resistant' },
             { path: '/audit-logs', label: 'Audit Logs', icon: 'AL', keywords: 'audit logs activity' },
+            { path: '/site-logs', label: 'Site Logs', icon: 'SL', keywords: 'site logs activity audit security ip risk' },
             { path: '/audit-compliance', label: 'Audit Compliance', icon: 'AC', keywords: 'audit compliance controls risk' }
           ]
         },
@@ -1147,10 +1161,28 @@ export class AppComponent implements OnDestroy {
           keywords: 'settings business configuration calendar tax marketplace client custom form',
           children: [
             { path: '/settings', label: 'Settings', icon: 'G', keywords: 'settings configuration' },
+            { path: '/settings/general', label: 'General Settings', icon: 'GS', keywords: 'general settings tenant defaults workspace' },
+            { path: '/settings/products', label: 'Products Settings', icon: 'PS', keywords: 'product settings sku retail inventory' },
+            { path: '/settings/supplier', label: 'Supplier Settings', icon: 'SS', keywords: 'supplier settings vendor purchase gst' },
+            { path: '/settings/inventory', label: 'Inventory Settings', icon: 'IS', keywords: 'inventory settings stock reorder barcode' },
+            { path: '/settings/sms-template', label: 'SMS Template Settings', icon: 'ST', keywords: 'sms template message settings' },
+            { path: '/settings/services', label: 'Services Settings', icon: 'SV', keywords: 'services settings catalog pricing duration online booking commission recipe' },
+            { path: '/settings/packages', label: 'Packages Settings', icon: 'PK', keywords: 'packages settings credits redemption expiry renewal package sale' },
+            { path: '/settings/membership', label: 'Membership Settings', icon: 'MS', keywords: 'membership settings loyalty renewal credits benefits redemption' },
+            { path: '/settings/custom-fields', label: 'Custom Fields', icon: 'CF', keywords: 'custom fields settings clients appointments invoice service staff' },
+            { path: '/settings/consent-forms', label: 'Consent Forms', icon: 'CN', keywords: 'consent form settings intake client service' },
+            { path: '/settings/booking', label: 'Booking Settings', icon: 'BK', keywords: 'booking settings appointment online rules' },
+            { path: '/settings/multiple-location', label: 'Multiple Location', icon: 'ML', keywords: 'multiple location branch settings' },
             { path: '/settings/calendar', label: 'Calendar Settings', icon: 'CS', keywords: 'calendar booking slot appointment settings' },
             { path: '/settings/taxes', label: 'Tax Settings', icon: 'TX', keywords: 'gst tax invoice settings' },
             { path: '/settings/clients/custom-form', label: 'Client Form', icon: 'CF', keywords: 'client custom form settings' },
-            { path: '/settings/marketplace', label: 'Marketplace', icon: 'MP', keywords: 'marketplace integration settings' }
+            { path: '/settings/marketplace', label: 'Marketplace', icon: 'MP', keywords: 'marketplace integration settings' },
+            { path: '/settings/others', label: 'Other Settings', icon: 'OS', keywords: 'other settings salon policies' },
+            { path: '/settings/bill-setting', label: 'Bill Settings', icon: 'BS', keywords: 'bill invoice print terms dual language feedback settings' },
+            { path: '/settings/business-details', label: 'Business Details Settings', icon: 'BD', keywords: 'business details settings profile invoice' },
+            { path: '/settings/payment-methods', label: 'Payment Methods', icon: 'PM', keywords: 'payment methods split partial due refund settlement upi card cash' },
+            { path: '/settings/message-history', label: 'Message History', icon: 'MH', keywords: 'message history settings sms whatsapp email' },
+            { path: '/settings/security', label: 'Security Settings', icon: 'SC', keywords: 'security settings password session audit' }
           ]
         }
       ]

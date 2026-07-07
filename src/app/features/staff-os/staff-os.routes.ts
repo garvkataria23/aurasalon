@@ -41,6 +41,7 @@ export const STAFF_OS_ROUTES: Routes = [
       { path: 'roster-calendar', loadComponent: () => import('./pages/roster-calendar.page').then((m) => m.RosterCalendarPage), title: 'Staff OS - Roster' },
       { path: 'leave-management', loadComponent: () => import('./pages/leave-management.page').then((m) => m.LeaveManagementPage), title: 'Staff OS - Leave' },
       { path: 'performance-dashboard', loadComponent: () => import('./pages/performance-dashboard.page').then((m) => m.PerformanceDashboardPage), title: 'Staff OS - Performance' },
+      { path: 'performance-dashboard/:staffId', loadComponent: () => import('./pages/performance-detail.page').then((m) => m.PerformanceDetailPage), title: 'Staff OS - Performance Detail' },
       { path: 'leaderboard', loadComponent: () => import('./pages/leaderboard.page').then((m) => m.LeaderboardPage), title: 'Staff OS - Leaderboard' },
       { path: 'training-center', loadComponent: () => import('./pages/training-center.page').then((m) => m.TrainingCenterPage), title: 'Staff OS - Training' },
       { path: 'task-board', loadComponent: () => import('./pages/task-board.page').then((m) => m.TaskBoardPage), title: 'Staff OS - Tasks' },

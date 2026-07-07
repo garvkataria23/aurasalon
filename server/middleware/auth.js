@@ -33,7 +33,8 @@ export function authenticateJwt({ required = true } = {}) {
         role: payload.role,
         staffId: payload.staffId || "",
         branchId: requestedBranchId || payload.branchId || "",
-        branchIds: payload.branchIds || []
+        branchIds: payload.branchIds || [],
+        permissions: payload.permissions || []
       };
       req.access = {
         tenantId: payload.tenantId,
@@ -43,6 +44,7 @@ export function authenticateJwt({ required = true } = {}) {
         loginId: payload.loginId || "",
         branchId: requestedBranchId || payload.branchId || "",
         branchIds: payload.branchIds || [],
+        permissions: payload.permissions || [],
         requestedBranchId,
         deviceId: payload.deviceId || "",
         jti: payload.jti || "",

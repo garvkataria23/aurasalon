@@ -3,6 +3,7 @@ import { db } from "../db.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { badRequest, conflict, notFound } from "../utils/app-error.js";
 import { appointmentActivityService, APPOINTMENT_ACTIVITY_ACTIONS } from "./appointment-activity.service.js";
+import { appointmentConflictBlocks, serviceTotalMinutes } from "./appointment-capacity-window.service.js";
 import { appointmentSmsService } from "./appointment-sms.service.js";
 import { ensureEnterpriseSchedulerSchema } from "./enterprise-scheduler-schema.service.js";
 import { resourceService } from "./resource.service.js";
@@ -176,7 +177,7 @@ function scopedQuery(access, branchId) {
 
 function serviceDuration(serviceId, access) {
   const service = repositories.services.getById(serviceId, { tenantId: access.tenantId });
-  return Math.max(15, Number(service?.durationMinutes || 30));
+  return serviceTotalMinutes(service || {});
 }
 
 function safeNumber(value, fallback = 0) {
@@ -580,7 +581,7 @@ export class EnterpriseSchedulerService {
     const bookedMinutes = activeAppointments.reduce((sum, appointment) => {
       const explicit = minutesBetween(appointment.startAt, appointment.endAt || "");
       if (explicit) return sum + explicit;
-      return sum + (appointment.serviceIds || []).reduce((inner, serviceId) => inner + Number(serviceById.get(serviceId)?.durationMinutes || 30), 0);
+      return sum + (appointment.serviceIds || []).reduce((inner, serviceId) => inner + serviceTotalMinutes(serviceById.get(serviceId) || {}), 0);
     }, 0);
     const plannedMinutes = schedules.reduce((sum, schedule) => sum + this.scheduleMinutes(schedule), 0) || staff.length * 14 * 60;
     const revenue = activeAppointments.reduce((sum, appointment) => {
@@ -754,7 +755,7 @@ export class EnterpriseSchedulerService {
         if (INACTIVE_APPOINTMENT_STATUSES.has(String(b.status || "").toLowerCase())) continue;
         const sharedStaff = a.staffId && a.staffId === b.staffId;
         const sharedChair = a.chair && a.chair === b.chair;
-        if ((sharedStaff || sharedChair) && overlaps(a.startAt, a.endAt || addMinutes(a.startAt, 30), b.startAt, b.endAt || addMinutes(b.startAt, 30))) {
+        if ((sharedStaff || sharedChair) && appointmentConflictBlocks(a, b, { tenantId: a.tenantId || b.tenantId || "" })) {
           count += 1;
         }
       }
@@ -772,7 +773,7 @@ export class EnterpriseSchedulerService {
         if (INACTIVE_APPOINTMENT_STATUSES.has(String(right.status || "").toLowerCase())) continue;
         const sharedStaff = left.staffId && left.staffId === right.staffId;
         const sharedChair = left.chair && left.chair === right.chair;
-        if ((sharedStaff || sharedChair) && overlaps(left.startAt, left.endAt || addMinutes(left.startAt, 30), right.startAt, right.endAt || addMinutes(right.startAt, 30))) {
+        if ((sharedStaff || sharedChair) && appointmentConflictBlocks(left, right, { tenantId: left.tenantId || right.tenantId || "" })) {
           pairs.push({ left, right, sharedStaff, sharedChair });
         }
       }

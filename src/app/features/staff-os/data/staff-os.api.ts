@@ -10,6 +10,7 @@ import {
   StaffOsBulkEmployeeUpdateJob,
   StaffOsFinePenalty,
   StaffOsLeaveMaster,
+  StaffOsPerformanceDetailResponse,
   StaffOsPayrollSalaryStructure,
   StaffOsPerformanceResponse,
   StaffOsRiskScore,
@@ -361,6 +362,10 @@ export class StaffOsApi {
 
   performance(params: ApiRecord = {}): Observable<StaffOsPerformanceResponse> {
     return this.api.list<StaffOsPerformanceResponse>('staff-os/performance', params);
+  }
+
+  performanceByStaff(staffId: string, params: ApiRecord = {}): Observable<StaffOsPerformanceDetailResponse> {
+    return this.api.list<StaffOsPerformanceDetailResponse>(`staff-os/performance/${staffId}`, params);
   }
 
   burnoutRisk(params: ApiRecord = {}): Observable<StaffOsRiskScore[]> {

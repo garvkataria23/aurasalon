@@ -117,6 +117,110 @@ export class BillingAnalyticsService {
     ).all(params).map((row) => ({ ...row, amount: money(row.amount) }));
   }
 
+  paymentModeReport(query = {}, access = {}) {
+    if (!tableExists("invoices") || !tableExists("invoice_payments")) {
+      return { from: query.from || "", to: query.to || "", total: 0, summary: [], rows: [] };
+    }
+    const invoiceColumns = columns("invoices");
+    const paymentColumns = columns("invoice_payments");
+    const invoiceIdColumn = firstColumn(invoiceColumns, ["id"]);
+    const paymentInvoiceColumn = firstColumn(paymentColumns, ["invoice_id", "invoiceId"]);
+    const invoiceTenantColumn = firstColumn(invoiceColumns, ["tenant_id", "tenantId"]);
+    const paymentTenantColumn = firstColumn(paymentColumns, ["tenant_id", "tenantId"]);
+    const branchColumn = firstColumn(invoiceColumns, ["branch_id", "branchId"]);
+    const modeColumn = firstColumn(paymentColumns, ["payment_mode", "mode", "paymentMode"]);
+    const paymentDateColumn = firstColumn(paymentColumns, ["paid_at", "paidAt", "created_at", "createdAt"]);
+    if (!invoiceIdColumn || !paymentInvoiceColumn || !invoiceTenantColumn || !paymentTenantColumn || !modeColumn || !paymentDateColumn) {
+      return { from: query.from || "", to: query.to || "", total: 0, summary: [], rows: [] };
+    }
+
+    const where = [`ip.${paymentTenantColumn} = @tenantId`];
+    const params = {
+      tenantId: access.tenantId || query.tenantId || "",
+      from: String(query.from || new Date().toISOString().slice(0, 10)),
+      to: String(query.to || query.from || new Date().toISOString().slice(0, 10))
+    };
+    where.push(`substr(ip.${paymentDateColumn}, 1, 10) >= @from`);
+    where.push(`substr(ip.${paymentDateColumn}, 1, 10) <= @to`);
+
+    const branchId = query.branchId || query.branch_id || access.branchId || "";
+    if (branchId && branchColumn) {
+      where.push(`i.${branchColumn} = @branchId`);
+      params.branchId = branchId;
+    }
+    if (query.mode) {
+      where.push(`ip.${modeColumn} = @mode`);
+      params.mode = String(query.mode);
+    }
+
+    const statusColumn = firstColumn(paymentColumns, ["status"]);
+    if (statusColumn) where.push(`COALESCE(ip.${statusColumn}, 'paid') = 'paid'`);
+
+    const amount = amountExpr(paymentColumns, "amount", "amount_paise", "ip");
+    const invoiceNoColumn = firstColumn(invoiceColumns, ["invoice_no", "invoiceNumber", "invoiceNo", "number"]);
+    const clientColumn = firstColumn(invoiceColumns, ["customer_id", "customerId", "client_id", "clientId"]);
+    const staffColumn = firstColumn(invoiceColumns, ["staff_id", "staffId"]);
+    const totalColumn = firstColumn(invoiceColumns, ["grand_total", "grandTotal", "total"]);
+    const paidColumn = firstColumn(invoiceColumns, ["paid_amount", "paidAmount"]);
+    const dueColumn = firstColumn(invoiceColumns, ["due_amount", "dueAmount"]);
+    const invoiceStatusColumn = firstColumn(invoiceColumns, ["status"]);
+    const paymentStatusColumn = firstColumn(invoiceColumns, ["payment_status", "paymentStatus"]);
+    const paymentIdColumn = firstColumn(paymentColumns, ["id"]);
+    const referenceColumn = firstColumn(paymentColumns, ["reference_no", "referenceNo", "reference"]);
+    const notesColumn = firstColumn(paymentColumns, ["notes", "remarks"]);
+
+    const baseJoin = `FROM invoice_payments ip
+         JOIN invoices i ON i.${invoiceTenantColumn} = ip.${paymentTenantColumn} AND i.${invoiceIdColumn} = ip.${paymentInvoiceColumn}
+        WHERE ${where.join(" AND ")}`;
+    const summary = db.prepare(
+      `SELECT ip.${modeColumn} AS mode, SUM(${amount}) AS amount, COUNT(*) AS count, COUNT(DISTINCT i.${invoiceIdColumn}) AS invoiceCount
+         ${baseJoin}
+        GROUP BY ip.${modeColumn}
+        ORDER BY amount DESC`
+    ).all(params).map((row) => ({
+      mode: String(row.mode || "unknown"),
+      amount: money(row.amount),
+      count: Number(row.count || 0),
+      invoiceCount: Number(row.invoiceCount || 0)
+    }));
+
+    const rows = db.prepare(
+      `SELECT ${paymentIdColumn ? `ip.${paymentIdColumn}` : "''"} AS paymentId,
+              i.${invoiceIdColumn} AS invoiceId,
+              ${invoiceNoColumn ? `i.${invoiceNoColumn}` : `i.${invoiceIdColumn}`} AS invoiceNo,
+              ${clientColumn ? `i.${clientColumn}` : "''"} AS clientId,
+              ${staffColumn ? `i.${staffColumn}` : "''"} AS staffId,
+              ip.${modeColumn} AS mode,
+              ${amount} AS amount,
+              ip.${paymentDateColumn} AS paidAt,
+              ${referenceColumn ? `ip.${referenceColumn}` : "''"} AS referenceNo,
+              ${notesColumn ? `ip.${notesColumn}` : "''"} AS notes,
+              ${statusColumn ? `ip.${statusColumn}` : "'paid'"} AS status,
+              ${totalColumn ? `i.${totalColumn}` : "0"} AS invoiceTotal,
+              ${paidColumn ? `i.${paidColumn}` : "0"} AS invoicePaid,
+              ${dueColumn ? `i.${dueColumn}` : "0"} AS invoiceDue,
+              ${invoiceStatusColumn ? `i.${invoiceStatusColumn}` : "''"} AS invoiceStatus,
+              ${paymentStatusColumn ? `i.${paymentStatusColumn}` : "''"} AS paymentStatus
+         ${baseJoin}
+        ORDER BY ip.${paymentDateColumn} DESC, paymentId DESC
+        LIMIT 1000`
+    ).all(params).map((row) => ({
+      ...row,
+      amount: money(row.amount),
+      invoiceTotal: money(row.invoiceTotal),
+      invoicePaid: money(row.invoicePaid),
+      invoiceDue: money(row.invoiceDue)
+    }));
+
+    return {
+      from: params.from,
+      to: params.to,
+      total: money(summary.reduce((sum, row) => sum + Number(row.amount || 0), 0)),
+      summary,
+      rows
+    };
+  }
+
   margin(query = {}, access = {}) {
     if (!tableExists("invoices") || !tableExists("invoice_item_margins")) return zeroMargin();
     const invoiceColumns = columns("invoices");

@@ -1,6 +1,6 @@
 import { Routes } from "@angular/router";
 import { customerAuthGuard } from "./core/auth.guard";
-import { staffAuthGuard } from "./core/staff-auth.guard";
+import { staffAuthGuard, staffPermissionGuard } from "./core/staff-auth.guard";
 
 export const routes: Routes = [
   { path: "", redirectTo: "onboarding", pathMatch: "full" },
@@ -32,7 +32,8 @@ export const routes: Routes = [
   },
   {
     path: "staff/dashboard",
-    canActivate: [staffAuthGuard],
+    canActivate: [staffAuthGuard, staffPermissionGuard],
+    data: { permissions: ["read:appointments"] },
     loadComponent: () => import("./features/staff/staff-dashboard.page").then((m) => m.StaffDashboardPage)
   },
   {

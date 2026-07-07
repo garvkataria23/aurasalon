@@ -14,6 +14,10 @@ billingAnalyticsRouter.get("/billing-analytics/payment-split", requirePermission
   res.json(billingAnalyticsService.paymentSplit(req.query, req.access));
 }));
 
+billingAnalyticsRouter.get("/billing-analytics/payment-mode-report", requirePermission("read", () => "finance"), asyncHandler((req, res) => {
+  res.json(billingAnalyticsService.paymentModeReport(req.query, req.access));
+}));
+
 billingAnalyticsRouter.get("/billing-analytics/margin", requirePermission("read", () => "finance"), asyncHandler((req, res) => {
   res.json(billingAnalyticsService.margin(req.query, req.access));
 }));

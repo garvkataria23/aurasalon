@@ -341,8 +341,8 @@ export class StaffBiometricService {
       branchId,
       generatedAt: now(),
       ingestion: {
-        heartbeat: "/api/staff-os/biometric/gateway/{gatewayId}/heartbeat",
-        events: "/api/staff-os/biometric/gateway/{gatewayId}/events",
+        heartbeat: "/api/v1/staff-os/biometric/gateway/{gatewayId}/heartbeat",
+        events: "/api/v1/staff-os/biometric/gateway/{gatewayId}/events",
         acceptedPunchTypes: [...punchTypes]
       },
       providers,

@@ -13,6 +13,7 @@ export const COMMAND_CENTER_ROUTES: Routes = [
       { path: 'approval-hub', loadComponent: () => import('./pages/approval-hub.page').then((m) => m.ApprovalHubPage), title: 'Approval Hub' },
       { path: 'ai-model-router', loadComponent: () => import('./pages/ai-model-router.page').then((m) => m.AiModelRouterPage), title: 'AI Model Router' },
       { path: 'event-ledger', loadComponent: () => import('./pages/event-ledger.page').then((m) => m.EventLedgerPage), title: 'Event Ledger' },
+      { path: 'oversight', loadComponent: () => import('../../pages/oversight-command-center.component').then((m) => m.OversightCommandCenterComponent), title: 'Oversight Command Center' },
       { path: 'multi-branch-war-room', loadComponent: () => import('./pages/multi-branch-war-room.page').then((m) => m.MultiBranchWarRoomPage), title: 'Multi-Branch War Room' },
       { path: 'revenue-leak-center', loadComponent: () => import('./pages/revenue-leak-center.page').then((m) => m.RevenueLeakCenterPage), title: 'Revenue Leak Center' },
       { path: 'digital-twin-simulator', loadComponent: () => import('./pages/digital-twin-simulator.page').then((m) => m.DigitalTwinSimulatorPage), title: 'Digital Twin' },

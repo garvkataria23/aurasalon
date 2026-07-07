@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -28,6 +29,7 @@ type OutgoingFundEntry = ApiRecord & {
   amount: number;
   gstAmount?: number;
   billUrl?: string;
+  linkedPartyId?: string;
   linkedPartyType?: string;
   linkedPartyName?: string;
   approvalStatus?: string;
@@ -178,6 +180,7 @@ type ReportRow = {
 })
 export class OutgoingFundsReportComponent implements OnInit {
   readonly entries = signal<OutgoingFundEntry[]>([]);
+  readonly purchaseBills = signal<ApiRecord[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
   readonly query = signal('');
@@ -204,8 +207,8 @@ export class OutgoingFundsReportComponent implements OnInit {
       impact: line.balanceSheetImpact || lineCategory(line).impact,
       link: entry.linkedPartyName || entry.linkedPartyType || '',
       approval: entry.approvalStatus || 'pending',
-      bill: entry.billUrl ? 'linked' : 'missing',
-      gstAmount: index === 0 ? moneyValue(entry.gstAmount) : 0,
+      bill: this.billLabel(entry, line),
+      gstAmount: this.rowGstAmount(entry, line, index),
       amount: moneyValue(line.amount),
       salaryMonthYear: line.salaryMonthYear || '',
       remarks: line.remarks || entry.remarks || ''
@@ -228,7 +231,7 @@ export class OutgoingFundsReportComponent implements OnInit {
   readonly total = computed(() => this.rows().reduce((sum, row) => sum + moneyValue(row.amount), 0));
   readonly filteredTotal = computed(() => this.filteredRows().reduce((sum, row) => sum + moneyValue(row.amount), 0));
   readonly categoryCount = computed(() => new Set(this.filteredRows().map((row) => row.category)).size);
-  readonly gstTotal = computed(() => this.entries().reduce((sum, entry) => sum + moneyValue(entry.gstAmount), 0));
+  readonly gstTotal = computed(() => this.rows().reduce((sum, row) => sum + moneyValue(row.gstAmount), 0));
   readonly pendingApprovalCount = computed(() => this.entries().filter((entry) => (entry.approvalStatus || 'pending') === 'pending').length);
 
   constructor(private readonly api: ApiService) {}
@@ -240,16 +243,19 @@ export class OutgoingFundsReportComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.list<OutgoingFundEntry[]>('transactions/outgoing-funds', { branchId: this.api.selectedBranchId(), limit: 500 }).subscribe({
-      next: (entries) => {
+    const branchId = this.api.selectedBranchId();
+    Promise.all([
+      firstValueFrom(this.api.list<OutgoingFundEntry[]>('transactions/outgoing-funds', { branchId, limit: 500 })),
+      firstValueFrom(this.api.list<ApiRecord[]>('inventory-intelligence/purchase-bill-drafts', { branchId, limit: 500 })).catch(() => [])
+    ]).then(([entries, purchaseBills]) => {
         this.entries.set((entries || []).filter((entry) => entry.status !== 'deleted'));
+        this.purchaseBills.set(purchaseBills || []);
         this.loading.set(false);
-      },
-      error: (error) => {
+      })
+      .catch((error) => {
         this.error.set(error?.error?.error || error?.message || 'Unable to load saved outgoing entries');
         this.loading.set(false);
-      }
-    });
+      });
   }
 
   money(value: unknown): string {
@@ -270,11 +276,52 @@ export class OutgoingFundsReportComponent implements OnInit {
       hour12: true
     });
   }
+
+  private billLabel(entry: OutgoingFundEntry, line: Partial<OutgoingLineItem>): string {
+    return this.purchaseBillNo(entry, line) || stringValue(this.matchingPurchaseBill(entry, line)?.['billNo']) || 'missing';
+  }
+
+  private rowGstAmount(entry: OutgoingFundEntry, line: Partial<OutgoingLineItem>, index: number): number {
+    if (index > 0) return 0;
+    const direct = moneyValue(entry.gstAmount);
+    if (direct > 0) return direct;
+    return moneyValue(this.matchingPurchaseBill(entry, line)?.['gstAmount']);
+  }
+
+  private purchaseBillNo(entry: OutgoingFundEntry, line: Partial<OutgoingLineItem>): string {
+    const explicit = stringValue(entry.billUrl);
+    if (explicit) return explicit;
+    const text = `${entry.remarks || ''} ${line.remarks || ''}`;
+    const match = /purchase bill\s+(.+?)(?:\s{2,}|$)/i.exec(text);
+    return stringValue(match?.[1]);
+  }
+
+  private matchingPurchaseBill(entry: OutgoingFundEntry, line: Partial<OutgoingLineItem>): ApiRecord | undefined {
+    const billNo = this.purchaseBillNo(entry, line).toLowerCase();
+    const linkedId = stringValue(entry.linkedPartyId).toLowerCase();
+    const linkedName = stringValue(entry.linkedPartyName).toLowerCase();
+    const amount = moneyValue(entry.amount);
+    return this.purchaseBills().find((bill) => {
+      const draftBillNo = stringValue(bill['billNo']).toLowerCase();
+      const supplierId = stringValue(bill['supplierId']).toLowerCase();
+      const draftId = stringValue(bill['id']).toLowerCase();
+      const supplierName = stringValue(bill['supplierName']).toLowerCase();
+      const sameBill = Boolean(billNo && draftBillNo && draftBillNo === billNo);
+      const sameLinkedId = Boolean(linkedId && (supplierId === linkedId || draftId === linkedId));
+      const sameLinkedName = Boolean(linkedName && supplierName && supplierName === linkedName);
+      const sameAmount = amount > 0 && Math.abs(moneyValue(bill['totalAmount']) - amount) <= 1;
+      return sameBill || (sameAmount && (sameLinkedId || sameLinkedName));
+    });
+  }
 }
 
 function moneyValue(value: unknown): number {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
+}
+
+function stringValue(value: unknown): string {
+  return String(value ?? '').trim();
 }
 
 function lineCategory(line: Partial<OutgoingLineItem>): { key: string; label: string; impact: string } {

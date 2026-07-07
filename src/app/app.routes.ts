@@ -121,6 +121,9 @@ export const routes: Routes = [
         { key: 'category', label: 'Category', required: true },
         { key: 'price', label: 'Price', type: 'number', required: true },
         { key: 'durationMinutes', label: 'Duration minutes', type: 'number', required: true },
+        { key: 'processingTimeMin', label: 'Processing minutes', type: 'number', defaultValue: 0 },
+        { key: 'cleanupTimeMin', label: 'Cleanup minutes', type: 'number', defaultValue: 0 },
+        { key: 'bufferMinutes', label: 'Buffer minutes', type: 'number', defaultValue: 0 },
         { key: 'gstRate', label: 'GST rate', type: 'number', defaultValue: 18 },
         { key: 'assignedStaff', label: 'Assigned staff IDs JSON', type: 'json', defaultValue: [] },
         { key: 'requiredProducts', label: 'Required products JSON', type: 'json', defaultValue: [] },
@@ -313,6 +316,11 @@ export const routes: Routes = [
     }
   },
   {
+    path: 'site-logs',
+    loadComponent: () => import('./pages/site-logs-command-center.component').then(m => m.SiteLogsCommandCenterComponent),
+    title: 'Site Logs'
+  },
+  {
     path: 'voice-receptionist', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'AI Voice Receptionist', data: { workflowType: 'voice-receptionist', title: 'AI Voice Receptionist', prompt: 'Classify this client call, suggest the next booking action, and prepare human handoff if needed.', primaryEndpoint: 'voice-receptionist/calls', commandCenterRoute: '/command-center/voice-ai-receptionist', recordLabel: 'Voice calls' }
   },
   {
@@ -494,6 +502,7 @@ export const routes: Routes = [
   {
     path: 'localization', component: ModulePageComponent, title: 'Multi-Country', data: { entity: 'localizationProfiles', title: 'Multi-Country Localization', createLabel: 'Add localization profile', columns: [{ key: 'name', label: 'Profile' }, { key: 'primaryCountry', label: 'Primary country' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Profile name', required: true }, { key: 'primaryCountry', label: 'Primary country', required: true }, { key: 'countries', label: 'Countries JSON', type: 'json', defaultValue: [] }, { key: 'currencies', label: 'Currencies JSON', type: 'json', defaultValue: [] }, { key: 'taxRules', label: 'Tax rules JSON', type: 'json', defaultValue: {} }, { key: 'translations', label: 'Translations JSON', type: 'json', defaultValue: {} }] }
   },
+  { path: '', loadChildren: () => import('./features/merged-ops/merged-ops.routes').then(m => m.MERGED_OPS_ROUTES) },
   { path: '**', redirectTo: 'home' }
 ];
 

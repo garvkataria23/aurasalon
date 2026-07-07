@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { AppStateService } from '../core/state/app-state.service';
+import { DATE_RANGE_PRESETS, DateRangePreset, dateRangeParams, rangeForPreset, todayKey } from '../shared/date-range-presets';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type InvoiceActivityKind = 'edited' | 'deleted' | 'restored' | 'payment_updated';
@@ -362,14 +363,25 @@ interface InvoiceActivityRow {
               <option *ngFor="let branch of branchOptionsCache" [value]="branch.id">{{ branch.name }}</option>
             </select>
           </label>
-          <label class="field">
+          <label class="field" *ngIf="datePreset !== 'all'">
             <span>From date</span>
-            <input type="date" [(ngModel)]="fromDate" (ngModelChange)="applyLocalFilters()" />
+            <input type="date" [ngModel]="fromDate" (ngModelChange)="updateCustomDate('from', $event)" />
           </label>
-          <label class="field">
+          <label class="field" *ngIf="datePreset !== 'today' && datePreset !== 'all'">
             <span>To date</span>
-            <input type="date" [(ngModel)]="toDate" (ngModelChange)="applyLocalFilters()" />
+            <input type="date" [ngModel]="toDate" (ngModelChange)="updateCustomDate('to', $event)" />
           </label>
+          <div class="invoice-activity-filter-actions">
+            <button
+              class="ghost-button mini"
+              type="button"
+              *ngFor="let preset of datePresets"
+              [class.active-filter-card]="datePreset === preset.value"
+              (click)="applyDatePreset(preset.value)"
+            >
+              {{ preset.label }}
+            </button>
+          </div>
           <label class="field">
             <span>Min amount</span>
             <input type="number" min="0" [(ngModel)]="minAmount" (ngModelChange)="applyLocalFilters()" placeholder="0" />
@@ -1692,8 +1704,10 @@ export class PosInvoiceActivityComponent implements OnInit {
   actionFilter: 'all' | InvoiceActivityKind = 'all';
   paymentModeFilter = 'all';
   statusFilter: InvoicePaymentStatus = 'all';
-  fromDate = '';
-  toDate = '';
+  readonly datePresets = DATE_RANGE_PRESETS;
+  datePreset: DateRangePreset = 'today';
+  fromDate = todayKey();
+  toDate = todayKey();
   minAmount: number | null = null;
   maxAmount: number | null = null;
   approvalOwnerPin = '';
@@ -1723,7 +1737,7 @@ export class PosInvoiceActivityComponent implements OnInit {
   }
 
   loadTodayInvoices(): void {
-    this.api.list<ApiRecord[]>('invoices', { limit: 1000 }).subscribe({
+    this.api.list<ApiRecord[]>('invoices', dateRangeParams({ preset: this.datePreset, from: this.fromDate, to: this.toDate }, 100, 1000)).subscribe({
       next: (rows) => this.todayInvoices.set(this.buildTodayInvoiceSummary(rows || [])),
       error: () => this.todayInvoices.set({ count: 0, billed: 0 })
     });
@@ -1890,11 +1904,34 @@ export class PosInvoiceActivityComponent implements OnInit {
     this.actionFilter = 'all';
     this.paymentModeFilter = 'all';
     this.statusFilter = 'all';
-    this.fromDate = '';
-    this.toDate = '';
+    this.datePreset = 'today';
+    const range = rangeForPreset('today');
+    this.fromDate = range.from;
+    this.toDate = range.to;
     this.minAmount = null;
     this.maxAmount = null;
     this.selectedRow.set(null);
+    this.applyLocalFilters();
+    this.refreshAll();
+  }
+
+  applyDatePreset(preset: DateRangePreset): void {
+    this.datePreset = preset;
+    const range = rangeForPreset(preset, { from: this.fromDate, to: this.toDate });
+    this.fromDate = range.from;
+    this.toDate = range.to;
+    this.applyLocalFilters();
+    this.refreshAll();
+  }
+
+  updateCustomDate(side: 'from' | 'to', value: string): void {
+    this.datePreset = 'custom';
+    if (side === 'from') {
+      this.fromDate = value;
+      if (!this.toDate) this.toDate = value;
+    } else {
+      this.toDate = value;
+    }
     this.applyLocalFilters();
     this.refreshAll();
   }

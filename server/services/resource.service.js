@@ -2,18 +2,21 @@ import { columnsFor, db, deserialize, resources, serialize } from "../db.js";
 import { AppError, badRequest, conflict, notFound } from "../utils/app-error.js";
 import { repositoryForResource, repositories } from "../repositories/repository-registry.js";
 import { availabilityAugmentService } from "./availability-augment.service.js";
+import { serviceTotalMinutes } from "./appointment-capacity-window.service.js";
 import { appointmentActivityService, APPOINTMENT_ACTIVITY_ACTIONS } from "./appointment-activity.service.js";
 import { bookingAttributionService } from "./booking-attribution.service.js";
 import { jobQueueService } from "./job-queue.service.js";
 import { serviceRulesService } from "./service-rules.service.js";
+import { ensureServiceBufferColumn } from "./service-buffer-schema.service.js";
 import { slotReservationService } from "./slot-reservation.service.js";
 import { smartBookingService } from "./smart-booking.service.js";
 import { tenantService } from "./tenant.service.js";
 
 function serviceDuration(serviceIds = []) {
+  ensureServiceBufferColumn();
   return serviceIds.reduce((minutes, serviceId) => {
     const service = repositories.services.getById(serviceId);
-    return minutes + Number(service?.durationMinutes || 0);
+    return minutes + (service ? serviceTotalMinutes(service) : 0);
   }, 0);
 }
 

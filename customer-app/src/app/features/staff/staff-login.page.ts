@@ -1,12 +1,12 @@
 import { Component } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
-import { IonButton, IonContent, IonInput, IonSpinner } from "@ionic/angular/standalone";
+import { RouterLink } from "@angular/router";
+import { IonContent, IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService } from "../../core/staff-app.service";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink, IonButton, IonContent, IonInput, IonSpinner],
+  imports: [FormsModule, RouterLink, IonContent, IonSpinner],
   template: `
     <ion-content class="staff-login-shell">
       <main class="staff-card">
@@ -18,19 +18,19 @@ import { StaffAppService } from "../../core/staff-app.service";
           <div class="notice">{{ staff.error() }}</div>
         }
 
-        <form (ngSubmit)="login()" class="staff-form">
+        <form class="staff-form">
           <label>Tenant ID</label>
-          <ion-input [(ngModel)]="tenantId" name="tenantId" placeholder="tenant_aura"></ion-input>
+          <input [(ngModel)]="tenantId" name="tenantId" placeholder="tenant_aura" autocomplete="organization" />
 
           <label>Staff login ID</label>
-          <ion-input [(ngModel)]="loginId" name="loginId" placeholder="email, mobile or login ID"></ion-input>
+          <input [(ngModel)]="loginId" name="loginId" placeholder="email, mobile or login ID" autocomplete="username" />
 
           <label>Password</label>
-          <ion-input [(ngModel)]="password" name="password" type="password" placeholder="Password"></ion-input>
+          <input [(ngModel)]="password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
 
-          <ion-button type="submit" expand="block" [disabled]="staff.loading()">
+          <button type="button" class="login-button" [disabled]="staff.loading()" (click)="login()">
             @if (staff.loading()) { <ion-spinner name="crescent"></ion-spinner> } @else { Login }
-          </ion-button>
+          </button>
         </form>
 
         <a routerLink="/" class="customer-link">Open customer app</a>
@@ -46,8 +46,9 @@ import { StaffAppService } from "../../core/staff-app.service";
     .notice { margin: 18px 0; padding: 14px 16px; border: 1px solid #eac36f; border-radius: 16px; color: #6b4a18; background: #fff4d8; font-weight: 800; }
     .staff-form { display: grid; gap: 10px; margin-top: 20px; }
     label { color: #3a2713; font-size: .85rem; font-weight: 900; }
-    ion-input { --background: #fff; --border-radius: 16px; --padding-start: 14px; border: 1px solid #ead5aa; border-radius: 16px; }
-    ion-button { margin-top: 14px; --background: linear-gradient(135deg, #f4d58d, #d6a94a); --color: #1b1207; font-weight: 950; min-height: 52px; }
+    input { min-height: 52px; border: 1px solid #ead5aa; border-radius: 16px; padding: 0 14px; color: #1d1307; background: #fff; font: inherit; font-weight: 800; }
+    .login-button { margin-top: 14px; min-height: 52px; border: 0; border-radius: 16px; background: linear-gradient(135deg, #f4d58d, #d6a94a); color: #1b1207; font-weight: 950; cursor: pointer; }
+    .login-button:disabled { cursor: progress; opacity: .72; }
     .customer-link { display: block; margin-top: 18px; color: #815712; font-weight: 900; text-align: center; text-decoration: none; }
   `]
 })
@@ -56,11 +57,12 @@ export class StaffLoginPage {
   loginId = "";
   password = "";
 
-  constructor(readonly staff: StaffAppService, private readonly router: Router) {}
+  constructor(readonly staff: StaffAppService) {}
 
   async login() {
+    this.staff.logout();
     await this.staff.login({ tenantId: this.tenantId, loginId: this.loginId, password: this.password })
-      .then(() => this.router.navigateByUrl("/staff/dashboard"))
+      .then(() => window.location.assign("/staff/dashboard"))
       .catch(() => undefined);
   }
 }

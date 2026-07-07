@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { can, staticGrantsForRole } from "../middleware/rbac.js";
@@ -9,7 +9,7 @@ import { intrusionDetectionService } from "./intrusion-detection.service.js";
 import { permissionResources } from "../config/staff-permission-catalog.js";
 
 const now = () => new Date().toISOString();
-const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
+const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
 
 function base64Url(input) {
   return Buffer.from(input).toString("base64url");
@@ -206,6 +206,7 @@ export class AuthService {
       staffId: user.staffId || "",
       branchId,
       branchIds: user.branchIds || [],
+      permissions,
       deviceId,
       jti: makeId("jwt")
     };

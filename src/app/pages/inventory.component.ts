@@ -16,6 +16,27 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
       <section class="zenoti-product-page">
         <app-state [loading]="loading()" [error]="error()"></app-state>
 
+        <div class="inventory-control-tower">
+          <div>
+            <strong>Inventory control tower</strong>
+            <span>Stock, FIFO, reorder, wastage and profit linkage</span>
+          </div>
+          <div class="tower-score">
+            <b>{{ inventoryReadinessScore() }}%</b>
+            <span>{{ reorderReadinessLabel() }}</span>
+          </div>
+          <nav class="tower-links" aria-label="Inventory control shortcuts">
+            <a routerLink="/inventory/reorder">AI reorder</a>
+            <a routerLink="/inventory/fifo">FIFO / expiry</a>
+            <a routerLink="/inventory/recipes">Service recipes</a>
+            <a routerLink="/inventory/stock-audit">Stock audit</a>
+            <a routerLink="/inventory/product-consume">Product consume</a>
+            <a routerLink="/inventory/reports">Supplier orders</a>
+            <a routerLink="/inventory/financial">Profit link</a>
+            <a routerLink="/pos">POS</a>
+          </nav>
+        </div>
+
         <div class="zenoti-page-heading">
           <div>
             <h1>Manage products</h1>
@@ -249,6 +270,8 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
             <label class="field"><span>Unit cost</span><input type="number" formControlName="unitCost" /></label>
             <label class="field"><span>Retail price</span><input type="number" formControlName="price" /></label>
             <label class="field"><span>GST rate</span><input type="number" formControlName="gstRate" /></label>
+            <label class="field laundry-check"><span>Laundry</span><input type="checkbox" formControlName="isLaundry" /></label>
+            <label class="field"><span>Laundry Rate</span><input type="number" min="0" formControlName="laundryRate" /></label>
             <div class="form-actions">
               <button class="ghost-button" type="button" (click)="closeProductForm()">Cancel</button>
               <button class="primary-button" type="submit" [disabled]="productForm.invalid || saving()">{{ editingProductId() ? 'Update product' : 'Save product' }}</button>
@@ -865,6 +888,63 @@ type InventoryDesk = '' | 'stock' | 'product' | 'supplier' | 'batch' | 'waste';
       padding: 8px;
     }
 
+    .inventory-control-tower {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto minmax(360px, 1.7fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid #D4C0CF;
+      background: #fff;
+    }
+
+    .inventory-control-tower strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #4B1238;
+      font-size: 1.05rem;
+      font-weight: 900;
+    }
+
+    .inventory-control-tower span {
+      color: #526173;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .tower-score {
+      display: grid;
+      min-width: 108px;
+      padding: 8px 10px;
+      border: 1px solid #E7DDD6;
+      background: #F8EEF4;
+      text-align: center;
+    }
+
+    .tower-score b {
+      color: #4B1238;
+      font-size: 1rem;
+    }
+
+    .tower-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .tower-links a {
+      min-height: 30px;
+      padding: 6px 10px;
+      border: 1px solid #D4C0CF;
+      border-radius: 4px;
+      background: #fff;
+      color: #4B1238;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
     .zenoti-center-bar {
       display: flex;
       align-items: center;
@@ -1362,6 +1442,33 @@ export class InventoryComponent implements OnInit {
     };
   });
 
+  readonly product360Link = computed(() => {
+    const id = this.selectedProduct()?.id;
+    return id ? `/inventory/products/${id}` : '/inventory/product-360';
+  });
+
+  readonly supplier360Link = computed(() => {
+    const id = this.selectedSupplier()?.id;
+    return id ? `/suppliers/${id}` : '/inventory/supplier-360';
+  });
+
+  readonly inventoryReadinessScore = computed(() => {
+    const metrics = this.commandMetrics();
+    let score = 100;
+    if (metrics.lowStock) score -= Math.min(24, metrics.lowStock * 6);
+    if (metrics.expiryRisk) score -= Math.min(18, metrics.expiryRisk * 4);
+    if (metrics.branchShortage) score -= Math.min(16, metrics.branchShortage * 4);
+    if (!this.autopilotSuggestions().length) score -= 8;
+    return Math.max(0, Math.min(100, score));
+  });
+
+  readonly reorderReadinessLabel = computed(() => {
+    const score = this.inventoryReadinessScore();
+    if (score >= 85) return 'Reorder ready';
+    if (score >= 65) return 'Needs review';
+    return 'Action needed';
+  });
+
   readonly selectedProduct = computed(() => {
     const products = this.products();
     const id = this.selectedProductId() || this.autopilotSuggestions()[0]?.productId || products[0]?.id || '';
@@ -1399,7 +1506,9 @@ export class InventoryComponent implements OnInit {
     expiryDate: [''],
     unitCost: [0],
     price: [0],
-    gstRate: [18]
+    gstRate: [18],
+    isLaundry: [false],
+    laundryRate: [0]
   });
 
   readonly adjustForm = this.fb.group({
@@ -1439,6 +1548,32 @@ export class InventoryComponent implements OnInit {
   });
 
   constructor(private readonly api: ApiService, private readonly fb: UntypedFormBuilder) {}
+
+  private isLaundryProduct(product: ApiRecord): boolean {
+    const local = this.localLaundryProduct(product.id);
+    const merged = { ...product, ...local };
+    return merged.isLaundry === true || merged.laundry === true || merged.laundryProduct === true;
+  }
+
+  private saveLocalLaundryProduct(productId: string, patch: ApiRecord): void {
+    localStorage.setItem(
+      `aura_laundry_product_${productId}`,
+      JSON.stringify({
+        isLaundry: Boolean(patch.isLaundry),
+        laundry: Boolean(patch.isLaundry),
+        laundryProduct: Boolean(patch.isLaundry),
+        laundryRate: Math.max(0, Number(patch.laundryRate || 0))
+      })
+    );
+  }
+
+  private localLaundryProduct(productId: unknown): ApiRecord {
+    try {
+      return JSON.parse(localStorage.getItem(`aura_laundry_product_${String(productId || '')}`) || '{}');
+    } catch {
+      return {};
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -1488,7 +1623,11 @@ export class InventoryComponent implements OnInit {
     this.error.set('');
     const payload = {
       ...this.productForm.value,
-      packSize: Math.max(0, Number(this.productForm.value.packSize || 0))
+      packSize: Math.max(0, Number(this.productForm.value.packSize || 0)),
+      isLaundry: Boolean(this.productForm.value.isLaundry),
+      laundry: Boolean(this.productForm.value.isLaundry),
+      laundryProduct: Boolean(this.productForm.value.isLaundry),
+      laundryRate: Math.max(0, Number(this.productForm.value.laundryRate || 0))
     };
     const editingId = this.editingProductId();
     const request = editingId
@@ -1496,7 +1635,11 @@ export class InventoryComponent implements OnInit {
       : this.api.create('products', payload);
     request.subscribe({
       next: (product) => {
-        if (product?.id) this.selectedProductId.set(product.id);
+        const productId = String(product?.id || editingId || '');
+        if (productId) {
+          this.selectedProductId.set(productId);
+          this.saveLocalLaundryProduct(productId, payload);
+        }
         this.saving.set(false);
         this.closeProductForm();
         this.load();
@@ -1777,7 +1920,9 @@ export class InventoryComponent implements OnInit {
       expiryDate: '',
       unitCost: 0,
       price: 0,
-      gstRate: 18
+      gstRate: 18,
+      isLaundry: false,
+      laundryRate: 0
     });
     this.error.set('');
     this.activeDesk.set('product');
@@ -1793,6 +1938,7 @@ export class InventoryComponent implements OnInit {
     const unit = String(product.unit || 'pcs').toLowerCase().trim() || 'pcs';
     const packUnit = String(product.packUnit || this.defaultPackUnit(unit)).toLowerCase().trim() || this.defaultPackUnit(unit);
     const usageType = this.normalizedProductUsageType(product);
+    const localLaundry = this.localLaundryProduct(product.id);
     this.editingProductId.set(String(product.id || ''));
     this.productForm.reset({
       name: product.name || '',
@@ -1809,7 +1955,9 @@ export class InventoryComponent implements OnInit {
       expiryDate: product.expiryDate || '',
       unitCost: Number(product.unitCost || 0),
       price: Number(product.price || 0),
-      gstRate: Number(product.gstRate || 0)
+      gstRate: Number(product.gstRate || 0),
+      isLaundry: this.isLaundryProduct(product),
+      laundryRate: Number(localLaundry.laundryRate ?? product.laundryRate ?? 0)
     });
     this.error.set('');
     this.activeDesk.set('product');

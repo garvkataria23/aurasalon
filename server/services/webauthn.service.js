@@ -1,0 +1,158 @@
+import { createHash, createPublicKey, createVerify, randomBytes, randomUUID, verify as cryptoVerify } from "node:crypto";
+import { env } from "../config/env.js";
+import { repositories } from "../repositories/repository-registry.js";
+import { authService } from "./auth.service.js";
+import { badRequest, unauthorized } from "../utils/app-error.js";
+import { coseToJwk, decodeCbor, parseAuthData } from "../utils/webauthn-cbor.js";
+
+/**
+ * WebAuthn / Passkeys (ADD-ONLY). Phishing-resistant login on top of TOTP.
+ *
+ * Credentials are stored in the existing encrypted_secrets table
+ * (purpose='webauthn', name='webauthn:<userId>:<credId>'). Challenges are
+ * carried in short-lived signed tokens (reuses authService.signJwt) so no
+ * server-side challenge store is needed.
+ */
+
+const CHALLENGE_TTL = 300;
+const PURPOSE = "webauthn";
+const now = () => new Date().toISOString();
+const makeId = (p) => `${p}_${randomUUID().slice(0, 10)}`;
+
+function rpId() {
+  return process.env.WEBAUTHN_RP_ID || (env.allowedOrigins[0] || "http://localhost:4300").replace(/^https?:\/\//, "").split(":")[0];
+}
+function expectedOrigins() {
+  return env.allowedOrigins;
+}
+
+function challengeToken(payload) {
+  return authService.signJwt({ typ: "webauthn_challenge", ...payload, challenge: randomBytes(32).toString("base64url") }, CHALLENGE_TTL);
+}
+function verifyChallenge(token, expectedType) {
+  const p = authService.verifyJwt(token);
+  if (p.typ !== "webauthn_challenge" || p.ceremony !== expectedType) throw unauthorized("Invalid WebAuthn challenge");
+  return p;
+}
+
+export class WebauthnService {
+  scope(access) { return { tenantId: access.tenantId }; }
+
+  listCredentials(access) {
+    return repositories.encryptedSecrets
+      .list({ limit: 100000 }, this.scope(access))
+      .filter((r) => r.purpose === PURPOSE && r.metadata?.userId === access.userId)
+      .map((r) => ({ id: r.metadata.credentialId, label: r.metadata.label || "Passkey", createdAt: r.metadata.createdAt, lastUsedAt: r.metadata.lastUsedAt || "" }));
+  }
+
+  beginRegistration(access, { label = "Passkey" } = {}) {
+    const token = challengeToken({ ceremony: "register", sub: access.userId, tenantId: access.tenantId, label });
+    const decoded = authService.verifyJwt(token);
+    return {
+      challengeToken: token,
+      publicKey: {
+        rp: { name: "Aura Salon CRM", id: rpId() },
+        user: { id: Buffer.from(access.userId).toString("base64url"), name: access.loginId || access.userId, displayName: access.loginId || access.userId },
+        challenge: decoded.challenge,
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        timeout: CHALLENGE_TTL * 1000,
+        authenticatorSelection: { userVerification: "preferred" },
+        attestation: "none"
+      }
+    };
+  }
+
+  finishRegistration(access, { challengeToken: token, id, rawId, response } = {}) {
+    if (!token || !response?.clientDataJSON || !response?.attestationObject) throw badRequest("Missing registration response");
+    const challenge = verifyChallenge(token, "register");
+    if (challenge.sub !== access.userId) throw unauthorized("Challenge does not belong to this user");
+
+    const clientData = JSON.parse(Buffer.from(response.clientDataJSON, "base64url").toString("utf8"));
+    if (clientData.type !== "webauthn.create") throw badRequest("Unexpected ceremony type");
+    if (clientData.challenge !== challenge.challenge) throw unauthorized("Challenge mismatch");
+    if (!expectedOrigins().includes(clientData.origin)) throw unauthorized("Origin not allowed");
+
+    const { value: attestation } = decodeCbor(Buffer.from(response.attestationObject, "base64url"));
+    const authData = parseAuthData(attestation.get("authData"));
+    if (!authData.credentialPublicKey) throw badRequest("No credential public key");
+    const { jwk, alg } = coseToJwk(authData.credentialPublicKey);
+    const credentialId = id || rawId || Buffer.from(authData.credentialId).toString("base64url");
+
+    repositories.encryptedSecrets.create({
+      id: makeId("wacred"),
+      name: `webauthn:${access.userId}:${credentialId}`,
+      purpose: PURPOSE,
+      algorithm: alg,
+      iv: "", authTag: "", ciphertext: "",
+      status: "active",
+      metadata: { userId: access.userId, credentialId, jwk, alg, signCount: authData.signCount, label: challenge.label || "Passkey", createdAt: now() }
+    }, this.scope(access));
+    return { registered: true, credentialId };
+  }
+
+  beginAuthentication({ tenantId, userId }) {
+    const creds = repositories.encryptedSecrets
+      .list({ limit: 100000 }, { tenantId })
+      .filter((r) => r.purpose === PURPOSE && r.metadata?.userId === userId);
+    if (!creds.length) throw badRequest("No passkeys registered");
+    const token = challengeToken({ ceremony: "auth", sub: userId, tenantId });
+    const decoded = authService.verifyJwt(token);
+    return {
+      challengeToken: token,
+      publicKey: {
+        challenge: decoded.challenge,
+        rpId: rpId(),
+        timeout: CHALLENGE_TTL * 1000,
+        userVerification: "preferred",
+        allowCredentials: creds.map((c) => ({ type: "public-key", id: c.metadata.credentialId }))
+      }
+    };
+  }
+
+  finishAuthentication({ challengeToken: token, id, response } = {}) {
+    if (!token || !response?.clientDataJSON || !response?.authenticatorData || !response?.signature) throw badRequest("Missing assertion response");
+    const challenge = verifyChallenge(token, "auth");
+
+    const clientData = JSON.parse(Buffer.from(response.clientDataJSON, "base64url").toString("utf8"));
+    if (clientData.type !== "webauthn.get") throw badRequest("Unexpected ceremony type");
+    if (clientData.challenge !== challenge.challenge) throw unauthorized("Challenge mismatch");
+    if (!expectedOrigins().includes(clientData.origin)) throw unauthorized("Origin not allowed");
+
+    const record = repositories.encryptedSecrets
+      .list({ limit: 100000 }, { tenantId: challenge.tenantId })
+      .find((r) => r.purpose === PURPOSE && r.metadata?.userId === challenge.sub && r.metadata?.credentialId === id);
+    if (!record) throw unauthorized("Unknown credential");
+
+    const authData = Buffer.from(response.authenticatorData, "base64url");
+    const parsed = parseAuthData(authData);
+    const expectedRpIdHash = createHash("sha256").update(rpId()).digest();
+    if (!parsed.rpIdHash.equals(expectedRpIdHash)) throw unauthorized("RP ID hash mismatch");
+    if (!parsed.userPresent) throw unauthorized("User presence flag not set");
+
+    const clientDataHash = createHash("sha256").update(Buffer.from(response.clientDataJSON, "base64url")).digest();
+    const signedData = Buffer.concat([authData, clientDataHash]);
+    const signature = Buffer.from(response.signature, "base64url");
+    const keyObject = createPublicKey({ key: record.metadata.jwk, format: "jwk" });
+
+    let ok;
+    if (record.metadata.alg === "ES256") {
+      ok = cryptoVerify("sha256", signedData, { key: keyObject, dsaEncoding: "der" }, signature);
+    } else {
+      const v = createVerify("RSA-SHA256"); v.update(signedData); v.end();
+      ok = v.verify(keyObject, signature);
+    }
+    if (!ok) throw unauthorized("Invalid passkey signature");
+
+    // Clone-detection: signCount must move forward (unless authenticator reports 0).
+    if (parsed.signCount !== 0 && parsed.signCount <= (record.metadata.signCount || 0)) {
+      throw unauthorized("Possible cloned authenticator (sign count regression)");
+    }
+    repositories.encryptedSecrets.update(record.id, {
+      metadata: { ...record.metadata, signCount: parsed.signCount, lastUsedAt: now() }
+    }, { tenantId: challenge.tenantId });
+
+    return { verified: true, userId: challenge.sub, tenantId: challenge.tenantId };
+  }
+}
+
+export const webauthnService = new WebauthnService();

@@ -26,42 +26,52 @@ import { StateComponent } from '../shared/ui/state/state.component';
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('')">
           <span class="kpi-icon">CL</span>
           <strong>{{ totalClientsCount() }}</strong>
+          <small>Total Clients</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('')">
           <span class="kpi-icon">TV</span>
           <strong>{{ totalVisitsThisMonth() }}</strong>
+          <small>Total Visits This Month</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Old Client Visits')">
           <span class="kpi-icon">OV</span>
           <strong>{{ oldClientVisitsThisMonth() }}</strong>
+          <small>Old Client Visits This Month</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('New Client Visits')">
           <span class="kpi-icon">NV</span>
           <strong>{{ newClientVisitsThisMonth() }}</strong>
+          <small>New Client Visits This Month</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Male')">
           <span class="kpi-icon">M</span>
           <strong>{{ genderCount('male') }}</strong>
+          <small>Male Clients</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Female')">
           <span class="kpi-icon">F</span>
           <strong>{{ genderCount('female') }}</strong>
+          <small>Female Clients</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Membership')">
           <span class="kpi-icon">MB</span>
           <strong>{{ memberClientCount() }}</strong>
+          <small>Member Clients</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Non-member')">
           <span class="kpi-icon">NM</span>
           <strong>{{ nonMemberClientCount() }}</strong>
+          <small>Non-member Clients</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Unpaid Client')">
           <span class="kpi-icon">UP</span>
           <strong>{{ unpaidClientCount() }}</strong>
+          <small>Unpaid Clients</small>
         </button>
         <button class="client-kpi-card" type="button" (click)="applyClientTypeFilter('Wallet Client')">
           <span class="kpi-icon">WA</span>
           <strong>{{ walletClientCount() }}</strong>
+          <small>Wallet Clients</small>
         </button>
       </section>
 
@@ -1146,6 +1156,7 @@ export class ClientsComponent implements OnInit {
   readonly reportError = signal('');
   readonly clientListHasMore = signal(false);
   readonly clientListLoadingMore = signal(false);
+  readonly clientTotalCount = signal(0);
   private readonly clientListPageSize = 150;
   private clientQueryTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly usefulMetricCardIds = new Set([
@@ -1259,7 +1270,7 @@ export class ClientsComponent implements OnInit {
   }
 
   totalClientsCount(): number {
-    return this.clients().length;
+    return this.clientTotalCount() || this.clients().length;
   }
 
   totalVisitsThisMonth(): number {
@@ -1431,13 +1442,15 @@ export class ClientsComponent implements OnInit {
         branchId
       }),
       invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000, branchId }),
-      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000, branchId })
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000, branchId }),
+      clientSummary: this.api.list<ApiRecord>('client-masters/summary', { branchId })
     }).subscribe({
-      next: ({ clients, invoices, walletTransactions }) => {
+      next: ({ clients, invoices, walletTransactions, clientSummary }) => {
         const rows = clients || [];
         const linkedWalletClients = this.withWalletBalances(rows, walletTransactions || []);
         const hydratedClients = this.withUnpaidBalances(linkedWalletClients, invoices || []);
         this.clients.set(append ? [...this.clients(), ...hydratedClients] : hydratedClients);
+        this.clientTotalCount.set(Number(clientSummary?.clientProfiles || 0) || this.clients().length);
         this.clientListHasMore.set(rows.length === this.clientListPageSize);
         this.selectedClientIds.set(this.selectedClientIds().filter((id) => this.clients().some((client) => client.id === id)));
         this.openPendingEditClient();

@@ -43,12 +43,54 @@ function bookingGroupIdOf(row = {}) {
   return String(row.bookingGroupId || row.booking_group_id || "").trim();
 }
 
-function groupMembersFor(current, access) {
+function appointmentDateKey(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(date);
+}
+
+function closeCreatedAt(left, right) {
+  const leftTime = new Date(left || "").getTime();
+  const rightTime = new Date(right || "").getTime();
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && Math.abs(leftTime - rightTime) <= 5 * 60 * 1000;
+}
+
+function requestedGroupMembers(current, payload = {}, access) {
+  const ids = Array.isArray(payload.appointmentIds) ? payload.appointmentIds : [];
+  const uniqueIds = [...new Set([current.id, ...ids].map((id) => String(id || "").trim()).filter(Boolean))];
+  if (uniqueIds.length <= 1) return [];
+  return uniqueIds
+    .map((id) => appointment(id, access))
+    .filter((row) => row.branchId === current.branchId && row.clientId === current.clientId);
+}
+
+function groupMembersFor(current, access, payload = {}) {
+  const requested = requestedGroupMembers(current, payload, access);
+  if (requested.length > 1) return requested;
   const bookingGroupId = bookingGroupIdOf(current);
-  if (!bookingGroupId) return [current];
-  return repositories.appointments
-    .list({ branchId: current.branchId || "", limit: 10000 }, scope(access, current.branchId || ""))
-    .filter((row) => bookingGroupIdOf(row) === bookingGroupId);
+  const rows = repositories.appointments.list({ branchId: current.branchId || "", limit: 10000 }, scope(access, current.branchId || ""));
+  if (!bookingGroupId) {
+    const clientId = String(current.clientId || "").trim();
+    const dateKey = appointmentDateKey(current.startAt || current.date);
+    const sameClientDayRows = rows.filter((row) => {
+      const status = String(row.status || "").toLowerCase();
+      return clientId
+        && String(row.clientId || "").trim() === clientId
+        && appointmentDateKey(row.startAt || row.date) === dateKey
+        && !["deleted", "no-show"].includes(status);
+    });
+    const chair = String(current.chair || "").trim();
+    const room = String(current.room || "").trim();
+    const sameResourceRows = sameClientDayRows.filter((row) => {
+      const sameChair = chair && String(row.chair || "").trim() === chair;
+      const sameRoom = room && String(row.room || "").trim() === room;
+      return sameChair || sameRoom;
+    });
+    if (sameResourceRows.length > 1) return sameResourceRows;
+    const sameCreatedRows = sameClientDayRows.filter((row) => closeCreatedAt(row.createdAt || row.created_at, current.createdAt || current.created_at));
+    return sameCreatedRows.length > 1 ? sameCreatedRows : [current];
+  }
+  return rows.filter((row) => bookingGroupIdOf(row) === bookingGroupId);
 }
 
 function statusExtraFor(current, status, payload = {}) {
@@ -140,16 +182,24 @@ export const appointmentLifecycleService = {
 
   cancel(id, payload = {}, access) {
     const current = appointment(id, access);
-    if (["completed", "paid"].includes(current.status)) {
+    const members = groupMembersFor(current, access, payload);
+    const locked = members.find((member) => ["completed", "paid"].includes(String(member.status || "").toLowerCase()));
+    if (locked) {
       throw conflict("Completed or paid appointments cannot be cancelled");
     }
-    const result = updateStatus(id, "cancelled", access, {
-      notes: [current.notes, payload.reason ? `Cancellation reason: ${payload.reason}` : ""].filter(Boolean).join(" | ")
+    const appointments = members.map((member) => updateStatus(member.id, "cancelled", access, {
+      notes: [member.notes, payload.reason ? `Cancellation reason: ${payload.reason}` : ""].filter(Boolean).join(" | ")
     }, {
       action: APPOINTMENT_ACTIVITY_ACTIONS.CANCELLED,
       reason: payload.reason || "",
       source: "cancellation"
-    });
+    }).appointment);
+    const result = {
+      appointment: appointments.find((row) => row.id === id) || appointments[0],
+      appointments,
+      bookingGroupId: bookingGroupIdOf(current),
+      appliedToGroup: appointments.length > 1
+    };
     const serviceIds = Array.isArray(current.serviceIds) ? current.serviceIds : [];
     result.waitlistOffer = waitlistService.autoFillForFreedSlot({
       branchId: current.branchId || "",

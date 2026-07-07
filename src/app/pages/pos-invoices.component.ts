@@ -6,6 +6,7 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { PosHeldInvoiceDraft, PosPaymentMode, PosSettingsService } from '../core/pos-settings.service';
 import { AppStateService } from '../core/state/app-state.service';
+import { DATE_RANGE_PRESETS, DateRangePreset, dateRangeParams, rangeForPreset, todayKey } from '../shared/date-range-presets';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type InvoiceRegisterRow = {
@@ -137,13 +138,24 @@ type ProductConsumeDraftRow = {
                 <span>Search invoice or client</span>
                 <input [(ngModel)]="query" placeholder="AURA-2026, client name, phone, staff" />
               </label>
-              <label class="field fit-field date-filter-field">
-                <span>Date</span>
-                <input type="date" [(ngModel)]="selectedDate" />
+              <label class="field fit-field date-filter-field" *ngIf="datePreset !== 'all'">
+                <span>From</span>
+                <input type="date" [ngModel]="dateRange.from" (ngModelChange)="updateCustomDate('from', $event)" />
+              </label>
+              <label class="field fit-field date-filter-field" *ngIf="datePreset !== 'today' && datePreset !== 'all'">
+                <span>To</span>
+                <input type="date" [ngModel]="dateRange.to" (ngModelChange)="updateCustomDate('to', $event)" />
               </label>
               <div class="date-filter-actions">
-                <button class="ghost-button mini" type="button" (click)="setToday()">Today</button>
-                <button class="ghost-button mini" type="button" (click)="showAllDates()">All dates</button>
+                <button
+                  class="ghost-button mini"
+                  type="button"
+                  *ngFor="let preset of datePresets"
+                  [class.active-filter-card]="datePreset === preset.value"
+                  (click)="applyDatePreset(preset.value)"
+                >
+                  {{ preset.label }}
+                </button>
               </div>
               <label class="field fit-field">
                 <span>Status</span>
@@ -1116,9 +1128,12 @@ export class PosInvoicesComponent implements OnInit {
   readonly billingFraudAlerts = signal<ApiRecord[]>([]);
   readonly paymentRiskSummary = signal<ApiRecord | null>(null);
   readonly highValueApprovalLimit = 5000;
+  readonly datePresets = DATE_RANGE_PRESETS;
   query = '';
   statusFilter = '';
-  selectedDate = '';
+  datePreset: DateRangePreset = 'today';
+  selectedDate = todayKey();
+  dateRange = rangeForPreset('today');
   viewFilter: 'all' | 'received-due' | 'due' | 'wallet' = 'all';
   approvalReason = '';
   ownerPin = '';
@@ -1147,19 +1162,23 @@ export class PosInvoicesComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set('');
+    const scopedParams = this.invoiceListParams();
+    const lookupParams = this.dateRange.preset === 'all' ? { limit: 1000 } : { limit: 100 };
+    const walletParams = this.dateRange.preset === 'all' ? { limit: 5000 } : dateRangeParams(this.dateRange, 100, 5000);
+    const analyticsParams = this.analyticsParams();
     forkJoin({
-      invoices: this.api.list<ApiRecord[]>('invoices', { limit: 1000 }),
-      sales: this.api.list<ApiRecord[]>('sales', { limit: 1000 }),
-      payments: this.api.list<ApiRecord[]>('payments', { limit: 1000 }),
-      clients: this.api.list<ApiRecord[]>('clients', { limit: 1000 }),
-      staff: this.api.list<ApiRecord[]>('staff', { limit: 1000 }),
+      invoices: this.api.list<ApiRecord[]>('invoices', scopedParams),
+      sales: this.api.list<ApiRecord[]>('sales', scopedParams),
+      payments: this.api.list<ApiRecord[]>('payments', scopedParams),
+      clients: this.api.list<ApiRecord[]>('clients', lookupParams),
+      staff: this.api.list<ApiRecord[]>('staff', lookupParams),
       branches: this.api.list<ApiRecord[]>('branches', { limit: 1000 }),
-      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', { limit: 5000 }),
+      walletTransactions: this.api.list<ApiRecord[]>('walletTransactions', walletParams),
       productConsumeDrafts: this.api.list<ProductConsumeDraftRow[]>('inventory-intelligence/product-consume-drafts', { limit: 1000 }),
       invoiceNotificationQueue: this.api.list<ApiRecord[]>('invoice-notifications/queue', { limit: 1000 }).pipe(catchError(() => of([]))),
-      billingSummary: this.api.list<ApiRecord>('billing-analytics/summary').pipe(catchError(() => of(null))),
-      billingMargin: this.api.list<ApiRecord>('billing-analytics/margin').pipe(catchError(() => of(null))),
-      billingFraudAlerts: this.api.list<ApiRecord[]>('billing-analytics/fraud-alerts').pipe(catchError(() => of([]))),
+      billingSummary: this.api.list<ApiRecord>('billing-analytics/summary', analyticsParams).pipe(catchError(() => of(null))),
+      billingMargin: this.api.list<ApiRecord>('billing-analytics/margin', analyticsParams).pipe(catchError(() => of(null))),
+      billingFraudAlerts: this.api.list<ApiRecord[]>('billing-analytics/fraud-alerts', analyticsParams).pipe(catchError(() => of([]))),
       paymentRiskSummary: this.api.list<ApiRecord>('payment-intelligence/summary').pipe(catchError(() => of(null)))
     }).subscribe({
       next: ({ invoices, sales, payments, clients, staff, branches, walletTransactions, productConsumeDrafts, invoiceNotificationQueue, billingSummary, billingMargin, billingFraudAlerts, paymentRiskSummary }) => {
@@ -1194,7 +1213,7 @@ export class PosInvoicesComponent implements OnInit {
         !query ||
         searchableText.toLowerCase().includes(query) ||
         (!!queryDigits && this.onlyDigits(searchableText).includes(queryDigits));
-      const dateMatch = !this.selectedDate || this.rowDateKey(row.createdAt) === this.selectedDate;
+      const dateMatch = this.rowInSelectedRange(row.createdAt);
       const receivedDueMatch = !this.isReceivedDueView() || this.rowReceivedDueTotal(row) > 0;
       const dueMatch = !this.isDueView() || row.balance > 0;
       return !this.isWalletView() && statusMatch && queryMatch && dateMatch && receivedDueMatch && dueMatch;
@@ -1292,18 +1311,37 @@ export class PosInvoicesComponent implements OnInit {
   }
 
   setToday(): void {
-    this.selectedDate = this.todayKey();
+    this.applyDatePreset('today');
   }
 
   showAllDates(): void {
-    this.selectedDate = '';
+    this.applyDatePreset('all');
+  }
+
+  applyDatePreset(preset: DateRangePreset): void {
+    this.datePreset = preset;
+    this.dateRange = rangeForPreset(preset, this.dateRange);
+    this.selectedDate = this.dateRange.preset === 'all' ? '' : this.dateRange.from;
+    this.load();
+  }
+
+  updateCustomDate(side: 'from' | 'to', value: string): void {
+    this.datePreset = 'custom';
+    this.dateRange = {
+      preset: 'custom',
+      from: side === 'from' ? value : this.dateRange.from,
+      to: side === 'to' ? value : this.dateRange.to
+    };
+    if (!this.dateRange.to) this.dateRange.to = this.dateRange.from;
+    this.selectedDate = this.dateRange.from;
+    this.load();
   }
 
   selectedDateLabel(): string {
-    if (!this.selectedDate) return 'All dates';
-    const [year, month, day] = this.selectedDate.split('-').map(Number);
-    const date = new Date(year, Number(month || 1) - 1, day || 1);
-    return Number.isNaN(date.getTime()) ? this.selectedDate : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (this.dateRange.preset === 'all') return 'All dates';
+    const from = this.formatDateKey(this.dateRange.from);
+    const to = this.formatDateKey(this.dateRange.to || this.dateRange.from);
+    return from === to ? from : `${from} - ${to}`;
   }
 
   openDetail(row: InvoiceRegisterRow): void {
@@ -2423,12 +2461,36 @@ export class PosInvoicesComponent implements OnInit {
     return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
+  private invoiceListParams(): Record<string, string | number> {
+    return this.dateRange.preset === 'all' ? { limit: 1000 } : dateRangeParams(this.dateRange, 100, 1000);
+  }
+
+  private analyticsParams(): Record<string, string | number> {
+    return this.dateRange.preset === 'all' ? {} : { from: this.dateRange.from, to: this.dateRange.to || this.dateRange.from };
+  }
+
   private todayKey(): string {
     return this.dateKey(new Date());
   }
 
   private rowDateKey(value: string): string {
     return this.dateKey(value);
+  }
+
+  private rowInSelectedRange(value: string): boolean {
+    if (this.dateRange.preset === 'all') return true;
+    const key = this.rowDateKey(value);
+    if (!key) return false;
+    const from = this.dateRange.from || key;
+    const to = this.dateRange.to || from;
+    return key >= from && key <= to;
+  }
+
+  private formatDateKey(value: string): string {
+    if (!value) return '-';
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, Number(month || 1) - 1, day || 1);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   private dateKey(value: string | Date): string {

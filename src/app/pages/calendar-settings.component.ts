@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ApiRecord, ApiService } from '../core/api.service';
 
 type CalendarColorSetting = {
   key: string;
@@ -76,6 +77,7 @@ const DEFAULT_SETTINGS: CalendarSettingsState = {
         </header>
 
         <p class="state success" *ngIf="message()">{{ message() }}</p>
+        <p class="state danger" *ngIf="error()">{{ error() }}</p>
 
         <section class="settings-section time-section">
           <div class="section-intro">
@@ -528,20 +530,51 @@ const DEFAULT_SETTINGS: CalendarSettingsState = {
 })
 export class CalendarSettingsComponent implements OnInit {
   readonly message = signal('');
+  readonly error = signal('');
+  readonly saving = signal(false);
   readonly weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   readonly timeSlots = ['5 Mins', '10 Mins', '15 Mins', '20 Mins', '30 Mins', '45 Mins', '60 Mins'];
   readonly appointmentStatuses = DEFAULT_COLORS.map((item) => item.label);
 
   settings: CalendarSettingsState = this.clone(DEFAULT_SETTINGS);
 
+  constructor(private readonly api: ApiService) {}
+
   ngOnInit(): void {
     this.settings = this.loadSettings();
+    this.load();
+  }
+
+  load(): void {
+    this.error.set('');
+    this.api.list<ApiRecord>('settings/calendar').subscribe({
+      next: (result) => {
+        const settings = (result['settings'] || result) as Partial<CalendarSettingsState>;
+        this.settings = this.normalizeSettings(settings);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
+      },
+      error: () => this.error.set('Using locally saved calendar settings.')
+    });
   }
 
   save(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-    this.message.set('Calendar settings saved.');
-    window.setTimeout(() => this.message.set(''), 2500);
+    this.saving.set(true);
+    this.error.set('');
+    this.api.put<ApiRecord>('settings/calendar', { settings: this.settings }).subscribe({
+      next: (result) => {
+        const settings = (result['settings'] || this.settings) as Partial<CalendarSettingsState>;
+        this.settings = this.normalizeSettings(settings);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
+        this.message.set('Calendar settings saved.');
+        window.setTimeout(() => this.message.set(''), 2500);
+        this.saving.set(false);
+      },
+      error: () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
+        this.error.set('Saved locally. Server sync failed.');
+        this.saving.set(false);
+      }
+    });
   }
 
   trackColor(_index: number, row: CalendarColorSetting): string {
@@ -552,15 +585,19 @@ export class CalendarSettingsComponent implements OnInit {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') as Partial<CalendarSettingsState> | null;
       if (!saved) return this.clone(DEFAULT_SETTINGS);
-      const savedColors = Array.isArray(saved.colors) ? saved.colors : [];
-      return {
-        ...this.clone(DEFAULT_SETTINGS),
-        ...saved,
-        colors: DEFAULT_COLORS.map((item) => ({ ...item, ...(savedColors.find((row) => row.key === item.key) || {}) }))
-      };
+      return this.normalizeSettings(saved);
     } catch {
       return this.clone(DEFAULT_SETTINGS);
     }
+  }
+
+  private normalizeSettings(saved: Partial<CalendarSettingsState>): CalendarSettingsState {
+    const savedColors = Array.isArray(saved.colors) ? saved.colors : [];
+    return {
+      ...this.clone(DEFAULT_SETTINGS),
+      ...saved,
+      colors: DEFAULT_COLORS.map((item) => ({ ...item, ...(savedColors.find((row) => row.key === item.key) || {}) }))
+    };
   }
 
   private clone<T>(value: T): T {

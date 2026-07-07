@@ -436,6 +436,24 @@ export class PurchaseBillDraftService {
     return this.getDraft(draftId, access);
   }
 
+  async createManualBill(payload = {}, access) {
+    const draft = await this.createFromUpload({
+      ...payload,
+      aiProvider: "local",
+      rawText: payload.rawText || payload.extractedText || "Manual physical purchase bill entry"
+    }, access);
+    try {
+      return this.confirmDraft(draft.id, { sourceType: "manual_purchase_bill" }, access);
+    } catch (error) {
+      try {
+        this.cancelDraft(draft.id, { reason: `Manual bill auto-confirm failed: ${error.message || "unknown error"}` }, access);
+      } catch {
+        // Keep the original confirmation error visible to the caller.
+      }
+      throw error;
+    }
+  }
+
   updateDraft(id, payload = {}, access) {
     requireManager(access);
     const draft = getSnake("purchase_bill_drafts", id, access);

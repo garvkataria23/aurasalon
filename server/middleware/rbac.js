@@ -212,6 +212,7 @@ function requestAction(action, req) {
   return action;
 }
 export function can(role, action, resource, access = {}) {
+  if (staticGrantAllows(access.permissions || [], action, resource)) return true;
   const grants = permissions[role] || [];
   if (grants.includes("*")) return true;
   try {
@@ -242,6 +243,10 @@ export function requirePermission(action, resourceResolver = (req) => req.params
     const resource = resourceResolver(req);
     const role = req.access?.role || req.user?.role || "staff";
     const checkedAction = requestAction(action, req);
+    if (checkedAction === "read" && req.access?.staffId && /^\/staff-self\//.test(req.path || "")) {
+      next();
+      return;
+    }
     if (!can(role, checkedAction, resource, req.access || {})) {
       next(forbidden());
       return;

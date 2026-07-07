@@ -105,6 +105,7 @@ export interface StaffOsPerformanceRow {
   utilizationPct: number;
   avgRating: number;
   productivityScore: number;
+  intelligenceScore?: number | null;
 }
 
 export interface StaffOsPerformanceSummary {
@@ -117,6 +118,189 @@ export interface StaffOsPerformanceSummary {
 export interface StaffOsPerformanceResponse {
   rows: StaffOsPerformanceRow[];
   summary: StaffOsPerformanceSummary;
+  intelligence?: StaffOsPerformanceIntelligence;
+}
+
+export interface StaffOsPerformanceDetailResponse {
+  staffId: string;
+  rows: StaffOsPerformanceRow[];
+  summary: StaffOsPerformanceSummary;
+  intelligence?: StaffOsPerformanceIntelligenceRow;
+  scoreWeights?: Record<string, number>;
+  scoreFormula?: string;
+  dataCoverage?: Record<string, boolean>;
+  ownerSummary?: StaffOsPerformanceIntelligence['ownerSummary'];
+}
+
+export interface StaffOsPerformanceIntelligence {
+  filters?: Record<string, unknown>;
+  scoreWeights?: Record<string, number>;
+  scoreFormula?: string;
+  summary?: {
+    staffCount?: number;
+    avgScore?: number;
+    totalRevenuePaise?: number;
+    totalWastagePaise?: number;
+    criticalCount?: number;
+    watchCount?: number;
+    gradeCounts?: Record<string, number>;
+  };
+  byStaff?: StaffOsPerformanceIntelligenceRow[];
+  watchlist?: StaffOsPerformanceIntelligenceRow[];
+  topPerformers?: StaffOsPerformanceIntelligenceRow[];
+  improvingStaff?: StaffOsPerformanceIntelligenceRow[];
+  serviceSkillReport?: StaffOsServiceSkillRow[];
+  ownerSummary?: {
+    headline?: string;
+    bestStaff?: StaffOsPerformanceOwnerStaff | null;
+    immediateAttention?: StaffOsPerformanceOwnerStaff | null;
+    nextActions?: string[];
+    aiActions?: StaffOsAiAction[];
+  };
+  aiCommand?: {
+    agentKey?: string;
+    mode?: string;
+    generatedAt?: string;
+    summary?: string;
+    actions?: StaffOsAiAction[];
+    completionPolicy?: string;
+  };
+  dataCoverage?: Record<string, boolean>;
+}
+
+export interface StaffOsPerformanceOwnerStaff {
+  staffId?: string;
+  staffName?: string;
+  score?: number;
+  letterGrade?: string;
+  rank?: number;
+  trend?: StaffOsPerformanceTrend;
+  strengths?: string[];
+  risks?: string[];
+}
+
+export interface StaffOsPerformanceTrend {
+  previousScore?: number | null;
+  scoreChange?: number;
+  direction?: 'up' | 'down' | 'flat' | 'new' | string;
+  label?: string;
+}
+
+export interface StaffOsServiceSkillRow {
+  staffId?: string;
+  staffName?: string;
+  letterGrade?: string;
+  serviceName?: string;
+  completed?: number;
+  delayed?: number;
+  actualMinutes?: number;
+  allowedMinutes?: number;
+  overMinutes?: number;
+  avgOverMinutes?: number;
+  salaryLossPaise?: number;
+  score?: number;
+  status?: string;
+}
+
+export interface StaffOsPerformanceIntelligenceRow {
+  staffId: string;
+  staffName: string;
+  score: number;
+  grade: 'excellent' | 'good' | 'watch' | 'critical' | string;
+  letterGrade?: string;
+  rank?: number;
+  rankLabel?: string;
+  trend?: StaffOsPerformanceTrend;
+  serviceTime?: {
+    completed?: number;
+    onTime?: number;
+    delayed?: number;
+    actualMinutes?: number;
+    allowedMinutes?: number;
+    overMinutes?: number;
+    avgOverMinutes?: number;
+    salaryLossPaise?: number;
+    monthlySalaryPaise?: number;
+    daySalaryPaise?: number;
+    hourlySalaryPaise?: number;
+    shiftHours?: number;
+    salarySource?: string;
+    shiftSource?: string;
+    score?: number;
+    rows?: Array<Record<string, unknown>>;
+  };
+  attendance?: {
+    presentDays?: number;
+    expectedWorkingDays?: number;
+    absentDays?: number;
+    lateMinutes?: number;
+    earlyLeaveMinutes?: number;
+    overtimeMinutes?: number;
+    score?: number;
+  };
+  productUsage?: {
+    drafts?: number;
+    expectedCostPaise?: number;
+    actualCostPaise?: number;
+    wastageCostPaise?: number;
+    wastagePct?: number;
+    score?: number;
+    products?: Array<Record<string, unknown>>;
+  };
+  clientRetention?: {
+    clients?: number;
+    invoices?: number;
+    serviceClients?: number;
+    serviceInvoices?: number;
+    repeatClients?: number;
+    repeatClientRate?: number;
+    score?: number;
+  };
+  newReferral?: {
+    newClients?: number;
+    referralClients?: number;
+    referralRate?: number;
+    score?: number;
+    referrals?: Array<Record<string, unknown>>;
+  };
+  profitability?: {
+    revenuePaise?: number;
+    productSalesPaise?: number;
+    netContributionPaise?: number;
+    score?: number;
+  };
+  risks?: string[];
+  strengths?: string[];
+  recommendedActions?: string[];
+  serviceSkills?: StaffOsServiceSkillRow[];
+  aiSummary?: StaffOsAiSummary | null;
+  aiActions?: StaffOsAiAction[];
+}
+
+export interface StaffOsAiSummary {
+  agentKey?: string;
+  title?: string;
+  headline?: string;
+  priority?: 'high' | 'medium' | 'low' | string;
+  confidence?: number;
+  evidence?: string[];
+  diagnosis?: string[];
+}
+
+export interface StaffOsAiAction {
+  id?: string;
+  staffId?: string;
+  staffName?: string;
+  score?: number;
+  title?: string;
+  impactArea?: string;
+  priority?: 'high' | 'medium' | 'low' | string;
+  evidence?: string;
+  action?: string;
+  expectedOutcome?: string;
+  owner?: string;
+  dueInDays?: number;
+  approvalRequired?: boolean;
 }
 
 export interface StaffOsTask {

@@ -111,6 +111,15 @@ inventoryIntelligenceRouter.post(
   })
 );
 
+inventoryIntelligenceRouter.post(
+  "/inventory-intelligence/purchase-bills/manual",
+  requirePermission("write", () => "inventory"),
+  validateBody({ required: ["supplierName", "billNo", "items"] }),
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await purchaseBillDraftService.createManualBill(req.body, req.access));
+  })
+);
+
 inventoryIntelligenceRouter.get(
   "/inventory-intelligence/purchase-bill-drafts/:id",
   requirePermission("read", () => "inventory"),

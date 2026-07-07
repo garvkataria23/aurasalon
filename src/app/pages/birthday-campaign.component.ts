@@ -60,7 +60,7 @@ type Channel = 'whatsapp' | 'sms';
             >
               <span class="avatar">{{ initials(client.name) }}</span>
               <span><strong>{{ client.name || 'Client' }}</strong><small>{{ birthdayLabel(client) }} · {{ client.phone || 'phone missing' }}</small></span>
-              <em>{{ client.birthdayStatus }}</em>
+              <em [class.today]="client.birthdayStatus === 'today'">{{ client.birthdayStatus }}</em>
             </button>
             <p class="empty" *ngIf="!clients().length && !loading()">No birthdays found in the selected window.</p>
           </div>
@@ -120,46 +120,53 @@ type Channel = 'whatsapp' | 'sms';
   `,
   styles: [`
     :host { display: block; }
-    .birthday-page { display: grid; gap: 14px; padding: 12px; color: #172033; background: #f0f2f5; min-height: calc(100vh - 20px); }
-    .page-header, .panel { border: 1px solid #d8e1ea; border-radius: 8px; background: #fff; box-shadow: 0 12px 28px rgba(15,23,42,.06); }
-    .page-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 18px; }
-    .page-header h1 { margin: 4px 0 6px; font-size: 30px; letter-spacing: 0; }
-    .page-header p { margin: 0; color: #5f6f85; max-width: 860px; line-height: 1.45; }
-    .eyebrow, .panel-head span, label span, .metric-strip span { color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .birthday-page { display: grid; gap: 16px; padding: 16px; color: #24131c; background: radial-gradient(circle at top left, #fff3f8 0, #faf7f4 34%, #f4efe9 100%); min-height: calc(100vh - 20px); }
+    .page-header, .panel, .metric-strip article { border: 1px solid #eadbd2; border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: 0 18px 44px rgba(78, 22, 55, .09); }
+    .page-header { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 22px; }
+    .page-header::after { content: ''; position: absolute; inset: auto -70px -120px auto; width: 260px; height: 260px; border-radius: 999px; background: linear-gradient(135deg, rgba(90,21,63,.16), rgba(196,116,70,.12)); pointer-events: none; }
+    .page-header > * { position: relative; z-index: 1; }
+    .page-header h1 { margin: 5px 0 7px; color: #3d0f2c; font-size: clamp(28px, 4vw, 42px); line-height: 1; letter-spacing: -.03em; }
+    .page-header p { margin: 0; color: #75616c; max-width: 880px; line-height: 1.55; }
+    .eyebrow, .panel-head span, label span, .metric-strip span { color: #8b6479; font-size: 11px; font-weight: 950; letter-spacing: .09em; text-transform: uppercase; }
     .header-actions { display: flex; gap: 10px; align-items: end; }
-    input, textarea { width: 100%; border: 1px solid #cfe0dc; border-radius: 8px; background: #f8fffd; padding: 10px 11px; color: #172033; font-weight: 800; box-sizing: border-box; }
+    input, textarea { width: 100%; border: 1px solid #eadbd2; border-radius: 12px; background: #fffaf8; padding: 11px 12px; color: #24131c; font-weight: 850; box-sizing: border-box; }
+    input:focus, textarea:focus { border-color: #8b2d61; box-shadow: 0 0 0 3px rgba(90,21,63,.12); outline: none; }
     textarea { resize: vertical; font-family: inherit; line-height: 1.5; }
-    button { min-height: 40px; border: 1px solid #cfe0dc; border-radius: 8px; padding: 0 14px; background: #fff; color: #172033; font-weight: 900; cursor: pointer; }
+    button { min-height: 42px; border: 1px solid #eadbd2; border-radius: 12px; padding: 0 15px; background: #fff; color: #3d0f2c; font-weight: 950; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+    button:not(:disabled):hover { border-color: #caa99b; box-shadow: 0 10px 22px rgba(78,22,55,.10); transform: translateY(-1px); }
     button:disabled { opacity: .55; cursor: not-allowed; }
-    .primary-button { background: #5A153F; border-color: #E7DDD6; color: #fff; }
+    .primary-button { background: linear-gradient(135deg, #5A153F, #7A2D57); border-color: #5A153F; color: #fff; }
     .secondary-button { background: #F8EEF4; border-color: #E7DDD6; color: #4B1238; }
     .ghost-button { background: #fff; }
     .metric-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-    .metric-strip article { border: 1px solid #d8e1ea; border-radius: 8px; background: #fff; padding: 14px; }
-    .metric-strip strong { display: block; margin-top: 5px; font-size: 24px; }
+    .metric-strip article { position: relative; overflow: hidden; padding: 16px; }
+    .metric-strip article::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: linear-gradient(#5A153F, #d09768); }
+    .metric-strip strong { display: block; margin-top: 6px; color: #3d0f2c; font-size: 28px; letter-spacing: -.03em; }
     .campaign-layout { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 14px; align-items: start; }
-    .panel { padding: 14px; min-width: 0; }
+    .panel { padding: 16px; min-width: 0; }
     .selector-panel { position: sticky; top: 92px; }
     .panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
-    .panel-head h2, .panel-head h3 { margin: 2px 0 0; letter-spacing: 0; }
-    .panel-head small { color: #64748b; font-weight: 700; }
+    .panel-head h2, .panel-head h3 { margin: 2px 0 0; color: #3d0f2c; letter-spacing: -.02em; }
+    .panel-head small { color: #7d6a73; font-weight: 750; }
     .panel-head.compact { margin-bottom: 8px; }
     .client-list, .detail-stack, .suggestion-grid article { display: grid; gap: 8px; }
     .filter-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
-    .filter-row button.active { background: #5A153F; border-color: #E7DDD6; color: #fff; }
-    .client-list button { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 70px; text-align: left; }
-    .client-list button.active, .suggestion.active { background: linear-gradient(135deg, #F8EEF4, #FAF8F6); border-color: #E7DDD6; }
-    .avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 8px; background: #F1E8EE; color: #3D0F2C; font-weight: 950; }
+    .filter-row button.active { background: #5A153F; border-color: #5A153F; color: #fff; }
+    .client-list button { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 74px; text-align: left; }
+    .client-list button.active, .suggestion.active { background: linear-gradient(135deg, #fff0f6, #fffaf6); border-color: #d8b8a9; box-shadow: inset 0 0 0 1px rgba(90,21,63,.08); }
+    .avatar { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #F1E8EE, #fff1e8); color: #3D0F2C; font-weight: 950; }
     .client-list strong, .client-list small { display: block; }
-    .client-list small { margin-top: 3px; color: #64748b; font-size: 12px; }
-    .client-list em { align-self: start; padding: 4px 7px; border-radius: 999px; background: #F1E8EE; color: #3D0F2C; font-size: 10px; font-style: normal; text-transform: uppercase; }
+    .client-list small { margin-top: 3px; color: #7d6a73; font-size: 12px; }
+    .client-list em { align-self: start; padding: 5px 8px; border-radius: 999px; background: #F1E8EE; color: #3D0F2C; font-size: 10px; font-style: normal; text-transform: uppercase; }
+    .client-list em.today { background: #5A153F; color: #fff; }
     .channel-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
     .channel-toggles label { display: inline-flex; gap: 6px; align-items: center; font-weight: 900; color: #172033; }
     .channel-toggles input { width: 16px; padding: 0; }
     .suggestion-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .suggestion { display: grid; gap: 5px; min-height: 82px; padding: 10px; text-align: left; align-content: start; }
-    .suggestion span { color: #64748b; font-size: 13px; line-height: 1.35; font-weight: 700; }
-    .preview-panel { margin-top: 12px; background: #f8fffd; }
+    .suggestion { display: grid; gap: 6px; min-height: 86px; padding: 12px; text-align: left; align-content: start; }
+    .suggestion strong { color: #3d0f2c; }
+    .suggestion span { color: #75616c; font-size: 13px; line-height: 1.38; font-weight: 750; }
+    .preview-panel { margin-top: 12px; background: linear-gradient(135deg, #fffaf8, #fff4f8); }
     .success { color: #7A4A28; font-weight: 900; }
     .error { color: #b91c1c; font-weight: 900; }
     .empty, .empty-state p { color: #64748b; font-weight: 700; }

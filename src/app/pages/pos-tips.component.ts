@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { PosPaymentMode, PosSettingsService } from '../core/pos-settings.service';
+import { DATE_RANGE_PRESETS, DateRangePreset, rangeForPreset, todayKey } from '../shared/date-range-presets';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type TipLedgerRow = {
@@ -92,13 +93,24 @@ type TipsReport = {
       </div>
 
       <section class="panel filter-panel tip-filter-panel">
+        <div class="date-preset-actions">
+          <button
+            class="ghost-button mini"
+            type="button"
+            *ngFor="let preset of datePresets"
+            [class.active-filter-card]="datePreset === preset.value"
+            (click)="applyDatePreset(preset.value)"
+          >
+            {{ preset.label }}
+          </button>
+        </div>
         <label class="field">
           <span>From</span>
-          <input type="date" [(ngModel)]="from" />
+          <input type="date" [ngModel]="from" (ngModelChange)="updateCustomDate('from', $event)" />
         </label>
         <label class="field">
           <span>To</span>
-          <input type="date" [(ngModel)]="to" />
+          <input type="date" [ngModel]="to" (ngModelChange)="updateCustomDate('to', $event)" />
         </label>
         <label class="field">
           <span>Staff</span>
@@ -366,8 +378,10 @@ export class PosTipsComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly hasSelection = computed(() => this.selectedTipIds().size > 0);
-  from = '';
-  to = '';
+  readonly datePresets = DATE_RANGE_PRESETS;
+  datePreset: DateRangePreset = 'today';
+  from = todayKey();
+  to = todayKey();
   staffId = '';
   client = '';
   invoice = '';
@@ -409,9 +423,9 @@ export class PosTipsComponent implements OnInit {
   }
 
   params(): ApiRecord {
+    const scopedRange = this.datePreset === 'all' ? { from: '', to: '' } : { from: this.from, to: this.to || this.from };
     return {
-      from: this.from,
-      to: this.to,
+      ...scopedRange,
       staffId: this.staffId,
       client: this.client,
       invoice: this.invoice,
@@ -420,8 +434,23 @@ export class PosTipsComponent implements OnInit {
       saleType: this.saleType,
       cashier: this.cashier,
       branchId: this.branchId,
-      q: this.query
+      q: this.query,
+      limit: this.datePreset === 'all' ? 1000 : 100
     };
+  }
+
+  applyDatePreset(preset: DateRangePreset): void {
+    const range = rangeForPreset(preset, { preset: this.datePreset, from: this.from, to: this.to });
+    this.datePreset = range.preset;
+    this.from = range.from;
+    this.to = range.to;
+    this.load();
+  }
+
+  updateCustomDate(field: 'from' | 'to', value: string): void {
+    this.datePreset = 'custom';
+    if (field === 'from') this.from = value;
+    else this.to = value;
   }
 
   toggleTip(tipId: string): void {

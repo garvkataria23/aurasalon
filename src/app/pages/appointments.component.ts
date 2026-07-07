@@ -4,6 +4,7 @@ import { ReactiveFormsModule, UntypedFormBuilder, Validators } from '@angular/fo
 import { RouterLink } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { appointmentConflictBlocks, serviceTotalMinutes } from '../shared/appointment-capacity';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type CalendarView = 'day' | 'week' | 'month' | 'timeline' | 'resource' | 'queue' | 'waitlist';
@@ -180,7 +181,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
               (click)="applySmartSlot(slot)"
             >
               <strong>{{ slot.startAt | date: 'h:mm a' }}</strong>
-              <span>{{ slot.staffName }} Â· {{ slot.resource }}</span>
+              <span>{{ slot.staffName }} · {{ slot.resource }}</span>
               <small>{{ slot.reason }}</small>
               <b>{{ slot.score }} score</b>
             </button>
@@ -242,7 +243,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
               (click)="openAppointment(appointment)"
             >
               <b>{{ clientName(appointment.clientId) }}</b>
-              <span>{{ timeRange(appointment) }} Â· {{ staffName(appointment.staffId) }}</span>
+              <span>{{ timeRange(appointment) }} · {{ staffName(appointment.staffId) }}</span>
             </button>
             <div class="empty-mini" *ngIf="!statusLaneAppointments(status).length">Clear</div>
           </div>
@@ -315,9 +316,9 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
                 <span class="avatar" [style.background]="staffAvatarColor(person)">{{ initials(person.name) }}</span>
                 <div>
                   <strong>{{ person.name }}</strong>
-                  <small>{{ staffLoad(person.id).booked }} booked min Â· {{ staffLoad(person.id).idle }} idle min</small>
+                  <small>{{ staffLoad(person.id).booked }} booked min · {{ staffLoad(person.id).idle }} idle min</small>
                 </div>
-                <button class="staff-menu-button" type="button" aria-label="Staff slot actions" (click)="openSchedulerActionMenu(person, $event)">âŒ„</button>
+                <button class="staff-menu-button" type="button" aria-label="Staff slot actions" (click)="openSchedulerActionMenu(person, $event)">⌄</button>
               </div>
               <ng-container *ngIf="schedulerActionMenu() as menu">
                 <div class="staff-action-menu" *ngIf="menu.staffId === person.id" [style.top.px]="menu.top" (click)="$event.stopPropagation()">
@@ -445,7 +446,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
                 [style.width.%]="timelineWidth(appointment)"
                 (click)="openAppointment(appointment)"
               >
-                {{ clientName(appointment.clientId) }} Â· {{ timeRange(appointment) }}
+                {{ clientName(appointment.clientId) }} · {{ timeRange(appointment) }}
               </button>
             </div>
           </div>
@@ -486,7 +487,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
             <span class="token">#{{ index + 1 }}</span>
             <div>
               <strong>{{ clientName(appointment.clientId) }}</strong>
-              <small>{{ staffName(appointment.staffId) }} Â· {{ serviceNames(appointment.serviceIds) }}</small>
+              <small>{{ staffName(appointment.staffId) }} · {{ serviceNames(appointment.serviceIds) }}</small>
             </div>
             <span class="status-pill" [class]="statusClass(appointment.status)">{{ label(appointment.status) }}</span>
           </button>
@@ -504,14 +505,14 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
           <button type="button" *ngFor="let entry of waitlistEntries(); trackBy: trackWaitlistEntry">
             <div>
               <strong>{{ waitlistClientName(entry) }}</strong>
-              <small>{{ waitlistServiceName(entry) }} Â· {{ waitlistStaffName(entry) }}</small>
+              <small>{{ waitlistServiceName(entry) }} · {{ waitlistStaffName(entry) }}</small>
             </div>
             <span>{{ waitlistWindowLabel(entry) }}</span>
           </button>
           <button type="button" *ngFor="let appointment of waitlistAppointments()" (click)="openAppointment(appointment)">
             <div>
               <strong>{{ clientName(appointment.clientId) }}</strong>
-              <small>{{ appointment.source || 'front-desk' }} Â· {{ serviceNames(appointment.serviceIds) }}</small>
+              <small>{{ appointment.source || 'front-desk' }} · {{ serviceNames(appointment.serviceIds) }}</small>
             </div>
             <span>{{ nextBestAction(appointment) }}</span>
           </button>
@@ -584,7 +585,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
             <button type="button" *ngFor="let entry of waitlistEntries(); trackBy: trackWaitlistEntry">
               <div>
                 <strong>{{ waitlistClientName(entry) }}</strong>
-                <small>{{ waitlistServiceName(entry) }} Â· {{ waitlistStaffName(entry) }}</small>
+                <small>{{ waitlistServiceName(entry) }} · {{ waitlistStaffName(entry) }}</small>
               </div>
               <span>{{ waitlistWindowLabel(entry) }}</span>
             </button>
@@ -679,7 +680,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
                   <span>Service</span>
                   <select [value]="line.serviceId" (change)="updateBookingLine(line.id, { serviceId: $any($event.target).value })">
                     <option value="">Select service</option>
-                    <option *ngFor="let service of services()" [value]="service.id">{{ service.name }} Â· {{ serviceDurationById(service.id) }}m</option>
+                    <option *ngFor="let service of services()" [value]="service.id">{{ service.name }} · {{ serviceDurationById(service.id) }}m</option>
                   </select>
                 </label>
                 <label class="field">
@@ -795,7 +796,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
         <header>
           <div>
             <h3>Remove Blocked Time</h3>
-            <p>{{ blockTimeStaffName() }} Â· {{ blockTimeDate() | date: 'dd-MM-yyyy' }}</p>
+            <p>{{ blockTimeStaffName() }} · {{ blockTimeDate() | date: 'dd-MM-yyyy' }}</p>
           </div>
           <button type="button" class="ghost-button mini" (click)="closeBlockTimeDrawer()">Close</button>
         </header>
@@ -3425,7 +3426,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   bookingDrawerSubtitle(): string {
     const slot = this.bookingSlotContext();
-    return slot ? `${slot.timeLabel} Â· click any field below to change staff, time, branch, chair or service.` : 'Select staff and time to create a booking.';
+    return slot ? `${slot.timeLabel} · click any field below to change staff, time, branch, chair or service.` : 'Select staff and time to create a booking.';
   }
 
   bookingEndPreview(): string {
@@ -3585,7 +3586,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   serviceOptionLabel(service: ApiRecord): string {
     const price = Number(service.price || 0);
-    return `${service.name || 'Service'} - â‚¹${price}`;
+    return `${service.name || 'Service'} - ₹${price}`;
   }
 
   visibleAppointments(): ApiRecord[] {
@@ -3709,7 +3710,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     const date = entry.preferredDate ? this.dateLabel(entry.preferredDate) : 'Any date';
     const start = this.timeLabel(entry.windowStart);
     const end = this.timeLabel(entry.windowEnd);
-    return [date, start && end ? `${start} - ${end}` : start || end].filter(Boolean).join(' Â· ');
+    return [date, start && end ? `${start} - ${end}` : start || end].filter(Boolean).join(' · ');
   }
 
   resources(): string[] {
@@ -4212,7 +4213,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   dropStatus(status: string, event?: DragEvent): void {
     event?.preventDefault();
     if (!this.draggingId) return;
-    this.api.post<{ appointment?: ApiRecord }>(`appointments/${this.draggingId}/status`, { status }).subscribe({
+    this.api.post<{ appointment?: ApiRecord }>(`appointment-lifecycle/appointments/${this.draggingId}/status`, { status }).subscribe({
       next: (result) => this.afterAppointmentChange(result.appointment || { id: this.draggingId, status }),
       error: (error) => this.error.set(error?.error?.error || error?.message || 'Unable to update status')
     });
@@ -4443,7 +4444,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       const planConflict = planProbes.find((existing) => {
         const sameStaff = existing.staffId === probe.staffId;
         const sameChair = this.resourceName(existing) !== 'Unassigned' && this.resourceName(existing) === this.resourceName(probe);
-        return (sameStaff || sameChair) && this.overlaps(existing, probe);
+        return (sameStaff || sameChair) && appointmentConflictBlocks(probe, existing, this.serviceByIdMap());
       });
       if (planConflict) {
         hardBlock = true;
@@ -4499,10 +4500,10 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   auditDetails(event: ApiRecord): string {
     if (event.reason || event.riskReason || event.suggestedAction) {
-      return [event.reason, event.riskReason, event.suggestedAction].filter(Boolean).join(' Â· ');
+        return [event.reason, event.riskReason, event.suggestedAction].filter(Boolean).join(' · ');
     }
     if (Array.isArray(event.changes) && event.changes.length) {
-      return event.changes.slice(0, 2).map((change: ApiRecord) => `${change.field}: ${change.oldValue} -> ${change.newValue}`).join(' Â· ');
+      return event.changes.slice(0, 2).map((change: ApiRecord) => `${change.field}: ${change.oldValue} -> ${change.newValue}`).join(' · ');
     }
     const details = event.details || event.metadata || event.payload || '';
     if (!details) return event.actorUserId || event.userId || 'System action';
@@ -4568,9 +4569,11 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   serviceDurationById(id: string): number {
     const service = this.services().find((item) => item.id === id);
-    return Number(service?.durationMinutes || service?.duration || 30)
-      + Number(service?.processingTimeMin || 0)
-      + Number(service?.cleanupTimeMin || 0);
+    return serviceTotalMinutes(service);
+  }
+
+  serviceByIdMap(): Map<string, ApiRecord> {
+    return new Map(this.services().map((service) => [String(service.id || ''), service]));
   }
 
   currentBranchId(): string {
@@ -4672,7 +4675,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       .filter((appointment) => {
         const sameStaff = appointment.staffId && appointment.staffId === probe.staffId;
         const sameResource = this.resourceName(appointment) !== 'Unassigned' && this.resourceName(appointment) === this.resourceName(probe);
-        return (sameStaff || sameResource) && this.overlaps(appointment, probe);
+        return (sameStaff || sameResource) && appointmentConflictBlocks(probe, appointment, this.serviceByIdMap());
       });
   }
 
@@ -4892,7 +4895,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     const label = blocked ? String(row.notes || 'Blocked time') : this.shiftWindowLabel(parsed.start, parsed.end);
     const source = blocked
       ? `${this.minutesLabel(parsed.start)} - ${this.minutesLabel(parsed.end)}`
-      : row.notes ? `Staff OS roster Â· ${row.notes}` : 'Staff OS roster';
+      : row.notes ? `Staff OS roster · ${row.notes}` : 'Staff OS roster';
     return this.makeShiftBlock(
       String(row.id || `${row.staffId || row.staff_id}_${row.scheduleDate || row.schedule_date}`),
       parsed.start,
@@ -4935,7 +4938,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   private parseShiftWindow(rawOrStart: string, rawEnd = ''): { start: number; end: number; label?: string } | null {
     const raw = rawEnd ? `${rawOrStart}-${rawEnd}` : rawOrStart;
-    const parts = String(raw || '').toUpperCase().split(/\s*(?:TO|T0|-|â€“|â€”)\s*/).filter(Boolean);
+    const parts = String(raw || '').toUpperCase().split(/\s*(?:TO|T0|-|–|—)\s*/).filter(Boolean);
     if (parts.length < 2) return null;
     const start = this.parseShiftTimeToken(parts[0], false);
     if (start === null) return null;
