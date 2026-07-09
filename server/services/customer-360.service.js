@@ -25,6 +25,41 @@ function normalizeClient(client = {}) {
   };
 }
 
+const CONTACT_MASKED_ROLES = new Set(["marketingLead", "customMarketingLead"]);
+
+function maskPhone(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const digits = text.replace(/\D/g, "");
+  if (digits.length <= 4) return "****";
+  return `${"*".repeat(Math.max(4, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+function maskEmail(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const [name = "", domain = ""] = text.split("@");
+  if (!domain) return "***";
+  return `${name.slice(0, 1) || "*"}***@${domain}`;
+}
+
+function maskClientContacts(row, access = {}) {
+  if (!row || !CONTACT_MASKED_ROLES.has(String(access.role || access.userRole || ""))) return row;
+  const next = { ...row, contactMasked: true };
+  for (const key of ["phone", "mobile", "clientPhone", "customerPhone"]) {
+    if (next[key] !== undefined) next[key] = maskPhone(next[key]);
+  }
+  for (const key of ["email", "clientEmail", "customerEmail"]) {
+    if (next[key] !== undefined) next[key] = maskEmail(next[key]);
+  }
+  return next;
+}
+
+function maskProfileContacts(profile, access = {}) {
+  if (!profile || !CONTACT_MASKED_ROLES.has(String(access.role || access.userRole || ""))) return profile;
+  return { ...profile, client: maskClientContacts(profile.client, access) };
+}
+
 function activeClient(client = {}) {
   return client && typeof client === "object" && !cleanText(client.deletedAt || client.deleted_at);
 }
@@ -172,8 +207,8 @@ export class Customer360Service {
     const clientQuery = branchId ? { branchId, limit } : { limit };
     const snapshotQuery = branchId ? { branchId, limit: 50 } : { limit: 50 };
     const clients = repositories.clients.list(clientQuery, scope(access, branchId, { allBranches: includeAllBranches })).filter(activeClient).map(normalizeClient);
-    const profiles = clients.map((client) => this.summaryProfile(client));
-    return {
+    const profiles = clients.map((client) => maskProfileContacts(this.summaryProfile(client), access));
+    const result = {
       metrics: {
         clients: profiles.length,
         totalLtv: money(profiles.reduce((sum, item) => sum + Number(item.metrics.lifetimeValue || 0), 0)),
@@ -182,7 +217,7 @@ export class Customer360Service {
         vip: clients.filter((client) => (client.tags || []).includes("VIP")).length
       },
       profiles,
-      clientList: clients.map((client) => ({
+      clientList: clients.map((client) => maskClientContacts({
         id: client.id,
         name: client.name,
         phone: client.phone || "",
@@ -191,7 +226,7 @@ export class Customer360Service {
         lastVisitAt: client.lastVisitAt || "",
         totalSpend: money(client.totalSpend || 0),
         visitCount: Number(client.visitCount || 0)
-      })),
+      }, access)),
       snapshots: repositories.customerIntelligenceSnapshots.list(snapshotQuery, scope(access, branchId, { allBranches: includeAllBranches }))
     };
   }
@@ -204,7 +239,7 @@ export class Customer360Service {
     const inactiveDays = daysSince(client.lastVisitAt || client.updatedAt || client.createdAt);
     const riskScore = Math.min(100, Math.round((inactiveDays > 90 ? 45 : inactiveDays > 45 ? 25 : 8) + (visitCount <= 1 ? 15 : 0)));
     const favoriteService = client.favoriteService || client.preferredService || "No favorite yet";
-    return {
+    const profile = {
       client,
       metrics: {
         lifetimeValue,
@@ -341,7 +376,7 @@ export class Customer360Service {
       wallet.balance > 0 ? `Wallet balance INR ${wallet.balance} is available for retention offers.` : "No wallet balance is currently linked.",
       membershipSummary.activeMembership ? `Active membership: ${membershipSummary.activeMembership.planName || membershipSummary.activeMembership.name || membershipSummary.activeMembership.id}.` : "No active membership linked."
     ];
-    return {
+    const result = {
       client,
       metrics: {
         lifetimeValue,
@@ -408,6 +443,7 @@ export class Customer360Service {
       visitHistory,
       timeline: includeTimeline ? this.timeline(client, sales, invoices, appointments, access, { walletTransactions, loyaltyTransactions, reviews, memberships }) : []
     };
+    return maskProfileContacts(result, access);
   }
 
   timeline(client, sales, invoices, appointments, access, linked = {}) {
