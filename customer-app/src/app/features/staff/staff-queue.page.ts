@@ -9,9 +9,11 @@ import { StaffAppService, StaffEnterpriseOs } from "../../core/staff-app.service
   template: `
     <section class="page">
       <header class="page-head"><div><p class="eyebrow">Today's queue</p><h1>Live queue</h1><p>Timeline and service timers for today.</p></div></header>
+      @if (!canReadQueue()) { <section class="notice">You do not have permission to read queue data.</section> }
+      @if (message()) { <section class="notice success">{{ message() }}</section> }
       @if (loading()) { <section class="state"><ion-spinner name="crescent" /> Loading queue...</section> }
       @if (staff.error()) { <section class="notice">{{ staff.error() }}</section> }
-      @if (os(); as data) {
+      @if (canReadQueue() && os(); as data) {
         <section class="grid two">
           <article class="panel">
             <div class="panel-title"><h2>Appointment timeline</h2><span>{{ data.timeline.length }}</span></div>
@@ -25,7 +27,20 @@ import { StaffAppService, StaffEnterpriseOs } from "../../core/staff-app.service
             <div class="panel-title"><h2>Service timers</h2><span>auto</span></div>
             <div class="list">
               @for (timer of data.serviceTimers; track timer.appointmentId) {
-                <div class="row"><div class="row-main"><strong>{{ timer.clientName }}</strong><small>{{ formatMinutes(timer.remainingMinutes) }} remaining · {{ timer.status }}</small><div class="timer-track"><span [style.width.%]="timer.progress"></span></div></div><span class="badge">{{ timer.progress }}%</span></div>
+                <div class="row">
+                  <div class="row-main">
+                    <strong>{{ timer.clientName }}</strong>
+                    <small>{{ formatMinutes(timer.remainingMinutes) }} remaining · {{ timer.status }}</small>
+                    <div class="timer-track"><span [style.width.%]="timer.progress"></span></div>
+                  </div>
+                  <span class="badge">{{ timer.progress }}%</span>
+                  @if (canUpdateQueue()) {
+                    <div class="row-actions">
+                      @if (canStartService(timer)) { <button class="link-button" type="button" (click)="startService(timer.appointmentId)">Start</button> }
+                      @if (canCompleteService(timer)) { <button class="link-button" type="button" (click)="completeService(timer.appointmentId)">Complete</button> }
+                    </div>
+                  }
+                </div>
               } @empty { <p class="empty">No service timers available.</p> }
             </div>
           </article>
@@ -38,8 +53,57 @@ import { StaffAppService, StaffEnterpriseOs } from "../../core/staff-app.service
 export class StaffQueuePage implements OnInit {
   readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly loading = signal(false);
+  readonly message = signal("");
   constructor(readonly staff: StaffAppService) {}
-  ngOnInit() { void this.load(); }
-  async load() { this.loading.set(true); try { this.os.set(await this.staff.enterpriseOs()); } finally { this.loading.set(false); } }
+  ngOnInit() { if (this.canReadQueue()) void this.load(); }
+  async load() {
+    this.loading.set(true);
+    this.message.set("");
+    try {
+      this.os.set(await this.staff.enterpriseOs());
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  canReadQueue(): boolean {
+    return this.staff.hasPermission("read:staff");
+  }
+
+  canUpdateQueue(): boolean {
+    return this.staff.hasAnyPermission(["write:staff", "update:staff", "write:appointments", "update:appointments"]);
+  }
+
   formatMinutes(minutes: number): string { const safe = Math.max(0, Number(minutes || 0)); return `${Math.floor(safe / 60)}h ${safe % 60}m`; }
+  canStartService(timer: { status: string }) {
+    const status = String(timer.status || "").toLowerCase();
+    return ["queued", "pending", "scheduled", "booked", "confirmed", "arrived"].includes(status);
+  }
+
+  canCompleteService(timer: { status: string }) {
+    const status = String(timer.status || "").toLowerCase();
+    return ["in-service", "in service", "inprogress", "in progress", "running", "active", "started", "scheduled", "pending", "arrived", "confirmed", "booked"].includes(status);
+  }
+
+  async startService(appointmentId: string) {
+    this.message.set("");
+    try {
+      await this.staff.startService(appointmentId);
+      this.message.set("Service started.");
+      await this.load();
+    } catch {
+      this.message.set(this.staff.error() || "Unable to start service.");
+    }
+  }
+
+  async completeService(appointmentId: string) {
+    this.message.set("");
+    try {
+      await this.staff.completeService(appointmentId);
+      this.message.set("Service completed.");
+      await this.load();
+    } catch {
+      this.message.set(this.staff.error() || "Unable to complete service.");
+    }
+  }
 }
