@@ -3,6 +3,10 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { AuthSessionService } from '../core/auth-session.service';
+import { grantsAllow, staticGrantsForRole } from '../core/permission.guard';
+import { routePermissionForPath } from '../core/access-rules';
+import { AppStateService } from '../core/state/app-state.service';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -108,7 +112,7 @@ type InvoiceLine = {
           <h2>10x Enterprise Invoice Reports</h2>
         </div>
         <div class="hero-actions">
-          <a class="ghost-button" routerLink="/pos/invoices">POS invoices</a>
+          <a class="ghost-button" routerLink="/pos/invoices" *ngIf="canAccessPath('/pos/invoices')">POS invoices</a>
           <a class="ghost-button" routerLink="/pos/invoice-activity">Invoice activity</a>
           <a class="ghost-button" routerLink="/reports">Reports</a>
           <button class="primary-button" type="button" (click)="load()">Refresh</button>
@@ -612,15 +616,17 @@ type InvoiceLine = {
                     <ng-container *ngIf="activeReport() === 'service-clients' && column.key === 'actions'; else dueRecoveryActionCell">
                       <div class="due-recovery-actions">
                         <a class="ghost-button mini" *ngIf="row['clientId']" [routerLink]="['/clients', row['clientId']]">Open Client 360</a>
-                        <a class="ghost-button mini" *ngIf="row['invoiceId']" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row['invoiceId'] }">Open Invoice</a>
+                        <ng-container *ngIf="canAccessPath('/pos/invoices')">
+                          <a class="ghost-button mini" *ngIf="row['invoiceId']" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row['invoiceId'] }">Open Invoice</a>
+                        </ng-container>
                       </div>
                     </ng-container>
                     </ng-template>
                     <ng-template #dueRecoveryActionCell>
                     <ng-container *ngIf="activeReport() === 'due-recovery' && column.key === 'actions'; else normalReportCell">
                       <div class="due-recovery-actions">
-                        <a class="ghost-button mini" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row['invoiceId'] }">Open invoice</a>
-                        <a class="ghost-button mini" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row['invoiceId'], due: 1 }">Receive due</a>
+                        <a class="ghost-button mini" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row['invoiceId'] }" *ngIf="canAccessPath('/pos/invoices')">Open invoice</a>
+                        <a class="ghost-button mini" [routerLink]="['/pos/invoices']" [queryParams]="{ invoice: row['invoiceId'], due: 1 }" *ngIf="canAccessPath('/pos/invoices')">Receive due</a>
                         <button
                           class="primary-button mini"
                           type="button"
@@ -1161,7 +1167,21 @@ export class InvoiceReportsComponent implements OnInit {
     ]
   };
 
-  constructor(private readonly api: ApiService, private readonly route: ActivatedRoute) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly route: ActivatedRoute,
+    private readonly state: AppStateService,
+    private readonly session: AuthSessionService
+  ) {}
+
+  canAccessPath(path: string): boolean {
+    const permission = routePermissionForPath(path);
+    if (!permission || (Array.isArray(permission) && !permission.length)) return true;
+    const permissions = Array.isArray(permission) ? permission : [permission];
+    const dynamicGrants = this.session.currentUser()?.permissions || [];
+    const grants = Array.from(new Set([...staticGrantsForRole(this.state.userRole()), ...dynamicGrants]));
+    return permissions.some((item) => grantsAllow(grants, item));
+  }
 
   ngOnInit(): void {
     const requestedReport = String(this.route.snapshot.queryParamMap.get('report') || '');

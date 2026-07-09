@@ -2,6 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthSessionService } from '../core/auth-session.service';
+import { grantsAllow, staticGrantsForRole } from '../core/permission.guard';
+import { routePermissionForPath } from '../core/access-rules';
+import { AppStateService } from '../core/state/app-state.service';
 import { ApiRecord, ApiService } from '../core/api.service';
 
 type MessageHistoryResponse = {
@@ -136,7 +140,9 @@ type MessageHistoryResponse = {
                 <td>
                   <div class="row-actions">
                     <a *ngIf="row.clientId" class="ghost-button mini" [routerLink]="['/clients', row.clientId]">Client</a>
-                    <a *ngIf="row.referenceType === 'invoice' || row.referenceLabel" class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: row.referenceLabel || row.referenceId }">Invoice</a>
+                    <ng-container *ngIf="canAccessPath('/pos/invoices')">
+                      <a *ngIf="row.referenceType === 'invoice' || row.referenceLabel" class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: row.referenceLabel || row.referenceId }">Invoice</a>
+                    </ng-container>
                     <a *ngIf="!row.clientId && !(row.referenceType === 'invoice' || row.referenceLabel)" class="ghost-button mini" routerLink="/message-logs">Open</a>
                   </div>
                 </td>
@@ -222,7 +228,20 @@ export class MessageHistoryReportComponent implements OnInit {
     limit: 1000
   };
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly state: AppStateService,
+    private readonly session: AuthSessionService
+  ) {}
+
+  canAccessPath(path: string): boolean {
+    const permission = routePermissionForPath(path);
+    if (!permission || (Array.isArray(permission) && !permission.length)) return true;
+    const permissions = Array.isArray(permission) ? permission : [permission];
+    const dynamicGrants = this.session.currentUser()?.permissions || [];
+    const grants = Array.from(new Set([...staticGrantsForRole(this.state.userRole()), ...dynamicGrants]));
+    return permissions.some((item) => grantsAllow(grants, item));
+  }
 
   ngOnInit(): void {
     this.load();

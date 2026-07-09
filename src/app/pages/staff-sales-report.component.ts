@@ -2,6 +2,10 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, effect, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthSessionService } from '../core/auth-session.service';
+import { grantsAllow, staticGrantsForRole } from '../core/permission.guard';
+import { routePermissionForPath } from '../core/access-rules';
+import { AppStateService } from '../core/state/app-state.service';
 import { ApiRecord, ApiService } from '../core/api.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
@@ -416,7 +420,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
                               <td>{{ serviceRow.gst | currency: 'INR':'symbol':'1.0-0' }}</td>
                               <td>{{ serviceRow.dueAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
                               <td class="row-actions">
-                                <a class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: serviceRow.invoiceNumber }">Invoice</a>
+                                <a class="ghost-button mini" routerLink="/pos/invoices" [queryParams]="{ q: serviceRow.invoiceNumber }" *ngIf="canAccessPath('/pos/invoices')">Invoice</a>
                                 <a class="ghost-button mini" routerLink="/clients" [queryParams]="{ q: serviceRow.customerContact || serviceRow.customerName }">Client</a>
                               </td>
                             </tr>
@@ -972,12 +976,23 @@ export class StaffSalesReportComponent implements OnInit {
   constructor(
     private readonly api: ApiService,
     private readonly route: ActivatedRoute,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly state: AppStateService,
+    private readonly session: AuthSessionService
   ) {
     effect(() => {
       this.api.selectedBranchId();
       if (this.initialized) this.load();
     });
+  }
+
+  canAccessPath(path: string): boolean {
+    const permission = routePermissionForPath(path);
+    if (!permission || (Array.isArray(permission) && !permission.length)) return true;
+    const permissions = Array.isArray(permission) ? permission : [permission];
+    const dynamicGrants = this.session.currentUser()?.permissions || [];
+    const grants = Array.from(new Set([...staticGrantsForRole(this.state.userRole()), ...dynamicGrants]));
+    return permissions.some((item) => grantsAllow(grants, item));
   }
 
   ngOnInit(): void {

@@ -4,6 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, forkJoin, of, Observable } from 'rxjs';
 import { ApiRecord, ApiService } from '../../../../core/api.service';
+import { AuthSessionService } from '../../../../core/auth-session.service';
+import { grantsAllow, staticGrantsForRole } from '../../../../core/permission.guard';
+import { routePermissionForPath } from '../../../../core/access-rules';
+import { AppStateService } from '../../../../core/state/app-state.service';
 
 type ProviderKey = 'razorpay' | 'upi' | 'card' | 'bank';
 type InvoiceResponse = { rows?: ApiRecord[]; total?: number } | ApiRecord[];
