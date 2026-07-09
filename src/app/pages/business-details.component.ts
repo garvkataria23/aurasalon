@@ -1069,11 +1069,11 @@ type ContactVerificationResponse = ContactVerification & {
     .hours-editor {
       display: grid;
       grid-template-columns: minmax(220px, 0.36fr) minmax(520px, 1fr);
-      gap: 28px;
+      gap: 16px;
       align-items: start;
-      margin-top: 28px;
+      margin-top: 24px;
       border-top: 1px solid #d6dfdd;
-      padding-top: 26px;
+      padding-top: 20px;
       background: #fff;
     }
     .hours-copy h3 {

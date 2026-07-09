@@ -273,7 +273,7 @@ type OutgoingFundEntry = ApiRecord & {
     </section>
   `,
   styles: [`
-    .outgoing-page { display: grid; gap: 18px; color: var(--ink); max-width: 1320px; margin: 0 auto; width: 100%; padding: 0 6px; }
+    .outgoing-page { display: grid; gap: 18px; color: var(--ink); width: 100%; padding: 0 6px; }
     .module-hero, .voucher-window, .metric-grid article {
       background: var(--surface);
       border: 1px solid var(--line);

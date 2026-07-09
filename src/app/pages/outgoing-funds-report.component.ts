@@ -174,7 +174,7 @@ type ReportRow = {
     td { color: var(--ink); }
     .r { text-align: right; font-variant-numeric: tabular-nums; }
     tfoot td { font-weight: 900; color: var(--color-primary); border-bottom: 0; }
-    .empty { text-align: center; color: var(--muted); padding: 30px; }
+    .empty { text-align: center; color: var(--muted); padding: 24px; }
     @media (max-width: 820px) { .report-hero { flex-direction: column; align-items: stretch; } .filters, .summary { grid-template-columns: 1fr; } }
   `]
 })

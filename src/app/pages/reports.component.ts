@@ -570,7 +570,7 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 22px; padding: 6px 2px 24px; background: var(--color-surface-muted); min-height: 100vh; }
+    .page { display: flex; flex-direction: column; gap: 16px; padding: 6px 2px 24px; background: var(--color-surface-muted); min-height: 100vh; }
     a { text-decoration: none; color: inherit; }
     button { font-family: inherit; cursor: pointer; }
 
@@ -932,8 +932,8 @@ type ReportViewKey = 'overview' | 'revenue' | 'bookings' | 'staff' | 'inventory'
 
 
     .page {
-      gap: 18px;
-      padding: 8px 4px 28px;
+      gap: 16px;
+      padding: 8px 4px 24px;
     }
 
     .page-head {

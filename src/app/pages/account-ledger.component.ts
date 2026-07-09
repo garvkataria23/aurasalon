@@ -236,7 +236,7 @@ type LedgerResponse = {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 34px;
+      gap: 20px;
       padding: 8px 14px 14px;
       color: #0f172a;
     }
@@ -289,7 +289,7 @@ type LedgerResponse = {
       text-align: right;
     }
     .empty-row td {
-      padding: 36px 12px;
+      padding: 24px 12px;
       text-align: center;
       color: #475569;
     }

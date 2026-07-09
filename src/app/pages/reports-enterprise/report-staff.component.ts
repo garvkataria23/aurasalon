@@ -63,7 +63,7 @@ import { Subscription } from 'rxjs';
     .skeleton-line { border-radius: 6px; background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
     .skeleton-line.w-40 { width: 40%; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .empty-state { text-align: center; padding: 48px 16px; }
+    .empty-state { text-align: center; padding: 24px 16px; }
     .empty-icon { font-size: 40px; display: block; margin-bottom: 8px; }
     .empty-state strong { display: block; font-size: 16px; }
     .empty-state small { color: var(--muted); }

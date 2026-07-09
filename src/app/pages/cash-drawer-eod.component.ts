@@ -808,7 +808,7 @@ const DENOMINATION_TEMPLATE: DenominationRow[] = [
     .risk-grid { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 10px; margin: 12px 0; }
     .risk-grid span { border: 1px solid #E7DDD6; border-radius: 8px; padding: 10px; background: #f8fafc; color: #475569; }
     .risk-grid strong { display: block; color: #0f172a; margin-top: 4px; text-transform: capitalize; }
-    .token-approval-panel { max-width: 980px; margin: 0 auto 18px; display: grid; gap: 14px; }
+    .token-approval-panel { margin-bottom: 18px; display: grid; gap: 14px; }
     .approval-link-grid, .match-summary { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; }
     .match-summary { margin-top: 10px; }
     .approval-link-grid span, .match-summary span { border: 1px solid #E7DDD6; border-radius: 8px; padding: 10px; background: #f8fafc; color: #475569; }

@@ -72,7 +72,7 @@ import { Subscription } from 'rxjs';
     .tag-positive { background: #FBF0E8; color: var(--green); }
     .tag-warning { background: #fef3c7; color: #b7791f; }
     .tag-info { background: #F8EEF4; color: var(--blue); }
-    .insights-empty { text-align: center; padding: 48px 16px; }
+    .insights-empty { text-align: center; padding: 24px 16px; }
     .empty-icon { font-size: 48px; display: block; margin-bottom: 8px; }
     .insights-empty strong { display: block; font-size: 16px; }
     .insights-empty small { color: var(--muted); }

@@ -220,10 +220,10 @@ import { HappyHoursBannerComponent } from './booking-portal/happy-hours-banner/h
   `,
   styles: [`
     .portal-page {
-      width: min(1180px, calc(100% - 28px));
+      width: 100%;
+      max-width: none;
       display: grid;
       gap: 18px;
-      margin: 0 auto;
       padding: 24px 0 36px;
     }
     .public-profile {

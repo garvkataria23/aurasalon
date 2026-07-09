@@ -195,10 +195,10 @@ import { StateComponent } from '../shared/ui/state/state.component';
     :host { display: contents; }
 
     .page-stack {
-      padding: 24px 32px;
+      padding: 20px 24px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
       background:
         radial-gradient(ellipse 80% 60% at 20% 8%, rgba(232, 167, 184, 0.18) 0%, transparent 70%),
         radial-gradient(ellipse 60% 50% at 90% 92%, rgba(75, 18, 56, 0.06) 0%, transparent 70%),
@@ -207,24 +207,48 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     .greeting {
+      position: relative;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      gap: 24px;
+      gap: 16px;
       flex-wrap: wrap;
+      padding: 18px 20px 18px 32px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(255,247,251,.78) 52%, rgba(255,255,255,.9));
+      box-shadow: 0 24px 44px rgba(75, 18, 56, 0.13), inset 0 1px 0 rgba(255,255,255,.95);
+      transform: perspective(900px) rotateX(1.2deg) rotateY(-.8deg) translateZ(0);
+    }
+    .greeting::after {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 16px;
+      bottom: 16px;
+      width: 5px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #6f1d51, #d08aac 48%, #fff2f7);
+    }
+    .greeting-copy {
+      position: relative;
+      padding-left: 14px;
+      transform: translateZ(26px);
     }
     .greeting-copy h1 {
-      font-size: 20px; font-weight: 500;
-      margin: 0; color: #2b2220;
+      font-size: 24px; font-weight: 800;
+      margin: 0; color: #21151c;
+      letter-spacing: -0.02em;
     }
     .greeting-eyebrow {
-      font-size: 11px; letter-spacing: .06em;
-      text-transform: uppercase; color: #8f5c54; font-weight: 600;
+      font-size: 11px; letter-spacing: .08em;
+      text-transform: uppercase; color: #8f5c54; font-weight: 750;
     }
     .greeting-copy p {
-      font-size: 13px; line-height: 1.45; color: #6F778A; margin: 2px 0 0;
+      font-size: 13px; line-height: 1.45; color: #667085; margin: 4px 0 0;
     }
-    .greeting-actions { display: flex; gap: 8px; }
+    .greeting-actions { display: flex; gap: 8px; transform: translateZ(22px); }
 
     .card {
       background: rgba(255, 255, 255, 0.52);
@@ -517,7 +541,9 @@ import { StateComponent } from '../shared/ui/state/state.component';
     }
 
     @media (max-width: 768px) {
-      .greeting { flex-direction: column; align-items: stretch; }
+      .greeting { flex-direction: column; align-items: stretch; padding: 16px 16px 16px 28px; transform: none; }
+      .greeting::after { left: 14px; top: 14px; bottom: 14px; }
+      .greeting-copy { padding-left: 10px; transform: none; }
       .greeting-actions { width: 100%; }
       .greeting-actions > * { flex: 1; justify-content: center; }
       .metrics-grid { grid-template-columns: repeat(2, 1fr); }

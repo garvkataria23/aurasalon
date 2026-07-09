@@ -4,6 +4,7 @@ import { FormControl, FormsModule, ReactiveFormsModule, UntypedFormBuilder, Unty
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiRecord, ApiService } from '../core/api.service';
+import { AppStateService } from '../core/state/app-state.service';
 import { StateComponent } from '../shared/ui/state/state.component';
 
 type FieldConfig = {
@@ -711,6 +712,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly api: ApiService,
+    private readonly state: AppStateService,
     private readonly route: ActivatedRoute,
     private readonly fb: UntypedFormBuilder
   ) {}
@@ -730,7 +732,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
   }
 
   get viewRows(): ApiRecord[] {
-    const filtered = this.rows.filter((row) => JSON.stringify(row).toLowerCase().includes(this.query.toLowerCase()));
+    const filtered = this.roleScopedRows(this.rows).filter((row) => JSON.stringify(row).toLowerCase().includes(this.query.toLowerCase()));
     return this.sortedRows(filtered);
   }
 
@@ -862,7 +864,7 @@ export class ModulePageComponent implements OnInit, OnDestroy {
       ];
     }
     return [
-      { label: 'Total records', value: this.rows.length, hint: this.config.entity },
+      { label: 'Total records', value: this.roleScopedRows(this.rows).length, hint: this.config.entity },
       { label: 'WhatsApp', value: this.countBy('channel', 'whatsapp'), hint: 'Chat messages' },
       { label: 'SMS', value: this.countBy('channel', 'sms'), hint: 'Text messages' },
       { label: 'Email', value: this.countBy('channel', 'email'), hint: 'Email logs' },
@@ -1033,13 +1035,32 @@ export class ModulePageComponent implements OnInit, OnDestroy {
     if (this.isServicesPage()) this.loadServiceProducts();
     this.api.list<ApiRecord[]>(this.config.entity, { branchId: this.api.selectedBranchId() }).subscribe({
       next: (rows) => {
-        this.rows = rows;
+        this.rows = rows || [];
         this.loading = false;
       },
       error: (error) => {
         this.error = error?.error?.error || 'Unable to load records';
         this.loading = false;
       }
+    });
+  }
+
+  private roleScopedRows(rows: ApiRecord[]): ApiRecord[] {
+    if (this.config?.entity !== 'notifications') return rows;
+    const role = String(this.state.userRole() || '').replace(/[\s_-]+/g, '').toLowerCase();
+    if (['owner', 'admin', 'superadmin'].includes(role)) return rows;
+    const domains: Record<string, string> = {
+      marketinglead: 'marketing campaign lead coupon whatsapp sms email reputation review client engagement', custommarketinglead: 'marketing campaign lead coupon whatsapp sms email reputation review client engagement',
+      manager: 'appointment booking client service pos payment invoice inventory staff campaign lead notification', receptionist: 'appointment booking client service pos payment invoice reminder notification', frontdesk: 'appointment booking client service pos payment invoice reminder notification',
+      cashier: 'pos payment invoice refund due client notification', accountant: 'finance payment invoice ledger cash expense tax notification', inventorymanager: 'inventory product stock supplier purchase expiry reorder notification', staff: 'staff appointment booking schedule task notification'
+    };
+    const allowed = (domains[role] || '').split(' ').filter(Boolean);
+    if (!allowed.length) return [];
+    return rows.filter((row) => {
+      const haystack = JSON.stringify(row).toLowerCase();
+    const blocked = ['owner', 'admin', 'security', 'finance', 'staff'].filter((keyword) => !allowed.includes(keyword));
+    if (blocked.some((keyword) => haystack.includes(keyword))) return false;
+    return allowed.some((keyword) => haystack.includes(keyword));
     });
   }
 

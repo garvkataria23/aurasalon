@@ -163,7 +163,7 @@ type StaffAppointmentsReport = {
     th { color: var(--muted); font-size: 12px; text-transform: uppercase; background: var(--surface-2); }
     td { font-weight: 650; }
     .avatar { display: inline-grid; place-items: center; width: 34px; height: 34px; margin-right: 10px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 900; }
-    .empty-state { padding: 34px 12px; text-align: center; color: var(--muted); }
+    .empty-state { padding: 24px 12px; text-align: center; color: var(--muted); }
     .pager { justify-content: space-between; color: var(--muted); font-weight: 800; }
     @media (max-width: 960px) { .report-hero, .filter-panel { grid-template-columns: 1fr; } .hero-actions { justify-content: flex-start; } .report-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   `]

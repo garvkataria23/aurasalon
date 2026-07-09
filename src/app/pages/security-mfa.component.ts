@@ -97,7 +97,7 @@ import { MfaApiService, MfaEnrolment, MfaSession, MfaStatus } from '../core/mfa-
     </div>
   `,
   styles: [`
-    .mfa-wrap { max-width: 760px; margin: 0 auto; padding: 24px 18px 60px; color: #e8ece9; display: grid; gap: 18px; }
+    .mfa-wrap { padding: 20px; color: #e8ece9; display: grid; gap: 16px; }
     .mfa-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 16px;
       background: linear-gradient(160deg, rgba(36,164,126,0.16), rgba(36,164,126,0.04)), #0f1716;
       box-shadow: 0 8px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07); }

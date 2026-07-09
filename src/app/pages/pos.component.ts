@@ -1636,7 +1636,7 @@ type PackageClientNotice = {
       background: rgba(75, 18, 56, 0.09);
       outline: 0;
     }
-    :host .page-stack { gap: 18px; padding: 8px 4px 28px; background: var(--color-surface-muted); }
+    :host .page-stack { gap: 16px; padding: 8px 4px 24px; background: var(--color-surface-muted); }
     :host .pos-command-hero { align-items: center; min-height: auto; padding: 18px 22px; border: 1px solid rgba(117, 79, 71, 0.12); border-radius: 14px; background: linear-gradient(180deg, #fff, #faf8f6); box-shadow: 0 10px 28px rgba(89, 64, 54, 0.06); }
     :host .pos-command-copy { display: grid; gap: 4px; min-width: 0; }
     :host .pos-eyebrow { color: #8a625b; font-size: 11px; font-weight: 680; letter-spacing: 0.08em; text-transform: uppercase; }

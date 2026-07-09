@@ -183,7 +183,7 @@ type AppointmentDetailReport = {
     .avatar { display: inline-grid; place-items: center; width: 34px; height: 34px; margin-right: 8px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 900; }
     .status-pill { display: inline-flex; min-width: 90px; justify-content: center; border-radius: 999px; padding: 6px 10px; color: var(--ink); background: var(--surface-2); font-weight: 900; }
     .status-pill.completed { background: #F5EEF2; } .status-pill.cancelled { background: #ffe3e6; } .status-pill.not_came { background: #FBF0E8; } .status-pill.confirmed { background: #FBF0E8; } .status-pill.arrived { background: #F5EEF2; } .status-pill.started { background: #fff4d6; }
-    .empty-state { padding: 34px 12px; text-align: center; color: var(--muted); }
+    .empty-state { padding: 24px 12px; text-align: center; color: var(--muted); }
     .pager { justify-content: space-between; color: var(--muted); font-weight: 800; }
     .mini { min-height: 32px; padding: 0 10px; font-size: 12px; }
     @media (max-width: 1100px) { .report-hero, .filter-panel { grid-template-columns: 1fr; } .hero-actions { justify-content: flex-start; } .status-strip { grid-template-columns: repeat(4, minmax(130px, 1fr)); } }

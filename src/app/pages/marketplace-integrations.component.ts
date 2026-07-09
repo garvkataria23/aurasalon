@@ -573,7 +573,7 @@ const catalog: IntegrationCategory[] = [
     </section>
   `,
   styles: [`
-    .integrations-page { padding: 18px 22px 40px; background: #f5f7fb; min-height: calc(100vh - 80px); color: #0f172a; }
+    .integrations-page { padding: 20px; background: #f5f7fb; min-height: calc(100vh - 80px); color: #0f172a; }
     .integrations-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-end; margin-bottom: 18px; }
     .integrations-header h2 { margin: 4px 0 6px; color: #0f172a; font-size: 34px; letter-spacing: 0; }
     .integrations-header p { margin: 0; color: #53657d; max-width: 780px; line-height: 1.5; }
@@ -617,7 +617,7 @@ const catalog: IntegrationCategory[] = [
     .close-button { border: 0; background: transparent; font-size: 34px; line-height: 1; cursor: pointer; color: #222; width: 32px; height: 32px; }
     .connection-pill { margin-left: auto; border-radius: 999px; padding: 7px 12px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 900; }
     .connection-pill.connected { background: #FBF0E8; color: #7A4A28; }
-    .drawer-content { display: grid; grid-template-columns: minmax(360px, 1fr) 485px; gap: 60px; padding: 34px 48px; overflow: auto; }
+    .drawer-content { display: grid; grid-template-columns: minmax(360px, 1fr) 485px; gap: 24px; padding: 24px; overflow: auto; }
     .setup-form { display: grid; align-content: start; gap: 14px; }
     .field { display: grid; gap: 7px; color: #444; font-weight: 800; }
     .field input, .field select, .field textarea { width: 100%; border: 1px solid #aeb7c3; border-radius: 7px; padding: 10px 11px; font: inherit; color: #111827; background: #fff; }
@@ -646,7 +646,7 @@ const catalog: IntegrationCategory[] = [
     .scope-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
     .scope-list span { background: #eef2f7; color: #334155; border-radius: 999px; padding: 7px 10px; font-size: 12px; font-weight: 900; }
     @media (max-width: 1280px) {
-      .drawer-content { grid-template-columns: 1fr; gap: 28px; }
+      .drawer-content { grid-template-columns: 1fr; gap: 16px; }
     }
     @media (max-width: 760px) {
       .integrations-page { padding: 14px; }

@@ -130,7 +130,7 @@ import { StaffOsBranch, StaffOsServiceAssignment, StaffOsServiceOption, StaffOsS
     </section>
   `,
   styles: [`
-    .assign-page { color: #1e1b2e; display: grid; gap: 28px; padding: 24px; }
+    .assign-page { color: #1e1b2e; display: grid; gap: 16px; padding: 20px; }
     .topbar, .selected-band, .topbar-actions, .actions { align-items: flex-start; display: flex; gap: 12px; justify-content: space-between; }
     .topbar-actions, .actions { align-items: center; justify-content: flex-end; flex-wrap: wrap; }
     .eyebrow { color: #6b7280; font-size: 12px; font-weight: 850; letter-spacing: .08em; margin: 0 0 5px; text-transform: uppercase; }

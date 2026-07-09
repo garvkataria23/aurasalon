@@ -101,7 +101,7 @@ import { Subscription } from 'rxjs';
     .opportunity-card strong { font-size: 14px; }
     .opportunity-card span { font-size: 12px; color: var(--muted); }
     .impact-badge { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 4px; background: #F8EEF4; color: #4B1238; font-size: 11px; font-weight: 700; width: fit-content; }
-    .empty-state { text-align: center; padding: 48px 16px; }
+    .empty-state { text-align: center; padding: 24px 16px; }
     .empty-icon { font-size: 40px; display: block; margin-bottom: 8px; }
     .empty-state strong { display: block; font-size: 16px; }
     .empty-state small { color: var(--muted); }
