@@ -64,7 +64,13 @@ type StaffRecentItem = { label: string; path: string };
         <main class="staff-content"><router-outlet /></main>
       </div>
 
-      <button type="button" class="scroll-top-button" (click)="scrollToTop()" aria-label="Go to top">Top</button>
+      <nav class="mobile-bottom-nav" aria-label="Primary staff navigation">
+        <a routerLink="/staff/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Dashboard')"></path></svg><span>Home</span></a>
+        <a routerLink="/staff/appointments" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Appointments')"></path></svg><span>Bookings</span></a>
+        <a routerLink="/staff/queue" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Today' + 's Queue')"></path></svg><span>Queue</span></a>
+        <a routerLink="/staff/clients" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Clients')"></path></svg><span>Clients</span></a>
+        <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a>
+      </nav>      <button type="button" class="scroll-top-button" (click)="scrollToTop()" aria-label="Go to top">Top</button>
 
       @if (commandOpen()) {
         <section class="command-backdrop" (click)="closeCommand()">
@@ -161,7 +167,7 @@ type StaffRecentItem = { label: string; path: string };
     .notice-list span { margin-top: 6px; color: #8a611e; font-size: .76rem; font-weight: 950; text-transform: capitalize; }
     .notice-list button { margin-top: 8px; border: 1px solid #d6aa55; border-radius: 999px; background: #fff8ea; color: #6e4810; font-weight: 950; padding: 7px 10px; }
     .staff-toast { position: fixed; left: 50%; bottom: 18px; z-index: 80; transform: translateX(-50%); max-width: min(420px, calc(100vw - 24px)); padding: 11px 14px; border: 1px solid #d6aa55; border-radius: 999px; background: #1d1307; color: #fff8e8; font-weight: 950; box-shadow: 0 18px 44px rgba(34,19,5,.28); }
-    .scroll-top-button { display: none; }
+    .mobile-bottom-nav { display: none; }    .scroll-top-button { display: none; }
     @media (max-width: 900px) {
       .staff-app-shell { display: block; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
       .staff-main-shell { display: block; height: 100dvh; min-height: 100dvh; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
@@ -176,8 +182,12 @@ type StaffRecentItem = { label: string; path: string };
       .topbar-actions button { padding: 7px 10px; }
       .topbar-actions .bell-button { width: 40px; height: 40px; min-width: 40px; padding: 0; border-radius: 15px; }
       .bell-icon { width: 19px; height: 19px; }
-      .staff-content { overflow: visible; padding: 14px 12px calc(24px + env(safe-area-inset-bottom)); }
-      .scroll-top-button { position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 28; display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid rgba(184,122,20,.46); border-radius: 999px; background: linear-gradient(145deg, #f7d77f, #c89024); color: #281806; font-weight: 950; box-shadow: 0 16px 34px rgba(139,93,21,.24); }
+      .staff-content { overflow: visible; padding: 14px 12px calc(100px + env(safe-area-inset-bottom)); }
+      .mobile-bottom-nav { position: fixed; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 27; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: min(calc(100vw - 18px), 430px); min-height: 68px; padding: 6px; gap: 3px; transform: translateX(-50%); border: 1px solid rgba(225,190,116,.52); border-radius: 22px; background: rgba(255,253,248,.96); box-shadow: 0 18px 42px rgba(73,35,58,.18); backdrop-filter: blur(18px); }
+      .mobile-bottom-nav a { display: grid; place-items: center; align-content: center; gap: 3px; min-width: 0; padding: 5px 3px; border-radius: 16px; color: #76586b; font-size: .62rem; font-weight: 950; text-decoration: none; }
+      .mobile-bottom-nav a svg { width: 20px; height: 20px; fill: currentColor; }
+      .mobile-bottom-nav a.active { color: #321827; background: linear-gradient(135deg, #f6c8bd, #f1d59f); box-shadow: 0 8px 18px rgba(160,91,108,.16); }
+      .scroll-top-button { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 28; display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid rgba(184,122,20,.46); border-radius: 999px; background: linear-gradient(145deg, #f7d77f, #c89024); color: #281806; font-weight: 950; box-shadow: 0 16px 34px rgba(139,93,21,.24); }
       .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; opacity: 0; pointer-events: none; background: rgba(75,48,12,.28); backdrop-filter: blur(2px); transition: opacity .18s ease; }
       .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
       .staff-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; width: min(84vw, 318px); height: 100dvh; overflow: auto; padding: 14px; border-right: 1px solid rgba(214,170,85,.3); transform: translateX(-104%); transition: transform .2s ease; box-shadow: 24px 0 60px rgba(34,19,5,.18); }
