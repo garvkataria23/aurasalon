@@ -40,7 +40,7 @@ type StaffRecentItem = { label: string; path: string };
         <button type="button" class="nav-logout" (click)="logout()">Logout</button>
       </aside>
 
-      <div class="staff-main-shell" #mainShell>
+      <div class="staff-main-shell" #mainShell (scroll)="onMainScroll()">
         <header class="staff-topbar">
           <button type="button" class="menu-button" (click)="openMenu()" aria-label="Open menu"><span></span><span></span><span></span></button>
           <div class="staff-identity"><span>Staff portal</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong></div>
@@ -66,7 +66,7 @@ type StaffRecentItem = { label: string; path: string };
         <a routerLink="/staff/queue" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Today' + 's Queue')"></path></svg><span>Queue</span></a>
         <a routerLink="/staff/clients" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Clients')"></path></svg><span>Clients</span></a>
         <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a>
-      </nav>      <button type="button" class="scroll-top-button" (click)="scrollToTop()" aria-label="Go to top">Top</button>
+      </nav>      @if (showScrollTop()) { <button type="button" class="scroll-top-button" (click)="scrollToTop()" aria-label="Go to top">Top</button> }
 
       @if (commandOpen()) {
         <section class="command-backdrop" (click)="closeCommand()">
@@ -219,6 +219,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   readonly menuOpen = signal(false);
   readonly commandOpen = signal(false);
   readonly notificationsOpen = signal(false);
+  readonly showScrollTop = signal(false);
   readonly online = signal(typeof navigator === "undefined" ? true : navigator.onLine);
   readonly realtimeConnected = signal(false);
   readonly offlinePending = signal(0);
@@ -423,6 +424,10 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
 
   closeNotifications() {
     this.notificationsOpen.set(false);
+  }
+
+  onMainScroll() {
+    this.showScrollTop.set((this.mainShell?.nativeElement.scrollTop || 0) > 120);
   }
 
   scrollToTop() {
