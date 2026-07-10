@@ -128,8 +128,10 @@ type StaffRecentItem = { label: string; path: string };
     nav a.active span { background: #f1c768; color: #3b2608; }
     .nav-logout { width: 100%; margin-top: 12px; padding: 11px 13px; border: 1px solid rgba(214,170,85,.34); border-radius: 16px; background: #fff8ea; color: #7a4510; font-weight: 950; text-align: left; }
     .staff-main-shell { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
-    .staff-topbar { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(234,210,162,.58); background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,250,239,.94)); box-shadow: 0 8px 24px rgba(92,65,28,.07); backdrop-filter: blur(16px); }
-    .staff-topbar p { margin: 0; color: #8a611e; font-size: .74rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
+    .staff-topbar { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 16px; border-bottom: 1px solid rgba(234,210,162,.58); background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,250,239,.94)); box-shadow: 0 8px 24px rgba(92,65,28,.07); backdrop-filter: blur(16px); }
+    .staff-identity { display: flex; align-items: baseline; min-width: 0; gap: 7px; }
+    .staff-identity span { overflow: hidden; color: #8a611e; font-size: .66rem; font-weight: 950; letter-spacing: .1em; text-transform: uppercase; text-overflow: ellipsis; white-space: nowrap; }
+    .staff-identity strong { overflow: hidden; color: #1d1307; font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
     .staff-topbar strong { color: #1d1307; }
     .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; flex-wrap: wrap; }
     .topbar-actions span { color: #75552b; font-weight: 900; }
@@ -172,12 +174,12 @@ type StaffRecentItem = { label: string; path: string };
     @media (max-width: 900px) {
       .staff-app-shell { display: block; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
       .staff-main-shell { display: block; height: 100dvh; min-height: 100dvh; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
-      .staff-topbar { position: sticky; top: 0; z-index: 20; padding: 11px 13px; box-shadow: 0 10px 28px rgba(92,65,28,.12); }
+      .staff-topbar { position: sticky; top: 0; z-index: 20; min-height: 54px; padding: 7px 10px; box-shadow: 0 10px 28px rgba(92,65,28,.12); }
       .menu-button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 0 0 auto; width: 40px; height: 40px; border: 1px solid #d6aa55; border-radius: 14px; background: #fff8ea; color: #5d3607; font-size: .78rem; font-weight: 950; }
       .staff-topbar > div:nth-child(2) { min-width: 0; flex: 1 1 auto; }
       .staff-topbar p { font-size: .66rem; }
       .topbar-actions { gap: 7px; flex: 0 1 auto; }
-      .search-button small, .topbar-actions > span:not(.net-status):not(.queue-status) { display: none; }
+      .search-button small, .topbar-actions > span:not(.queue-status) { display: none; }
       .search-button { padding: 8px 10px; }
       .topbar-actions span { max-width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; }
       .topbar-actions button { padding: 7px 10px; }
