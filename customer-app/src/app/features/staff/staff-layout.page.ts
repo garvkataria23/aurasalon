@@ -122,7 +122,7 @@ type StaffRecentItem = { label: string; path: string };
     nav a.active span { background: #f1c768; color: #3b2608; }
     .nav-logout { width: 100%; margin-top: 12px; padding: 11px 13px; border: 1px solid rgba(214,170,85,.34); border-radius: 16px; background: #fff8ea; color: #7a4510; font-weight: 950; text-align: left; }
     .staff-main-shell { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
-    .staff-topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(234,210,162,.58); background: rgba(255,255,255,.94); backdrop-filter: blur(16px); }
+    .staff-topbar { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(234,210,162,.58); background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,250,239,.94)); box-shadow: 0 8px 24px rgba(92,65,28,.07); backdrop-filter: blur(16px); }
     .staff-topbar p { margin: 0; color: #8a611e; font-size: .74rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
     .staff-topbar strong { color: #1d1307; }
     .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; flex-wrap: wrap; }
