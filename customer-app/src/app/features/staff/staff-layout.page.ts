@@ -68,8 +68,8 @@ type StaffRecentItem = { label: string; path: string };
 
       @if (commandOpen()) {
         <section class="command-backdrop" (click)="closeCommand()">
-          <div class="command-palette" role="dialog" aria-modal="true" tabindex="-1" #commandDialog (keydown)="trapFocus($event, commandDialog)" (click)="$event.stopPropagation()">
-            <div class="command-head"><strong>Command palette</strong><button type="button" (click)="closeCommand()">Close</button></div>
+          <div class="command-palette" role="dialog" aria-modal="true" aria-labelledby="staff-command-title" tabindex="-1" #commandDialog (keydown)="trapFocus($event, commandDialog)" (click)="$event.stopPropagation()">
+            <div class="command-head"><strong id="staff-command-title">Command palette</strong><button type="button" (click)="closeCommand()">Close</button></div>
             <input [(ngModel)]="query" placeholder="Search pages, appointments, AI notes..." #commandInput autofocus />
             <div class="command-list">
               @for (item of commandResults(); track item.path + item.label) {
@@ -83,8 +83,8 @@ type StaffRecentItem = { label: string; path: string };
       }
 
       <button type="button" class="drawer-backdrop" [class.open]="notificationsOpen()" (click)="closeNotifications()" aria-label="Close notifications"></button>
-      <aside class="notification-drawer" [class.open]="notificationsOpen()" role="dialog" aria-modal="true" tabindex="-1" #notificationDialog (keydown)="trapFocus($event, notificationDialog)">
-        <div class="drawer-title"><strong>Notifications</strong><button type="button" (click)="closeNotifications()">Close</button></div>
+      <aside class="notification-drawer" [class.open]="notificationsOpen()" role="dialog" aria-modal="true" aria-labelledby="staff-notifications-title" tabindex="-1" #notificationDialog (keydown)="trapFocus($event, notificationDialog)">
+        <div class="drawer-title"><strong id="staff-notifications-title">Notifications</strong><button type="button" (click)="closeNotifications()">Close</button></div>
         @if (os()?.aiCoach?.[0]; as card) { <p class="ai-brief"><b>{{ card.title }}</b><br />{{ card.body }}</p> }
         <div class="notice-list">
           @for (note of os()?.notifications || []; track note.id) {
@@ -125,12 +125,12 @@ type StaffRecentItem = { label: string; path: string };
     .staff-topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid rgba(234,210,162,.58); background: rgba(255,255,255,.94); backdrop-filter: blur(16px); }
     .staff-topbar p { margin: 0; color: #8a611e; font-size: .74rem; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; }
     .staff-topbar strong { color: #1d1307; }
-    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; flex-wrap: wrap; }
     .topbar-actions span { color: #75552b; font-weight: 900; }
     .search-button, .bell-button { border: 1px solid #d6aa55; border-radius: 999px; background: #fffdf7; color: #6e4810; font-weight: 950; padding: 8px 12px; box-shadow: 0 8px 20px rgba(139,93,21,.08); }
     .search-button:hover, .search-button:focus-visible, .bell-button:focus-visible, .menu-button:focus-visible, nav a:focus-visible, .nav-logout:focus-visible { outline: 3px solid rgba(214,169,74,.28); outline-offset: 2px; }
     .search-button small { margin-left: 6px; opacity: .72; }
-    .bell-button { position: relative; display: inline-grid; place-items: center; width: 42px; height: 42px; min-width: 42px; padding: 0; border-radius: 16px; background: linear-gradient(145deg, #ffffff, #fff4d8); }
+    .bell-button { position: relative; overflow: visible; display: inline-grid; place-items: center; width: 42px; height: 42px; min-width: 42px; padding: 0; border-radius: 16px; background: linear-gradient(145deg, #ffffff, #fff4d8); }
     .bell-button:hover, .bell-button.has-unread { border-color: #c88d23; color: #3b2608; background: linear-gradient(145deg, #fffaf0, #f4cf73); }
     .bell-icon { width: 20px; height: 20px; fill: currentColor; }
     .bell-badge { position: absolute; right: -6px; top: -7px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid #fffdf8; border-radius: 999px; background: #b77916; color: #fffdf8 !important; font-size: .66rem; font-weight: 950; line-height: 1; box-shadow: 0 8px 16px rgba(183,121,22,.22); }
@@ -167,8 +167,9 @@ type StaffRecentItem = { label: string; path: string };
       .staff-main-shell { display: block; height: 100dvh; min-height: 100dvh; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
       .staff-topbar { position: sticky; top: 0; z-index: 20; padding: 11px 13px; box-shadow: 0 10px 28px rgba(92,65,28,.12); }
       .menu-button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 0 0 auto; width: 40px; height: 40px; border: 1px solid #d6aa55; border-radius: 14px; background: #fff8ea; color: #5d3607; font-size: .78rem; font-weight: 950; }
+      .staff-topbar > div:nth-child(2) { min-width: 0; flex: 1 1 auto; }
       .staff-topbar p { font-size: .66rem; }
-      .topbar-actions { gap: 7px; }
+      .topbar-actions { gap: 7px; flex: 0 1 auto; }
       .search-button small, .topbar-actions > span:not(.net-status):not(.queue-status) { display: none; }
       .search-button { padding: 8px 10px; }
       .topbar-actions span { max-width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; }
@@ -191,7 +192,7 @@ type StaffRecentItem = { label: string; path: string };
       .staff-topbar { align-items: center; display: flex; }
       .staff-topbar strong { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .network-status { display: none; }
-      .realtime-status { display: inline-flex; }
+      .realtime-status { display: inline-flex; max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       nav a { padding: 12px 13px; }
     }
   `]

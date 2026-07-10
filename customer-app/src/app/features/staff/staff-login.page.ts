@@ -39,14 +39,14 @@ import { StaffAppService } from "../../core/staff-app.service";
           }
 
           <form class="staff-form" (ngSubmit)="login($event)">
-            <label>Tenant ID</label>
-            <input [(ngModel)]="tenantId" name="tenantId" placeholder="tenant_aura" autocomplete="organization" />
+            <label for="staff-tenant-id">Tenant ID</label>
+            <input id="staff-tenant-id" [(ngModel)]="tenantId" name="tenantId" placeholder="tenant_aura" autocomplete="organization" />
 
-            <label>Staff login ID</label>
-            <input [(ngModel)]="loginId" name="loginId" placeholder="isha.staff" autocomplete="username" />
+            <label for="staff-login-id">Staff login ID</label>
+            <input id="staff-login-id" [(ngModel)]="loginId" name="loginId" placeholder="isha.staff" autocomplete="username" />
 
-            <label>Password</label>
-            <input [(ngModel)]="password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
+            <label for="staff-password">Password</label>
+            <input id="staff-password" [(ngModel)]="password" name="password" type="password" placeholder="Password" autocomplete="current-password" />
 
             <button type="submit" [disabled]="staff.loading()">
               @if (staff.loading()) { <ion-spinner name="crescent"></ion-spinner> } @else { Open staff app }
