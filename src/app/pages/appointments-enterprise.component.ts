@@ -216,7 +216,7 @@ const STATUS_TONES: Record<string, string> = {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
   template: `
-    <section class="enterprise-scheduler inner-page-shell">
+    <section class="enterprise-scheduler inner-page-shell" [class.enterprise-scheduler--fullscreen]="calendarFullscreen()">
       <app-state [loading]="loading()" [error]="drawer() ? '' : error()" loadingText="Loading enterprise scheduler"></app-state>
       <ng-container *ngIf="!loading() && (!error() || drawer())">
         <section class="deposit-followup-strip" *ngIf="adjustedDueFollowUpCount() > 0">
@@ -293,6 +293,7 @@ const STATUS_TONES: Record<string, string> = {
               <small class="day-count">{{ day.date === selectedDate() ? (context()?.appointmentTotal || 0) : 0 }}/0</small>
             </button>
           </div>
+          <button type="button" class="calendar-fullscreen-toggle" (click)="toggleCalendarFullscreen()" aria-label="Toggle fullscreen calendar" title="Toggle fullscreen calendar">{{ calendarFullscreen() ? "×" : "⛶" }}</button>
         </section>
 
         <section class="summary-strip">
@@ -986,7 +987,12 @@ const STATUS_TONES: Record<string, string> = {
     .primary-button { background: #0f8f7f; color: white; border-color: #0f8f7f; }
     .ghost-button.mini { padding: 8px 11px; font-size: 12px; }
     .danger { color: #b91c1c; }
-    .month-strip-band { display: grid; grid-template-columns: 42px 84px 42px minmax(0, 1fr); gap: 8px; align-items: center; min-height: 76px; padding: 10px 14px; border-radius: 14px; }
+    .month-strip-band { display: grid; grid-template-columns: 42px 84px 42px minmax(0, 1fr) 36px; gap: 8px; align-items: center; min-height: 76px; padding: 10px 14px; border-radius: 14px; }
+    .calendar-fullscreen-toggle { width: 34px; height: 34px; border: 1px solid #cfe0dc; border-radius: 10px; background: #fff; color: #4b1238; font-size: 19px; line-height: 1; cursor: pointer; }
+    .calendar-fullscreen-toggle:hover { border-color: #0f8f7f; color: #0f8f7f; }
+    .enterprise-scheduler--fullscreen { position: fixed; inset: 0; z-index: 1000; overflow: auto; display: grid; align-content: start; padding: 16px; background: #f4f8f7; }
+    .enterprise-scheduler--fullscreen .scheduler-grid-shell { min-height: calc(100vh - 190px); }
+    .enterprise-scheduler--fullscreen .scheduler-grid { min-height: calc(100vh - 250px); }
     .month-range-label { min-width: 84px; color: #172033; font-size: 14px; font-weight: 900; text-align: center; white-space: nowrap; }
     .month-strip-band > button { height: 40px; width: 40px; border-radius: 10px; border: 1px solid #e2d5df; background: #fff; color: #4b1238; font-weight: 900; }
     .month-strip { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 0 0 5px; min-width: 0; scrollbar-gutter: stable; scrollbar-width: thin; }
@@ -1366,6 +1372,7 @@ const STATUS_TONES: Record<string, string> = {
     }
     @media (max-width: 720px) {
       .month-strip-band { grid-template-columns: 1fr; }
+      .calendar-fullscreen-toggle { justify-self: end; }
       .scheduler-view-controls, .calendar-layout-toggle, .scheduler-staff-window { width: 100%; }
       .calendar-layout-toggle { border-radius: 12px; }
       .calendar-layout-toggle button { flex: 1 0 auto; }
@@ -1403,6 +1410,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   private readonly completedAllowedActions = new Set(this.completedAppointmentActions.map((action) => action.value));
   readonly calendarLayoutOptions = CALENDAR_LAYOUT_OPTIONS;
   readonly calendarLayout = signal<CalendarLayout>(this.initialCalendarLayout());
+  readonly calendarFullscreen = signal(false);
   readonly selectedCalendarLayoutLabel = computed(() => this.calendarLayoutOptions.find((option) => option.value === this.calendarLayout())?.label || 'Staff Grid');
   readonly rowHeight = computed(() => this.calendarLayout() === 'compact-grid' ? COMPACT_ROW_HEIGHT : ROW_HEIGHT);
   readonly statusOptions = STATUS_OPTIONS;
@@ -1828,8 +1836,17 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   selectDate(date: string): void {
     this.selectedDate.set(date);
+    this.applySelectedDateToOpenBooking(date);
     this.staffOffset.set(0);
     this.load();
+  }
+
+  private applySelectedDateToOpenBooking(date: string): void {
+    if (this.drawer() !== 'booking' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    this.bookingLines.update((lines) => lines.map((line) => {
+      const time = String(line.startAt || '').slice(11, 16) || '10:00';
+      return { ...line, startAt: `${date}T${time}` };
+    }));
   }
 
   private applyRouteDateSelection(): void {
@@ -2025,6 +2042,10 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     const [source] = order.splice(from, 1);
     order.splice(to, 0, source);
     this.staffPanelOrder.set(order);
+  }
+
+  toggleCalendarFullscreen(): void {
+    this.calendarFullscreen.update((open) => !open);
   }
 
   setCalendarLayout(value: string): void {

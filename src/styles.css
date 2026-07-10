@@ -20453,3 +20453,127 @@ html:root[data-theme="dark"] body app-root .workspace-route-content app-appointm
   border-radius: 0 !important;
   box-shadow: none !important;
 }
+
+/* Customer booking portal dark mode. */
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal .portal-page {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(190, 61, 123, 0.16), transparent 360px),
+    radial-gradient(circle at 94% 8%, rgba(212, 165, 116, 0.1), transparent 320px),
+    linear-gradient(180deg, #1a1724 0%, #121a27 52%, #101722 100%) !important;
+  color: #f8fafc !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal .module-hero {
+  background: linear-gradient(105deg, rgba(68, 41, 62, 0.98) 0%, rgba(32, 36, 52, 0.96) 48%, rgba(17, 24, 39, 0.98) 100%) !important;
+  border: 1px solid rgba(240, 168, 194, 0.24) !important;
+  color: #fff !important;
+  box-shadow: 0 18px 42px rgba(5, 10, 18, 0.28) !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal .public-profile {
+  background:
+    linear-gradient(135deg, rgba(75, 39, 64, 0.96), rgba(31, 41, 59, 0.96)) !important;
+  border: 1px solid rgba(240, 168, 194, 0.24) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 18px 42px rgba(5, 10, 18, 0.26) !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal .profile-aside {
+  background: rgba(15, 23, 34, 0.42) !important;
+  border-color: rgba(240, 168, 194, 0.22) !important;
+  border-radius: 16px !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal :is(
+  .panel, .form-panel, .pick-card, .service-card, .staff-card, .review-card,
+  .action-card, .command-card, .summary-lines div, .empty-state, form
+) {
+  background: linear-gradient(180deg, rgba(36, 46, 65, 0.98), rgba(24, 34, 50, 0.98)) !important;
+  background-image: linear-gradient(180deg, rgba(36, 46, 65, 0.98), rgba(24, 34, 50, 0.98)) !important;
+  border-color: rgba(203, 213, 225, 0.22) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 12px 28px rgba(5, 10, 18, 0.22) !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal :is(
+  h1, h2, h3, strong, b, label, .profile-main h1, .profile-aside strong
+) {
+  color: #ffffff !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal :is(
+  p, small, span, em, .profile-main p, .profile-aside span, .profile-aside small,
+  .pick-card small, .pick-card em, .service-card small, .service-card em,
+  .staff-card span, .staff-card small, .review-card span, .review-card small
+) {
+  color: #cbd5e1 !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal :is(
+  .badge, .link-badge, .slot-hh-badge, .hh-tag
+) {
+  background: rgba(240, 168, 194, 0.16) !important;
+  border-color: rgba(240, 168, 194, 0.32) !important;
+  color: #ffd7e5 !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal :is(
+  input, select, textarea
+) {
+  background: rgba(14, 21, 34, 0.94) !important;
+  border-color: rgba(203, 213, 225, 0.24) !important;
+  color: #f8fafc !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal input::placeholder,
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal textarea::placeholder {
+  color: rgba(203, 213, 225, 0.56) !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal .primary-button,
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal button[type='submit'] {
+  background: linear-gradient(135deg, #c23f80, #81204f) !important;
+  border-color: rgba(255, 215, 229, 0.46) !important;
+  color: #fff !important;
+}
+
+html:root[data-theme="dark"] body app-root .workspace-route-content app-booking-portal :is(.pick-card:hover, .staff-card:hover, .command-card.active) {
+  background: linear-gradient(135deg, rgba(75, 39, 64, 0.98), rgba(31, 41, 59, 0.98)) !important;
+  border-color: rgba(240, 168, 194, 0.4) !important;
+}
+
+/* Dark-theme contrast fallback for routed pages outside workspace-route-content, including public portals. */
+html:root[data-theme="dark"] body app-root :is(.portal-page, .booking-page, .page-stack, .inner-page-shell, .page-shell, .module-page, .workspace-page) {
+  color: #f8fafc !important;
+}
+
+html:root[data-theme="dark"] body app-root :is(.portal-page, .booking-page, .page-stack, .inner-page-shell, .page-shell, .module-page, .workspace-page) :is(
+  .module-hero, .inner-page-header, .panel, .form-panel, .card, .aura-card, .metric-card, .kpi-card,
+  .action-card, .quick-card, .service-card, .staff-card, .review-card, .pick-card, .booking-card,
+  .summary-card, .content-card, .table-wrap, .empty-state, form
+) {
+  background: linear-gradient(180deg, rgba(36, 46, 65, 0.98), rgba(24, 34, 50, 0.98)) !important;
+  border-color: rgba(203, 213, 225, 0.22) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 12px 28px rgba(5, 10, 18, 0.22) !important;
+}
+
+html:root[data-theme="dark"] body app-root :is(.portal-page, .booking-page, .page-stack, .inner-page-shell, .page-shell, .module-page, .workspace-page) :is(h1, h2, h3, h4, h5, h6, strong, b, label, legend) {
+  color: #fff !important;
+}
+
+html:root[data-theme="dark"] body app-root :is(.portal-page, .booking-page, .page-stack, .inner-page-shell, .page-shell, .module-page, .workspace-page) :is(p, small, span, em, li, .muted, .hint, .subtext, .caption, .description) {
+  color: #cbd5e1 !important;
+}
+
+html:root[data-theme="dark"] body app-root :is(.portal-page, .booking-page, .page-stack, .inner-page-shell, .page-shell, .module-page, .workspace-page) :is(input, select, textarea) {
+  background: rgba(14, 21, 34, 0.94) !important;
+  border-color: rgba(203, 213, 225, 0.24) !important;
+  color: #f8fafc !important;
+}
+
+html:root[data-theme="dark"] body app-root :is(.portal-page, .booking-page, .page-stack, .inner-page-shell, .page-shell, .module-page, .workspace-page) :is(.badge, .chip, .pill, .tag, button, .ghost-button) {
+  border-color: rgba(203, 213, 225, 0.24) !important;
+  color: #f8fafc !important;
+}

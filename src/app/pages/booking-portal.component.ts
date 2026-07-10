@@ -413,6 +413,58 @@ import { HappyHoursBannerComponent } from './booking-portal/happy-hours-banner/h
     :host input, :host select, :host textarea { border-color: rgba(75, 18, 56, 0.14) !important; border-radius: 10px !important; background: #fff !important; }
     :host button { border-radius: 10px !important; font-weight: 580 !important; }
     :host .primary-button, :host button[type='submit'] { background: #5A153F !important; border-color: #5A153F !important; color: #fff !important; }
+    :host .public-profile {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f1f5 58%, #efe8ee 100%) !important;
+      color: #151827 !important;
+    }
+    :host .public-profile h1,
+    :host .public-profile p,
+    :host .profile-aside strong,
+    :host .profile-aside span,
+    :host .profile-aside small {
+      color: #151827 !important;
+    }
+    :host .trust-row .badge {
+      background: #172033 !important;
+      border-color: rgba(255,255,255,.24) !important;
+      color: #fff !important;
+    }
+    :host .pick-card,
+    :host .service-card,
+    :host .staff-card,
+    :host .review-card {
+      background: #fff !important;
+      color: #172033 !important;
+    }
+    :host .pick-card span,
+    :host .service-card span,
+    :host .pick-card strong,
+    :host .service-card strong,
+    :host .staff-card strong,
+    :host .review-card strong,
+    :host .hh-price,
+    :host .price {
+      color: #f8fafc !important;
+    }
+    :host .pick-card small,
+    :host .pick-card em,
+    :host .service-card small,
+    :host .service-card em,
+    :host .staff-card span,
+    :host .staff-card small,
+    :host .review-card span,
+    :host .review-card small {
+      color: #cbd5e1 !important;
+    }
+    :host .form-panel .field > span {
+      color: #f8fafc !important;
+    }
+    :host .form-panel input,
+    :host .form-panel select,
+    :host .form-panel textarea {
+      color: #172033 !important;
+      background: #fff !important;
+    }
     @media (max-width: 760px) {
       .public-profile {
         grid-template-columns: 1fr;

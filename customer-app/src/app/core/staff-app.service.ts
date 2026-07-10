@@ -668,7 +668,7 @@ export class StaffAppService {
   }
 
   private isStaffRole(role: string): boolean {
-    return ["staff", "frontDesk", "cashier", "manager"].includes(String(role || ""));
+    return !["owner", "admin", "superAdmin"].includes(String(role || ""));
   }
 
   private isOnline(): boolean {

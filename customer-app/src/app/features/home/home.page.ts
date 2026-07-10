@@ -251,6 +251,13 @@ interface ConsultationChatMessage {
             </div>
           </article>
 
+          <nav class="customer-quick-actions" aria-label="Customer quick actions">
+            <a routerLink="/tabs/search"><ion-icon name="search-outline"></ion-icon><span>Book now</span><small>Services near you</small></a>
+            <a routerLink="/tabs/bookings"><ion-icon name="calendar-outline"></ion-icon><span>My bookings</span><small>Reschedule or cancel</small></a>
+            <a routerLink="/tabs/offers"><ion-icon name="pricetag-outline"></ion-icon><span>Offers</span><small>Deals and rewards</small></a>
+            <a routerLink="/tabs/profile"><ion-icon name="person-circle-outline"></ion-icon><span>Profile</span><small>Your details</small></a>
+          </nav>
+
           <div class="customer-metrics">
             @for (metric of customerMetrics(); track metric.label) {
               <a class="metric-card" [routerLink]="metric.route">
@@ -273,7 +280,11 @@ interface ConsultationChatMessage {
           <div class="visited-rail">
             @for (item of recentlyVisited(); track item.business.id) {
               <button type="button" class="visited-card premium-card" (click)="openBusiness(item.business)">
-                <img [src]="item.business.coverImage || item.business.galleryImages[0] || 'assets/icons/icon.svg'" [alt]="item.business.businessName + ' cover'" />
+                @if (businessImage(item.business)) {
+                  <img [src]="businessImage(item.business)" [alt]="item.business.businessName + ' cover'" />
+                } @else {
+                  <b class="visited-fallback" aria-hidden="true">{{ businessInitials(item.business) }}</b>
+                }
                 <span>{{ item.lastVisitLabel }}</span>
                 <strong>{{ item.business.businessName }}</strong>
                 <small>{{ item.serviceName || item.business.popularService || item.business.category }}</small>
@@ -985,6 +996,51 @@ interface ConsultationChatMessage {
       margin-top: 4px;
     }
 
+    .customer-quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(124px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding: 2px 2px 8px;
+      scrollbar-width: none;
+    }
+
+    .customer-quick-actions::-webkit-scrollbar {
+      display: none;
+    }
+
+    .customer-quick-actions a {
+      display: grid;
+      gap: 4px;
+      min-width: 124px;
+      padding: 13px 12px;
+      border: 1px solid rgba(214, 169, 74, 0.2);
+      border-radius: 18px;
+      color: #281806;
+      background: linear-gradient(145deg, #ffffff, #fff4d8);
+      box-shadow: 0 12px 28px rgba(92, 65, 28, 0.09);
+      text-decoration: none;
+    }
+
+    .customer-quick-actions ion-icon {
+      width: 22px;
+      height: 22px;
+      color: #8a5a16;
+    }
+
+    .customer-quick-actions span {
+      color: #201307;
+      font-size: 0.9rem;
+      font-weight: 950;
+    }
+
+    .customer-quick-actions small {
+      color: #7e6e55;
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
     .customer-metrics {
       display: grid;
       gap: 12px;
@@ -1076,12 +1132,26 @@ interface ConsultationChatMessage {
       transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
     }
 
-    .visited-card img {
+    .visited-card img,
+    .visited-fallback {
       grid-row: span 3;
       width: 82px;
       height: 82px;
       border-radius: 20px;
+    }
+
+    .visited-card img {
       object-fit: cover;
+    }
+
+    .visited-fallback {
+      display: grid;
+      place-items: center;
+      color: #0f4f65;
+      background: linear-gradient(145deg, #dff3fb, #bde6f7 42%, #7cd0e8 100%);
+      font-size: 1.2rem;
+      font-weight: 1000;
+      letter-spacing: -0.04em;
     }
 
     .visited-card span,
@@ -1237,6 +1307,7 @@ interface ConsultationChatMessage {
         line-height: 0.98;
       }
 
+
       .search-panel {
         margin-top: 0;
       }
@@ -1369,6 +1440,7 @@ interface ConsultationChatMessage {
         gap: 0;
       }
 
+
       .search-panel {
         gap: 10px;
         padding: 12px;
@@ -1392,6 +1464,12 @@ interface ConsultationChatMessage {
       .section-heading.priority-heading {
         margin-top: 8px;
       }
+
+      .business-grid,
+      .business-grid.recommended,
+      .nearby-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
     }
 
     @media (min-width: 768px) {
@@ -1399,9 +1477,14 @@ interface ConsultationChatMessage {
         grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
       }
 
+      .customer-quick-actions {
+        display: none;
+      }
+
       .customer-metrics {
         grid-template-columns: 1fr;
       }
+
 
       .search-panel {
         grid-template-columns: minmax(0, 1fr) auto auto;
@@ -1435,7 +1518,8 @@ interface ConsultationChatMessage {
         padding: 7px !important;
       }
 
-      .visited-card img {
+      .visited-card img,
+      .visited-fallback {
         width: 42px !important;
         height: 42px !important;
         aspect-ratio: 1 / 1 !important;
@@ -1646,6 +1730,26 @@ export class HomePage implements OnInit {
 
   openBusiness(business: Business) {
     void this.router.navigate(["/business", business.slug]);
+  }
+
+  businessImage(business: Business): string {
+    const image = business.coverImage || business.galleryImages?.[0] || "";
+    return this.isPlaceholderImage(image) ? "" : image;
+  }
+
+  businessInitials(business: Business): string {
+    return String(business.businessName || "Aura")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("") || "A";
+  }
+
+  private isPlaceholderImage(image: string): boolean {
+    const normalized = String(image || "").trim().toLowerCase();
+    return !normalized || normalized.endsWith("assets/icons/icon.svg") || normalized.endsWith("/assets/icons/icon.svg");
   }
 
   openBusinessSlug(slug: string) {

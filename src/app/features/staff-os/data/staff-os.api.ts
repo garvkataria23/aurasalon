@@ -60,6 +60,10 @@ export class StaffOsApi {
     return this.api.patch<StaffOsStaff>(`staff-os/staff/${id}`, payload);
   }
 
+  upsertStaffLogin(id: string, payload: ApiRecord): Observable<ApiRecord> {
+    return this.api.post<ApiRecord>(`staff-os/staff/${id}/login`, payload);
+  }
+
   updateStaffStatus(id: string, payload: ApiRecord): Observable<StaffOsStaff> {
     return this.api.patch<StaffOsStaff>(`staff-os/staff/${id}/status`, payload);
   }

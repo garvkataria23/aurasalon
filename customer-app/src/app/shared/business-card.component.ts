@@ -497,7 +497,13 @@ export class BusinessCardComponent implements OnInit {
 
   displayImage(): string {
     if (this.imageFailed) return "";
-    return this.business.coverImage || this.business.galleryImages?.[0] || this.business.logoUrl || "";
+    const image = this.business.coverImage || this.business.galleryImages?.[0] || this.business.logoUrl || "";
+    return this.isPlaceholderImage(image) ? "" : image;
+  }
+
+  private isPlaceholderImage(image: string): boolean {
+    const normalized = String(image || "").trim().toLowerCase();
+    return !normalized || normalized.endsWith("assets/icons/icon.svg") || normalized.endsWith("/assets/icons/icon.svg");
   }
 
   markImageFailed() {

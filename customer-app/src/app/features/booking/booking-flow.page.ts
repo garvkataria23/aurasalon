@@ -34,8 +34,8 @@ type PendingBookingIntent = {
           <section class="booking-hero premium-card">
             <img [src]="business.coverImage || 'assets/icons/icon.svg'" [alt]="business.businessName" />
             <div>
-              <h1 class="page-title">Complete your appointment</h1>
-              <p class="muted">{{ business.businessName }} · {{ business.area }} · Star {{ business.ratingAverage }}</p>
+              <h1 class="page-title">Book your visit</h1>
+              <p class="muted">{{ business.businessName }} · {{ business.area }} · {{ business.ratingAverage }} rating</p>
             </div>
           </section>
 
@@ -54,7 +54,7 @@ type PendingBookingIntent = {
 
           @if (step() === 1) {
             <section class="panel">
-              <div class="section-heading"><div><h2 class="section-title">Select service or bundle</h2></div></div>
+              <div class="section-heading"><div><h2 class="section-title">Choose a service</h2></div></div>
               <div class="service-list">
                 @for (service of business.services; track service.id) {
                   <button class="service-choice premium-card" [class.selected]="selectedServiceId() === service.id" (click)="setService(service.id)">
@@ -74,7 +74,7 @@ type PendingBookingIntent = {
 
           @if (step() === 2) {
             <section class="panel">
-              <div class="section-heading"><div><h2 class="section-title">Choose staff</h2></div></div>
+              <div class="section-heading"><div><h2 class="section-title">Choose a professional</h2></div></div>
               <div class="staff-list">
                 <button class="staff-choice premium-card" [class.selected]="selectedStaffId() === null" (click)="setStaff(null)">
                   <div class="any-avatar"><ion-icon name="sparkles-outline"></ion-icon></div>
@@ -84,7 +84,7 @@ type PendingBookingIntent = {
                 @for (staff of business.staff; track staff.id) {
                   <article class="staff-choice premium-card" [class.selected]="selectedStaffId() === staff.id" (click)="setStaff(staff.id)">
                     <img [src]="staff.image || 'assets/icons/icon.svg'" [alt]="staff.name" />
-                    <div><strong>{{ staff.name }}</strong><span>{{ staff.title }} @if (staff.rating) { · Star {{ staff.rating }} }</span></div>
+                    <div><strong>{{ staff.name }}</strong><span>{{ staff.title }} @if (staff.rating) { · {{ staff.rating }} rating }</span></div>
                     <button type="button" class="check-slots-button" (click)="checkStaffSlots($event, staff.id)">Check slots</button>
                   </article>
                 }
@@ -94,11 +94,11 @@ type PendingBookingIntent = {
 
           @if (step() === 3) {
             <section class="panel">
-              <div class="section-heading"><div><h2 class="section-title">Pick date, time or waitlist</h2></div></div>
+              <div class="section-heading"><div><h2 class="section-title">Pick date and time</h2></div></div>
               <article class="selected-staff-card premium-card">
                 <div class="any-avatar"><ion-icon name="person-outline"></ion-icon></div>
                 <div>
-                  <span>Checking slots for</span>
+                  <span>Available times with</span>
                   <strong>{{ staffName() }}</strong>
                   @if (selectedStaffTitle()) { <small>{{ selectedStaffTitle() }}</small> }
                 </div>
@@ -141,11 +141,11 @@ type PendingBookingIntent = {
               <article class="premium-card confirm-card">
                 <h2>Confirm your booking</h2>
                 <dl>
-                  <div><dt>Business</dt><dd>{{ business.businessName }}</dd></div>
+                  <div><dt>Salon</dt><dd>{{ business.businessName }}</dd></div>
                   <div><dt>Service</dt><dd>{{ selectedService()?.name || "Not selected" }}</dd></div>
                   <div><dt>Staff</dt><dd>{{ staffName() }}</dd></div>
                   <div><dt>Time</dt><dd>{{ selectedSlotLabel() || "Not selected" }}</dd></div>
-                  <div><dt>Payment</dt><dd>Pay at venue</dd></div>
+                  <div><dt>Payment</dt><dd>Pay at salon</dd></div>
                 </dl>
               </article>
               <article class="premium-card trust-card">
@@ -170,7 +170,7 @@ type PendingBookingIntent = {
               <ion-button class="primary-gradient" [disabled]="!canContinue()" (click)="next()">Continue</ion-button>
             } @else {
               <ion-button class="primary-gradient" [disabled]="!canConfirm() || marketplace.loading()" (click)="confirmBooking()">
-                {{ marketplace.isAuthenticated() ? "Confirm" : "Sign in to book" }}
+                {{ marketplace.isAuthenticated() ? "Confirm booking" : "Sign in to book" }}
               </ion-button>
             }
           </div>
@@ -313,7 +313,7 @@ export class BookingFlowPage implements OnInit {
   readonly selectedSlotStartAt = signal("");
   readonly steps = [
     { id: 1, label: "Service", icon: "sparkles-outline" },
-    { id: 2, label: "Staff", icon: "person-outline" },
+    { id: 2, label: "Pro", icon: "person-outline" },
     { id: 3, label: "Time", icon: "calendar-outline" },
     { id: 4, label: "Confirm", icon: "checkmark-circle-outline" }
   ];

@@ -7,6 +7,7 @@ import { StateComponent } from '../shared/ui/state/state.component';
 
 type RightsMode = 'definition' | 'rights' | 'activity';
 type PermissionViewKey = 'overview' | 'users' | 'definition' | 'rights' | 'activity' | 'controls';
+type PermissionScopeKey = 'saasAdmin' | 'staffApp' | 'all';
 type PermissionAction = 'access' | 'add' | 'edit' | 'delete' | 'back' | 'print' | 'export' | 'all';
 type TenantUser = ApiRecord & {
   id: string;
@@ -156,6 +157,22 @@ const RESOURCE_GROUPS = [
     ]
   }
 ];
+const PERMISSION_SCOPES: Array<{ key: PermissionScopeKey; label: string; detail: string }> = [
+  { key: 'saasAdmin', label: 'SaaS/Admin login', detail: 'Owner setup, branches, security, billing controls and platform settings.' },
+  { key: 'staffApp', label: 'Staff app', detail: 'Appointments, clients, POS, services, attendance and staff mobile/OS access.' },
+  { key: 'all', label: 'All permissions', detail: 'Complete role matrix for advanced custom roles.' }
+];
+const SAAS_ADMIN_RESOURCES = new Set([
+  'dashboard', 'settings', 'security', 'branches', 'localization', 'finance', 'quality', 'deployment', 'migration',
+  'marketplace-integrations', 'plugins', 'developer-api', 'webhooks', 'franchise'
+]);
+const STAFF_APP_RESOURCES = new Set([
+  'dashboard', 'appointments', 'booking-portal', 'online-booking', 'smart-booking', 'clients', 'customer-360',
+  'notifications', 'services', 'packages', 'memberships', 'gift-cards', 'coupons', 'loyalty', 'pos', 'sales',
+  'invoices', 'payments', 'refunds', 'cash-drawer', 'appointment_deposits', 'products', 'inventory',
+  'inventory-intelligence', 'suppliers', 'outgoing-funds', 'staff', 'payroll', 'reports', 'analytics', 'marketing',
+  'whatsapp', 'reviews', 'ai', 'workflows'
+]);
 
 @Component({
   selector: 'app-permission-matrix',
@@ -204,6 +221,18 @@ const RESOURCE_GROUPS = [
     .um-tabs button { min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; background: #f8faf9; font-weight: 900; }
     .um-tabs button.active { color: #4B1238; background: var(--surface); }
     .um-body { display: grid; gap: 14px; padding: 12px; }
+    .permission-scope-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .permission-scope-card { display: grid; gap: 5px; min-height: 78px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; color: var(--ink); text-align: left; cursor: pointer; }
+    .permission-scope-card.active { border-color: #4B1238; background: #F8EEF4; box-shadow: inset 4px 0 0 #4B1238; }
+    .permission-scope-card strong, .permission-scope-card small { display: block; }
+    .permission-scope-card small { color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.35; }
+    .permission-scope-note { padding: 10px 12px; border: 1px dashed color-mix(in srgb, #4B1238 28%, var(--line)); border-radius: 8px; background: color-mix(in srgb, #4B1238 6%, var(--surface)); color: var(--muted); font-size: 12px; font-weight: 800; }
+    .role-assignment-card { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .role-assignment-card header { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .role-user-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+    .role-user-chip { display: grid; gap: 2px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; }
+    .role-user-chip strong, .role-user-chip small { display: block; }
+    .role-user-chip small { color: var(--muted); font-size: 11px; font-weight: 800; }
     .um-definition-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.86fr); gap: 14px; }
     .um-card { display: grid; gap: 12px; padding: 12px; box-shadow: none; }
     .um-card h3 { margin: 0; }
@@ -246,7 +275,7 @@ const RESOURCE_GROUPS = [
     .um-danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 32%, var(--line)); }
     .um-success-text { color: var(--green); font-weight: 900; }
     @media (max-width: 1180px) { .permission-section-workspace { grid-template-columns: 1fr; } .permission-side-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); } .um-shell { grid-template-columns: 260px minmax(0, 1fr); } .um-control-panel { position: static; grid-column: 1 / -1; } .um-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 780px) { .user-hero, .permission-side-nav, .um-shell, .um-definition-grid, .um-toolbar, .um-form-grid, .um-filter-row, .salonist-groups, .salonist-grid { grid-template-columns: 1fr; } .um-sidebar { position: static; } .um-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero-actions, .um-toolbar-actions { justify-content: stretch; } .hero-actions button, .um-toolbar-actions button { flex: 1; } }
+    @media (max-width: 780px) { .user-hero, .permission-side-nav, .um-shell, .um-definition-grid, .um-toolbar, .um-form-grid, .um-filter-row, .permission-scope-grid, .salonist-groups, .salonist-grid { grid-template-columns: 1fr; } .um-sidebar { position: static; } .um-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero-actions, .um-toolbar-actions { justify-content: stretch; } .hero-actions button, .um-toolbar-actions button { flex: 1; } }
   `],
   template: `
     <section class="page-stack user-management-os">
@@ -433,6 +462,34 @@ const RESOURCE_GROUPS = [
           </div>
 
           <div class="um-body" id="permission-rights" *ngIf="mode() === 'rights'">
+            <div class="permission-scope-grid" role="tablist" aria-label="Permission scope">
+              <button class="permission-scope-card" type="button" *ngFor="let scope of permissionScopes" [class.active]="permissionScope() === scope.key" (click)="permissionScope.set(scope.key)">
+                <strong>{{ scope.label }}</strong>
+                <small>{{ scope.detail }}</small>
+              </button>
+            </div>
+            <div class="permission-scope-note">
+              {{ permissionScopeHelp() }} Create a custom role first when the selected built-in role is fixed.
+            </div>
+            <section class="role-assignment-card">
+              <header>
+                <div>
+                  <h3>Users using {{ roleName(selectedRole()) }}</h3>
+                  <span class="um-muted">These staff/admin logins inherit the permissions shown below.</span>
+                </div>
+                <span class="badge">{{ selectedRoleUsers().length }} assigned</span>
+              </header>
+              <div class="role-user-list" *ngIf="selectedRoleUsers().length; else noRoleUsers">
+                <article class="role-user-chip" *ngFor="let user of selectedRoleUsers()">
+                  <strong>{{ user.name }}</strong>
+                  <small>{{ user.loginId || user.email }} · staff {{ user.staffId || 'not linked' }}</small>
+                  <small>{{ (user.branchIds || []).join(', ') || 'all branches' }} · {{ user.status }}</small>
+                </article>
+              </div>
+              <ng-template #noRoleUsers>
+                <span class="um-muted">No login user is assigned to this role in the current tenant/branch. Assign this role from User Definition.</span>
+              </ng-template>
+            </section>
             <div class="um-toolbar">
               <label class="field">
                 <span>Search menu rights</span>
@@ -466,12 +523,13 @@ const RESOURCE_GROUPS = [
                 <span class="um-muted" *ngIf="isLockedSystemRole(selectedRole())">This built-in role is fixed. Create a custom role to change rights.</span>
                 <span class="um-muted" *ngIf="!isRoleReadOnly(selectedRole())">Changes save into role definitions and security permissions.</span>
               </div>
+              <button class="ghost-button" type="button" *ngIf="isLockedSystemRole(selectedRole())" (click)="createEditableRoleCopy()">Create editable copy</button>
               <span class="um-owner-note" *ngIf="isOwnerRole(selectedRole())">Full owner control</span>
             </div>
             <section class="salonist-permission-surface" *ngIf="staffPermissionGroups().length">
               <div class="um-panel-head">
                 <div>
-                  <h3>Staff permissions</h3>
+                  <h3>{{ permissionScope() === 'saasAdmin' ? 'SaaS/Admin detailed permissions' : 'Staff app permissions' }}</h3>
                 </div>
                 <span class="salonist-summary">{{ salonistPermissionCount() }} controls · {{ permissionCatalog().length }} cataloged</span>
               </div>
@@ -618,10 +676,12 @@ export class PermissionMatrixComponent implements OnInit {
   readonly selectedUserId = signal('');
   readonly selectedRole = signal('owner');
   readonly copyFromRole = signal('');
+  readonly permissionScope = signal<PermissionScopeKey>('staffApp');
   readonly draftPermissions = signal<Record<string, PermissionAction[]>>({});
   readonly featureDraft = signal<Record<string, boolean>>({});
   readonly actionColumns = ACTION_COLUMNS;
   readonly resourceGroups = RESOURCE_GROUPS;
+  readonly permissionScopes = PERMISSION_SCOPES;
   readonly lockControls = [
     { resource: 'outgoing-funds', label: 'Outgoing payments', detail: 'Daily expense, bank deposit, purchase and miscellaneous payment locks.' },
     { resource: 'payroll', label: 'Payroll payouts', detail: 'Salary, advance and loan controls.' },
@@ -673,10 +733,11 @@ export class PermissionMatrixComponent implements OnInit {
   readonly users = computed<TenantUser[]>(() => this.matrix()?.users || []);
   readonly metrics = computed(() => this.matrix()?.metrics || {});
   readonly permissionCatalog = computed<StaffPermissionCatalogItem[]>(() => Array.isArray(this.matrix()?.permissionCatalog) ? this.matrix()?.permissionCatalog as StaffPermissionCatalogItem[] : []);
-  readonly salonistPermissionCount = computed(() => this.permissionCatalog().length);
+  readonly salonistPermissionCount = computed(() => this.visiblePermissionCatalog().length);
   readonly resourceCount = computed(() => Array.isArray(this.matrix()?.resources) ? (this.matrix()?.resources as unknown[]).length : this.resourceGroups.reduce((total, group) => total + group.resources.length, 0));
   readonly branchOptions = computed(() => [...new Set(this.users().flatMap((user) => user.branchIds || []))].sort());
   readonly selectedUser = computed(() => this.users().find((user) => user.id === this.selectedUserId()) || null);
+  readonly selectedRoleUsers = computed(() => this.users().filter((user) => user.role === this.selectedRole()));
   readonly filteredUsers = computed(() => {
     const query = this.userQuery().trim().toLowerCase();
     const role = this.roleFilter();
@@ -700,21 +761,27 @@ export class PermissionMatrixComponent implements OnInit {
   readonly visibleResourceGroups = computed(() => {
     const query = this.permissionQuery().trim().toLowerCase();
     const group = this.groupFilter();
+    const scope = this.permissionScope();
     return this.resourceGroups
       .filter((item) => !group || item.key === group)
       .map((item) => ({
         ...item,
         resources: item.resources.filter((resource) => {
+          if (!this.resourceInScope(resource[0], scope)) return false;
           const text = `${resource[0]} ${resource[1]} ${item.label}`.toLowerCase();
           return !query || text.includes(query);
         })
       }))
       .filter((item) => item.resources.length);
   });
+  readonly visiblePermissionCatalog = computed(() => {
+    const scope = this.permissionScope();
+    return this.permissionCatalog().filter((item) => this.resourceInScope(item.resource, scope));
+  });
   readonly staffPermissionGroups = computed<StaffPermissionGroup[]>(() => {
     const query = this.permissionQuery().trim().toLowerCase();
     const groups = new Map<string, StaffPermissionGroup>();
-    this.permissionCatalog().forEach((item) => {
+    this.visiblePermissionCatalog().forEach((item) => {
       const text = `${item.groupLabel} ${item.label} ${item.resource} ${item.action}`.toLowerCase();
       if (query && !text.includes(query)) return;
       const current = groups.get(item.groupKey) || { key: item.groupKey, label: item.groupLabel, items: [] };
@@ -989,6 +1056,27 @@ export class PermissionMatrixComponent implements OnInit {
     this.notice.set(`Copied rights from ${this.roleName(source)}`);
   }
 
+  createEditableRoleCopy(): void {
+    const source = this.selectedRole();
+    if (!this.isLockedSystemRole(source)) return;
+    const existing = new Set(this.roles().map((role) => String(role.role || '').toLowerCase()));
+    const base = source === 'staff' ? 'staffAppUser' : `${source}Custom`;
+    let role = base;
+    let suffix = 2;
+    while (existing.has(role.toLowerCase())) role = `${base}${suffix++}`;
+    this.selectedRole.set(role);
+    this.roleForm.patchValue({
+      role,
+      name: `${this.roleName(source)} App User`,
+      description: `Editable copy of ${this.roleName(source)} for custom permissions.`,
+      resource: 'appointments',
+      actions: 'read'
+    });
+    this.draftPermissions.set(this.draftForRole(source));
+    this.featureDraft.set(this.featureDraftForRole(source));
+    this.notice.set('Editable copy created. Change permissions, click Save rights, then assign this role to the staff user.');
+  }
+
   applyPreset(role: 'manager' | 'frontDesk' | 'staff'): void {
     this.selectedRole.set(this.roleForm.value.role || role);
     const presets: Record<string, string[]> = {
@@ -1074,10 +1162,16 @@ export class PermissionMatrixComponent implements OnInit {
 
   exportMatrix(): void {
     const rows = [['Role', 'Resource', ...ACTION_COLUMNS.map((item) => item.label)]];
-    this.resourceGroups.flatMap((group) => group.resources).forEach((resource) => {
+    this.visibleResourceGroups().flatMap((group) => group.resources).forEach((resource) => {
       rows.push([this.selectedRole(), resource[0], ...ACTION_COLUMNS.map((action) => this.isPermissionChecked(resource[0], action.key) ? 'yes' : 'no')]);
     });
     this.downloadCsv(`aura-${this.selectedRole()}-rights.csv`, rows);
+  }
+
+  permissionScopeHelp(): string {
+    if (this.permissionScope() === 'saasAdmin') return 'SaaS/Admin login controls tenant setup, branches, security, role management and platform settings.';
+    if (this.permissionScope() === 'staffApp') return 'Staff app controls daily work: appointments, clients, services, POS, reports, attendance and staff OS.';
+    return 'All permissions shows both SaaS/Admin and Staff app controls together for advanced role setup.';
   }
 
   roleName(role: string): string {
@@ -1102,6 +1196,11 @@ export class PermissionMatrixComponent implements OnInit {
 
   isRoleReadOnly(role: string): boolean {
     return this.isOwnerRole(role) || this.isLockedSystemRole(role);
+  }
+
+  private resourceInScope(resource: string, scope: PermissionScopeKey): boolean {
+    if (scope === 'all') return true;
+    return scope === 'saasAdmin' ? SAAS_ADMIN_RESOURCES.has(resource) : STAFF_APP_RESOURCES.has(resource);
   }
 
   private afterUserMutation(response: ApiRecord, message: string): void {

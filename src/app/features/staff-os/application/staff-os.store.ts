@@ -101,6 +101,10 @@ export class StaffOsStore {
     return this.api.updateStaff(staff.id, { ...payload, version: staff.version });
   }
 
+  upsertStaffLogin(staff: StaffOsStaff, payload: Record<string, unknown>) {
+    return this.api.upsertStaffLogin(staff.id, payload);
+  }
+
   updateStaffStatus(staff: StaffOsStaff, status: string) {
     return this.api.updateStaffStatus(staff.id, { status, version: staff.version });
   }

@@ -8,7 +8,7 @@ import { ensureTenantUserAccessColumns, normalizeBranchIdsForRole } from "./acce
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 10)}`;
-const privilegedRoles = new Set(["superAdmin", "owner", "admin", "manager"]);
+const privilegedRoles = new Set(["superAdmin", "owner", "admin"]);
 
 function normalizeRole(role = "") {
   const value = String(role || "").trim();
@@ -35,6 +35,16 @@ function parseJsonArray(value) {
 
 function normalizeLoginId(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function defaultLoginIdForStaff(staff = {}) {
+  const emailPrefix = String(staff.email || "").split("@")[0];
+  return normalizeLoginId(staff.employeeCode || staff.employee_code || emailPrefix || staff.mobile || staff.id);
+}
+
+function defaultPasswordForLogin(loginId, staff = {}) {
+  const seed = String(loginId || staff.id || "staff").replace(/[^a-z0-9]/gi, "").slice(-6).padStart(6, "0");
+  return `Aura@${seed}`;
 }
 
 function hashPassword(password) {
@@ -65,6 +75,26 @@ function rowToStaff(row) {
     roleId: row.role_id || "staff",
     department: row.department || "",
     designation: row.designation || "",
+    status: row.status || "active"
+  };
+}
+
+function legacyRowToStaff(row) {
+  if (!row) return null;
+  const name = String(row.name || "").trim();
+  const [firstName = name, ...rest] = name.split(/\s+/).filter(Boolean);
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    branchId: row.branchId,
+    fullName: name,
+    firstName,
+    lastName: rest.join(" "),
+    mobile: row.phone || "",
+    email: row.email || "",
+    roleId: row.role || "staff",
+    department: "",
+    designation: row.role || "",
     status: row.status || "active"
   };
 }
@@ -320,8 +350,8 @@ export class StaffLoginService {
     ensureTenantUserAccessColumns();
     const staff = typeof staffOrId === "string" ? this.getStaff(staffOrId, access) : staffOrId;
     if (!staff?.id) throw notFound("Staff record not found");
-    if (!privilegedRoles.has(normalizeRole(access.role))) throw forbidden("Only manager, owner, admin or super admin can provision staff login");
-    const loginId = normalizeLoginId(payload.loginId || payload.login_id || payload.email || staff.email || staff.mobile || staff.id);
+    if (!payload.autoProvision && !privilegedRoles.has(normalizeRole(access.role))) throw forbidden("Only owner, admin or super admin can provision staff login");
+    const loginId = normalizeLoginId(payload.loginId || payload.login_id || payload.email || defaultLoginIdForStaff(staff));
     if (!loginId) throw badRequest("Staff login ID is required");
     const email = safeEmail(loginId, payload.email || staff.email);
     const requestedRole = String(payload.role || payload.roleId || staff.roleId || "staff").trim();
@@ -379,6 +409,23 @@ export class StaffLoginService {
       )`).run(row);
     }
     return rowToAuthUser(db.prepare("SELECT * FROM tenant_users WHERE id = ? AND tenantId = ?").get(row.id, access.tenantId));
+  }
+
+  ensureStaffLogin(staffOrId, access) {
+    ensureTenantUserAccessColumns();
+    const staff = typeof staffOrId === "string" ? this.getStaff(staffOrId, access) : staffOrId;
+    if (!staff?.id) throw notFound("Staff record not found");
+    const existing = db.prepare("SELECT * FROM tenant_users WHERE tenantId = ? AND staffId = ?").get(access.tenantId, staff.id);
+    if (existing) return rowToAuthUser(existing);
+    const loginId = defaultLoginIdForStaff(staff);
+    return this.upsertStaffLogin(staff, {
+      autoProvision: true,
+      loginId,
+      email: staff.email || "",
+      password: defaultPasswordForLogin(loginId, staff),
+      role: "staff",
+      status: "active"
+    }, access);
   }
 
   getStaffLogin(staffId, access) {
@@ -1210,12 +1257,22 @@ export class StaffLoginService {
       });
       if (branchRow?.id) return branchRow;
     }
-    return db.prepare(`${baseSql} ORDER BY full_name ASC LIMIT 1`).get({ tenantId: access.tenantId }) || null;
+    const staffMasterRow = db.prepare(`${baseSql} ORDER BY full_name ASC LIMIT 1`).get({ tenantId: access.tenantId });
+    if (staffMasterRow?.id) return staffMasterRow;
+    const legacyBranchFilter = branchId ? " AND branchId = @branchId" : "";
+    return db.prepare(`SELECT id FROM staff WHERE tenantId = @tenantId${legacyBranchFilter} ORDER BY name ASC LIMIT 1`).get({ tenantId: access.tenantId, branchId }) || null;
   }
 
   getStaff(staffId, access) {
     const row = db.prepare("SELECT * FROM staff_master WHERE id = ? AND tenant_id = ?").get(staffId, access.tenantId);
-    if (!row) throw notFound("Staff record not found");
+    if (!row) {
+      const legacy = db.prepare("SELECT * FROM staff WHERE id = ? AND tenantId = ?").get(staffId, access.tenantId);
+      if (!legacy) throw notFound("Staff record not found");
+      if (!privilegedRoles.has(normalizeRole(access.role)) && access.branchId && legacy.branchId !== access.branchId) {
+        throw forbidden("This staff record is outside your branch access");
+      }
+      return legacyRowToStaff(legacy);
+    }
     if (!privilegedRoles.has(normalizeRole(access.role)) && access.branchId && row.branch_id !== access.branchId) {
       throw forbidden("This staff record is outside your branch access");
     }

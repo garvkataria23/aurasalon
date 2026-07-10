@@ -534,6 +534,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
                             <a routerLink="/staff/my-work" [queryParams]="{ staffId: staff.id }">My Work</a>
                             <a routerLink="/staff-os/attendance-dashboard" [queryParams]="{ staffId: staff.id }">Attendance</a>
                             <a routerLink="/staff-os/payroll-dashboard" [queryParams]="{ staffId: staff.id }">Payroll</a>
+                            <button *ngIf="canProvisionStaffLogin()" type="button" (click)="openStaffLoginEditor(staff)">{{ staff.loginUserId ? 'Edit/reset login' : 'Create login' }}</button>
                             <button type="button" (click)="openSalaryEditor(staff)">Salary</button>
                             <button type="button" (click)="prefillManualAttendance(staff)">Manual attendance</button>
                             <button type="button" [disabled]="statusChanging() === staff.id" (click)="toggleStaffStatus(staff)">{{ statusChanging() === staff.id ? 'Saving...' : statusActionLabel(staff) }}</button>
@@ -649,7 +650,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
                 <small *ngIf="fieldInvalid('email')">Enter a valid email.</small>
               </label>
 
-              <section class="login-provision full">
+              <section class="login-provision full" *ngIf="canProvisionStaffLogin()">
                 <div>
                   <strong>Give this staff their own login ID and password.</strong>
                 </div>
@@ -1318,6 +1319,53 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
                 <button type="button" class="refresh" (click)="closeAddStaff()">Back To Search</button>
                 <button type="submit" class="primary" [disabled]="staffForm.invalid || addStaffSaving()">
                   {{ addStaffSaving() ? 'Saving...' : 'Save Employee' }}
+                </button>
+              </div>
+            </footer>
+          </form>
+        </aside>
+      </div>
+
+      <div class="drawer-shell" *ngIf="staffLoginEditorStaff() as loginStaff" role="dialog" aria-modal="true" aria-label="Create or reset staff login">
+        <div class="drawer-scrim" (click)="closeStaffLoginEditor()"></div>
+        <aside class="drawer compact-drawer">
+          <header class="drawer-header">
+            <div>
+              <div class="editor-title-row">
+                <h2>{{ loginStaff.loginUserId ? 'Reset Login' : 'Create Login' }}</h2>
+                <span class="status-pill">{{ loginStaff.fullName }}</span>
+              </div>
+              <span>Staff will use this Login ID with Tenant ID to sign in.</span>
+            </div>
+            <button type="button" class="icon-button" (click)="closeStaffLoginEditor()" aria-label="Close staff login editor">×</button>
+          </header>
+
+          <form class="staff-form" [formGroup]="staffLoginForm" (ngSubmit)="saveStaffLogin()">
+            <label class="field full">
+              <span>Login ID</span>
+              <input formControlName="loginId" autocomplete="username" placeholder="isha.staff or mobile/email" />
+              <small *ngIf="staffLoginForm.get('loginId')?.invalid && staffLoginForm.get('loginId')?.touched">Login ID is required.</small>
+            </label>
+            <label class="field full">
+              <span>{{ loginStaff.loginUserId ? 'New password' : 'Password' }}</span>
+              <input formControlName="password" type="password" autocomplete="new-password" />
+              <small>Minimum 6 characters. Required for new login; optional for reset details.</small>
+            </label>
+            <label class="field full">
+              <span>Login role</span>
+              <select formControlName="role">
+                <option value="staff">Staff</option>
+                <option value="frontDesk">Front desk</option>
+                <option value="cashier">Cashier</option>
+                <option value="manager">Manager</option>
+              </select>
+            </label>
+            <div class="state error" *ngIf="staffLoginEditorError()">{{ staffLoginEditorError() }}</div>
+            <footer class="drawer-actions">
+              <div class="drawer-action-buttons">
+                <button type="button" class="refresh" (click)="closeStaffLoginEditor()">Cancel</button>
+                <button type="submit" class="primary" [disabled]="staffLoginForm.invalid || staffLoginEditorSaving()">
+                  {{ staffLoginEditorSaving() ? 'Saving...' : 'Save Login' }}
                 </button>
               </div>
             </footer>
@@ -3024,6 +3072,9 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   readonly staffListPage = signal(1);
   readonly staffListSort = signal<StaffListSortField>('name');
   readonly staffListSortDir = signal<'asc' | 'desc'>('asc');
+  readonly staffLoginEditorStaff = signal<StaffOsStaff | null>(null);
+  readonly staffLoginEditorSaving = signal(false);
+  readonly staffLoginEditorError = signal('');
   readonly staffListFilteredRows = computed(() => this.sortedStaffRows());
   readonly staffListPageCount = computed(() => Math.max(1, Math.ceil(this.staffListFilteredRows().length / this.staffListPageSize())));
   readonly staffListPageSafe = computed(() => Math.min(Math.max(this.staffListPage(), 1), this.staffListPageCount()));
@@ -3236,6 +3287,11 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     aadhaarNo: [''],
     remarks: [''],
     imeiNo: ['']
+  });
+  readonly staffLoginForm = this.fb.group({
+    loginId: ['', Validators.required],
+    password: ['', Validators.minLength(6)],
+    role: ['staff', Validators.required]
   });
   readonly cameraForm = this.fb.group({
     branchId: [''],
@@ -4673,6 +4729,60 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
     this.staffForm.patchValue({ branchId, employeeCode: this.nextStaffEmployeeCode(branchId) });
     this.detailTab.set('core');
     this.addStaffOpen.set(true);
+  }
+
+  openStaffLoginEditor(staff: StaffOsStaff): void {
+    if (!this.canProvisionStaffLogin()) return;
+    const loginId = staff.loginId || (staff.email && staff.email.includes('@') ? staff.email : '') || staff.mobile || staff.employeeCode || staff.id;
+    this.staffLoginEditorError.set('');
+    this.staffLoginForm.reset({
+      loginId,
+      password: '',
+      role: staff.roleId && ['staff', 'frontDesk', 'cashier', 'manager'].includes(staff.roleId) ? staff.roleId : 'staff'
+    });
+    this.staffLoginEditorStaff.set(staff);
+  }
+
+  canProvisionStaffLogin(): boolean {
+    return ['owner', 'admin', 'superAdmin'].includes(this.appState.userRole());
+  }
+
+  closeStaffLoginEditor(): void {
+    if (this.staffLoginEditorSaving()) return;
+    this.staffLoginEditorStaff.set(null);
+    this.staffLoginEditorError.set('');
+  }
+
+  saveStaffLogin(): void {
+    const staff = this.staffLoginEditorStaff();
+    if (!staff) return;
+    if (this.staffLoginForm.invalid) {
+      this.staffLoginForm.markAllAsTouched();
+      return;
+    }
+    const value = this.staffLoginForm.getRawValue() as { loginId: string; password?: string; role: string };
+    const password = String(value.password || '').trim();
+    if (!staff.loginUserId && !password) {
+      this.staffLoginEditorError.set('Password is required when creating a new staff login.');
+      return;
+    }
+    this.staffLoginEditorSaving.set(true);
+    this.staffLoginEditorError.set('');
+    this.store.upsertStaffLogin(staff, {
+      loginId: String(value.loginId || '').trim(),
+      password: password || undefined,
+      role: value.role || 'staff'
+    }).pipe(finalize(() => this.staffLoginEditorSaving.set(false))).subscribe({
+      next: () => {
+        this.staffActionMessage.set(`Login saved for ${staff.fullName}.`);
+        this.staffActionError.set('');
+        this.staffLoginEditorStaff.set(null);
+        this.store.load();
+      },
+      error: (error: { error?: { error?: string; message?: string }; message?: string }) => {
+        this.staffLoginEditorError.set(error?.error?.error || error?.error?.message || error?.message || 'Unable to save staff login');
+      }
+    });
   }
 
   attendanceBranchId(): string {

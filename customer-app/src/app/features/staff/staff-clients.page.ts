@@ -1,13 +1,11 @@
-import { CurrencyPipe, DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffClientListItem } from "../../core/staff-app.service";
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, FormsModule, RouterLink, IonSpinner],
+  imports: [FormsModule, IonSpinner],
   template: `
     <section class="page">
       <header class="page-head">
@@ -27,7 +25,7 @@ import { StaffAppService, StaffClientListItem } from "../../core/staff-app.servi
         <section class="panel">
           <div class="panel-title"><h2>Search clients</h2><span>{{ clients().length }}</span></div>
           <div class="form-grid compact-grid">
-            <label>Find by name, phone or email<input [(ngModel)]="query" (keyup.enter)="search()" placeholder="Search clients" /></label>
+            <label>Find by name<input [(ngModel)]="query" (keyup.enter)="search()" placeholder="Search clients" /></label>
           </div>
           <div class="row-actions permission-actions">
             <button class="button primary" type="button" (click)="search()">Search</button>
@@ -44,12 +42,9 @@ import { StaffAppService, StaffClientListItem } from "../../core/staff-app.servi
               <div class="row">
                 <div class="row-main">
                   <strong>{{ client.name }}</strong>
-                  <small>{{ client.phone || client.email || 'No contact on file' }}</small>
-                  <small>{{ client.visitCount }} visits · {{ client.totalSpend | currency:'INR':'symbol':'1.0-0' }} spend · {{ client.lastVisitAt ? (client.lastVisitAt | date:'mediumDate') : 'no visit yet' }}</small>
                 </div>
                 <div class="row-actions">
                   @if (client.membershipStatus) { <span class="badge green">{{ client.membershipStatus }}</span> }
-                  <a class="button primary" [routerLink]="['/staff/client-360', client.id]">Client 360</a>
                 </div>
               </div>
             } @empty { <p class="empty">No clients found for this branch/search.</p> }

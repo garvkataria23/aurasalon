@@ -64,7 +64,7 @@ type StaffRecentItem = { label: string; path: string };
         <a routerLink="/staff/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Dashboard')"></path></svg><span>Home</span></a>
         <a routerLink="/staff/appointments" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Appointments')"></path></svg><span>Bookings</span></a>
         <a routerLink="/staff/queue" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Today' + 's Queue')"></path></svg><span>Queue</span></a>
-        <a routerLink="/staff/clients" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Clients')"></path></svg><span>Clients</span></a>
+        <a routerLink="/staff/attendance" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Attendance')"></path></svg><span>Attendance</span></a>
         <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a>
       </nav>      @if (showScrollTop()) { <button type="button" class="scroll-top-button" (click)="scrollToTop()" aria-label="Go to top">Top</button> }
 

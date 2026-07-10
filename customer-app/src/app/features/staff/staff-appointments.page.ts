@@ -24,9 +24,9 @@ import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } fro
         </section>
 
         <section class="panel">
-          <div class="panel-title"><h2>Today appointments</h2><span>{{ data.todayAppointments.length }}</span></div>
+          <div class="panel-title"><h2>Assigned appointments</h2><span>{{ data.appointments.length }}</span></div>
           <div class="list">
-            @for (item of data.todayAppointments; track item.id) {
+            @for (item of data.appointments; track item.id) {
               <article class="row">
                 <div class="row-main">
                   <strong>{{ item.clientName || 'Walk-in client' }}</strong>
@@ -46,7 +46,7 @@ import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } fro
                 </div>
               </article>
             } @empty {
-              <p class="empty">No appointments assigned to you today.</p>
+              <p class="empty">No appointments assigned to you in the selected range.</p>
             }
           </div>
         </section>

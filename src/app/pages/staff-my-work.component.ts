@@ -69,18 +69,18 @@ type StaffSelfDashboard = {
         <section class="register-panel">
           <header class="register-heading">
             <div>
-              <h2>Today queue</h2>
+              <h2>Assigned appointments</h2>
             </div>
-            <span>{{ data.range.date }}</span>
+            <span>{{ data.range.from | date:'mediumDate' }} - {{ data.range.to | date:'mediumDate' }}</span>
           </header>
-          <div class="register-scroll" *ngIf="data.liveAppointments.length; else noLive">
+          <div class="register-scroll" *ngIf="data.appointments.length; else noLive">
             <table>
               <thead>
-                <tr><th>Time</th><th>Client</th><th>Service</th><th>Chair</th><th>Status</th></tr>
+                <tr><th>Date</th><th>Client</th><th>Service</th><th>Chair</th><th>Status</th></tr>
               </thead>
               <tbody>
-                <tr *ngFor="let booking of data.liveAppointments">
-                  <td><strong>{{ booking.startAt | date:'shortTime' }} - {{ booking.endAt | date:'shortTime' }}</strong></td>
+                <tr *ngFor="let booking of data.appointments">
+                  <td><strong>{{ booking.startAt | date:'medium' }}</strong></td>
                   <td>{{ booking.clientName }}</td>
                   <td>{{ serviceText(booking) }}</td>
                   <td>{{ booking.chair || 'No chair' }}</td>
@@ -89,7 +89,7 @@ type StaffSelfDashboard = {
               </tbody>
             </table>
           </div>
-          <ng-template #noLive><div class="empty">No live appointment for this staff on selected date.</div></ng-template>
+          <ng-template #noLive><div class="empty">No appointment for this staff in selected range.</div></ng-template>
         </section>
 
         <section class="register-panel">

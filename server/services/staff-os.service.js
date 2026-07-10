@@ -292,11 +292,11 @@ function rowToLegacyStaff(row) {
     staffCategoryId: "",
     staffCategoryName: "",
     staffCategoryScope: "",
-    loginUserId: "",
-    loginId: "",
-    loginEmail: "",
-    loginStatus: "",
-    loginPasswordSet: false,
+    loginUserId: row.login_user_id || "",
+    loginId: row.login_id || "",
+    loginEmail: row.login_email || "",
+    loginStatus: row.login_status || "",
+    loginPasswordSet: Number(row.login_password_set || 0) === 1,
     department: "",
     designation: row.role || "",
     emergencyContactName: "",
@@ -1144,6 +1144,7 @@ function staffIdentityForLogin(row) {
     id: row.id,
     tenantId: row.tenant_id,
     branchId: row.branch_id,
+    employeeCode: row.employee_code,
     firstName: row.first_name,
     lastName: row.last_name,
     fullName: row.full_name,
@@ -1204,6 +1205,28 @@ function buildEmployeeDetailsPayload(staffId, branchId, payload = {}, access, ex
 }
 
 export class StaffOsService {
+  ensureStaffLoginsForQuery(filters, params, access) {
+    if (!managerRoles.has(access.role)) return;
+    const rows = db.prepare(`SELECT sm.* FROM staff_master sm
+      LEFT JOIN staff_category_assignments sca ON sca.tenant_id = sm.tenant_id AND sca.staff_id = sm.id AND sca.status = 'active'
+      LEFT JOIN staff_categories sc ON sc.tenant_id = sm.tenant_id AND sc.id = sca.category_id
+      WHERE ${filters.join(" AND ")} ORDER BY sm.full_name ASC LIMIT @limit`).all(params);
+    rows.forEach((row) => {
+      const existing = db.prepare("SELECT id FROM tenant_users WHERE tenantId = ? AND staffId = ?").get(access.tenantId, row.id);
+      if (!existing) staffLoginService.ensureStaffLogin(staffIdentityForLogin(row), access);
+    });
+  }
+
+  ensureLegacyStaffLoginsForQuery(filters, params, access) {
+    if (!managerRoles.has(access.role)) return;
+    const rows = db.prepare(`SELECT * FROM staff WHERE ${filters.join(" AND ")} ORDER BY name ASC LIMIT @limit`).all(params).map(rowToLegacyStaff);
+    rows.forEach((row) => {
+      if (!row?.id) return;
+      const existing = db.prepare("SELECT id FROM tenant_users WHERE tenantId = ? AND staffId = ?").get(access.tenantId, row.id);
+      if (!existing) staffLoginService.ensureStaffLogin(row, access);
+    });
+  }
+
   listStaff(query = {}, access) {
     access = normalizeAccess(access);
     const includeAllBranches = (query.includeAllBranches === true || query.includeAllBranches === "true") && managerRoles.has(access.role);
@@ -1217,6 +1240,7 @@ export class StaffOsService {
     const filters = [branchScopedWhere(access, params, "sm")];
     if (params.status) filters.push("sm.status = @status");
     if (params.q) filters.push("(lower(sm.full_name) LIKE @q OR lower(sm.mobile) LIKE @q OR lower(sm.email) LIKE @q OR lower(sc.name) LIKE @q)");
+    this.ensureStaffLoginsForQuery(filters, params, access);
     const rows = db.prepare(`SELECT sm.*, sc.id AS staff_category_id, sc.name AS staff_category_name, sc.scope AS staff_category_scope,
         tu.id AS login_user_id, tu.loginId AS login_id, tu.email AS login_email,
         tu.status AS login_status, CASE WHEN COALESCE(tu.passwordHash, '') != '' THEN 1 ELSE 0 END AS login_password_set
@@ -1237,8 +1261,13 @@ export class StaffOsService {
     }
     if (params.status) legacyFilters.push("status = @status");
     if (params.q) legacyFilters.push("(lower(name) LIKE @q OR lower(phone) LIKE @q OR lower(email) LIKE @q OR lower(role) LIKE @q)");
+    this.ensureLegacyStaffLoginsForQuery(legacyFilters, params, access);
     const byId = new Map(rows.map((row) => [row.id, row]));
-    for (const row of db.prepare(`SELECT * FROM staff WHERE ${legacyFilters.join(" AND ")} ORDER BY name ASC LIMIT @limit`).all(params).map(rowToLegacyStaff)) {
+    for (const row of db.prepare(`SELECT s.*, tu.id AS login_user_id, tu.loginId AS login_id, tu.email AS login_email,
+        tu.status AS login_status, CASE WHEN COALESCE(tu.passwordHash, '') != '' THEN 1 ELSE 0 END AS login_password_set
+      FROM (SELECT * FROM staff WHERE ${legacyFilters.join(" AND ")} ORDER BY name ASC LIMIT @limit) s
+      LEFT JOIN tenant_users tu ON tu.tenantId = s.tenantId AND tu.staffId = s.id
+      ORDER BY s.name ASC`).all(params).map(rowToLegacyStaff)) {
       if (row && !byId.has(row.id)) byId.set(row.id, row);
     }
     return [...byId.values()].sort((left, right) => String(left.fullName || "").localeCompare(String(right.fullName || ""))).slice(0, params.limit);
@@ -1268,6 +1297,7 @@ export class StaffOsService {
       const staffIdentity = staffIdentityForLogin(data);
       staffLoginService.syncCoreStaffFromStaffMaster(staffIdentity, access);
       if (hasStaffLoginPayload(payload)) staffLoginService.upsertStaffLogin(staffIdentity, buildStaffLoginPayload(payload), access);
+      else staffLoginService.ensureStaffLogin(staffIdentity, access);
       this.writeAudit("staff.created", "staff_master", data.id, access, { after: data, branchId: data.branch_id });
       return this.getStaff(data.id, access);
     });
@@ -1351,6 +1381,7 @@ export class StaffOsService {
       const staffIdentity = staffIdentityForLogin(next);
       staffLoginService.syncCoreStaffFromStaffMaster(staffIdentity, access);
       if (hasStaffLoginPayload(payload)) staffLoginService.upsertStaffLogin(staffIdentity, buildStaffLoginPayload(payload), access);
+      else staffLoginService.ensureStaffLogin(staffIdentity, access);
       this.writeAudit("staff.updated", "staff_master", id, access, { before: existing, after: next, branchId: nextBranchId });
       return this.getStaff(id, access);
     });

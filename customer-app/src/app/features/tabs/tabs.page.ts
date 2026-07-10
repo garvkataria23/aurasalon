@@ -139,13 +139,17 @@ import { AuthService } from "../../core/auth.service";
           <ion-icon name="home-outline"></ion-icon>
           <ion-label>Home</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="consultation" href="/tabs/consultation">
-          <ion-icon name="sparkles-outline"></ion-icon>
-          <ion-label>Consult</ion-label>
+        <ion-tab-button tab="search" href="/tabs/search">
+          <ion-icon name="search-outline"></ion-icon>
+          <ion-label>Book</ion-label>
         </ion-tab-button>
         <ion-tab-button tab="bookings" href="/tabs/bookings">
           <ion-icon name="calendar-outline"></ion-icon>
           <ion-label>Bookings</ion-label>
+        </ion-tab-button>
+        <ion-tab-button tab="offers" href="/tabs/offers">
+          <ion-icon name="pricetag-outline"></ion-icon>
+          <ion-label>Offers</ion-label>
         </ion-tab-button>
         <ion-tab-button tab="profile" href="/tabs/profile">
           <ion-icon name="person-outline"></ion-icon>
@@ -197,7 +201,34 @@ import { AuthService } from "../../core/auth.service";
       flex: 1 1 auto;
     }
 
-    @media (max-width: 1023px) {
+    ion-tab-bar {
+      --background: rgba(255, 253, 248, 0.96);
+      --border: 1px solid rgba(214, 169, 74, 0.18);
+      min-height: calc(62px + env(safe-area-inset-bottom));
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+      box-shadow: 0 -12px 32px rgba(92, 65, 28, 0.12);
+      backdrop-filter: blur(18px);
+    }
+
+    ion-tab-button {
+      --color: #7e6e55;
+      --color-selected: #201307;
+      --ripple-color: rgba(214, 169, 74, 0.18);
+      min-width: 0;
+      border-radius: 16px;
+      font-size: 0.68rem;
+      font-weight: 900;
+    }
+
+    ion-tab-button.tab-selected {
+      background: linear-gradient(135deg, rgba(246, 200, 189, 0.88), rgba(241, 213, 159, 0.92));
+    }
+
+    ion-tab-button ion-icon {
+      font-size: 1.18rem;
+    }
+
+    @media (min-width: 1024px) {
       .mobile-topbar,
       .mobile-menu-backdrop,
       .mobile-menu-sheet {
