@@ -72,8 +72,8 @@ type StaffRecentItem = { label: string; path: string };
         <section class="command-backdrop" (click)="closeCommand()">
           <div class="command-palette" role="dialog" aria-modal="true" aria-labelledby="staff-command-title" tabindex="-1" #commandDialog (keydown)="trapFocus($event, commandDialog)" (click)="$event.stopPropagation()">
             <div class="command-head"><strong id="staff-command-title">Command palette</strong><button type="button" (click)="closeCommand()">Close</button></div>
-            <input [(ngModel)]="query" (keydown)="onCommandKeydown($event)" placeholder="Search staff pages, clients, queue..." #commandInput autofocus />
-            @if (query.trim()) { <small class="search-hint">{{ commandResults().length }} matches · Press Enter to open the first result</small> }
+            <input [ngModel]="query()" (ngModelChange)="query.set($event)" (keydown)="onCommandKeydown($event)" placeholder="Search staff pages, clients, queue..." #commandInput autofocus />
+            @if (query().trim()) { <small class="search-hint">{{ commandResults().length }} matches · Press Enter to open the first result</small> }
             <div class="command-list">
               @for (item of commandResults(); track item.path + item.label) {
                 <button type="button" (click)="go(item)"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.iconPath"></path></svg></span><div><strong>{{ item.label }}</strong><small>{{ item.group }}</small></div></button>
@@ -223,7 +223,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   readonly toastMessage = signal("");
   readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly recent = signal<StaffRecentItem[]>(this.readRecent());
-  query = "";
+  readonly query = signal("");
   private pollTimer = 0;
   private reconnectTimer = 0;
   private toastTimer = 0;
@@ -253,7 +253,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   ];
 
   readonly commandResults = computed(() => {
-    const text = this.query.trim().toLowerCase();
+    const text = this.query().trim().toLowerCase();
     const navItems = this.visibleNav().map((item) => ({ ...item }));
     const notices = (this.os()?.notifications || []).map((note) => ({ label: note.title, path: "/staff/notifications", iconPath: this.iconFor("Notifications"), group: note.body || "Notification" }));
     const coach = (this.os()?.aiCoach || []).map((card) => ({ label: card.title, path: "/staff/ai-coach", iconPath: this.iconFor("AI Coach"), group: card.body }));
@@ -396,7 +396,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
 
   closeCommand() {
     this.commandOpen.set(false);
-    this.query = "";
+    this.query.set("");
   }
 
   toggleNotifications() {
