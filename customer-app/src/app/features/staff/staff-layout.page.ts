@@ -311,13 +311,27 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
 
   @HostListener("window:touchend", ["$event"])
   onTouchEnd(event: TouchEvent) {
-    const endX = event.changedTouches[0]?.clientX || 0;
-    if (this.touchStartX < 24 && endX - this.touchStartX > 70) this.openMenu();
-    if (this.menuOpen() && this.touchStartX - endX > 70) this.closeMenu();
+    const touch = event.changedTouches[0];
+    const endX = touch?.clientX || 0;
+    const deltaX = endX - this.touchStartX;
+    const deltaY = Math.abs((touch?.clientY || 0) - this.touchStartY);
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("input,textarea,button,a,[role=dialog]")) return;
+    if (this.touchStartX < 24 && deltaX > 70) this.openMenu();
+    if (this.menuOpen() && deltaX < -70) this.closeMenu();
+    if (!this.menuOpen() && !this.notificationsOpen() && Math.abs(deltaX) > 70 && Math.abs(deltaX) > deltaY) this.navigateMobileSwipe(deltaX < 0 ? 1 : -1);
   }
 
   private touchStartX = 0;
+  private touchStartY = 0;
+  private readonly mobileSwipeRoutes = ["/staff/dashboard", "/staff/appointments", "/staff/queue", "/staff/clients", "/staff/tasks"];
 
+  private navigateMobileSwipe(direction: number) {
+    const current = this.router.url.split("?")[0];
+    const index = this.mobileSwipeRoutes.indexOf(current);
+    const next = this.mobileSwipeRoutes[index + direction];
+    if (index >= 0 && next) void this.router.navigateByUrl(next);
+  }
   visibleNav(): StaffNavItem[] {
     return this.nav.filter((item) => !item.permission || this.staff.hasPermission(item.permission) || item.permission === "read:payroll" && this.staff.hasPermission("read:finance"));
   }
