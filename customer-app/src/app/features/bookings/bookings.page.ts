@@ -692,6 +692,118 @@ type WaitlistDialog = {
       }
     }
 
+    @media (max-width: 599px) {
+      .bookings-page {
+        padding-top: 4px !important;
+      }
+
+      .bookings-hero {
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .bookings-hero .page-title {
+        margin-bottom: 0 !important;
+        font-size: 1.65rem !important;
+        line-height: 1 !important;
+      }
+
+      .booking-command-grid {
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .command-card {
+        min-height: 0;
+        gap: 3px;
+        padding: 10px;
+        border-radius: 16px !important;
+      }
+
+      .command-card ion-icon {
+        width: 34px;
+        height: 34px;
+        padding: 8px;
+        border-radius: 12px;
+      }
+
+      .command-card strong {
+        font-size: 0.86rem;
+        line-height: 1.05;
+      }
+
+      .command-card span {
+        font-size: 0.72rem;
+        line-height: 1.2;
+      }
+
+      ion-segment {
+        margin-bottom: 10px;
+      }
+
+      ion-segment-button {
+        min-height: 38px;
+        font-size: 0.78rem;
+      }
+
+      .booking-stack {
+        gap: 10px;
+      }
+
+      .booking-card {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 16px !important;
+      }
+
+      .date-block {
+        min-height: 54px;
+        grid-template-columns: auto auto;
+        justify-content: start;
+        gap: 8px;
+        padding: 0 14px;
+        border-radius: 16px;
+      }
+
+      .date-block span {
+        font-size: 0.7rem;
+      }
+
+      .date-block strong {
+        font-size: 1.55rem;
+      }
+
+      .booking-content h2 {
+        margin: 5px 0 2px;
+        font-size: 1.2rem;
+        line-height: 1.05;
+      }
+
+      .booking-content p {
+        margin: 0 0 5px;
+        font-size: 0.86rem;
+      }
+
+      .booking-meta {
+        gap: 3px;
+        font-size: 0.76rem;
+        line-height: 1.15;
+      }
+
+      .actions {
+        gap: 5px;
+        margin-top: 8px;
+      }
+
+      .actions ion-button {
+        min-height: 32px;
+        margin: 0;
+        font-size: 0.7rem;
+        --padding-start: 10px;
+        --padding-end: 10px;
+      }
+    }
     @media (min-width: 1024px) {
       .booking-stack {
         grid-template-columns: repeat(2, minmax(0, 1fr));
