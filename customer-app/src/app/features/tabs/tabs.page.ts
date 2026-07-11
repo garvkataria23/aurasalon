@@ -756,6 +756,7 @@ export class TabsPage {
   readonly swipePreviewOffset = signal(0);
   readonly swipePreviewTransition = signal("none");
   private swipeDirection = 0;
+  private swipeStartRoute = "";
 
   constructor(readonly auth: AuthService, private readonly router: Router) {
     addIcons({ homeOutline, searchOutline, sparklesOutline, calendarOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline });
@@ -785,7 +786,7 @@ export class TabsPage {
     const deltaX = event.touches[0].clientX - this.swipeStartX;
     const deltaY = event.touches[0].clientY - this.swipeStartY;
     if (Math.abs(deltaX) <= Math.abs(deltaY) || Math.abs(deltaX) < 8) return;
-    const currentIndex = this.mobileSwipeRoutes.findIndex((route) => this.router.url.split("?")[0] === route);
+    const currentIndex = this.mobileSwipeRoutes.findIndex((route) => this.swipeStartRoute === route);
     const nextRoute = this.mobileSwipeRoutes[currentIndex + (deltaX < 0 ? 1 : -1)];
     if (!nextRoute) return;
     event.preventDefault();
@@ -810,7 +811,7 @@ export class TabsPage {
       this.resetSwipe(outlet);
       return;
     }
-    const currentIndex = this.mobileSwipeRoutes.findIndex((route) => this.router.url.split("?")[0] === route);
+    const currentIndex = this.mobileSwipeRoutes.findIndex((route) => this.swipeStartRoute === route);
     const nextRoute = this.mobileSwipeRoutes[currentIndex + (deltaX < 0 ? 1 : -1)];
     if (!nextRoute) {
       this.resetSwipe(outlet);
@@ -825,6 +826,10 @@ export class TabsPage {
       () => window.setTimeout(() => { this.clearSwipePreview(); this.resetOutlet(outlet); }, 220),
       () => this.resetSwipe(outlet)
     );
+  }
+
+  private normalizeSwipeRoute(url: string): string {
+    return url.split(/[?#]/)[0].replace(/\/+$/, "");
   }
 
   private previewComponent(route: string): Type<unknown> {
