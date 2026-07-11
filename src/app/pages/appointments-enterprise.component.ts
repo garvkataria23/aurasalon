@@ -216,7 +216,7 @@ const STATUS_TONES: Record<string, string> = {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
   template: `
-    <section class="enterprise-scheduler inner-page-shell" [class.enterprise-scheduler--fullscreen]="calendarFullscreen()">
+    <section class="enterprise-scheduler inner-page-shell">
       <app-state [loading]="loading()" [error]="drawer() ? '' : error()" loadingText="Loading enterprise scheduler"></app-state>
       <ng-container *ngIf="!loading() && (!error() || drawer())">
         <section class="deposit-followup-strip" *ngIf="adjustedDueFollowUpCount() > 0">
@@ -309,7 +309,8 @@ const STATUS_TONES: Record<string, string> = {
           <article><span>Revenue</span><strong>{{ money(summaryValue('revenue')) }}</strong></article>
         </section>
 
-        <section class="scheduler-grid-shell" [class.scheduler-grid-shell--compact]="calendarLayout() === 'compact-grid'" *ngIf="isGridCalendarLayout(); else alternateCalendarLayout">
+        <section class="scheduler-grid-shell" [class.scheduler-grid-shell--compact]="calendarLayout() === 'compact-grid'" [class.scheduler-grid-shell--fullscreen]="calendarFullscreen()" *ngIf="isGridCalendarLayout(); else alternateCalendarLayout">
+          <button *ngIf="calendarFullscreen()" type="button" class="calendar-fullscreen-close" (click)="toggleCalendarFullscreen()" aria-label="Exit fullscreen calendar">×</button>
           <div
             class="scheduler-grid"
             [class.scheduler-grid--compact]="calendarLayout() === 'compact-grid'"
@@ -990,7 +991,7 @@ const STATUS_TONES: Record<string, string> = {
     .month-strip-band { display: grid; grid-template-columns: 42px 84px 42px minmax(0, 1fr) 36px; gap: 8px; align-items: center; min-height: 76px; padding: 10px 14px; border-radius: 14px; }
     .calendar-fullscreen-toggle { width: 34px; height: 34px; border: 1px solid #cfe0dc; border-radius: 10px; background: #fff; color: #4b1238; font-size: 19px; line-height: 1; cursor: pointer; }
     .calendar-fullscreen-toggle:hover { border-color: #0f8f7f; color: #0f8f7f; }
-    .enterprise-scheduler--fullscreen {
+        .scheduler-grid-shell--fullscreen {
       position: fixed !important;
       top: 0 !important;
       right: 0 !important;
@@ -1005,16 +1006,14 @@ const STATUS_TONES: Record<string, string> = {
       margin: 0 !important;
       padding: 16px !important;
       z-index: 1000;
-      display: block !important;
       overflow: auto;
       overscroll-behavior: contain;
       background: #f4f8f7;
       isolation: isolate;
     }
-    .enterprise-scheduler--fullscreen > * { min-width: 0; }
-    .enterprise-scheduler--fullscreen .scheduler-grid-shell { min-height: calc(100vh - 190px); }
-    .enterprise-scheduler--fullscreen .scheduler-grid { min-height: calc(100vh - 250px); }
-    .month-range-label { min-width: 84px; color: #172033; font-size: 14px; font-weight: 900; text-align: center; white-space: nowrap; }
+    .scheduler-grid-shell--fullscreen .scheduler-grid { min-height: calc(100dvh - 32px); max-height: none; }
+    .calendar-fullscreen-close { position: absolute; top: 22px; right: 22px; z-index: 80; width: 36px; height: 36px; border: 1px solid #cfe0dc; border-radius: 10px; background: #fff; color: #4b1238; font-size: 22px; line-height: 1; cursor: pointer; }
+.month-range-label { min-width: 84px; color: #172033; font-size: 14px; font-weight: 900; text-align: center; white-space: nowrap; }
     .month-strip-band > button { height: 40px; width: 40px; border-radius: 10px; border: 1px solid #e2d5df; background: #fff; color: #4b1238; font-weight: 900; }
     .month-strip { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 0 0 5px; min-width: 0; scrollbar-gutter: stable; scrollbar-width: thin; }
     .month-strip::-webkit-scrollbar { height: 4px; }
