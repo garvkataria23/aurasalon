@@ -2633,4 +2633,31 @@ ion-segment-button {
     max-width: 760px;
   }
 }
+@media (max-width: 599px) {
+  ion-tab-bar {
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 2px 3px !important;
+  }
+
+  ion-tab-button {
+    min-height: 52px !important;
+    padding: 2px 0 !important;
+    font-size: 0.62rem !important;
+  }
+
+  ion-tab-button ion-icon {
+    font-size: 1.05rem !important;
+  }
+
+  ion-tab-button ion-label {
+    display: block !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    font-size: 0.62rem !important;
+    line-height: 1 !important;
+    letter-spacing: -0.02em !important;
+  }
+}
 /* End Aura Shine customer app premium SaaS polish layer. */

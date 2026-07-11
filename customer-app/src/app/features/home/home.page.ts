@@ -47,6 +47,7 @@ interface ConsultationChatMessage {
     <ion-header class="ion-no-border">
       <ion-toolbar>
         <div class="home-toolbar app-container">
+          <span class="aura-shine-brand" aria-label="Aura Shine">AuraShine</span>
           <div class="location-copy">
             <span>Near you</span>
             <div class="location-row">
@@ -420,6 +421,16 @@ interface ConsultationChatMessage {
       gap: 18px;
       padding-top: 8px;
       padding-bottom: 8px;
+    }
+
+    .aura-shine-brand {
+      display: none;
+      align-items: center;
+      color: #6e4810;
+      font-size: 1.15rem;
+      font-weight: 950;
+      white-space: nowrap;
+      letter-spacing: -0.03em;
     }
 
     .location-copy span {
@@ -1030,8 +1041,9 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions span {
       color: #201307;
-      font-size: 0.9rem;
+      font-size: 1.15rem;
       font-weight: 950;
+      white-space: nowrap;
     }
 
     .customer-quick-actions small {
@@ -1489,25 +1501,38 @@ interface ConsultationChatMessage {
     }
 
     @media (max-width: 599px) {
-      ion-toolbar { --min-height: 42px !important; }
-      .home-page .home-toolbar { min-height: 42px !important; padding-block: 2px !important; }
-      .home-page .location-row strong { font-size: 0.82rem !important; }
-      .home-page .hero { margin-top: -10px; }
+      ion-header { height: 44px !important; }
+      ion-toolbar { height: 44px !important; --min-height: 44px !important; }
+      .home-toolbar { grid-template-columns: auto 1fr !important; }
+      .aura-shine-brand { display: inline-flex !important; }
+      .location-copy { justify-self: end; text-align: right; }
+      .location-row { justify-content: flex-end; }
+      .home-page .home-toolbar { min-height: 44px !important; padding-block: 2px !important; }
+      .home-page .location-row strong { font-size: 0.78rem !important; }
+      .home-page .hero { margin-top: 0; }
       .home-page .search-panel {
         position: sticky !important;
-        top: calc(42px + var(--safe-top)) !important;
+        top: calc(44px + var(--safe-top)) !important;
         z-index: 30 !important;
         display: block !important;
-        margin-inline: -10px;
+        margin-inline: 0;
         padding: 0 !important;
         border-radius: 18px !important;
         box-shadow: 0 12px 30px rgba(92, 65, 28, 0.14) !important;
       }
+      .home-page .visited-rail {
+        grid-auto-columns: calc((100vw - 38px) / 2) !important;
+        padding-right: 0 !important;
+      }
+      .home-page .visited-card {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
       .home-page .home-search-wrap {
         position: relative;
-        width: calc(100% + 2px);
+        width: 100%;
         min-width: 0;
-        margin-inline: -1px;
+        margin-inline: 0;
       }
       .home-page .home-search-wrap ion-searchbar {
         width: 100% !important;
@@ -1524,7 +1549,7 @@ interface ConsultationChatMessage {
         z-index: 2;
         display: flex !important;
         flex-wrap: nowrap !important;
-        gap: 5px !important;
+        gap: 0 !important;
         padding: 0 !important;
         border-radius: 22px;
         background: #ffffff;
@@ -1543,11 +1568,11 @@ interface ConsultationChatMessage {
       }
       .home-page .home-control-button span { display: none !important; }
       .home-page .home-control-button ion-icon {
-        width: 15px !important;
-        height: 15px !important;
+        width: 14px !important;
+        height: 14px !important;
         margin: 0 !important;
-        font-size: 15px !important;
-        opacity: 0.78;
+        font-size: 14px !important;
+        opacity: 0.64;
       }
       .home-page .home-suggestion-panel {
         left: 0 !important;
@@ -1555,6 +1580,9 @@ interface ConsultationChatMessage {
         width: auto !important;
       }
     }
+      .home-page .business-grid.recommended aura-business-card { --card-image-ratio: 1.65; }
+      .home-page .business-grid.recommended { gap: 10px !important; }
+
     @media (min-width: 1024px) {
       ion-header {
         display: none;
