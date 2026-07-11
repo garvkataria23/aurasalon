@@ -1489,13 +1489,13 @@ interface ConsultationChatMessage {
     }
 
     @media (max-width: 599px) {
-      ion-toolbar { --min-height: 48px !important; }
-      .home-page .home-toolbar { min-height: 48px !important; padding-block: 4px !important; }
-      .home-page .location-row strong { font-size: 0.86rem !important; }
-      .home-page .hero { margin-top: -8px; }
+      ion-toolbar { --min-height: 42px !important; }
+      .home-page .home-toolbar { min-height: 42px !important; padding-block: 2px !important; }
+      .home-page .location-row strong { font-size: 0.82rem !important; }
+      .home-page .hero { margin-top: -10px; }
       .home-page .search-panel {
         position: sticky !important;
-        top: calc(54px + var(--safe-top)) !important;
+        top: calc(42px + var(--safe-top)) !important;
         z-index: 30 !important;
         display: block !important;
         margin-inline: -10px;
@@ -1511,7 +1511,7 @@ interface ConsultationChatMessage {
       }
       .home-page .home-search-wrap ion-searchbar {
         width: 100% !important;
-        min-height: 42px !important;
+        min-height: 38px !important;
         padding-right: 0 !important;
         --padding-end: 112px !important;
         --background: #ffffff !important;
