@@ -1,13 +1,17 @@
-import { Component, HostListener, signal } from "@angular/core";
+import { Component, HostListener, Type, signal } from "@angular/core";
+import { NgComponentOutlet } from "@angular/common";
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { IonButton, IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { calendarOutline, chevronForwardOutline, closeOutline, fingerPrintOutline, giftOutline, homeOutline, locationOutline, lockClosedOutline, logInOutline, logOutOutline, menuOutline, notificationsOutline, personCircleOutline, personOutline, pricetagOutline, ribbonOutline, searchOutline, settingsOutline, sparklesOutline } from "ionicons/icons";
 import { AuthService } from "../../core/auth.service";
+import { HomePage } from "../home/home.page";
+import { SearchPage } from "../search/search.page";
+import { BookingsPage } from "../bookings/bookings.page";
 
 @Component({
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, IonButton, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
+  imports: [NgComponentOutlet, RouterLink, RouterLinkActive, IonButton, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
   template: `
     @if (auth.biometricLocked()) {
       <section class="biometric-gate" aria-label="Biometric verification required">
@@ -133,6 +137,11 @@ import { AuthService } from "../../core/auth.service";
         </a>
       </div>
     </nav>
+    @if (swipePreviewComponent(); as component) {
+      <div class="swipe-preview-layer" aria-hidden="true" [style.transform]="previewTransform()" [style.transition]="swipePreviewTransition()">
+        <ng-container *ngComponentOutlet="component"></ng-container>
+      </div>
+    }
     <ion-tabs (touchstart)="startSwipe($event)" (touchmove)="moveSwipe($event)" (touchend)="finishSwipe($event)">
       <ion-tab-bar slot="bottom">
         <ion-tab-button tab="home" href="/tabs/home">
@@ -197,8 +206,24 @@ import { AuthService } from "../../core/auth.service";
       flex: 1 1 auto;
     }
 
+    .swipe-preview-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+      background: var(--background, #fff9ec);
+    }
+
+    .swipe-preview-layer > * {
+      width: 100%;
+      height: 100%;
+    }
+
     @media (max-width: 599px) {
       ion-tabs {
+        position: relative;
+        z-index: 2;
         touch-action: pan-y;
       }
     }
@@ -726,6 +751,10 @@ export class TabsPage {
   private swipeStartY = 0;
   private swipeOutlet: HTMLElement | null = null;
   private swipeTracking = false;
+  readonly swipePreviewComponent = signal<Type<unknown> | null>(null);
+  readonly swipePreviewOffset = signal(0);
+  readonly swipePreviewTransition = signal("none");
+  private swipeDirection = 0;
 
   constructor(readonly auth: AuthService, private readonly router: Router) {
     addIcons({ homeOutline, searchOutline, sparklesOutline, calendarOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline });
@@ -747,6 +776,7 @@ export class TabsPage {
     this.swipeOutlet = (event.currentTarget as HTMLElement | null)?.querySelector("ion-router-outlet") || null;
     this.swipeOutlet?.style.setProperty("transition", "none");
     this.swipeTracking = true;
+    this.clearSwipePreview();
   }
 
   moveSwipe(event: TouchEvent) {
@@ -754,9 +784,16 @@ export class TabsPage {
     const deltaX = event.touches[0].clientX - this.swipeStartX;
     const deltaY = event.touches[0].clientY - this.swipeStartY;
     if (Math.abs(deltaX) <= Math.abs(deltaY) || Math.abs(deltaX) < 8) return;
+    const currentIndex = this.mobileSwipeRoutes.findIndex((route) => this.router.url.split("?")[0] === route);
+    const nextRoute = this.mobileSwipeRoutes[currentIndex + (deltaX < 0 ? 1 : -1)];
+    if (!nextRoute) return;
     event.preventDefault();
+    this.swipeDirection = deltaX < 0 ? -1 : 1;
+    this.swipePreviewComponent.set(this.previewComponent(nextRoute));
+    this.swipePreviewTransition.set("none");
     const boundedDelta = Math.max(-window.innerWidth, Math.min(window.innerWidth, deltaX));
     this.swipeOutlet.style.transform = `translate3d(${boundedDelta}px, 0, 0)`;
+    this.swipePreviewOffset.set(this.swipeDirection < 0 ? window.innerWidth + boundedDelta : -window.innerWidth + boundedDelta);
   }
 
   finishSwipe(event: TouchEvent) {
@@ -773,28 +810,53 @@ export class TabsPage {
       return;
     }
     const currentIndex = this.mobileSwipeRoutes.findIndex((route) => this.router.url.split("?")[0] === route);
-    const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
-    const nextRoute = this.mobileSwipeRoutes[nextIndex];
+    const nextRoute = this.mobileSwipeRoutes[currentIndex + (deltaX < 0 ? 1 : -1)];
     if (!nextRoute) {
       this.resetSwipe(outlet);
       return;
     }
     const direction = deltaX < 0 ? -1 : 1;
+    this.swipePreviewTransition.set("transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1)");
+    this.swipePreviewOffset.set(0);
     outlet.style.transition = "transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1)";
     outlet.style.transform = `translate3d(${direction * 100}%, 0, 0)`;
     void this.router.navigateByUrl(nextRoute).then(
-      () => window.setTimeout(() => this.resetSwipe(outlet), 220),
+      () => window.setTimeout(() => { this.clearSwipePreview(); this.resetOutlet(outlet); }, 220),
       () => this.resetSwipe(outlet)
     );
   }
 
+  private previewComponent(route: string): Type<unknown> {
+    if (route === "/tabs/home") return HomePage;
+    if (route === "/tabs/search") return SearchPage;
+    return BookingsPage;
+  }
+
+  previewTransform(): string {
+    return `translate3d(${this.swipePreviewOffset()}px, 0, 0)`;
+  }
+
   private resetSwipe(outlet: HTMLElement | null) {
+    if (this.swipePreviewComponent()) {
+      this.swipePreviewTransition.set("transform 180ms cubic-bezier(0.22, 0.8, 0.24, 1)");
+      this.swipePreviewOffset.set(this.swipeDirection < 0 ? window.innerWidth : -window.innerWidth);
+      window.setTimeout(() => this.clearSwipePreview(), 190);
+    }
+    this.resetOutlet(outlet);
+  }
+
+  private resetOutlet(outlet: HTMLElement | null) {
     if (!outlet) return;
     outlet.style.transition = "transform 180ms cubic-bezier(0.22, 0.8, 0.24, 1)";
     outlet.style.transform = "translate3d(0, 0, 0)";
-    window.setTimeout(() => {
-      outlet.style.transition = "";
-    }, 190);
+    window.setTimeout(() => { outlet.style.transition = ""; }, 190);
+  }
+
+  private clearSwipePreview() {
+    this.swipePreviewComponent.set(null);
+    this.swipePreviewOffset.set(0);
+    this.swipePreviewTransition.set("none");
+    this.swipeDirection = 0;
   }
   unlock() {
     void this.auth.verifyBiometricUnlock().catch(() => undefined);
