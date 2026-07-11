@@ -1533,15 +1533,17 @@ interface ConsultationChatMessage {
         min-height: 36px !important;
         padding: 0 !important;
         border-radius: 50% !important;
-        background: #ffffff !important;
-        box-shadow: 0 5px 12px rgba(92, 65, 28, 0.08) !important;
+        background: rgba(255, 255, 255, 0.68) !important;
+        border-color: rgba(214, 169, 74, 0.18) !important;
+        box-shadow: 0 3px 8px rgba(92, 65, 28, 0.05) !important;
       }
       .home-page .home-control-button span { display: none !important; }
       .home-page .home-control-button ion-icon {
-        width: 17px !important;
-        height: 17px !important;
+        width: 15px !important;
+        height: 15px !important;
         margin: 0 !important;
-        font-size: 17px !important;
+        font-size: 15px !important;
+        opacity: 0.78;
       }
       .home-page .home-suggestion-panel {
         left: 0 !important;
