@@ -1508,8 +1508,9 @@ interface ConsultationChatMessage {
       .home-page .home-search-wrap ion-searchbar {
         width: 100% !important;
         min-height: 48px !important;
-        padding-right: 112px !important;
+        padding-right: 0 !important;
         --padding-end: 112px !important;
+        --background: #ffffff !important;
         --border-radius: 15px !important;
       }
       .home-page .home-control-row {
