@@ -1496,7 +1496,7 @@ interface ConsultationChatMessage {
         z-index: 30 !important;
         display: block !important;
         margin-inline: -2px;
-        padding: 8px !important;
+        padding: 0 !important;
         border-radius: 18px !important;
         box-shadow: 0 12px 30px rgba(92, 65, 28, 0.14) !important;
       }
