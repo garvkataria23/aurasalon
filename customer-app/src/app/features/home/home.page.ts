@@ -1502,8 +1502,9 @@ interface ConsultationChatMessage {
       }
       .home-page .home-search-wrap {
         position: relative;
-        width: 100%;
+        width: calc(100% + 2px);
         min-width: 0;
+        margin-inline: -1px;
       }
       .home-page .home-search-wrap ion-searchbar {
         width: 100% !important;
