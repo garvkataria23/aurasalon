@@ -1495,7 +1495,7 @@ interface ConsultationChatMessage {
         top: calc(54px + var(--safe-top)) !important;
         z-index: 30 !important;
         display: block !important;
-        margin-inline: -2px;
+        margin-inline: -10px;
         padding: 0 !important;
         border-radius: 18px !important;
         box-shadow: 0 12px 30px rgba(92, 65, 28, 0.14) !important;
@@ -1508,11 +1508,11 @@ interface ConsultationChatMessage {
       }
       .home-page .home-search-wrap ion-searchbar {
         width: 100% !important;
-        min-height: 48px !important;
+        min-height: 42px !important;
         padding-right: 0 !important;
         --padding-end: 112px !important;
         --background: #ffffff !important;
-        --border-radius: 15px !important;
+        --border-radius: 14px !important;
       }
       .home-page .home-control-row {
         position: absolute !important;
@@ -1522,7 +1522,7 @@ interface ConsultationChatMessage {
         display: flex !important;
         flex-wrap: nowrap !important;
         gap: 5px !important;
-        padding: 3px !important;
+        padding: 0 !important;
         border-radius: 22px;
         background: #ffffff;
         transform: translateY(-50%);
