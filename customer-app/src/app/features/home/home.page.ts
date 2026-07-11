@@ -1526,6 +1526,24 @@ interface ConsultationChatMessage {
       }
     }
 
+    @media (max-width: 599px) {
+      .home-page .hero { margin-top: -6px; }
+      .home-page .search-panel {
+        position: sticky !important;
+        top: calc(54px + var(--safe-top)) !important;
+        z-index: 30 !important;
+        margin-inline: -2px;
+        padding: 10px !important;
+        border-radius: 20px !important;
+        box-shadow: 0 12px 30px rgba(92, 65, 28, 0.14) !important;
+      }
+      .home-page .home-search-wrap ion-searchbar {
+        min-height: 52px !important;
+        --border-radius: 16px !important;
+      }
+      .home-page .home-control-row { gap: 9px !important; padding-bottom: 0 !important; }
+      .home-page .home-control-button { min-height: 42px !important; padding-inline: 15px !important; }
+    }
     @media (min-width: 1024px) {
       ion-header {
         display: none;
