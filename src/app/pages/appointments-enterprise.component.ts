@@ -216,7 +216,7 @@ const STATUS_TONES: Record<string, string> = {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, DatePipe, StateComponent],
   template: `
-    <section class="enterprise-scheduler inner-page-shell">
+    <section class="enterprise-scheduler inner-page-shell" [class.enterprise-scheduler--fullscreen]="calendarFullscreen()">
       <app-state [loading]="loading()" [error]="drawer() ? '' : error()" loadingText="Loading enterprise scheduler"></app-state>
       <ng-container *ngIf="!loading() && (!error() || drawer())">
         <section class="deposit-followup-strip" *ngIf="adjustedDueFollowUpCount() > 0">
@@ -948,6 +948,7 @@ const STATUS_TONES: Record<string, string> = {
   styles: [`
     :host { display: block; }
     .enterprise-scheduler { position: relative; z-index: 40; display: grid; gap: 16px; }
+    .enterprise-scheduler--fullscreen { z-index: 3000; }
     .enterprise-scheduler > ng-container { display: contents; }
     .enterprise-scheduler .month-strip-band:first-of-type { margin-top: -16px; margin-bottom: -16px; }
     .month-strip-band, .scheduler-top-controls, .scheduler-view-toolbar, .summary-strip, .scheduler-grid-shell, .operations-grid, .scheduler-drawer {
