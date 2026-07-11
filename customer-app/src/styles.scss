@@ -2660,4 +2660,39 @@ ion-segment-button {
     letter-spacing: -0.02em !important;
   }
 }
-/* End Aura Shine customer app premium SaaS polish layer. */
+@media (max-width: 599px) {
+  .business-grid aura-business-card .business-card .cover,
+  .results aura-business-card .business-card .cover {
+    aspect-ratio: 2.8 / 1 !important;
+  }
+
+  .business-grid aura-business-card .business-card .content,
+  .results aura-business-card .business-card .content {
+    gap: 3px !important;
+    padding: 8px !important;
+  }
+
+  .business-grid aura-business-card .business-card .address,
+  .results aura-business-card .business-card .address,
+  .business-grid aura-business-card .business-card .category,
+  .results aura-business-card .business-card .category {
+    display: none !important;
+  }
+
+  .business-grid aura-business-card .business-card h3,
+  .results aura-business-card .business-card h3 {
+    font-size: 0.98rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .business-grid aura-business-card .business-card .service-row,
+  .results aura-business-card .business-card .service-row {
+    margin-top: 2px !important;
+    padding: 6px !important;
+  }
+
+  .business-grid aura-business-card .business-card .footer-row,
+  .results aura-business-card .business-card .footer-row {
+    padding-top: 2px !important;
+  }
+}/* End Aura Shine customer app premium SaaS polish layer. */
