@@ -293,7 +293,7 @@ const STATUS_TONES: Record<string, string> = {
               <small class="day-count">{{ day.date === selectedDate() ? (context()?.appointmentTotal || 0) : 0 }}/0</small>
             </button>
           </div>
-          <button type="button" class="calendar-fullscreen-toggle" (click)="toggleCalendarFullscreen()" aria-label="Toggle fullscreen calendar" title="Toggle fullscreen calendar">{{ calendarFullscreen() ? "×" : "⛶" }}</button>
+          <button type="button" class="calendar-fullscreen-toggle" (pointerdown)="$event.stopPropagation()" (click)="calendarFullscreen() ? exitCalendarFullscreen() : toggleCalendarFullscreen()" aria-label="Toggle fullscreen calendar" title="Toggle fullscreen calendar">{{ calendarFullscreen() ? "×" : "⛶" }}</button>
         </section>
 
         <section class="summary-strip" [class.calendar-context-hidden]="calendarFullscreen()">
@@ -323,7 +323,7 @@ const STATUS_TONES: Record<string, string> = {
             (pointercancel)="cancelStaffGridSwipe()"
             (pointerleave)="endStaffGridSwipe($event)"
           >
-            <button *ngIf="calendarFullscreen()" type="button" class="calendar-fullscreen-close" (click)="toggleCalendarFullscreen()" aria-label="Exit fullscreen calendar">×</button>
+            <button *ngIf="calendarFullscreen()" type="button" class="calendar-fullscreen-close" (pointerdown)="$event.stopPropagation()" (click)="exitCalendarFullscreen(); $event.stopPropagation()" aria-label="Exit fullscreen calendar">×</button>
             <div class="time-head">Time</div>
             <div class="staff-head" *ngFor="let person of visibleStaff(); trackBy: trackStaff">
               <span class="avatar">{{ initials(person.name) }}</span>
@@ -2098,9 +2098,17 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   }
 
   toggleCalendarFullscreen(): void {
-    const next = !this.calendarFullscreen();
-    this.calendarFullscreen.set(next);
-    if (typeof document !== 'undefined') document.body.classList.toggle('calendar-fullscreen-active', next);
+    if (this.calendarFullscreen()) {
+      this.exitCalendarFullscreen();
+      return;
+    }
+    this.calendarFullscreen.set(true);
+    if (typeof document !== 'undefined') document.body.classList.add('calendar-fullscreen-active');
+  }
+
+  exitCalendarFullscreen(): void {
+    this.calendarFullscreen.set(false);
+    if (typeof document !== 'undefined') document.body.classList.remove('calendar-fullscreen-active');
   }
 
   setCalendarLayout(value: string): void {
@@ -2139,7 +2147,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   startStaffGridSwipe(event: PointerEvent): void {
     if (!this.isGridCalendarLayout() || (event.pointerType === 'mouse' && event.button !== 0)) return;
     const target = event.target instanceof HTMLElement ? event.target : null;
-    if (target?.closest('.appointment-card, .resize-handle, .staff-menu-button, .staff-action-menu, .lane-block, input, select, textarea, a')) return;
+    if (target?.closest('.appointment-card, .resize-handle, .staff-menu-button, .staff-action-menu, .calendar-fullscreen-close, .calendar-fullscreen-toggle, .lane-block, input, select, textarea, a')) return;
     const grid = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
     if (!grid) return;
     this.staffGridSwipeState = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startScrollLeft: grid.scrollLeft, grid, dragging: false };
