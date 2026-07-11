@@ -59,7 +59,17 @@ type WaitlistDialog = {
         } @else {
           <div class="booking-stack">
             @for (booking of filtered(); track booking.id) {
-              <article class="booking-card premium-card" [attr.data-booking-id]="booking.id" [routerLink]="['/bookings', booking.id]">
+              <article
+                class="booking-card premium-card"
+                [class.expanded]="expandedBookingId() === booking.id"
+                [attr.data-booking-id]="booking.id"
+                role="button"
+                tabindex="0"
+                aria-label="Booking actions"
+                [attr.aria-expanded]="expandedBookingId() === booking.id"
+                (click)="openBooking(booking)"
+                (keydown)="handleBookingKeydown($event, booking)"
+              >
                 <div class="date-block">
                   <span>{{ dateParts(booking).month }}</span>
                   <strong>{{ dateParts(booking).day }}</strong>
@@ -792,8 +802,22 @@ type WaitlistDialog = {
       }
 
       .actions {
+        display: none;
         gap: 5px;
         margin-top: 8px;
+      }
+
+      .booking-card.expanded .actions {
+        display: flex;
+      }
+
+      .booking-card {
+        cursor: pointer;
+      }
+
+      .booking-card:focus-visible {
+        outline: 3px solid rgba(214, 169, 74, 0.6);
+        outline-offset: 2px;
       }
 
       .actions ion-button {
@@ -818,6 +842,7 @@ type WaitlistDialog = {
 })
 export class BookingsPage implements OnDestroy, OnInit {
   readonly tab = signal<BookingTab>("upcoming");
+  readonly expandedBookingId = signal<string | null>(null);
   readonly actionLoading = signal("");
   readonly rescheduleDialog = signal<RescheduleDialog | null>(null);
   readonly waitlistDialog = signal<WaitlistDialog | null>(null);
@@ -853,7 +878,22 @@ export class BookingsPage implements OnDestroy, OnInit {
 
   setTab(tab: BookingTab) {
     this.tab.set(tab);
+    this.expandedBookingId.set(null);
     this.reload();
+  }
+
+  openBooking(booking: Booking) {
+    if (window.matchMedia("(max-width: 599px)").matches) {
+      this.expandedBookingId.update((id) => id === booking.id ? null : booking.id);
+      return;
+    }
+    void this.router.navigate(["/bookings", booking.id]);
+  }
+
+  handleBookingKeydown(event: KeyboardEvent, booking: Booking) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    this.openBooking(booking);
   }
 
   reload() {
