@@ -147,10 +147,6 @@ import { AuthService } from "../../core/auth.service";
           <ion-icon name="calendar-outline"></ion-icon>
           <ion-label>Bookings</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="offers" href="/tabs/offers">
-          <ion-icon name="pricetag-outline"></ion-icon>
-          <ion-label>Offers</ion-label>
-        </ion-tab-button>
         <ion-tab-button tab="profile" href="/tabs/profile">
           <ion-icon name="person-outline"></ion-icon>
           <ion-label>Profile</ion-label>
@@ -226,6 +222,16 @@ import { AuthService } from "../../core/auth.service";
 
     ion-tab-button ion-icon {
       font-size: 1.18rem;
+    }
+
+    @media (max-width: 1023px) {
+      .mobile-topbar {
+        display: none !important;
+      }
+
+      ion-tabs {
+        padding-top: 0;
+      }
     }
 
     @media (min-width: 1024px) {
