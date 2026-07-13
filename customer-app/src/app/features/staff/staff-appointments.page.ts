@@ -1,9 +1,24 @@
 import { CurrencyPipe, DatePipe } from "@angular/common";
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, computed, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } from "../../core/staff-app.service";
+
+type AppointmentView = "today" | "upcoming" | "past" | "live" | "completed" | "cancelled";
+
+const LIVE_STATUSES = new Set(["booked", "confirmed", "checked-in", "arrived", "in-service", "started"]);
+const TERMINAL_STATUSES = new Set(["completed", "checked-out", "cancelled", "no-show"]);
+const COMPLETED_STATUSES = new Set(["completed", "checked-out"]);
+const CANCELLED_STATUSES = new Set(["cancelled", "no-show"]);
+const IST_DATE_FORMATTER = new Intl.DateTimeFormat("en", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });
+
+function istDateKey(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = Object.fromEntries(IST_DATE_FORMATTER.formatToParts(date).map((part) => [part.type, part.value]));
+  return [parts["year"], parts["month"], parts["day"]].join("-");
+}
 
 @Component({
   standalone: true,
@@ -15,23 +30,39 @@ import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } fro
       @if (message()) { <section class="notice success">{{ message() }}</section> }
       @if (staff.error()) { <section class="notice">{{ staff.error() }}</section> }
 
-      @if (dashboard(); as data) {
+      @if (dashboard()) {
         <section class="grid four">
-          <article class="kpi"><span>Today</span><strong>{{ data.summary.todayAppointments }}</strong></article>
-          <article class="kpi"><span>Live</span><strong>{{ data.summary.liveAppointments }}</strong></article>
-          <article class="kpi"><span>Completed</span><strong>{{ data.summary.completedAppointments }}</strong></article>
-          <article class="kpi"><span>Cancelled</span><strong>{{ data.summary.cancelledAppointments }}</strong></article>
+          <button class="kpi kpi-button" [class.active-toggle]="activeView() === 'today'" type="button" [attr.aria-pressed]="activeView() === 'today'" (click)="setView('today')"><span>Today</span><strong>{{ kpiCounts().today }}</strong></button>
+          <button class="kpi kpi-button" [class.active-toggle]="activeView() === 'live'" type="button" [attr.aria-pressed]="activeView() === 'live'" (click)="setView('live')"><span>Live</span><strong>{{ kpiCounts().live }}</strong></button>
+          <button class="kpi kpi-button" [class.active-toggle]="activeView() === 'completed'" type="button" [attr.aria-pressed]="activeView() === 'completed'" (click)="setView('completed')"><span>Completed</span><strong>{{ kpiCounts().completed }}</strong></button>
+          <button class="kpi kpi-button" [class.active-toggle]="activeView() === 'cancelled'" type="button" [attr.aria-pressed]="activeView() === 'cancelled'" (click)="setView('cancelled')"><span>Cancelled</span><strong>{{ kpiCounts().cancelled }}</strong></button>
         </section>
 
-        <section class="panel">
-          <div class="panel-title"><h2>Assigned appointments</h2><span>{{ data.appointments.length }}</span></div>
+        <nav class="queue-tabs" aria-label="Appointment queues">
+          <button class="link-button" [class.active-toggle]="activeView() === 'today'" type="button" [attr.aria-pressed]="activeView() === 'today'" (click)="setView('today')">Today's Queue</button>
+          <button class="link-button" [class.active-toggle]="activeView() === 'upcoming'" type="button" [attr.aria-pressed]="activeView() === 'upcoming'" (click)="setView('upcoming')">Upcoming</button>
+          <button class="link-button" [class.active-toggle]="activeView() === 'past'" type="button" [attr.aria-pressed]="activeView() === 'past'" (click)="setView('past')">Past</button>
+        </nav>
+
+        <section class="panel" aria-live="polite">
+          <div class="panel-title">
+            <h2>{{ viewTitle() }}</h2>
+            <div class="row-actions">
+              <span>{{ visibleAppointments().length }}</span>
+              @if (activeView() === 'live') { <a class="button" routerLink="/staff/queue">Open live timers</a> }
+            </div>
+          </div>
           <div class="list">
-            @for (item of data.appointments; track item.id) {
+            @for (item of visibleAppointments(); track item.id) {
               <article class="row">
                 <div class="row-main">
                   <strong>{{ item.clientName || 'Walk-in client' }}</strong>
                   <p>{{ item.serviceNames.join(', ') || 'Service not mapped' }}</p>
+                  @if (isValidDate(item.startAt) && isValidDate(item.endAt)) {
                   <small>{{ item.startAt | date:'mediumDate' }} · {{ item.startAt | date:'shortTime' }} - {{ item.endAt | date:'shortTime' }} · {{ item.durationMinutes || 0 }} min</small>
+                  } @else {
+                    <small>Date unavailable - {{ item.durationMinutes || 0 }} min</small>
+                  }
                 </div>
                 <div class="row-actions">
                   <span class="badge">{{ item.status }}</span>
@@ -46,7 +77,7 @@ import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } fro
                 </div>
               </article>
             } @empty {
-              <p class="empty">No appointments assigned to you in the selected range.</p>
+              <p class="empty">{{ emptyMessage() }}</p>
             }
           </div>
         </section>
@@ -79,6 +110,35 @@ import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } fro
 })
 export class StaffAppointmentsPage implements OnInit {
   readonly dashboard = signal<StaffDashboard | null>(null);
+  readonly activeView = signal<AppointmentView>("today");
+  readonly kpiCounts = computed(() => {
+    const rows = this.dashboard()?.appointments || [];
+    const today = istDateKey(new Date());
+    return {
+      today: rows.filter((item) => istDateKey(item.startAt) === today).length,
+      live: rows.filter((item) => istDateKey(item.startAt) === today && LIVE_STATUSES.has(this.statusOf(item))).length,
+      completed: rows.filter((item) => COMPLETED_STATUSES.has(this.statusOf(item))).length,
+      cancelled: rows.filter((item) => CANCELLED_STATUSES.has(this.statusOf(item))).length
+    };
+  });
+  readonly visibleAppointments = computed(() => {
+    const today = istDateKey(new Date());
+    const view = this.activeView();
+    const rows = (this.dashboard()?.appointments || []).filter((item) => {
+      const date = istDateKey(item.startAt);
+      const status = this.statusOf(item);
+      switch (view) {
+        case "today": return date === today;
+        case "upcoming": return date > today && !TERMINAL_STATUSES.has(status);
+        case "past": return !date || date < today;
+        case "live": return date === today && LIVE_STATUSES.has(status);
+        case "completed": return COMPLETED_STATUSES.has(status);
+        case "cancelled": return CANCELLED_STATUSES.has(status);
+      }
+    });
+    const ascending = view === "today" || view === "live" || view === "upcoming";
+    return rows.sort((left, right) => this.compareStartTimes(left, right, ascending));
+  });
   readonly loading = signal(false);
   readonly message = signal("");
   readonly selectedAppointment = signal<StaffAppointment | null>(null);
@@ -93,6 +153,18 @@ export class StaffAppointmentsPage implements OnInit {
   constructor(readonly staff: StaffAppService) {}
 
   ngOnInit() { void this.load(); }
+
+  setView(view: AppointmentView) { this.activeView.set(view); }
+
+  viewTitle(): string {
+    return ({ today: "Today's Queue", upcoming: "Upcoming appointments", past: "Past appointments", live: "Live appointments", completed: "Completed appointments", cancelled: "Cancelled appointments" } as const)[this.activeView()];
+  }
+
+  emptyMessage(): string {
+    return ({ today: "No appointments in today's queue.", upcoming: "No upcoming appointments assigned to you.", past: "No past appointments found.", live: "No live appointments right now.", completed: "No completed appointments in the loaded range.", cancelled: "No cancelled appointments in the loaded range." } as const)[this.activeView()];
+  }
+
+  isValidDate(value: string): boolean { return !Number.isNaN(new Date(value).getTime()); }
 
   async load() {
     this.loading.set(true);
@@ -110,6 +182,15 @@ export class StaffAppointmentsPage implements OnInit {
   closeClientPreview() { this.selectedClient.set(null); }
   async openClientPreview(clientId: string) { this.selectedAppointment.set(null); this.selectedClient.set(await this.staff.client360(clientId)); }
   async saveAppointment(appointmentId: string) { const updated = await this.staff.updateAppointment(appointmentId, { notes: this.editNotes, chair: this.editChair, status: this.editStatus, startAt: this.editStartAt, endAt: this.editEndAt, serviceIds: this.editServiceIds.split(",").map((item) => item.trim()).filter(Boolean) }); this.message.set("Appointment updated."); this.selectedAppointment.set(updated); await this.load(); }
+
+  private statusOf(item: StaffAppointment): string { return String(item.status || "").toLowerCase(); }
+  private compareStartTimes(left: StaffAppointment, right: StaffAppointment, ascending: boolean): number {
+    const leftTime = new Date(left.startAt).getTime();
+    const rightTime = new Date(right.startAt).getTime();
+    if (Number.isNaN(leftTime)) return Number.isNaN(rightTime) ? 0 : 1;
+    if (Number.isNaN(rightTime)) return -1;
+    return ascending ? leftTime - rightTime : rightTime - leftTime;
+  }
 
   private async afterAction(message: string) { this.message.set(message); await this.load(); }
 }
