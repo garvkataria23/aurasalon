@@ -1,43 +1,105 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { staffBusinessPerformanceTestUtils } from "../server/services/staff-business-performance.service.js";
 
-const service = readFileSync("server/services/staff-business.service.js", "utf8");
+const wrapper = readFileSync("server/services/staff-business.service.js", "utf8");
+const performanceService = readFileSync("server/services/staff-business-performance.service.js", "utf8");
+const salesReport = readFileSync("server/services/staff-sales-report.service.js", "utf8");
+const staffOs = readFileSync("server/services/staff-os.service.js", "utf8");
 const route = readFileSync("server/routes/staff-business.routes.js", "utf8");
 const appRoutes = readFileSync("customer-app/src/app/app.routes.ts", "utf8");
+const appService = readFileSync("customer-app/src/app/core/staff-app.service.ts", "utf8");
 const page = readFileSync("customer-app/src/app/features/staff/staff-business.page.ts", "utf8");
 
-test("staff business endpoint keeps billing scoped, permission controlled and normalized to paise", () => {
-  assert.match(route, /\/staff-self\/business/);
-  assert.match(route, /\/staff-self\/business\/export\.csv/);
-  assert.match(route, /requirePermission\("read", \(\) => "appointments"\)/);
-  assert.match(service, /can\(access\.role \|\| "staff", "read", resource, access\)/);
-  assert.match(service, /tenantColumn.*tenant_id/);
-  assert.match(service, /branchColumn.*branch_id/);
-  assert.match(service, /Math\.round\(value \* \(\/paise\/i\.test\(key\) \? 1 : 100\)\)/);
-  assert.match(service, /discountPaise = Math\.max\(0, totalDiscountPaise - couponDiscountPaise\)/);
-  assert.match(service, /afterDiscountPaise: Math\.max\(0, subtotalPaise - totalDiscountPaise\)/);
-  assert.match(service, /completedMinutes:/);
-  assert.match(service, /T00:00:00\.000\+05:30/);
-  assert.match(service, /pageSize = positiveInteger\(query\.pageSize, 50, 100\)/);
-  assert.match(service, /dailyBreakdown/);
-  assert.match(service, /hasMore: page < totalPages/);
-  assert.doesNotMatch(service, /LIMIT 500/);
+test("activity logs produce actual duration, overrun and explicit estimated fallback", () => {
+  const appointment = {
+    id: "appt_1",
+    clientName: "Client",
+    status: "completed",
+    startAt: "2026-06-01T04:30:00.000Z",
+    endAt: "2026-06-01T05:30:00.000Z"
+  };
+  const actual = staffBusinessPerformanceTestUtils.activityTimer(appointment, [
+    { action: "STARTED", createdAt: "2026-06-01T04:50:00.000Z" },
+    { action: "COMPLETED", createdAt: "2026-06-01T06:00:00.000Z" }
+  ], "2026-06-01");
+  assert.equal(actual.timeSource, "actual");
+  assert.equal(actual.elapsedMinutes, 70);
+  assert.equal(actual.overrunMinutes, 10);
+  assert.equal(actual.progress, 100);
+
+  const estimated = staffBusinessPerformanceTestUtils.activityTimer(appointment, [], "2026-06-01");
+  assert.equal(estimated.timeSource, "estimated");
+  assert.equal(estimated.elapsedMinutes, 60);
+  assert.equal(estimated.overrunMinutes, 0);
 });
 
-test("staff portal exposes Business and keeps Queue as a compatibility alias", () => {
+test("integer-paise staff allocation is deterministic and exact across split staff", () => {
+  const rows = [
+    { staffId: "staff_a", amount: 1 },
+    { staffId: "staff_b", amount: 2 }
+  ];
+  assert.equal(staffBusinessPerformanceTestUtils.allocatePaise(10001, rows, new Set(["staff_a"])), 3333);
+  assert.equal(staffBusinessPerformanceTestUtils.allocatePaise(10001, rows, new Set(["staff_b"])), 6668);
+});
+
+test("range parser keeps legacy date compatibility and inclusive IST boundaries", () => {
+  const legacy = staffBusinessPerformanceTestUtils.businessRange({ date: "2024-02-29" });
+  assert.equal(legacy.from, "2024-02-29");
+  assert.equal(legacy.to, "2024-02-29");
+  assert.equal(legacy.fromUtc, "2024-02-28T18:30:00.000Z");
+  assert.equal(legacy.toUtc, "2024-02-29T18:30:00.000Z");
+  assert.throws(() => staffBusinessPerformanceTestUtils.businessRange({ from: "2026-07-02", to: "2026-07-01" }), /on or before/);
+  assert.throws(() => staffBusinessPerformanceTestUtils.businessRange({ date: "2025-02-29" }), /YYYY-MM-DD/);
+});
+
+test("backend uses bounded batches, self attribution, independent range data and protected invoice detail", () => {
+  assert.match(wrapper, /staffBusinessPerformanceService\.daily/);
+  assert.match(performanceService, /limit: 400/);
+  assert.match(performanceService, /pageSize = positiveInteger\(query\.pageSize, 50, 100\)/);
+  assert.match(performanceService, /appointment_activity_log/);
+  assert.match(performanceService, /staff_attendance_logs/);
+  assert.match(performanceService, /staff_commissions/);
+  assert.match(performanceService, /staff_tips/);
+  assert.match(performanceService, /staff_payroll_items/);
+  assert.match(performanceService, /staff_targets/);
+  assert.match(performanceService, /streamCsv/);
+  assert.match(performanceService, /Actual Start/);
+  assert.match(performanceService, /Attributed After Discount INR/);
+  assert.match(salesReport, /export function attributedSalesItems/);
+  assert.match(route, /\/staff-self\/business\/invoices\/:invoiceId/);
+  assert.match(route, /requirePermission\("read", \(\) => "invoices"\)/);
+  assert.doesNotMatch(performanceService, /LIMIT 500/);
+});
+
+test("restricted responses and CSV omit monetary values while lifecycle actions are self-scoped", () => {
+  assert.match(performanceService, /if \(!billingVisible\)/);
+  assert.match(performanceService, /performance\[key\] = null/);
+  assert.match(performanceService, /return \[\.\.\.work, "Restricted"\]/);
+  assert.match(staffOs, /staffAppointmentForAction/);
+  assert.match(staffOs, /throw notFound\("Appointment not found"\)/);
+  assert.match(staffOs, /throw conflict\("Appointment is not in a valid state for this action"\)/);
+  assert.match(staffOs, /staffStartStatuses/);
+  assert.match(staffOs, /staffCompleteStatuses/);
+  assert.doesNotMatch(staffOs.match(/const staffCompleteStatuses[^;]+;/)?.[0] || "", /booked|confirmed|arrived/);
+});
+
+test("staff portal exposes complete Business UI and keeps Queue compatibility", () => {
   assert.match(appRoutes, /path: "business"/);
   assert.match(appRoutes, /path: "queue", redirectTo: "business", pathMatch: "full"/);
-  assert.match(page, /Worked time/);
-  assert.match(page, /Bill amount/);
-  assert.match(page, /Billing details are restricted for your role/);
-  assert.match(page, /startService\(appointmentId\)/);
-  assert.match(page, /completeService\(appointmentId\)/);
-  assert.match(page, /1 Month/);
-  assert.match(page, /3 Months/);
-  assert.match(page, /6 Months/);
-  assert.match(page, /1 Year/);
-  assert.match(page, /Custom Range/);
+  assert.match(appService, /canStartServiceStatus/);
+  assert.match(appService, /canCompleteServiceStatus/);
+  assert.match(appService, /businessInvoice/);
+  assert.match(page, /My attributed revenue/);
+  assert.match(page, /Actual.*Estimated/s);
+  assert.match(page, /Duty time/);
+  assert.match(page, /Utilization/);
+  assert.match(page, /Earnings & payroll/);
+  assert.match(page, /Overlapping targets/);
+  assert.match(page, /Clear filters/);
   assert.match(page, /Load More/);
   assert.match(page, /Export CSV/);
+  assert.match(page, /document:keydown\.escape/);
+  assert.match(page, /focus\(\)/);
 });

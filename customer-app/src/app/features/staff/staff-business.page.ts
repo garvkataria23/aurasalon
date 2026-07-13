@@ -1,13 +1,13 @@
 import { DatePipe } from "@angular/common";
-import { Component, computed, OnInit, signal } from "@angular/core";
+import { Component, computed, HostListener, OnDestroy, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { IonSpinner } from "@ionic/angular/standalone";
 import {
   StaffAppService,
   StaffBusiness,
   StaffBusinessAppointment,
+  StaffBusinessInvoiceDetail,
   StaffBusinessQuery,
-  StaffBusinessSummary
 } from "../../core/staff-app.service";
 
 type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
@@ -66,7 +66,9 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
           </div>
           <div class="row-actions permission-actions">
             <button class="button primary" type="button" (click)="apply()">Apply</button>
-            <button class="button" type="button" [disabled]="exporting()" (click)="exportCsv()">{{ exporting() ? 'Exporting…' : 'Export CSV' }}</button>
+            <button class="button" type="button" [disabled]="!activeFilterCount()" (click)="clearFilters()">Clear filters</button>
+            @if (activeFilterCount()) { <span class="badge">{{ activeFilterCount() }} active {{ activeFilterCount() === 1 ? 'filter' : 'filters' }}</span> }
+            <button class="button" type="button" [disabled]="exporting() || !business()?.pagination?.totalItems" (click)="exportCsv()">{{ exporting() ? 'Exporting…' : 'Export CSV' }}</button>
           </div>
         </section>
       }
@@ -74,22 +76,78 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
       @if (canReadBusiness() && business(); as data) {
         <section class="grid four">
           <article class="kpi"><span>Appointments</span><strong>{{ data.summary.appointments }}</strong><small>{{ data.summary.completedServices }} completed services</small></article>
-          <article class="kpi"><span>Worked time</span><strong>{{ formatMinutes(data.summary.workedMinutes) }}</strong><small>{{ formatMinutes(data.summary.completedMinutes) }} completed · {{ formatMinutes(data.summary.scheduledMinutes) }} scheduled</small></article>
+          <article class="kpi"><span>Unique clients</span><strong>{{ data.performance.uniqueClients }}</strong><small>{{ data.performance.invoiceCount }} attributed invoices</small></article>
           @if (data.billingVisible) {
-            <article class="kpi"><span>Bill amount</span><strong>{{ formatMoney(data.summary.subtotalPaise) }}</strong><small>{{ data.summary.bills }} connected bills</small></article>
-            <article class="kpi"><span>After discount</span><strong>{{ formatMoney(data.summary.afterDiscountPaise) }}</strong><small>{{ formatMoney(data.summary.discountPaise) }} discount · {{ formatMoney(data.summary.couponDiscountPaise) }} coupon</small></article>
+            <article class="kpi"><span>My attributed revenue</span><strong>{{ formatMoney(data.performance.attributedAfterDiscountPaise) }}</strong><small>{{ formatMoney(data.performance.attributedGrossPaise) }} gross share</small></article>
+            <article class="kpi"><span>Average bill</span><strong>{{ formatMoney(data.performance.averageBillPaise) }}</strong><small>{{ formatMoney(data.performance.revenuePerWorkedHourPaise) }} per service hour</small></article>
           } @else {
             <article class="kpi"><span>Billing</span><strong>Restricted</strong><small>Finance permission required</small></article>
             <article class="kpi"><span>Services</span><strong>{{ data.summary.completedServices }}</strong><small>completed in selected range</small></article>
           }
         </section>
 
+        <section class="grid four">
+          <article class="kpi"><span>Worked time</span><strong>{{ formatMinutes(data.summary.workedMinutes) }}</strong><small>{{ formatMinutes(data.performance.actualWorkedMinutes) }} actual · {{ formatMinutes(data.performance.estimatedWorkedMinutes) }} estimated</small></article>
+          <article class="kpi"><span>Scheduled</span><strong>{{ formatMinutes(data.summary.scheduledMinutes) }}</strong><small>{{ formatMinutes(data.summary.completedMinutes) }} completed work</small></article>
+          <article class="kpi"><span>Duty time</span><strong>{{ formatMinutes(data.performance.dutyMinutes) }}</strong><small>{{ formatMinutes(data.performance.attendanceMinutes) }} attendance · {{ formatMinutes(data.performance.breakMinutes) }} breaks</small></article>
+          <article class="kpi"><span>Utilization</span><strong>{{ formatPercent(data.performance.utilizationPercent) }}</strong><small>worked time ÷ duty time</small></article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title"><h2>Status mix</h2><span>Filtered work</span></div>
+          <div class="grid four">
+            @for (statusItem of statusMetrics(data); track statusItem.label) {
+              <article class="kpi"><span>{{ statusItem.label }}</span><strong>{{ statusItem.value }}</strong></article>
+            }
+          </div>
+        </section>
+
         @if (data.billingVisible) {
-          <section class="grid four">
-            <article class="kpi"><span>GST</span><strong>{{ formatMoney(data.summary.gstPaise) }}</strong></article>
-            <article class="kpi"><span>Grand total</span><strong>{{ formatMoney(data.summary.totalPaise) }}</strong></article>
-            <article class="kpi"><span>Paid</span><strong>{{ formatMoney(data.summary.paidPaise) }}</strong></article>
-            <article class="kpi"><span>Due</span><strong>{{ formatMoney(data.summary.duePaise) }}</strong></article>
+          <details class="panel">
+            <summary>Connected invoice totals · {{ data.summary.bills }} bills</summary>
+            <section class="grid four">
+              <article class="kpi"><span>Bill amount</span><strong>{{ formatMoney(data.summary.subtotalPaise) }}</strong></article>
+              <article class="kpi"><span>Manual discount</span><strong>{{ formatMoney(data.summary.discountPaise) }}</strong></article>
+              <article class="kpi"><span>Coupon discount</span><strong>{{ formatMoney(data.summary.couponDiscountPaise) }}</strong></article>
+              <article class="kpi"><span>After discount</span><strong>{{ formatMoney(data.summary.afterDiscountPaise) }}</strong></article>
+              <article class="kpi"><span>GST</span><strong>{{ formatMoney(data.summary.gstPaise) }}</strong></article>
+              <article class="kpi"><span>Grand total</span><strong>{{ formatMoney(data.summary.totalPaise) }}</strong></article>
+              <article class="kpi"><span>Paid</span><strong>{{ formatMoney(data.summary.paidPaise) }}</strong></article>
+              <article class="kpi"><span>Due</span><strong>{{ formatMoney(data.summary.duePaise) }}</strong></article>
+            </section>
+          </details>
+        }
+
+        @if (data.earnings; as earnings) {
+          <details class="panel">
+            <summary>Earnings & payroll</summary>
+            <section class="grid four">
+              <article class="kpi"><span>Calculated commission</span><strong>{{ formatMoney(earnings.calculatedCommissionPaise) }}</strong><small>{{ formatMoney(earnings.approvedCommissionPaise) }} approved</small></article>
+              <article class="kpi"><span>Tips collected</span><strong>{{ formatMoney(earnings.tipsCollectedPaise) }}</strong><small>{{ formatMoney(earnings.tipsPendingPaise) }} pending payout</small></article>
+              <article class="kpi"><span>Payroll net</span><strong>{{ formatMoney(earnings.payrollNetPaise) }}</strong><small>{{ formatMoney(earnings.payrollGrossPaise) }} gross</small></article>
+              <article class="kpi"><span>Payroll paid</span><strong>{{ formatMoney(earnings.payrollPaidPaise) }}</strong><small>{{ formatMoney(earnings.payrollPendingPaise) }} pending</small></article>
+            </section>
+            @for (period of earnings.periods; track period.payrollRunId) {
+              <p>{{ dateLabel(period.periodStart) }} – {{ dateLabel(period.periodEnd) }} · {{ period.status }} · Net {{ formatMoney(period.netPaise) }}</p>
+            }
+          </details>
+        } @else if (!data.permissions.earnings) {
+          <section class="notice">Earnings and payroll are restricted for your role.</section>
+        }
+
+        @if (data.targets.length) {
+          <section class="panel">
+            <div class="panel-title"><h2>Overlapping targets</h2><span>Saved period values, not prorated</span></div>
+            <div class="grid four">
+              @for (target of data.targets; track target.id) {
+                <article class="kpi">
+                  <span>{{ target.type }}</span>
+                  <strong>{{ formatTargetValue(target.achievedValue, target.unit) }} / {{ formatTargetValue(target.targetValue, target.unit) }}</strong>
+                  <small>{{ target.progressPercent }}% · {{ dateLabel(target.periodStart) }}–{{ dateLabel(target.periodEnd) }}</small>
+                  <div class="timer-track"><span [style.width.%]="capProgress(target.progressPercent)"></span></div>
+                </article>
+              }
+            </div>
           </section>
         }
 
@@ -101,24 +159,35 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
         </section>
 
         @for (group of appointmentGroups(); track group.date) {
-          <section class="panel">
-            <div class="panel-title">
+          <section class="panel business-day-panel">
+            <div class="panel-title business-day-title">
               <h2>{{ dateLabel(group.date) }}</h2>
-              <span>{{ group.summary.appointments }} appointments · {{ group.summary.completedServices }} completed · {{ formatMinutes(group.summary.workedMinutes) }} worked</span>
+              <span>{{ group.summary.appointments }} {{ group.summary.appointments === 1 ? 'appointment' : 'appointments' }}</span>
             </div>
-            @if (data.billingVisible) {
-              <p>Bill {{ formatMoney(group.summary.subtotalPaise) }} · Discount {{ formatMoney(group.summary.discountPaise) }} · Coupon {{ formatMoney(group.summary.couponDiscountPaise) }} · Due {{ formatMoney(group.summary.duePaise) }}</p>
-            }
-            <div class="list">
+            <div class="list business-appointment-list">
               @for (item of group.appointments; track item.id) {
-                <article class="row">
-                  <div class="row-main">
-                    <strong>{{ item.startAt | date:'shortTime':'+0530' }}–{{ item.endAt | date:'shortTime':'+0530' }} · {{ item.clientName }}</strong>
-                    <small>{{ item.serviceNames.join(', ') || 'Service not mapped' }} · {{ item.chair || 'No chair' }}</small>
-                    <small>{{ formatMinutes(item.workedMinutes) }} worked · {{ formatMinutes(item.durationMinutes) }} scheduled</small>
+                <details class="business-appointment-row">
+                  <summary>
+                    <span class="appointment-summary">
+                      <strong>{{ item.startAt | date:'shortTime':'+0530' }}–{{ item.endAt | date:'shortTime':'+0530' }}</strong>
+                      <small>{{ item.serviceNames.join(', ') || 'Service not mapped' }}</small>
+                    </span>
+                    <span class="expand-indicator" aria-hidden="true"></span>
+                  </summary>
+                  <div class="appointment-expanded">
+                    <div class="row-main">
+                     <strong>{{ item.clientName }}</strong>
+                     <small>{{ item.chair || 'No chair' }}</small>
+                    <small>{{ formatMinutes(liveElapsed(item)) }} worked · {{ formatMinutes(item.durationMinutes) }} scheduled · {{ item.timer.timeSource === 'actual' ? 'Actual' : 'Estimated' }}</small>
+                    @if (item.timer.startedAt) { <small>Actual start {{ item.timer.startedAt | date:'shortTime':'+0530' }} @if (item.timer.completedAt) { · End {{ item.timer.completedAt | date:'shortTime':'+0530' }} }</small> }
                     @if (item.timer.live) {
-                      <div class="timer-track"><span [style.width.%]="item.timer.progress"></span></div>
-                      <small>{{ item.timer.elapsedMinutes }} min elapsed · {{ item.timer.remainingMinutes }} min remaining</small>
+                      <div class="timer-track"><span [style.width.%]="liveProgress(item)"></span></div>
+                      <small>{{ liveElapsed(item) }} min elapsed · {{ liveRemaining(item) }} min remaining @if (liveOverrun(item)) { · {{ liveOverrun(item) }} min overrun }</small>
+                    }
+                    @if (!item.timer.live && item.timer.overrunMinutes) { <small>{{ item.timer.overrunMinutes }} min overrun</small> }
+                    @if (data.billingVisible && item.attribution; as share) {
+                      <p><strong>My attributed revenue {{ formatMoney(share.afterDiscountPaise) }}</strong></p>
+                      <small>Gross {{ formatMoney(share.grossPaise) }} · Discount {{ formatMoney(share.discountPaise) }} · GST {{ formatMoney(share.gstPaise) }} · Paid {{ formatMoney(share.paidPaise) }} · Due {{ formatMoney(share.duePaise) }}</small>
                     }
                     @if (data.billingVisible && item.billing; as bill) {
                       <p>Bill {{ bill.invoiceNumber || bill.saleId }} · {{ bill.invoiceStatus || 'pending' }}</p>
@@ -130,15 +199,25 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
                     } @else {
                       <p>Billing details are restricted for your role.</p>
                     }
+                    </div>
+                    <div class="row-actions">
+                      <span class="badge" [class.red]="item.state === 'late'" [class.green]="item.state === 'active'">{{ item.status }}</span>
+                      <button class="link-button" type="button" (click)="openAppointment(item, $event)">Details</button>
+                      @if (data.permissions.invoiceDetail && item.billing?.invoiceId) { <button class="link-button" type="button" (click)="openInvoice(item, $event)">Invoice</button> }
+                      @if (canUpdateBusiness() && isToday(item) && canStartService(item.timer.status)) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button> }
+                      @if (canUpdateBusiness() && isToday(item) && canCompleteService(item.timer.status)) { <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> }
+                    </div>
                   </div>
-                  <div class="row-actions">
-                    <span class="badge" [class.red]="item.state === 'late'" [class.green]="item.state === 'active'">{{ item.status }}</span>
-                    @if (canUpdateBusiness() && isToday(item) && canStartService(item.timer.status)) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button> }
-                    @if (canUpdateBusiness() && isToday(item) && canCompleteService(item.timer.status)) { <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> }
-                  </div>
-                </article>
+                </details>
               }
             </div>
+            <details class="business-day-summary">
+              <summary>Day summary</summary>
+              <p>{{ group.summary.completedServices }} completed · {{ formatMinutes(group.summary.workedMinutes) }} worked · {{ formatPercent(group.summary.performance.utilizationPercent) }} utilized</p>
+              @if (data.billingVisible) {
+                <p>Bill {{ formatMoney(group.summary.subtotalPaise) }} · Discount {{ formatMoney(group.summary.discountPaise) }} · Coupon {{ formatMoney(group.summary.couponDiscountPaise) }} · Due {{ formatMoney(group.summary.duePaise) }}</p>
+              }
+            </details>
           </section>
         } @empty {
           <section class="panel"><p class="empty">No staff work found for this range and filters.</p></section>
@@ -150,11 +229,59 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
           </div>
         }
       }
+
+      @if (selectedAppointment(); as item) {
+        <div class="drawer-backdrop" (click)="dismissBackdrop($event)">
+          <aside id="business-appointment-drawer" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="business-appointment-title" tabindex="-1">
+            <div class="panel-title"><h2 id="business-appointment-title">Appointment detail</h2><button class="link-button" type="button" (click)="closeDrawers()">Close</button></div>
+            <section class="grid two compact-grid">
+              <article class="kpi"><span>Client</span><strong>{{ item.clientName || 'Walk-in' }}</strong></article>
+              <article class="kpi"><span>Status</span><strong>{{ item.status }}</strong></article>
+              <article class="kpi"><span>Worked</span><strong>{{ formatMinutes(liveElapsed(item)) }}</strong><small>{{ item.timer.timeSource }}</small></article>
+              <article class="kpi"><span>Scheduled</span><strong>{{ formatMinutes(item.durationMinutes) }}</strong><small>{{ item.timer.overrunMinutes }} min overrun</small></article>
+            </section>
+            <div class="list">
+              <div class="row"><strong>Time</strong><span>{{ item.startAt | date:'short':'+0530' }} – {{ item.endAt | date:'shortTime':'+0530' }}</span></div>
+              <div class="row"><strong>Services</strong><span>{{ item.serviceNames.join(', ') || '-' }}</span></div>
+              <div class="row"><strong>Chair</strong><span>{{ item.chair || '-' }}</span></div>
+              <div class="row"><strong>Phone</strong><span>{{ item.clientPhone || '-' }}</span></div>
+              <div class="row"><strong>Notes</strong><span>{{ item.notes || '-' }}</span></div>
+            </div>
+          </aside>
+        </div>
+      }
+
+      @if (invoiceDrawerOpen()) {
+        <div class="drawer-backdrop" (click)="dismissBackdrop($event)">
+          <aside id="business-invoice-drawer" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="business-invoice-title" tabindex="-1">
+            <div class="panel-title"><h2 id="business-invoice-title">Invoice detail</h2><button class="link-button" type="button" (click)="closeDrawers()">Close</button></div>
+            @if (invoiceLoading()) { <section class="state"><ion-spinner name="crescent" /> Loading invoice...</section> }
+            @if (invoiceError()) { <section class="notice">{{ invoiceError() }}</section> }
+            @if (invoiceDetail(); as invoice) {
+              <section class="grid two compact-grid">
+                <article class="kpi"><span>Invoice</span><strong>{{ invoice.invoiceNumber || invoice.id }}</strong><small>{{ invoice.status }}</small></article>
+                <article class="kpi"><span>Total</span><strong>{{ formatMoney(invoice.totals.totalPaise) }}</strong><small>{{ formatMoney(invoice.totals.duePaise) }} due</small></article>
+              </section>
+              <div class="list">
+                @for (item of invoice.items; track item.id) {
+                  <div class="row"><div><strong>{{ item.name }}</strong><small>{{ item.type }} · Qty {{ item.quantity }}</small></div><span>{{ formatMoney(item.amountPaise) }}</span></div>
+                } @empty { <p class="empty">No invoice items available.</p> }
+              </div>
+              <h3>Payments</h3>
+              <div class="list">
+                @for (payment of invoice.payments; track payment.id) {
+                  <div class="row"><div><strong>{{ payment.mode || 'Payment' }}</strong><small>{{ payment.createdAt | date:'short':'+0530' }} · {{ payment.reference || 'No reference' }}</small></div><span>{{ formatMoney(payment.amountPaise) }}</span></div>
+                } @empty { <p class="empty">No payments recorded.</p> }
+              </div>
+            }
+          </aside>
+        </div>
+      }
     </section>
   `,
   styleUrls: ["./staff-app.styles.css"]
 })
-export class StaffBusinessPage implements OnInit {
+export class StaffBusinessPage implements OnInit, OnDestroy {
   private readonly todayDate = this.today();
   readonly business = signal<StaffBusiness | null>(null);
   readonly preset = signal<BusinessPreset>("1m");
@@ -167,6 +294,17 @@ export class StaffBusinessPage implements OnInit {
   readonly loadingMore = signal(false);
   readonly exporting = signal(false);
   readonly message = signal("");
+  readonly clock = signal(Date.now());
+  readonly selectedAppointment = signal<StaffBusinessAppointment | null>(null);
+  readonly invoiceDrawerOpen = signal(false);
+  readonly invoiceDetail = signal<StaffBusinessInvoiceDetail | null>(null);
+  readonly invoiceLoading = signal(false);
+  readonly invoiceError = signal("");
+  readonly activeFilterCount = computed(() =>
+    Number(Boolean(this.search().trim())) + Number(this.status() !== "all") + Number(this.sort() !== "desc")
+  );
+  private clockTimer?: ReturnType<typeof setInterval>;
+  private drawerTrigger: HTMLElement | null = null;
   readonly appointmentGroups = computed(() => {
     const data = this.business();
     if (!data) return [];
@@ -179,13 +317,20 @@ export class StaffBusinessPage implements OnInit {
     return [...groups.entries()].map(([date, appointments]) => ({
       date,
       appointments,
-      summary: summaries.get(date) as StaffBusinessSummary
+      summary: summaries.get(date)!
     }));
   });
 
   constructor(readonly staff: StaffAppService) {}
 
-  ngOnInit() { if (this.canReadBusiness()) void this.load(true); }
+  ngOnInit() {
+    this.clockTimer = setInterval(() => this.clock.set(Date.now()), 60_000);
+    if (this.canReadBusiness()) void this.load(true);
+  }
+
+  ngOnDestroy() {
+    if (this.clockTimer) clearInterval(this.clockTimer);
+  }
 
   async load(reset: boolean) {
     if (!this.validRange()) return;
@@ -221,15 +366,105 @@ export class StaffBusinessPage implements OnInit {
   apply() { void this.load(true); }
   loadMore() { if (this.business()?.pagination.hasMore) void this.load(false); }
 
-  canReadBusiness(): boolean { return this.staff.hasAnyPermission(["read:appointments", "read:staff"]); }
+  clearFilters() {
+    this.search.set("");
+    this.status.set("all");
+    this.sort.set("desc");
+    void this.load(true);
+  }
+
+  canReadBusiness(): boolean { return this.staff.hasPermission("read:appointments"); }
   canUpdateBusiness(): boolean { return this.staff.hasAnyPermission(["write:staff", "update:staff", "write:appointments", "update:appointments"]); }
   formatMinutes(minutes: number): string { const safe = Math.max(0, Number(minutes || 0)); return `${Math.floor(safe / 60)}h ${safe % 60}m`; }
-  formatMoney(paise: number): string { return (Number(paise || 0) / 100).toLocaleString("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  formatMoney(paise: number | null): string { return (Number(paise || 0) / 100).toLocaleString("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  formatPercent(value: number | null): string { return value === null ? "—" : `${value}%`; }
+  capProgress(value: number): number { return Math.max(0, Math.min(100, Number(value || 0))); }
+  formatTargetValue(value: number, unit: "paise" | "count" | "percent"): string {
+    if (unit === "paise") return this.formatMoney(value);
+    return unit === "percent" ? `${value}%` : Number(value || 0).toLocaleString("en-IN");
+  }
+  statusMetrics(data: StaffBusiness) {
+    const counts = data.performance.statusCounts;
+    return [
+      { label: "Booked", value: counts.booked },
+      { label: "Confirmed", value: counts.confirmed },
+      { label: "Arrived", value: counts.arrived },
+      { label: "In service", value: counts.inService },
+      { label: "Completed", value: counts.completed },
+      { label: "Cancelled", value: counts.cancelled },
+      { label: "No-show", value: counts.noShow },
+      { label: "Other", value: counts.other }
+    ];
+  }
   dateLabel(date: string): string { return new Date(`${date}T00:00:00+05:30`).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }); }
   rangeLabel(): string { return `${this.dateLabel(this.fromDate())} – ${this.dateLabel(this.toDate())}`; }
   isToday(item: StaffBusinessAppointment): boolean { return item.businessDate === this.todayDate; }
-  canStartService(status: string) { return ["queued", "pending", "scheduled", "booked", "confirmed", "arrived"].includes(String(status || "").toLowerCase()); }
-  canCompleteService(status: string) { return ["in-service", "in service", "inprogress", "in progress", "running", "active", "started", "scheduled", "pending", "arrived", "confirmed", "booked"].includes(String(status || "").toLowerCase()); }
+  canStartService(status: string) { return this.staff.canStartServiceStatus(status); }
+  canCompleteService(status: string) { return this.staff.canCompleteServiceStatus(status); }
+
+  liveElapsed(item: StaffBusinessAppointment): number {
+    this.clock();
+    if (!item.timer.live || !item.timer.startedAt) return item.timer.elapsedMinutes;
+    return Math.max(0, Math.round((Date.now() - new Date(item.timer.startedAt).getTime()) / 60_000));
+  }
+
+  liveRemaining(item: StaffBusinessAppointment): number {
+    return Math.max(0, item.durationMinutes - this.liveElapsed(item));
+  }
+
+  liveOverrun(item: StaffBusinessAppointment): number {
+    return Math.max(0, this.liveElapsed(item) - item.durationMinutes);
+  }
+
+  liveProgress(item: StaffBusinessAppointment): number {
+    return item.durationMinutes ? this.capProgress((this.liveElapsed(item) / item.durationMinutes) * 100) : 0;
+  }
+
+  openAppointment(item: StaffBusinessAppointment, event: Event) {
+    this.drawerTrigger = event.currentTarget as HTMLElement;
+    this.invoiceDrawerOpen.set(false);
+    this.invoiceDetail.set(null);
+    this.selectedAppointment.set(item);
+    setTimeout(() => document.getElementById("business-appointment-drawer")?.focus());
+  }
+
+  async openInvoice(item: StaffBusinessAppointment, event: Event) {
+    const invoiceId = item.billing?.invoiceId;
+    if (!invoiceId || !this.business()?.permissions.invoiceDetail) return;
+    this.drawerTrigger = event.currentTarget as HTMLElement;
+    this.selectedAppointment.set(null);
+    this.invoiceDrawerOpen.set(true);
+    this.invoiceDetail.set(null);
+    this.invoiceError.set("");
+    this.invoiceLoading.set(true);
+    setTimeout(() => document.getElementById("business-invoice-drawer")?.focus());
+    try {
+      this.invoiceDetail.set(await this.staff.businessInvoice(invoiceId));
+    } catch {
+      this.invoiceError.set(this.staff.error() || "Unable to load invoice detail.");
+    } finally {
+      this.invoiceLoading.set(false);
+    }
+  }
+
+  dismissBackdrop(event: MouseEvent) {
+    if (event.target === event.currentTarget) this.closeDrawers();
+  }
+
+  closeDrawers() {
+    this.selectedAppointment.set(null);
+    this.invoiceDrawerOpen.set(false);
+    this.invoiceDetail.set(null);
+    this.invoiceError.set("");
+    const trigger = this.drawerTrigger;
+    this.drawerTrigger = null;
+    setTimeout(() => trigger?.focus());
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape() {
+    if (this.selectedAppointment() || this.invoiceDrawerOpen()) this.closeDrawers();
+  }
 
   async exportCsv() {
     if (!this.validRange()) return;

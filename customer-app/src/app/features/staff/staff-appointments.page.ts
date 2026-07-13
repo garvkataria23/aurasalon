@@ -67,10 +67,8 @@ function istDateKey(value: string | Date): string {
                 <div class="row-actions">
                   <span class="badge">{{ item.status }}</span>
                   @if (canSeeRevenue()) { <span class="badge">{{ item.value | currency:'INR':'symbol':'1.0-0' }}</span> }
-                  @if (canUpdateAppointments()) {
-                    <button class="link-button" type="button" (click)="startService(item.id)">Start</button>
-                    <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button>
-                  }
+                  @if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button> }
+                  @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> }
                   <button class="link-button" type="button" (click)="openAppointment(item)">Details</button>
                   @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Preview</button> }
                   @if (item.clientId) { <a class="button" [routerLink]="['/staff/client-360', item.clientId]">Client 360</a> }
@@ -90,7 +88,7 @@ function istDateKey(value: string | Date): string {
           <section class="grid two compact-grid"><article class="kpi"><span>Client</span><strong>{{ item.clientName || 'Walk-in' }}</strong></article><article class="kpi"><span>Status</span><strong>{{ item.status }}</strong></article></section>
           <div class="list"><div class="row"><strong>Time</strong><span>{{ item.startAt | date:'short' }} - {{ item.endAt | date:'shortTime' }}</span></div><div class="row"><strong>Services</strong><span>{{ item.serviceNames.join(', ') || '-' }}</span></div><div class="row"><strong>Duration</strong><span>{{ item.durationMinutes || 0 }} min</span></div><div class="row"><strong>Chair</strong><span>{{ item.chair || '-' }}</span></div><div class="row"><strong>Phone</strong><span>{{ item.clientPhone || '-' }}</span></div></div>
           <div class="form-grid drawer-form"><label>Status<input [(ngModel)]="editStatus" /></label><label>Chair<input [(ngModel)]="editChair" /></label><label>Start ISO<input [(ngModel)]="editStartAt" /></label><label>End ISO<input [(ngModel)]="editEndAt" /></label><label>Services CSV<input [(ngModel)]="editServiceIds" /></label><label>Notes<input [(ngModel)]="editNotes" /></label></div>
-          <div class="row-actions drawer-actions">@if (canUpdateAppointments()) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button><button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> } @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Client preview</button><a class="button primary" [routerLink]="['/staff/client-360', item.clientId]">Full Client 360</a> }</div>
+          <div class="row-actions drawer-actions">@if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button> } @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> } @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Client preview</button><a class="button primary" [routerLink]="['/staff/client-360', item.clientId]">Full Client 360</a> }</div>
           <button class="button primary" type="button" (click)="saveAppointment(item.id)">Save changes</button>
         </aside>
       }

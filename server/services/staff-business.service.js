@@ -2,6 +2,7 @@ import { columnsFor, db } from "../db.js";
 import { can } from "../middleware/rbac.js";
 import { badRequest } from "../utils/app-error.js";
 import { staffLoginService } from "./staff-login.service.js";
+import { staffBusinessPerformanceService } from "./staff-business-performance.service.js";
 
 const completedStatuses = new Set(["completed", "checked-out", "checked_out", "checkout", "done"]);
 const activeStatuses = new Set(["in-service", "in service", "inprogress", "in progress", "started", "active", "running"]);
@@ -305,49 +306,22 @@ function moneyInr(paise) {
 
 export const staffBusinessService = {
   daily(query = {}, access = {}) {
-    const report = buildBusinessData(query, access);
-    const page = positiveInteger(query.page, 1);
-    const pageSize = positiveInteger(query.pageSize, 50, 100);
-    const totalItems = report.rows.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-    const appointments = report.rows.slice((page - 1) * pageSize, page * pageSize);
-    return {
-      date: report.date,
-      range: report.range,
-      staff: report.staff,
-      billingVisible: report.billingVisible,
-      summary: report.summary,
-      dailyBreakdown: report.dailyBreakdown,
-      pagination: { page, pageSize, totalItems, totalPages, hasMore: page < totalPages },
-      appointments
-    };
+    return staffBusinessPerformanceService.daily(query, access);
   },
 
   csv(query = {}, access = {}) {
-    const report = buildBusinessData(query, access);
-    const workHeaders = ["Date", "Start", "End", "Client", "Services", "Chair", "Status", "Scheduled Minutes", "Worked Minutes"];
-    const billingHeaders = ["Invoice", "Invoice Status", "Bill Amount INR", "Discount INR", "Coupon Discount INR", "After Discount INR", "GST INR", "Total INR", "Paid INR", "Due INR"];
-    const headers = report.billingVisible ? [...workHeaders, ...billingHeaders] : [...workHeaders, "Billing"];
-    const rows = report.rows.map((row) => {
-      const work = [row.businessDate, row.startAt, row.endAt, row.clientName, row.serviceNames.join(", "), row.chair, row.status, row.durationMinutes, row.workedMinutes];
-      if (!report.billingVisible) return [...work, "Restricted"];
-      const bill = row.billing;
-      return [...work,
-        bill?.invoiceNumber || "",
-        bill?.invoiceStatus || "",
-        moneyInr(bill?.subtotalPaise),
-        moneyInr(bill?.discountPaise),
-        moneyInr(bill?.couponDiscountPaise),
-        moneyInr(bill?.afterDiscountPaise),
-        moneyInr(bill?.gstPaise),
-        moneyInr(bill?.totalPaise),
-        moneyInr(bill?.paidPaise),
-        moneyInr(bill?.duePaise)
-      ];
-    });
-    return {
-      filename: `staff-business-${report.range.from}-to-${report.range.to}.csv`,
-      content: [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n")
-    };
+    return staffBusinessPerformanceService.csv(query, access);
+  },
+
+  streamCsv(query = {}, access = {}, write) {
+    return staffBusinessPerformanceService.streamCsv(query, access, write);
+  },
+
+  csvFilename(query = {}, access = {}) {
+    return staffBusinessPerformanceService.csvFilename(query, access);
+  },
+
+  invoiceDetail(invoiceId, access = {}) {
+    return staffBusinessPerformanceService.invoiceDetail(invoiceId, access);
   }
 };

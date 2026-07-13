@@ -76,13 +76,11 @@ export class StaffQueuePage implements OnInit {
 
   formatMinutes(minutes: number): string { const safe = Math.max(0, Number(minutes || 0)); return `${Math.floor(safe / 60)}h ${safe % 60}m`; }
   canStartService(timer: { status: string }) {
-    const status = String(timer.status || "").toLowerCase();
-    return ["queued", "pending", "scheduled", "booked", "confirmed", "arrived"].includes(status);
+    return this.staff.canStartServiceStatus(timer.status);
   }
 
   canCompleteService(timer: { status: string }) {
-    const status = String(timer.status || "").toLowerCase();
-    return ["in-service", "in service", "inprogress", "in progress", "running", "active", "started", "scheduled", "pending", "arrived", "confirmed", "booked"].includes(status);
+    return this.staff.canCompleteServiceStatus(timer.status);
   }
 
   async startService(appointmentId: string) {

@@ -496,13 +496,11 @@ export class StaffDashboardPage implements OnInit {
   }
 
   canStartService(item: StaffDashboard['todayAppointments'][number]): boolean {
-    const status = String(item.status || '').toLowerCase();
-    return !['in-service', 'completed', 'cancelled'].includes(status);
+    return this.staff.canStartServiceStatus(item.status);
   }
 
   canCompleteService(item: StaffDashboard['todayAppointments'][number]): boolean {
-    const status = String(item.status || '').toLowerCase();
-    return ['in-service', 'arrived', 'confirmed', 'booked'].includes(status) && status !== 'completed' && status !== 'cancelled';
+    return this.staff.canCompleteServiceStatus(item.status);
   }
 
   async startService(appointmentId: string) {

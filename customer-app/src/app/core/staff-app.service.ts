@@ -111,6 +111,81 @@ export type StaffBusinessBilling = {
   duePaise: number;
 };
 
+export type StaffBusinessAttribution = {
+  saleId: string;
+  invoiceId: string;
+  grossPaise: number;
+  discountPaise: number;
+  couponDiscountPaise: number;
+  afterDiscountPaise: number;
+  gstPaise: number;
+  totalPaise: number;
+  paidPaise: number;
+  duePaise: number;
+  serviceRevenuePaise: number;
+  productRevenuePaise: number;
+  membershipRevenuePaise: number;
+  packageRevenuePaise: number;
+  giftCardRevenuePaise: number;
+};
+
+export type StaffBusinessPermissions = {
+  billing: boolean;
+  earnings: boolean;
+  targets: boolean;
+  invoiceDetail: boolean;
+};
+
+export type StaffBusinessPerformance = {
+  statusCounts: { booked: number; confirmed: number; arrived: number; inService: number; completed: number; cancelled: number; noShow: number; other: number };
+  uniqueClients: number;
+  invoiceCount: number;
+  actualWorkedMinutes: number;
+  estimatedWorkedMinutes: number;
+  attendanceMinutes: number;
+  breakMinutes: number;
+  dutyMinutes: number;
+  utilizationPercent: number | null;
+  attributedGrossPaise: number | null;
+  attributedDiscountPaise: number | null;
+  attributedCouponDiscountPaise: number | null;
+  attributedAfterDiscountPaise: number | null;
+  attributedGstPaise: number | null;
+  attributedPaidPaise: number | null;
+  attributedDuePaise: number | null;
+  averageBillPaise: number | null;
+  revenuePerWorkedHourPaise: number | null;
+  serviceRevenuePaise: number | null;
+  productRevenuePaise: number | null;
+  membershipRevenuePaise: number | null;
+  packageRevenuePaise: number | null;
+  giftCardRevenuePaise: number | null;
+};
+
+export type StaffBusinessEarnings = {
+  calculatedCommissionPaise: number;
+  approvedCommissionPaise: number;
+  tipsCollectedPaise: number;
+  tipsPaidPaise: number;
+  tipsPendingPaise: number;
+  payrollGrossPaise: number;
+  payrollNetPaise: number;
+  payrollPaidPaise: number;
+  payrollPendingPaise: number;
+  periods: Array<{ payrollRunId: string; periodStart: string; periodEnd: string; status: string; grossPaise: number; netPaise: number }>;
+};
+
+export type StaffBusinessTarget = {
+  id: string;
+  type: string;
+  unit: "paise" | "count" | "percent";
+  periodStart: string;
+  periodEnd: string;
+  targetValue: number;
+  achievedValue: number;
+  progressPercent: number;
+};
+
 export type StaffBusinessQuery = {
   date?: string;
   from?: string;
@@ -143,8 +218,22 @@ export type StaffBusinessAppointment = StaffAppointment & {
   businessDate: string;
   state: string;
   workedMinutes: number;
-  timer: { appointmentId: string; clientName: string; status: string; live: boolean; elapsedMinutes: number; totalMinutes: number; remainingMinutes: number; progress: number };
+  timer: {
+    appointmentId: string;
+    clientName: string;
+    status: string;
+    live: boolean;
+    startedAt: string | null;
+    completedAt: string | null;
+    timeSource: "actual" | "estimated";
+    elapsedMinutes: number;
+    totalMinutes: number;
+    remainingMinutes: number;
+    overrunMinutes: number;
+    progress: number;
+  };
   billing: StaffBusinessBilling | null;
+  attribution: StaffBusinessAttribution | null;
 };
 
 export type StaffBusiness = {
@@ -152,10 +241,25 @@ export type StaffBusiness = {
   range: { from: string; to: string; timeZone: "Asia/Kolkata" };
   staff: StaffDashboard["staff"];
   billingVisible: boolean;
+  permissions: StaffBusinessPermissions;
   summary: StaffBusinessSummary;
-  dailyBreakdown: Array<{ date: string } & StaffBusinessSummary>;
+  performance: StaffBusinessPerformance;
+  earnings: StaffBusinessEarnings | null;
+  targets: StaffBusinessTarget[];
+  dailyBreakdown: Array<{ date: string; performance: StaffBusinessPerformance } & StaffBusinessSummary>;
   pagination: { page: number; pageSize: number; totalItems: number; totalPages: number; hasMore: boolean };
   appointments: StaffBusinessAppointment[];
+};
+
+export type StaffBusinessInvoiceDetail = {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  appointmentId: string;
+  createdAt: string;
+  totals: StaffBusinessBilling;
+  items: Array<{ id: string; name: string; type: string; quantity: number; amountPaise: number }>;
+  payments: Array<{ id: string; mode: string; amount: number; amountPaise: number; reference: string; createdAt: string }>;
 };
 
 export type StaffClient360 = {
@@ -387,6 +491,20 @@ export class StaffAppService {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  async businessInvoice(invoiceId: string): Promise<StaffBusinessInvoiceDetail> {
+    return this.get<StaffBusinessInvoiceDetail>(`/staff-self/business/invoices/${encodeURIComponent(invoiceId)}`);
+  }
+
+  canStartServiceStatus(status: string): boolean {
+    return this.hasPermission("update:appointments") &&
+      ["queued", "pending", "scheduled", "booked", "confirmed", "arrived"].includes(String(status || "").trim().toLowerCase());
+  }
+
+  canCompleteServiceStatus(status: string): boolean {
+    return this.hasPermission("update:appointments") &&
+      ["in-service", "in service", "inprogress", "in progress", "running", "active", "started"].includes(String(status || "").trim().toLowerCase());
   }
 
   async client360(clientId: string): Promise<StaffClient360> {
