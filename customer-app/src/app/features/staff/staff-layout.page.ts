@@ -88,18 +88,20 @@ type StaffRecentItem = { label: string; path: string };
         </section>
       }
 
-      <button type="button" class="drawer-backdrop" [class.open]="notificationsOpen()" (click)="closeNotifications()" aria-label="Close notifications"></button>
-      <aside class="notification-drawer" [class.open]="notificationsOpen()" role="dialog" aria-modal="true" aria-labelledby="staff-notifications-title" tabindex="-1" #notificationDialog (keydown)="trapFocus($event, notificationDialog)">
-        <div class="drawer-title"><strong id="staff-notifications-title">Notifications</strong><button type="button" (click)="closeNotifications()">Close</button></div>
-        @if (os()?.aiCoach?.[0]; as card) { <p class="ai-brief"><b>{{ card.title }}</b><br />{{ card.body }}</p> }
-        <div class="notice-list">
-          @for (note of os()?.notifications || []; track note.id) {
-            <article><strong>{{ note.title }}</strong><small>{{ note.body || note.status }}</small><span>{{ note.status }}</span><button type="button" (click)="markNotification(note.id, note.status === 'read' ? 'unread' : 'read')">{{ note.status === 'read' ? 'Mark unread' : 'Mark read' }}</button></article>
-          } @empty {
-            <p>No notifications yet.</p>
-          }
-        </div>
-      </aside>
+      @if (notificationsOpen()) {
+        <button type="button" class="drawer-backdrop open" (click)="closeNotifications()" aria-label="Close notifications"></button>
+        <aside class="notification-drawer open" role="dialog" aria-modal="true" aria-labelledby="staff-notifications-title" tabindex="-1" #notificationDialog (keydown)="trapFocus($event, notificationDialog)">
+          <div class="drawer-title"><strong id="staff-notifications-title">Notifications</strong><button type="button" (click)="closeNotifications()">Close</button></div>
+          @if (os()?.aiCoach?.[0]; as card) { <p class="ai-brief"><b>{{ card.title }}</b><br />{{ card.body }}</p> }
+          <div class="notice-list">
+            @for (note of os()?.notifications || []; track note.id) {
+              <article><strong>{{ note.title }}</strong><small>{{ note.body || note.status }}</small><span>{{ note.status }}</span><button type="button" (click)="markNotification(note.id, note.status === 'read' ? 'unread' : 'read')">{{ note.status === 'read' ? 'Mark unread' : 'Mark read' }}</button></article>
+            } @empty {
+              <p>No notifications yet.</p>
+            }
+          </div>
+        </aside>
+      }
 
       @if (toastMessage()) { <section class="staff-toast" role="status">{{ toastMessage() }}</section> }
     </section>
@@ -165,8 +167,7 @@ type StaffRecentItem = { label: string; path: string };
     .command-list button span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: #fff1cc; color: #7b4d0d; font-size: .72rem; font-weight: 950; }
     .command-list strong, .command-list small { display: block; color: #1d1307; }
     .command-list small { color: #75552b; }
-    .notification-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 31; width: min(420px, 92vw); overflow: auto; padding: 14px; transform: translateX(105%); transition: transform .2s ease; background: #fff8ea; box-shadow: -24px 0 60px rgba(34,19,5,.28); }
-    .notification-drawer.open { transform: translateX(0); }
+    .notification-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 31; width: min(420px, 92vw); box-sizing: border-box; overflow: auto; padding: 14px; background: #fff8ea; box-shadow: -24px 0 60px rgba(34,19,5,.28); overscroll-behavior: contain; }
     .ai-brief { margin: 12px 0; padding: 12px; border: 1px solid #ead5aa; border-radius: 16px; color: #5d3607; background: #fff; font-weight: 800; }
     .notice-list { display: grid; gap: 8px; }
     .notice-list article { padding: 12px; border: 1px solid #ead5aa; border-radius: 16px; background: #fff; }
@@ -196,7 +197,7 @@ type StaffRecentItem = { label: string; path: string };
       .topbar-actions .bell-button { width: 40px; height: 40px; min-width: 40px; padding: 0; border-radius: 15px; }
       .bell-icon { width: 19px; height: 19px; }
       .staff-content { overflow: visible; padding: 14px 12px calc(100px + env(safe-area-inset-bottom)); }
-      .notification-drawer { inset: 0; width: 100vw; max-width: none; height: 100dvh; box-sizing: border-box; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); overscroll-behavior: contain; }
+      .notification-drawer { inset: 0; width: 100vw; min-width: 100vw; max-width: 100vw; height: 100dvh; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); box-shadow: none; }
       .mobile-bottom-nav { position: fixed; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 27; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: min(calc(100vw - 18px), 430px); min-height: 68px; padding: 6px; gap: 3px; transform: translateX(-50%); border: 1px solid rgba(225,190,116,.52); border-radius: 22px; background: rgba(255,253,248,.96); box-shadow: 0 18px 42px rgba(73,35,58,.18); backdrop-filter: blur(18px); }
       .mobile-bottom-nav a { display: grid; grid-template-columns: 1fr; grid-template-rows: 23px auto; place-items: center; align-content: center; gap: 2px; min-width: 0; padding: 6px 3px; border: 0; border-radius: 16px; color: #76586b; font-size: .62rem; font-weight: 950; line-height: 1; text-decoration: none; } .mobile-bottom-nav a span, .mobile-bottom-nav a.active span { display: block; width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font-size: inherit; font-weight: inherit; letter-spacing: 0; text-transform: none; }
       .mobile-bottom-nav a svg { display: block; width: 20px; height: 20px; margin: 0; fill: currentColor; }
@@ -204,7 +205,7 @@ type StaffRecentItem = { label: string; path: string };
       .scroll-top-button { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 28; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid rgba(184,122,20,.24); border-radius: 999px; background: rgba(247,215,127,.62); color: #281806; font-size: .72rem; font-weight: 950; box-shadow: 0 8px 18px rgba(139,93,21,.12); }
       .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; opacity: 0; pointer-events: none; background: rgba(75,48,12,.28); backdrop-filter: blur(2px); transition: opacity .18s ease; }
       .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
-      .staff-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; width: min(84vw, 318px); height: 100dvh; overflow: auto; padding: 14px; border-right: 1px solid rgba(214,170,85,.3); transform: translateX(-104%); transition: transform .2s ease; box-shadow: 24px 0 60px rgba(34,19,5,.18); }
+      .staff-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; width: 100vw; min-width: 100vw; max-width: 100vw; box-sizing: border-box; height: 100dvh; overflow: auto; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); border-right: 0; transform: translateX(-104%); transition: transform .2s ease; box-shadow: none; }
       .staff-sidebar.open { transform: translateX(0); }
       .drawer-close { display: block; width: 100%; margin-bottom: 10px; padding: 9px 12px; border: 1px solid rgba(214,170,85,.3); border-radius: 16px; background: #fff8ea; color: #7a4510; font-weight: 950; text-align: left; }
       .brand-card { display: block; }

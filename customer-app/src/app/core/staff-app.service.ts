@@ -307,6 +307,13 @@ export type StaffChatThread = { id: string; tenantId: string; branchId: string; 
 export type StaffChatMessage = { id: string; threadId: string; senderStaffId: string; senderName: string; body: string; createdAt: string; readByJson?: string };
 export type StaffLearningModule = { id: string; title: string; description: string; category: string; durationMinutes: number; progressStatus: string; completedAt: string };
 export type StaffLearning = { modules: StaffLearningModule[]; summary: { total: number; completed: number; progress: number } };
+export type StaffWorkspacePreferences = {
+  workspace: { workspaceName: string };
+  localization: { timezone: string; locale: string };
+  dateTime: { dateFormat: string; timeFormat: string; businessDayStartHour: number; weekStartsOn: string };
+  interface: { compactMode: boolean };
+  defaults: { staffHints: boolean };
+};
 
 export type StaffAttendance = {
   id: string;
@@ -499,6 +506,10 @@ export class StaffAppService {
 
   async enterpriseOs(query: Record<string, string> = {}): Promise<StaffEnterpriseOs> {
     return this.get<StaffEnterpriseOs>("/staff-self/enterprise-os", query);
+  }
+
+  async workspacePreferences(): Promise<StaffWorkspacePreferences> {
+    return this.get<StaffWorkspacePreferences>("/staff-self/workspace-preferences");
   }
 
   async business(input: string | StaffBusinessQuery): Promise<StaffBusiness> {

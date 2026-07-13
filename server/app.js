@@ -531,6 +531,7 @@ export function createApp() {
   app.use("/api/v1", authenticateJwt(), slotReservationRouter);
   app.use("/api/v1", authenticateJwt(), appointmentSafetyRouter);
   app.use("/api/v1", authenticateJwt(), reputationRouter);
+  app.use("/api/v1", generalSettingsRouter);
   app.use("/api/v1", authenticateJwt(), resourceRouter);
   app.use("/api/v1", appointmentSalonistReportRouter);
   app.use("/api/v1", dueRecoveryReportRouter);
@@ -733,6 +734,7 @@ export function createApp() {
   app.use("/api", slotReservationRouter);
   app.use("/api", appointmentSafetyRouter);
   app.use("/api", reputationRouter);
+  app.use("/api", generalSettingsRouter);
   app.use("/api", resourceRouter);
 
   app.use("/api", whatsappWebhookRouter);

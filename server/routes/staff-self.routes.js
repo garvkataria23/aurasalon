@@ -3,8 +3,18 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { authenticateJwt } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/rbac.js";
 import { staffLoginService } from "../services/staff-login.service.js";
+import { generalSettingsService } from "../services/general-settings.service.js";
 
 export const staffSelfRouter = Router();
+
+staffSelfRouter.get(
+  "/staff-self/workspace-preferences",
+  authenticateJwt(),
+  requirePermission("read", () => "appointments"),
+  asyncHandler((req, res) => {
+    res.json(generalSettingsService.staffWorkspacePreferences(req.access));
+  })
+);
 
 staffSelfRouter.get(
   "/staff-self/dashboard",

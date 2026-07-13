@@ -2,6 +2,7 @@ import { db } from "../db.js";
 import { badRequest, conflict, notFound } from "../utils/app-error.js";
 import { staffOsService } from "./staff-os.service.js";
 import { staffOvertimeService } from "./staff-overtime.service.js";
+import { generalSettingsService } from "./general-settings.service.js";
 import {
   assertBranch,
   branchIdFrom,
@@ -1116,6 +1117,7 @@ export class StaffBiometricService {
     access = requireTenant(access);
     const branchId = branchIdFrom(payload, access);
     if (branchId) assertBranch(access, branchId);
+    if (!generalSettingsService.ownerNotificationsEnabled(access, branchId)) return null;
     const idempotencyKey = payload.idempotencyKey || payload.idempotency_key || hashPayload({
       tenantId: access.tenantId,
       branchId,
