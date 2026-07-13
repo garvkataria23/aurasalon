@@ -11,6 +11,7 @@ import {
 } from "../../core/staff-app.service";
 
 type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
+type SearchSuggestion = { type: "Client" | "Service" | "Invoice"; value: string };
 
 @Component({
   standalone: true,
@@ -44,17 +45,31 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
               <label>From<input type="date" [ngModel]="fromDate()" (ngModelChange)="fromDate.set($event)" /></label>
               <label>To<input type="date" [ngModel]="toDate()" (ngModelChange)="toDate.set($event)" /></label>
             }
-            <label>Search<input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" (keydown.enter)="apply()" placeholder="Client, service or invoice" /></label>
+            <div class="search-field">
+              <label for="business-search">Search</label>
+              <div class="search-control">
+                <input id="business-search" type="search" autocomplete="off" role="combobox" aria-controls="business-search-suggestions" [attr.aria-expanded]="showSearchSuggestions() && searchSuggestions().length" [ngModel]="search()" (ngModelChange)="search.set($event)" (focus)="showSearchSuggestions.set(true)" (blur)="closeSearchSuggestions()" (keydown.enter)="apply()" placeholder="Client, service or invoice" />
+                @if (showSearchSuggestions() && searchSuggestions().length) {
+                  <div id="business-search-suggestions" class="search-suggestions" role="listbox">
+                    @for (suggestion of searchSuggestions(); track suggestion.type + suggestion.value) {
+                      <button type="button" role="option" (pointerdown)="$event.preventDefault()" (click)="selectSuggestion(suggestion)">
+                        <span>{{ suggestion.value }}</span><small>{{ suggestion.type }}</small>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
             <label>Status
               <select [ngModel]="status()" (ngModelChange)="status.set($event)">
-                <option value="all">All statuses</option>
+                <option value="all">All Statuses</option>
                 <option value="booked">Booked</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="arrived">Arrived</option>
-                <option value="in-service">In service</option>
+                <option value="in-service">In Service</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
-                <option value="no-show">No-show</option>
+                <option value="no-show">No-Show</option>
               </select>
             </label>
             <label>Sort
@@ -281,6 +296,15 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
   `,
   styleUrls: ["./staff-app.styles.css"],
   styles: [`
+    .search-field { display: grid; gap: 6px; min-width: 0; color: #3a2713; font-size: .8rem; font-weight: 900; }
+    .search-control { position: relative; }
+    .search-control input { width: 100%; }
+    .search-suggestions { position: absolute; z-index: 20; top: calc(100% + 5px); right: 0; left: 0; overflow: hidden; border: 1px solid #e7cfd4; border-radius: 14px; background: #fffdfb; box-shadow: 0 12px 28px rgba(65, 34, 17, .16); }
+    .search-suggestions button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid #f2e5e1; border-radius: 0; padding: 10px 12px; color: #321827; background: transparent; text-align: left; }
+    .search-suggestions button:last-child { border-bottom: 0; }
+    .search-suggestions button:hover, .search-suggestions button:focus-visible { background: #fff1e8; }
+    .search-suggestions span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .search-suggestions small { flex: 0 0 auto; color: #9a6372; font-size: .62rem; font-weight: 900; text-transform: uppercase; }
     @media (max-width: 700px) {
       .grid.four.business-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       .business-kpi-grid .kpi { min-height: 108px; padding: 12px 10px; }
@@ -297,6 +321,7 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
   readonly fromDate = signal(this.monthsAgo(this.todayDate, 1));
   readonly toDate = signal(this.todayDate);
   readonly search = signal("");
+  readonly showSearchSuggestions = signal(false);
   readonly status = signal("all");
   readonly sort = signal<"asc" | "desc">("desc");
   readonly loading = signal(false);
@@ -312,6 +337,30 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
   readonly activeFilterCount = computed(() =>
     Number(Boolean(this.search().trim())) + Number(this.status() !== "all") + Number(this.sort() !== "desc")
   );
+  readonly searchSuggestions = computed<SearchSuggestion[]>(() => {
+    const query = this.search().trim().toLocaleLowerCase();
+    if (query.length < 2) return [];
+
+    const suggestions: SearchSuggestion[] = [];
+    const seen = new Set<string>();
+    const add = (type: SearchSuggestion["type"], value: string | null | undefined) => {
+      const cleanValue = value?.trim();
+      const key = `${type}:${cleanValue?.toLocaleLowerCase()}`;
+      if (!cleanValue || !cleanValue.toLocaleLowerCase().includes(query) || seen.has(key)) return;
+      seen.add(key);
+      suggestions.push({ type, value: cleanValue });
+    };
+
+    for (const appointment of this.business()?.appointments || []) {
+      add("Client", appointment.clientName);
+      for (const service of appointment.serviceNames) add("Service", service);
+      add("Invoice", appointment.billing?.invoiceNumber || appointment.billing?.saleId);
+    }
+
+    return suggestions
+      .sort((a, b) => Number(!a.value.toLocaleLowerCase().startsWith(query)) - Number(!b.value.toLocaleLowerCase().startsWith(query)) || a.value.localeCompare(b.value))
+      .slice(0, 6);
+  });
   private clockTimer?: ReturnType<typeof setInterval>;
   private drawerTrigger: HTMLElement | null = null;
   readonly appointmentGroups = computed(() => {
@@ -372,11 +421,19 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
     void this.load(true);
   }
 
-  apply() { void this.load(true); }
+  apply() { this.showSearchSuggestions.set(false); void this.load(true); }
   loadMore() { if (this.business()?.pagination.hasMore) void this.load(false); }
+
+  closeSearchSuggestions() { setTimeout(() => this.showSearchSuggestions.set(false)); }
+
+  selectSuggestion(suggestion: SearchSuggestion) {
+    this.search.set(suggestion.value);
+    this.apply();
+  }
 
   clearFilters() {
     this.search.set("");
+    this.showSearchSuggestions.set(false);
     this.status.set("all");
     this.sort.set("desc");
     void this.load(true);
