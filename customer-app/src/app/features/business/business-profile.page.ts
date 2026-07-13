@@ -696,6 +696,10 @@ import { MarketplaceService } from "../../core/marketplace.service";
         padding: 8px 10px;
         border-radius: 18px;
       }
+
+      .sticky-cta {
+        bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+      }
     }
 
     @media (min-width: 768px) {
