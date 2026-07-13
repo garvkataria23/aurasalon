@@ -74,7 +74,7 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
       }
 
       @if (canReadBusiness() && business(); as data) {
-        <section class="grid four">
+        <section class="grid four business-kpi-grid">
           <article class="kpi"><span>Appointments</span><strong>{{ data.summary.appointments }}</strong><small>{{ data.summary.completedServices }} completed services</small></article>
           <article class="kpi"><span>Unique clients</span><strong>{{ data.performance.uniqueClients }}</strong><small>{{ data.performance.invoiceCount }} attributed invoices</small></article>
           @if (data.billingVisible) {
@@ -86,7 +86,7 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
           }
         </section>
 
-        <section class="grid four">
+        <section class="grid four business-kpi-grid">
           <article class="kpi"><span>Worked time</span><strong>{{ formatMinutes(data.summary.workedMinutes) }}</strong><small>{{ formatMinutes(data.performance.actualWorkedMinutes) }} actual · {{ formatMinutes(data.performance.estimatedWorkedMinutes) }} estimated</small></article>
           <article class="kpi"><span>Scheduled</span><strong>{{ formatMinutes(data.summary.scheduledMinutes) }}</strong><small>{{ formatMinutes(data.summary.completedMinutes) }} completed work</small></article>
           <article class="kpi"><span>Duty time</span><strong>{{ formatMinutes(data.performance.dutyMinutes) }}</strong><small>{{ formatMinutes(data.performance.attendanceMinutes) }} attendance · {{ formatMinutes(data.performance.breakMinutes) }} breaks</small></article>
@@ -279,7 +279,16 @@ type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
       }
     </section>
   `,
-  styleUrls: ["./staff-app.styles.css"]
+  styleUrls: ["./staff-app.styles.css"],
+  styles: [`
+    @media (max-width: 700px) {
+      .grid.four.business-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .business-kpi-grid .kpi { min-height: 108px; padding: 12px 10px; }
+      .business-kpi-grid .kpi span { font-size: .66rem; line-height: 1.25; }
+      .business-kpi-grid .kpi strong { margin-top: 7px; font-size: 1.25rem; line-height: 1.1; }
+      .business-kpi-grid .kpi small { font-size: .72rem; line-height: 1.3; }
+    }
+  `]
 })
 export class StaffBusinessPage implements OnInit, OnDestroy {
   private readonly todayDate = this.today();
