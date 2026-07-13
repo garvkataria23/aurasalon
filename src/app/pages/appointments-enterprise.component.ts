@@ -1458,13 +1458,18 @@ const STATUS_TONES: Record<string, string> = {
   `]
 })
 export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
-  @ViewChild('appointmentDetailPopover') private appointmentDetailPopover?: ElementRef<HTMLDivElement>;
+  @ViewChild('appointmentDetailPopover')
+  private set appointmentDetailPopover(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.appointmentDetailPopoverElement = ref?.nativeElement;
+    if (ref) this.scheduleAppointmentPopoverPosition();
+  }
   private readonly fb = inject(FormBuilder);
   private readonly resizeState = signal<{ appointment: ApiRecord; startY: number; originalEnd: string } | null>(null);
   private handledStaffToggleRequests = 0;
   private timer = 0;
   private noticeTimer = 0;
   private appointmentPopoverFrame = 0;
+  private appointmentDetailPopoverElement?: HTMLDivElement;
   private appointmentHoverAnchor: HTMLElement | null = null;
   readonly api = inject(ApiService);
   readonly appointmentToolbar = inject(AppointmentToolbarService);
@@ -1767,6 +1772,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     window.clearInterval(this.timer);
     window.clearTimeout(this.noticeTimer);
     window.cancelAnimationFrame(this.appointmentPopoverFrame);
+    this.appointmentDetailPopoverElement = undefined;
     window.removeEventListener('pointermove', this.onResizeMove);
     window.removeEventListener('pointerup', this.onResizeEnd);
     if (typeof document !== 'undefined') document.body.classList.remove('calendar-fullscreen-active');
@@ -1967,6 +1973,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
 
   hideAppointmentDetails(): void {
     this.appointmentHoverAnchor = null;
+    this.appointmentDetailPopoverElement = undefined;
     if (typeof window !== 'undefined') window.cancelAnimationFrame(this.appointmentPopoverFrame);
     this.appointmentPopoverFrame = 0;
     this.hoveredAppointment.set(null);
@@ -1997,7 +2004,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
       this.appointmentPopoverFrame = 0;
       const current = this.hoveredAppointment();
       const anchor = this.appointmentHoverAnchor;
-      const popover = this.appointmentDetailPopover?.nativeElement;
+      const popover = this.appointmentDetailPopoverElement;
       if (!current || !anchor || !popover) return;
       const rect = popover.getBoundingClientRect();
       const position = appointmentPopoverPosition(
