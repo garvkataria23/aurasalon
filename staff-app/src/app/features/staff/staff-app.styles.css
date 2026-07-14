@@ -76,8 +76,8 @@ input:focus,select:focus,textarea:focus{outline:0}
   .row{gap:12px}
   .row-actions{width:100%}
   .row-actions>.button,.row-actions>button.link-button{flex:1 1 auto}
-  .queue-tabs{top:var(--staff-header-height);grid-template-columns:repeat(3,minmax(104px,1fr));overflow-x:auto}
-  .queue-tabs .link-button{white-space:nowrap}
+  .queue-tabs{top:var(--staff-header-height);grid-template-columns:repeat(3,minmax(0,1fr));overflow-x:hidden}
+  .queue-tabs .link-button{min-width:0;padding-inline:5px;font-size:clamp(.68rem,3vw,.76rem);white-space:nowrap}
   .detail-drawer{top:0;padding:20px;border-radius:0}
   .chat-messages{max-height:52dvh}
   .calendar-slot{grid-template-columns:64px minmax(0,1fr)}
