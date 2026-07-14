@@ -5,9 +5,9 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("staff mobile appointments stay compact and notifications update live", () => {
-  const business = read("customer-app/src/app/features/staff/staff-business.page.ts");
-  const styles = read("customer-app/src/app/features/staff/staff-app.styles.css");
-  const layout = read("customer-app/src/app/features/staff/staff-layout.page.ts");
+  const business = read("staff-app/src/app/features/staff/staff-business.page.ts");
+  const styles = read("staff-app/src/app/features/staff/staff-app.styles.css");
+  const layout = read("staff-app/src/app/features/staff/staff-layout.page.ts");
   const notifications = read("server/services/staff-enterprise.service.js");
 
   assert.match(business, /<details class="business-appointment-row">[\s\S]*?<summary>[\s\S]*?item\.startAt[\s\S]*?item\.serviceNames/);

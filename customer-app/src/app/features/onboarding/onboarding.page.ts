@@ -1,6 +1,7 @@
 import { Component } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { IonButton, IonContent } from "@ionic/angular/standalone";
+import { environment } from "../../../environments/environment";
 
 @Component({
   standalone: true,
@@ -28,7 +29,7 @@ import { IonButton, IonContent } from "@ionic/angular/standalone";
           </div>
           <ion-button expand="block" size="large" class="primary-gradient" routerLink="/login">Get started</ion-button>
           <ion-button expand="block" fill="clear" routerLink="/tabs/home">Explore as guest</ion-button>
-          <a class="staff-switch" routerLink="/staff/login">Staff? Open staff login</a>
+          <a class="staff-switch" [href]="staffAppUrl">Staff? Open staff login</a>
         </section>
       </main>
     </ion-content>
@@ -219,4 +220,6 @@ import { IonButton, IonContent } from "@ionic/angular/standalone";
     }
   `]
 })
-export class OnboardingPage {}
+export class OnboardingPage {
+  readonly staffAppUrl = environment.staffAppUrl;
+}

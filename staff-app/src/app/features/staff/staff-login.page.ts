@@ -1,12 +1,13 @@
 import { Component, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { IonContent, IonSpinner } from "@ionic/angular/standalone";
+import { environment } from "../../../environments/environment";
 import { StaffAppService } from "../../core/staff-app.service";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink, IonContent, IonSpinner],
+  imports: [FormsModule, IonContent, IonSpinner],
   template: `
     <ion-content class="staff-login-shell">
       <main class="login-grid">
@@ -59,7 +60,7 @@ import { StaffAppService } from "../../core/staff-app.service";
             </button>
           }
 
-          <a routerLink="/" class="customer-link">Open customer app</a>
+          <a [href]="customerAppUrl" class="customer-link">Open customer app</a>
         </section>
       </main>
     </ion-content>
@@ -102,6 +103,7 @@ import { StaffAppService } from "../../core/staff-app.service";
     .customer-link { color: #8d4f62; }  `]
 })
 export class StaffLoginPage {
+  readonly customerAppUrl = environment.customerAppUrl;
   readonly message = signal("");
   tenantId = "tenant_aura";
   loginId = "";

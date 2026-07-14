@@ -1,0 +1,17 @@
+{
+  "name": "Aura Staff OS",
+  "short_name": "Aura Staff",
+  "description": "Connected salon workspace for Aura staff.",
+  "start_url": "/staff/login",
+  "display": "standalone",
+  "background_color": "#fffaf6",
+  "theme_color": "#241625",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

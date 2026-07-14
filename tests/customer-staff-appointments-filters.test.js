@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const page = readFileSync("customer-app/src/app/features/staff/staff-appointments.page.ts", "utf8");
-const styles = readFileSync("customer-app/src/app/features/staff/staff-app.styles.css", "utf8");
+const page = readFileSync("staff-app/src/app/features/staff/staff-appointments.page.ts", "utf8");
+const styles = readFileSync("staff-app/src/app/features/staff/staff-app.styles.css", "utf8");
 
 test("staff appointments expose accessible KPI and smart queue filters", () => {
   for (const view of ["today", "upcoming", "live", "completed", "cancelled"]) {

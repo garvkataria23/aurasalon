@@ -8,9 +8,9 @@ const performanceService = readFileSync("server/services/staff-business-performa
 const salesReport = readFileSync("server/services/staff-sales-report.service.js", "utf8");
 const staffOs = readFileSync("server/services/staff-os.service.js", "utf8");
 const route = readFileSync("server/routes/staff-business.routes.js", "utf8");
-const appRoutes = readFileSync("customer-app/src/app/app.routes.ts", "utf8");
-const appService = readFileSync("customer-app/src/app/core/staff-app.service.ts", "utf8");
-const page = readFileSync("customer-app/src/app/features/staff/staff-business.page.ts", "utf8");
+const appRoutes = readFileSync("staff-app/src/app/app.routes.ts", "utf8");
+const appService = readFileSync("staff-app/src/app/core/staff-app.service.ts", "utf8");
+const page = readFileSync("staff-app/src/app/features/staff/staff-business.page.ts", "utf8");
 
 test("activity logs produce actual duration, overrun and explicit estimated fallback", () => {
   const appointment = {
