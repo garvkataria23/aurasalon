@@ -57,9 +57,10 @@ import { StaffAppService } from "../../core/staff-app.service";
     .staff-login-shell { --background: var(--staff-background); }
     .login-grid { width: min(520px, calc(100% - 28px)); min-height: 100%; margin: 0 auto; padding: 7vh 0; display: grid; grid-template-columns: 1fr; align-items: center; }
     .staff-card { position: relative; overflow: hidden; padding: 34px; border: 1px solid var(--staff-border); border-radius: 28px; background: var(--staff-primary-light); box-shadow: var(--staff-shadow); }
-    .orb { position: absolute; border-radius: 50%; opacity: .5; }
+    .orb { position: absolute; z-index: 0; border-radius: 50%; opacity: .5; pointer-events: none; }
     .orb.login-orb { width: 190px; height: 190px; right: -42px; top: -36px; background: var(--staff-decoration-one); }
-    .orb.login-orb-secondary { width: 170px; height: 170px; left: -112px; bottom: -112px; background: var(--staff-decoration-two); }
+    .orb.login-orb-secondary { width: 140px; height: 140px; left: -48px; bottom: -48px; background: var(--staff-decoration-two); }
+    .staff-card > :not(.orb) { position: relative; z-index: 1; }
     .eyebrow { position: relative; margin: 0 0 12px; color: var(--staff-primary-hover); font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
     .dark { color: var(--staff-primary); }
     h2 { margin: 0; color: var(--staff-text); font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1; letter-spacing: -.04em; }
