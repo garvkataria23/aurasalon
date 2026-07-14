@@ -36,8 +36,6 @@ import { PaiseInrPipe } from "../../core/paise-inr.pipe";
             <button class="button" type="button" (click)="quickRange(0)">Today</button>
             <button class="button" type="button" (click)="quickRange(6)">7 days</button>
             <button class="button" type="button" (click)="quickRange(29)">30 days</button>
-            <button class="button" type="button" [disabled]="!dashboard()" (click)="exportCsv()">Export CSV</button>
-            <button class="button" type="button" [disabled]="!dashboard()" (click)="exportPdf()">Export PDF</button>
           </div>
         </section>
       }
@@ -135,10 +133,6 @@ export class StaffReportsPage implements OnInit {
 
   canSeeRevenue(): boolean { return this.staff.hasAnyPermission(["read:finance", "read:sales", "read:payments", "read:invoices"]); }
 
-  canExportReports(): boolean {
-    return this.staff.hasAnyPermission(["read:finance", "read:sales", "write:finance", "write:staff", "update:staff"]);
-  }
-
   averageSale(): number {
     const summary = this.dashboard()?.summary;
     return summary?.salesCount ? Number(summary.revenue || 0) / Number(summary.salesCount) : 0;
@@ -148,37 +142,6 @@ export class StaffReportsPage implements OnInit {
     this.fromDate = this.dateOffset(daysBack);
     this.toDate = this.dateOffset(0);
     await this.load();
-  }
-
-  exportCsv() {
-    if (!this.canExportReports()) {
-      this.message.set("You do not have permission to export reports.");
-      return;
-    }
-    const dash = this.dashboard();
-    if (!dash) return;
-    const rows = [
-      ["type", "id", "client", "amount", "status", "date"],
-      ...dash.workReport.map((item) => ["work", item.id, item.clientName || "", item.value || 0, item.status || "", item.startAt || ""]),
-      ...dash.sales.map((sale) => ["sale", sale.id, "", sale.total || 0, sale.status || "", sale.createdAt || ""])
-    ];
-    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `staff-report-${this.fromDate}-to-${this.toDate}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    this.message.set("Report CSV exported.");
-  }
-
-  exportPdf() {
-    if (!this.canExportReports()) {
-      this.message.set("You do not have permission to export reports.");
-      return;
-    }
-    if (!this.dashboard()) return;
-    window.print();
   }
 
   private dateOffset(daysBack: number): string {

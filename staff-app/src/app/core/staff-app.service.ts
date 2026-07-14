@@ -557,22 +557,6 @@ export class StaffAppService {
     return this.get<StaffBusiness>("/staff-self/business", this.stringQuery(query));
   }
 
-  async businessCsv(query: StaffBusinessQuery): Promise<Blob> {
-    this.loading.set(true);
-    this.error.set("");
-    try {
-      return await this.withRefreshRetry(() => firstValueFrom(this.http.get(
-        `${this.baseUrl}/staff-self/business/export.csv`,
-        { headers: this.authHeaders(), params: this.stringQuery(query), responseType: "blob" }
-      )));
-    } catch (error) {
-      this.error.set(this.errorMessage(error, "Unable to export staff business report."));
-      throw error;
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
   async businessInvoice(invoiceId: string): Promise<StaffBusinessInvoiceDetail> {
     return this.get<StaffBusinessInvoiceDetail>(`/staff-self/business/invoices/${encodeURIComponent(invoiceId)}`);
   }
