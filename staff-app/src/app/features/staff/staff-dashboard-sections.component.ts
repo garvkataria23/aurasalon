@@ -12,13 +12,13 @@ import { DashboardAction, DashboardTool, StaffDashboardViewModel } from "./staff
         <p class="eyebrow">{{ viewModel.hero.eyebrow }}</p>
         <h1 id="today-heading">{{ viewModel.hero.title }}</h1>
         @if (viewModel.hero.detail) { <p>{{ viewModel.hero.detail }}</p> }
+        @if (viewModel.hero.hint) { <small class="hero-hint">{{ viewModel.hero.hint }}</small> }
         @if (viewModel.hero.shiftAssigned) { <span class="shift-line"><b>Shift</b> {{ viewModel.hero.shift }}</span> }
-        @else { <span class="shift-line no-shift"><b>No shift assigned today</b><small>Check today’s schedule or ask your manager.</small></span> }
       </div>
       <div class="hero-action-stack" aria-label="Recommended next actions">
         @for (action of viewModel.hero.actions; track action.id) {
           @if (action.route) { <a class="button" [class.primary]="action.primary" [routerLink]="action.route">{{ action.label }}</a> }
-           @else { <button type="button" class="link-button" [class.primary-action]="action.primary" [disabled]="!!pendingAction" (click)="actionSelected.emit(action)">@if (action.kind === 'clock') { <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 11H7v-2h4V6h2v7z"></path></svg> }{{ pendingLabel(action) }}</button> }
+           @else { <button type="button" class="link-button" [class.primary-action]="action.primary" [disabled]="!!pendingAction" [attr.aria-busy]="isPending(action)" [attr.aria-pressed]="isPending(action)" (click)="actionSelected.emit(action)">@if (action.kind === 'clock') { <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 11H7v-2h4V6h2v7z"></path></svg> }{{ pendingLabel(action) }}</button> }
         }
       </div>
     </section>
@@ -46,7 +46,7 @@ import { DashboardAction, DashboardTool, StaffDashboardViewModel } from "./staff
     </section>
 
     <section class="dashboard-section" aria-labelledby="next-work-heading">
-        <div class="section-heading"><div><p class="eyebrow">On the floor</p><h2 id="next-work-heading">{{ viewModel.work.mode === 'active' ? 'Current service' : 'Next work' }}</h2></div>@if (viewModel.work.queueRoute; as queueRoute) { <a [routerLink]="queueRoute">Open queue</a> }</div>
+        <div class="section-heading"><div><p class="eyebrow">On the floor</p><h2 id="next-work-heading">{{ viewModel.work.mode === 'active' ? 'Current Service' : 'Next Work' }}</h2></div>@if (viewModel.work.queueRoute; as queueRoute) { <a [routerLink]="queueRoute">Open queue</a> }</div>
       <article class="next-work-card" [class.active-work]="viewModel.work.mode === 'active'" [class.empty-work]="viewModel.work.mode === 'empty'">
         <div class="work-time"><span>{{ viewModel.work.eyebrow }}</span><b>{{ viewModel.work.meta }}</b></div>
         <div class="work-main"><h3>{{ viewModel.work.title }}</h3><p>{{ viewModel.work.detail }}</p>
@@ -139,6 +139,10 @@ export class StaffDashboardSectionsComponent {
 
   pendingLabel(action: DashboardAction): string {
     return this.pendingAction === action.id || this.pendingAction === action.appointmentId ? "Saving…" : action.label;
+  }
+
+  isPending(action: DashboardAction): boolean {
+    return this.pendingAction === action.id || this.pendingAction === action.appointmentId;
   }
 
   iconFor(id: string): string { return this.icons[id] || this.icons["settings"]; }

@@ -49,6 +49,8 @@ export type StaffUser = {
   loginId: string;
   email: string;
   role: string;
+  roleDisplayName?: string;
+  customRoleName?: string;
   staffId: string;
   branchId: string;
   branchName?: string;
@@ -106,6 +108,7 @@ export type StaffDashboard = {
 };
 
 export type StaffEnterpriseOs = {
+  staff: StaffDashboard["staff"];
   home: {
     greeting: string;
     todayAppointments: number;
@@ -450,6 +453,7 @@ export class StaffAppService {
   readonly loading = signal(false);
   readonly error = signal("");
   readonly user = signal<StaffUser | null>(null);
+  readonly profile = signal<StaffDashboard["staff"] | null>(null);
   readonly biometricEnabled = signal(!!this.readBiometricHint());
   readonly biometricLocked = signal(false);
 
@@ -534,7 +538,9 @@ export class StaffAppService {
           headers: this.authHeaders(),
           params
         }));
-        return this.unwrap(response);
+        const dashboard = this.unwrap(response);
+        this.profile.set(dashboard.staff);
+        return dashboard;
       });
     } catch (error) {
       const message = this.errorMessage(error, "Unable to load staff dashboard.");
@@ -934,6 +940,7 @@ export class StaffAppService {
     this.accessTokenValue = session.accessToken;
     this.tenantIdValue = tenantId;
     this.sessionIdValue = crypto.randomUUID();
+    this.profile.set(null);
     this.user.set(session.user);
   }
 
@@ -962,6 +969,7 @@ export class StaffAppService {
         this.accessTokenValue = session.accessToken;
         if (session.user?.staffId) {
           if (this.user()?.id && this.user()?.id !== session.user.id) this.clearOfflineState();
+          this.profile.set(null);
           this.user.set(session.user);
           this.tenantIdValue ||= this.readBiometricHint()?.tenantId || "";
           this.sessionIdValue ||= crypto.randomUUID();
@@ -1123,6 +1131,7 @@ export class StaffAppService {
     this.accessTokenValue = "";
     this.tenantIdValue = "";
     this.sessionIdValue = "";
+    this.profile.set(null);
     this.user.set(null);
     this.biometricLocked.set(false);
     this.clearOfflineState();

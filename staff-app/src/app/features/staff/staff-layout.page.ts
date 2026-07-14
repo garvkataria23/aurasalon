@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, comp
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { StaffAppService, StaffEnterpriseOs, StaffWorkspacePreferences } from "../../core/staff-app.service";
-import { formatStaffRoleLabel } from "./staff-role-label";
+import { resolveStaffIdentity } from "./staff-role-label";
 
 type StaffNavItem = { label: string; path: string; iconPath: string; group: string; permission?: string; anyPermissions?: readonly string[] };
 type StaffRecentItem = { label: string; path: string };
@@ -22,7 +22,7 @@ type StaffRecentItem = { label: string; path: string };
         </div>
         <a class="user-card" routerLink="/staff/profile" (click)="closeMenu()" aria-label="Open my profile">
           <b>{{ initials() }}</b>
-          <div><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong><small>{{ identitySubtitle() }}</small></div>
+          <div><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong><small [title]="identitySubtitle()" [attr.aria-label]="identitySubtitle()">{{ identitySubtitle() }}</small></div>
         </a>
         <button type="button" class="theme-button" [attr.aria-label]="theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'" [attr.aria-pressed]="theme() === 'dark'" (click)="toggleTheme()">
           @if (theme() === 'dark') { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V2h1v2h-1zm0 18v-2h1v2h-1zM4 13H2v-1h2v1zm18 0h-2v-1h2v1zM5.6 6.3 4.2 4.9l.7-.7 1.4 1.4-.7.7zm13.5 13.5-1.4-1.4.7-.7 1.4 1.4-.7.7zm0-14.2-.7.7-1.4-1.4.7-.7 1.4 1.4-.7.7zM6.3 18.4l-1.4 1.4-.7-.7 1.4-1.4.7.7zM12.5 7a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"></path></svg><span>Light mode</span> }
@@ -48,7 +48,7 @@ type StaffRecentItem = { label: string; path: string };
        <div class="staff-main-shell" [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null">
         <header class="staff-topbar">
            <button type="button" class="menu-button" (click)="openMenu()" aria-label="Open menu" [attr.aria-expanded]="menuOpen()" #menuButton><span></span><span></span><span></span></button>
-          <a class="staff-identity" routerLink="/staff/profile" aria-label="Open my profile"><b class="profile-avatar">{{ initials() }}</b><div><span>{{ greetingLabel() }}</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong><small>{{ identitySubtitle() }}</small></div></a>
+           <a class="staff-identity" routerLink="/staff/profile" [attr.aria-label]="'Open my profile — ' + identitySubtitle()"><b class="profile-avatar">{{ initials() }}</b><div><span>{{ greetingLabel() }}</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong><small [title]="identitySubtitle()" [attr.aria-label]="identitySubtitle()">{{ identitySubtitle() }}</small></div></a>
           <div class="topbar-actions">
              @if (visibleNav().length) { <button type="button" class="search-button" (click)="openCommand()" aria-label="Search permitted staff tools" [attr.aria-expanded]="commandOpen()" #commandButton><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 19.6-5.1-5.1a7 7 0 1 0-1.4 1.4l5.1 5.1 1.4-1.4zM5 10a5 5 0 1 1 10 0A5 5 0 0 1 5 10z"></path></svg><span>Search workspace</span><kbd>Ctrl K</kbd></button> }
              @if (staff.hasPermission('read:staff')) { <button type="button" class="bell-button" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" aria-label="Open notifications" [attr.aria-expanded]="notificationsOpen()" #notificationButton>
@@ -140,7 +140,7 @@ type StaffRecentItem = { label: string; path: string };
     .nav-logout { width: 100%; min-height:46px;margin-top: 12px; padding: 11px 13px; border: 1px solid var(--staff-error-border); border-radius: 16px; background: var(--staff-error-surface); color: var(--staff-error-text); font-weight: 750; text-align: left; }
     .staff-main-shell { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
     .staff-topbar { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height:var(--staff-header-height);padding: 3px 16px; border-bottom: 1px solid var(--staff-border); background: var(--staff-surface-glass); backdrop-filter: blur(16px); }
-    .staff-identity { display: flex; align-items:center; min-width: 0; gap: 10px; color:inherit; text-decoration:none; }
+    .staff-identity { display: flex; align-items:center; min-width: 0; max-width:min(420px,48vw); gap: 10px; color:inherit; text-decoration:none; }
     .staff-identity>div { display:grid;gap:1px;min-width:0; }
     .staff-identity span { overflow: hidden; color: var(--staff-text-secondary); font-size: .72rem; font-weight: 650; letter-spacing: 0; text-overflow: ellipsis; white-space: nowrap; }
     .staff-identity strong { overflow: hidden; color: var(--staff-text); font-size: .92rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
@@ -412,11 +412,20 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   }
 
-  roleLabel(): string { return formatStaffRoleLabel(this.staff.user()?.role); }
+  roleLabel(): string { return this.identity().role; }
 
-  branchLabel(): string { return this.staff.user()?.branchName?.trim() || ""; }
+  branchLabel(): string { return this.identity().branch; }
 
-  identitySubtitle(): string { return [this.roleLabel(), this.branchLabel()].filter(Boolean).join(" · "); }
+  identitySubtitle(): string { return this.identity().subtitle; }
+
+  private identity() {
+    return resolveStaffIdentity({
+      roleDisplayName: this.staff.profile()?.designation || this.os()?.staff.designation || this.staff.user()?.roleDisplayName,
+      customRoleName: this.staff.user()?.customRoleName,
+      systemRole: this.staff.user()?.role,
+      branchName: this.staff.user()?.branchName
+    });
+  }
 
   isDashboard(): boolean { return this.router.url.split("?")[0] === "/staff/dashboard"; }
 
