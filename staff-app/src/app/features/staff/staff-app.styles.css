@@ -125,8 +125,6 @@ input:not(:disabled):active,select:not(:disabled):active,textarea:not(:disabled)
 @media(max-width:700px){.dashboard-page{gap:20px;padding-inline:16px}.today-hero{gap:16px;padding:16px;border-radius:20px}.today-hero h1{font-size:clamp(1.8rem,9vw,2.45rem)}.hero-action-stack{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.hero-action-stack>*{min-width:0}.quick-action-grid>a,.quick-action-grid>button{min-height:52px;padding:10px 12px}.overview-card{padding:14px}.next-work-card{grid-template-columns:1fr;padding:16px;gap:12px}.work-actions{justify-content:flex-start}.work-actions>*{flex:1 1 auto}.section-heading{align-items:center}.performance-section{padding:16px}.context-notice{align-items:flex-start}.context-notice button{flex:0 0 auto}.skeleton-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:360px){.hero-action-stack,.quick-action-grid,.tool-grid{grid-template-columns:1fr}.overview-grid,.performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.section-heading>a{max-width:108px;text-align:right}.context-notice{display:grid}.today-hero h1{font-size:1.75rem}}
 @media(prefers-reduced-motion:reduce){.skeleton{animation:none}.quick-action-grid>:hover,.overview-card:hover{transform:none}}
-.tool-customizer>div{display:flex}.tool-customizer>div button+button{min-width:44px;margin-left:3px;padding-inline:8px}
-
 /* Compact operational dashboard refinements. */
 .dashboard-page{gap:14px}
 .dashboard-page .eyebrow{margin-bottom:2px;font-size:.64rem}
@@ -185,10 +183,8 @@ input:not(:disabled):active,select:not(:disabled):active,textarea:not(:disabled)
 .tool-grid>a>span{min-width:0}
 .tool-grid strong,.tool-grid small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tool-grid small{margin-top:2px;font-size:.67rem}
-.customize-control{gap:5px;white-space:nowrap}
-.customize-control>span{font-size:.82rem;line-height:1}
-.next-work-card,.performance-grid article,.tool-grid>a,.section-heading>a,.work-actions>a,.customize-control{transition:transform var(--staff-motion-fast) var(--staff-motion-ease),opacity var(--staff-motion-fast) var(--staff-motion-ease)}
-.next-work-card:active,.performance-grid article:active,.tool-grid>a:active,.section-heading>a:active,.work-actions>a:active,.customize-control:active{transform:scale(.98);opacity:.88}
+.next-work-card,.performance-grid article,.tool-grid>a,.section-heading>a,.work-actions>a{transition:transform var(--staff-motion-fast) var(--staff-motion-ease),opacity var(--staff-motion-fast) var(--staff-motion-ease)}
+.next-work-card:active,.performance-grid article:active,.tool-grid>a:active,.section-heading>a:active,.work-actions>a:active{transform:scale(.98);opacity:.88}
 .context-notice,.optional-warning{display:grid;grid-template-columns:36px minmax(0,1fr) 48px;align-items:center;gap:8px;min-height:56px;margin:0;padding:6px 8px 6px 10px;border:1px solid var(--staff-border);border-radius:16px;background:var(--staff-surface);color:var(--staff-text-secondary)}
 .context-notice b{overflow-wrap:anywhere;font-size:.78rem;line-height:1.3}
 .recommendation-mark,.optional-warning>span{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:var(--staff-primary-light);color:var(--staff-primary-hover);font-weight:800}
@@ -237,4 +233,4 @@ input:not(:disabled):active,select:not(:disabled):active,textarea:not(:disabled)
   .tool-grid strong{display:block}
   .empty-work .work-actions>*{flex:0 0 auto}
 }
-@media(prefers-reduced-motion:reduce){.quick-action-grid>*,.tool-grid>*,.metric-progress i,.next-work-card,.performance-grid article,.section-heading>a,.work-actions>a,.customize-control{transition:none}.next-work-card:active,.performance-grid article:active,.tool-grid>a:active,.section-heading>a:active,.work-actions>a:active,.customize-control:active{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.quick-action-grid>*,.tool-grid>*,.metric-progress i,.next-work-card,.performance-grid article,.section-heading>a,.work-actions>a{transition:none}.next-work-card:active,.performance-grid article:active,.tool-grid>a:active,.section-heading>a:active,.work-actions>a:active{transform:none;opacity:1}}

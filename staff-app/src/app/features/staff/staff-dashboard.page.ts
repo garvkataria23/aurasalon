@@ -46,12 +46,7 @@ type DashboardModule = "enterprise" | "today" | "overtime" | "leave" | "preferen
           <aura-staff-dashboard-sections
             [viewModel]="vm"
             [pendingAction]="pendingMutation()"
-            [customizerOpen]="customizerOpen()"
-            [hiddenToolIds]="hiddenTools()"
             (actionSelected)="runAction($event)"
-            (customizerToggled)="toggleCustomizer()"
-            (toolToggled)="toggleTool($event)"
-            (toolMoved)="moveToolEarlier($event)"
           />
         }
       }
@@ -74,18 +69,14 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   readonly actionMessage = signal("");
   readonly actionFailed = signal(false);
   readonly pendingMutation = signal("");
-  readonly customizerOpen = signal(false);
   readonly online = signal(typeof navigator === "undefined" ? true : navigator.onLine);
   readonly queuedActions = signal(0);
   readonly dismissedRecommendation = signal("");
-  readonly hiddenTools = signal<Set<string>>(new Set());
-  readonly toolOrder = signal<string[]>([]);
   readonly viewModel = computed(() => {
     const dashboard = this.data();
     if (!dashboard) return null;
     return buildStaffDashboardViewModel({
       user: this.staff.user(), dashboard, enterprise: this.os(), today: this.today(), overtime: this.overtime(), leaveBalances: this.leaveBalances(),
-      hiddenToolIds: this.hiddenTools(), toolOrder: this.toolOrder(),
       hasPermission: (permission) => this.staff.hasPermission(permission),
       canStartServiceStatus: (status) => this.staff.canStartServiceStatus(status),
       canCompleteServiceStatus: (status) => this.staff.canCompleteServiceStatus(status)
@@ -117,8 +108,6 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.dismissedRecommendation.set(this.readRecommendationDismissal());
-    this.hiddenTools.set(this.readHiddenTools());
-    this.toolOrder.set(this.readToolOrder());
     window.addEventListener("aura:attendance-updated", this.attendanceUpdated);
     this.queuedActions.set(this.staff.offlineQueueSize());
     void this.load();
@@ -198,24 +187,6 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
     this.writeScopedValue("dashboardRecommendationDismissed", identity);
   }
 
-  toggleCustomizer() { this.customizerOpen.update((open) => !open); }
-
-  toggleTool(toolId: string) {
-    const next = new Set(this.hiddenTools());
-    if (next.has(toolId)) next.delete(toolId); else next.add(toolId);
-    this.hiddenTools.set(next);
-    this.writeScopedValue("dashboardHiddenTools", JSON.stringify([...next]));
-  }
-
-  moveToolEarlier(toolId: string) {
-    const available = this.viewModel()?.availableTools.map((tool) => tool.id) || [];
-    const index = available.indexOf(toolId);
-    if (index <= 0) return;
-    [available[index - 1], available[index]] = [available[index], available[index - 1]];
-    this.toolOrder.set(available);
-    this.writeScopedValue("dashboardToolOrder", JSON.stringify(available));
-  }
-
   async signOut() { await this.staff.logout(); await this.router.navigateByUrl("/staff/login"); }
 
   private async clockAction() {
@@ -260,18 +231,4 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   private scopedKey(suffix: string): string { const user = this.staff.user(); return `auraStaff:${user?.id || user?.staffId || "unknown"}:${user?.branchId || "workspace"}:${suffix}`; }
   private readRecommendationDismissal(): string { try { return localStorage.getItem(this.scopedKey("dashboardRecommendationDismissed")) || ""; } catch { return ""; } }
   private writeScopedValue(suffix: string, value: string) { try { localStorage.setItem(this.scopedKey(suffix), value); } catch { /* Preferences remain usable when storage is unavailable. */ } }
-  private readHiddenTools(): Set<string> {
-    try {
-      const scoped = localStorage.getItem(this.scopedKey("dashboardHiddenTools"));
-      const legacy = localStorage.getItem("auraStaffDashboardHidden");
-      const parsed: unknown = JSON.parse(scoped || legacy || "[]");
-      return new Set(Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : []);
-    } catch { return new Set(); }
-  }
-  private readToolOrder(): string[] {
-    try {
-      const parsed: unknown = JSON.parse(localStorage.getItem(this.scopedKey("dashboardToolOrder")) || localStorage.getItem("auraStaffDashboardOrder") || "[]");
-      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-    } catch { return []; }
-  }
 }

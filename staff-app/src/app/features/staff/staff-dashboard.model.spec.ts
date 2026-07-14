@@ -147,7 +147,7 @@ describe("staff dashboard permission-first view model", () => {
     expect(financial.performance.map((metric) => metric.label)).toEqual(["Revenue", "Productivity", "Services"]);
     expect(financial.performance).toHaveLength(3);
     expect(financial.performance[0]).toMatchObject({ label: "Revenue", value: expect.stringMatching(/₹\s?1,250/), hint: "Today’s sales" });
-    expect(financial.availableTools.some((tool) => tool.id === "payroll")).toBe(true);
+    expect(financial.tools.some((tool) => tool.id === "payroll")).toBe(true);
   });
 
   it("formats dashboard summary revenue as integer paise with the shared formatter", () => {
@@ -159,17 +159,17 @@ describe("staff dashboard permission-first view model", () => {
   it("supports a custom restricted role using permissions rather than role defaults", () => {
     const vm = buildStaffDashboardViewModel(input(["read:clients"], { user: { ...user, role: "owner" } }));
     expect(vm.quickActions.map((action) => action.id)).toEqual(["clients"]);
-    expect(vm.availableTools.map((tool) => tool.id)).toEqual(["clients", "settings"]);
+    expect(vm.tools.map((tool) => tool.id)).toEqual(["settings"]);
   });
 
   it("orders authorized content by role profile without granting missing permissions", () => {
     const receptionist = buildStaffDashboardViewModel(input(["read:appointments", "read:staff", "read:clients", "allow:staff-checkin-checkout"], { user: { ...user, role: "receptionist" } }));
     const inventory = buildStaffDashboardViewModel(input(["read:appointments", "read:staff", "allow:staff-checkin-checkout"], { user: { ...user, role: "inventory-manager" } }));
     expect(receptionist.quickActions.map((action) => action.id)).toEqual(["appointments", "queue", "tasks", "clients"]);
-    expect(receptionist.availableTools[0].id).toBe("clients");
+    expect(receptionist.tools[0].id).toBe("settings");
     expect(inventory.quickActions.map((action) => action.id)).toEqual(["queue", "appointments", "tasks", "calendar"]);
     expect(inventory.quickActions.some((action) => action.id === "clients")).toBe(false);
-    expect(inventory.availableTools.some((tool) => tool.id === "clients")).toBe(false);
+    expect(inventory.tools.some((tool) => tool.id === "clients")).toBe(false);
   });
 
   it("adds compact live metadata with meaningful zero language to quick actions", () => {
@@ -197,10 +197,10 @@ describe("staff dashboard permission-first view model", () => {
     expect(vm.performance).toHaveLength(3);
   });
 
-  it("honors authorized tool customization after permission filtering", () => {
-    const vm = buildStaffDashboardViewModel(input(["read:appointments", "read:staff", "read:clients"], { hiddenToolIds: new Set(["chat", "clients"]), toolOrder: ["calendar"] }));
-    expect(vm.tools.some((tool) => tool.id === "chat" || tool.id === "clients")).toBe(false);
-    expect(vm.tools[0].id).toBe("calendar");
+  it("keeps Settings in the fixed workspace and excludes the Clients shortcut", () => {
+    const vm = buildStaffDashboardViewModel(input(["read:appointments", "read:staff", "read:clients"]));
+    expect(vm.tools.some((tool) => tool.id === "settings")).toBe(true);
+    expect(vm.tools.some((tool) => tool.id === "clients")).toBe(false);
     expect(vm.tools.length).toBeLessThanOrEqual(6);
   });
 

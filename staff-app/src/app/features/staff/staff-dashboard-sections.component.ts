@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { RouterLink } from "@angular/router";
-import { DashboardAction, DashboardTool, StaffDashboardViewModel } from "./staff-dashboard.model";
+import { DashboardAction, StaffDashboardViewModel } from "./staff-dashboard.model";
 
 @Component({
   selector: "aura-staff-dashboard-sections",
@@ -86,17 +86,10 @@ import { DashboardAction, DashboardTool, StaffDashboardViewModel } from "./staff
       </section>
     }
 
-    @if (viewModel.availableTools.length) {
+    @if (viewModel.tools.length) {
       <section class="dashboard-section more-tools" aria-labelledby="tools-heading">
-        <div class="section-heading"><div><p class="eyebrow">Your tools</p><h2 id="tools-heading">Pinned workspace</h2></div><button type="button" class="text-control customize-control" [attr.aria-expanded]="customizerOpen" (click)="customizerToggled.emit()"><span aria-hidden="true">⚙</span> Customize</button></div>
-        @if (viewModel.tools.length) {
-           <div class="tool-grid">@for (tool of viewModel.tools; track tool.id) { <a [routerLink]="tool.route" [attr.title]="tool.label + ' — ' + tool.hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor(tool.id)"></path></svg><span><strong>{{ tool.label }}</strong><small>{{ tool.hint }}</small></span></a> }</div>
-        } @else { <p class="compact-empty">All optional tools are hidden. Use Customize to restore them.</p> }
-        @if (customizerOpen) {
-          <div class="tool-customizer" aria-label="Dashboard tool visibility">
-            @for (tool of viewModel.availableTools; track tool.id) { <div><button type="button" [attr.aria-pressed]="isToolVisible(tool)" (click)="toolToggled.emit(tool.id)">{{ isToolVisible(tool) ? 'Hide' : 'Show' }} {{ tool.label }}</button><button type="button" [disabled]="$first" (click)="toolMoved.emit(tool.id)" [attr.aria-label]="'Move ' + tool.label + ' earlier'">↑</button></div> }
-          </div>
-        }
+        <div class="section-heading"><div><p class="eyebrow">Your tools</p><h2 id="tools-heading">Workspace</h2></div></div>
+        <div class="tool-grid">@for (tool of viewModel.tools; track tool.id) { <a [routerLink]="tool.route" [attr.title]="tool.label + ' — ' + tool.hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor(tool.id)"></path></svg><span><strong>{{ tool.label }}</strong><small>{{ tool.hint }}</small></span></a> }</div>
       </section>
     }
   `,
@@ -122,12 +115,7 @@ export class StaffDashboardSectionsComponent {
   };
   @Input({ required: true }) viewModel!: StaffDashboardViewModel;
   @Input() pendingAction = "";
-  @Input() customizerOpen = false;
-  @Input() hiddenToolIds: ReadonlySet<string> = new Set();
   @Output() readonly actionSelected = new EventEmitter<DashboardAction>();
-  @Output() readonly customizerToggled = new EventEmitter<void>();
-  @Output() readonly toolToggled = new EventEmitter<string>();
-  @Output() readonly toolMoved = new EventEmitter<string>();
 
   pendingLabel(action: DashboardAction): string {
     return this.pendingAction === action.id || this.pendingAction === action.appointmentId ? "Saving…" : action.label;
@@ -138,8 +126,4 @@ export class StaffDashboardSectionsComponent {
   }
 
   iconFor(id: string): string { return this.icons[id] || this.icons["settings"]; }
-
-  isToolVisible(tool: DashboardTool): boolean {
-    return !this.hiddenToolIds.has(tool.id);
-  }
 }

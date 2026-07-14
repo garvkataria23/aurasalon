@@ -38,7 +38,6 @@ export type StaffDashboardViewModel = {
   performanceRoute?: string;
   performance: DashboardMetric[];
   tools: DashboardTool[];
-  availableTools: DashboardTool[];
 };
 
 export type DashboardRecommendationState = {
@@ -57,8 +56,6 @@ export type DashboardViewModelInput = {
   today: StaffToday | null;
   overtime: StaffOvertimeSummary | null;
   leaveBalances: StaffLeaveBalance[];
-  hiddenToolIds?: ReadonlySet<string>;
-  toolOrder?: readonly string[];
   now?: Date;
   hasPermission: (permission: string) => boolean;
   canStartServiceStatus: (status: string) => boolean;
@@ -95,7 +92,6 @@ const QUICK_ACTIONS: readonly RegistryItem<DashboardAction>[] = [
 
 const TOOLS: readonly RegistryItem<DashboardTool>[] = [
   { item: { id: "calendar", label: "Shift calendar", hint: "Roster and schedule", route: "/staff/calendar" }, permissions: ["read:staff"] },
-  { item: { id: "clients", label: "Clients", hint: "Profiles, notes and history", route: "/staff/clients" }, permissions: ["read:clients"] },
   { item: { id: "leave", label: "Leave", hint: "Requests and balances", route: "/staff/leaves" }, permissions: ["read:staff"] },
   { item: { id: "chat", label: "Team chat", hint: "Staff conversations", route: "/staff/chat" }, permissions: ["read:staff"] },
   { item: { id: "reports", label: "Reports", hint: "Work summaries", route: "/staff/reports" }, permissions: ["read:staff"] },
@@ -112,11 +108,11 @@ type DashboardRoleProfile = {
 };
 
 const ROLE_PROFILES: readonly DashboardRoleProfile[] = [
-  { aliases: ["frontdesk", "receptionist"], quick: ["appointments", "queue", "tasks", "clients", "attendance"], overview: ["Alerts", "Appointments", "Open tasks", "Completed"], performance: ["Services", "Utilization", "Productivity", "Revenue"], tools: ["clients", "calendar", "chat", "reports", "leave", "payroll"] },
-  { aliases: ["stylist", "seniorstylist", "therapist", "staff", "staffappuser"], quick: ["attendance", "appointments", "queue", "tasks", "clients"], overview: ["Appointments", "Completed", "Open tasks", "Alerts"], performance: ["Productivity", "Services", "Utilization", "Rating", "Revenue"], tools: ["calendar", "clients", "leave", "chat", "reports", "payroll"] },
-  { aliases: ["manager", "salonmanager", "staffappmanager"], quick: ["tasks", "appointments", "queue", "clients", "attendance"], overview: ["Alerts", "Open tasks", "Appointments", "Completed"], performance: ["Productivity", "Utilization", "Services", "Revenue", "Rating"], tools: ["reports", "calendar", "clients", "chat", "payroll", "leave"] },
-  { aliases: ["owner", "admin", "staffappadmin"], quick: ["appointments", "tasks", "queue", "clients", "attendance"], overview: ["Alerts", "Appointments", "Completed", "Open tasks"], performance: ["Revenue", "Productivity", "Utilization", "Services", "Rating"], tools: ["reports", "payroll", "calendar", "clients", "chat", "leave"] },
-  { aliases: ["cashier", "inventory", "inventorymanager", "cashierinventory"], quick: ["queue", "appointments", "tasks", "clients", "attendance"], overview: ["Alerts", "Appointments", "Completed", "Open tasks"], performance: ["Revenue", "Services", "Utilization", "Productivity", "Rating"], tools: ["reports", "payroll", "clients", "calendar", "chat", "leave"] }
+  { aliases: ["frontdesk", "receptionist"], quick: ["appointments", "queue", "tasks", "clients", "attendance"], overview: ["Alerts", "Appointments", "Open tasks", "Completed"], performance: ["Services", "Utilization", "Productivity", "Revenue"], tools: ["settings", "calendar", "chat", "reports", "leave", "payroll"] },
+  { aliases: ["stylist", "seniorstylist", "therapist", "staff", "staffappuser"], quick: ["attendance", "appointments", "queue", "tasks", "clients"], overview: ["Appointments", "Completed", "Open tasks", "Alerts"], performance: ["Productivity", "Services", "Utilization", "Rating", "Revenue"], tools: ["calendar", "settings", "leave", "chat", "reports", "payroll"] },
+  { aliases: ["manager", "salonmanager", "staffappmanager"], quick: ["tasks", "appointments", "queue", "clients", "attendance"], overview: ["Alerts", "Open tasks", "Appointments", "Completed"], performance: ["Productivity", "Utilization", "Services", "Revenue", "Rating"], tools: ["reports", "calendar", "settings", "chat", "payroll", "leave"] },
+  { aliases: ["owner", "admin", "staffappadmin"], quick: ["appointments", "tasks", "queue", "clients", "attendance"], overview: ["Alerts", "Appointments", "Completed", "Open tasks"], performance: ["Revenue", "Productivity", "Utilization", "Services", "Rating"], tools: ["reports", "payroll", "calendar", "settings", "chat", "leave"] },
+  { aliases: ["cashier", "inventory", "inventorymanager", "cashierinventory"], quick: ["queue", "appointments", "tasks", "clients", "attendance"], overview: ["Alerts", "Appointments", "Completed", "Open tasks"], performance: ["Revenue", "Services", "Utilization", "Productivity", "Rating"], tools: ["reports", "payroll", "settings", "calendar", "chat", "leave"] }
 ];
 
 const DEFAULT_ROLE_PROFILE: DashboardRoleProfile = {
@@ -341,8 +337,7 @@ function orderByIds<T>(items: readonly T[], preferred: readonly string[], id: (i
 
 function orderedTools(input: DashboardViewModelInput): DashboardTool[] {
   const permitted = TOOLS.filter((entry) => allowed(entry, input)).map((entry) => entry.item);
-  const preferred = [...(input.toolOrder || []), ...roleProfile(input).tools];
-  return orderByIds(permitted, preferred, (item) => item.id);
+  return orderByIds(permitted, roleProfile(input).tools, (item) => item.id);
 }
 
 function sameAction(left: DashboardAction, right: DashboardAction): boolean {
@@ -380,8 +375,7 @@ function quickActionStatus(id: string, input: ActionContext): string | undefined
 export function buildStaffDashboardViewModel(input: DashboardViewModelInput): StaffDashboardViewModel {
   const ctx = context(input);
   const activeAlerts = alerts(ctx);
-  const availableTools = orderedTools(input);
-  const visibleTools = availableTools.filter((item) => !input.hiddenToolIds?.has(item.id)).slice(0, 6).map((item) => {
+  const dashboardTools = orderedTools(input).slice(0, 6).map((item) => {
     if (item.id === "leave") return { ...item, hint: `${input.leaveBalances.reduce((sum, balance) => sum + Number(balance.balance || 0), 0)} days available` };
     if (item.id === "reports") return { ...item, hint: `${input.dashboard.summary.completedAppointments} completed today` };
     if (item.id === "calendar" && input.overtime) return { ...item, hint: `${durationLabel(input.overtime.weekMinutes)} overtime this week` };
@@ -431,6 +425,6 @@ export function buildStaffDashboardViewModel(input: DashboardViewModelInput): St
   return {
     hero: heroModel, quickActions, overview: orderedOverview.slice(0, 4), work: workItem, alerts: activeAlerts,
     performanceRoute: input.hasPermission("read:staff") ? "/staff/performance" : undefined,
-    performance: orderedPerformance, tools: visibleTools, availableTools
+    performance: orderedPerformance, tools: dashboardTools
   };
 }
