@@ -51,6 +51,7 @@ type StaffRecentItem = { label: string; path: string };
            <a class="staff-identity" routerLink="/staff/profile" [attr.aria-label]="'Open my profile — ' + identitySubtitle()"><b class="profile-avatar">{{ initials() }}</b><div><span>{{ greetingLabel() }}</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong><small [title]="identitySubtitle()" [attr.aria-label]="identitySubtitle()">{{ identitySubtitle() }}</small></div></a>
           <div class="topbar-actions">
              @if (visibleNav().length) { <button type="button" class="search-button" (click)="openCommand()" aria-label="Search permitted staff tools" [attr.aria-expanded]="commandOpen()" #commandButton><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 19.6-5.1-5.1a7 7 0 1 0-1.4 1.4l5.1 5.1 1.4-1.4zM5 10a5 5 0 1 1 10 0A5 5 0 0 1 5 10z"></path></svg><span>Search workspace</span><kbd>Ctrl K</kbd></button> }
+             @if (staff.hasPermission('read:staff')) { <a class="chat-button" routerLink="/staff/chat" routerLinkActive="active" aria-label="Open chat" title="Chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v10h2v1.8L8.3 16H20V6H4zm3 3h10v2H7V9zm0 4h7v2H7v-2z"></path></svg></a> }
              @if (staff.hasPermission('read:staff')) { <button type="button" class="bell-button" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" aria-label="Open notifications" [attr.aria-expanded]="notificationsOpen()" #notificationButton>
               <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 10.8c0-3.5-2.1-6.1-5-6.7V3a1 1 0 0 0-2 0v1.1c-2.9.6-5 3.2-5 6.7V15l-1.6 2.4A1 1 0 0 0 5.2 19h13.6a1 1 0 0 0 .8-1.6L18 15v-4.2zM9.7 20a2.4 2.4 0 0 0 4.6 0H9.7z"></path>
@@ -147,7 +148,7 @@ type StaffRecentItem = { label: string; path: string };
     .staff-topbar strong { color: var(--staff-text); }
     .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; flex-wrap: wrap; }
     .topbar-actions span { color: var(--staff-text-secondary); font-weight: 650; }
-    .search-button, .bell-button { border: 1px solid var(--staff-border); background:var(--staff-surface-secondary);color:var(--staff-text-secondary);font-weight:700;box-shadow:none; }
+    .search-button, .chat-button, .bell-button { border: 1px solid var(--staff-border); background:var(--staff-surface-secondary);color:var(--staff-text-secondary);font-weight:700;box-shadow:none; }
     .search-button { display: grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;width:min(330px,28vw);height:44px;padding:0 12px;border-radius:16px;text-align:left; }
     .search-button span { overflow:hidden;font-size:.78rem;text-overflow:ellipsis;white-space:nowrap; }
     .search-button kbd { padding:3px 6px;border:1px solid var(--staff-border);border-radius:7px;background:var(--staff-surface);color:var(--staff-text-secondary);font-size:.64rem; }
@@ -155,10 +156,12 @@ type StaffRecentItem = { label: string; path: string };
     .theme-button { display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-height:46px;margin-top:12px;padding:0 13px;border:1px solid var(--staff-border);border-radius:16px;background:var(--staff-surface-secondary);color:var(--staff-text);font-weight:700;text-align:left; }
     .theme-button svg { width:18px;height:18px;fill:currentColor; }
     .theme-button span { font-size:.76rem; }
-    .search-button:hover, .search-button:focus-visible, .theme-button:focus-visible, .bell-button:focus-visible, .menu-button:focus-visible, nav a:focus-visible, .nav-logout:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 2px; }
+    .search-button:hover, .search-button:focus-visible, .chat-button:focus-visible, .theme-button:focus-visible, .bell-button:focus-visible, .menu-button:focus-visible, nav a:focus-visible, .nav-logout:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 2px; }
     .search-button small { margin-left: 6px; opacity: .72; }
     .bell-button { position: relative; overflow: visible; display: inline-grid; place-items: center; width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 16px; }
-    .bell-button:hover, .bell-button.has-unread, .theme-button:hover { border-color: var(--staff-border-accent); color: var(--staff-primary-hover); background:var(--staff-primary-light); }
+    .chat-button { display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;border-radius:16px;text-decoration:none; }
+    .chat-button svg { width:20px;height:20px; }
+    .chat-button:hover, .chat-button.active, .bell-button:hover, .bell-button.has-unread, .theme-button:hover { border-color: var(--staff-border-accent); color: var(--staff-primary-hover); background:var(--staff-primary-light); }
     .bell-icon { width: 20px; height: 20px; fill: currentColor; }
     .bell-badge { position: absolute; right: -6px; top: -7px; display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid var(--staff-surface); border-radius: 999px; background: var(--staff-primary); color: var(--staff-on-primary) !important; font-size: .66rem; font-weight: 800; line-height: 1; }
     .bell-button:not(.has-unread) .bell-badge { background: var(--staff-disabled); color: var(--staff-text-inverse) !important; }
@@ -220,8 +223,8 @@ type StaffRecentItem = { label: string; path: string };
       .search-button { display:inline-grid;grid-template-columns:1fr;place-items:center;width:32px;height:44px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none; }
        .topbar-actions span { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .68rem; }
       .topbar-actions button { padding:0; }
-      .topbar-actions .bell-button { width:32px;height:44px;min-width:32px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none; }
-      .topbar-actions :is(.search-button,.bell-button):hover { border:0;background:transparent; }
+       .topbar-actions :is(.chat-button,.bell-button) { width:32px;height:44px;min-width:32px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none; }
+       .topbar-actions :is(.search-button,.chat-button,.bell-button):hover { border:0;background:transparent; }
       .bell-icon { width: 19px; height: 19px; }
        .staff-content { overflow: visible; padding: 14px 0 var(--staff-bottom-clearance); }
       .notification-drawer { top: 0; right: 0; bottom: 0; left: auto; width: 72vw; min-width: 0; max-width: 360px; height: 100dvh; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); border-left: 1px solid var(--staff-border); border-radius: 22px 0 0 22px; box-shadow: -18px 0 40px rgba(31, 41, 55, .14); }
