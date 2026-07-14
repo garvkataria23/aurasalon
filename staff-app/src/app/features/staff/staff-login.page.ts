@@ -13,6 +13,7 @@ import { StaffAppService } from "../../core/staff-app.service";
       <main class="login-grid">
         <section class="staff-card">
           <div class="orb login-orb"></div>
+          <div class="orb login-orb-secondary"></div>
           <p class="eyebrow dark">Aura Staff OS</p>
           <h2>Open your workspace</h2>
 
@@ -58,6 +59,7 @@ import { StaffAppService } from "../../core/staff-app.service";
     .staff-card { position: relative; overflow: hidden; padding: 34px; border: 1px solid var(--staff-border); border-radius: 28px; background: var(--staff-primary-light); box-shadow: var(--staff-shadow); }
     .orb { position: absolute; border-radius: 50%; opacity: .5; }
     .orb.login-orb { width: 190px; height: 190px; right: -42px; top: -36px; background: var(--staff-decoration-one); }
+    .orb.login-orb-secondary { width: 170px; height: 170px; left: -112px; bottom: -112px; background: var(--staff-decoration-two); }
     .eyebrow { position: relative; margin: 0 0 12px; color: var(--staff-primary-hover); font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
     .dark { color: var(--staff-primary); }
     h2 { margin: 0; color: var(--staff-text); font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1; letter-spacing: -.04em; }
