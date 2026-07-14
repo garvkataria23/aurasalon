@@ -11,23 +11,9 @@ import { StaffAppService } from "../../core/staff-app.service";
   template: `
     <ion-content class="staff-login-shell">
       <main class="login-grid">
-        <section class="brand-panel">
-          <div class="orb one"></div>
-          <div class="orb two"></div>
-          <p class="eyebrow">Aura Staff OS</p>
-          <h1>Salon work, live and permission-aware.</h1>
-          <p class="subcopy">Appointments, attendance, payroll, targets and leave stay connected to the real staff profile.</p>
-          <div class="status-row">
-            <span>API connected</span>
-            <span>Branch scoped</span>
-            <span>JWT secure</span>
-          </div>
-        </section>
-
         <section class="staff-card">
           <div class="orb login-orb"></div>
-          <button type="button" class="login-theme-button" [attr.aria-pressed]="theme() === 'dark'" (click)="toggleTheme()">{{ theme() === 'dark' ? 'Light mode' : 'Dark mode' }}</button>
-          <p class="eyebrow dark">Secure staff access</p>
+          <p class="eyebrow dark">Aura Staff OS</p>
           <h2>Open your workspace</h2>
 
           @if (staff.error()) {
@@ -68,22 +54,13 @@ import { StaffAppService } from "../../core/staff-app.service";
   `,
   styles: [`
     .staff-login-shell { --background: var(--staff-background); }
-    .login-grid { width: min(1100px, calc(100% - 28px)); min-height: 100%; margin: 0 auto; padding: 7vh 0; display: grid; grid-template-columns: 1.08fr .92fr; gap: 20px; align-items: stretch; }
-    .brand-panel, .staff-card { position: relative; overflow: hidden; border: 1px solid var(--staff-border); border-radius: 28px; background: var(--staff-surface); box-shadow: var(--staff-shadow); }
-    .brand-panel { min-height: 580px; padding: 42px; color: var(--staff-text); background: var(--staff-primary-light); }
-    .staff-card { padding: 34px; background: var(--staff-primary-light); }
-    .login-theme-button { float: right; min-height: 48px; margin: 0 0 16px 16px; padding: 0 14px; border: 1px solid var(--staff-border-accent); border-radius: 14px; background: var(--staff-surface-secondary); color: var(--staff-primary-hover); font-size: .78rem; }
+    .login-grid { width: min(520px, calc(100% - 28px)); min-height: 100%; margin: 0 auto; padding: 7vh 0; display: grid; grid-template-columns: 1fr; align-items: center; }
+    .staff-card { position: relative; overflow: hidden; padding: 34px; border: 1px solid var(--staff-border); border-radius: 28px; background: var(--staff-primary-light); box-shadow: var(--staff-shadow); }
     .orb { position: absolute; border-radius: 50%; opacity: .5; }
-    .orb.one { width: 190px; height: 190px; right: -42px; top: -36px; background: var(--staff-decoration-one); }
-    .orb.two { width: 260px; height: 260px; left: -90px; bottom: -90px; background: var(--staff-decoration-two); }
     .orb.login-orb { width: 190px; height: 190px; right: -42px; top: -36px; background: var(--staff-decoration-one); }
     .eyebrow { position: relative; margin: 0 0 12px; color: var(--staff-primary-hover); font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
     .dark { color: var(--staff-primary); }
-    h1 { position: relative; max-width: 680px; margin: 0; font-size: clamp(3rem, 8vw, 5.8rem); line-height: .9; letter-spacing: -.06em; }
     h2 { margin: 0; color: var(--staff-text); font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1; letter-spacing: -.04em; }
-    .subcopy, .form-copy { position: relative; color: var(--staff-text-secondary); font-weight: 600; line-height: 1.6; font-size: 1.02rem; }
-    .status-row { position: absolute; left: 42px; right: 42px; bottom: 42px; display: flex; flex-wrap: wrap; gap: 10px; }
-    .status-row span { padding: 9px 12px; border: 1px solid var(--staff-border-accent); border-radius: 999px; background: var(--staff-surface-glass); color: var(--staff-primary-hover); font-weight: 700; }
     .staff-form { display: grid; gap: 10px; margin-top: 20px; }
     label { color: var(--staff-text); font-size: .82rem; font-weight: 700; }
     input { min-height: 56px; border: 1px solid var(--staff-border); border-radius: 16px; padding: 0 15px; color: var(--staff-text); background: var(--staff-surface-secondary); font: inherit; font-weight: 650; }
@@ -96,27 +73,17 @@ import { StaffAppService } from "../../core/staff-app.service";
     .notice { margin: 18px 0; padding: 14px 16px; border: 1px solid var(--staff-error-border); border-radius: 16px; color: var(--staff-error-text); background: var(--staff-error-surface); font-weight: 650; }
     .success { border-color: var(--staff-success-border); color: var(--staff-success-text); background: var(--staff-success-surface); }
     .customer-link { display: block; margin-top: 18px; color: var(--staff-primary-hover); font-weight: 700; text-align: center; text-decoration: none; }
-    @media (max-width: 820px) { .login-grid { width: calc(100% - 40px); grid-template-columns: 1fr; padding: 20px 0; gap: 16px; } .brand-panel { min-height: 336px; padding: 20px; } .staff-card { padding: 20px; } .status-row { position: relative; left: auto; right: auto; bottom: auto; margin-top: 24px; } }
+    @media (max-width: 820px) { .login-grid { width: calc(100% - 40px); padding: 20px 0; } .staff-card { padding: 20px; } }
   `]
 })
 export class StaffLoginPage {
   readonly customerAppUrl = environment.customerAppUrl;
   readonly message = signal("");
-  readonly theme = signal<"light" | "dark">(document.documentElement.dataset["staffTheme"] === "dark" ? "dark" : "light");
   tenantId = "tenant_aura";
   loginId = "";
   password = "";
 
   constructor(readonly staff: StaffAppService, private readonly router: Router) {}
-
-  toggleTheme() {
-    const next = this.theme() === "dark" ? "light" : "dark";
-    this.theme.set(next);
-    document.documentElement.dataset["staffTheme"] = next;
-    document.documentElement.style.colorScheme = next;
-    localStorage.setItem("auraStaffTheme", next);
-    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", next === "dark" ? "#111B21" : "#00A884");
-  }
 
   async login(event?: Event) {
     event?.preventDefault();
