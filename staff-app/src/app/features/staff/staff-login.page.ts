@@ -94,6 +94,7 @@ import { StaffAppService } from "../../core/staff-app.service";
     .floating-field input:focus { border: 2px solid var(--staff-input-focus); outline: 0; box-shadow: 0 0 0 4px var(--staff-input-focus-ring); background: #fff; }
     .floating-field input:disabled { border-color: var(--staff-input-border); background: var(--staff-input-disabled-background); color: var(--staff-input-disabled-text); cursor: not-allowed; opacity: 1; }
     .floating-field input:-webkit-autofill { -webkit-text-fill-color: var(--staff-input-text); box-shadow: 0 0 0 1000px var(--staff-input-background) inset; caret-color: var(--staff-input-focus); font-family: inherit !important; font-size: 16px !important; font-weight: 500 !important; line-height: 20px !important; }
+    .floating-field input:-webkit-autofill::first-line { color: var(--staff-input-text); font-family: inherit; font-size: 16px; font-weight: 500; line-height: 20px; }
     .floating-field input:-webkit-autofill:focus { box-shadow: 0 0 0 1000px #fff inset, 0 0 0 4px var(--staff-input-focus-ring); }
     .floating-field input:active { transform: scale(.995); }
     .password-field input { padding-right: 60px; }
