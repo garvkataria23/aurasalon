@@ -1,11 +1,13 @@
 import { Component, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { RouterLink } from "@angular/router";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffClientListItem } from "../../core/staff-app.service";
+import { PaiseInrPipe } from "../../core/paise-inr.pipe";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, IonSpinner],
+  imports: [FormsModule, RouterLink, PaiseInrPipe, IonSpinner],
   template: `
     <section class="page">
       <header class="page-head">
@@ -42,9 +44,12 @@ import { StaffAppService, StaffClientListItem } from "../../core/staff-app.servi
               <div class="row">
                 <div class="row-main">
                   <strong>{{ client.name }}</strong>
+                  <small>{{ client.phone || 'No phone' }} · {{ client.visitCount || 0 }} visits</small>
                 </div>
                 <div class="row-actions">
                   @if (client.membershipStatus) { <span class="badge green">{{ client.membershipStatus }}</span> }
+                  @if (canSeeSpend()) { <span class="badge">{{ client.totalSpend | paiseInr }}</span> }
+                  <a class="button" [routerLink]="['/staff/client-360', client.id]">Open 360</a>
                 </div>
               </div>
             } @empty { <p class="empty">No clients found for this branch/search.</p> }
@@ -95,6 +100,8 @@ export class StaffClientsPage implements OnInit {
   }
 
   canReadClients(): boolean {
-    return this.staff.hasPermission("read:staff");
+    return this.staff.hasPermission("read:clients");
   }
+
+  canSeeSpend(): boolean { return this.staff.hasAnyPermission(["read:finance", "read:sales", "read:payments", "read:invoices"]); }
 }

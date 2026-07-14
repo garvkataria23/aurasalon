@@ -347,7 +347,7 @@ type SearchSuggestion = { type: "Client" | "Service" | "Invoice"; value: string 
     .search-field { display: grid; gap: 7px; min-width: 0; color: var(--staff-text); font-size: .8rem; font-weight: 700; }
     .search-control { position: relative; }
     .search-control input { width: 100%; }
-    .search-suggestions { position: absolute; z-index: 20; top: calc(100% + 5px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--staff-border); border-radius: 16px; background: #fff; box-shadow: 0 12px 28px rgba(31,41,55,.1); }
+    .search-suggestions { position: absolute; z-index: 20; top: calc(100% + 5px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--staff-border); border-radius: 16px; background: var(--staff-surface); box-shadow: var(--staff-shadow-elevated); }
     .search-suggestions button { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid var(--staff-border); border-radius: 0; padding: 10px 12px; color: var(--staff-text); background: transparent; text-align: left; }
     .search-suggestions button:last-child { border-bottom: 0; }
     .search-suggestions button:hover, .search-suggestions button:focus-visible { background: var(--staff-primary-light); }

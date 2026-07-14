@@ -4,8 +4,8 @@
   "description": "Online staff workspace for Aura salons. An internet connection is required; offline use is not supported.",
   "start_url": "/staff/login",
   "display": "standalone",
-  "background_color": "#fffaf6",
-  "theme_color": "#241625",
+  "background_color": "#f0f2f5",
+  "theme_color": "#00a884",
   "orientation": "portrait-primary",
   "categories": ["business", "productivity"],
   "icons": [

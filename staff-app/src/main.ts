@@ -6,6 +6,14 @@ import { AppComponent } from "./app/app.component";
 import { routes } from "./app/app.routes";
 import { csrfInterceptor } from "./app/core/csrf.interceptor";
 
+const savedTheme = localStorage.getItem("auraStaffTheme");
+const initialTheme = savedTheme === "dark" || savedTheme === "light"
+  ? savedTheme
+  : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+document.documentElement.dataset["staffTheme"] = initialTheme;
+document.documentElement.style.colorScheme = initialTheme;
+document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", initialTheme === "dark" ? "#111B21" : "#00A884");
+
 bootstrapApplication(AppComponent, {
   providers: [
     provideIonicAngular(),

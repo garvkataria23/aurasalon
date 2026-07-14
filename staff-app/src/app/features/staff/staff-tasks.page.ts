@@ -22,7 +22,7 @@ import { isQueuedMutation, MutationResult, StaffAppService, StaffEnterpriseOs, S
               <div class="panel-title"><h2>{{ column.label }}</h2><span>{{ taskCount(column.status) }}</span></div>
               <div class="list">
                 @for (task of tasksByStatus(column.status); track task.id) {
-                  <div class="kanban-card" draggable="true" (dragstart)="dragTask(task.id, task.version)"><strong>{{ task.title }}</strong><small>{{ task.priority || 'medium' }} · {{ task.dueAt ? (task.dueAt | date:'short') : 'no due date' }}</small><div class="row-actions"><span class="badge">{{ task.status }}</span>@if (canUpdateTasks() && task.status !== 'completed') { <button type="button" class="link-button" [disabled]="!!pendingTaskId()" (click)="completeTask(task.id, task.version)">Done</button> }</div></div>
+                   <div class="kanban-card" draggable="true" (dragstart)="dragTask(task.id, task.version)"><strong>{{ task.title }}</strong><small>{{ task.priority || 'medium' }} · {{ task.dueAt ? (task.dueAt | date:'short') : 'no due date' }}</small><div class="row-actions"><span class="badge">{{ task.status || 'open' }}</span>@if (canUpdateTasks() && (!task.status || task.status === 'open')) { <button type="button" class="link-button" [disabled]="!!pendingTaskId()" (click)="moveTask(task.id, task.version, 'in_progress')">Start</button> } @if (canUpdateTasks() && task.status === 'in_progress') { <button type="button" class="link-button" [disabled]="!!pendingTaskId()" (click)="completeTask(task.id, task.version)">Done</button> } @if (canUpdateTasks() && task.status === 'completed') { <button type="button" class="link-button" [disabled]="!!pendingTaskId()" (click)="moveTask(task.id, task.version, 'open')">Reopen</button> }</div></div>
                 } @empty { <p class="empty">No {{ column.label.toLowerCase() }} tasks.</p> }
               </div>
             </article>
@@ -52,6 +52,7 @@ export class StaffTasksPage implements OnInit {
   tasksByStatus(status: string) { return (this.today()?.tasks || []).filter((task) => status === "open" ? !task.status || task.status === "open" : task.status === status); }
   dragTask(id: string, version: number) { this.draggedTask.set({ id, version }); }
   async dropTask(status: string) { const task = this.draggedTask(); if (!task || !this.canUpdateTasks()) return; await this.mutateTask(task.id, () => this.staff.moveTask(task.id, task.version, status), `Task moved to ${status.replace(/_/g, " ")}.`); this.draggedTask.set(null); }
+  async moveTask(taskId: string, version: number, status: string) { await this.mutateTask(taskId, () => this.staff.moveTask(taskId, version, status), `Task moved to ${status.replace(/_/g, " ")}.`); }
   async completeTask(taskId: string, version: number) { await this.mutateTask(taskId, () => this.staff.completeTask(taskId, version), "Task completed."); }
   private async mutateTask(taskId: string, mutate: () => Promise<MutationResult<unknown>>, completedMessage: string) {
     if (this.pendingTaskId()) return;

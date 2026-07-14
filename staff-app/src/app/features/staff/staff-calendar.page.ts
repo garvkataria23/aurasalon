@@ -19,8 +19,8 @@ import { addBusinessDays, businessDate } from "../../core/business-date";
           <button class="button" [class.active-toggle]="view() === 'day'" [attr.aria-pressed]="view() === 'day'" type="button" (click)="setView('day')">Day</button>
           <button class="button" [class.active-toggle]="view() === 'week'" [attr.aria-pressed]="view() === 'week'" type="button" (click)="setView('week')">Week</button>
           <input aria-label="Selected calendar date" [value]="selectedDate()" type="date" (change)="setDate($any($event.target).value)" />
-          <button class="button" type="button" aria-label="Previous date" (click)="shiftDate(-1)">◀</button>
-          <button class="button" type="button" aria-label="Next date" (click)="shiftDate(1)">▶</button>
+          <button class="button icon-button" type="button" aria-label="Previous date" (click)="shiftDate(-1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15.4 5.4-1.4-1.4-8 8 8 8 1.4-1.4L8.8 12z"></path></svg></button>
+          <button class="button icon-button" type="button" aria-label="Next date" (click)="shiftDate(1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.6 18.6 1.4 1.4 8-8-8-8-1.4 1.4 6.6 6.6z"></path></svg></button>
         </div>
       </header>
 
@@ -92,7 +92,8 @@ import { addBusinessDays, businessDate } from "../../core/business-date";
       </section>
     </section>
   `,
-  styleUrls: ["./staff-app.styles.css"]
+  styleUrls: ["./staff-app.styles.css"],
+  styles: [`.icon-button{width:48px;padding:0}.icon-button svg{width:18px;height:18px;fill:currentColor}`]
 })
 export class StaffCalendarPage implements OnInit {
   readonly os = signal<StaffEnterpriseOs | null>(null);
