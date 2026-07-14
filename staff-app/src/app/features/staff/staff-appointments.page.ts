@@ -57,26 +57,30 @@ function istDateKey(value: string | Date): string {
           </div>
           <div class="list">
             @for (item of visibleAppointments(); track item.id) {
-              <article class="row">
-                <div class="row-main">
+              <details class="appointment-list-item">
+                <summary>
+                  <div class="appointment-list-copy">
                   <strong>{{ item.clientName || 'Walk-in client' }}</strong>
-                  <p>{{ item.serviceNames.join(', ') || 'Service not mapped' }}</p>
+                    <span>{{ item.serviceNames.join(', ') || 'Service not mapped' }}</span>
                   @if (isValidDate(item.startAt) && isValidDate(item.endAt)) {
                   <small>{{ item.startAt | date:'mediumDate' }} · {{ item.startAt | date:'shortTime' }} - {{ item.endAt | date:'shortTime' }} · {{ item.durationMinutes || 0 }} min</small>
                   } @else {
                     <small>Date unavailable - {{ item.durationMinutes || 0 }} min</small>
                   }
-                </div>
-                <div class="row-actions">
-                  <span class="badge">{{ item.status }}</span>
+                  </div>
+                  <div class="appointment-list-meta"><span class="badge">{{ item.status }}</span><span class="expand-indicator" aria-hidden="true"></span></div>
+                </summary>
+                <div class="appointment-list-expanded">
+                  <div class="row-actions">
                   @if (canSeeRevenue()) { <span class="badge">{{ item.value | paiseInr }}</span> }
                   @if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" [disabled]="isPending(item.id)" (click)="startService(item.id)">Start</button> }
                   @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" [disabled]="isPending(item.id)" (click)="completeService(item.id)">Complete</button> }
                   <button class="link-button" type="button" (click)="openAppointment(item)">Details</button>
                   @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Preview</button> }
                   @if (item.clientId) { <a class="button" [routerLink]="['/staff/client-360', item.clientId]">Client 360</a> }
+                  </div>
                 </div>
-              </article>
+              </details>
             } @empty {
               <p class="empty">{{ emptyMessage() }}</p>
             }
@@ -107,7 +111,23 @@ function istDateKey(value: string | Date): string {
       }
     </section>
   `,
-  styleUrls: ["./staff-app.styles.css"]
+  styleUrls: ["./staff-app.styles.css"],
+  styles: [`
+    .appointment-list-item { border-top: 1px solid var(--staff-border); }
+    .appointment-list-item:first-child { border-top: 0; }
+    .appointment-list-item > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 62px; padding: 8px 0; list-style: none; cursor: pointer; }
+    .appointment-list-item > summary::-webkit-details-marker { display: none; }
+    .appointment-list-copy { min-width: 0; display: grid; gap: 2px; }
+    .appointment-list-copy strong, .appointment-list-copy span, .appointment-list-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .appointment-list-copy strong { color: var(--staff-text); font-size: .86rem; }
+    .appointment-list-copy span { color: var(--staff-text-secondary); font-size: .75rem; font-weight: 650; }
+    .appointment-list-copy small { color: var(--staff-text-secondary); font-size: .68rem; font-weight: 600; }
+    .appointment-list-meta { display: flex; align-items: center; gap: 6px; }
+    .appointment-list-meta .badge { max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .appointment-list-item[open] .expand-indicator::after { transform: none; }
+    .appointment-list-expanded { padding: 8px 0 12px; border-top: 1px solid var(--staff-border); }
+    .appointment-list-expanded .row-actions { justify-content: flex-start; }
+  `]
 })
 export class StaffAppointmentsPage implements OnInit {
   readonly dashboard = signal<StaffDashboard | null>(null);
