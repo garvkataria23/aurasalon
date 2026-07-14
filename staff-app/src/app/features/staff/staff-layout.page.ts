@@ -3,7 +3,7 @@ import { FormsModule } from "@angular/forms";
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { StaffAppService, StaffEnterpriseOs, StaffWorkspacePreferences } from "../../core/staff-app.service";
 
-type StaffNavItem = { label: string; path: string; iconPath: string; group: string; permission?: string };
+type StaffNavItem = { label: string; path: string; iconPath: string; group: string; permission?: string; anyPermissions?: readonly string[] };
 type StaffRecentItem = { label: string; path: string };
 
 @Component({
@@ -44,36 +44,38 @@ type StaffRecentItem = { label: string; path: string };
         <button type="button" class="nav-logout" (click)="logout()">Logout</button>
       </aside>
 
-       <div class="staff-main-shell" #mainShell (scroll)="onMainScroll($event)" [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null">
+       <div class="staff-main-shell" [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null">
         <header class="staff-topbar">
            <button type="button" class="menu-button" (click)="openMenu()" aria-label="Open menu" [attr.aria-expanded]="menuOpen()" #menuButton><span></span><span></span><span></span></button>
-          <div class="staff-identity"><b class="profile-avatar">{{ initials() }}</b><div><span>{{ greetingLabel() }}</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong></div></div>
+          <a class="staff-identity" routerLink="/staff/profile" aria-label="Open my profile"><b class="profile-avatar">{{ initials() }}</b><div><span>{{ greetingLabel() }} · {{ staff.user()?.role || 'staff' }}</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong></div></a>
           <div class="topbar-actions">
-             <button type="button" class="search-button" (click)="openCommand()" aria-label="Search staff workspace" [attr.aria-expanded]="commandOpen()" #commandButton><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 19.6-5.1-5.1a7 7 0 1 0-1.4 1.4l5.1 5.1 1.4-1.4zM5 10a5 5 0 1 1 10 0A5 5 0 0 1 5 10z"></path></svg><span>Search workspace</span><kbd>Ctrl K</kbd></button>
-             <button type="button" class="bell-button" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" aria-label="Open notifications" [attr.aria-expanded]="notificationsOpen()" #notificationButton>
+             @if (visibleNav().length) { <button type="button" class="search-button" (click)="openCommand()" aria-label="Search permitted staff tools" [attr.aria-expanded]="commandOpen()" #commandButton><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 19.6-5.1-5.1a7 7 0 1 0-1.4 1.4l5.1 5.1 1.4-1.4zM5 10a5 5 0 1 1 10 0A5 5 0 0 1 5 10z"></path></svg><span>Search workspace</span><kbd>Ctrl K</kbd></button> }
+             @if (staff.hasPermission('read:staff')) { <button type="button" class="bell-button" [class.has-unread]="unreadCount() > 0" (click)="toggleNotifications()" aria-label="Open notifications" [attr.aria-expanded]="notificationsOpen()" #notificationButton>
               <svg class="bell-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 10.8c0-3.5-2.1-6.1-5-6.7V3a1 1 0 0 0-2 0v1.1c-2.9.6-5 3.2-5 6.7V15l-1.6 2.4A1 1 0 0 0 5.2 19h13.6a1 1 0 0 0 .8-1.6L18 15v-4.2zM9.7 20a2.4 2.4 0 0 0 4.6 0H9.7z"></path>
               </svg>
-              <span class="bell-badge">{{ unreadCount() }}</span>
-            </button>
+              @if (unreadCount() > 0) { <span class="bell-badge">{{ unreadCount() }}</span> }
+             </button> }
             <span class="net-status network-status" [class.offline]="!online()" aria-live="polite">{{ online() ? 'Online' : 'Offline' }}</span>
             @if (offlinePending()) { <span class="queue-status">{{ offlinePending() }} queued</span> }
             <span>{{ staff.user()?.branchId || 'branch scoped' }}</span>
           </div>
         </header>
-         <main class="staff-content" #contentShell (scroll)="onMainScroll($event)">
-          @if (preferences().defaults.staffHints) { <p class="staff-policy-hint">Tip: use search to quickly open permitted staff tools, clients and appointments.</p> }
+         <main class="staff-content">
+          @if (preferences().defaults.staffHints && !isDashboard()) { <p class="staff-policy-hint">Tip: use search to quickly open permitted staff tools, clients and appointments.</p> }
           <router-outlet />
         </main>
       </div>
 
        <nav class="mobile-bottom-nav" aria-label="Primary staff navigation" [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null">
-        <a routerLink="/staff/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Dashboard')"></path></svg><span>Home</span></a>
-        <a routerLink="/staff/appointments" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Appointments')"></path></svg><span>Bookings</span></a>
-        <a routerLink="/staff/business" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Business')"></path></svg><span>Business</span></a>
-        <a routerLink="/staff/attendance" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Attendance')"></path></svg><span>Attendance</span></a>
-        <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a>
-      </nav>      @if (showScrollTop()) { <button type="button" class="scroll-top-button" (click)="scrollToTop()" aria-label="Go to top">Top</button> }
+         @if (staff.hasPermission('read:appointments')) {
+           <a routerLink="/staff/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Dashboard')"></path></svg><span>Home</span></a>
+           <a routerLink="/staff/appointments" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Appointments')"></path></svg><span>Bookings</span></a>
+           <a routerLink="/staff/business" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Business')"></path></svg><span>Business</span></a>
+         }
+         @if (staff.hasAnyPermission(['allow:staff-checkin-checkout', 'read:staff', 'write:staff'])) { <a routerLink="/staff/attendance" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Attendance')"></path></svg><span>Attendance</span></a> }
+         @if (staff.hasPermission('read:staff')) { <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a> }
+      </nav>
 
       @if (commandOpen()) {
         <section class="command-backdrop" (click)="closeCommand()">
@@ -92,7 +94,7 @@ type StaffRecentItem = { label: string; path: string };
         </section>
       }
 
-      @if (notificationsOpen()) {
+      @if (notificationsOpen() && staff.hasPermission('read:staff')) {
         <button type="button" class="drawer-backdrop open" (click)="closeNotifications()" aria-label="Close notifications"></button>
         <aside class="notification-drawer open" role="dialog" aria-modal="true" aria-labelledby="staff-notifications-title" tabindex="-1" #notificationDialog (keydown)="trapFocus($event, notificationDialog)">
           <div class="drawer-title"><strong id="staff-notifications-title">Notifications</strong><button type="button" (click)="closeNotifications()">Close</button></div>
@@ -138,7 +140,7 @@ type StaffRecentItem = { label: string; path: string };
     .nav-logout { width: 100%; min-height:46px;margin-top: 12px; padding: 11px 13px; border: 1px solid var(--staff-error-border); border-radius: 16px; background: var(--staff-error-surface); color: var(--staff-error-text); font-weight: 750; text-align: left; }
     .staff-main-shell { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
     .staff-topbar { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height:62px;padding: 9px 16px; border-bottom: 1px solid var(--staff-border); background: var(--staff-surface-glass); backdrop-filter: blur(16px); }
-    .staff-identity { display: flex; align-items:center; min-width: 0; gap: 10px; }
+    .staff-identity { display: flex; align-items:center; min-width: 0; gap: 10px; color:inherit; text-decoration:none; }
     .staff-identity>div { display:grid;gap:1px;min-width:0; }
     .staff-identity span { flex: 0 0 auto; overflow: visible; color: var(--staff-text-secondary); font-size: .66rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; text-overflow: ellipsis; white-space: nowrap; }
     .staff-identity strong { overflow: hidden; color: var(--staff-text); font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -197,11 +199,10 @@ type StaffRecentItem = { label: string; path: string };
      @keyframes shell-drawer-enter { from { opacity: 0; transform: translateX(20px); } }
      @keyframes shell-toast-enter { from { opacity: 0; transform: translate(-50%, 8px); } }
     .mobile-bottom-nav { display: none; }
-    .scroll-top-button { display: none; }
     @media (max-width: 900px) {
       .staff-app-shell { display: block; min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); }
       .staff-main-shell { display: block; height: 100dvh; min-height: 100dvh; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
-      .staff-topbar { position: sticky; top: 0; z-index: 20; min-height: 64px; padding: 8px 12px; gap: 2px; }
+       .staff-topbar { position: sticky; top: 0; z-index: 20; min-height: calc(64px + env(safe-area-inset-top)); padding: calc(8px + env(safe-area-inset-top)) 12px 8px; gap: 2px; }
       .menu-button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 0 0 auto; width: 48px; height: 48px; margin: 0 2px 0 -10px; padding: 0; border: 0; border-radius: 14px; background: transparent; color: var(--staff-text); font-size: .78rem; font-weight: 750; box-shadow: none; }
       .staff-topbar > div:nth-child(2) { min-width: 0; flex: 1 1 auto; }
       .staff-identity { flex: 1 1 auto; gap: 14px; }
@@ -220,12 +221,11 @@ type StaffRecentItem = { label: string; path: string };
       .staff-content { overflow: visible; padding: 14px 0 calc(100px + env(safe-area-inset-bottom)); }
       .notification-drawer { top: 0; right: 0; bottom: 0; left: auto; width: 72vw; min-width: 0; max-width: 360px; height: 100dvh; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); border-left: 1px solid var(--staff-border); border-radius: 22px 0 0 22px; box-shadow: -18px 0 40px rgba(31, 41, 55, .14); }
       .notification-drawer .drawer-title { position: sticky; top: 0; z-index: 2; border: 1px solid var(--staff-border); border-radius: 16px; background: var(--staff-surface-secondary); box-shadow: 0 6px 16px rgba(31, 41, 55, .08); }
-      .mobile-bottom-nav { position: fixed; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 27; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: min(calc(100vw - 20px), 430px); min-height: 72px; padding: 6px; gap: 3px; transform: translateX(-50%); border: 1px solid var(--staff-border); border-radius: 22px; background: var(--staff-surface-glass); box-shadow: var(--staff-shadow-elevated); backdrop-filter: blur(18px); }
+      .mobile-bottom-nav { position: fixed; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 27; display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); width: min(calc(100vw - 20px), 430px); min-height: 72px; padding: 6px; gap: 3px; transform: translateX(-50%); border: 1px solid var(--staff-border); border-radius: 22px; background: var(--staff-surface-glass); box-shadow: var(--staff-shadow-elevated); backdrop-filter: blur(18px); }
       .mobile-bottom-nav a { position:relative;display: grid; grid-template-columns: 1fr; grid-template-rows: 23px auto; place-items: center; align-content: center; gap: 2px; min-width: 0; padding: 6px 3px; border: 0; border-radius: 16px; color: var(--staff-text-secondary); font-size: .62rem; font-weight: 700; line-height: 1; text-decoration: none; } .mobile-bottom-nav a span, .mobile-bottom-nav a.active span { display: block; width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font-size: inherit; font-weight: inherit; letter-spacing: 0; text-transform: none; }
       .mobile-bottom-nav a.active::after { position:absolute;bottom:2px;width:18px;height:3px;border-radius:999px;background:var(--staff-primary);content:""; }
       .mobile-bottom-nav a svg { display: block; width: 20px; height: 20px; margin: 0; fill: currentColor; }
       .mobile-bottom-nav a.active { color: var(--staff-primary-hover); background: var(--staff-primary-light); }
-      .scroll-top-button { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 28; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--staff-border-accent); border-radius: 999px; background: var(--staff-primary-light); color: var(--staff-primary-hover); font-size: .72rem; font-weight: 750; }
       .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; opacity: 0; pointer-events: none; background: rgba(31,41,55,.28); backdrop-filter: blur(2px); transition: opacity .18s ease; }
       .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
       .staff-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; width: 72vw; min-width: 0; max-width: 360px; box-sizing: border-box; height: 100dvh; overflow: auto; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); border-right: 1px solid var(--staff-border); border-radius: 0 22px 22px 0; transform: translateX(-104%); transition: transform .2s ease; box-shadow: 18px 0 40px rgba(31, 41, 55, .14); }
@@ -248,8 +248,6 @@ type StaffRecentItem = { label: string; path: string };
 })
 export class StaffLayoutPage implements OnInit, OnDestroy {
   @ViewChild("commandInput") private commandInput?: ElementRef<HTMLInputElement>;
-  @ViewChild("mainShell") private mainShell?: ElementRef<HTMLElement>;
-  @ViewChild("contentShell") private contentShell?: ElementRef<HTMLElement>;
   @ViewChild("menuDialog") private menuDialog?: ElementRef<HTMLElement>;
   @ViewChild("menuButton") private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild("commandButton") private commandButton?: ElementRef<HTMLButtonElement>;
@@ -257,7 +255,6 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   readonly menuOpen = signal(false);
   readonly commandOpen = signal(false);
   readonly notificationsOpen = signal(false);
-  readonly showScrollTop = signal(false);
   readonly online = signal(typeof navigator === "undefined" ? true : navigator.onLine);
   readonly realtimeConnected = signal(false);
   readonly offlinePending = signal(0);
@@ -279,23 +276,23 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   private socket: WebSocket | null = null;
 
   private readonly nav: StaffNavItem[] = [
-    { label: "Dashboard", path: "/staff/dashboard", iconPath: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z", group: "Home" },
-    { label: "Appointments", path: "/staff/appointments", iconPath: "M7 2v2H5a2 2 0 0 0-2 2v14h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5V7h14v3z", group: "Work" },
-    { label: "Business", path: "/staff/business", iconPath: "M3 21V3h8v4h10v14H3zm3-3h2v-3H6v3zm0-6h2V9H6v3zm7 6h2v-3h-2v3zm0-6h2V9h-2v3zm5 6h1v-3h-1v3zm0-6h1V9h-1v3z", group: "Work" },
+    { label: "Dashboard", path: "/staff/dashboard", iconPath: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z", group: "Home", permission: "read:appointments" },
+    { label: "Appointments", path: "/staff/appointments", iconPath: "M7 2v2H5a2 2 0 0 0-2 2v14h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5V7h14v3z", group: "Work", permission: "read:appointments" },
+    { label: "Business", path: "/staff/business", iconPath: "M3 21V3h8v4h10v14H3zm3-3h2v-3H6v3zm0-6h2V9H6v3zm7 6h2v-3h-2v3zm0-6h2V9h-2v3zm5 6h1v-3h-1v3zm0-6h1V9h-1v3z", group: "Work", permission: "read:appointments" },
     { label: "Tasks", path: "/staff/tasks", iconPath: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z", group: "Work", permission: "read:staff" },
-    { label: "Attendance", path: "/staff/attendance", iconPath: "M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z", group: "Work" },
+    { label: "Attendance", path: "/staff/attendance", iconPath: "M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z", group: "Work", anyPermissions: ["allow:staff-checkin-checkout", "read:staff", "write:staff"] },
     { label: "Roster", path: "/staff/roster", iconPath: "M4 4h16v4H4V4zm0 6h7v10H4V10zm9 0h7v10h-7V10z", group: "Work", permission: "read:staff" },
-    { label: "Calendar", path: "/staff/calendar", iconPath: "M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v16h18V5a2 2 0 0 0-2-2zm0 16H5V9h14v10z", group: "Work" },
-    { label: "Clients", path: "/staff/clients", iconPath: "M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zM8 11c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.7 0-1.1.1 1.1.8 2.1 1.9 2.1 3.4V19h6v-2.5C23 14.2 18.3 13 16 13z", group: "Clients" },
-    { label: "Client 360", path: "/staff/client-360", iconPath: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.9V17h-2v2.9A8 8 0 0 1 4.1 13H7v-2H4.1A8 8 0 0 1 11 4.1V7h2V4.1A8 8 0 0 1 19.9 11H17v2h2.9A8 8 0 0 1 13 19.9z", group: "Clients" },
-    { label: "AI Coach", path: "/staff/ai-coach", iconPath: "M12 2 9.5 8H3l5.2 3.8L6 18l6-4 6 4-2.2-6.2L21 8h-6.5L12 2z", group: "Intelligence" },
-    { label: "Performance", path: "/staff/performance", iconPath: "M3 17h3v4H3v-4zm5-6h3v10H8V11zm5 3h3v7h-3v-7zm5-9h3v16h-3V5z", group: "Intelligence" },
-    { label: "Leaderboard", path: "/staff/leaderboard", iconPath: "M7 21h10v-2H7v2zM5 3h14v4a7 7 0 0 1-6 6.9V17h-2v-3.1A7 7 0 0 1 5 7V3zm2 2v2a5 5 0 0 0 10 0V5H7z", group: "Intelligence" },
-    { label: "Reports", path: "/staff/reports", iconPath: "M5 3h11l3 3v15H5V3zm10 1.5V7h2.5L15 4.5zM8 11h8v2H8v-2zm0 4h8v2H8v-2z", group: "Intelligence" },
-    { label: "Notifications", path: "/staff/notifications", iconPath: "M12 22a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z", group: "Comms" },
-    { label: "Chat", path: "/staff/chat", iconPath: "M4 4h16v12H7l-3 3V4zm4 5h8V7H8v2zm0 4h6v-2H8v2z", group: "Comms" },
-    { label: "Learning", path: "/staff/learning", iconPath: "M12 3 1 8l11 5 9-4.1V16h2V8L12 3zm-6 9v4c0 2 4 4 6 4s6-2 6-4v-4l-6 2.7L6 12z", group: "Growth" },
-    { label: "Payroll", path: "/staff/payroll", iconPath: "M4 6h16v12H4V6zm2 2v8h12V8H6zm6 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", group: "Account", permission: "read:payroll" },
+    { label: "Calendar", path: "/staff/calendar", iconPath: "M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v16h18V5a2 2 0 0 0-2-2zm0 16H5V9h14v10z", group: "Work", permission: "read:staff" },
+    { label: "Clients", path: "/staff/clients", iconPath: "M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zM8 11c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.7 0-1.1.1 1.1.8 2.1 1.9 2.1 3.4V19h6v-2.5C23 14.2 18.3 13 16 13z", group: "Clients", permission: "read:clients" },
+    { label: "Client 360", path: "/staff/client-360", iconPath: "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.9V17h-2v2.9A8 8 0 0 1 4.1 13H7v-2H4.1A8 8 0 0 1 11 4.1V7h2V4.1A8 8 0 0 1 19.9 11H17v2h2.9A8 8 0 0 1 13 19.9z", group: "Clients", permission: "read:clients" },
+    { label: "AI Coach", path: "/staff/ai-coach", iconPath: "M12 2 9.5 8H3l5.2 3.8L6 18l6-4 6 4-2.2-6.2L21 8h-6.5L12 2z", group: "Intelligence", permission: "read:staff" },
+    { label: "Performance", path: "/staff/performance", iconPath: "M3 17h3v4H3v-4zm5-6h3v10H8V11zm5 3h3v7h-3v-7zm5-9h3v16h-3V5z", group: "Intelligence", permission: "read:staff" },
+    { label: "Leaderboard", path: "/staff/leaderboard", iconPath: "M7 21h10v-2H7v2zM5 3h14v4a7 7 0 0 1-6 6.9V17h-2v-3.1A7 7 0 0 1 5 7V3zm2 2v2a5 5 0 0 0 10 0V5H7z", group: "Intelligence", permission: "read:staff" },
+    { label: "Reports", path: "/staff/reports", iconPath: "M5 3h11l3 3v15H5V3zm10 1.5V7h2.5L15 4.5zM8 11h8v2H8v-2zm0 4h8v2H8v-2z", group: "Intelligence", permission: "read:staff" },
+    { label: "Notifications", path: "/staff/notifications", iconPath: "M12 22a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z", group: "Comms", permission: "read:staff" },
+    { label: "Chat", path: "/staff/chat", iconPath: "M4 4h16v12H7l-3 3V4zm4 5h8V7H8v2zm0 4h6v-2H8v2z", group: "Comms", permission: "read:staff" },
+    { label: "Learning", path: "/staff/learning", iconPath: "M12 3 1 8l11 5 9-4.1V16h2V8L12 3zm-6 9v4c0 2 4 4 6 4s6-2 6-4v-4l-6 2.7L6 12z", group: "Growth", permission: "read:staff" },
+    { label: "Payroll", path: "/staff/payroll", iconPath: "M4 6h16v12H4V6zm2 2v8h12V8H6zm6 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", group: "Account", anyPermissions: ["read:payroll", "read:finance"] },
     { label: "Leaves", path: "/staff/leaves", iconPath: "M12 2C8 6 6 9 6 12a6 6 0 0 0 12 0c0-3-2-6-6-10z", group: "Account", permission: "read:staff" },
     { label: "Profile", path: "/staff/profile", iconPath: "M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-3.3 0-6 1.7-6 3.8V20h12v-2.2c0-2.1-2.7-3.8-6-3.8z", group: "Account" },
     { label: "Settings", path: "/staff/settings", iconPath: "M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.5-2-3.5-2.4 1a7 7 0 0 0-2.6-1.5L14 2h-4l-.4 2.5A7 7 0 0 0 7 6L4.6 5l-2 3.5 2 1.5A8 8 0 0 0 4.5 12c0 .5 0 1 .1 1.5l-2 1.5 2 3.5L7 17a7 7 0 0 0 2.6 1.5L10 21h4l.4-2.5A7 7 0 0 0 17 17l2.4 1 2-3.5-2-1.5zM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z", group: "Account" }
@@ -304,9 +301,9 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   readonly commandResults = computed(() => {
     const text = this.query().trim().toLowerCase();
     const navItems = this.visibleNav().map((item) => ({ ...item }));
-    const notices = (this.os()?.notifications || []).map((note) => ({ label: note.title, path: "/staff/notifications", iconPath: this.iconFor("Notifications"), group: note.body || "Notification" }));
-    const coach = (this.os()?.aiCoach || []).map((card) => ({ label: card.title, path: "/staff/ai-coach", iconPath: this.iconFor("AI Coach"), group: card.body }));
-    const business = (this.os()?.timeline || []).map((item) => ({ label: item.clientName, path: "/staff/business", iconPath: this.iconFor("Business"), group: item.serviceNames?.join(", ") || "Appointment" }));
+    const notices = this.staff.hasPermission("read:staff") ? (this.os()?.notifications || []).map((note) => ({ label: note.title, path: "/staff/notifications", iconPath: this.iconFor("Notifications"), group: note.body || "Notification" })) : [];
+    const coach = this.staff.hasPermission("read:staff") ? (this.os()?.aiCoach || []).map((card) => ({ label: card.title, path: "/staff/ai-coach", iconPath: this.iconFor("AI Coach"), group: card.body })) : [];
+    const business = this.staff.hasPermission("read:appointments") ? (this.os()?.timeline || []).map((item) => ({ label: item.clientName, path: "/staff/business", iconPath: this.iconFor("Business"), group: item.serviceNames?.join(", ") || "Appointment" })) : [];
     const all = [...navItems, ...notices, ...coach, ...business];
     if (!text) return all.slice(0, 12);
     return all
@@ -382,7 +379,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     if (index >= 0 && next) void this.router.navigateByUrl(next);
   }
   visibleNav(): StaffNavItem[] {
-    return this.nav.filter((item) => !item.permission || this.staff.hasPermission(item.permission) || item.permission === "read:payroll" && this.staff.hasPermission("read:finance"));
+    return this.nav.filter((item) => (!item.permission || this.staff.hasPermission(item.permission)) && (!item.anyPermissions?.length || this.staff.hasAnyPermission([...item.anyPermissions])));
   }
 
   navGroups(): string[] {
@@ -401,6 +398,8 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     const hour = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", hour12: false }).format(new Date()));
     return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   }
+
+  isDashboard(): boolean { return this.router.url.split("?")[0] === "/staff/dashboard"; }
 
   toggleTheme() {
     const next = this.theme() === "dark" ? "light" : "dark";
@@ -506,16 +505,6 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     this.notificationsOpen.set(false);
     this.syncOverlayLock();
     if (wasOpen && restoreFocus) window.setTimeout(() => this.notificationButton?.nativeElement.focus(), 0);
-  }
-
-  onMainScroll(event: Event) {
-    this.showScrollTop.set(((event.currentTarget as HTMLElement | null)?.scrollTop || 0) > 180);
-  }
-
-  scrollToTop() {
-    const shell = window.matchMedia("(max-width: 900px)").matches ? this.mainShell?.nativeElement : this.contentShell?.nativeElement;
-    if (shell) shell.scrollTo({ top: 0, behavior: "smooth" });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   go(item: StaffRecentItem) {
