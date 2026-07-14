@@ -56,7 +56,7 @@ export class WebauthnService {
         challenge: decoded.challenge,
         pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
         timeout: CHALLENGE_TTL * 1000,
-        authenticatorSelection: { userVerification: "preferred" },
+        authenticatorSelection: { userVerification: access.staffId ? "required" : "preferred" },
         attestation: "none"
       }
     };
@@ -91,6 +91,8 @@ export class WebauthnService {
   }
 
   beginAuthentication({ tenantId, userId }) {
+    const user = repositories.tenantUsers.getById(userId, { tenantId });
+    if (!user || user.status !== "active") throw unauthorized("Account is no longer active");
     const creds = repositories.encryptedSecrets
       .list({ limit: 100000 }, { tenantId })
       .filter((r) => r.purpose === PURPOSE && r.metadata?.userId === userId);
@@ -103,7 +105,7 @@ export class WebauthnService {
         challenge: decoded.challenge,
         rpId: rpId(),
         timeout: CHALLENGE_TTL * 1000,
-        userVerification: "preferred",
+        userVerification: user.staffId ? "required" : "preferred",
         allowCredentials: creds.map((c) => ({ type: "public-key", id: c.metadata.credentialId }))
       }
     };
@@ -128,6 +130,9 @@ export class WebauthnService {
     const expectedRpIdHash = createHash("sha256").update(rpId()).digest();
     if (!parsed.rpIdHash.equals(expectedRpIdHash)) throw unauthorized("RP ID hash mismatch");
     if (!parsed.userPresent) throw unauthorized("User presence flag not set");
+    const user = repositories.tenantUsers.getById(challenge.sub, { tenantId: challenge.tenantId });
+    if (!user || user.status !== "active") throw unauthorized("Account is no longer active");
+    if (user.staffId && !parsed.userVerified) throw unauthorized("Staff passkey requires user verification");
 
     const clientDataHash = createHash("sha256").update(Buffer.from(response.clientDataJSON, "base64url")).digest();
     const signedData = Buffer.concat([authData, clientDataHash]);

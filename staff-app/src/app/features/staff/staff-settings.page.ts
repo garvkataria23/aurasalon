@@ -101,7 +101,7 @@ export class StaffSettingsPage implements OnInit {
   }
 
   async logout() {
-    this.staff.logout();
+    await this.staff.logout();
     await this.router.navigateByUrl("/staff/login");
   }
 }

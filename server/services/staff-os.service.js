@@ -2863,6 +2863,7 @@ export class StaffOsService {
       : db.prepare(`SELECT * FROM staff_attendance_logs WHERE tenant_id = ? AND staff_id = ? AND status = 'clocked_in'
           ORDER BY created_at DESC LIMIT 1`).get(access.tenantId, staff.id);
     if (!attendance) throw notFound("Active attendance record not found");
+    if (access.staffId && attendance.staff_id !== access.staffId) throw forbidden("Attendance record does not belong to the logged-in staff member");
     assertBranch(access, attendance.branch_id);
     const stamp = payload.clockOutAt || payload.clock_out_at || now();
     db.transaction(() => {
@@ -2922,6 +2923,7 @@ export class StaffOsService {
       : db.prepare(`SELECT * FROM staff_breaks WHERE tenant_id = ? AND staff_id = ? AND status = 'active'
           ORDER BY created_at DESC LIMIT 1`).get(access.tenantId, resolveSelfStaffId(payload, access));
     if (!row) throw notFound("Active break not found");
+    if (access.staffId && row.staff_id !== access.staffId) throw forbidden("Break does not belong to the logged-in staff member");
     assertBranch(access, row.branch_id);
     const endedAt = payload.endedAt || payload.ended_at || now();
     db.prepare("UPDATE staff_breaks SET ended_at = ?, status = 'ended' WHERE id = ? AND tenant_id = ?").run(endedAt, row.id, access.tenantId);
@@ -3576,11 +3578,15 @@ export class StaffOsService {
     if (!staffId) throw badRequest("staffId is required");
     const staff = this.getStaff(staffId, access);
     const date = query.date || businessDate();
+    const activeBreak = db.prepare(`SELECT * FROM staff_breaks
+      WHERE tenant_id = @tenantId AND staff_id = @staffId AND status = 'active'
+      ORDER BY created_at DESC LIMIT 1`).get({ tenantId: access.tenantId, staffId });
     return {
       date,
       schedules: this.listSchedules({ staffId, branchId: staff.branchId, from: date, to: date }, access),
       attendance: this.listAttendance({ staffId, branchId: staff.branchId, from: date, to: date }, access),
-      tasks: this.listTasks({ staffId, branchId: staff.branchId, status: "open" }, access)
+      tasks: this.listTasks({ staffId, branchId: staff.branchId, status: "open" }, access),
+      activeBreak: activeBreak ? rowToCamel(activeBreak) : null
     };
   }
 
@@ -3661,6 +3667,7 @@ export class StaffOsService {
     access = normalizeAccess(access);
     const existing = db.prepare("SELECT * FROM staff_tasks WHERE id = ? AND tenant_id = ?").get(id, access.tenantId);
     if (!existing) throw notFound("Task not found");
+    if (access.staffId && existing.staff_id !== access.staffId) throw forbidden("Task does not belong to the logged-in staff member");
     if (existing.branch_id) assertBranch(access, existing.branch_id);
     if (payload.version === undefined) throw badRequest("version is required for optimistic locking");
     if (Number(payload.version) !== Number(existing.version)) throw conflict("Task was updated by another request");
@@ -3687,6 +3694,7 @@ export class StaffOsService {
     access = normalizeAccess(access);
     const task = db.prepare("SELECT * FROM staff_tasks WHERE id = ? AND tenant_id = ?").get(id, access.tenantId);
     if (!task) throw notFound("Task not found");
+    if (access.staffId && task.staff_id !== access.staffId) throw forbidden("Task does not belong to the logged-in staff member");
     if (task.branch_id) assertBranch(access, task.branch_id);
     const row = {
       id: makeId("tcmt"),

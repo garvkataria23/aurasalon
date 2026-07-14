@@ -1,7 +1,7 @@
 import { DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { IonSpinner } from "@ionic/angular/standalone";
-import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
+import { isQueuedMutation, MutationResult, StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
 
 @Component({
   standalone: true,
@@ -12,7 +12,8 @@ import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff
       @if (!canReadTasks()) { <section class="notice">You do not have permission to read staff tasks.</section> }
       @if (loading()) { <section class="state"><ion-spinner name="crescent" /> Loading tasks...</section> }
       @if (message()) { <section class="notice success">{{ message() }}</section> }
-      @if (staff.error()) { <section class="notice">{{ staff.error() }}</section> }
+      @if (localError()) { <section class="notice">{{ localError() }}</section> }
+      @if (staff.error() && !localError()) { <section class="notice">{{ staff.error() }}</section> }
       @if (canReadTasks() && today(); as data) {
         <section class="grid four"><article class="kpi"><span>Today</span><strong>{{ data.tasks.length }}</strong></article><article class="kpi"><span>Open</span><strong>{{ taskCount('open') }}</strong></article><article class="kpi"><span>In progress</span><strong>{{ taskCount('in_progress') }}</strong></article><article class="kpi"><span>Done</span><strong>{{ taskCount('completed') }}</strong></article></section>
         <section class="kanban-board">
@@ -21,7 +22,7 @@ import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff
               <div class="panel-title"><h2>{{ column.label }}</h2><span>{{ taskCount(column.status) }}</span></div>
               <div class="list">
                 @for (task of tasksByStatus(column.status); track task.id) {
-                  <div class="kanban-card" draggable="true" (dragstart)="dragTask(task.id, task.version)"><strong>{{ task.title }}</strong><small>{{ task.priority || 'medium' }} · {{ task.dueAt ? (task.dueAt | date:'short') : 'no due date' }}</small><div class="row-actions"><span class="badge">{{ task.status }}</span>@if (canUpdateTasks() && task.status !== 'completed') { <button type="button" class="link-button" (click)="completeTask(task.id, task.version)">Done</button> }</div></div>
+                  <div class="kanban-card" draggable="true" (dragstart)="dragTask(task.id, task.version)"><strong>{{ task.title }}</strong><small>{{ task.priority || 'medium' }} · {{ task.dueAt ? (task.dueAt | date:'short') : 'no due date' }}</small><div class="row-actions"><span class="badge">{{ task.status }}</span>@if (canUpdateTasks() && task.status !== 'completed') { <button type="button" class="link-button" [disabled]="!!pendingTaskId()" (click)="completeTask(task.id, task.version)">Done</button> }</div></div>
                 } @empty { <p class="empty">No {{ column.label.toLowerCase() }} tasks.</p> }
               </div>
             </article>
@@ -37,6 +38,8 @@ export class StaffTasksPage implements OnInit {
   readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly loading = signal(false);
   readonly message = signal("");
+  readonly localError = signal("");
+  readonly pendingTaskId = signal("");
   readonly draggedTask = signal<{ id: string; version: number } | null>(null);
   readonly columns = [{ label: "Open", status: "open" }, { label: "In Progress", status: "in_progress" }, { label: "Done", status: "completed" }];
   constructor(readonly staff: StaffAppService) {}
@@ -48,6 +51,19 @@ export class StaffTasksPage implements OnInit {
   taskCount(status: string): number { return this.tasksByStatus(status).length; }
   tasksByStatus(status: string) { return (this.today()?.tasks || []).filter((task) => status === "open" ? !task.status || task.status === "open" : task.status === status); }
   dragTask(id: string, version: number) { this.draggedTask.set({ id, version }); }
-  async dropTask(status: string) { const task = this.draggedTask(); if (!task || !this.canUpdateTasks()) return; await this.staff.moveTask(task.id, task.version, status); this.draggedTask.set(null); this.message.set(`Task moved to ${status.replace(/_/g, " ")}.`); await this.load(); }
-  async completeTask(taskId: string, version: number) { await this.staff.completeTask(taskId, version).then(() => { this.message.set("Task completed."); return this.load(); }); }
+  async dropTask(status: string) { const task = this.draggedTask(); if (!task || !this.canUpdateTasks()) return; await this.mutateTask(task.id, () => this.staff.moveTask(task.id, task.version, status), `Task moved to ${status.replace(/_/g, " ")}.`); this.draggedTask.set(null); }
+  async completeTask(taskId: string, version: number) { await this.mutateTask(taskId, () => this.staff.completeTask(taskId, version), "Task completed."); }
+  private async mutateTask(taskId: string, mutate: () => Promise<MutationResult<unknown>>, completedMessage: string) {
+    if (this.pendingTaskId()) return;
+    this.pendingTaskId.set(taskId);
+    this.message.set("");
+    this.localError.set("");
+    try {
+      const result = await mutate();
+      if (isQueuedMutation(result)) { this.message.set(`Offline task change queued for sync (${result.queueId}).`); return; }
+      this.message.set(completedMessage);
+      await this.load();
+    } catch { this.localError.set(this.staff.error() || "Unable to update the task."); }
+    finally { this.pendingTaskId.set(""); }
+  }
 }

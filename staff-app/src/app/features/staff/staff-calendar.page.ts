@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
+import { addBusinessDays, businessDate } from "../../core/business-date";
 
 @Component({
   standalone: true,
@@ -15,11 +16,11 @@ import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff
           <p>Day and week staff schedule workspace.</p>
         </div>
         <div class="row-actions">
-          <button class="button" [class.active-toggle]="view() === 'day'" type="button" (click)="setView('day')">Day</button>
-          <button class="button" [class.active-toggle]="view() === 'week'" type="button" (click)="setView('week')">Week</button>
-          <input [value]="selectedDate()" type="date" (change)="setDate($any($event.target).value)" />
-          <button class="button" type="button" (click)="shiftDate(-1)">◀</button>
-          <button class="button" type="button" (click)="shiftDate(1)">▶</button>
+          <button class="button" [class.active-toggle]="view() === 'day'" [attr.aria-pressed]="view() === 'day'" type="button" (click)="setView('day')">Day</button>
+          <button class="button" [class.active-toggle]="view() === 'week'" [attr.aria-pressed]="view() === 'week'" type="button" (click)="setView('week')">Week</button>
+          <input aria-label="Selected calendar date" [value]="selectedDate()" type="date" (change)="setDate($any($event.target).value)" />
+          <button class="button" type="button" aria-label="Previous date" (click)="shiftDate(-1)">◀</button>
+          <button class="button" type="button" aria-label="Next date" (click)="shiftDate(1)">▶</button>
         </div>
       </header>
 
@@ -99,18 +100,20 @@ export class StaffCalendarPage implements OnInit {
   readonly loading = signal(false);
   readonly view = signal<"day" | "week">("day");
   readonly message = signal("");
-  readonly selectedDate = signal(new Date().toISOString().slice(0, 10));
+  readonly selectedDate = signal(businessDate());
   readonly dragged = signal<{ id: string; version: number; startTime: string; endTime: string } | null>(null);
   readonly editingId = signal<string | null>(null);
-  readonly moveDate = signal(new Date().toISOString().slice(0, 10));
+  readonly moveDate = signal(businessDate());
   readonly moveStart = signal("09:00");
   readonly moveEnd = signal("18:00");
+  private loadGeneration = 0;
 
   constructor(readonly staff: StaffAppService) {}
 
   ngOnInit() { if (this.canReadCalendar()) void this.load(); }
 
   async load() {
+    const generation = ++this.loadGeneration;
     this.loading.set(true);
     try {
       const from = this.view() === "day" ? this.selectedDate() : this.weekStart();
@@ -119,10 +122,11 @@ export class StaffCalendarPage implements OnInit {
         this.staff.today(this.selectedDate()),
         this.staff.enterpriseOs({ from, to })
       ]);
+      if (generation !== this.loadGeneration) return;
       this.today.set(today);
       this.os.set(os);
     } finally {
-      this.loading.set(false);
+      if (generation === this.loadGeneration) this.loading.set(false);
     }
   }
 
@@ -248,12 +252,6 @@ export class StaffCalendarPage implements OnInit {
   }
 
   private addDays(value: string, days = 0): string {
-    const parts = String(value || "").split("-").map((part) => Number(part));
-    if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return value;
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    date.setDate(date.getDate() + days);
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getDate()}`.padStart(2, "0");
-    return `${date.getFullYear()}-${month}-${day}`;
+    return addBusinessDays(value, days);
   }
 }

@@ -1,7 +1,7 @@
 import { DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { IonSpinner } from "@ionic/angular/standalone";
-import { StaffAppService, StaffEnterpriseOs } from "../../core/staff-app.service";
+import { isQueuedMutation, StaffAppService, StaffEnterpriseOs } from "../../core/staff-app.service";
 
 @Component({
   standalone: true,
@@ -86,7 +86,8 @@ export class StaffQueuePage implements OnInit {
   async startService(appointmentId: string) {
     this.message.set("");
     try {
-      await this.staff.startService(appointmentId);
+      const result = await this.staff.startService(appointmentId);
+      if (isQueuedMutation(result)) { this.message.set(`Service start queued for sync (${result.queueId}).`); return; }
       this.message.set("Service started.");
       await this.load();
     } catch {
@@ -97,7 +98,8 @@ export class StaffQueuePage implements OnInit {
   async completeService(appointmentId: string) {
     this.message.set("");
     try {
-      await this.staff.completeService(appointmentId);
+      const result = await this.staff.completeService(appointmentId);
+      if (isQueuedMutation(result)) { this.message.set(`Service completion queued for sync (${result.queueId}).`); return; }
       this.message.set("Service completed.");
       await this.load();
     } catch {

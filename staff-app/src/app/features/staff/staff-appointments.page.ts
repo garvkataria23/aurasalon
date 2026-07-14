@@ -1,9 +1,11 @@
-import { CurrencyPipe, DatePipe } from "@angular/common";
+import { DatePipe } from "@angular/common";
 import { Component, computed, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
 import { IonSpinner } from "@ionic/angular/standalone";
-import { StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } from "../../core/staff-app.service";
+import { isQueuedMutation, MutationResult, StaffAppService, StaffAppointment, StaffClient360, StaffDashboard } from "../../core/staff-app.service";
+import { businessDate } from "../../core/business-date";
+import { PaiseInrPipe } from "../../core/paise-inr.pipe";
 
 type AppointmentView = "today" | "upcoming" | "live" | "completed" | "cancelled";
 
@@ -22,13 +24,14 @@ function istDateKey(value: string | Date): string {
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, FormsModule, RouterLink, IonSpinner],
+  imports: [PaiseInrPipe, DatePipe, FormsModule, RouterLink, IonSpinner],
   template: `
     <section class="page">
       <header class="page-head"><div><p class="eyebrow">Appointments</p><h1>Appointments</h1><p>Assigned bookings with service actions and Client 360 links.</p></div></header>
       @if (loading()) { <section class="state"><ion-spinner name="crescent" /> Loading appointments...</section> }
       @if (message()) { <section class="notice success">{{ message() }}</section> }
-      @if (staff.error()) { <section class="notice">{{ staff.error() }}</section> }
+      @if (localError()) { <section class="notice">{{ localError() }}</section> }
+      @if (staff.error() && !localError()) { <section class="notice">{{ staff.error() }}</section> }
 
       @if (dashboard()) {
         <section class="grid four">
@@ -66,9 +69,9 @@ function istDateKey(value: string | Date): string {
                 </div>
                 <div class="row-actions">
                   <span class="badge">{{ item.status }}</span>
-                  @if (canSeeRevenue()) { <span class="badge">{{ item.value | currency:'INR':'symbol':'1.0-0' }}</span> }
-                  @if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button> }
-                  @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> }
+                  @if (canSeeRevenue()) { <span class="badge">{{ item.value | paiseInr }}</span> }
+                  @if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" [disabled]="isPending(item.id)" (click)="startService(item.id)">Start</button> }
+                  @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" [disabled]="isPending(item.id)" (click)="completeService(item.id)">Complete</button> }
                   <button class="link-button" type="button" (click)="openAppointment(item)">Details</button>
                   @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Preview</button> }
                   @if (item.clientId) { <a class="button" [routerLink]="['/staff/client-360', item.clientId]">Client 360</a> }
@@ -83,22 +86,22 @@ function istDateKey(value: string | Date): string {
 
       @if (selectedAppointment(); as item) {
         <button class="detail-backdrop" type="button" (click)="closeDrawers()" aria-label="Close details"></button>
-        <aside class="detail-drawer">
-          <div class="panel-title"><h2>Appointment detail</h2><button class="link-button" type="button" (click)="closeDrawers()">Close</button></div>
+        <aside class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="appointment-detail-title" tabindex="-1">
+          <div class="panel-title"><h2 id="appointment-detail-title">Appointment detail</h2><button class="link-button" type="button" (click)="closeDrawers()">Close</button></div>
           <section class="grid two compact-grid"><article class="kpi"><span>Client</span><strong>{{ item.clientName || 'Walk-in' }}</strong></article><article class="kpi"><span>Status</span><strong>{{ item.status }}</strong></article></section>
           <div class="list"><div class="row"><strong>Time</strong><span>{{ item.startAt | date:'short' }} - {{ item.endAt | date:'shortTime' }}</span></div><div class="row"><strong>Services</strong><span>{{ item.serviceNames.join(', ') || '-' }}</span></div><div class="row"><strong>Duration</strong><span>{{ item.durationMinutes || 0 }} min</span></div><div class="row"><strong>Chair</strong><span>{{ item.chair || '-' }}</span></div><div class="row"><strong>Phone</strong><span>{{ item.clientPhone || '-' }}</span></div></div>
           <div class="form-grid drawer-form"><label>Status<input [(ngModel)]="editStatus" /></label><label>Chair<input [(ngModel)]="editChair" /></label><label>Start ISO<input [(ngModel)]="editStartAt" /></label><label>End ISO<input [(ngModel)]="editEndAt" /></label><label>Services CSV<input [(ngModel)]="editServiceIds" /></label><label>Notes<input [(ngModel)]="editNotes" /></label></div>
-          <div class="row-actions drawer-actions">@if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" (click)="startService(item.id)">Start</button> } @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" (click)="completeService(item.id)">Complete</button> } @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Client preview</button><a class="button primary" [routerLink]="['/staff/client-360', item.clientId]">Full Client 360</a> }</div>
-          <button class="button primary" type="button" (click)="saveAppointment(item.id)">Save changes</button>
+          <div class="row-actions drawer-actions">@if (staff.canStartServiceStatus(item.status)) { <button class="link-button" type="button" [disabled]="isPending(item.id)" (click)="startService(item.id)">Start</button> } @if (staff.canCompleteServiceStatus(item.status)) { <button class="link-button" type="button" [disabled]="isPending(item.id)" (click)="completeService(item.id)">Complete</button> } @if (item.clientId) { <button class="link-button" type="button" (click)="openClientPreview(item.clientId)">Client preview</button><a class="button primary" [routerLink]="['/staff/client-360', item.clientId]">Full Client 360</a> }</div>
+          <button class="button primary" type="button" [disabled]="isPending(item.id)" (click)="saveAppointment(item.id)">{{ isPending(item.id) ? 'Saving...' : 'Save changes' }}</button>
         </aside>
       }
 
       @if (selectedClient(); as client) {
         <button class="detail-backdrop" type="button" (click)="closeClientPreview()" aria-label="Close client preview"></button>
-        <aside class="detail-drawer client-preview">
-          <div class="panel-title"><h2>Client preview</h2><button class="link-button" type="button" (click)="closeClientPreview()">Close</button></div>
+        <aside class="detail-drawer client-preview" role="dialog" aria-modal="true" aria-labelledby="client-preview-title" tabindex="-1">
+          <div class="panel-title"><h2 id="client-preview-title">Client preview</h2><button class="link-button" type="button" (click)="closeClientPreview()">Close</button></div>
           <section class="grid two compact-grid"><article class="kpi"><span>Retention</span><strong>{{ client.retentionScore }}%</strong></article><article class="kpi"><span>Visits</span><strong>{{ client.visitFrequency }}</strong></article></section>
-          <div class="list"><div class="row"><strong>Name</strong><span>{{ client.profile.name }}</span></div><div class="row"><strong>Phone</strong><span>{{ client.profile.phone || '-' }}</span></div><div class="row"><strong>Outstanding</strong><span>{{ client.outstandingBalance | currency:'INR':'symbol':'1.0-0' }}</span></div></div>
+          <div class="list"><div class="row"><strong>Name</strong><span>{{ client.profile.name }}</span></div><div class="row"><strong>Phone</strong><span>{{ client.profile.phone || '-' }}</span></div><div class="row"><strong>Outstanding</strong><span>{{ client.outstandingBalance | paiseInr }}</span></div></div>
           @for (tip of client.aiRecommendations; track tip) { <p class="insight">{{ tip }}</p> }
         </aside>
       }
@@ -111,7 +114,7 @@ export class StaffAppointmentsPage implements OnInit {
   readonly activeView = signal<AppointmentView>("today");
   readonly kpiCounts = computed(() => {
     const rows = this.dashboard()?.appointments || [];
-    const today = istDateKey(new Date());
+    const today = businessDate();
     return {
       today: rows.filter((item) => istDateKey(item.startAt) === today).length,
       live: rows.filter((item) => istDateKey(item.startAt) === today && LIVE_STATUSES.has(this.statusOf(item))).length,
@@ -120,7 +123,7 @@ export class StaffAppointmentsPage implements OnInit {
     };
   });
   readonly visibleAppointments = computed(() => {
-    const today = istDateKey(new Date());
+    const today = businessDate();
     const view = this.activeView();
     const rows = (this.dashboard()?.appointments || []).filter((item) => {
       const date = istDateKey(item.startAt);
@@ -138,6 +141,8 @@ export class StaffAppointmentsPage implements OnInit {
   });
   readonly loading = signal(false);
   readonly message = signal("");
+  readonly localError = signal("");
+  readonly pendingAppointmentId = signal("");
   readonly selectedAppointment = signal<StaffAppointment | null>(null);
   readonly selectedClient = signal<StaffClient360 | null>(null);
   editNotes = "";
@@ -146,6 +151,8 @@ export class StaffAppointmentsPage implements OnInit {
   editStartAt = "";
   editEndAt = "";
   editServiceIds = "";
+  private loadGeneration = 0;
+  private clientGeneration = 0;
 
   constructor(readonly staff: StaffAppService) {}
 
@@ -164,21 +171,23 @@ export class StaffAppointmentsPage implements OnInit {
   isValidDate(value: string): boolean { return !Number.isNaN(new Date(value).getTime()); }
 
   async load() {
+    const generation = ++this.loadGeneration;
     this.loading.set(true);
-    try { this.dashboard.set(await this.staff.dashboard()); } finally { this.loading.set(false); }
+    try { const dashboard = await this.staff.dashboard(); if (generation === this.loadGeneration) this.dashboard.set(dashboard); } finally { if (generation === this.loadGeneration) this.loading.set(false); }
   }
 
   canSeeRevenue(): boolean { return this.staff.hasAnyPermission(["read:finance", "read:sales", "read:payments", "read:invoices"]); }
   canUpdateAppointments(): boolean { return this.staff.hasAnyPermission(["update:appointments", "write:appointments"]); }
 
-  async startService(appointmentId: string) { await this.staff.startService(appointmentId).then(() => this.afterAction("Service started.")); }
-  async completeService(appointmentId: string) { await this.staff.completeService(appointmentId).then(() => this.afterAction("Service completed.")); }
+  async startService(appointmentId: string) { await this.mutateAppointment(appointmentId, () => this.staff.startService(appointmentId), "Service started."); }
+  async completeService(appointmentId: string) { await this.mutateAppointment(appointmentId, () => this.staff.completeService(appointmentId), "Service completed."); }
 
   openAppointment(item: StaffAppointment) { this.editNotes = item.notes || ""; this.editChair = item.chair || ""; this.editStatus = item.status || ""; this.editStartAt = item.startAt || ""; this.editEndAt = item.endAt || ""; this.editServiceIds = (item.serviceIds || []).join(", "); this.selectedAppointment.set(item); }
   closeDrawers() { this.selectedAppointment.set(null); this.selectedClient.set(null); }
   closeClientPreview() { this.selectedClient.set(null); }
-  async openClientPreview(clientId: string) { this.selectedAppointment.set(null); this.selectedClient.set(await this.staff.client360(clientId)); }
-  async saveAppointment(appointmentId: string) { const updated = await this.staff.updateAppointment(appointmentId, { notes: this.editNotes, chair: this.editChair, status: this.editStatus, startAt: this.editStartAt, endAt: this.editEndAt, serviceIds: this.editServiceIds.split(",").map((item) => item.trim()).filter(Boolean) }); this.message.set("Appointment updated."); this.selectedAppointment.set(updated); await this.load(); }
+  async openClientPreview(clientId: string) { const generation = ++this.clientGeneration; this.selectedAppointment.set(null); this.selectedClient.set(null); const client = await this.staff.client360(clientId); if (generation === this.clientGeneration) this.selectedClient.set(client); }
+  async saveAppointment(appointmentId: string) { await this.mutateAppointment(appointmentId, () => this.staff.updateAppointment(appointmentId, { notes: this.editNotes, chair: this.editChair, status: this.editStatus, startAt: this.editStartAt, endAt: this.editEndAt, serviceIds: this.editServiceIds.split(",").map((item) => item.trim()).filter(Boolean) }), "Appointment updated."); }
+  isPending(appointmentId: string): boolean { return this.pendingAppointmentId() === appointmentId; }
 
   private statusOf(item: StaffAppointment): string { return String(item.status || "").toLowerCase(); }
   private isCompleted(item: StaffAppointment, today: string): boolean {
@@ -194,5 +203,18 @@ export class StaffAppointmentsPage implements OnInit {
     return ascending ? leftTime - rightTime : rightTime - leftTime;
   }
 
-  private async afterAction(message: string) { this.message.set(message); await this.load(); }
+  private async mutateAppointment(appointmentId: string, mutate: () => Promise<MutationResult<unknown>>, completedMessage: string) {
+    if (this.pendingAppointmentId()) return;
+    this.pendingAppointmentId.set(appointmentId);
+    this.message.set("");
+    this.localError.set("");
+    try {
+      const result = await mutate();
+      if (isQueuedMutation(result)) { this.message.set(`Offline change queued for sync (${result.queueId}).`); return; }
+      this.message.set(completedMessage);
+      this.selectedAppointment.set(null);
+      await this.load();
+    } catch { this.localError.set(this.staff.error() || "Unable to update the appointment."); }
+    finally { this.pendingAppointmentId.set(""); }
+  }
 }

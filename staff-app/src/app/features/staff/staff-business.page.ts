@@ -3,12 +3,15 @@ import { Component, computed, HostListener, OnDestroy, OnInit, signal } from "@a
 import { FormsModule } from "@angular/forms";
 import { IonSpinner } from "@ionic/angular/standalone";
 import {
+  isQueuedMutation,
   StaffAppService,
   StaffBusiness,
   StaffBusinessAppointment,
   StaffBusinessInvoiceDetail,
   StaffBusinessQuery,
 } from "../../core/staff-app.service";
+import { businessDate } from "../../core/business-date";
+import { formatPaiseInr } from "../../core/paise-inr.pipe";
 
 type BusinessPreset = "today" | "1m" | "3m" | "6m" | "1y" | "custom";
 type SearchSuggestion = { type: "Client" | "Service" | "Invoice"; value: string };
@@ -48,7 +51,7 @@ type SearchSuggestion = { type: "Client" | "Service" | "Invoice"; value: string 
             <div class="search-field">
               <label for="business-search">Search</label>
               <div class="search-control">
-                <input id="business-search" type="search" autocomplete="off" role="combobox" aria-controls="business-search-suggestions" [attr.aria-expanded]="showSearchSuggestions() && searchSuggestions().length" [ngModel]="search()" (ngModelChange)="search.set($event)" (focus)="showSearchSuggestions.set(true)" (blur)="closeSearchSuggestions()" (keydown.enter)="apply()" placeholder="Client, service or invoice" />
+                <input id="business-search" type="search" autocomplete="off" role="combobox" aria-controls="business-search-suggestions" [attr.aria-expanded]="showSearchSuggestions() && searchSuggestions().length > 0" [ngModel]="search()" (ngModelChange)="search.set($event)" (focus)="showSearchSuggestions.set(true)" (blur)="closeSearchSuggestions()" (keydown.enter)="apply()" placeholder="Client, service or invoice" />
                 @if (showSearchSuggestions() && searchSuggestions().length) {
                   <div id="business-search-suggestions" class="search-suggestions" role="listbox">
                     @for (suggestion of searchSuggestions(); track suggestion.type + suggestion.value) {
@@ -341,15 +344,15 @@ type SearchSuggestion = { type: "Client" | "Service" | "Invoice"; value: string 
   `,
   styleUrls: ["./staff-app.styles.css"],
   styles: [`
-    .search-field { display: grid; gap: 6px; min-width: 0; color: #3a2713; font-size: .8rem; font-weight: 900; }
+    .search-field { display: grid; gap: 7px; min-width: 0; color: var(--staff-text); font-size: .8rem; font-weight: 700; }
     .search-control { position: relative; }
     .search-control input { width: 100%; }
-    .search-suggestions { position: absolute; z-index: 20; top: calc(100% + 5px); right: 0; left: 0; overflow: hidden; border: 1px solid #e7cfd4; border-radius: 14px; background: #fffdfb; box-shadow: 0 12px 28px rgba(65, 34, 17, .16); }
-    .search-suggestions button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid #f2e5e1; border-radius: 0; padding: 10px 12px; color: #321827; background: transparent; text-align: left; }
+    .search-suggestions { position: absolute; z-index: 20; top: calc(100% + 5px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--staff-border); border-radius: 16px; background: #fff; box-shadow: 0 12px 28px rgba(31,41,55,.1); }
+    .search-suggestions button { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-bottom: 1px solid var(--staff-border); border-radius: 0; padding: 10px 12px; color: var(--staff-text); background: transparent; text-align: left; }
     .search-suggestions button:last-child { border-bottom: 0; }
-    .search-suggestions button:hover, .search-suggestions button:focus-visible { background: #fff1e8; }
+    .search-suggestions button:hover, .search-suggestions button:focus-visible { background: var(--staff-primary-light); }
     .search-suggestions span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .search-suggestions small { flex: 0 0 auto; color: #9a6372; font-size: .62rem; font-weight: 900; text-transform: uppercase; }
+    .search-suggestions small { flex: 0 0 auto; color: var(--staff-primary-hover); font-size: .62rem; font-weight: 750; text-transform: uppercase; }
     @media (max-width: 700px) {
       .grid.four.business-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       .business-kpi-grid .kpi { min-height: 68px; padding: 9px 10px; }
@@ -424,6 +427,7 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
   });
 
   constructor(readonly staff: StaffAppService) {}
+  private loadGeneration = 0;
 
   ngOnInit() {
     this.clockTimer = setInterval(() => this.clock.set(Date.now()), 60_000);
@@ -436,12 +440,14 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
 
   async load(reset: boolean) {
     if (!this.validRange()) return;
+    const generation = ++this.loadGeneration;
     const current = this.business();
     const page = reset ? 1 : Number(current?.pagination.page || 1) + 1;
     reset ? this.loading.set(true) : this.loadingMore.set(true);
     this.message.set("");
     try {
       const data = await this.staff.business(this.query(page));
+      if (generation !== this.loadGeneration) return;
       if (reset || !current) {
         this.business.set(data);
       } else {
@@ -451,8 +457,10 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
     } catch {
       // StaffAppService exposes the API error message in its error signal.
     } finally {
-      this.loading.set(false);
-      this.loadingMore.set(false);
+      if (generation === this.loadGeneration) {
+        this.loading.set(false);
+        this.loadingMore.set(false);
+      }
     }
   }
 
@@ -486,7 +494,7 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
   canReadBusiness(): boolean { return this.staff.hasPermission("read:appointments"); }
   canUpdateBusiness(): boolean { return this.staff.hasAnyPermission(["write:staff", "update:staff", "write:appointments", "update:appointments"]); }
   formatMinutes(minutes: number): string { const safe = Math.max(0, Number(minutes || 0)); return `${Math.floor(safe / 60)}h ${safe % 60}m`; }
-  formatMoney(paise: number | null): string { return (Number(paise || 0) / 100).toLocaleString("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  formatMoney(paise: number | null): string { return formatPaiseInr(paise); }
   formatPercent(value: number | null): string { return value === null ? "—" : `${value}%`; }
   capProgress(value: number): number { return Math.max(0, Math.min(100, Number(value || 0))); }
   formatTargetValue(value: number, unit: "paise" | "count" | "percent"): string {
@@ -621,12 +629,12 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
   }
 
   async startService(appointmentId: string) {
-    try { await this.staff.startService(appointmentId); await this.reloadLoadedPages(); this.message.set("Service started."); }
+    try { const result = await this.staff.startService(appointmentId); if (isQueuedMutation(result)) { this.message.set(`Service start queued for sync (${result.queueId}).`); return; } await this.reloadLoadedPages(); this.message.set("Service started."); }
     catch { this.message.set(this.staff.error() || "Unable to start service."); }
   }
 
   async completeService(appointmentId: string) {
-    try { await this.staff.completeService(appointmentId); await this.reloadLoadedPages(); this.message.set("Service completed."); }
+    try { const result = await this.staff.completeService(appointmentId); if (isQueuedMutation(result)) { this.message.set(`Service completion queued for sync (${result.queueId}).`); return; } await this.reloadLoadedPages(); this.message.set("Service completed."); }
     catch { this.message.set(this.staff.error() || "Unable to complete service."); }
   }
 
@@ -664,8 +672,6 @@ export class StaffBusinessPage implements OnInit, OnDestroy {
   }
 
   private today(): string {
-    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-    const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${value["year"]}-${value["month"]}-${value["day"]}`;
+    return businessDate();
   }
 }

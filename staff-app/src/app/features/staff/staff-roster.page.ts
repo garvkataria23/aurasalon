@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
+import { addBusinessDays, businessDate } from "../../core/business-date";
 
 @Component({
   standalone: true,
@@ -15,7 +16,7 @@ import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff
           <p>Shift and calendar assignments.</p>
         </div>
         <div class="row-actions">
-          <input [value]="windowStart()" type="date" (change)="updateWindowStart($any($event.target).value)" />
+          <input aria-label="Roster window start date" [value]="windowStart()" type="date" (change)="updateWindowStart($any($event.target).value)" />
           <button class="button" type="button" (click)="setWindow(7)">Next 7 days</button>
           <button class="button" type="button" (click)="setWindow(14)">Next 14 days</button>
           <button class="button" type="button" (click)="setWindow(30)">Next 30 days</button>
@@ -89,7 +90,7 @@ export class StaffRosterPage implements OnInit {
   readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly loading = signal(false);
   readonly message = signal("");
-  readonly windowStart = signal(new Date().toISOString().slice(0, 10));
+  readonly windowStart = signal(businessDate());
   readonly windowDays = signal(14);
   readonly editingId = signal<string | null>(null);
   readonly moveDate = signal(this.windowStart());
@@ -207,12 +208,6 @@ export class StaffRosterPage implements OnInit {
   }
 
   private addDays(value: string, days = 0): string {
-    const parts = String(value || "").split("-").map((part) => Number(part));
-    if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return value;
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    date.setDate(date.getDate() + days);
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getDate()}`.padStart(2, "0");
-    return `${date.getFullYear()}-${month}-${day}`;
+    return addBusinessDays(value, days);
   }
 }

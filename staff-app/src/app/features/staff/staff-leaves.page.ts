@@ -3,6 +3,7 @@ import { Component, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffLeave, StaffLeaveBalance } from "../../core/staff-app.service";
+import { businessDate } from "../../core/business-date";
 
 @Component({
   standalone: true,
@@ -37,8 +38,8 @@ export class StaffLeavesPage implements OnInit {
   readonly submitting = signal(false);
   readonly message = signal("");
   leaveType = "casual";
-  leaveStart = new Date().toISOString().slice(0, 10);
-  leaveEnd = new Date().toISOString().slice(0, 10);
+  leaveStart = businessDate();
+  leaveEnd = businessDate();
   leaveReason = "";
 
   constructor(readonly staff: StaffAppService) {}

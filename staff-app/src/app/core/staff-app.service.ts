@@ -2,13 +2,36 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http
 import { Injectable, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { environment } from "../../environments/environment";
+import { resetCsrfState } from "./csrf.interceptor";
 
-const STAFF_ACCESS_TOKEN_KEY = "auraStaffAccessToken";
-const STAFF_REFRESH_TOKEN_KEY = "auraStaffRefreshToken";
-const STAFF_SESSION_KEY = "auraStaffSession";
 const STAFF_OFFLINE_QUEUE_KEY = "auraStaffOfflineQueue";
-const STAFF_BIOMETRIC_ENABLED_KEY = "auraStaffBiometricEnabled";
-const STAFF_BIOMETRIC_CREDENTIAL_KEY = "auraStaffBiometricCredentialId";
+const STAFF_OFFLINE_LEASE_KEY = "auraStaffOfflineQueueLease";
+const STAFF_BIOMETRIC_HINT_KEY = "auraStaffBiometricLoginHint";
+const LEGACY_STAFF_AUTH_KEYS = ["auraStaffAccessToken", "auraStaffRefreshToken", "auraStaffSession", "auraStaffBiometricEnabled", "auraStaffBiometricCredentialId"];
+
+export type MutationResult<T> =
+  | { state: "completed"; data: T }
+  | { state: "queued"; queueId: string; idempotencyKey: string };
+
+export function isQueuedMutation<T>(result: MutationResult<T>): result is Extract<MutationResult<T>, { state: "queued" }> {
+  return result.state === "queued";
+}
+
+type OfflineQueueState = "pending" | "syncing" | "permanent-failure" | "conflict";
+type OfflineQueueEntry = {
+  queueId: string;
+  idempotencyKey: string;
+  userId: string;
+  tenantId: string;
+  sessionId: string;
+  method: "POST" | "PATCH";
+  path: string;
+  body: Record<string, unknown>;
+  state: OfflineQueueState;
+  queuedAt: string;
+  lastError?: string;
+};
+type BiometricLoginHint = { tenantId: string; loginId: string };
 
 function staffBusinessDate(value = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -347,6 +370,7 @@ export type StaffToday = {
   date: string;
   schedules: Array<{ id: string; scheduleDate: string; startTime: string; endTime: string; shiftType: string; status: string }>;
   attendance: StaffAttendance[];
+  activeBreak: { id: string; status: string; startedAt?: string } | null;
   tasks: Array<{ id: string; title: string; description: string; status: string; priority: string; dueAt: string; version: number }>;
 };
 
@@ -394,44 +418,54 @@ export type StaffLeaveBalance = {
 
 type StaffLoginResponse = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   user: StaffUser;
 };
 
 type StaffRefreshResponse = {
   accessToken: string;
-  refreshToken?: string;
   user?: StaffUser;
 };
+
+type WebAuthnBegin = { challengeToken: string; publicKey: PublicKeyCredentialRequestOptions | PublicKeyCredentialCreationOptions };
+type WebAuthnLoginResponse = StaffLoginResponse;
 
 type ApiEnvelope<T> = { success?: boolean; data?: T; error?: { message?: string } | string; message?: string };
 
 @Injectable({ providedIn: "root" })
 export class StaffAppService {
   private readonly baseUrl = environment.apiBaseUrl.replace(/\/$/, "");
+  private accessTokenValue = "";
+  private tenantIdValue = "";
+  private sessionIdValue = "";
+  private refreshPromise: Promise<void> | null = null;
+  private flushPromise: Promise<number> | null = null;
+  private readonly tabId = crypto.randomUUID();
   readonly loading = signal(false);
   readonly error = signal("");
-  readonly user = signal<StaffUser | null>(this.readSession());
-  readonly biometricEnabled = signal(this.readFlag(STAFF_BIOMETRIC_ENABLED_KEY));
-  readonly biometricLocked = signal(this.readFlag(STAFF_BIOMETRIC_ENABLED_KEY) && !!this.readSession() && !!this.accessToken());
+  readonly user = signal<StaffUser | null>(null);
+  readonly biometricEnabled = signal(!!this.readBiometricHint());
+  readonly biometricLocked = signal(false);
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {
+    this.purgeLegacyAuthStorage();
+  }
 
   isAuthenticated(): boolean {
-    return !this.biometricLocked() && !!(this.accessToken() || this.refreshToken()) && !!this.user()?.staffId;
+    return !!this.accessTokenValue && !!this.user()?.staffId;
   }
 
   hasSavedSession(): boolean {
-    return !!(this.accessToken() || this.refreshToken()) && !!this.user()?.staffId;
+    return this.isAuthenticated();
   }
 
   async ensureDemoSession(): Promise<boolean> {
     if (this.isAuthenticated()) return true;
     try {
-      const response = await firstValueFrom(this.http.get<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/demo-staff-session`));
+      const response = await firstValueFrom(this.http.get<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/demo-staff-session`, { withCredentials: true }));
       const session = this.unwrap(response);
       if (!session.user?.staffId) return false;
-      this.saveSession(session);
+      this.saveSession(session, "tenant_aura");
       return true;
     } catch {
       return false;
@@ -463,17 +497,18 @@ export class StaffAppService {
     this.loading.set(true);
     this.error.set("");
     try {
+      const tenantId = payload.tenantId.trim() || "tenant_aura";
       const response = await firstValueFrom(this.http.post<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/login`, {
-        tenantId: payload.tenantId.trim() || "tenant_aura",
+        tenantId,
         loginId: payload.loginId.trim(),
         password: payload.password,
         branchId: payload.branchId?.trim() || undefined,
         device: { type: "staff-app", name: "Aura Staff App", platform: "web" }
-      }));
+      }, { withCredentials: true }));
       const session = this.unwrap(response);
       if (!session.user?.staffId) throw new Error("This login is not linked with a staff profile.");
       if (!this.isStaffRole(session.user.role)) throw new Error("Use a staff login, not an owner/admin login.");
-      this.saveSession(session);
+      this.saveSession(session, tenantId);
       return session.user;
     } catch (error) {
       const message = this.errorMessage(error, "Unable to login staff.");
@@ -556,15 +591,15 @@ export class StaffAppService {
   }
 
   async updateNotification(id: string, status: "read" | "unread" | "archived" = "read"): Promise<unknown> {
-    return this.patch(`/staff-self/notifications/${encodeURIComponent(id)}`, { status });
+    return this.queueableMutation("PATCH", `/staff-self/notifications/${encodeURIComponent(id)}`, { status });
   }
 
-  async updateAppointment(appointmentId: string, payload: { notes?: string; chair?: string; status?: string; startAt?: string; endAt?: string; serviceIds?: string[] }): Promise<StaffAppointment> {
-    return this.patch<StaffAppointment>(`/staff-self/appointments/${encodeURIComponent(appointmentId)}`, payload);
+  async updateAppointment(appointmentId: string, payload: { notes?: string; chair?: string; status?: string; startAt?: string; endAt?: string; serviceIds?: string[] }): Promise<MutationResult<StaffAppointment>> {
+    return this.onlineMutation(() => this.patch<StaffAppointment>(`/staff-self/appointments/${encodeURIComponent(appointmentId)}`, payload));
   }
 
-  async addClientMedia(clientId: string, payload: { title: string; type?: string; url?: string; dataUrl?: string }): Promise<{ id: string; title: string; type: string; url: string; createdAt: string }> {
-    return this.post(`/staff-self/clients/${encodeURIComponent(clientId)}/media`, payload);
+  async addClientMedia(clientId: string, payload: { title: string; type?: string; url?: string; dataUrl?: string }): Promise<MutationResult<{ id: string; title: string; type: string; url: string; createdAt: string }>> {
+    return this.onlineMutation(() => this.post(`/staff-self/clients/${encodeURIComponent(clientId)}/media`, payload));
   }
 
   async updateSchedule(scheduleId: string, payload: { version: number; scheduleDate?: string; startTime?: string; endTime?: string; status?: string; notes?: string }): Promise<unknown> {
@@ -580,10 +615,6 @@ export class StaffAppService {
   }
 
   async sendChatMessage(threadId: string, body: string): Promise<StaffChatMessage> {
-    if (!this.isOnline()) {
-      this.queueOfflineAction("POST", "/staff-self/chat/messages", { threadId, body });
-      return { id: `queued_${Date.now()}`, threadId, senderStaffId: this.staffId(), senderName: this.user()?.name || "Queued", body, createdAt: new Date().toISOString() };
-    }
     return this.post<StaffChatMessage>("/staff-self/chat/messages", { threadId, body });
   }
 
@@ -596,7 +627,7 @@ export class StaffAppService {
   }
 
   async today(date = staffBusinessDate()): Promise<StaffToday> {
-    return this.get<StaffToday>("/staff-os/mobile/today", { date, staffId: this.staffId() });
+    return this.get<StaffToday>("/staff-os/mobile/today", { date });
   }
 
   async attendanceHistory(days = 30): Promise<StaffAttendance[]> {
@@ -604,7 +635,6 @@ export class StaffAppService {
     const start = new Date(`${to}T00:00:00.000Z`);
     start.setUTCDate(start.getUTCDate() - Math.max(0, days - 1));
     return this.get<StaffAttendance[]>("/staff-os/attendance", {
-      staffId: this.staffId(),
       from: start.toISOString().slice(0, 10),
       to,
       limit: "100"
@@ -612,67 +642,70 @@ export class StaffAppService {
   }
 
   async overtimeSummary(): Promise<StaffOvertimeSummary> {
-    return this.get<StaffOvertimeSummary>("/staff-os/attendance/overtime-summary", { staffId: this.staffId(), asOf: staffBusinessDate() });
+    return this.get<StaffOvertimeSummary>("/staff-os/attendance/overtime-summary", { asOf: staffBusinessDate() });
   }
 
   async payroll(): Promise<StaffPayrollItem[]> {
-    return this.get<StaffPayrollItem[]>("/staff-os/mobile/payroll", { staffId: this.staffId() });
+    return this.get<StaffPayrollItem[]>("/staff-os/mobile/payroll");
   }
 
   async targets(): Promise<StaffTarget[]> {
-    return this.get<StaffTarget[]>("/staff-os/mobile/targets", { staffId: this.staffId() });
+    return this.get<StaffTarget[]>("/staff-os/mobile/targets");
   }
 
   async leaves(): Promise<StaffLeave[]> {
-    return this.get<StaffLeave[]>("/staff-os/leaves", { staffId: this.staffId(), limit: "6" });
+    return this.get<StaffLeave[]>("/staff-os/leaves", { limit: "6" });
   }
 
   async leaveBalances(): Promise<StaffLeaveBalance[]> {
-    return this.get<StaffLeaveBalance[]>("/staff-os/leave-balances", { staffId: this.staffId() });
+    return this.get<StaffLeaveBalance[]>("/staff-os/leave-balances");
   }
 
-  async clockIn(): Promise<StaffAttendance> {
-    return this.post<StaffAttendance>("/staff-os/attendance/clock-in", { staffId: this.staffId(), source: "staff-app" });
+  async clockIn(): Promise<MutationResult<StaffAttendance>> {
+    return this.queueableMutation<StaffAttendance>("POST", "/staff-os/attendance/clock-in", { source: "staff-app" });
   }
 
-  async clockOut(attendanceId?: string): Promise<StaffAttendance> {
-    return this.post<StaffAttendance>("/staff-os/attendance/clock-out", { staffId: this.staffId(), attendanceId });
+  async clockOut(attendanceId?: string): Promise<MutationResult<StaffAttendance>> {
+    return this.queueableMutation<StaffAttendance>("POST", "/staff-os/attendance/clock-out", { attendanceId });
   }
 
-  async startBreak(): Promise<unknown> {
-    return this.post("/staff-os/attendance/break-start", { staffId: this.staffId(), breakType: "regular" });
+  async startBreak(): Promise<MutationResult<unknown>> {
+    return this.queueableMutation("POST", "/staff-os/attendance/break-start", { breakType: "regular" });
   }
 
-  async endBreak(): Promise<unknown> {
-    return this.post("/staff-os/attendance/break-end", { staffId: this.staffId() });
+  async endBreak(): Promise<MutationResult<unknown>> {
+    return this.queueableMutation("POST", "/staff-os/attendance/break-end", {});
   }
 
   async requestLeave(payload: { leaveType: string; startDate: string; endDate: string; reason: string }): Promise<unknown> {
-    return this.post("/staff-os/mobile/request-leave", { ...payload, staffId: this.staffId() });
+    return this.post("/staff-os/mobile/request-leave", payload);
   }
 
-  async startService(appointmentId: string): Promise<unknown> {
-    return this.post("/staff-os/mobile/start-service", { staffId: this.staffId(), appointmentId });
+  async startService(appointmentId: string): Promise<MutationResult<unknown>> {
+    return this.queueableMutation("POST", "/staff-os/mobile/start-service", { appointmentId });
   }
 
-  async completeService(appointmentId: string): Promise<unknown> {
-    return this.post("/staff-os/mobile/complete-service", { staffId: this.staffId(), appointmentId });
+  async completeService(appointmentId: string): Promise<MutationResult<unknown>> {
+    return this.queueableMutation("POST", "/staff-os/mobile/complete-service", { appointmentId });
   }
 
-  async completeTask(taskId: string, version: number): Promise<unknown> {
-    return this.patch(`/staff-os/tasks/${taskId}`, { status: "completed", version });
+  async completeTask(taskId: string, version: number): Promise<MutationResult<unknown>> {
+    return this.queueableMutation("PATCH", `/staff-os/tasks/${encodeURIComponent(taskId)}`, { status: "completed", version });
   }
 
-  async moveTask(taskId: string, version: number, status: string): Promise<unknown> {
-    return this.patch(`/staff-os/tasks/${taskId}`, { status, version });
+  async moveTask(taskId: string, version: number, status: string): Promise<MutationResult<unknown>> {
+    return this.queueableMutation("PATCH", `/staff-os/tasks/${encodeURIComponent(taskId)}`, { status, version });
   }
 
-  logout() {
-    localStorage.removeItem(STAFF_ACCESS_TOKEN_KEY);
-    localStorage.removeItem(STAFF_REFRESH_TOKEN_KEY);
-    localStorage.removeItem(STAFF_SESSION_KEY);
-    this.biometricLocked.set(false);
-    this.user.set(null);
+  async logout(): Promise<void> {
+    try {
+      if (!this.accessTokenValue) await this.refreshSession();
+      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { headers: this.authHeaders(), withCredentials: true }));
+    } catch {
+      // Local state must still be destroyed when the server session is already invalid.
+    } finally {
+      this.clearLocalAuthState(true);
+    }
   }
 
   biometricSupported(): boolean {
@@ -682,32 +715,25 @@ export class StaffAppService {
   async setBiometricEnabled(enabled: boolean): Promise<void> {
     this.error.set("");
     if (!enabled) {
-      localStorage.removeItem(STAFF_BIOMETRIC_ENABLED_KEY);
-      localStorage.removeItem(STAFF_BIOMETRIC_CREDENTIAL_KEY);
+      localStorage.removeItem(STAFF_BIOMETRIC_HINT_KEY);
       this.biometricEnabled.set(false);
       this.biometricLocked.set(false);
       return;
     }
     if (!this.hasSavedSession()) throw new Error("Login once before enabling biometric unlock.");
     if (!this.biometricSupported()) throw new Error("Biometric unlock is not supported on this device.");
-    const credential = await navigator.credentials.create({
-      publicKey: {
-        challenge: this.randomChallenge(),
-        rp: { name: "Aura Staff" },
-        user: {
-          id: this.randomChallenge(),
-          name: this.user()?.loginId || this.user()?.email || "staff",
-          displayName: this.user()?.name || "Aura Staff"
-        },
-        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
-        authenticatorSelection: { userVerification: "required", residentKey: "preferred" },
-        timeout: 60000,
-        attestation: "none"
-      }
-    });
-    if (!credential?.id) throw new Error("Biometric setup was cancelled.");
-    localStorage.setItem(STAFF_BIOMETRIC_CREDENTIAL_KEY, credential.id);
-    localStorage.setItem(STAFF_BIOMETRIC_ENABLED_KEY, "true");
+    const begin = await this.authPost<WebAuthnBegin>("/auth/webauthn/register/begin", { label: "Aura Staff App" }, true);
+    const credential = await navigator.credentials.create({ publicKey: this.decodeCreationOptions(begin.publicKey as PublicKeyCredentialCreationOptions) });
+    if (!(credential instanceof PublicKeyCredential)) throw new Error("Passkey setup was cancelled.");
+    await this.authPost("/auth/webauthn/register/finish", {
+      challengeToken: begin.challengeToken,
+      id: credential.id,
+      rawId: this.arrayBufferToBase64Url(credential.rawId),
+      response: this.registrationResponse(credential.response)
+    }, true);
+    const hint = { tenantId: this.tenantIdValue, loginId: this.user()?.loginId || this.user()?.email || "" };
+    if (!hint.tenantId || !hint.loginId) throw new Error("Passkey login hint is unavailable.");
+    localStorage.setItem(STAFF_BIOMETRIC_HINT_KEY, JSON.stringify(hint));
     this.biometricEnabled.set(true);
     this.biometricLocked.set(false);
   }
@@ -715,56 +741,87 @@ export class StaffAppService {
   async unlockWithBiometric(): Promise<void> {
     this.error.set("");
     if (!this.biometricEnabled()) throw new Error("Biometric unlock is not enabled.");
-    if (!this.hasSavedSession()) throw new Error("No saved staff session found. Login once with password.");
     if (!this.biometricSupported()) throw new Error("Biometric unlock is not supported on this device.");
-    const credentialId = localStorage.getItem(STAFF_BIOMETRIC_CREDENTIAL_KEY) || "";
-    if (!credentialId) throw new Error("Biometric credential is missing. Enable it again after login.");
-    await navigator.credentials.get({
-      publicKey: {
-        challenge: this.randomChallenge(),
-        allowCredentials: [{ id: this.base64UrlToArrayBuffer(credentialId), type: "public-key" }],
-        userVerification: "required",
-        timeout: 60000
-      }
+    const hint = this.readBiometricHint();
+    if (!hint) throw new Error("Passkey login is not configured on this device.");
+    const begin = await this.publicPost<WebAuthnBegin>("/auth/webauthn/login/begin", hint);
+    const credential = await navigator.credentials.get({ publicKey: this.decodeRequestOptions(begin.publicKey as PublicKeyCredentialRequestOptions) });
+    if (!(credential instanceof PublicKeyCredential)) throw new Error("Passkey login was cancelled.");
+    const response = await this.publicPost<WebAuthnLoginResponse>("/auth/webauthn/login/finish", {
+      challengeToken: begin.challengeToken,
+      id: credential.id,
+      rawId: this.arrayBufferToBase64Url(credential.rawId),
+      response: this.authenticationResponse(credential.response)
     });
-    this.biometricLocked.set(false);
-    if (!this.accessToken() && this.refreshToken()) await this.refreshSession();
+    if (!response.user?.staffId || !this.isStaffRole(response.user.role)) throw new Error("Passkey is not linked to a staff profile.");
+    this.saveSession(response, hint.tenantId);
   }
 
-  openSession(session: { accessToken: string; refreshToken?: string; user: StaffUser }) {
-    this.saveSession({ accessToken: session.accessToken, refreshToken: session.refreshToken || "", user: session.user });
+  openSession(session: { accessToken: string; user: StaffUser }) {
+    this.saveSession({ accessToken: session.accessToken, user: session.user }, "tenant_aura");
   }
 
   realtimeSocketUrl(): string {
-    const token = this.accessToken();
-    if (!token) return "";
+    if (!this.isAuthenticated()) return "";
+    return this.buildRealtimeSocketUrl();
+  }
+
+  async realtimeSocketTicketUrl(): Promise<string> {
+    if (!this.isAuthenticated()) return "";
+    const branchId = this.user()?.branchId || this.user()?.branchIds?.[0] || "";
+    const response = await this.authPost<{ ticket: string; expiresIn: number }>("/realtime/ticket", { branchId }, true);
+    if (!response.ticket) throw new Error("Realtime ticket was not issued.");
+    return this.buildRealtimeSocketUrl(response.ticket);
+  }
+
+  private buildRealtimeSocketUrl(ticket = ""): string {
     const branchId = this.user()?.branchId || this.user()?.branchIds?.[0] || "";
     const base = this.baseUrl.startsWith("http")
       ? new URL(this.baseUrl)
       : new URL(this.baseUrl, window.location.origin);
     base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
     base.pathname = `${base.pathname.replace(/\/$/, "")}/realtime`;
-    base.searchParams.set("token", token);
+    if (ticket) base.searchParams.set("ticket", ticket);
     if (branchId) base.searchParams.set("branchId", branchId);
     return base.toString();
   }
 
   async flushOfflineActions(): Promise<number> {
-    if (!this.isOnline()) return 0;
+    if (this.flushPromise) return this.flushPromise;
+    this.flushPromise = this.flushOfflineActionsInternal().finally(() => { this.flushPromise = null; });
+    return this.flushPromise;
+  }
+
+  private async flushOfflineActionsInternal(): Promise<number> {
+    if (!this.isOnline() || !this.isAuthenticated() || !this.acquireQueueLease()) return 0;
     const queue = this.readOfflineQueue();
-    if (!queue.length) return 0;
+    if (!queue.length) { this.releaseQueueLease(); return 0; }
     let flushed = 0;
-    const remaining = [];
-    for (const item of queue) {
+    for (const item of queue.filter((entry) => entry.state === "pending" || entry.state === "syncing")) {
+      if (!this.isQueueOwner(item)) {
+        item.state = "permanent-failure";
+        item.lastError = "Queued action belongs to a different authenticated session.";
+        continue;
+      }
       try {
-        if (item.method === "POST") await this.post(item.path, item.body, true);
-        else await this.patch(item.path, item.body, true);
+        item.state = "syncing";
+        this.writeOfflineQueue(queue);
+        const headers = this.authHeaders().set("Idempotency-Key", item.idempotencyKey);
+        await this.requestMutation(item.method, item.path, item.body, headers);
+        const index = queue.indexOf(item);
+        if (index >= 0) queue.splice(index, 1);
         flushed += 1;
-      } catch {
-        remaining.push(item);
+      } catch (error) {
+        item.lastError = this.errorMessage(error, "Offline sync failed.");
+        item.state = error instanceof HttpErrorResponse && error.status === 409
+          ? "conflict"
+          : error instanceof HttpErrorResponse && error.status >= 400 && error.status < 500
+            ? "permanent-failure"
+            : "pending";
       }
     }
-    localStorage.setItem(STAFF_OFFLINE_QUEUE_KEY, JSON.stringify(remaining.slice(-30)));
+    this.writeOfflineQueue(queue);
+    this.releaseQueueLease();
     return flushed;
   }
 
@@ -772,22 +829,8 @@ export class StaffAppService {
     return this.readOfflineQueue().length;
   }
 
-  private accessToken(): string {
-    return localStorage.getItem(STAFF_ACCESS_TOKEN_KEY) || "";
-  }
-
-  private refreshToken(): string {
-    return localStorage.getItem(STAFF_REFRESH_TOKEN_KEY) || "";
-  }
-
-  private staffId(): string {
-    const staffId = this.user()?.staffId || "";
-    if (!staffId) throw new Error("Staff profile is not linked.");
-    return staffId;
-  }
-
   private authHeaders(): HttpHeaders {
-    const token = this.accessToken();
+    const token = this.accessTokenValue;
     if (!token) throw new Error("Staff login required.");
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
@@ -817,14 +860,10 @@ export class StaffAppService {
     }
   }
 
-  private async post<T = unknown>(path: string, body: Record<string, unknown>, flushing = false): Promise<T> {
+  private async post<T = unknown>(path: string, body: Record<string, unknown>): Promise<T> {
     this.loading.set(true);
     this.error.set("");
-    if (!flushing && !this.isOnline()) {
-      this.queueOfflineAction("POST", path, body);
-      this.loading.set(false);
-      return { queued: true } as T;
-    }
+    if (!this.isOnline()) { this.loading.set(false); throw new Error("This action requires an internet connection."); }
     try {
       return await this.withRefreshRetry(async () => {
         const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
@@ -839,14 +878,10 @@ export class StaffAppService {
     }
   }
 
-  private async patch<T = unknown>(path: string, body: Record<string, unknown>, flushing = false): Promise<T> {
+  private async patch<T = unknown>(path: string, body: Record<string, unknown>): Promise<T> {
     this.loading.set(true);
     this.error.set("");
-    if (!flushing && !this.isOnline()) {
-      this.queueOfflineAction("PATCH", path, body);
-      this.loading.set(false);
-      return { queued: true } as T;
-    }
+    if (!this.isOnline()) { this.loading.set(false); throw new Error("This action requires an internet connection."); }
     try {
       return await this.withRefreshRetry(async () => {
         const response = await firstValueFrom(this.http.patch<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
@@ -861,66 +896,54 @@ export class StaffAppService {
     }
   }
 
-  private saveSession(session: StaffLoginResponse) {
-    localStorage.setItem(STAFF_ACCESS_TOKEN_KEY, session.accessToken);
-    localStorage.setItem(STAFF_REFRESH_TOKEN_KEY, session.refreshToken || "");
-    localStorage.setItem(STAFF_SESSION_KEY, JSON.stringify(session.user));
+  private saveSession(session: StaffLoginResponse, tenantId: string) {
+    resetCsrfState();
+    this.clearOfflineState();
+    this.accessTokenValue = session.accessToken;
+    this.tenantIdValue = tenantId;
+    this.sessionIdValue = crypto.randomUUID();
     this.user.set(session.user);
   }
 
   private async withRefreshRetry<T>(request: () => Promise<T>): Promise<T> {
     try {
-      if (!this.accessToken() && this.refreshToken()) await this.refreshSession();
+      if (!this.accessTokenValue) await this.refreshSession();
       return await request();
     } catch (error) {
-      if (!this.isUnauthorized(error) || !this.refreshToken()) throw error;
+      if (!this.isUnauthorized(error)) throw error;
       await this.refreshSession();
       return request();
     }
   }
 
   private async refreshSession(): Promise<void> {
-    const refreshToken = this.refreshToken();
-    if (!refreshToken) throw new Error("Staff login required.");
-    const response = await firstValueFrom(this.http.post<StaffRefreshResponse | ApiEnvelope<StaffRefreshResponse>>(`${this.baseUrl}/auth/refresh`, {
-      refreshToken,
-      device: { type: "staff-app", name: "Aura Staff App", platform: "web" }
-    }));
-    const session = this.unwrap(response);
-    if (!session.accessToken) throw new Error("Staff session refresh failed.");
-    localStorage.setItem(STAFF_ACCESS_TOKEN_KEY, session.accessToken);
-    if (session.refreshToken) localStorage.setItem(STAFF_REFRESH_TOKEN_KEY, session.refreshToken);
-    if (session.user?.staffId) {
-      localStorage.setItem(STAFF_SESSION_KEY, JSON.stringify(session.user));
-      this.user.set(session.user);
-    }
+    if (this.refreshPromise) return this.refreshPromise;
+    this.refreshPromise = (async () => {
+      try {
+        const response = await firstValueFrom(this.http.post<StaffRefreshResponse | ApiEnvelope<StaffRefreshResponse>>(
+          `${this.baseUrl}/auth/refresh`,
+          { device: { type: "staff-app", name: "Aura Staff App", platform: "web" } },
+          { withCredentials: true }
+        ));
+        const session = this.unwrap(response);
+        if (!session.accessToken) throw new Error("Staff session refresh failed.");
+        this.accessTokenValue = session.accessToken;
+        if (session.user?.staffId) {
+          if (this.user()?.id && this.user()?.id !== session.user.id) this.clearOfflineState();
+          this.user.set(session.user);
+          this.tenantIdValue ||= this.readBiometricHint()?.tenantId || "";
+          this.sessionIdValue ||= crypto.randomUUID();
+        }
+      } catch (error) {
+        this.clearLocalAuthState(false);
+        throw error;
+      }
+    })().finally(() => { this.refreshPromise = null; });
+    return this.refreshPromise;
   }
 
   private isUnauthorized(error: unknown): boolean {
     return error instanceof HttpErrorResponse && error.status === 401;
-  }
-
-  private readSession(): StaffUser | null {
-    try {
-      const raw = localStorage.getItem(STAFF_SESSION_KEY);
-      return raw ? JSON.parse(raw) as StaffUser : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private readFlag(key: string): boolean {
-    try {
-      return localStorage.getItem(key) === "true";
-    } catch {
-      return false;
-    }
-  }
-
-  private randomChallenge(): Uint8Array {
-    const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    return bytes;
   }
 
   private base64UrlToArrayBuffer(value: string): ArrayBuffer {
@@ -940,19 +963,153 @@ export class StaffAppService {
     return typeof navigator === "undefined" ? true : navigator.onLine;
   }
 
-  private queueOfflineAction(method: "POST" | "PATCH", path: string, body: Record<string, unknown>) {
-    const queue = this.readOfflineQueue();
-    queue.push({ method, path, body, queuedAt: new Date().toISOString() });
-    localStorage.setItem(STAFF_OFFLINE_QUEUE_KEY, JSON.stringify(queue.slice(-30)));
-  }
-
-  private readOfflineQueue(): Array<{ method: "POST" | "PATCH"; path: string; body: Record<string, unknown>; queuedAt: string }> {
+  private readOfflineQueue(): OfflineQueueEntry[] {
     try {
-      const parsed = JSON.parse(localStorage.getItem(STAFF_OFFLINE_QUEUE_KEY) || "[]");
-      return Array.isArray(parsed) ? parsed : [];
+      const parsed: unknown = JSON.parse(localStorage.getItem(STAFF_OFFLINE_QUEUE_KEY) || "[]");
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((item): item is OfflineQueueEntry => this.isOfflineQueueEntry(item));
     } catch {
       return [];
     }
+  }
+
+  private async queueableMutation<T = unknown>(method: "POST" | "PATCH", path: string, body: Record<string, unknown>): Promise<MutationResult<T>> {
+    if (this.isOnline()) return { state: "completed", data: method === "POST" ? await this.post<T>(path, body) : await this.patch<T>(path, body) };
+    if (!this.isAllowedOfflineMutation(method, path, body)) throw new Error("This action cannot be stored offline.");
+    const queueId = crypto.randomUUID();
+    const idempotencyKey = crypto.randomUUID();
+    const entry: OfflineQueueEntry = {
+      queueId, idempotencyKey, userId: this.user()?.id || "", tenantId: this.tenantIdValue,
+      sessionId: this.sessionIdValue, method, path, body, state: "pending", queuedAt: new Date().toISOString()
+    };
+    if (!this.isQueueOwner(entry)) throw new Error("An authenticated session is required to queue this action.");
+    this.writeOfflineQueue([...this.readOfflineQueue(), entry].slice(-30));
+    return { state: "queued", queueId, idempotencyKey };
+  }
+
+  private isAllowedOfflineMutation(method: "POST" | "PATCH", path: string, body: Record<string, unknown>): boolean {
+    if (method === "PATCH" && /^\/staff-self\/notifications\/[^/]+$/.test(path)) return Object.keys(body).length === 1 && ["read", "unread", "archived"].includes(String(body["status"]));
+    if (method === "PATCH" && /^\/staff-os\/tasks\/[^/]+$/.test(path)) return Object.keys(body).every((key) => ["status", "version"].includes(key)) && typeof body["version"] === "number";
+    if (method === "POST" && ["/staff-os/attendance/clock-in", "/staff-os/attendance/clock-out", "/staff-os/attendance/break-start", "/staff-os/attendance/break-end"].includes(path)) {
+      return Object.keys(body).every((key) => ["staffId", "source", "attendanceId", "breakType"].includes(key));
+    }
+    if (method === "POST" && ["/staff-os/mobile/start-service", "/staff-os/mobile/complete-service"].includes(path)) {
+      return Object.keys(body).every((key) => ["staffId", "appointmentId"].includes(key)) && typeof body["appointmentId"] === "string";
+    }
+    return false;
+  }
+
+  private async onlineMutation<T>(mutation: () => Promise<T>): Promise<MutationResult<T>> {
+    if (!this.isOnline()) throw new Error("This action requires an internet connection and cannot be stored offline.");
+    return { state: "completed", data: await mutation() };
+  }
+
+  private isOfflineQueueEntry(value: unknown): value is OfflineQueueEntry {
+    if (!value || typeof value !== "object") return false;
+    const item = value as Record<string, unknown>;
+    return typeof item["queueId"] === "string" && typeof item["idempotencyKey"] === "string" &&
+      typeof item["userId"] === "string" && typeof item["tenantId"] === "string" && typeof item["sessionId"] === "string" &&
+      (item["method"] === "POST" || item["method"] === "PATCH") && typeof item["path"] === "string" &&
+      !!item["body"] && typeof item["body"] === "object" && ["pending", "syncing", "permanent-failure", "conflict"].includes(String(item["state"]));
+  }
+
+  private writeOfflineQueue(queue: OfflineQueueEntry[]): void { localStorage.setItem(STAFF_OFFLINE_QUEUE_KEY, JSON.stringify(queue)); }
+  private clearOfflineState(): void { localStorage.removeItem(STAFF_OFFLINE_QUEUE_KEY); localStorage.removeItem(STAFF_OFFLINE_LEASE_KEY); }
+  private isQueueOwner(item: OfflineQueueEntry): boolean {
+    return !!this.user()?.id && item.userId === this.user()?.id && item.tenantId === this.tenantIdValue && item.sessionId === this.sessionIdValue;
+  }
+
+  private acquireQueueLease(): boolean {
+    const now = Date.now();
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(STAFF_OFFLINE_LEASE_KEY) || "null");
+      if (parsed && typeof parsed === "object") {
+        const lease = parsed as Record<string, unknown>;
+        if (lease["owner"] !== this.tabId && typeof lease["expiresAt"] === "number" && lease["expiresAt"] > now) return false;
+      }
+      localStorage.setItem(STAFF_OFFLINE_LEASE_KEY, JSON.stringify({ owner: this.tabId, expiresAt: now + 30_000 }));
+      const confirmed: unknown = JSON.parse(localStorage.getItem(STAFF_OFFLINE_LEASE_KEY) || "null");
+      return !!confirmed && typeof confirmed === "object" && (confirmed as Record<string, unknown>)["owner"] === this.tabId;
+    } catch { return false; }
+  }
+
+  private releaseQueueLease(): void {
+    try {
+      const lease: unknown = JSON.parse(localStorage.getItem(STAFF_OFFLINE_LEASE_KEY) || "null");
+      if (lease && typeof lease === "object" && (lease as Record<string, unknown>)["owner"] === this.tabId) localStorage.removeItem(STAFF_OFFLINE_LEASE_KEY);
+    } catch { localStorage.removeItem(STAFF_OFFLINE_LEASE_KEY); }
+  }
+
+  private async requestMutation(method: "POST" | "PATCH", path: string, body: Record<string, unknown>, headers: HttpHeaders): Promise<unknown> {
+    return this.withRefreshRetry(async () => {
+      const request = method === "POST" ? this.http.post<unknown>(`${this.baseUrl}${path}`, body, { headers }) : this.http.patch<unknown>(`${this.baseUrl}${path}`, body, { headers });
+      return firstValueFrom(request);
+    });
+  }
+
+  private clearLocalAuthState(clearBiometric: boolean): void {
+    resetCsrfState();
+    this.accessTokenValue = "";
+    this.tenantIdValue = "";
+    this.sessionIdValue = "";
+    this.user.set(null);
+    this.biometricLocked.set(false);
+    this.clearOfflineState();
+    this.purgeLegacyAuthStorage();
+    localStorage.removeItem("auraStaffRecent");
+    if (clearBiometric) localStorage.removeItem(STAFF_BIOMETRIC_HINT_KEY);
+    this.biometricEnabled.set(!clearBiometric && !!this.readBiometricHint());
+  }
+
+  private purgeLegacyAuthStorage(): void {
+    for (const key of LEGACY_STAFF_AUTH_KEYS) localStorage.removeItem(key);
+  }
+
+  private readBiometricHint(): BiometricLoginHint | null {
+    try {
+      const value: unknown = JSON.parse(localStorage.getItem(STAFF_BIOMETRIC_HINT_KEY) || "null");
+      if (!value || typeof value !== "object") return null;
+      const hint = value as Record<string, unknown>;
+      return typeof hint["tenantId"] === "string" && typeof hint["loginId"] === "string" ? { tenantId: hint["tenantId"], loginId: hint["loginId"] } : null;
+    } catch { return null; }
+  }
+
+  private async publicPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+    const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { withCredentials: true }));
+    return this.unwrap(response);
+  }
+
+  private async authPost<T = unknown>(path: string, body: Record<string, unknown>, authenticated = false): Promise<T> {
+    if (!authenticated) return this.publicPost<T>(path, body);
+    return this.withRefreshRetry(async () => {
+      const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders(), withCredentials: true }));
+      return this.unwrap(response);
+    });
+  }
+
+  private decodeCreationOptions(options: PublicKeyCredentialCreationOptions): PublicKeyCredentialCreationOptions {
+    return { ...options, challenge: this.base64UrlToArrayBuffer(String(options.challenge)), user: { ...options.user, id: this.base64UrlToArrayBuffer(String(options.user.id)) } };
+  }
+
+  private decodeRequestOptions(options: PublicKeyCredentialRequestOptions): PublicKeyCredentialRequestOptions {
+    return { ...options, challenge: this.base64UrlToArrayBuffer(String(options.challenge)), allowCredentials: options.allowCredentials?.map((item) => ({ ...item, id: this.base64UrlToArrayBuffer(String(item.id)) })) };
+  }
+
+  private registrationResponse(response: AuthenticatorResponse): Record<string, unknown> {
+    if (!(response instanceof AuthenticatorAttestationResponse)) throw new Error("Invalid passkey registration response.");
+    return { clientDataJSON: this.arrayBufferToBase64Url(response.clientDataJSON), attestationObject: this.arrayBufferToBase64Url(response.attestationObject) };
+  }
+
+  private authenticationResponse(response: AuthenticatorResponse): Record<string, unknown> {
+    if (!(response instanceof AuthenticatorAssertionResponse)) throw new Error("Invalid passkey authentication response.");
+    return { clientDataJSON: this.arrayBufferToBase64Url(response.clientDataJSON), authenticatorData: this.arrayBufferToBase64Url(response.authenticatorData), signature: this.arrayBufferToBase64Url(response.signature), userHandle: response.userHandle ? this.arrayBufferToBase64Url(response.userHandle) : null };
+  }
+
+  private arrayBufferToBase64Url(value: ArrayBuffer): string {
+    const bytes = new Uint8Array(value);
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 
   private unwrap<T>(response: T | ApiEnvelope<T>): T {

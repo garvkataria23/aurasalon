@@ -1,12 +1,13 @@
-import { CurrencyPipe, DatePipe } from "@angular/common";
+import { DatePipe } from "@angular/common";
 import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { IonSpinner } from "@ionic/angular/standalone";
-import { StaffAppService, StaffAttendance, StaffDashboard, StaffEnterpriseOs, StaffLeaveBalance, StaffOvertimeSummary, StaffToday } from "../../core/staff-app.service";
+import { isQueuedMutation, MutationResult, StaffAppService, StaffAttendance, StaffDashboard, StaffEnterpriseOs, StaffLeaveBalance, StaffOvertimeSummary, StaffToday } from "../../core/staff-app.service";
+import { formatPaiseInr, PaiseInrPipe } from "../../core/paise-inr.pipe";
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink, IonSpinner],
+  imports: [DatePipe, PaiseInrPipe, RouterLink, IonSpinner],
   template: `
     <section class="page">
       <section class="staff-home-hero">
@@ -15,10 +16,10 @@ import { StaffAppService, StaffAttendance, StaffDashboard, StaffEnterpriseOs, St
           <h1>{{ os()?.home?.greeting || ('Good to see you, ' + (staff.user()?.name || 'Staff')) }}</h1>
           <p>Attendance, appointments, tasks, client signals, and AI coach for today's floor work.</p>
           <div class="row-actions hero-actions">
-            <button type="button" class="link-button" [disabled]="loading() || sessionExpired()" (click)="clockAction()">{{ clockButtonLabel() }}</button>
+            <button type="button" class="link-button" [disabled]="loading() || sessionExpired() || !!pendingMutation()" (click)="clockAction()">{{ pendingMutation() === 'attendance' ? 'Saving...' : clockButtonLabel() }}</button>
             <a class="button primary" routerLink="/staff/appointments">Open appointments</a>
             <a class="button" routerLink="/staff/client-360">Client 360</a>
-            <button type="button" class="button" (click)="toggleCustomizer()">Customize</button>
+            <button type="button" class="button" [attr.aria-expanded]="customizerOpen()" (click)="toggleCustomizer()">Customize</button>
           </div>
           <div class="hero-stat-grid">
             <article>
@@ -77,7 +78,7 @@ import { StaffAppService, StaffAttendance, StaffDashboard, StaffEnterpriseOs, St
         <a class="basic-home-card" routerLink="/staff/chat"><span>Chat</span><strong>{{ os()?.notifications?.length || 0 }}</strong><small>updates and team messages</small></a>
         <a class="basic-home-card" routerLink="/staff/reports"><span>Reports</span><strong>{{ data()?.summary?.completedAppointments || 0 }}</strong><small>completed work today</small></a>
         @if (canSeeRevenue()) {
-          <a class="basic-home-card revenue" routerLink="/staff/reports"><span>Revenue</span><strong>{{ revenueValue() | currency:'INR':'symbol':'1.0-0' }}</strong><small>connected sales/bookings</small></a>
+          <a class="basic-home-card revenue" routerLink="/staff/reports"><span>Revenue</span><strong>{{ revenueValue() | paiseInr }}</strong><small>connected sales/bookings</small></a>
         }
       </section>
 
@@ -127,7 +128,7 @@ import { StaffAppService, StaffAttendance, StaffDashboard, StaffEnterpriseOs, St
           <article class="kpi"><span>Live</span><strong>{{ dashboard.summary.liveAppointments }}</strong><small>active services</small></article>
           <article class="kpi"><span>Completed</span><strong>{{ dashboard.summary.completedAppointments }}</strong><small>current report window</small></article>
           @if (canSeeRevenue()) {
-            <article class="kpi"><span>Today's Revenue</span><strong>{{ os()?.home?.expectedRevenue || dashboard.summary.revenue | currency:'INR':'symbol':'1.0-0' }}</strong><small>connected sales/bookings</small></article>
+            <article class="kpi"><span>Today's Revenue</span><strong>{{ (os()?.home?.expectedRevenue || dashboard.summary.revenue) | paiseInr }}</strong><small>connected sales/bookings</small></article>
           }
         </section> }
 
@@ -192,8 +193,8 @@ import { StaffAppService, StaffAttendance, StaffDashboard, StaffEnterpriseOs, St
                 <div class="row">
                   <div class="row-main"><strong>{{ item.clientName || 'Walk-in client' }}</strong><small>{{ item.startAt | date:'shortTime' }} · {{ item.serviceNames.join(', ') || 'Service' }}</small></div>
                   <div class="row-actions">
-                    @if (canStartService(item)) { <button type="button" class="button primary" (click)="startService(item.id)">Start</button> }
-                    @if (canCompleteService(item)) { <button type="button" class="button primary" (click)="completeService(item.id)">Complete</button> }
+                    @if (canStartService(item)) { <button type="button" class="button primary" [disabled]="!!pendingMutation()" (click)="startService(item.id)">Start</button> }
+                    @if (canCompleteService(item)) { <button type="button" class="button primary" [disabled]="!!pendingMutation()" (click)="completeService(item.id)">Complete</button> }
                     <a class="button" [routerLink]="['/staff/client-360', item.clientId]">Client 360</a>
                   </div>
                 </div>
@@ -338,6 +339,7 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly sessionExpired = signal(false);
   readonly actionMessage = signal("");
+  readonly pendingMutation = signal("");
   readonly customizerOpen = signal(false);
   readonly hiddenWidgets = signal<Set<string>>(this.readHiddenWidgets());
   readonly draggedWidget = signal("");
@@ -385,16 +387,18 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   }
 
   async clockAction() {
+    if (this.pendingMutation()) return;
+    this.pendingMutation.set("attendance");
     this.actionMessage.set("");
     try {
       const open = this.openAttendance();
-      if (open) await this.staff.clockOut(open.id);
-      else await this.staff.clockIn();
+      const result = open ? await this.staff.clockOut(open.id) : await this.staff.clockIn();
+      if (isQueuedMutation(result)) { this.actionMessage.set(`Attendance change queued for sync (${result.queueId}).`); return; }
       this.actionMessage.set(open ? "Clocked out." : "Clocked in.");
       await this.load();
     } catch {
       this.actionMessage.set(this.staff.error() || "Attendance update failed.");
-    }
+    } finally { this.pendingMutation.set(""); }
   }
 
   canSeeRevenue(): boolean {
@@ -496,8 +500,7 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   }
 
   moneyCompact(value: number): string {
-    if (!Number.isFinite(Number(value))) return "0";
-    return new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value));
+    return formatPaiseInr(value);
   }
 
   opportunityCount(): number {
@@ -517,25 +520,24 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   }
 
   async startService(appointmentId: string) {
-    this.actionMessage.set('');
-    try {
-      await this.staff.startService(appointmentId);
-      this.actionMessage.set('Service started.');
-      await this.load();
-    } catch {
-      this.actionMessage.set(this.staff.error() || 'Unable to start service.');
-    }
+    await this.runServiceMutation(appointmentId, () => this.staff.startService(appointmentId), "Service started.");
   }
 
   async completeService(appointmentId: string) {
-    this.actionMessage.set('');
+    await this.runServiceMutation(appointmentId, () => this.staff.completeService(appointmentId), "Service completed.");
+  }
+
+  private async runServiceMutation(appointmentId: string, mutate: () => Promise<MutationResult<unknown>>, completedMessage: string) {
+    if (this.pendingMutation()) return;
+    this.pendingMutation.set(appointmentId);
+    this.actionMessage.set("");
     try {
-      await this.staff.completeService(appointmentId);
-      this.actionMessage.set('Service completed.');
+      const result = await mutate();
+      if (isQueuedMutation(result)) { this.actionMessage.set(`Service change queued for sync (${result.queueId}).`); return; }
+      this.actionMessage.set(completedMessage);
       await this.load();
-    } catch {
-      this.actionMessage.set(this.staff.error() || 'Unable to complete service.');
-    }
+    } catch { this.actionMessage.set(this.staff.error() || "Unable to update service."); }
+    finally { this.pendingMutation.set(""); }
   }
 
   showWidget(key: string): boolean {

@@ -292,7 +292,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   ngOnInit() {
     void this.loadShellData();
     void this.flushOfflineQueue();
-    this.connectRealtime();
+    void this.connectRealtime();
     this.pollTimer = window.setInterval(() => {
       if (document.visibilityState === "visible" && !this.realtimeConnected()) void this.loadShellData();
     }, 60000);
@@ -305,7 +305,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     this.socket?.close();
   }
 
-  @HostListener("window:online") onOnline() { this.online.set(true); void this.flushOfflineQueue(); this.connectRealtime(); }
+  @HostListener("window:online") onOnline() { this.online.set(true); void this.flushOfflineQueue(); void this.connectRealtime(); }
   @HostListener("window:offline") onOffline() { this.online.set(false); this.realtimeConnected.set(false); }
   @HostListener("window:keydown", ["$event"])
   onKeydown(event: KeyboardEvent) {
@@ -458,10 +458,10 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     void this.router.navigateByUrl(item.path);
   }
 
-  logout() {
+  async logout() {
     this.closeMenu();
-    this.staff.logout();
-    void this.router.navigateByUrl("/staff/login");
+    await this.staff.logout();
+    await this.router.navigateByUrl("/staff/login");
   }
 
   private async loadShellData() {
@@ -481,10 +481,12 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     }
   }
 
-  private connectRealtime() {
+  private async connectRealtime() {
     if (!this.online() || !this.staff.isAuthenticated()) return;
     if (this.socket && ([WebSocket.CONNECTING, WebSocket.OPEN] as number[]).includes(this.socket.readyState)) return;
-    const url = this.staff.realtimeSocketUrl();
+    let url = "";
+    try { url = await this.staff.realtimeSocketTicketUrl(); } catch { this.scheduleRealtimeReconnect(); return; }
+    if (!this.online() || !this.staff.isAuthenticated()) return;
     if (!url) return;
     try {
       const socket = new WebSocket(url);
@@ -506,7 +508,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
 
   private scheduleRealtimeReconnect() {
     window.clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = window.setTimeout(() => this.connectRealtime(), 5000);
+    this.reconnectTimer = window.setTimeout(() => void this.connectRealtime(), 5000);
   }
 
   private handleRealtimeMessage(raw: unknown) {

@@ -64,7 +64,16 @@ test("general settings persist by branch, project to staff, and publish realtime
     const currentEnvelope = await currentResponse.json();
     const current = currentEnvelope.data || currentEnvelope;
 
-    socket = new WebSocket(`ws://127.0.0.1:${server.address().port}/api/v1/realtime?token=${encodeURIComponent(token)}&branchId=${encodeURIComponent(branchId)}`);
+    const ticketResponse = await fetch(`${origin}/api/v1/realtime/ticket`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ branchId })
+    });
+    assert.equal(ticketResponse.status, 201);
+    const ticketEnvelope = await ticketResponse.json();
+    const ticket = (ticketEnvelope.data || ticketEnvelope).ticket;
+    assert.ok(ticket);
+    socket = new WebSocket(`ws://127.0.0.1:${server.address().port}/api/v1/realtime?ticket=${encodeURIComponent(ticket)}`);
     await waitForFrame(socket, "connection.ready");
     const updateFrame = waitForFrame(socket, "settings.general.updated");
     const workspaceName = `Settings API ${randomUUID().slice(0, 8)}`;

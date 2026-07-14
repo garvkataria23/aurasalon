@@ -1,12 +1,14 @@
-import { CurrencyPipe, DatePipe } from "@angular/common";
+import { DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffDashboard, StaffEnterpriseOs } from "../../core/staff-app.service";
+import { businessDateOffset } from "../../core/business-date";
+import { PaiseInrPipe } from "../../core/paise-inr.pipe";
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, FormsModule, IonSpinner],
+  imports: [PaiseInrPipe, DatePipe, FormsModule, IonSpinner],
   template: `
     <section class="page">
       <header class="page-head">
@@ -44,14 +46,14 @@ import { StaffAppService, StaffDashboard, StaffEnterpriseOs } from "../../core/s
           <article class="kpi"><span>Appointments</span><strong>{{ dash.summary.appointments }}</strong><small>{{ dash.summary.todayAppointments }} in selected day</small></article>
           <article class="kpi"><span>Completed</span><strong>{{ dash.summary.completedAppointments }}</strong><small>finished services</small></article>
           <article class="kpi"><span>Live</span><strong>{{ dash.summary.liveAppointments }}</strong><small>active/current</small></article>
-          <article class="kpi"><span>Value</span><strong>{{ dash.summary.appointmentValue | currency:'INR':'symbol':'1.0-0' }}</strong><small>appointment value</small></article>
+          <article class="kpi"><span>Value</span><strong>{{ dash.summary.appointmentValue | paiseInr }}</strong><small>appointment value</small></article>
         </section>
 
         @if (canSeeRevenue()) {
           <section class="grid three">
             <article class="kpi"><span>Sales</span><strong>{{ dash.summary.salesCount }}</strong><small>visible sales records</small></article>
-            <article class="kpi"><span>Revenue</span><strong>{{ dash.summary.revenue | currency:'INR':'symbol':'1.0-0' }}</strong><small>connected sales</small></article>
-            <article class="kpi"><span>Avg sale</span><strong>{{ averageSale() | currency:'INR':'symbol':'1.0-0' }}</strong><small>revenue per sale</small></article>
+            <article class="kpi"><span>Revenue</span><strong>{{ dash.summary.revenue | paiseInr }}</strong><small>connected sales</small></article>
+            <article class="kpi"><span>Avg sale</span><strong>{{ averageSale() | paiseInr }}</strong><small>revenue per sale</small></article>
           </section>
         }
       }
@@ -81,7 +83,7 @@ import { StaffAppService, StaffDashboard, StaffEnterpriseOs } from "../../core/s
             <div class="panel-title"><h2>Sales</h2><span>{{ dash.sales.length }}</span></div>
             <div class="list">
               @for (sale of dash.sales.slice(0, 30); track sale.id) {
-                <div class="row"><div class="row-main"><strong>{{ sale.total | currency:'INR':'symbol':'1.0-0' }}</strong><small>{{ sale.createdAt | date:'short' }} · commission {{ sale.commissionTotal | currency:'INR':'symbol':'1.0-0' }}</small></div><span class="badge">{{ sale.status }}</span></div>
+                <div class="row"><div class="row-main"><strong>{{ sale.total | paiseInr }}</strong><small>{{ sale.createdAt | date:'short' }} · commission {{ sale.commissionTotal | paiseInr }}</small></div><span class="badge">{{ sale.status }}</span></div>
               } @empty { <p class="empty">No sales entries visible.</p> }
             </div>
           </article>
@@ -98,12 +100,14 @@ export class StaffReportsPage implements OnInit {
   readonly message = signal("");
   fromDate = this.dateOffset(6);
   toDate = this.dateOffset(0);
+  private loadGeneration = 0;
 
   constructor(readonly staff: StaffAppService) {}
 
   ngOnInit() { if (this.canReadReports()) void this.load(); }
 
   async load() {
+    const generation = ++this.loadGeneration;
     if (!this.canReadReports()) {
       this.os.set(null);
       this.dashboard.set(null);
@@ -113,11 +117,12 @@ export class StaffReportsPage implements OnInit {
     this.message.set("");
     try {
       const params = { from: this.fromDate, to: this.toDate, date: this.toDate };
-      const [os, dashboard] = await Promise.all([this.staff.enterpriseOs(), this.staff.dashboard(params)]);
+      const [os, dashboard] = await Promise.all([this.staff.enterpriseOs(params), this.staff.dashboard(params)]);
+      if (generation !== this.loadGeneration) return;
       this.os.set(os);
       this.dashboard.set(dashboard);
     } finally {
-      this.loading.set(false);
+      if (generation === this.loadGeneration) this.loading.set(false);
     }
   }
 
@@ -167,8 +172,6 @@ export class StaffReportsPage implements OnInit {
   }
 
   private dateOffset(daysBack: number): string {
-    const date = new Date();
-    date.setDate(date.getDate() - daysBack);
-    return date.toISOString().slice(0, 10);
+    return businessDateOffset(-daysBack);
   }
 }

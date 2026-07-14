@@ -716,6 +716,8 @@ export class StaffLoginService {
     const dashboard = this.staffDashboard({}, access);
     const appointment = dashboard.appointments.find((item) => item.id === id) || dashboard.todayAppointments.find((item) => item.id === id);
     if (!appointment) throw notFound("Appointment not found for this staff member");
+    const allowedStatuses = new Set(["booked", "confirmed", "arrived", "checked-in", "in-service", "completed", "no-show"]);
+    if (payload.status && !allowedStatuses.has(String(payload.status).toLowerCase())) throw badRequest("Unsupported staff appointment status");
     const columns = columnsFor("appointments");
     const patch = {
       id,

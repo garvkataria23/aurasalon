@@ -1,4 +1,4 @@
-import { HttpBackend, HttpClient, HttpInterceptorFn } from "@angular/common/http";
+import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from "@angular/common/http";
 import { inject } from "@angular/core";
 import { Observable, catchError, finalize, map, of, shareReplay, switchMap, tap, throwError } from "rxjs";
 import { environment } from "../../environments/environment";
@@ -10,6 +10,12 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 let csrfToken = "";
 let csrfExpiresAt = 0;
 let csrfRequest$: Observable<string> | null = null;
+
+export function resetCsrfState(): void {
+  csrfToken = "";
+  csrfExpiresAt = 0;
+  csrfRequest$ = null;
+}
 
 function isApiRequest(url: string): boolean {
   return url.startsWith(environment.apiBaseUrl) || url.includes("/api/v1/");
@@ -49,12 +55,19 @@ function currentToken(http: HttpClient): Observable<string> {
 }
 
 export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!MUTATING_METHODS.has(req.method) || !isApiRequest(req.url) || isCsrfEndpoint(req.url)) return next(req);
+  if (!isApiRequest(req.url)) return next(req);
+  const credentialedRequest = req.clone({ withCredentials: true });
+  if (!MUTATING_METHODS.has(req.method) || isCsrfEndpoint(req.url)) return next(credentialedRequest);
   const http = new HttpClient(inject(HttpBackend));
-  return currentToken(http).pipe(
-    switchMap((token) => next(req.clone({
-      withCredentials: true,
+  const send = () => currentToken(http).pipe(
+    switchMap((token) => next(credentialedRequest.clone({
       setHeaders: token ? { "x-csrf-token": token } : {}
     })))
   );
+  return send().pipe(catchError((error: unknown) => {
+    const message = error instanceof HttpErrorResponse ? JSON.stringify(error.error || "") : "";
+    if (!(error instanceof HttpErrorResponse) || error.status !== 403 || !/csrf/i.test(message)) return throwError(() => error);
+    resetCsrfState();
+    return send();
+  }));
 };
