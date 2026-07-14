@@ -71,7 +71,7 @@ import { StaffAppService } from "../../core/staff-app.service";
     .login-grid { width: min(1100px, calc(100% - 28px)); min-height: 100%; margin: 0 auto; padding: 7vh 0; display: grid; grid-template-columns: 1.08fr .92fr; gap: 20px; align-items: stretch; }
     .brand-panel, .staff-card { position: relative; overflow: hidden; border: 1px solid var(--staff-border); border-radius: 28px; background: var(--staff-surface); box-shadow: var(--staff-shadow); }
     .brand-panel { min-height: 580px; padding: 42px; color: var(--staff-text); background: var(--staff-primary-light); }
-    .staff-card { padding: 34px; }
+    .staff-card { padding: 34px; background: var(--staff-primary-light); }
     .login-theme-button { float: right; min-height: 48px; margin: 0 0 16px 16px; padding: 0 14px; border: 1px solid var(--staff-border-accent); border-radius: 14px; background: var(--staff-surface-secondary); color: var(--staff-primary-hover); font-size: .78rem; }
     .orb { position: absolute; border-radius: 50%; opacity: .5; }
     .orb.one { width: 190px; height: 190px; right: -42px; top: -36px; background: var(--staff-decoration-one); }
