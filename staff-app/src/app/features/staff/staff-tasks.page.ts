@@ -1,6 +1,6 @@
 import { DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
-import { isQueuedMutation, MutationResult, StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
+import { isQueuedMutation, MutationResult, StaffAppService, StaffToday } from "../../core/staff-app.service";
 import { StaffPageStateComponent } from "./staff-page-state.component";
 
 @Component({
@@ -35,7 +35,6 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
 })
 export class StaffTasksPage implements OnInit {
   readonly today = signal<StaffToday | null>(null);
-  readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly loading = signal(false);
   readonly message = signal("");
   readonly localError = signal("");
@@ -44,10 +43,9 @@ export class StaffTasksPage implements OnInit {
   readonly columns = [{ label: "Open", status: "open" }, { label: "In Progress", status: "in_progress" }, { label: "Done", status: "completed" }];
   constructor(readonly staff: StaffAppService) {}
   ngOnInit() { if (this.canReadTasks()) void this.load(); }
-  async load() { this.loading.set(true); try { const [today, os] = await Promise.all([this.staff.today(), this.staff.enterpriseOs()]); this.today.set(today); this.os.set(os); } finally { this.loading.set(false); } }
+  async load() { this.loading.set(true); try { this.today.set(await this.staff.today()); } finally { this.loading.set(false); } }
   canReadTasks(): boolean { return this.staff.hasPermission("read:staff"); }
   canUpdateTasks(): boolean { return this.staff.hasAnyPermission(["write:staff", "update:staff"]); }
-  openTasks(): number { return (this.today()?.tasks || []).filter((task) => task.status !== "completed").length; }
   taskCount(status: string): number { return this.tasksByStatus(status).length; }
   tasksByStatus(status: string) { return (this.today()?.tasks || []).filter((task) => status === "open" ? !task.status || task.status === "open" : task.status === status); }
   dragTask(id: string, version: number) { this.draggedTask.set({ id, version }); }

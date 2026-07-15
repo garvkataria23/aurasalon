@@ -58,7 +58,7 @@ export class StaffQueuePage implements OnInit {
   }
 
   canReadQueue(): boolean {
-    return this.staff.hasPermission("read:staff");
+    return this.staff.hasAnyPermission(["read:appointments", "read:staff"]);
   }
 
   formatMinutes(minutes: number): string { const safe = Math.max(0, Number(minutes || 0)); return `${Math.floor(safe / 60)}h ${safe % 60}m`; }

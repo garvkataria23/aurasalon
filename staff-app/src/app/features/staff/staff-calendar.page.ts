@@ -1,12 +1,11 @@
 import { Component, OnInit, signal } from "@angular/core";
-import { FormsModule } from "@angular/forms";
 import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
 import { addBusinessDays, businessDate } from "../../core/business-date";
 import { StaffPageStateComponent } from "./staff-page-state.component";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, StaffPageStateComponent],
+  imports: [StaffPageStateComponent],
   template: `
     <section class="page">
       <header class="page-head">
