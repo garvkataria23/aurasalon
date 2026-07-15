@@ -555,13 +555,14 @@ export class StaffAppService {
     return this.get<StaffPushConfig>("/mobile/push-config");
   }
 
-  async registerPushDevice(id: string): Promise<StaffPushDevice> {
+  async registerPushDevice(id: string, options: { platform?: string; pushProvider?: string; deviceToken?: string } = {}): Promise<StaffPushDevice> {
     return this.post<StaffPushDevice>("/mobile/devices", {
       id,
-      platform: "web",
-      pushProvider: "web-push",
+      platform: options.platform || "web",
+      pushProvider: options.pushProvider || "web-push",
+      deviceToken: options.deviceToken || "",
       appVersion: "0.1.0",
-      capabilities: { pwa: true, pushNotifications: true }
+      capabilities: { pwa: options.platform !== "android", native: options.platform === "android", pushNotifications: true }
     });
   }
 

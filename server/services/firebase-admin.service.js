@@ -45,7 +45,7 @@ function firebaseProjectId() {
   throw unauthorized("Firebase project is not configured");
 }
 
-function customerFirebaseApp() {
+export function customerFirebaseApp() {
   const existing = getApps().find((app) => app.name === APP_NAME);
   if (existing) return existing;
   const credential = firebaseCredential();

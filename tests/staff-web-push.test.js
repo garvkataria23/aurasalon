@@ -8,6 +8,7 @@ test("staff notifications subscribe and deliver through Web Push", () => {
   const client = read("staff-app/src/app/core/staff-push.service.ts");
   const worker = read("staff-app/src/assets/staff-push-sw.js");
   const delivery = read("server/services/staff-web-push.service.js");
+  const firebase = read("server/services/firebase-messaging.service.js");
   const jobWorker = read("server/workers/job-worker.js");
   const notifications = read("server/services/staff-enterprise.service.js");
 
@@ -16,6 +17,8 @@ test("staff notifications subscribe and deliver through Web Push", () => {
   assert.match(worker, /addEventListener\("push"/);
   assert.match(worker, /showNotification/);
   assert.match(delivery, /webpush\.sendNotification/);
+  assert.match(delivery, /firebaseMessagingService\.sendToToken/);
+  assert.match(firebase, /getMessaging\(customerFirebaseApp\(\)\)\.send/);
   assert.match(jobWorker, /staff_web_push_send: staffWebPushSend/);
   assert.match(notifications, /staffWebPushService\.queueStaffNotification\(row\)/);
 });

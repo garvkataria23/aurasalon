@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import "../config/env.js";
 import { db } from "../db.js";
+import { firebaseMessagingService } from "./firebase-messaging.service.js";
 import { jobQueueService } from "./job-queue.service.js";
 
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
@@ -16,6 +17,10 @@ function settings() {
 function configured() {
   const value = settings();
   return Boolean(value.publicKey && value.privateKey && value.subject);
+}
+
+function deliveryConfigured() {
+  return configured() || firebaseMessagingService.configured();
 }
 
 function updatePushStatus(id, tenantId, status, providerMessageId = "") {
@@ -34,7 +39,7 @@ export const staffWebPushService = {
   },
 
   queueStaffNotification(notification) {
-    if (!configured() || !notification?.tenantId || !notification?.staffId) return { queued: false, reason: "not_configured" };
+    if (!deliveryConfigured() || !notification?.tenantId || !notification?.staffId) return { queued: false, reason: "not_configured" };
     const user = db.prepare(`SELECT id FROM tenant_users
       WHERE tenantId = @tenantId AND staffId = @staffId AND status = 'active'
       ORDER BY createdAt ASC LIMIT 1`).get({ tenantId: notification.tenantId, staffId: notification.staffId });
@@ -60,36 +65,63 @@ export const staffWebPushService = {
       WHERE id = @id AND tenantId = @tenantId`).get({ id: pushNotificationId, tenantId });
     if (!notification) return { success: true, skipped: "notification_not_found" };
     if (notification.status === "sent") return { success: true, skipped: "already_sent" };
-    if (!configured()) throw new Error("Web Push VAPID keys are not configured");
-    const subscriptions = db.prepare(`SELECT * FROM push_subscriptions
+    const subscriptions = configured() ? db.prepare(`SELECT * FROM push_subscriptions
       WHERE tenantId = @tenantId AND userId = @userId AND status = 'active' AND provider = 'web-push'
+      ORDER BY updatedAt DESC`).all({ tenantId, userId: notification.userId }) : [];
+    const fcmDevices = db.prepare(`SELECT * FROM mobile_devices
+      WHERE tenantId = @tenantId AND userId = @userId AND status = 'active'
+        AND pushProvider = 'fcm' AND deviceToken != ''
       ORDER BY updatedAt DESC`).all({ tenantId, userId: notification.userId });
-    if (!subscriptions.length) {
+    if (!subscriptions.length && !fcmDevices.length) {
       updatePushStatus(notification.id, tenantId, "no_subscription");
       return { success: true, skipped: "no_subscription" };
     }
 
-    const vapid = settings();
-    webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
     let data = {};
     try { data = JSON.parse(notification.payload || "{}"); } catch { data = {}; }
     const body = JSON.stringify({ title: notification.title, body: notification.message, icon: "/assets/icons/icon.svg", badge: "/assets/icons/icon.svg", data });
     let delivered = 0;
     let lastError = null;
-    for (const subscription of subscriptions) {
-      try {
-        await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { auth: subscription.authSecret, p256dh: subscription.p256dh } }, body, { TTL: 86400, urgency: "high" });
-        delivered += 1;
-      } catch (error) {
-        lastError = error;
-        if ([404, 410].includes(Number(error?.statusCode))) {
-          db.prepare(`UPDATE push_subscriptions SET status = 'expired', updatedAt = @updatedAt
-            WHERE id = @id AND tenantId = @tenantId`).run({ id: subscription.id, tenantId, updatedAt: new Date().toISOString() });
+    const providerMessageIds = [];
+    if (subscriptions.length) {
+      const vapid = settings();
+      webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
+      for (const subscription of subscriptions) {
+        try {
+          await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { auth: subscription.authSecret, p256dh: subscription.p256dh } }, body, { TTL: 86400, urgency: "high" });
+          delivered += 1;
+        } catch (error) {
+          lastError = error;
+          if ([404, 410].includes(Number(error?.statusCode))) {
+            db.prepare(`UPDATE push_subscriptions SET status = 'expired', updatedAt = @updatedAt
+              WHERE id = @id AND tenantId = @tenantId`).run({ id: subscription.id, tenantId, updatedAt: new Date().toISOString() });
+          }
         }
       }
     }
-    if (!delivered && lastError && ![404, 410].includes(Number(lastError?.statusCode))) throw lastError;
-    updatePushStatus(notification.id, tenantId, delivered ? "sent" : "no_subscription", delivered ? `web-push:${delivered}` : "");
+
+    if (fcmDevices.length && !firebaseMessagingService.configured() && !delivered) throw new Error("Firebase Admin messaging is not configured");
+    if (firebaseMessagingService.configured()) {
+      for (const device of fcmDevices) {
+        try {
+          const messageId = await firebaseMessagingService.sendToToken(device.deviceToken, { title: notification.title, body: notification.message, data });
+          delivered += 1;
+          providerMessageIds.push(messageId);
+        } catch (error) {
+          lastError = error;
+          const code = String(error?.code || "");
+          if (["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(code)) {
+            db.prepare(`UPDATE mobile_devices SET status = 'expired', updatedAt = @updatedAt
+              WHERE id = @id AND tenantId = @tenantId`).run({ id: device.id, tenantId, updatedAt: new Date().toISOString() });
+          }
+        }
+      }
+    }
+    const permanentWebFailure = lastError && [404, 410].includes(Number(lastError?.statusCode));
+    const permanentFcmFailure = ["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(String(lastError?.code || ""));
+    if (!delivered && lastError && !permanentWebFailure && !permanentFcmFailure) throw lastError;
+    const providerRef = providerMessageIds.length ? providerMessageIds.join(",").slice(0, 500) : delivered ? `web-push:${delivered}` : "";
+    updatePushStatus(notification.id, tenantId, delivered ? "sent" : "no_subscription", providerRef);
     return { success: true, delivered };
   }
 };
