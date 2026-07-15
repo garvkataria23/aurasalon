@@ -1,10 +1,11 @@
 import { Component, OnInit, signal } from "@angular/core";
-import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
+import { StaffPageStateComponent } from "./staff-page-state.component";
+import { StaffPermissionBadgesComponent } from "./staff-permission-badges.component";
 
 @Component({
   standalone: true,
-  imports: [IonSpinner],
+  imports: [StaffPageStateComponent, StaffPermissionBadgesComponent],
   template: `
     <section class="page">
       <header class="page-head">
@@ -15,8 +16,8 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
         </div>
       </header>
 
-      @if (loading()) { <section class="state"><ion-spinner name="crescent" /> Loading profile...</section> }
-      @if (staff.error()) { <section class="notice">{{ staff.error() }}</section> }
+      @if (loading()) { <section staffPageState class="state" [loading]="true">Loading profile...</section> }
+      @if (staff.error()) { <section staffPageState class="notice">{{ staff.error() }}</section> }
 
       @if (dashboard(); as data) {
         <section class="grid two">
@@ -43,9 +44,7 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
 
         <section class="panel">
           <div class="panel-title"><h2>Connected permissions</h2><span>{{ visiblePermissions().length }}</span></div>
-          <div class="row-actions">
-            @for (permission of visiblePermissions(); track permission) { <span class="badge">{{ permission }}</span> } @empty { <p class="empty">No permission metadata.</p> }
-          </div>
+          <div staffPermissionBadges class="row-actions" [permissions]="visiblePermissions()"></div>
         </section>
       }
     </section>

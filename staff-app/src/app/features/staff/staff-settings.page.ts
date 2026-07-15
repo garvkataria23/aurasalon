@@ -1,11 +1,12 @@
 import { Component, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
-import { IonSpinner } from "@ionic/angular/standalone";
 import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
+import { StaffPageStateComponent } from "./staff-page-state.component";
+import { StaffPermissionBadgesComponent } from "./staff-permission-badges.component";
 
 @Component({
   standalone: true,
-  imports: [IonSpinner],
+  imports: [StaffPageStateComponent, StaffPermissionBadgesComponent],
   template: `
     <section class="page">
       <header class="page-head">
@@ -16,9 +17,9 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
         </div>
       </header>
 
-      @if (loading()) { <section class="state"><ion-spinner name="crescent" /> Loading settings...</section> }
-      @if (message()) { <section class="notice success">{{ message() }}</section> }
-      @if (staff.error()) { <section class="notice">{{ staff.error() }}</section> }
+      @if (loading()) { <section staffPageState class="state" [loading]="true">Loading settings...</section> }
+      @if (message()) { <section staffPageState class="notice success">{{ message() }}</section> }
+      @if (staff.error()) { <section staffPageState class="notice">{{ staff.error() }}</section> }
 
       @if (dashboard(); as data) {
         <section class="grid two">
@@ -55,10 +56,7 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
 
             <details class="panel permission-panel">
               <summary><strong>Permissions</strong><span>{{ staff.user()?.permissions?.length || 0 }}</span></summary>
-              <div class="row-actions permission-list">
-                @for (permission of visiblePermissions(); track permission) { <span class="badge">{{ permission }}</span> }
-                @empty { <p class="empty">No permission metadata.</p> }
-              </div>
+              <div staffPermissionBadges class="row-actions permission-list" [permissions]="visiblePermissions()"></div>
             </details>
           </div>
         </section>

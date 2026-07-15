@@ -1,19 +1,19 @@
 import { DatePipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
-import { IonSpinner } from "@ionic/angular/standalone";
 import { isQueuedMutation, MutationResult, StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
+import { StaffPageStateComponent } from "./staff-page-state.component";
 
 @Component({
   standalone: true,
-  imports: [DatePipe, IonSpinner],
+  imports: [DatePipe, StaffPageStateComponent],
   template: `
     <section class="page">
       <header class="page-head"><div><p class="eyebrow">Tasks</p><h1>Task management</h1><p>Assigned checklist and completion workspace.</p></div></header>
-      @if (!canReadTasks()) { <section class="notice">You do not have permission to read staff tasks.</section> }
-      @if (loading()) { <section class="state"><ion-spinner name="crescent" /> Loading tasks...</section> }
-      @if (message()) { <section class="notice success">{{ message() }}</section> }
-      @if (localError()) { <section class="notice">{{ localError() }}</section> }
-      @if (staff.error() && !localError()) { <section class="notice">{{ staff.error() }}</section> }
+      @if (!canReadTasks()) { <section staffPageState class="notice">You do not have permission to read staff tasks.</section> }
+      @if (loading()) { <section staffPageState class="state" [loading]="true">Loading tasks...</section> }
+      @if (message()) { <section staffPageState class="notice success">{{ message() }}</section> }
+      @if (localError()) { <section staffPageState class="notice">{{ localError() }}</section> }
+      @if (staff.error() && !localError()) { <section staffPageState class="notice">{{ staff.error() }}</section> }
       @if (canReadTasks() && today(); as data) {
         <section class="grid four"><article class="kpi"><span>Today</span><strong>{{ data.tasks.length }}</strong></article><article class="kpi"><span>Open</span><strong>{{ taskCount('open') }}</strong></article><article class="kpi"><span>In progress</span><strong>{{ taskCount('in_progress') }}</strong></article><article class="kpi"><span>Done</span><strong>{{ taskCount('completed') }}</strong></article></section>
         <section class="kanban-board">
