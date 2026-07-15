@@ -36,35 +36,38 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
             </div>
           </article>
 
-          <article class="panel dark biometric-panel">
-            <div class="panel-title">
-              <h2>Biometric unlock</h2>
-              <button
-                class="biometric-switch"
-                type="button"
-                role="switch"
-                [attr.aria-checked]="staff.biometricEnabled()"
-                aria-label="Biometric unlock"
-                [disabled]="!staff.biometricSupported() || !staff.hasSavedSession()"
-                (click)="toggleBiometric()"
-              ><span aria-hidden="true"></span></button>
-            </div>
-            <div class="biometric-meta"><span>Device support</span><strong>{{ staff.biometricSupported() ? 'Available' : 'Not available' }}</strong></div>
-          </article>
-        </section>
+          <div class="security-stack">
+            <article class="panel dark biometric-panel">
+              <div class="panel-title">
+                <h2>Biometric unlock</h2>
+                <button
+                  class="biometric-switch"
+                  type="button"
+                  role="switch"
+                  [attr.aria-checked]="staff.biometricEnabled()"
+                  aria-label="Biometric unlock"
+                  [disabled]="!staff.biometricSupported() || !staff.hasSavedSession()"
+                  (click)="toggleBiometric()"
+                ><span aria-hidden="true"></span></button>
+              </div>
+              <div class="biometric-meta"><span>Device support</span><strong>{{ staff.biometricSupported() ? 'Available' : 'Not available' }}</strong></div>
+            </article>
 
-        <details class="panel permission-panel">
-          <summary><strong>Permissions</strong><span>{{ staff.user()?.permissions?.length || 0 }}</span></summary>
-          <div class="row-actions permission-list">
-            @for (permission of visiblePermissions(); track permission) { <span class="badge">{{ permission }}</span> }
-            @empty { <p class="empty">No permission metadata.</p> }
+            <details class="panel permission-panel">
+              <summary><strong>Permissions</strong><span>{{ staff.user()?.permissions?.length || 0 }}</span></summary>
+              <div class="row-actions permission-list">
+                @for (permission of visiblePermissions(); track permission) { <span class="badge">{{ permission }}</span> }
+                @empty { <p class="empty">No permission metadata.</p> }
+              </div>
+            </details>
           </div>
-        </details>
+        </section>
       }
     </section>
   `,
   styleUrls: ["./staff-app.styles.css"],
   styles: [`
+    .security-stack { display: grid; align-content: start; gap: 10px; min-width: 0; }
     .biometric-panel { padding: 12px 14px; border-radius: 16px; }
     .biometric-panel .panel-title { min-height: 24px; margin: 0; align-items: center; }
     .biometric-panel .panel-title h2 { font-size: .92rem; }
