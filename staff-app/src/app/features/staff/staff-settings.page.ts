@@ -76,8 +76,8 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
     .biometric-switch[aria-checked="true"] span { transform: translateX(16px); background: var(--staff-on-primary); }
     .biometric-switch:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 3px; }
     .biometric-switch:disabled { opacity: .55; cursor: not-allowed; }
-    .permission-panel { padding: 0; border-radius: 16px; }
-    .permission-panel summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 10px 14px; list-style: none; cursor: pointer; }
+    .permission-panel { width: 100%; min-width: 0; padding: 0; border-radius: 16px; box-sizing: border-box; }
+    .permission-panel summary { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 12px 14px; list-style: none; box-sizing: border-box; cursor: pointer; }
     .permission-panel summary::-webkit-details-marker { display: none; }
     .permission-panel summary strong { color: var(--staff-text); font-size: .92rem; }
     .permission-panel summary span { color: var(--staff-text-secondary); font-size: .72rem; font-weight: 700; }
