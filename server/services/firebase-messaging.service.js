@@ -8,7 +8,7 @@ function stringData(value = {}) {
 
 export const firebaseMessagingService = {
   configured() {
-    return Boolean(env.firebaseServiceAccountJson || (env.firebaseProjectId && env.firebaseClientEmail && env.firebasePrivateKey));
+    return Boolean(env.firebaseServiceAccountJson || env.firebaseServiceAccountFile || (env.firebaseProjectId && env.firebaseClientEmail && env.firebasePrivateKey));
   },
 
   async sendToToken(token, notification = {}) {

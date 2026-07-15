@@ -1,5 +1,6 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { readFileSync } from "node:fs";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { env } from "../config/env.js";
 import { unauthorized } from "../utils/app-error.js";
@@ -8,9 +9,17 @@ const APP_NAME = "aura-customer-auth";
 const GOOGLE_JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
 
 function serviceAccountFromJson() {
-  if (!env.firebaseServiceAccountJson) return null;
+  let source = env.firebaseServiceAccountJson;
+  if (!source && env.firebaseServiceAccountFile) {
+    try {
+      source = readFileSync(env.firebaseServiceAccountFile, "utf8");
+    } catch {
+      throw unauthorized("Firebase Admin service account file could not be read");
+    }
+  }
+  if (!source) return null;
   try {
-    const parsed = JSON.parse(env.firebaseServiceAccountJson);
+    const parsed = JSON.parse(source);
     return {
       projectId: parsed.project_id || parsed.projectId || env.firebaseProjectId,
       clientEmail: parsed.client_email || parsed.clientEmail,

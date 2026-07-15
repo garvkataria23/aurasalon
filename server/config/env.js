@@ -39,6 +39,7 @@ export const env = {
   firebaseClientEmail: process.env.CUSTOMER_FIREBASE_CLIENT_EMAIL || process.env.FIREBASE_CLIENT_EMAIL || "",
   firebasePrivateKey: process.env.CUSTOMER_FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY || "",
   firebaseServiceAccountJson: process.env.CUSTOMER_FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "",
+  firebaseServiceAccountFile: process.env.CUSTOMER_FIREBASE_SERVICE_ACCOUNT_FILE || process.env.FIREBASE_SERVICE_ACCOUNT_FILE || "",
   whatsappProvider: process.env.WHATSAPP_PROVIDER || "local",
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
   whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN || "",
