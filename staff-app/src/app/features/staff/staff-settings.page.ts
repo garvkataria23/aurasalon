@@ -53,13 +53,13 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
           </article>
         </section>
 
-        <section class="panel">
-          <div class="panel-title"><h2>Permissions</h2><span>{{ staff.user()?.permissions?.length || 0 }}</span></div>
-          <div class="row-actions">
+        <details class="panel permission-panel">
+          <summary><strong>Permissions</strong><span>{{ staff.user()?.permissions?.length || 0 }}</span></summary>
+          <div class="row-actions permission-list">
             @for (permission of visiblePermissions(); track permission) { <span class="badge">{{ permission }}</span> }
             @empty { <p class="empty">No permission metadata.</p> }
           </div>
-        </section>
+        </details>
       }
     </section>
   `,
@@ -76,6 +76,14 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
     .biometric-switch[aria-checked="true"] span { transform: translateX(16px); background: var(--staff-on-primary); }
     .biometric-switch:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 3px; }
     .biometric-switch:disabled { opacity: .55; cursor: not-allowed; }
+    .permission-panel { padding: 0; border-radius: 16px; }
+    .permission-panel summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 10px 14px; list-style: none; cursor: pointer; }
+    .permission-panel summary::-webkit-details-marker { display: none; }
+    .permission-panel summary strong { color: var(--staff-text); font-size: .92rem; }
+    .permission-panel summary span { color: var(--staff-text-secondary); font-size: .72rem; font-weight: 700; }
+    .permission-panel summary:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 2px; border-radius: 14px; }
+    .permission-list { justify-content: flex-start; padding: 0 14px 12px; border-top: 1px solid var(--staff-border); }
+    .permission-panel[open] .permission-list { padding-top: 10px; }
     @media (prefers-reduced-motion: reduce) {
       .biometric-switch, .biometric-switch span { transition: none; }
     }
