@@ -26,7 +26,7 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
             <div class="panel-title"><h2>Session</h2><span>{{ staff.hasSavedSession() ? 'active' : 'inactive' }}</span></div>
             <div class="list">
               <div class="row"><strong>Login ID</strong><span>{{ staff.user()?.loginId || '-' }}</span></div>
-              <div class="row"><strong>Staff</strong><span>{{ data.staff.fullName || staff.user()?.name || '-' }}</span></div>
+              <div class="row"><strong>Staff</strong><span>{{ staff.user()?.name || data.staff.fullName || '-' }}</span></div>
               <div class="row"><strong>Role</strong><span>{{ staff.user()?.role || data.staff.roleId }}</span></div>
               <div class="row"><strong>Branch</strong><span>{{ staff.user()?.branchId || '-' }}</span></div>
             </div>

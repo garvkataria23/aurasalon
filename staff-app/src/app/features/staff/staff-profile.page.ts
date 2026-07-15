@@ -10,7 +10,7 @@ import { StaffAppService, StaffDashboard } from "../../core/staff-app.service";
       <header class="page-head">
         <div>
           <p class="eyebrow">Profile</p>
-          <h1>{{ dashboard()?.staff?.fullName || staff.user()?.name || 'My profile' }}</h1>
+          <h1>{{ staff.user()?.name || dashboard()?.staff?.fullName || 'My profile' }}</h1>
           <p>{{ dashboard()?.staff?.designation || staff.user()?.role || 'Staff' }} · {{ staff.user()?.branchId || 'branch scoped' }}</p>
         </div>
       </header>
