@@ -176,7 +176,8 @@ export class AuthService {
   logout(refreshToken, access = {}) {
     if (!refreshToken) return { revoked: false };
     const tokenHash = hashToken(refreshToken);
-    const record = repositories.authRefreshTokens.list({ limit: 10000 }, { tenantId: access.tenantId }).find((item) => item.tokenHash === tokenHash);
+    const scope = access.tenantId ? { tenantId: access.tenantId } : {};
+    const record = repositories.authRefreshTokens.list({ limit: 100000 }, scope).find((item) => item.tokenHash === tokenHash);
     if (!record) return { revoked: false };
     repositories.authRefreshTokens.update(record.id, { revokedAt: now() }, { tenantId: record.tenantId });
     return { revoked: true };

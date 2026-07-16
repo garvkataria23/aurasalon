@@ -101,10 +101,13 @@ authRouter.post(
 
 authRouter.post(
   "/auth/logout",
-  authenticateJwt(),
   asyncHandler((req, res) => {
-    const result = authService.logout(refreshTokenRequest(req).token, req.access);
-    clearAuthRefreshCookie(res);
+    let result;
+    try {
+      result = authService.logout(refreshTokenRequest(req).token, req.access || {});
+    } finally {
+      clearAuthRefreshCookie(res);
+    }
     res.json(result);
   })
 );
