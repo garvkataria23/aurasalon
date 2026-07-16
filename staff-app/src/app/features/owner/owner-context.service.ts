@@ -62,10 +62,15 @@ export class OwnerContextService {
   readonly periodName = computed(() => PERIOD_LABELS[this.period()]);
   readonly periodRange = computed(() => this.resolveRange(this.period(), this.customStart(), this.customEnd()));
   readonly periodRangeLabel = computed(() => this.formatRange(this.periodRange().start, this.periodRange().end));
+  readonly effectiveTimezone = computed(() => this.settings().localization.timezone || "Asia/Kolkata");
+  readonly effectiveLocale = computed(() => this.settings().localization.locale || "en-IN");
+  readonly effectiveCurrency = computed(() => this.settings().localization.currency || "INR");
+  readonly effectiveDateFormat = computed(() => this.settings().dateTime.dateFormat || "DD/MM/YYYY");
+  readonly effectiveTimeFormat = computed(() => this.settings().dateTime.timeFormat || "12h");
   readonly lastRefreshLabel = computed(() => {
     const value = this.lastSuccessfulRefresh();
     if (!value) return "";
-    return `Last refreshed ${new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }).format(value)}`;
+    return `Last refreshed ${new Intl.DateTimeFormat(this.effectiveLocale(), { hour: "numeric", minute: "2-digit", timeZone: this.effectiveTimezone() }).format(value)}`;
   });
 
   constructor(private readonly owner: OwnerAppService) {}
@@ -180,6 +185,39 @@ export class OwnerContextService {
     this.lastSuccessfulRefresh.set(new Date());
   }
 
+  formatDate(value: string): string {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat(this.effectiveLocale(), { day: "numeric", month: "short", year: "numeric", timeZone: this.effectiveTimezone() }).format(date);
+  }
+
+  formatDateTime(value: string): string {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat(this.effectiveLocale(), { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: this.effectiveTimezone() }).format(date);
+  }
+
+  formatDateShort(value: string): string {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat(this.effectiveLocale(), { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
+  }
+
+  formatCurrency(paise: number): string {
+    return new Intl.NumberFormat(this.effectiveLocale(), { style: "currency", currency: this.effectiveCurrency(), maximumFractionDigits: 2 }).format(paise / 100);
+  }
+
+  formatCurrencyCompact(paise: number): string {
+    return new Intl.NumberFormat(this.effectiveLocale(), { style: "currency", currency: this.effectiveCurrency(), maximumFractionDigits: 0 }).format(paise / 100);
+  }
+
+  formatNumber(value: number): string {
+    return value.toLocaleString(this.effectiveLocale());
+  }
+
   private restoreBranch(user: OwnerUser | null, branches: OwnerBranch[]): void {
     const validIds = new Set(branches.map((branch) => branch.id));
     const remember = this.settings().branchBehavior.rememberLastBranch;
@@ -235,7 +273,7 @@ export class OwnerContextService {
   }
 
   private formatRange(start: string, end: string): string {
-    const formatter = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    const formatter = new Intl.DateTimeFormat(this.effectiveLocale(), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
     const startLabel = formatter.format(new Date(`${start}T00:00:00Z`));
     if (start === end) return startLabel;
     return `${startLabel} – ${formatter.format(new Date(`${end}T00:00:00Z`))}`;

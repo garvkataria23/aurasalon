@@ -25,6 +25,57 @@ const MIGRATION_COLUMNS = [
   ["importBatchId", "TEXT DEFAULT ''"]
 ];
 
+const RECOVERY_COLUMNS = {
+  services: [
+    ["membershipPricePaise", "INTEGER NOT NULL DEFAULT 0"]
+  ],
+  products: [
+    ["legacyIssueQuantity", "REAL NOT NULL DEFAULT 0"],
+    ["legacyIssueRecorded", "INTEGER NOT NULL DEFAULT 0"],
+    ["qrCode", "TEXT NOT NULL DEFAULT ''"]
+  ],
+  memberships: [
+    ["soldByStaffId", "TEXT NOT NULL DEFAULT ''"],
+    ["soldByStaffName", "TEXT NOT NULL DEFAULT ''"]
+  ],
+  gift_cards: [
+    ["branchId", "TEXT NOT NULL DEFAULT ''"],
+    ["tenant_id", "TEXT NOT NULL DEFAULT ''"],
+    ["branch_id", "TEXT NOT NULL DEFAULT ''"],
+    ["code_hash", "TEXT NOT NULL DEFAULT ''"],
+    ["display_code_last4", "TEXT NOT NULL DEFAULT ''"],
+    ["customer_id", "TEXT NOT NULL DEFAULT ''"],
+    ["purchaser_customer_id", "TEXT NOT NULL DEFAULT ''"],
+    ["initial_value", "REAL NOT NULL DEFAULT 0"],
+    ["initialValuePaise", "INTEGER NOT NULL DEFAULT 0"],
+    ["balancePaise", "INTEGER NOT NULL DEFAULT 0"],
+    ["currency", "TEXT NOT NULL DEFAULT 'INR'"],
+    ["expiry_date", "TEXT NOT NULL DEFAULT ''"],
+    ["created_invoice_id", "TEXT NOT NULL DEFAULT ''"],
+    ["created_at", "TEXT NOT NULL DEFAULT ''"],
+    ["originalSystem", "TEXT NOT NULL DEFAULT ''"],
+    ["originalRecordId", "TEXT NOT NULL DEFAULT ''"],
+    ["importedAt", "TEXT NOT NULL DEFAULT ''"],
+    ["importBatchId", "TEXT NOT NULL DEFAULT ''"]
+  ],
+  gift_card_transactions: [
+    ["branchId", "TEXT NOT NULL DEFAULT ''"],
+    ["branch_id", "TEXT NOT NULL DEFAULT ''"],
+    ["amountPaise", "INTEGER NOT NULL DEFAULT 0"],
+    ["balanceAfterPaise", "INTEGER NOT NULL DEFAULT 0"],
+    ["originalSystem", "TEXT NOT NULL DEFAULT ''"],
+    ["originalRecordId", "TEXT NOT NULL DEFAULT ''"],
+    ["importedAt", "TEXT NOT NULL DEFAULT ''"],
+    ["importBatchId", "TEXT NOT NULL DEFAULT ''"]
+  ],
+  settings: [
+    ["branchId", "TEXT NOT NULL DEFAULT ''"]
+  ],
+  migration_staging_rows: [
+    ["branchId", "TEXT NOT NULL DEFAULT ''"]
+  ]
+};
+
 function safeColumns(table) {
   try {
     return columnsFor(table);
@@ -58,5 +109,15 @@ export function ensureMigrationTargetMetadataSchema() {
     }
     ensureRollbackIndex(table);
   }
+  for (const [table, definitions] of Object.entries(RECOVERY_COLUMNS)) {
+    const columns = safeColumns(table);
+    if (!columns.length) continue;
+    for (const [column, definition] of definitions) {
+      ensureColumn(table, columns, column, definition);
+      if (!columns.includes(column)) columns.push(column);
+    }
+  }
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_gift_cards_recovery_source ON gift_cards (tenantId, branchId, originalRecordId)").run();
+  db.prepare("CREATE INDEX IF NOT EXISTS idx_products_qr_code ON products (tenantId, branchId, qrCode)").run();
   ensured = true;
 }

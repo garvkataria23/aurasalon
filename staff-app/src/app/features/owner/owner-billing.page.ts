@@ -63,6 +63,6 @@ export class OwnerBillingPage implements OnDestroy {
   async open(invoice: OwnerBillingInvoice, event: Event): Promise<void> { this.trigger = event.currentTarget as HTMLElement; this.selected.set(invoice); this.detail.set(null); this.detailLoading.set(true); document.documentElement.classList.add("staff-overlay-open"); setTimeout(() => this.drawer?.nativeElement.focus()); const id = ++this.detailRequest; try { const detail = await this.api.ownerBillingInvoice(invoice.id); if (id === this.detailRequest) this.detail.set(detail); } catch { if (id === this.detailRequest) this.error.set("Invoice detail could not be loaded."); } finally { if (id === this.detailRequest) this.detailLoading.set(false); } }
   close(): void { this.detailRequest++; this.selected.set(null); this.detail.set(null); document.documentElement.classList.remove("staff-overlay-open"); setTimeout(() => this.trigger?.focus()); }
   label(value: string): string { return value.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase()); }
-  date(value: string): string { if (!value) return "Date unavailable"; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(date); }
+  date(value: string): string { if (!value) return "Date unavailable"; return this.context.formatDate(value); }
   @HostListener("window:keydown", ["$event"]) keydown(event: KeyboardEvent): void { if (event.key === "Escape" && this.selected()) this.close(); }
 }

@@ -36,5 +36,5 @@ export class OwnerSettingsPage implements OnInit{
   canLeave(){return!this.dirty()||confirm("You have unsaved general settings. Leave without saving?");}
   @HostListener("window:beforeunload",["$event"])beforeUnload(event:BeforeUnloadEvent){if(!this.dirty())return;event.preventDefault();event.returnValue="";}
   private setDraft(settings:OwnerGeneralSettings){const copy=structuredClone(settings);this.draft.set(copy);this.baseline.set(JSON.stringify(copy));}
-  label(value:string){return value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());}date(value:string){const d=new Date(value);return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZone:"Asia/Kolkata"}).format(d);}
+  label(value:string){return value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());}date(value:string){return this.context.formatDateTime(value);}
 }

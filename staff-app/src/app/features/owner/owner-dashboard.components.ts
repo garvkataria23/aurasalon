@@ -1,7 +1,8 @@
-import { Component, computed, input, output } from "@angular/core";
+import { Component, computed, inject, input, output } from "@angular/core";
 import { DecimalPipe } from "@angular/common";
 import { PaiseInrPipe } from "../../core/paise-inr.pipe";
 import { OwnerDashboardKpi, OwnerDashboardSparkPoint, OwnerDashboardTrend, OwnerRevenuePoint } from "./owner-dashboard.models";
+import { OwnerContextService } from "./owner-context.service";
 
 @Component({
   selector: "owner-status-badge",
@@ -107,6 +108,7 @@ export class OwnerDashboardItemComponent {
   `]
 })
 export class OwnerRevenueChartComponent {
+  readonly ctx = inject(OwnerContextService);
   readonly current = input.required<OwnerRevenuePoint[]>();
   readonly previous = input.required<OwnerRevenuePoint[]>();
   readonly grouping = input.required<string>();
@@ -123,10 +125,10 @@ export class OwnerRevenueChartComponent {
     if (!points.length) return "No net revenue series was returned for the selected period.";
     const total = points.reduce((sum, point) => sum + point.netRevenuePaise, 0);
     const peak = points.reduce((highest, point) => point.netRevenuePaise > highest.netRevenuePaise ? point : highest);
-    return `${points.length} recorded ${this.grouping()} ${points.length === 1 ? "point" : "points"}. Total ${this.inr(total)}. Highest recorded bucket ${this.bucketLabel(peak.bucket)} at ${this.inr(peak.netRevenuePaise)}.`;
+    return `${points.length} recorded ${this.grouping()} ${points.length === 1 ? "point" : "points"}. Total ${this.ctx.formatCurrency(total)}. Highest recorded bucket ${this.bucketLabel(peak.bucket)} at ${this.ctx.formatCurrency(peak.netRevenuePaise)}.`;
   });
-  bucketLabel(value: string): string { const date = new Date(`${value}T00:00:00Z`); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(date); }
-  private inr(paise: number): string { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(paise / 100); }
+  bucketLabel(value: string): string { const date = new Date(`${value}T00:00:00Z`); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(this.ctx.effectiveLocale(), { day: "numeric", month: "short", timeZone: "UTC" }).format(date); }
+  private inr(paise: number): string { return this.ctx.formatCurrency(paise); }
   private coordinates(points: OwnerRevenuePoint[]): Array<{ x: number; y: number }> {
     const { min, max } = this.scale(); const span = max - min || 1;
     return points.map((point, index) => ({ x: 44 + (index / Math.max(points.length - 1, 1)) * 660, y: 226 - ((point.netRevenuePaise - min) / span) * 200 }));

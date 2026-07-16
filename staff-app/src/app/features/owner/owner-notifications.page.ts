@@ -62,5 +62,5 @@ export class OwnerNotificationsPage implements OnDestroy {
   categoryLabel(value: OwnerNotificationCategory): string { return this.categories.find((item) => item.value === value)?.label || value; }
   statusLabel(value: string): string { return value.trim().split(/[-_\s]+/).filter(Boolean).map((part) => part.toLowerCase() === "whatsapp" ? "WhatsApp" : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(" · ") || "Recorded"; }
   tone(value: string): string { const status = value.toLowerCase(); return /failed|error|rejected|cancel/.test(status) ? "danger" : /queued|pending|scheduled|waiting/.test(status) ? "warning" : /sent|delivered|complete|success/.test(status) ? "success" : "neutral"; }
-  dateTime(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }).format(date); }
+  dateTime(value: string): string { return this.context.formatDateTime(value); }
 }

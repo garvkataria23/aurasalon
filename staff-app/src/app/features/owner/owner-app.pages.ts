@@ -1,4 +1,4 @@
-import { CurrencyPipe, DecimalPipe } from "@angular/common";
+import { DecimalPipe } from "@angular/common";
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, effect, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
@@ -331,7 +331,7 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, DecimalPipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, FormsModule, RouterLink],
   template: `
     <article class="owner-page" [attr.aria-busy]="loading()">
       <header class="owner-page-hero"><div><p class="owner-kicker">{{ config().group }}</p><h1>{{ config().title }}</h1><p>{{ config().description }}</p></div>@if (!blockingError()) { <button type="button" class="owner-refresh" [disabled]="loading()" (click)="load()"><span aria-hidden="true">↻</span>{{ loading() ? 'Refreshing' : 'Refresh data' }}</button> }</header>
@@ -345,7 +345,7 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
           @for (metric of metrics(); track metric.label) {
             <article><span>{{ metric.label }}</span>
               @if (metric.value === null || metric.value === undefined) { <strong class="unavailable">Unavailable</strong> }
-              @else if (metric.kind === 'currency') { <strong>{{ metricNumber(metric.value) | currency:'INR':'symbol':'1.0-0':'en-IN' }}</strong> }
+              @else if (metric.kind === 'currency') { <strong>{{ formatMetricCurrency(metricNumber(metric.value)) }}</strong> }
               @else if (metric.kind === 'percent') { <strong>{{ metricNumber(metric.value) | number:'1.0-1' }}%</strong> }
               @else { <strong>{{ metricNumber(metric.value) | number:'1.0-0' }}</strong> }
               <small>{{ metric.note }}</small>
@@ -493,6 +493,7 @@ export class OwnerWorkspacePage implements OnInit, OnDestroy {
   }
   private record(value: unknown): OwnerRecord { return value && typeof value === "object" && !Array.isArray(value) ? value as OwnerRecord : {}; }
   private array(value: unknown): OwnerRecord[] { return Array.isArray(value) ? value.filter((item): item is OwnerRecord => !!item && typeof item === "object") : []; }
-  shortDate(value: unknown): string { const date = new Date(String(value)); return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(date); }
-  private formatDetail(value: unknown, key: string): string { if (typeof value === "object") return JSON.stringify(value); if (/amount|revenue|total|pay|price|balance/i.test(key) && typeof value === "number") return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value); if (/date|at$/i.test(key)) return this.shortDate(value); return String(value).replaceAll("_", " "); }
+  shortDate(value: unknown): string { return this.context.formatDate(String(value || "")); }
+  formatMetricCurrency(amount: number | null): string { if (amount === null) return "Unavailable"; return new Intl.NumberFormat(this.context.effectiveLocale(), { style: "currency", currency: this.context.effectiveCurrency(), maximumFractionDigits: 0 }).format(amount); }
+  private formatDetail(value: unknown, key: string): string { if (typeof value === "object") return JSON.stringify(value); if (/amount|revenue|total|pay|price|balance/i.test(key) && typeof value === "number") return new Intl.NumberFormat(this.context.effectiveLocale(), { style: "currency", currency: this.context.effectiveCurrency(), maximumFractionDigits: 0 }).format(value); if (/date|at$/i.test(key)) return this.context.formatDate(String(value)); return String(value).replaceAll("_", " "); }
 }
