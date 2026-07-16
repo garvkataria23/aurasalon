@@ -4,6 +4,7 @@ import { createApp } from "../server/app.js";
 import { db } from "../server/db.js";
 import { authService } from "../server/services/auth.service.js";
 import { realtimeService } from "../server/services/realtime.service.js";
+import { teamChatService } from "../server/services/team-chat.service.js";
 
 function listen(app) {
   return new Promise((resolve) => {
@@ -90,12 +91,21 @@ test("private owner chat enforces participant, tenant, branch and JWT identity A
     outsider: tokenFor(users.outsider, otherTenantId, branchId)
   };
   const socketFrames = new Map(Object.values(users).map((user) => [user.id, []]));
+  const crossBranchFrames = [];
   for (const [key, user] of Object.entries(users)) {
     realtimeService.clients.set(`test_socket_${user.id}`, {
       access: { tenantId: key === "outsider" ? otherTenantId : tenantId, userId: user.id },
+      branchId,
+      channels: new Set(),
       ws: { readyState: 1, send: (frame) => socketFrames.get(user.id).push(JSON.parse(frame)) }
     });
   }
+  realtimeService.clients.set(`test_socket_${users.owner.id}_other_branch`, {
+    access: { tenantId, userId: users.owner.id },
+    branchId: otherBranchId,
+    channels: new Set(),
+    ws: { readyState: 1, send: (frame) => crossBranchFrames.push(JSON.parse(frame)) }
+  });
 
   try {
     const created = await api(baseUrl, "/private-owner", tokens.staffA, branchId, { method: "POST", body: {
@@ -128,6 +138,7 @@ test("private owner chat enforces participant, tenant, branch and JWT identity A
     assert.equal(socketFrames.get(users.owner.id).length, 1);
     assert.equal(socketFrames.get(users.staffB.id).length, 0);
     assert.equal(socketFrames.get(users.outsider.id).length, 0);
+    assert.equal(crossBranchFrames.length, 0);
     const eventCountAfter = db.prepare("SELECT COUNT(*) AS count FROM realtime_events WHERE tenantId = @tenantId").get({ tenantId }).count;
     assert.equal(eventCountAfter, eventCountBefore);
 
@@ -137,6 +148,107 @@ test("private owner chat enforces participant, tenant, branch and JWT identity A
     });
     assert.equal(ownerReply.status, 201);
     assert.equal(ownerReply.payload.senderUserId, users.owner.id);
+
+    const receiptFrameCounts = Object.fromEntries(Object.entries(users).map(([key, user]) => [key, socketFrames.get(user.id).length]));
+    const delivered = await api(baseUrl, `/conversations/${conversationId}/receipts`, tokens.owner, branchId, {
+      method: "POST",
+      body: { status: "delivered", messageIds: [staffMessage.payload.id, ownerReply.payload.id, "missing_message"], userId: users.staffB.id, tenantId: otherTenantId, branchId: otherBranchId }
+    });
+    assert.equal(delivered.status, 200);
+    assert.deepEqual(delivered.payload.receipts, [{ messageId: staffMessage.payload.id, deliveredCount: 1, readCount: 0 }]);
+    assert.equal(socketFrames.get(users.staffA.id).length, receiptFrameCounts.staffA + 1);
+    assert.equal(socketFrames.get(users.owner.id).length, receiptFrameCounts.owner + 1);
+    assert.equal(socketFrames.get(users.staffB.id).length, receiptFrameCounts.staffB);
+    assert.equal(socketFrames.get(users.outsider.id).length, receiptFrameCounts.outsider);
+    assert.equal(crossBranchFrames.length, 0);
+
+    const receiptFramesAfterDelivered = socketFrames.get(users.staffA.id).length;
+    const repeatedDelivered = await api(baseUrl, `/conversations/${conversationId}/receipts`, tokens.owner, branchId, {
+      method: "POST", body: { status: "delivered", messageIds: [staffMessage.payload.id] }
+    });
+    assert.deepEqual(repeatedDelivered.payload.receipts, delivered.payload.receipts);
+    assert.equal(socketFrames.get(users.staffA.id).length, receiptFramesAfterDelivered);
+
+    const read = await api(baseUrl, `/conversations/${conversationId}/receipts`, tokens.owner, branchId, {
+      method: "POST", body: { status: "read", messageIds: [staffMessage.payload.id] }
+    });
+    assert.deepEqual(read.payload.receipts, [{ messageId: staffMessage.payload.id, deliveredCount: 1, readCount: 1 }]);
+    assert.equal(socketFrames.get(users.staffA.id).length, receiptFramesAfterDelivered + 1);
+    const storedReceipt = db.prepare(`SELECT deliveredAt, readAt FROM staffChatMessageReceipts
+      WHERE tenantId = @tenantId AND branchId = @branchId AND conversationId = @conversationId
+        AND messageId = @messageId AND userId = @userId`).get({ tenantId, branchId, conversationId, messageId: staffMessage.payload.id, userId: users.owner.id });
+    const receiptFramesAfterRead = socketFrames.get(users.staffA.id).length;
+    const repeatedRead = await api(baseUrl, `/conversations/${conversationId}/receipts`, tokens.owner, branchId, {
+      method: "POST", body: { status: "read", messageIds: [staffMessage.payload.id] }
+    });
+    assert.deepEqual(repeatedRead.payload.receipts, read.payload.receipts);
+    assert.equal(socketFrames.get(users.staffA.id).length, receiptFramesAfterRead);
+    assert.deepEqual(db.prepare(`SELECT deliveredAt, readAt FROM staffChatMessageReceipts
+      WHERE tenantId = @tenantId AND branchId = @branchId AND conversationId = @conversationId
+        AND messageId = @messageId AND userId = @userId`).get({ tenantId, branchId, conversationId, messageId: staffMessage.payload.id, userId: users.owner.id }), storedReceipt);
+
+    const selfReceipt = await api(baseUrl, `/conversations/${conversationId}/receipts`, tokens.staffA, branchId, {
+      method: "POST", body: { status: "read", messageIds: [staffMessage.payload.id] }
+    });
+    assert.deepEqual(selfReceipt.payload.receipts, []);
+
+    const typingFrameCounts = Object.fromEntries(Object.entries(users).map(([key, user]) => [key, socketFrames.get(user.id).length]));
+    teamChatService.publishTyping({ conversationId, typing: true, userId: users.staffB.id, name: "Spoofed" }, {
+      tenantId, branchId, requestedBranchId: branchId, userId: users.owner.id, role: "owner", branchIds: [branchId], permissions: []
+    });
+    assert.equal(socketFrames.get(users.staffA.id).length, typingFrameCounts.staffA + 1);
+    assert.equal(socketFrames.get(users.owner.id).length, typingFrameCounts.owner + 1);
+    assert.equal(socketFrames.get(users.staffB.id).length, typingFrameCounts.staffB);
+    assert.equal(socketFrames.get(users.outsider.id).length, typingFrameCounts.outsider);
+    assert.equal(crossBranchFrames.length, 0);
+    const typingFrame = socketFrames.get(users.staffA.id).at(-1);
+    assert.deepEqual(typingFrame.payload, { conversationId, userId: users.owner.id, name: "owner", typing: true });
+    assert.throws(() => teamChatService.publishTyping({ conversationId, typing: true }, {
+      tenantId, branchId, requestedBranchId: branchId, userId: users.staffB.id, role: "staff", branchIds: [branchId], permissions: []
+    }), /Conversation not found/);
+    assert.throws(() => teamChatService.publishTyping(null, {
+      tenantId, branchId, requestedBranchId: branchId, userId: users.owner.id, role: "owner", branchIds: [branchId], permissions: []
+    }), /Typing payload must be an object/);
+    assert.throws(() => teamChatService.publishTyping({ conversationId, typing: "true" }, {
+      tenantId, branchId, requestedBranchId: branchId, userId: users.owner.id, role: "owner", branchIds: [branchId], permissions: []
+    }), /Typing status must be boolean/);
+
+    const realtimeCommandFrames = [];
+    const realtimeClient = {
+      auth: { tenantId, sub: users.owner.id, role: "owner", permissionVersion: 1, branchIds: [branchId], permissions: [] },
+      access: { tenantId, branchId, requestedBranchId: branchId, userId: users.owner.id, role: "owner", branchIds: [branchId], permissions: [] },
+      branchId,
+      allowedChannels: new Set([`branch:${branchId}`]),
+      channels: new Set([`branch:${branchId}`]),
+      typingCommandTimes: [],
+      ws: { readyState: 1, send: (frame) => realtimeCommandFrames.push(JSON.parse(frame)), close: () => {} }
+    };
+    const typingFramesBeforeRealtimeStart = socketFrames.get(users.staffA.id).length;
+    realtimeService.handleMessage(realtimeClient, Buffer.from(JSON.stringify({ type: "team-chat.typing", payload: { conversationId, typing: true } })));
+    assert.equal(socketFrames.get(users.staffA.id).length, typingFramesBeforeRealtimeStart + 1);
+    assert.equal(socketFrames.get(users.staffA.id).at(-1).payload.typing, true);
+
+    realtimeClient.typingCommandTimes = Array(12).fill(Date.now());
+    const typingFramesBeforeThrottle = socketFrames.get(users.staffA.id).length;
+    realtimeService.handleMessage(realtimeClient, Buffer.from(JSON.stringify({ type: "team-chat.typing", payload: { conversationId, typing: true } })));
+    assert.equal(socketFrames.get(users.staffA.id).length, typingFramesBeforeThrottle);
+    assert.match(realtimeCommandFrames.at(-1).payload.message, /too frequent/);
+
+    realtimeService.handleMessage(realtimeClient, Buffer.from(JSON.stringify({ type: "team-chat.typing", payload: { conversationId, typing: false } })));
+    assert.equal(socketFrames.get(users.staffA.id).length, typingFramesBeforeThrottle + 1);
+    assert.equal(socketFrames.get(users.staffA.id).at(-1).payload.typing, false);
+
+    const malformedFrames = [];
+    const malformedClient = { ws: { readyState: 1, send: (frame) => malformedFrames.push(JSON.parse(frame)) } };
+    assert.doesNotThrow(() => realtimeService.handleMessage(malformedClient, Buffer.from("null")));
+    assert.doesNotThrow(() => realtimeService.handleMessage(malformedClient, Buffer.from("[]")));
+    assert.equal(malformedFrames.length, 2);
+
+    const outsiderReceipt = await api(baseUrl, `/conversations/${conversationId}/receipts`, tokens.staffB, branchId, {
+      method: "POST",
+      body: { status: "read", messageIds: [staffMessage.payload.id] }
+    });
+    assert.equal(outsiderReceipt.status, 404);
 
     for (const [token, expectedIds] of [
       [tokens.staffA, [conversationId]],
@@ -153,10 +265,27 @@ test("private owner chat enforces participant, tenant, branch and JWT identity A
     assert.equal(staffList.payload.find((item) => item.type === "private-owner").title, "Owner chat");
     assert.equal(ownerList.payload.find((item) => item.type === "private-owner").title, "staffA · Private");
 
+    const teamConversationId = staffList.payload.find((item) => item.type === "team").id;
+    const teamMessage = await api(baseUrl, `/conversations/${teamConversationId}/messages`, tokens.staffA, branchId, {
+      method: "POST", body: { body: "Team self receipt check" }
+    });
+    assert.equal(teamMessage.status, 201);
+    const teamSelfReceipt = await api(baseUrl, `/conversations/${teamConversationId}/receipts`, tokens.staffA, branchId, {
+      method: "POST", body: { status: "read", messageIds: [teamMessage.payload.id] }
+    });
+    assert.equal(teamSelfReceipt.status, 200);
+    assert.deepEqual(teamSelfReceipt.payload.receipts, []);
+    assert.equal(db.prepare(`SELECT COUNT(*) AS count FROM staffChatMessageReceipts
+      WHERE tenantId = @tenantId AND branchId = @branchId AND conversationId = @conversationId
+        AND messageId = @messageId AND userId = @userId`).get({
+      tenantId, branchId, conversationId: teamConversationId, messageId: teamMessage.payload.id, userId: users.staffA.id
+    }).count, 0);
+
     for (const token of [tokens.staffA, tokens.owner]) {
       const messages = await api(baseUrl, `/conversations/${conversationId}/messages`, token, branchId);
       assert.equal(messages.status, 200);
       assert.deepEqual(messages.payload.map((message) => message.senderUserId), [users.staffA.id, users.owner.id]);
+      assert.deepEqual(messages.payload[0].receipt, { deliveredCount: 1, readCount: 1 });
     }
 
     const staffBRead = await api(baseUrl, `/conversations/${conversationId}/messages`, tokens.staffB, branchId);
@@ -174,9 +303,11 @@ test("private owner chat enforces participant, tenant, branch and JWT identity A
   } finally {
     await close(server);
     for (const user of Object.values(users)) realtimeService.clients.delete(`test_socket_${user.id}`);
+    realtimeService.clients.delete(`test_socket_${users.owner.id}_other_branch`);
     db.prepare("DELETE FROM idempotency_keys WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });
     db.prepare("DELETE FROM audit_logs WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });
     db.prepare("DELETE FROM staffPrivateChatMessages WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });
+    db.prepare("DELETE FROM staffChatMessageReceipts WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });
     db.prepare("DELETE FROM staffPrivateConversationParticipants WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });
     db.prepare("DELETE FROM staffPrivateConversations WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });
     db.prepare("DELETE FROM staffChatMessages WHERE tenantId IN (@tenantId, @otherTenantId)").run({ tenantId, otherTenantId });

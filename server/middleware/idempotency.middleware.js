@@ -44,7 +44,9 @@ export const IDEMPOTENT_REQUIRED = new Set([
   "POST /api/staff-enterprise/reject",
   "POST /api/v1/staff-enterprise/reject",
   "POST /api/staff-enterprise/audit-event",
-  "POST /api/v1/staff-enterprise/audit-event"
+  "POST /api/v1/staff-enterprise/audit-event",
+  "POST /api/owner-console/people/payroll/generate",
+  "POST /api/v1/owner-console/people/payroll/generate"
 ]);
 
 function hashPayload(payload) {

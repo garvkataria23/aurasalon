@@ -62,6 +62,11 @@ export class ApiService {
       .pipe(tap(() => this.invalidateCachedReads(path)));
   }
 
+  postSecure<T = ApiRecord>(path: string, payload: ApiRecord = {}): Observable<T> {
+    return this.withAuth((headers) => this.http.post<ApiEnvelope<T> | T>(`${environment.secureApiBaseUrl}/${path}`, this.withBranchScope(path, payload), { headers: this.headersForMutation(path, headers) }), this.timeoutFor(path))
+      .pipe(tap(() => this.invalidateCachedReads(path)));
+  }
+
   postBlob(path: string, payload: ApiRecord = {}): Observable<Blob> {
     return this.withAuth((headers) => this.http.post(`${environment.apiBaseUrl}/${path}`, this.withBranchScope(path, payload), {
       headers: this.headersForMutation(path, headers),

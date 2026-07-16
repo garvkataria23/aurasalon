@@ -36,3 +36,10 @@ teamChatRouter.post(
   requirePermission("write", () => "appointments"),
   asyncHandler((req, res) => res.status(201).json(teamChatService.sendMessage(req.params.conversationId, req.body, req.access)))
 );
+
+teamChatRouter.post(
+  "/team-chat/conversations/:conversationId/receipts",
+  staffSelfContext(["status", "messageIds"]),
+  requirePermission("read", () => "appointments"),
+  asyncHandler((req, res) => res.json(teamChatService.markReceipts(req.params.conversationId, req.body, req.access)))
+);

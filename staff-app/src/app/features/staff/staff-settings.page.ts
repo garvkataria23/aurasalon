@@ -23,19 +23,21 @@ import { StaffPermissionBadgesComponent } from "./staff-permission-badges.compon
 
       @if (dashboard(); as data) {
         <section class="grid two">
-          <article class="panel">
-            <div class="panel-title"><h2>Session</h2><span>{{ staff.hasSavedSession() ? 'active' : 'inactive' }}</span></div>
-            <div class="list">
-              <div class="row"><strong>Login ID</strong><span>{{ staff.user()?.loginId || '-' }}</span></div>
-              <div class="row"><strong>Staff</strong><span>{{ staff.user()?.name || data.staff.fullName || '-' }}</span></div>
-              <div class="row"><strong>Role</strong><span>{{ staff.user()?.role || data.staff.roleId }}</span></div>
-              <div class="row"><strong>Branch</strong><span>{{ staff.user()?.branchId || '-' }}</span></div>
+          <details class="panel session-panel">
+            <summary><strong>Session</strong><span>{{ staff.hasSavedSession() ? 'active' : 'inactive' }}</span></summary>
+            <div class="session-content">
+              <div class="list">
+                <div class="row"><strong>Login ID</strong><span>{{ staff.user()?.loginId || '-' }}</span></div>
+                <div class="row"><strong>Staff</strong><span>{{ staff.user()?.name || data.staff.fullName || '-' }}</span></div>
+                <div class="row"><strong>Role</strong><span>{{ staff.user()?.role || data.staff.roleId }}</span></div>
+                <div class="row"><strong>Branch</strong><span>{{ staff.user()?.branchId || '-' }}</span></div>
+              </div>
+              <div class="row-actions permission-actions">
+                <button class="button primary" type="button" (click)="refresh()">Refresh session</button>
+                <button class="button" type="button" (click)="logout()">Logout</button>
+              </div>
             </div>
-            <div class="row-actions permission-actions">
-              <button class="button primary" type="button" (click)="refresh()">Refresh session</button>
-              <button class="button" type="button" (click)="logout()">Logout</button>
-            </div>
-          </article>
+          </details>
 
           <div class="security-stack">
             <article class="panel dark biometric-panel">
@@ -77,12 +79,13 @@ import { StaffPermissionBadgesComponent } from "./staff-permission-badges.compon
     .biometric-switch[aria-checked="true"] span { transform: translateX(16px); background: var(--staff-on-primary); }
     .biometric-switch:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 3px; }
     .biometric-switch:disabled { opacity: .55; cursor: not-allowed; }
-    .permission-panel { width: 100%; min-width: 0; margin: 0; padding: 0; border-radius: 16px; box-sizing: border-box; }
-    .permission-panel summary { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 12px 14px; list-style: none; box-sizing: border-box; cursor: pointer; }
-    .permission-panel summary::-webkit-details-marker { display: none; }
-    .permission-panel summary strong { color: var(--staff-text); font-size: .92rem; }
-    .permission-panel summary span { color: var(--staff-text-secondary); font-size: .72rem; font-weight: 700; }
-    .permission-panel summary:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 2px; border-radius: 14px; }
+    .session-panel, .permission-panel { width: 100%; min-width: 0; margin: 0; padding: 0; border-radius: 16px; box-sizing: border-box; }
+    .session-panel summary, .permission-panel summary { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 58px; padding: 12px 14px; list-style: none; box-sizing: border-box; cursor: pointer; }
+    .session-panel summary::-webkit-details-marker, .permission-panel summary::-webkit-details-marker { display: none; }
+    .session-panel summary strong, .permission-panel summary strong { color: var(--staff-text); font-size: .92rem; }
+    .session-panel summary span, .permission-panel summary span { color: var(--staff-text-secondary); font-size: .72rem; font-weight: 700; text-transform: capitalize; }
+    .session-panel summary:focus-visible, .permission-panel summary:focus-visible { outline: 3px solid var(--staff-focus-ring); outline-offset: 2px; border-radius: 14px; }
+    .session-content { padding: 0 14px 12px; border-top: 1px solid var(--staff-border); }
     .permission-list { justify-content: flex-start; padding: 0 14px 12px; border-top: 1px solid var(--staff-border); }
     .permission-panel[open] .permission-list { padding-top: 10px; }
     @media (prefers-reduced-motion: reduce) {

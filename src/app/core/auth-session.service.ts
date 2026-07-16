@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
-import { Observable, finalize, map, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export type LoginPayload = {
@@ -20,7 +20,7 @@ export type AuthSession = {
   tokenType: string;
   accessToken: string;
   expiresIn: number;
-  refreshToken: string;
+  refreshToken?: string;
   refreshExpiresAt: string;
   user: { id: string; name: string; loginId?: string; email: string; role: string; staffId?: string; branchId: string; branchIds: string[]; permissions?: string[] };
   tenant: { id: string; name: string; slug: string; subscriptionStatus: string };
@@ -38,6 +38,28 @@ export class AuthSessionService {
   private refreshInFlight?: Observable<AuthSession>;
 
   constructor(private readonly http: HttpClient) {}
+
+  bootstrapOwnerPosHandoff(): Observable<void> {
+    if (!window.location.pathname.replace(/\/$/, '').endsWith('/pos')) return of(undefined);
+    sessionStorage.removeItem('aura.ownerPosContext');
+    return this.http.post<AuthEnvelope<{ session: AuthSession; posContext: Record<string, unknown> }> | { session: AuthSession; posContext: Record<string, unknown> }>(
+      `${environment.secureApiBaseUrl}/auth/owner-pos-handoff/consume`,
+      {},
+      { withCredentials: true }
+    ).pipe(
+      map((response) => this.unwrap(response)),
+      tap(({ session, posContext }) => {
+        this.setSession(session);
+        sessionStorage.setItem('aura.ownerPosContext', JSON.stringify(posContext));
+        localStorage.setItem('aura.selectedTenantId', session.tenant.id);
+        localStorage.setItem('aura.userRole', session.user.role);
+        localStorage.setItem('aura.selectedBranchId', session.user.branchId || '');
+        localStorage.setItem(`aura.selectedBranchId.${session.tenant.id}`, session.user.branchId || '');
+      }),
+      map(() => undefined),
+      catchError(() => of(undefined))
+    );
+  }
 
   login(payload: LoginPayload): Observable<AuthSession> {
     return this.http.post<AuthEnvelope<AuthSession> | AuthSession>(`${environment.secureApiBaseUrl}/auth/login`, payload).pipe(
@@ -74,14 +96,14 @@ export class AuthSessionService {
 
   refreshSession(): Observable<AuthSession> {
     const current = this.session();
-    if (!current?.refreshToken) {
+    if (!current) {
       this.clearSession();
       return throwError(() => new Error('Session expired. Please sign in again.'));
     }
     if (!this.refreshInFlight) {
       this.refreshInFlight = this.http.post<AuthEnvelope<AuthSession> | AuthSession>(`${environment.secureApiBaseUrl}/auth/refresh`, {
-        refreshToken: current.refreshToken
-      }).pipe(
+        refreshToken: current.refreshToken || ''
+      }, { withCredentials: true }).pipe(
         map((response) => this.unwrap(response)),
         tap((session) => this.setSession(session)),
         finalize(() => this.refreshInFlight = undefined),
@@ -103,9 +125,9 @@ export class AuthSessionService {
     const refreshToken = current?.refreshToken || '';
     const accessToken = current?.accessToken || '';
     this.clearSession();
-    if (refreshToken && accessToken) {
+    if (accessToken) {
       this.http
-        .post(`${environment.secureApiBaseUrl}/auth/logout`, { refreshToken }, { headers: { authorization: `Bearer ${accessToken}` } })
+        .post(`${environment.secureApiBaseUrl}/auth/logout`, { refreshToken }, { headers: { authorization: `Bearer ${accessToken}` }, withCredentials: true })
         .subscribe({ error: () => undefined });
     }
   }

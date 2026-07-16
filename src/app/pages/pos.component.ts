@@ -115,6 +115,14 @@ type PackageClientNotice = {
   expiry: string;
 };
 
+type OwnerPosContext = {
+  appointmentId?: string;
+  clientId?: string;
+  branchId?: string;
+  serviceIds?: string[];
+  staffId?: string;
+};
+
 @Component({
   selector: 'app-pos',
   standalone: true,
@@ -1962,6 +1970,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
   private selectedBenefitMappingsCache: BenefitServiceMapping[] = [];
   private readonly clientSearchIndex = new Map<string, ClientSearchIndex>();
   private readonly selectedClientId = signal('');
+  private readonly ownerPosContext = this.readOwnerPosContext();
   readonly selectedClientPackageRecords = computed<ApiRecord[]>(() => {
     const clientId = this.selectedClientId();
     return clientId ? this.clientPackageRecords(clientId) : [];
@@ -2431,7 +2440,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const params = this.route.snapshot.queryParamMap;
-    const appointmentId = params.get('appointmentId') || '';
+    const appointmentId = params.get('appointmentId') || this.ownerPosContext?.appointmentId || '';
     if (appointmentId) {
       if (this.appointmentAlreadyBilled(appointmentId)) {
         this.blockBilledRouteAppointment(appointmentId);
@@ -2452,7 +2461,7 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.form.value.clientId) {
       return;
     }
-    const clientId = params.get('clientId') || '';
+    const clientId = params.get('clientId') || this.ownerPosContext?.clientId || '';
     const queryPhone = this.phoneDigits(params.get('q') || '');
     if (!clientId && !queryPhone) {
       return;
@@ -2511,7 +2520,9 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
     this.tips.set([]);
     this.items.set([]);
     const routeAppointments = this.routeAppointmentRows(appointment);
-    const explicitServiceIds = this.routeIdList(this.route.snapshot.queryParamMap.get('serviceIds') || '');
+    const explicitServiceIds = this.routeIdList(this.route.snapshot.queryParamMap.get('serviceIds') || '')
+      .concat(this.ownerPosContext?.serviceIds || [])
+      .filter((id, index, values) => Boolean(id) && values.indexOf(id) === index);
     if (routeAppointments.length > 1 || !explicitServiceIds.length) {
       for (const row of routeAppointments) {
         for (const serviceId of this.appointmentServiceIds(row)) {
@@ -2527,7 +2538,18 @@ export class PosComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedServiceIds = [];
     this.loadBookingAdvanceSuggestion(appointmentId);
     this.dataHint.set(`Appointment ${appointmentId} loaded in POS with ${this.items().length} service line(s).`);
+    sessionStorage.removeItem('aura.ownerPosContext');
     return true;
+  }
+
+  private readOwnerPosContext(): OwnerPosContext | null {
+    try {
+      const raw = sessionStorage.getItem('aura.ownerPosContext');
+      return raw ? JSON.parse(raw) as OwnerPosContext : null;
+    } catch {
+      sessionStorage.removeItem('aura.ownerPosContext');
+      return null;
+    }
   }
 
   activePaymentModes(): PosPaymentMode[] {

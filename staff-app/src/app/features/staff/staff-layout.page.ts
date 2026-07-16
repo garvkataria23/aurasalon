@@ -1,12 +1,14 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
+import { Subscription } from "rxjs";
 import { StaffAppService, StaffEnterpriseOs, StaffWorkspacePreferences } from "../../core/staff-app.service";
 import { StaffPushService } from "../../core/staff-push.service";
 import { resolveStaffIdentity } from "./staff-role-label";
 
 type StaffNavItem = { label: string; path: string; iconPath: string; group: string; permission?: string; anyPermissions?: readonly string[] };
 type StaffRecentItem = { label: string; path: string };
+const STAFF_HINT_SESSION_KEY = "auraStaffHintSeen";
 
 @Component({
   standalone: true,
@@ -64,20 +66,20 @@ type StaffRecentItem = { label: string; path: string };
           </div>
         </header>
          <main class="staff-content">
-          @if (preferences().defaults.staffHints && !isDashboard()) { <p class="staff-policy-hint">Tip: use search to quickly open permitted staff tools and appointments.</p> }
+          @if (preferences().defaults.staffHints && staffHintVisible() && !isDashboard()) { <p class="staff-policy-hint"><span>Tip: use search to quickly open permitted staff tools and appointments.</span><button type="button" aria-label="Dismiss tip" (click)="dismissStaffHint()">×</button></p> }
           <router-outlet />
         </main>
       </div>
 
        <nav class="mobile-bottom-nav" aria-label="Primary staff navigation" [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null">
-         @if (staff.hasPermission('read:appointments')) {
-           <a routerLink="/staff/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Dashboard')"></path></svg><span>Home</span></a>
-           <a routerLink="/staff/appointments" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Appointments')"></path></svg><span>Bookings</span></a>
-           <a routerLink="/staff/business" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Business')"></path></svg><span>Business</span></a>
-         }
-         @if (staff.hasAnyPermission(['allow:staff-checkin-checkout', 'read:staff', 'write:staff'])) { <a routerLink="/staff/attendance" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Attendance')"></path></svg><span>Attendance</span></a> }
-         @if (staff.hasPermission('read:staff')) { <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a> }
-      </nav>
+          @if (staff.hasPermission('read:appointments')) {
+            <a routerLink="/staff/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Dashboard')"></path></svg><span>Home</span></a>
+            <a routerLink="/staff/appointments" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Appointments')"></path></svg><span>Appointments</span></a>
+            <a routerLink="/staff/business" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Business')"></path></svg><span>Business</span></a>
+          }
+          @if (staff.hasAnyPermission(['allow:staff-checkin-checkout', 'read:staff', 'write:staff'])) { <a routerLink="/staff/attendance" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Attendance')"></path></svg><span>Attendance</span></a> }
+          @if (staff.hasPermission('read:staff')) { <a routerLink="/staff/tasks" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconFor('Tasks')"></path></svg><span>Tasks</span></a> }
+       </nav>
 
       @if (commandOpen()) {
         <section class="command-backdrop" (click)="closeCommand()">
@@ -124,10 +126,10 @@ type StaffRecentItem = { label: string; path: string };
   styles: [`
     .staff-app-shell { min-height: 100vh; display: grid; grid-template-columns: 272px minmax(0, 1fr); background: var(--staff-background); color: var(--staff-text); }
     .staff-sidebar { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 16px; border-right: 1px solid var(--staff-border); background: var(--staff-surface-glass); backdrop-filter: blur(18px); }
-    .brand-card { padding: 18px; border: 1px solid var(--staff-border-accent); border-radius: 20px; color: var(--staff-text); background: var(--staff-primary-light); }
-    .brand-card span { display: block; color: var(--staff-primary-hover); font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-    .brand-card strong { display: block; margin-top: 5px; font-size: 1.45rem; }
-    .brand-card small { display: block; margin-top: 4px; color: var(--staff-text-secondary); font-weight: 650; text-transform: capitalize; }
+    .brand-card { padding: 8px 10px; border: 1px solid var(--staff-border-accent); border-radius: 13px; color: var(--staff-text); background: var(--staff-primary-light); }
+    .brand-card span { display: block; color: var(--staff-primary-hover); font-size: .55rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .brand-card strong { display: block; margin-top: 2px; font-size: 1rem; line-height: 1.1; }
+    .brand-card small { display: block; margin-top: 2px; color: var(--staff-text-secondary); font-size: .6rem; font-weight: 650; line-height: 1.15; text-transform: capitalize; }
     .menu-button, .drawer-close { display: none; }
     .drawer-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; opacity: 0; pointer-events: none; background: var(--staff-overlay); backdrop-filter: blur(2px); transition: opacity .18s ease; }
     .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
@@ -137,9 +139,10 @@ type StaffRecentItem = { label: string; path: string };
     .user-card b, .profile-avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 15px; background: var(--staff-primary); color: var(--staff-on-primary); }
     .user-card strong, .user-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-card small { color: var(--staff-text-secondary); font-weight: 600; }
-    .recent-card { display: grid; gap: 6px; margin-top: 12px; padding: 10px; border: 1px solid var(--staff-border); border-radius: 18px; background: var(--staff-surface-secondary); }
-    .recent-card span, .nav-group { margin: 12px 2px 4px; color: var(--staff-text-secondary); font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    .recent-card a { display:block;min-height:44px;padding:12px 4px;color:var(--staff-text);font-size:.82rem;font-weight:650;text-decoration:none; }
+    .recent-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--staff-border); border-radius: 12px; background: var(--staff-surface-secondary); }
+    .recent-card span { grid-column: 1 / -1; margin: 1px 0 2px; color: var(--staff-text-secondary); font-size: .56rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .nav-group { margin: 12px 2px 4px; color: var(--staff-text-secondary); font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .recent-card a { display:block;min-width:0;min-height:26px;overflow:hidden;padding:5px 2px;color:var(--staff-text);font-size:.68rem;font-weight:650;text-decoration:none;text-overflow:ellipsis;white-space:nowrap; }
     nav { display: grid; gap: 5px; margin-top: 14px; }
     nav a { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; min-height:48px;padding: 8px 10px; border: 1px solid transparent; border-radius: 16px; color: var(--staff-text-secondary); font-weight: 700; text-decoration: none; }
     nav a span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 12px; background: var(--staff-surface-secondary); color: var(--staff-text-secondary); font-size: .7rem; font-weight: 800; }
@@ -178,7 +181,8 @@ type StaffRecentItem = { label: string; path: string };
     .net-status.offline { background: var(--staff-error-surface); color: var(--staff-error-text) !important; }
     .queue-status { background: var(--staff-primary-light); color: var(--staff-primary-hover) !important; }
     .staff-content { min-width: 0; overflow: auto; padding: 24px; background: var(--staff-background); }
-    .staff-policy-hint { margin: 0 0 12px; padding: 9px 12px; border: 1px solid var(--staff-border-accent); border-radius: 12px; background: var(--staff-primary-light); color: var(--staff-primary-hover); font-size: .8rem; font-weight: 650; }
+    .staff-policy-hint { display:flex;align-items:center;justify-content:space-between;gap:8px;margin: 0 0 12px; padding: 9px 12px; border: 1px solid var(--staff-border-accent); border-radius: 12px; background: var(--staff-primary-light); color: var(--staff-primary-hover); font-size: .8rem; font-weight: 650; }
+    .staff-policy-hint span{min-width:0}.staff-policy-hint button{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;padding:0;border:0;border-radius:8px;background:transparent;color:inherit;font-size:1rem;line-height:1;cursor:pointer}.staff-policy-hint button:hover{background:color-mix(in srgb,var(--staff-primary) 12%,transparent)}
     .staff-app-shell.staff-compact .staff-content { padding: 12px; }
     .staff-app-shell.staff-compact :is(article, .settings-card, .metric-card) { padding: 10px; }
     .staff-app-shell.staff-compact button { min-height: 44px; }
@@ -242,11 +246,14 @@ type StaffRecentItem = { label: string; path: string };
        .topbar-actions :is(.chat-button,.bell-button) { width:32px;height:44px;min-width:32px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none; }
        .topbar-actions :is(.search-button,.chat-button,.bell-button):hover { border:0;background:transparent; }
       .bell-icon { width: 19px; height: 19px; }
-       .staff-content { overflow: visible; padding: 14px 0 var(--staff-bottom-clearance); }
+       .staff-content { overflow: visible; padding: 10px 0 var(--staff-bottom-clearance); }
+       .staff-policy-hint { margin: 0 10px 8px; padding: 7px 10px; font-size: .72rem; line-height: 1.3; }
       .notification-drawer { top: 0; right: 0; bottom: 0; left: auto; width: 72vw; min-width: 0; max-width: 360px; height: 100dvh; padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); border-left: 1px solid var(--staff-border); border-radius: 22px 0 0 22px; box-shadow: -18px 0 40px rgba(31, 41, 55, .14); }
       .notification-drawer .drawer-title { position: sticky; top: 0; z-index: 2; border: 1px solid var(--staff-border); border-radius: 16px; background: var(--staff-surface-secondary); box-shadow: 0 6px 16px rgba(31, 41, 55, .08); }
        .mobile-bottom-nav { position: fixed; left: 50%; bottom: calc(var(--staff-mobile-nav-offset) + env(safe-area-inset-bottom)); z-index: 27; display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); width: min(calc(100vw - 20px), 430px); min-height: var(--staff-mobile-nav-height); padding: 6px; gap: 3px; transform: translateX(-50%); border: 1px solid var(--staff-border); border-radius: 22px; background: var(--staff-surface-glass); box-shadow: var(--staff-shadow-elevated); backdrop-filter: blur(18px); }
-       .mobile-bottom-nav a { position:relative;display: grid; grid-template-columns: 1fr; grid-template-rows: 23px auto; place-items: center; align-content: center; gap: 2px; min-width: 0; padding: 6px 3px; border: 0; border-radius: 16px; color: var(--staff-text-secondary); font-size: .62rem; font-weight: 700; line-height: 1; text-decoration: none; transition:transform var(--staff-motion-fast) var(--staff-motion-ease),opacity var(--staff-motion-fast) var(--staff-motion-ease); } .mobile-bottom-nav a span, .mobile-bottom-nav a.active span { display: block; width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font-size: inherit; font-weight: inherit; letter-spacing: 0; text-transform: none; }
+       .mobile-bottom-nav:has(> a:nth-child(5)) { grid-template-columns: .85fr 1.2fr 1fr 1.15fr .8fr; gap: 1px; }
+        .mobile-bottom-nav a { position:relative;display: grid; grid-template-columns: 1fr; grid-template-rows: 23px auto; place-items: center; align-content: center; gap: 2px; min-width: 0; padding: 6px 3px; border: 0; border-radius: 16px; color: var(--staff-text-secondary); font-size: .62rem; font-weight: 700; line-height: 1; text-decoration: none; transition:transform var(--staff-motion-fast) var(--staff-motion-ease),opacity var(--staff-motion-fast) var(--staff-motion-ease); } .mobile-bottom-nav a span, .mobile-bottom-nav a.active span { display: block; max-width: 100%; width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font-size: inherit; font-weight: inherit; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+       .mobile-bottom-nav:has(> a:nth-child(5)) a:nth-child(2) span { font-size: .57rem; letter-spacing: -.015em; }
        .mobile-bottom-nav a.active::after { position:absolute;top:2px;width:16px;height:2px;border-radius:999px;background:var(--staff-primary);content:""; }
       .mobile-bottom-nav a svg { display: block; width: 20px; height: 20px; margin: 0; fill: currentColor; }
        .mobile-bottom-nav a.active { color: var(--staff-primary-hover); background: transparent; }
@@ -294,6 +301,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   readonly realtimeConnected = signal(false);
   readonly offlinePending = signal(0);
   readonly toastMessage = signal("");
+  readonly staffHintVisible = signal(false);
   readonly os = signal<StaffEnterpriseOs | null>(null);
   readonly preferences = signal<StaffWorkspacePreferences>({
     workspace: { workspaceName: "Aura Shine Staff Portal" },
@@ -308,25 +316,28 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   private pollTimer = 0;
   private reconnectTimer = 0;
   private toastTimer = 0;
+  private staffHintTimer = 0;
+  private routerSubscription?: Subscription;
   private socket: WebSocket | null = null;
 
   private readonly nav: StaffNavItem[] = [
     { label: "Dashboard", path: "/staff/dashboard", iconPath: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z", group: "Home", permission: "read:appointments" },
-    { label: "Appointments", path: "/staff/appointments", iconPath: "M7 2v2H5a2 2 0 0 0-2 2v14h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5V7h14v3z", group: "Work", permission: "read:appointments" },
-    { label: "Business", path: "/staff/business", iconPath: "M3 21V3h8v4h10v14H3zm3-3h2v-3H6v3zm0-6h2V9H6v3zm7 6h2v-3h-2v3zm0-6h2V9h-2v3zm5 6h1v-3h-1v3zm0-6h1V9h-1v3z", group: "Work", permission: "read:appointments" },
-    { label: "Tasks", path: "/staff/tasks", iconPath: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z", group: "Work", permission: "read:staff" },
-    { label: "Attendance", path: "/staff/attendance", iconPath: "M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z", group: "Work", anyPermissions: ["allow:staff-checkin-checkout", "read:staff", "write:staff"] },
     { label: "Roster", path: "/staff/roster", iconPath: "M4 4h16v4H4V4zm0 6h7v10H4V10zm9 0h7v10h-7V10z", group: "Work", permission: "read:staff" },
     { label: "Calendar", path: "/staff/calendar", iconPath: "M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v16h18V5a2 2 0 0 0-2-2zm0 16H5V9h14v10z", group: "Work", permission: "read:staff" },
     { label: "Performance", path: "/staff/performance", iconPath: "M3 17h3v4H3v-4zm5-6h3v10H8V11zm5 3h3v7h-3v-7zm5-9h3v16h-3V5z", group: "Intelligence", permission: "read:staff" },
     { label: "Leaderboard", path: "/staff/leaderboard", iconPath: "M7 21h10v-2H7v2zM5 3h14v4a7 7 0 0 1-6 6.9V17h-2v-3.1A7 7 0 0 1 5 7V3zm2 2v2a5 5 0 0 0 10 0V5H7z", group: "Intelligence", permission: "read:staff" },
     { label: "Reports", path: "/staff/reports", iconPath: "M5 3h11l3 3v15H5V3zm10 1.5V7h2.5L15 4.5zM8 11h8v2H8v-2zm0 4h8v2H8v-2z", group: "Intelligence", permission: "read:staff" },
-    { label: "Chat", path: "/staff/chat", iconPath: "M4 4h16v12H7l-3 3V4zm4 5h8V7H8v2zm0 4h6v-2H8v2z", group: "Comms", permission: "read:staff" },
     { label: "Payroll", path: "/staff/payroll", iconPath: "M4 6h16v12H4V6zm2 2v8h12V8H6zm6 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", group: "Account", anyPermissions: ["read:payroll", "read:finance"] },
     { label: "Leaves", path: "/staff/leaves", iconPath: "M12 2C8 6 6 9 6 12a6 6 0 0 0 12 0c0-3-2-6-6-10z", group: "Account", permission: "read:staff" },
     { label: "Profile", path: "/staff/profile", iconPath: "M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-3.3 0-6 1.7-6 3.8V20h12v-2.2c0-2.1-2.7-3.8-6-3.8z", group: "Account" },
     { label: "Settings", path: "/staff/settings", iconPath: "M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.5-2-3.5-2.4 1a7 7 0 0 0-2.6-1.5L14 2h-4l-.4 2.5A7 7 0 0 0 7 6L4.6 5l-2 3.5 2 1.5A8 8 0 0 0 4.5 12c0 .5 0 1 .1 1.5l-2 1.5 2 3.5L7 17a7 7 0 0 0 2.6 1.5L10 21h4l.4-2.5A7 7 0 0 0 17 17l2.4 1 2-3.5-2-1.5zM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z", group: "Account" }
   ];
+  private readonly bottomNavIcons: Record<string, string> = {
+    Appointments: "M7 2v2H5a2 2 0 0 0-2 2v14h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm12 8H5V7h14v3z",
+    Attendance: "M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z",
+    Business: "M3 21V3h8v4h10v14H3zm3-3h2v-3H6v3zm0-6h2V9H6v3zm7 6h2v-3h-2v3zm0-6h2V9h-2v3zm5 6h1v-3h-1v3zm0-6h1V9h-1v3z",
+    Tasks: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
+  };
 
   readonly commandResults = computed(() => {
     const text = this.query().trim().toLowerCase();
@@ -350,6 +361,10 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     void this.flushOfflineQueue();
     void this.connectRealtime();
     void this.push.refreshStatus();
+    this.routerSubscription = this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) this.showStaffHintOnce(event.urlAfterRedirects);
+    });
+    this.showStaffHintOnce(this.router.url);
     this.pollTimer = window.setInterval(() => {
       if (document.visibilityState === "visible" && !this.realtimeConnected()) void this.loadShellData();
     }, 60000);
@@ -359,6 +374,8 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     window.clearInterval(this.pollTimer);
     window.clearTimeout(this.reconnectTimer);
     window.clearTimeout(this.toastTimer);
+    window.clearTimeout(this.staffHintTimer);
+    this.routerSubscription?.unsubscribe();
     this.socket?.close();
     this.setOverlayLock(false);
   }
@@ -446,6 +463,18 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
 
   isDashboard(): boolean { return this.router.url.split("?")[0] === "/staff/dashboard"; }
 
+  dismissStaffHint(): void {
+    window.clearTimeout(this.staffHintTimer);
+    this.staffHintVisible.set(false);
+  }
+
+  private showStaffHintOnce(url: string): void {
+    if (url.split("?")[0] === "/staff/dashboard" || typeof sessionStorage === "undefined" || sessionStorage.getItem(STAFF_HINT_SESSION_KEY)) return;
+    sessionStorage.setItem(STAFF_HINT_SESSION_KEY, "1");
+    this.staffHintVisible.set(true);
+    this.staffHintTimer = window.setTimeout(() => this.staffHintVisible.set(false), 5000);
+  }
+
   toggleTheme() {
     const next = this.theme() === "dark" ? "light" : "dark";
     this.theme.set(next);
@@ -460,7 +489,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   }
 
   iconFor(label: string): string {
-    return this.nav.find((item) => item.label === label)?.iconPath || this.nav[0].iconPath;
+    return this.nav.find((item) => item.label === label)?.iconPath || this.bottomNavIcons[label] || this.nav[0].iconPath;
   }
 
   async markNotification(id: string, status: "read" | "unread" | "archived") {

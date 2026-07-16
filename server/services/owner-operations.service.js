@@ -51,29 +51,33 @@ function response(items, total, pageInfo, metadata = {}) {
 
 function branchMap(context) { return new Map(context.branches.map((branch) => [branch.id, branch.name])); }
 function sortDirection(value) { return lower(value) === "asc" ? "ASC" : "DESC"; }
+function tableColumns(table) { return new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name)); }
 
 function clients(access, query = {}) {
   const context = ownerContext(access, query.branchId);
+  const clientColumns = tableColumns("clients");
   const pageInfo = paging(query);
   const scope = inScope(context.branchIds, "c.branchId", "clientBranch");
-  const where = ["c.tenantId = @tenantId", scope.sql, "(c.deletedAt IS NULL OR c.deletedAt = '')"];
+  const where = ["c.tenantId = @tenantId", scope.sql];
+  if (clientColumns.has("deletedAt")) where.push("(c.deletedAt IS NULL OR c.deletedAt = '')");
   const params = { tenantId: context.tenantId, ...scope.params, limit: pageInfo.pageSize, offset: pageInfo.offset };
   const search = text(query.search);
-  if (search) { where.push("(c.name LIKE @search OR c.phone LIKE @search OR c.email LIKE @search OR c.id LIKE @search OR c.originalRecordId LIKE @search)"); params.search = `%${search}%`; }
+  if (search) { const fields = ["c.name", "c.phone", "c.email", "c.id"]; if (clientColumns.has("originalRecordId")) fields.push("c.originalRecordId"); where.push(`(${fields.map((field) => `${field} LIKE @search`).join(" OR ")})`); params.search = `%${search}%`; }
   if (query.relationship === "new") where.push("COALESCE(c.visitCount,0) = 0");
   if (query.relationship === "returning") where.push("COALESCE(c.visitCount,0) > 0");
-  if (query.status === "active") where.push("(c.status IS NULL OR lower(c.status) = 'active')");
-  if (query.status === "inactive") where.push("lower(COALESCE(c.status,'')) = 'inactive'");
+  if (clientColumns.has("status") && query.status === "active") where.push("(c.status IS NULL OR lower(c.status) = 'active')");
+  if (query.status === "inactive") where.push(clientColumns.has("status") ? "lower(COALESCE(c.status,'')) = 'inactive'" : "1 = 0");
   if (query.lastVisit === "never") where.push("COALESCE(c.lastVisitAt,'') = ''");
   if (query.lastVisit === "range" && query.from && query.to) { where.push("substr(c.lastVisitAt,1,10) BETWEEN @from AND @to"); params.from = text(query.from); params.to = text(query.to); }
   if (query.outstanding === "yes") where.push("EXISTS (SELECT 1 FROM invoices i JOIN sales s ON s.id=i.saleId AND s.tenantId=c.tenantId WHERE i.tenantId=c.tenantId AND i.clientId=c.id AND s.branchId=c.branchId AND COALESCE(i.balance,0)>0)");
   const whereSql = where.join(" AND ");
   const total = Number(db.prepare(`SELECT COUNT(*) AS count FROM clients c WHERE ${whereSql}`).get(params)?.count || 0);
   const names = branchMap(context);
-  const rows = db.prepare(`SELECT c.id,c.name,c.phone,c.email,c.branchId,c.status,c.visitCount,c.totalSpend,c.lastVisitAt,c.walletBalance,c.loyaltyPoints,c.membershipId,c.createdAt,c.updatedAt,
+  const statusSelect = clientColumns.has("status") ? "c.status" : "'active' AS status";
+  const rows = db.prepare(`SELECT c.id,c.name,c.phone,c.email,c.branchId,${statusSelect},c.visitCount,c.totalSpend,c.lastVisitAt,c.walletBalance,c.loyaltyPoints,c.membershipId,c.createdAt,c.updatedAt,
     COALESCE((SELECT SUM(i.balance) FROM invoices i JOIN sales s ON s.id=i.saleId AND s.tenantId=c.tenantId WHERE i.tenantId=c.tenantId AND i.clientId=c.id AND s.branchId=c.branchId AND COALESCE(i.balance,0)>0),0) AS outstanding
     FROM clients c WHERE ${whereSql} ORDER BY c.updatedAt ${sortDirection(query.sortDirection)}, c.id LIMIT @limit OFFSET @offset`).all(params);
-  return response(rows.map((row) => ({ ...row, branchName: names.get(row.branchId) || "Assigned branch", status: row.status || "active", totalSpendPaise: paise(row.totalSpend), walletBalancePaise: paise(row.walletBalance), outstandingPaise: paise(row.outstanding), phone: text(row.phone), email: text(row.email) })), total, pageInfo, { filters: { branchId: text(query.branchId || "all"), search } });
+  return response(rows.map((row) => ({ id: row.id, name: row.name, phone: text(row.phone), email: text(row.email), branchId: row.branchId, branchName: names.get(row.branchId) || "Assigned branch", status: row.status || "active", visitCount: Number(row.visitCount || 0), totalSpendPaise: paise(row.totalSpend), lastVisitAt: text(row.lastVisitAt), walletBalancePaise: paise(row.walletBalance), loyaltyPoints: Number(row.loyaltyPoints || 0), membershipId: text(row.membershipId), outstandingPaise: paise(row.outstanding), createdAt: row.createdAt, updatedAt: row.updatedAt })), total, pageInfo, { filters: { branchId: text(query.branchId || "all"), search } });
 }
 
 function clientDetail(clientId, access, query = {}) {
@@ -86,11 +90,12 @@ function clientDetail(clientId, access, query = {}) {
   const salesScope = inScope(context.branchIds, "s.branchId", "saleBranch");
   const purchases = db.prepare(`SELECT s.id,s.branchId,s.items,s.total,s.status,s.createdAt,i.id AS invoiceId,i.invoiceNumber,i.balance,i.paid FROM sales s LEFT JOIN invoices i ON i.tenantId=s.tenantId AND i.saleId=s.id WHERE s.tenantId=@tenantId AND s.clientId=@clientId AND ${salesScope.sql} ORDER BY s.createdAt DESC LIMIT 100`).all({ tenantId: context.tenantId, clientId: client.id, ...salesScope.params });
   const membership = client.membershipId ? db.prepare(`SELECT id,planName,planCredits,creditsRemaining,validityDate,status,branchId FROM memberships WHERE tenantId=@tenantId AND id=@membershipId AND clientId=@clientId AND branchId=@branchId LIMIT 1`).get({ tenantId: context.tenantId, membershipId: client.membershipId, clientId: client.id, branchId: client.branchId }) || null : null;
+  const outstanding = Number(db.prepare(`SELECT COALESCE(SUM(i.balance),0) AS total FROM invoices i JOIN sales s ON s.id=i.saleId AND s.tenantId=i.tenantId WHERE i.tenantId=@tenantId AND i.clientId=@clientId AND s.branchId=@branchId AND COALESCE(i.balance,0)>0`).get({ tenantId: context.tenantId, clientId: client.id, branchId: client.branchId })?.total || 0);
   const names = branchMap(context);
   return {
-    client: { id: client.id, name: client.name, phone: text(client.phone), email: text(client.email), gender: text(client.gender), birthday: text(client.birthday), anniversary: text(client.anniversary), tags: jsonArray(client.tags).map(text), notes: text(client.notes), branchId: client.branchId, branchName: names.get(client.branchId) || "Assigned branch", status: client.status || "active", visitCount: Number(client.visitCount || 0), totalSpendPaise: paise(client.totalSpend), walletBalancePaise: paise(client.walletBalance), loyaltyPoints: Number(client.loyaltyPoints || 0), lastVisitAt: text(client.lastVisitAt), createdAt: client.createdAt, updatedAt: client.updatedAt },
+    client: { id: client.id, name: client.name, phone: text(client.phone), email: text(client.email), gender: text(client.gender), birthday: text(client.birthday), anniversary: text(client.anniversary), tags: jsonArray(client.tags).map(text), notes: text(client.notes), branchId: client.branchId, branchName: names.get(client.branchId) || "Assigned branch", status: client.status || "active", visitCount: Number(client.visitCount || 0), totalSpendPaise: paise(client.totalSpend), walletBalancePaise: paise(client.walletBalance), loyaltyPoints: Number(client.loyaltyPoints || 0), membershipId: text(client.membershipId), outstandingPaise: paise(outstanding), lastVisitAt: text(client.lastVisitAt), createdAt: client.createdAt, updatedAt: client.updatedAt },
     appointments: appointments.map((item) => ({ ...item, branchName: names.get(item.branchId) || "Assigned branch", serviceIds: jsonArray(item.serviceIds).map(text) })),
-    purchases: purchases.map((item) => ({ ...item, branchName: names.get(item.branchId) || "Assigned branch", items: jsonArray(item.items), totalPaise: paise(item.total), paidPaise: paise(item.paid), balancePaise: paise(item.balance) })),
+    purchases: purchases.map((item) => ({ id: item.id, branchId: item.branchId, branchName: names.get(item.branchId) || "Assigned branch", items: jsonArray(item.items), totalPaise: paise(item.total), paidPaise: paise(item.paid), balancePaise: paise(item.balance), status: item.status, createdAt: item.createdAt, invoiceId: text(item.invoiceId), invoiceNumber: text(item.invoiceNumber) })),
     membership,
     metadata: { timezone: "Asia/Kolkata", partial: true, unavailableSources: ["client documents", "client preferences", "client package assignments"], branchRelationship: context.branchIds }
   };
@@ -113,10 +118,12 @@ function inventory(access, query = {}) {
   const whereSql = where.join(" AND ");
   const total = Number(db.prepare(`SELECT COUNT(*) AS count FROM products p WHERE ${whereSql}`).get(params)?.count || 0);
   const metric = db.prepare(`SELECT COUNT(*) AS products,SUM(CASE WHEN stock>0 AND stock<=lowStockThreshold THEN 1 ELSE 0 END) AS lowStock,SUM(CASE WHEN stock<=0 THEN 1 ELSE 0 END) AS outOfStock,SUM(CASE WHEN stock<=lowStockThreshold THEN 1 ELSE 0 END) AS reorderCount,SUM(stock*unitCost) AS stockValue FROM products p WHERE p.tenantId=@tenantId AND ${scope.sql}`).get({ tenantId: context.tenantId, ...scope.params });
+  const categories = db.prepare(`SELECT DISTINCT trim(category) AS value FROM products p WHERE p.tenantId=@tenantId AND ${scope.sql} AND trim(COALESCE(category,''))<>'' ORDER BY value`).all({ tenantId: context.tenantId, ...scope.params }).map((row) => row.value);
+  const suppliers = db.prepare(`SELECT DISTINCT trim(supplier) AS value FROM products p WHERE p.tenantId=@tenantId AND ${scope.sql} AND trim(COALESCE(supplier,''))<>'' ORDER BY value`).all({ tenantId: context.tenantId, ...scope.params }).map((row) => row.value);
   const sort = { name: "p.name", stock: "p.stock", value: "(p.stock*p.unitCost)", updated: "p.updatedAt" }[text(query.sort)] || "p.updatedAt";
   const names = branchMap(context);
   const rows = db.prepare(`SELECT p.* FROM products p WHERE ${whereSql} ORDER BY ${sort} ${sortDirection(query.sortDirection)}, p.id LIMIT @limit OFFSET @offset`).all(params);
-  return { ...response(rows.map((row) => ({ id: row.id, name: row.name, sku: row.sku, category: row.category, supplier: row.supplier, branchId: row.branchId, branchName: names.get(row.branchId) || "Assigned branch", stock: Number(row.stock || 0), lowStockThreshold: Number(row.lowStockThreshold || 0), expiryDate: text(row.expiryDate), unitCostPaise: paise(row.unitCost), pricePaise: paise(row.price), stockValuePaise: paise(Number(row.stock || 0) * Number(row.unitCost || 0)), status: row.status || "active", updatedAt: row.updatedAt })), total, pageInfo), metrics: { products: Number(metric.products || 0), lowStock: Number(metric.lowStock || 0), outOfStock: Number(metric.outOfStock || 0), reorderCount: Number(metric.reorderCount || 0), stockValuePaise: paise(metric.stockValue) } };
+  return { ...response(rows.map((row) => ({ id: row.id, name: row.name, sku: row.sku, category: row.category, supplier: row.supplier, branchId: row.branchId, branchName: names.get(row.branchId) || "Assigned branch", stock: Number(row.stock || 0), lowStockThreshold: Number(row.lowStockThreshold || 0), expiryDate: text(row.expiryDate), unitCostPaise: paise(row.unitCost), pricePaise: paise(row.price), stockValuePaise: paise(Number(row.stock || 0) * Number(row.unitCost || 0)), status: row.status || "active", updatedAt: row.updatedAt })), total, pageInfo), metrics: { products: Number(metric.products || 0), lowStock: Number(metric.lowStock || 0), outOfStock: Number(metric.outOfStock || 0), reorderCount: Number(metric.reorderCount || 0), stockValuePaise: paise(metric.stockValue) }, facets: { categories, suppliers } };
 }
 
 function inventoryDetail(productId, access, query = {}) {
@@ -125,7 +132,8 @@ function inventoryDetail(productId, access, query = {}) {
   const product = db.prepare(`SELECT * FROM products WHERE tenantId=@tenantId AND id=@productId AND ${scope.sql}`).get({ tenantId: context.tenantId, productId: text(productId), ...scope.params });
   if (!product) throw notFound("Product not found in the selected owner branches");
   const transactions = db.prepare(`SELECT id,type,quantity,unitCost,totalCost,reason,referenceType,referenceId,createdAt FROM inventory_transactions WHERE tenantId=@tenantId AND productId=@productId AND branchId=@branchId ORDER BY createdAt DESC LIMIT 200`).all({ tenantId: context.tenantId, productId: product.id, branchId: product.branchId });
-  return { product: { ...product, unitCostPaise: paise(product.unitCost), pricePaise: paise(product.price), stockValuePaise: paise(Number(product.stock || 0) * Number(product.unitCost || 0)) }, transactions: transactions.map((item) => ({ ...item, quantity: Number(item.quantity || 0), unitCostPaise: paise(item.unitCost), totalCostPaise: paise(item.totalCost) })), metadata: { timezone: "Asia/Kolkata", partial: false, unavailableSources: [] } };
+  const names = branchMap(context);
+  return { product: { id: product.id, name: product.name, sku: product.sku, category: product.category, supplier: product.supplier, branchId: product.branchId, branchName: names.get(product.branchId) || "Assigned branch", stock: Number(product.stock || 0), lowStockThreshold: Number(product.lowStockThreshold || 0), expiryDate: text(product.expiryDate), unitCostPaise: paise(product.unitCost), pricePaise: paise(product.price), stockValuePaise: paise(Number(product.stock || 0) * Number(product.unitCost || 0)), status: product.status || "active", updatedAt: product.updatedAt }, transactions: transactions.map((item) => ({ id: item.id, type: item.type, quantity: Number(item.quantity || 0), unitCostPaise: paise(item.unitCost), totalCostPaise: paise(item.totalCost), reason: text(item.reason), referenceType: text(item.referenceType), referenceId: text(item.referenceId), createdAt: item.createdAt })), metadata: { timezone: "Asia/Kolkata", partial: false, unavailableSources: [] } };
 }
 
 function marketing(access, query = {}) {
@@ -169,6 +177,7 @@ function notificationRows(context, query = {}, includePaging = true) {
   if (search) { where.push("(n.message LIKE @search OR n.type LIKE @search OR n.channel LIKE @search)"); params.search = `%${search}%`; }
   if (query.type) { where.push("n.type=@type"); params.type = text(query.type); }
   if (query.status) { where.push("n.status=@status"); params.status = text(query.status); }
+  if (query.category) { where.push(`${notificationCategorySql()}=@category`); params.category = text(query.category); }
   if (query.read === "read") where.push("COALESCE(r.readAt,'')<>''");
   if (query.read === "unread") where.push("COALESCE(r.readAt,'')=''");
   const whereSql = where.join(" AND ");
@@ -179,15 +188,12 @@ function notificationRows(context, query = {}, includePaging = true) {
 
 function notifications(access, query = {}) {
   const context = ownerContext(access, query.branchId);
-  const category = text(query.category);
-  const result = notificationRows(context, query, !category);
+  const result = notificationRows(context, query);
   const names = branchMap(context);
-  let items = result.rows.map((row) => ({ ...row, category: notificationCategory(row), isRead: !!row.readAt, branchId: row.branchId || null, branchName: row.branchId ? names.get(row.branchId) || "Assigned branch" : "Tenant-wide", scope: row.branchId ? "branch" : "tenant-wide", destination: null }));
-  const total = category
-    ? items.filter((item) => item.category === category).length
-    : Number(db.prepare(`SELECT COUNT(*) AS count FROM notifications n ${result.join} WHERE ${result.whereSql}`).get(result.params)?.count || 0);
-  if (category) items = items.filter((item) => item.category === category).slice(result.pageInfo.offset, result.pageInfo.offset + result.pageInfo.pageSize);
-  return response(items, total, result.pageInfo, { partial: true, unavailableSources: ["authoritative notification branch mapping", "direct-navigation targets"], scopeNote: "Legacy generic notifications are tenant-wide; read receipts are owner-specific." });
+  const items = result.rows.map((row) => ({ ...row, category: notificationCategory(row), isRead: !!row.readAt, branchId: row.branchId || null, branchName: row.branchId ? names.get(row.branchId) || "Assigned branch" : "Tenant-wide", scope: row.branchId ? "branch" : "tenant-wide", destination: null }));
+  const total = Number(db.prepare(`SELECT COUNT(*) AS count FROM notifications n ${result.join} WHERE ${result.whereSql}`).get(result.params)?.count || 0);
+  const unreadTotal = Number(db.prepare(`SELECT COUNT(*) AS count FROM notifications n ${result.join} WHERE ${result.whereSql} AND COALESCE(r.readAt,'')=''`).get(result.params)?.count || 0);
+  return response(items, total, result.pageInfo, { partial: true, unavailableSources: ["authoritative notification branch mapping", "direct-navigation targets"], scopeNote: "Legacy generic notifications are tenant-wide; read receipts are owner-specific.", unreadTotal });
 }
 
 function setNotificationRead(notificationId, read, access) {

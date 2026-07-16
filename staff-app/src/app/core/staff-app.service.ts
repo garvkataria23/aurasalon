@@ -405,7 +405,10 @@ export type StaffConversationMessage = {
   senderName: string;
   body: string;
   createdAt: string;
+  receipt: { deliveredCount: number; readCount: number };
 };
+
+export type StaffMessageReceiptUpdate = { messageId: string; deliveredCount: number; readCount: number };
 
 export type StaffPushDevice = { id: string };
 export type StaffPushConfig = { configured: boolean; publicKey: string };
@@ -487,14 +490,17 @@ export class StaffAppService {
     this.error.set("");
     try {
       const tenantId = payload.tenantId.trim() || "tenant_aura";
+      const loginId = payload.loginId.trim();
       const response = await firstValueFrom(this.http.post<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/login`, {
         tenantId,
-        loginId: payload.loginId.trim(),
+        loginId,
+        email: loginId.includes("@") ? loginId : undefined,
         password: payload.password,
         branchId: payload.branchId?.trim() || undefined,
         device: { type: "staff-app", name: "Aura Staff App", platform: "web" }
       }, { withCredentials: true }));
       const session = this.unwrap(response);
+      if (String(session.user?.role || "").trim().toLowerCase() === "owner") return session.user;
       if (!session.user?.staffId) throw new Error("This login is not linked with a staff profile.");
       if (!this.isStaffRole(session.user.role)) throw new Error("Use a staff login, not an owner/admin login.");
       this.saveSession(session, tenantId);
@@ -602,6 +608,10 @@ export class StaffAppService {
     return this.postIdempotent<StaffConversationMessage>(`/team-chat/conversations/${encodeURIComponent(conversationId)}/messages`, { body }, idempotencyKey);
   }
 
+  async markStaffMessageReceipts(conversationId: string, messageIds: string[], status: "delivered" | "read"): Promise<{ conversationId: string; receipts: StaffMessageReceiptUpdate[] }> {
+    return this.post(`/team-chat/conversations/${encodeURIComponent(conversationId)}/receipts`, { messageIds, status });
+  }
+
   async today(date = staffBusinessDate()): Promise<StaffToday> {
     return this.get<StaffToday>("/staff-os/mobile/today", { date });
   }
@@ -672,6 +682,7 @@ export class StaffAppService {
     } catch {
       // Local state must still be destroyed when the server session is already invalid.
     } finally {
+      if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("auraStaffHintSeen");
       this.clearLocalAuthState(true);
     }
   }

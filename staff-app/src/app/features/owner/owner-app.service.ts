@@ -24,6 +24,7 @@ import { OwnerAttendance, OwnerLeave, OwnerLeaveDetail, OwnerListResponse, Owner
 import { OwnerExportFile, OwnerFinanceDrilldown, OwnerFinanceOverview, OwnerFinanceQuery, OwnerReportCatalogue, OwnerReportData } from "./owner-finance-reports.models";
 import { OwnerCampaign, OwnerChatConversation, OwnerChatMessage, OwnerChatMessagesResponse, OwnerChatReceiptResponse, OwnerClient, OwnerClientDetail, OwnerInventoryDetail, OwnerInventoryResponse, OwnerNotification, OwnerNotificationReceipt, OwnerOperationsQuery, OwnerOperationsResponse } from "./owner-operations.models";
 import { OwnerAccessAdministration, OwnerAdministrationRole, OwnerAdministrationUser, OwnerBranchCatalogue, OwnerBranchMutation, OwnerBranchWrite, OwnerRoleWrite, OwnerSettingsResponse, OwnerUserWrite } from "./owner-administration.models";
+import { OwnerBillingDetail, OwnerBillingList } from "./owner-billing.models";
 
 export type OwnerUser = {
   id: string;
@@ -46,6 +47,7 @@ export class OwnerAppService {
   private accessToken = "";
   private restorePromise?: Promise<boolean>;
   private refreshPromise?: Promise<void>;
+  private logoutRequested = false;
   readonly user = signal<OwnerUser | null>(null);
   readonly tenantName = signal("");
   readonly loading = signal(false);
@@ -71,21 +73,22 @@ export class OwnerAppService {
     return this.restorePromise;
   }
 
-  async login(payload: { tenantId: string; loginId: string; password: string; totpToken?: string }): Promise<void> {
+  async login(payload: { tenantId: string; loginId: string; password: string; totpToken?: string; twoFactorCode?: string }): Promise<void> {
     this.loading.set(true);
     this.error.set("");
     const completingTotp = this.requiresTotp();
+    const twoFactorCode = String(payload.totpToken || payload.twoFactorCode || "").trim();
     try {
       const response = await firstValueFrom(this.http.post<OwnerSession | ApiEnvelope<OwnerSession>>(`${this.baseUrl}/auth/login`, {
         tenantId: payload.tenantId.trim(),
         loginId: payload.loginId.trim(),
         password: payload.password,
-        ...(payload.totpToken?.trim() ? { totpToken: payload.totpToken.trim() } : {}),
+        ...(twoFactorCode ? { totpToken: twoFactorCode, twoFactorCode } : {}),
         device: { type: "owner-app", name: "Aura Owner", platform: "web" }
       }, { withCredentials: true }));
       const session = this.unwrap(response);
       if (this.normalizeRole(session.user?.role) !== "owner") {
-        await this.discardNonOwnerSession(session.accessToken);
+        this.setLogoutPending(!(await this.discardNonOwnerSession(session.accessToken)));
         throw new Error("This workspace is reserved for the salon owner.");
       }
       this.applySession(session);
@@ -101,14 +104,23 @@ export class OwnerAppService {
     }
   }
 
-  async logout(): Promise<void> {
-    const headers = this.accessToken ? new HttpHeaders({ Authorization: `Bearer ${this.accessToken}` }) : undefined;
+  async logout(): Promise<boolean> {
+    this.logoutRequested = true;
+    const previousToken = this.accessToken;
     this.invalidateSession();
     try {
+      try { await this.refreshPromise; } catch { /* Logout still clears the cookie after a failed refresh. */ }
+      const token = this.accessToken || previousToken;
+      const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+      this.invalidateSession();
       await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { headers, withCredentials: true }));
       this.setLogoutPending(false);
+      return true;
     } catch {
       this.setLogoutPending(true);
+      return false;
+    } finally {
+      this.logoutRequested = false;
     }
   }
 
@@ -120,6 +132,8 @@ export class OwnerAppService {
   securitySummary(): Promise<OwnerRecord> { return this.read("security/summary"); }
   userManagement(): Promise<OwnerRecord> { return this.read("security/user-management", { includeAllBranches: true }); }
   dashboard(params: { branchId: string; range: string; from?: string; to?: string }): Promise<OwnerDashboardResponse> { return this.get("/owner-console/dashboard", params); }
+  ownerBillingInvoices(params: Record<string, string | number | boolean>): Promise<OwnerBillingList> { return this.get("/owner-console/billing/invoices", params); }
+  ownerBillingInvoice(id: string): Promise<OwnerBillingDetail> { return this.get(`/owner-console/billing/invoices/${encodeURIComponent(id)}`); }
   async realtimeSocketTicketUrl(branchId = ""): Promise<string> {
     const response = await this.post<{ ticket: string }>("/realtime/ticket", { branchId: branchId === "all" ? "" : branchId }, true);
     const base = this.baseUrl.startsWith("http") ? new URL(this.baseUrl) : new URL(this.baseUrl, window.location.origin);
@@ -180,17 +194,17 @@ export class OwnerAppService {
   decideOwnerLeave(id: string, decision: "approve" | "reject", payload: { version: number; reason?: string }): Promise<OwnerLeave> { return this.patch(`/owner-console/people/leaves/${encodeURIComponent(id)}/${decision}`, payload); }
   ownerPayroll(params: Record<string, string | number | boolean>): Promise<OwnerListResponse<OwnerPayroll>> { return this.get("/owner-console/people/payroll", params); }
   ownerPayrollDetail(id: string): Promise<OwnerPayrollDetail> { return this.get(`/owner-console/people/payroll/${encodeURIComponent(id)}`); }
-  generateOwnerPayroll(payload: { branchId: string; periodStart: string; periodEnd: string }): Promise<OwnerPayroll> { return this.post("/owner-console/people/payroll/generate", payload); }
+  generateOwnerPayroll(payload: { branchId: string; periodStart: string; periodEnd: string }, idempotencyKey: string): Promise<OwnerPayroll> { return this.post("/owner-console/people/payroll/generate", payload, false, new HttpHeaders({ "Idempotency-Key": idempotencyKey })); }
   approveOwnerPayroll(id: string): Promise<OwnerPayroll> { return this.post(`/owner-console/people/payroll/${encodeURIComponent(id)}/approve`, {}); }
   markOwnerPayrollPaid(id: string): Promise<OwnerPayroll> { return this.post(`/owner-console/people/payroll/${encodeURIComponent(id)}/mark-paid`, {}); }
   ownerClients(params: OwnerOperationsQuery & { relationship?: string; outstanding?: string; lastVisit?: string }): Promise<OwnerOperationsResponse<OwnerClient>> { return this.get("/owner-console/operations/clients", this.operationsParams(params)); }
   ownerClient(id: string, branchId: string): Promise<OwnerClientDetail> { return this.get(`/owner-console/operations/clients/${encodeURIComponent(id)}`, { branchId }); }
   ownerInventory(params: OwnerOperationsQuery & { category?: string; supplier?: string }): Promise<OwnerInventoryResponse> { return this.get("/owner-console/operations/inventory", this.operationsParams(params)); }
   ownerInventoryProduct(id: string, branchId: string): Promise<OwnerInventoryDetail> { return this.get(`/owner-console/operations/inventory/${encodeURIComponent(id)}`, { branchId }); }
-  ownerMarketing(params: OwnerOperationsQuery & { channel?: string }): Promise<OwnerOperationsResponse<OwnerCampaign>> { return this.get("/owner-console/operations/marketing", this.operationsParams(params)); }
+  ownerMarketing(params: OwnerOperationsQuery & { channel?: string }): Promise<OwnerOperationsResponse<OwnerCampaign>> { return this.get("/owner-console/operations/marketing", this.operationsParams({ ...params, branchId: "all" })); }
   ownerNotifications(params: OwnerOperationsQuery & { category?: string; read?: string; type?: string }): Promise<OwnerOperationsResponse<OwnerNotification>> { return this.get("/owner-console/operations/notifications", this.operationsParams(params)); }
   setOwnerNotificationRead(id: string, read: boolean): Promise<OwnerNotificationReceipt> { return this.patch(`/owner-console/operations/notifications/${encodeURIComponent(id)}/receipt`, { read }); }
-  markAllOwnerNotificationsRead(branchId: string): Promise<{ updated: number; readAt: string }> { return this.post("/owner-console/operations/notifications/mark-all-read", { branchId }); }
+  markAllOwnerNotificationsRead(branchId: string, filters?: { category?: string; search?: string; read?: string; status?: string }): Promise<{ updated: number; readAt: string }> { return this.post("/owner-console/operations/notifications/mark-all-read", { branchId, ...filters }); }
   ownerChats(params: OwnerOperationsQuery): Promise<OwnerOperationsResponse<OwnerChatConversation>> { return this.get("/owner-console/operations/chats", this.operationsParams(params)); }
   ownerChatMessages(id: string, branchId: string): Promise<OwnerChatMessagesResponse> { return this.get(`/owner-console/operations/chats/${encodeURIComponent(id)}/messages`, { branchId }); }
   createOwnerPrivateChat(branchId: string, staffId: string, idempotencyKey: string): Promise<OwnerChatConversation> { return this.post("/owner-console/operations/chats/private", { branchId, staffId }, false, new HttpHeaders({ "Idempotency-Key": idempotencyKey })); }
@@ -288,6 +302,7 @@ export class OwnerAppService {
   }
 
   private async refresh(): Promise<void> {
+    if (this.logoutRequested || this.logoutPending()) throw new Error("Owner sign-out is in progress.");
     if (!this.refreshPromise) {
       this.refreshPromise = this.performRefresh().catch((error) => { this.invalidateSession(); throw error; }).finally(() => { this.refreshPromise = undefined; });
     }
@@ -300,9 +315,13 @@ export class OwnerAppService {
     }, { withCredentials: true }));
     const session = this.unwrap(response);
     if (this.normalizeRole(session.user?.role) !== "owner") {
-      await this.discardNonOwnerSession(session.accessToken);
+      this.setLogoutPending(!(await this.discardNonOwnerSession(session.accessToken)));
       this.clear();
       throw new Error("Owner access is required.");
+    }
+    if (this.logoutRequested) {
+      this.accessToken = session.accessToken;
+      return;
     }
     this.applySession(session);
   }
@@ -342,6 +361,7 @@ export class OwnerAppService {
   }
 
   private authHeaders(): HttpHeaders {
+    if (this.logoutRequested) throw new Error("Owner sign-out is in progress.");
     if (!this.accessToken) throw new Error("Owner sign-in is required.");
     return new HttpHeaders({ Authorization: `Bearer ${this.accessToken}` });
   }
@@ -352,13 +372,16 @@ export class OwnerAppService {
     return result;
   }
 
-  private async discardNonOwnerSession(token: string): Promise<void> {
+  private async discardNonOwnerSession(token: string): Promise<boolean> {
     try {
       await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, {
         headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined,
         withCredentials: true
       }));
-    } catch { /* The session is rejected locally even if server logout is unavailable. */ }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private normalizeRole(role?: string): string {

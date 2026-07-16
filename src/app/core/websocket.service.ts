@@ -63,7 +63,7 @@ export class WebSocketService {
     this.connectionKey = key;
     let issued: { ticket: string };
     try {
-      issued = await firstValueFrom(this.api.post<{ ticket: string }>('realtime/ticket', { branchId }));
+      issued = await firstValueFrom(this.api.postSecure<{ ticket: string }>('realtime/ticket', { branchId }));
     } catch {
       if (attempt === this.connectionAttempt && this.started) this.scheduleReconnect();
       return;

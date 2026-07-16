@@ -59,7 +59,7 @@
   --staff-bottom-clearance: calc(var(--staff-mobile-nav-height) + var(--staff-mobile-nav-offset) + env(safe-area-inset-bottom) + 16px);
   --staff-radius-control: 14px;
   --staff-radius-card: 20px;
-  --staff-input-background: #f7fcf8;
+  --staff-input-background: #fff8e7;
   --staff-input-border: #d7e9dd;
   --staff-input-text: #1f2937;
   --staff-input-placeholder: #8a97a3;
@@ -113,6 +113,16 @@ html[data-staff-theme="dark"] {
   --staff-decoration-two: #0b3b32;
   --staff-shadow: 0 8px 24px rgba(0,0,0,.18);
   --staff-shadow-elevated: 0 24px 64px rgba(0,0,0,.42);
+  --staff-input-background: #202c33;
+  --staff-input-border: #2a3942;
+  --staff-input-text: #e9edef;
+  --staff-input-placeholder: #8696a0;
+  --staff-input-label: #aebac1;
+  --staff-input-disabled-background: #182229;
+  --staff-input-disabled-text: #667781;
+  --staff-input-focus: #00a884;
+  --staff-input-focus-ring: rgba(0,168,132,.28);
+  --staff-input-error-background: #3b1e22;
 }
 
 * {

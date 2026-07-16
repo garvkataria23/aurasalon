@@ -1,5 +1,5 @@
 export interface OwnerOperationsPage { page: number; pageSize: number; total: number; totalPages: number; hasMore: boolean; }
-export interface OwnerOperationsMetadata { timezone: "Asia/Kolkata"; partial: boolean; unavailableSources: string[]; scopeNote?: string; filters?: Record<string, string>; }
+export interface OwnerOperationsMetadata { timezone: "Asia/Kolkata"; partial: boolean; unavailableSources: string[]; scopeNote?: string; filters?: Record<string, string>; unreadTotal?: number; }
 export interface OwnerOperationsResponse<T> { items: T[]; page: OwnerOperationsPage; metadata: OwnerOperationsMetadata; }
 export interface OwnerOperationsQuery { branchId: string; page: number; pageSize: number; search?: string; status?: string; from?: string; to?: string; sort?: string; sortDirection?: "asc" | "desc"; }
 
@@ -15,7 +15,7 @@ export interface OwnerClientDetail { client: OwnerClient & { gender: string; bir
 
 export interface OwnerInventoryProduct { id: string; name: string; sku: string; category: string; supplier: string; branchId: string; branchName: string; stock: number; lowStockThreshold: number; expiryDate: string; unitCostPaise: number; pricePaise: number; stockValuePaise: number; status: string; updatedAt: string; }
 export interface OwnerInventoryMetrics { products: number; lowStock: number; outOfStock: number; reorderCount: number; stockValuePaise: number; }
-export interface OwnerInventoryResponse extends OwnerOperationsResponse<OwnerInventoryProduct> { metrics: OwnerInventoryMetrics; }
+export interface OwnerInventoryResponse extends OwnerOperationsResponse<OwnerInventoryProduct> { metrics: OwnerInventoryMetrics; facets: { categories: string[]; suppliers: string[] }; }
 export interface OwnerInventoryTransaction { id: string; type: string; quantity: number; unitCostPaise: number; totalCostPaise: number; reason: string; referenceType: string; referenceId: string; createdAt: string; }
 export interface OwnerInventoryDetail { product: OwnerInventoryProduct; transactions: OwnerInventoryTransaction[]; metadata: OwnerOperationsMetadata; }
 

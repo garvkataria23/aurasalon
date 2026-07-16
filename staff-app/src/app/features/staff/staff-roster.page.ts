@@ -15,7 +15,7 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
           <p>Shift and calendar assignments.</p>
         </div>
         <div class="row-actions">
-          <input aria-label="Roster window start date" [value]="windowStart()" type="date" (change)="updateWindowStart($any($event.target).value)" />
+          <input aria-label="Roster window start date" [value]="windowStart()" type="date" (click)="openDatePicker($event)" (change)="updateWindowStart($any($event.target).value)" />
           <button class="button" type="button" (click)="setWindow(7)">Next 7 days</button>
           <button class="button" type="button" (click)="setWindow(14)">Next 14 days</button>
           <button class="button" type="button" (click)="setWindow(30)">Next 30 days</button>
@@ -66,7 +66,7 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
                 </div>
                 @if (editingId() === item.id) {
                   <div class="form-grid compact-grid">
-                    <label>Date<input [value]="moveDate()" type="date" (change)="moveDate.set($any($event.target).value)" /></label>
+                    <label>Date<input [value]="moveDate()" type="date" (click)="openDatePicker($event)" (change)="moveDate.set($any($event.target).value)" /></label>
                     <label>Start<input [value]="moveStart()" type="time" (change)="moveStart.set($any($event.target).value)" /></label>
                     <label>End<input [value]="moveEnd()" type="time" (change)="moveEnd.set($any($event.target).value)" /></label>
                     <div class="row-actions">
@@ -97,6 +97,15 @@ export class StaffRosterPage implements OnInit {
   readonly moveEnd = signal("18:00");
 
   constructor(readonly staff: StaffAppService) {}
+
+  openDatePicker(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+    }
+  }
 
   ngOnInit() { if (this.canReadRoster()) void this.load(); }
 

@@ -34,6 +34,11 @@ export class RealtimeService {
     this.clients = new Map();
     this.grantStore = grantStore;
     this.wss = null;
+    this.teamChatCommandHandler = null;
+  }
+
+  registerTeamChatCommandHandler(handler) {
+    this.teamChatCommandHandler = handler;
   }
 
   attach(server) {
@@ -156,7 +161,7 @@ export class RealtimeService {
     };
     const allowedChannels = new Set(authorizedChannels);
     const channels = new Set(authorizedChannels);
-    const client = { id, ws, auth, access, branchId, channels, allowedChannels, connectedAt: now() };
+    const client = { id, ws, auth, access, branchId, channels, allowedChannels, typingCommandTimes: [], connectedAt: now() };
     this.clients.set(id, client);
     this.updateStaffPresence({ status: "online", branchId, deviceId: auth.deviceId || "" }, access);
     this.send(ws, "connection.ready", {
@@ -172,6 +177,7 @@ export class RealtimeService {
     ws.on("message", (message) => this.handleMessage(client, message));
     ws.on("close", () => {
       this.clients.delete(id);
+      client.typingCommandTimes.length = 0;
       this.updateStaffPresence({ status: "offline", branchId, deviceId: auth.deviceId || "" }, access);
       this.broadcast("staff.status", { userId: auth.sub, status: "offline", branchId }, {
         tenantId: auth.tenantId,
@@ -182,11 +188,12 @@ export class RealtimeService {
   }
 
   handleMessage(client, message) {
-    let frame = {};
+    let frame;
     try {
       frame = JSON.parse(message.toString());
+      if (!frame || typeof frame !== "object" || Array.isArray(frame)) throw new Error("WebSocket frame must be a JSON object");
     } catch {
-      this.send(client.ws, "error", { message: "WebSocket message must be valid JSON" });
+      this.send(client.ws, "error", { message: "WebSocket message must be a valid JSON object" });
       return;
     }
     try {
@@ -196,21 +203,21 @@ export class RealtimeService {
       client.ws.close(1008, "Unauthorized");
       return;
     }
-    if (frame.type === "subscribe" && frame.channel) {
-      if (!client.allowedChannels.has(frame.channel)) {
-        this.send(client.ws, "error", { message: "Channel is not authorized" });
+    try {
+      if (frame.type === "subscribe" && frame.channel) {
+        if (!client.allowedChannels.has(frame.channel)) {
+          this.send(client.ws, "error", { message: "Channel is not authorized" });
+          return;
+        }
+        client.channels.add(frame.channel);
+        this.send(client.ws, "subscription.updated", { channels: [...client.channels] });
         return;
       }
-      client.channels.add(frame.channel);
-      this.send(client.ws, "subscription.updated", { channels: [...client.channels] });
-      return;
-    }
-    if (frame.type === "unsubscribe" && frame.channel) {
-      client.channels.delete(frame.channel);
-      this.send(client.ws, "subscription.updated", { channels: [...client.channels] });
-      return;
-    }
-    try {
+      if (frame.type === "unsubscribe" && frame.channel) {
+        client.channels.delete(frame.channel);
+        this.send(client.ws, "subscription.updated", { channels: [...client.channels] });
+        return;
+      }
       if (frame.type === "staff.status") {
         const presence = this.updateStaffPresence(frame.payload || {}, client.access);
         this.broadcast("staff.status", { presence }, { tenantId: client.access.tenantId, branchId: presence.branchId, channel: presence.branchId ? `branch:${presence.branchId}` : `tenant:${client.access.tenantId}` });
@@ -222,13 +229,35 @@ export class RealtimeService {
         this.broadcast("queue.updated", { item }, { tenantId: client.access.tenantId, branchId: item.branchId, channel: `branch:${item.branchId}` });
         return;
       }
+      if (frame.type === "team-chat.typing" && this.teamChatCommandHandler) {
+        const payload = frame.payload;
+        if (!payload || typeof payload !== "object" || Array.isArray(payload) || Object.getPrototypeOf(payload) !== Object.prototype) throw new Error("Typing payload must be an object");
+        const conversationId = typeof payload.conversationId === "string" ? payload.conversationId.trim() : "";
+        if (!conversationId || conversationId.length > 200 || typeof payload.typing !== "boolean") throw new Error("Invalid typing payload");
+        if (payload.typing && !this.allowTypingCommand(client)) throw new Error("Typing updates are too frequent");
+        this.teamChatCommandHandler({ conversationId, typing: payload.typing }, client.access);
+        return;
+      }
+      if (frame.type === "ping") {
+        this.send(client.ws, "pong", { at: now() });
+        return;
+      }
     } catch (error) {
       this.send(client.ws, "error", { message: error.message || "Realtime command failed" });
       return;
     }
-    if (frame.type === "ping") {
-      this.send(client.ws, "pong", { at: now() });
+  }
+
+  allowTypingCommand(client) {
+    const timestamp = Date.now();
+    const recent = (client.typingCommandTimes || []).filter((value) => timestamp - value < 10_000);
+    if (recent.length >= 12 || (recent.length && timestamp - recent[recent.length - 1] < 150)) {
+      client.typingCommandTimes = recent;
+      return false;
     }
+    recent.push(timestamp);
+    client.typingCommandTimes = recent;
+    return true;
   }
 
   send(ws, type, payload = {}, meta = {}) {
@@ -264,12 +293,23 @@ export class RealtimeService {
     return event;
   }
 
-  sendToUsers(type, payload = {}, { tenantId = "", userIds = [] } = {}) {
+  sendToUsers(type, payload = {}, { tenantId = "", branchId = "", userIds = [] } = {}) {
     const recipients = new Set(userIds);
     for (const client of this.clients.values()) {
       if (tenantId && client.access.tenantId !== tenantId) continue;
+      if (branchId && client.branchId !== branchId) continue;
       if (!recipients.has(client.access.userId)) continue;
       this.send(client.ws, type, payload, { private: true });
+    }
+  }
+
+  sendToBranch(type, payload = {}, { tenantId = "", branchId = "" } = {}) {
+    const channel = `branch:${branchId}`;
+    for (const client of this.clients.values()) {
+      if (tenantId && client.access.tenantId !== tenantId) continue;
+      if (branchId && client.branchId !== branchId) continue;
+      if (!client.channels.has(channel)) continue;
+      this.send(client.ws, type, payload, { channel, ephemeral: true });
     }
   }
 

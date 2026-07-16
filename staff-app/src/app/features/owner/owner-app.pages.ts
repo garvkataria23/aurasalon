@@ -6,10 +6,10 @@ import { Subscription } from "rxjs";
 import { OwnerAppService, OwnerRecord } from "./owner-app.service";
 import { OwnerContextService, OwnerPeriod } from "./owner-context.service";
 
-type OwnerModule = "dashboard" | "appointments" | "clients" | "staff" | "attendance" | "leave-requests" | "chats" | "revenue" | "reports" | "payroll" | "inventory" | "marketing" | "notifications" | "roles-permissions" | "branches" | "settings";
+type OwnerModule = "dashboard" | "appointments" | "clients" | "staff" | "attendance" | "leave-requests" | "chats" | "revenue" | "reports" | "payroll" | "inventory" | "billing-access" | "marketing" | "notifications" | "roles-permissions" | "branches" | "settings";
 type Metric = { label: string; value: unknown; kind?: "currency" | "number" | "percent"; note: string };
 type OwnerPageConfig = { group: string; title: string; description: string; sectionTitle: string; empty: string };
-type OwnerNavItem = { module: OwnerModule | "billing-access"; group: "Overview" | "People" | "Operations" | "Growth" | "Administration"; label: string; path: string | null; icon: string; unavailable?: boolean };
+type OwnerNavItem = { module: OwnerModule; group: "Overview" | "People" | "Operations" | "Growth" | "Administration"; label: string; path: string | null; icon: string; unavailable?: boolean };
 type OwnerOverlay = "navigation" | "more" | "branch" | "period" | "profile" | null;
 
 const NAV: OwnerNavItem[] = [
@@ -22,7 +22,7 @@ const NAV: OwnerNavItem[] = [
   { module: "leave-requests" as const, group: "People", label: "Leaves", path: "/owner/leave-requests", icon: "M6 3h12v18H6V3Zm3 4v2h6V7H9Zm0 4v2h6v-2H9Z" },
   { module: "chats" as const, group: "People", label: "Team Chat", path: "/owner/chats", icon: "M4 4h16v13H8l-4 4V4Zm4 5h8V7H8v2Zm0 4h6v-2H8v2Z" },
   { module: "inventory" as const, group: "Operations", label: "Inventory", path: "/owner/inventory", icon: "M3 6 12 2l9 4-9 4-9-4Zm2 4 7 3 7-3v7l-7 4-7-4v-7Z" },
-  { module: "billing-access", group: "Operations", label: "Billing Access", path: null, unavailable: true, icon: "M4 5h16v14H4V5Zm2 3h12V7H6v1Zm0 4h5v-2H6v2Z" },
+  { module: "billing-access", group: "Operations", label: "Billing Access", path: "/owner/billing", icon: "M4 5h16v14H4V5Zm2 3h12V7H6v1Zm0 4h5v-2H6v2Z" },
   { module: "payroll" as const, group: "Operations", label: "Payroll", path: "/owner/payroll", icon: "M3 5h18v14H3V5Zm3 3v8h12V8H6Zm6 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" },
   { module: "reports" as const, group: "Operations", label: "Reports", path: "/owner/reports", icon: "M5 3h10l4 4v14H5V3Zm3 9v5h2v-5H8Zm4-3v8h2V9h-2Z" },
   { module: "marketing" as const, group: "Growth", label: "Marketing", path: "/owner/marketing", icon: "M3 10v4h3l4 4h2l-2-4 9 3V7l-13 3H3Z" },
@@ -31,7 +31,6 @@ const NAV: OwnerNavItem[] = [
   { module: "roles-permissions" as const, group: "Administration", label: "Roles & Permissions", path: "/owner/roles-permissions", icon: "m12 2 8 3v6c0 5-3 9-8 11-5-2-8-6-8-11V5l8-3Z" },
   { module: "settings" as const, group: "Administration", label: "Settings", path: "/owner/settings", icon: "M19 13a7 7 0 0 0 0-2l2-1-2-4-2 1-2-1-1-3h-4L9 6 7 7 5 6l-2 4 2 1a7 7 0 0 0 0 2l-2 1 2 4 2-1 2 1 1 3h4l1-3 2-1 2 1 2-4-2-1Zm-7 2a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" }
 ];
-const PERIOD_INDEPENDENT_MODULES = new Set<OwnerModule>(["inventory", "marketing", "notifications", "chats"]);
 
 const PAGE_CONFIG: Record<OwnerModule, OwnerPageConfig> = {
   dashboard:{group:"Owner overview",title:"Good decisions start here.",description:"Live summaries from appointments, clients, staff, finance, inventory and leave records.",sectionTitle:"Today’s attention",empty:"No actionable records are available from the connected modules."},
@@ -45,6 +44,7 @@ const PAGE_CONFIG: Record<OwnerModule, OwnerPageConfig> = {
   reports:{group:"Performance",title:"Reports",description:"Operational report totals and saved drill-down rows from Reports.",sectionTitle:"Report summary",empty:"No report rows are available."},
   payroll:{group:"Performance",title:"Payroll",description:"Generated payroll records and compliance summary from Staff OS.",sectionTitle:"Payroll runs",empty:"No payroll runs are available."},
   inventory:{group:"Growth",title:"Inventory",description:"Current stock records, low-stock context and inventory summary.",sectionTitle:"Stock records",empty:"No inventory records match the current filters."},
+  "billing-access":{group:"Operations",title:"Billing Access",description:"Read-only invoices, balances and payment history across assigned branches.",sectionTitle:"Invoices",empty:"No billing records match the current filters."},
   marketing:{group:"Growth",title:"Marketing",description:"Existing campaigns and persisted marketing summary data.",sectionTitle:"Campaign activity",empty:"No campaign records are available."},
   notifications:{group:"Growth",title:"Notifications",description:"Search persisted notifications by channel, type and status.",sectionTitle:"Notification center",empty:"No notifications match the current filters."},
   "roles-permissions":{group:"Administration",title:"Roles & permissions",description:"Inspect users, role assignments and the effective permission catalog.",sectionTitle:"User access",empty:"No tenant users are available."},
@@ -89,7 +89,7 @@ export class OwnerLoginPage implements OnInit {
   ngOnInit(): void { this.context.initializeTheme(); }
   async login(): Promise<void> {
     if (this.owner.loading()) return;
-    try { await this.owner.login({ tenantId: this.tenantId, loginId: this.loginId, password: this.password, totpToken: this.totpToken }); await this.router.navigateByUrl("/owner/dashboard"); } catch { /* The service exposes an accessible error. */ }
+    try { await this.owner.login({ tenantId: this.tenantId, loginId: this.loginId, password: this.password, totpToken: this.totpToken }); await this.context.initialize(); await this.router.navigateByUrl(this.context.defaultLandingRoute()); } catch { /* The service exposes an accessible error. */ }
   }
 }
 
@@ -97,9 +97,9 @@ export class OwnerLoginPage implements OnInit {
   standalone: true,
   imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
-    <section class="owner-shell">
+    <section class="owner-shell" [class.owner-compact]="context.compactMode()">
       <aside class="owner-sidebar owner-desktop-sidebar" [class.is-collapsed]="sidebarCollapsed()" [attr.inert]="overlay() ? '' : null" aria-label="Owner navigation">
-        <div class="owner-brand"><span>A</span><div><strong>Aura</strong><small>Owner office</small></div></div>
+        <div class="owner-brand"><span>A</span><div><strong>{{ context.workspaceName() }}</strong><small>Owner office</small></div></div>
         <button class="owner-collapse" type="button" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed() ? 'Expand owner sidebar' : 'Collapse owner sidebar'" [attr.aria-expanded]="!sidebarCollapsed()">{{ sidebarCollapsed() ? '›' : '‹' }}</button>
         <nav aria-label="Owner sections">
           @for (group of navGroups(); track group) {
@@ -108,19 +108,20 @@ export class OwnerLoginPage implements OnInit {
               @if (item.path) {
                 <a [routerLink]="item.path" routerLinkActive="active" [attr.title]="sidebarCollapsed() ? item.label : null"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg><span>{{ item.label }}</span></a>
               } @else {
-                <button class="owner-nav-unavailable" type="button" disabled title="Billing Access — coming in Phase 3" aria-label="Billing Access unavailable, coming in Phase 3"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg><span>{{ item.label }}</span><small>Phase 3</small></button>
+                <button class="owner-nav-unavailable" type="button" disabled title="Billing Access — coming in Phase 3" aria-label="Billing Access unavailable, coming in Phase 3"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg><span>{{ item.label }}</span>@if(context.showModuleBadges()){<small>Phase 3</small>}</button>
               }
             }
           }
         </nav>
-        <div class="owner-side-footer"><span><i></i> Owner access</span><small>{{ owner.tenantName() || 'Current tenant' }}</small></div>
+        <div class="owner-side-footer"><span><i></i> Owner access</span><small>{{ context.workspaceName() }}</small></div>
       </aside>
       <div class="owner-main owner-shell-frame" [attr.inert]="overlay() ? '' : null">
         <header class="owner-topbar">
           <button type="button" class="owner-menu" (click)="openOverlay('navigation', $event)" aria-label="Open owner navigation"><span></span><span></span><span></span></button>
           <div class="owner-location"><span>Owner workspace</span><strong>{{ currentLabel() }}</strong></div>
           <div class="owner-global-context" aria-label="Owner workspace context">
-            <button type="button" class="owner-context-control" (click)="openOverlay('branch', $event)" aria-haspopup="dialog"><span>Branch</span><strong>{{ context.branchLabel() }}</strong><small>{{ context.selectedBranch() ? (context.selectedBranch()?.city || context.selectedBranch()?.status) : context.branches().length + ' accessible' }}</small></button>
+            @if (branchApplies()) { <button type="button" class="owner-context-control" [disabled]="!context.allowBranchSwitch()" (click)="openOverlay('branch', $event)" aria-haspopup="dialog"><span>Branch</span><strong>{{ context.branchLabel() }}</strong><small>{{ context.allowBranchSwitch() ? (context.selectedBranch() ? (context.selectedBranch()?.city || context.selectedBranch()?.status) : context.branches().length + ' accessible') : 'Switching disabled' }}</small></button> }
+            @else { <button type="button" class="owner-context-control" disabled aria-label="Marketing uses tenant-wide campaign records; branch is not applied"><span>Scope</span><strong>Tenant-wide</strong><small>Branch not applied</small></button> }
             @if (periodApplies()) { <button type="button" class="owner-context-control" (click)="openOverlay('period', $event)" aria-haspopup="dialog"><span>Period</span><strong>{{ context.periodName() }}</strong><small>{{ context.periodRangeLabel() }}</small></button> }
             @else { <button type="button" class="owner-context-control" disabled [attr.aria-label]="currentLabel() + ' uses current data; period is not applied'"><span>Range</span><strong>Current data</strong><small>Period not applied</small></button> }
           </div>
@@ -129,7 +130,8 @@ export class OwnerLoginPage implements OnInit {
           <a class="owner-icon-button owner-mobile-utility" routerLink="/owner/chats" routerLinkActive="active" aria-label="Open team chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v13H8l-4 4V4Zm4 5h8V7H8v2Zm0 4h6v-2H8v2Z"></path></svg></a>
         </header>
         <div class="owner-mobile-context" aria-label="Owner workspace context">
-          <button type="button" (click)="openOverlay('branch', $event)"><span>Branch</span><strong>{{ context.branchLabel() }}</strong></button>
+          @if (branchApplies()) { <button type="button" [disabled]="!context.allowBranchSwitch()" (click)="openOverlay('branch', $event)"><span>Branch</span><strong>{{ context.branchLabel() }}</strong></button> }
+          @else { <button type="button" disabled aria-label="Marketing uses tenant-wide campaign records; branch is not applied"><span>Tenant-wide</span><strong>Branch not applied</strong></button> }
           @if (periodApplies()) { <button type="button" (click)="openOverlay('period', $event)"><span>{{ context.periodName() }}</span><strong>{{ context.periodRangeLabel() }}</strong></button> }
           @else { <button type="button" disabled [attr.aria-label]="currentLabel() + ' uses current data; period is not applied'"><span>Current data</span><strong>Period not applied</strong></button> }
         </div>
@@ -147,14 +149,15 @@ export class OwnerLoginPage implements OnInit {
 
           @if (overlay() === 'navigation' || overlay() === 'more') {
             <nav class="owner-sheet-nav" aria-label="Owner modules">
+              @if(context.commandSearchEnabled()){<label class="owner-search-field"><span>Find a module</span><input type="search" [ngModel]="navQuery()" (ngModelChange)="navQuery.set($event)" placeholder="Search owner modules" autocomplete="off" /></label>}
               @for (group of navGroups(); track group) {
                 @if (overlay() === 'navigation' || mobileMoreByGroup(group).length) {
                   <p>{{ group }}</p>
-                  @for (item of overlay() === 'more' ? mobileMoreByGroup(group) : navByGroup(group); track item.module) {
+                   @for (item of overlay() === 'more' ? mobileMoreByGroup(group) : overlayNavByGroup(group); track item.module) {
                     @if (item.path) {
                       <a [routerLink]="item.path" routerLinkActive="active" (click)="closeOverlay()"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg><span>{{ item.label }}</span><b aria-hidden="true">→</b></a>
                     } @else {
-                      <button type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg><span>{{ item.label }}</span><small>Coming in Phase 3</small></button>
+                      <button type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg><span>{{ item.label }}</span>@if(context.showModuleBadges()){<small>Coming in Phase 3</small>}</button>
                     }
                   }
                 }
@@ -202,8 +205,8 @@ export class OwnerLoginPage implements OnInit {
 
           @if (overlay() === 'profile') {
             <div class="owner-profile-card"><span>{{ initials() }}</span><div><strong>{{ owner.user()?.name || 'Owner' }}</strong><small>{{ owner.user()?.email || 'Owner account' }}</small></div></div>
-            <dl class="owner-profile-context"><div><dt>Workspace</dt><dd>{{ owner.tenantName() || 'Current tenant' }}</dd></div><div><dt>Branch context</dt><dd>{{ context.branchLabel() }}</dd></div></dl>
-            <button type="button" class="owner-signout" (click)="logout()">Sign out securely <span aria-hidden="true">→</span></button>
+            <dl class="owner-profile-context"><div><dt>Workspace</dt><dd>{{ context.workspaceName() }}</dd></div><div><dt>Branch context</dt><dd>{{ context.branchLabel() }}</dd></div></dl>
+            <button type="button" class="owner-signout" (click)="logout()">Sign out <span aria-hidden="true">→</span></button>
           }
         </section>
       }
@@ -219,6 +222,7 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
   readonly overlay = signal<OwnerOverlay>(null);
   readonly sidebarCollapsed = signal(false);
   readonly branchQuery = signal("");
+  readonly navQuery = signal("");
   readonly periodDraft = signal<OwnerPeriod>("today");
   readonly customStart = signal("");
   readonly customEnd = signal("");
@@ -272,9 +276,11 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
     if (window.matchMedia("(max-width: 900px)").matches && !activeOverlay && Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY)) this.navigateMobileSwipe(deltaX < 0 ? 1 : -1);
   }
   openOverlay(kind: Exclude<OwnerOverlay, null>, event?: Event): void {
+    if (kind === "branch" && !this.context.allowBranchSwitch()) return;
     this.triggerElement = event?.currentTarget as HTMLElement || null;
     this.overlay.set(kind);
     if (kind === "branch") this.branchQuery.set("");
+    if (kind === "navigation" || kind === "more") this.navQuery.set("");
     if (kind === "period") {
       this.periodDraft.set(this.context.period());
       this.customStart.set(this.context.periodRange().start);
@@ -297,9 +303,11 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
   }
   navGroups(): string[] { return [...new Set(this.nav.map((item) => item.group))]; }
   navByGroup(group: string) { return this.nav.filter((item) => item.group === group); }
+  overlayNavByGroup(group: string): OwnerNavItem[] { const query = this.navQuery().trim().toLowerCase(); return this.navByGroup(group).filter((item) => !query || item.label.toLowerCase().includes(query)); }
   mobileMoreByGroup(group: string): OwnerNavItem[] { return this.navByGroup(group).filter((item) => !["dashboard", "appointments", "staff", "revenue"].includes(item.module)); }
   currentLabel(): string { return NAV.find((item) => item.path && this.router.url.startsWith(item.path))?.label || "Dashboard"; }
-  periodApplies(): boolean { const module = NAV.find((item) => item.path && this.router.url.startsWith(item.path))?.module; return !module || module === "billing-access" || !PERIOD_INDEPENDENT_MODULES.has(module); }
+  branchApplies(): boolean { return this.activeRouteData("ownerBranch") !== false; }
+  periodApplies(): boolean { return this.activeRouteData("ownerPeriod") !== false; }
   initials(): string { return String(this.owner.user()?.name || "Owner").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "O"; }
   overlayTitle(): string { return this.overlay() === "navigation" ? "Navigation" : this.overlay() === "more" ? "More modules" : this.overlay() === "branch" ? "Branch context" : this.overlay() === "period" ? "Period context" : "Owner profile"; }
   overlayTitleId(): string { return `owner-${this.overlay() || "menu"}-title`; }
@@ -307,6 +315,11 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
   choosePeriod(period: OwnerPeriod): void { this.periodDraft.set(period); this.periodError.set(""); if (period !== "custom") { this.context.selectPeriod(period); this.closeOverlay(); } }
   applyCustomPeriod(): void { if (!this.context.applyCustomPeriod(this.customStart(), this.customEnd())) { this.periodError.set("Choose a valid start and end date. The end date cannot be before the start date."); return; } this.closeOverlay(); }
   rangeFor(period: OwnerPeriod): string { return this.context.rangeLabelFor(period); }
+  private activeRouteData(key: string): unknown {
+    let route = this.router.routerState.snapshot.root;
+    while (route.firstChild) route = route.firstChild;
+    return route.data[key];
+  }
   private navigateMobileSwipe(direction: number): void {
     const current = this.router.url.split("?")[0];
     const index = this.mobileSwipeRoutes.indexOf(current);
@@ -453,7 +466,7 @@ export class OwnerWorkspacePage implements OnInit, OnDestroy {
       dashboard:[req("finance","Finance",()=>this.owner.financeSummary()),req("appointments","Appointments",()=>this.owner.list("appointments",{limit:200})),req("clients","Clients",()=>this.owner.list("clients",{limit:200})),req("staff","Staff",()=>this.owner.list("staff-os/staff",{limit:200})),req("leaves","Leave requests",()=>this.owner.list("staff-os/leaves",{limit:100})),req("inventory","Inventory",()=>this.owner.read("inventory-intelligence/summary"))],
       appointments:[req("rows","Appointments",()=>this.owner.list("appointments",{limit:1000}))],clients:[req("rows","Clients",()=>this.owner.list("clients",{limit:1000}))],staff:[req("rows","Staff",()=>this.owner.list("staff-os/staff",{limit:1000}))],
       attendance:[req("rows","Attendance",()=>this.owner.list("staff-os/attendance",{limit:1000})),req("summary","Overtime summary",()=>this.owner.read("staff-os/attendance/overtime-summary"))],
-      "leave-requests":[req("rows","Leave requests",()=>this.owner.list("staff-os/leaves",{limit:500}))],chats:[req("rows","Chats",()=>this.owner.list("team-chat/conversations"))],revenue:[req("summary","Finance",()=>this.owner.financeSummary())],reports:[req("summary","Reports",()=>this.owner.reportSummary())],payroll:[req("rows","Payroll",()=>this.owner.list("staff-os/payroll",{limit:500})),req("summary","Payroll compliance",()=>this.owner.read("staff-os/payroll-compliance/summary"))],inventory:[req("rows","Inventory",()=>this.owner.list("inventory",{limit:1000})),req("summary","Inventory summary",()=>this.owner.read("inventory-intelligence/summary"))],marketing:[req("rows","Campaigns",()=>this.owner.list("campaigns",{limit:500})),req("summary","Marketing summary",()=>this.owner.read("ai-marketing/summary"))],notifications:[req("rows","Notifications",()=>this.owner.list("notifications",{limit:500}))],"roles-permissions":[req("summary","User management",()=>this.owner.userManagement())],branches:[req("rows","Branches",()=>this.owner.list("branches",{limit:500}))],settings:[req("summary","General settings",()=>this.owner.read("settings/general"))]
+      "leave-requests":[req("rows","Leave requests",()=>this.owner.list("staff-os/leaves",{limit:500}))],chats:[req("rows","Chats",()=>this.owner.list("team-chat/conversations"))],revenue:[req("summary","Finance",()=>this.owner.financeSummary())],reports:[req("summary","Reports",()=>this.owner.reportSummary())],payroll:[req("rows","Payroll",()=>this.owner.list("staff-os/payroll",{limit:500})),req("summary","Payroll compliance",()=>this.owner.read("staff-os/payroll-compliance/summary"))],inventory:[req("rows","Inventory",()=>this.owner.list("inventory",{limit:1000})),req("summary","Inventory summary",()=>this.owner.read("inventory-intelligence/summary"))],"billing-access":[],marketing:[req("rows","Campaigns",()=>this.owner.list("campaigns",{limit:500})),req("summary","Marketing summary",()=>this.owner.read("ai-marketing/summary"))],notifications:[req("rows","Notifications",()=>this.owner.list("notifications",{limit:500}))],"roles-permissions":[req("summary","User management",()=>this.owner.userManagement())],branches:[req("rows","Branches",()=>this.owner.list("branches",{limit:500}))],settings:[req("summary","General settings",()=>this.owner.read("settings/general"))]
     }; return map[module];
   }
 

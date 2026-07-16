@@ -75,9 +75,10 @@ export function authenticateJwt({ required = true } = {}) {
       }
 
       ensureTenantUserAccessColumns();
-      const userRow = db.prepare("SELECT status, permissionVersion FROM tenant_users WHERE tenantId = @tenantId AND id = @id").get({ tenantId: payload.tenantId, id: payload.sub });
+      const userRow = db.prepare("SELECT status, permissionVersion, staffId FROM tenant_users WHERE tenantId = @tenantId AND id = @id").get({ tenantId: payload.tenantId, id: payload.sub });
       if (!userRow || userRow.status !== "active") throw unauthorized("User session is no longer active");
       if (Number(userRow.permissionVersion || 1) !== Number(payload.permissionVersion || 1)) throw unauthorized("User permissions changed; please sign in again");
+      const currentStaffId = String(userRow.staffId || payload.staffId || "").trim();
       const requestedBranchId = req.get("x-branch-id") || payload.branchId || "";
       if (requestedBranchId) tenantService.assertBranchAccess(payload, requestedBranchId);
       req.auth = payload;
@@ -87,7 +88,7 @@ export function authenticateJwt({ required = true } = {}) {
         email: payload.email,
         loginId: payload.loginId || "",
         role: payload.role,
-        staffId: payload.staffId || "",
+        staffId: currentStaffId,
         branchId: requestedBranchId || payload.branchId || "",
         branchIds: payload.branchIds || [],
         permissions: payload.permissions || []
@@ -96,7 +97,7 @@ export function authenticateJwt({ required = true } = {}) {
         tenantId: payload.tenantId,
         role: payload.role,
         userId: payload.sub,
-        staffId: payload.staffId || "",
+        staffId: currentStaffId,
         loginId: payload.loginId || "",
         branchId: requestedBranchId || payload.branchId || "",
         branchIds: payload.branchIds || [],

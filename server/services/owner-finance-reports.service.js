@@ -4,13 +4,13 @@ import * as XLSX from "xlsx";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY = 86_400_000;
-const SALE_EXCLUSIONS = ["cancelled", "canceled", "void", "refunded", "deleted"];
+const SALE_EXCLUSIONS = ["draft", "cancelled", "canceled", "void", "voided", "refunded", "deleted"];
 const REPORTS = Object.freeze([
-  { key: "sales-summary", category: "sales", title: "Sales & revenue", description: "Invoice-linked sales, discounts and taxes.", available: true },
+  { key: "sales-summary", category: "sales", title: "Sales summary", description: "Invoice-linked sales, discounts and taxes.", available: true },
   { key: "appointments", category: "appointments", title: "Appointments", description: "Appointment volume and recorded status.", available: true },
   { key: "client-visits", category: "clients", title: "Client visits", description: "Clients with appointments in the selected period.", available: true },
   { key: "staff-contribution", category: "staff", title: "Staff contribution", description: "Sale-level revenue attributed to the recorded sale staff member.", available: true },
-  { key: "inventory-history", category: "inventory", title: "Inventory movement", description: "Historical stock movement report.", available: false, reason: "A complete tenant-scoped historical inventory valuation source is not available." },
+  { key: "inventory-history", category: "inventory", title: "Historical inventory valuation", description: "Historical stock value at the selected period.", available: false, reason: "A complete tenant-scoped historical inventory valuation source is not available." },
   { key: "branch-performance", category: "branch", title: "Branch performance", description: "Comparable sales and appointment totals by accessible branch.", available: true },
   { key: "profitability", category: "sales", title: "Profitability", description: "Revenue after complete cost and expense coverage.", available: false, reason: "Complete cost and expense coverage cannot be proven for this period." },
   { key: "service-product-mix", category: "sales", title: "Service & product mix", description: "Revenue split by sold item type.", available: false, reason: "Sale item classification is not an authoritative revenue ledger." }
@@ -22,6 +22,36 @@ const dateSql = (column) => `CASE WHEN ${column} GLOB '*Z' OR ${column} GLOB '*[
 const columns = (table) => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name));
 const has = (table, required) => { const available = columns(table); return required.every((name) => available.has(name)); };
 const parseArray = (value) => { try { const parsed = Array.isArray(value) ? value : JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed : []; } catch { return []; } };
+
+function invoiceLayout() {
+  const available = columns("invoices");
+  const column = (names, fallback = "NULL") => names.find((name) => available.has(name)) ? `i.${names.find((name) => available.has(name))}` : fallback;
+  const enterprise = available.has("tenant_id") ? "NULLIF(trim(i.tenant_id),'') IS NOT NULL" : "0";
+  const select = (enterpriseName, legacyNames, fallback = "NULL") => available.has(enterpriseName)
+    ? `CASE WHEN ${enterprise} THEN i.${enterpriseName} ELSE ${column(legacyNames, fallback)} END`
+    : column(legacyNames, fallback);
+  return {
+    enterprise,
+    tenant: select("tenant_id", ["tenantId"]),
+    branch: select("branch_id", ["branchId"], "s.branchId"),
+    invoiceNumber: select("invoice_no", ["invoiceNumber"]),
+    customerId: select("customer_id", ["clientId"], "s.clientId"),
+    subtotal: available.has("subtotal") ? `CASE WHEN ${enterprise} THEN i.subtotal ELSE COALESCE(s.subtotal,0) END` : "COALESCE(s.subtotal,0)",
+    discount: select("discount_total", ["discount", "discountTotal"], "s.discount"),
+    tax: select("tax_total", ["gstAmount", "taxTotal"], "s.gstAmount"),
+    tip: select("tip_total", ["tipTotal"], "0"),
+    grandTotal: select("grand_total", ["total", "grandTotal"], "s.total"),
+    paid: select("paid_amount", ["paid", "paidAmount"], "0"),
+    due: select("due_amount", ["balance", "dueAmount"], "0"),
+    createdAt: select("created_at", ["createdAt"], "s.createdAt"),
+    dueDate: column(["dueDate", "due_date"], "NULL"),
+    status: column(["status"], "''"),
+    saleJoin: available.has("saleId") ? "LEFT JOIN sales s ON s.id=i.saleId AND s.tenantId=@tenantId" : "LEFT JOIN sales s ON 0"
+  };
+}
+
+const exclusionParams = () => Object.fromEntries(SALE_EXCLUSIONS.map((value, i) => [`excluded${i}`, value]));
+const exclusionSql = (status) => `lower(COALESCE(${status},'')) NOT IN (${SALE_EXCLUSIONS.map((_, i) => `@excluded${i}`).join(",")})`;
 
 function validDate(value, field) {
   const result = text(value);
@@ -44,8 +74,8 @@ function ownerContext(access, query) {
   const assigned = [...new Set(parseArray(owner.branchIds).map(text).filter(Boolean))];
   if (!assigned.length) throw forbidden("This owner has no assigned branches");
   const branchScope = scopeList(assigned, "id", "assignedBranch");
-  const tenantColumn = columns("branches").has("tenantId") ? "tenantId = @tenantId AND" : "";
-  const branches = db.prepare(`SELECT id, name, city FROM branches WHERE ${tenantColumn} ${branchScope.sql} ORDER BY name, id`).all({ tenantId: access.tenantId, ...branchScope.params });
+  if (!columns("branches").has("tenantId")) throw forbidden("Tenant-scoped branch access is unavailable");
+  const branches = db.prepare(`SELECT id, name, city FROM branches WHERE tenantId = @tenantId AND ${branchScope.sql} ORDER BY name, id`).all({ tenantId: access.tenantId, ...branchScope.params });
   const requested = text(query.branchId);
   if (!requested) throw badRequest("branchId is required");
   const selected = requested.toLowerCase() === "all" ? branches : branches.filter((branch) => branch.id === requested);
@@ -64,13 +94,22 @@ function sourceAvailability() {
     && has("sales", ["id", "tenantId", "branchId"]);
   const enterprisePayments = has("invoice_payments", ["tenant_id", "invoice_id", "payment_mode", "amount", "status", "paid_at", "created_at"])
     && has("invoices", ["id", "tenant_id", "branch_id", "invoice_no"]);
+  const invoiceColumns = columns("invoices");
+  const invoiceSource = invoiceColumns.has("id") && invoiceColumns.has("status")
+    && ((has("invoices", ["tenant_id", "branch_id", "invoice_no", "subtotal", "discount_total", "tax_total", "grand_total", "paid_amount", "due_amount", "created_at"]))
+      || has("invoices", ["tenantId", "saleId", "invoiceNumber", "total", "paid", "balance", "createdAt"]));
+  const enterpriseRefunds = has("invoice_refunds", ["id", "tenant_id", "invoice_id", "amount", "reason", "status", "created_at"])
+    && has("invoices", ["id", "tenant_id", "branch_id", "status"]);
+  const tips = has("invoice_tips", ["id", "tenant_id", "invoice_id", "amount", "created_at"])
+    && has("invoices", ["id", "tenant_id", "branch_id", "status"]);
   return {
-    sales: { available: has("sales", ["tenantId", "branchId", "subtotal", "discount", "gstAmount", "total", "status", "createdAt"]), reason: null },
+    sales: { available: invoiceSource, reason: null },
     payments: { available: legacyPayments || enterprisePayments, reason: null },
-    invoices: { available: has("invoices", ["tenantId", "saleId", "invoiceNumber", "total", "paid", "balance", "status", "createdAt"]), reason: null },
-    refunds: { available: has("finance_refunds", ["tenantId", "branchId", "amount", "status", "createdAt"]), reason: null },
+    invoices: { available: invoiceSource, reason: null },
+    refunds: { available: enterpriseRefunds || has("finance_refunds", ["tenantId", "branchId", "invoiceId", "amount", "status", "createdAt"]), reason: null },
     expenses: { available: has("finance_expenses", ["tenantId", "branchId", "amount", "taxAmount", "status", "paidAt", "createdAt"]), reason: null },
     creditNotes: { available: has("credit_notes", ["tenantId", "branchId", "creditNoteNumber", "amount", "status", "createdAt"]), reason: null },
+    tips: { available: tips, reason: null },
     appointments: { available: has("appointments", ["tenantId", "branchId", "staffId", "clientId", "status", "startAt"]), reason: null }
   };
 }
@@ -80,46 +119,104 @@ function unavailableReasons(availability) {
   return availability;
 }
 
+function resolvedReports() {
+  const availability = unavailableReasons(sourceAvailability());
+  return REPORTS.map((report) => {
+    if (!report.available) return report;
+    const source = report.key === "appointments" || report.key === "client-visits" ? availability.appointments : report.key === "branch-performance" ? { available: availability.sales.available || availability.appointments.available, reason: "Neither sales nor appointment data is available for branch performance." } : availability.sales;
+    return source.available ? report : { ...report, available: false, reason: source.reason };
+  });
+}
+
 function salesRows(ctx, from = ctx.from, to = ctx.to) {
-  const scope = scopeList(ctx.branchIds, "s.branchId", "saleBranch");
-  const businessDate = dateSql("s.createdAt");
-  return db.prepare(`SELECT s.id, s.branchId, b.name AS branchName, s.clientId, COALESCE(c.name,'') AS clientName, s.staffId, COALESCE(st.name,'') AS staffName,
-    s.subtotal, s.discount, s.gstAmount, s.total, s.status, ${businessDate} AS businessDate
-    FROM sales s LEFT JOIN branches b ON b.id=s.branchId AND b.tenantId=s.tenantId LEFT JOIN clients c ON c.id=s.clientId AND c.tenantId=s.tenantId LEFT JOIN staff st ON st.id=s.staffId AND st.tenantId=s.tenantId
-    WHERE s.tenantId=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to
-      AND lower(COALESCE(s.status,'')) NOT IN (${SALE_EXCLUSIONS.map((_, i) => `@excluded${i}`).join(",")})
-    ORDER BY s.createdAt DESC, s.id DESC`).all({ tenantId: ctx.tenantId, ...scope.params, from, to, ...Object.fromEntries(SALE_EXCLUSIONS.map((value, i) => [`excluded${i}`, value])) });
+  const layout = invoiceLayout();
+  const scope = scopeList(ctx.branchIds, layout.branch, "saleBranch");
+  const businessDate = dateSql(layout.createdAt);
+  return db.prepare(`SELECT i.id,${layout.branch} AS branchId,b.name AS branchName,${layout.customerId} AS clientId,COALESCE(c.name,'') AS clientName,
+    s.staffId,COALESCE(st.name,'') AS staffName,COALESCE(${layout.subtotal},0) AS subtotal,COALESCE(${layout.discount},0) AS discount,
+    COALESCE(${layout.tax},0) AS gstAmount,MAX(0,COALESCE(${layout.subtotal},0)-COALESCE(${layout.discount},0)) AS total,${layout.status} AS status,${businessDate} AS businessDate
+    FROM invoices i ${layout.saleJoin} LEFT JOIN branches b ON b.id=${layout.branch} AND b.tenantId=@tenantId
+    LEFT JOIN clients c ON c.id=${layout.customerId} AND c.tenantId=@tenantId LEFT JOIN staff st ON st.id=s.staffId AND st.tenantId=@tenantId
+    WHERE ${layout.tenant}=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to AND ${exclusionSql(layout.status)}
+    ORDER BY ${layout.createdAt} DESC,i.id DESC`).all({ tenantId: ctx.tenantId, ...scope.params, from, to, ...exclusionParams() });
 }
 
 function paymentRows(ctx) {
   const rows = [];
+  const layout = invoiceLayout();
+  const enterpriseAvailable = has("invoice_payments", ["tenant_id", "invoice_id", "payment_mode", "amount", "status", "paid_at", "created_at"])
+    && has("invoices", ["id", "tenant_id", "branch_id", "invoice_no"]);
   if (has("payments", ["tenantId", "invoiceId", "mode", "amount", "createdAt"])) {
-    const scope = scopeList(ctx.branchIds, "s.branchId", "paymentBranch");
+    const scope = scopeList(ctx.branchIds, layout.branch, "paymentBranch");
     const businessDate = dateSql("p.createdAt");
-    rows.push(...db.prepare(`SELECT p.id, s.branchId, b.name AS branchName, i.invoiceNumber, p.mode, p.amount, p.reference, ${businessDate} AS businessDate
-      FROM payments p JOIN invoices i ON i.id=p.invoiceId AND i.tenantId=p.tenantId JOIN sales s ON s.id=i.saleId AND s.tenantId=i.tenantId LEFT JOIN branches b ON b.id=s.branchId AND b.tenantId=s.tenantId
-      WHERE p.tenantId=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to }));
+    const noEnterprisePayment = enterpriseAvailable ? "AND NOT EXISTS (SELECT 1 FROM invoice_payments ep WHERE ep.tenant_id=@tenantId AND ep.invoice_id=i.id)" : "";
+    rows.push(...db.prepare(`SELECT p.id,${layout.branch} AS branchId,b.name AS branchName,${layout.invoiceNumber} AS invoiceNumber,p.mode,p.amount,COALESCE(p.reference,'') AS reference,${businessDate} AS businessDate
+      FROM payments p JOIN invoices i ON i.id=p.invoiceId ${layout.saleJoin} LEFT JOIN branches b ON b.id=${layout.branch} AND b.tenantId=@tenantId
+      WHERE p.tenantId=@tenantId AND ${layout.tenant}=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to
+        AND ${exclusionSql(layout.status)} ${noEnterprisePayment}`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to, ...exclusionParams() }));
   }
-  if (has("invoice_payments", ["tenant_id", "invoice_id", "payment_mode", "amount", "status", "paid_at", "created_at"])
-    && has("invoices", ["id", "tenant_id", "branch_id", "invoice_no"])) {
+  if (enterpriseAvailable) {
     const scope = scopeList(ctx.branchIds, "i.branch_id", "enterprisePaymentBranch");
     const businessDate = dateSql("COALESCE(NULLIF(ip.paid_at,''),ip.created_at)");
-    const paymentColumns = columns("invoice_payments");
-    const amount = paymentColumns.has("amount_paise") ? "CASE WHEN COALESCE(ip.amount_paise,0) != 0 THEN ip.amount_paise / 100.0 ELSE COALESCE(ip.amount,0) END" : "COALESCE(ip.amount,0)";
     rows.push(...db.prepare(`SELECT ip.id, i.branch_id AS branchId, b.name AS branchName, i.invoice_no AS invoiceNumber, ip.payment_mode AS mode,
-      ${amount} AS amount, COALESCE(ip.reference_no,'') AS reference, ${businessDate} AS businessDate
+      COALESCE(ip.amount,0) AS amount, COALESCE(ip.reference_no,'') AS reference, ${businessDate} AS businessDate
       FROM invoice_payments ip JOIN invoices i ON i.id=ip.invoice_id AND i.tenant_id=ip.tenant_id LEFT JOIN branches b ON b.id=i.branch_id AND b.tenantId=ip.tenant_id
-      WHERE ip.tenant_id=@tenantId AND ${scope.sql} AND lower(COALESCE(ip.status,'paid'))='paid' AND ${businessDate} BETWEEN @from AND @to`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to }));
+      WHERE ip.tenant_id=@tenantId AND ${scope.sql} AND lower(COALESCE(ip.status,'paid'))='paid' AND ${businessDate} BETWEEN @from AND @to
+        AND ${exclusionSql("i.status")}`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to, ...exclusionParams() }));
   }
   return rows.sort((a, b) => String(b.businessDate).localeCompare(String(a.businessDate)) || String(b.id).localeCompare(String(a.id)));
 }
 
 function invoiceRows(ctx) {
-  const scope = scopeList(ctx.branchIds, "s.branchId", "invoiceBranch");
-  const businessDate = dateSql("i.createdAt");
-  return db.prepare(`SELECT i.id,s.branchId,b.name AS branchName,i.invoiceNumber,COALESCE(c.name,'') AS clientName,i.total,i.paid,i.balance,i.status,i.dueDate,${businessDate} AS businessDate
-    FROM invoices i JOIN sales s ON s.id=i.saleId AND s.tenantId=i.tenantId LEFT JOIN branches b ON b.id=s.branchId AND b.tenantId=s.tenantId LEFT JOIN clients c ON c.id=i.clientId AND c.tenantId=i.tenantId
-    WHERE i.tenantId=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to ORDER BY i.createdAt DESC,i.id DESC`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to });
+  const layout = invoiceLayout();
+  const scope = scopeList(ctx.branchIds, layout.branch, "invoiceBranch");
+  const businessDate = dateSql(layout.createdAt);
+  return db.prepare(`SELECT i.id,${layout.branch} AS branchId,b.name AS branchName,${layout.invoiceNumber} AS invoiceNumber,COALESCE(c.name,'') AS clientName,
+    COALESCE(${layout.grandTotal},0) AS total,COALESCE(${layout.paid},0) AS paid,COALESCE(${layout.due},0) AS balance,${layout.status} AS status,${layout.dueDate} AS dueDate,${businessDate} AS businessDate
+    FROM invoices i ${layout.saleJoin} LEFT JOIN branches b ON b.id=${layout.branch} AND b.tenantId=@tenantId LEFT JOIN clients c ON c.id=${layout.customerId} AND c.tenantId=@tenantId
+    WHERE ${layout.tenant}=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to AND ${exclusionSql(layout.status)}
+    ORDER BY ${layout.createdAt} DESC,i.id DESC`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to, ...exclusionParams() });
+}
+
+function refundRows(ctx) {
+  const rows = [];
+  const layout = invoiceLayout();
+  const enterpriseAvailable = has("invoice_refunds", ["id", "tenant_id", "invoice_id", "amount", "reason", "status", "created_at"])
+    && has("invoices", ["id", "tenant_id", "branch_id", "status"]);
+  if (enterpriseAvailable) {
+    const refundColumns = columns("invoice_refunds");
+    const paymentJoin = refundColumns.has("payment_id") && has("invoice_payments", ["id", "tenant_id", "payment_mode"])
+      ? "LEFT JOIN invoice_payments ip ON ip.id=ir.payment_id AND ip.tenant_id=ir.tenant_id" : "";
+    const refundType = refundColumns.has("refund_type") ? "ir.refund_type" : "''";
+    const mode = paymentJoin ? `COALESCE(ip.payment_mode,${refundType},'')` : `COALESCE(${refundType},'')`;
+    const processedAt = refundColumns.has("processed_at") ? "COALESCE(NULLIF(ir.processed_at,''),ir.created_at)" : "ir.created_at";
+    const businessDate = dateSql(processedAt);
+    const scope = scopeList(ctx.branchIds, "i.branch_id", "enterpriseRefundBranch");
+    rows.push(...db.prepare(`SELECT ir.id,i.branch_id AS branchId,b.name AS branchName,ir.invoice_id AS invoiceId,ir.amount,${mode} AS mode,ir.reason,ir.status,${businessDate} AS businessDate
+      FROM invoice_refunds ir JOIN invoices i ON i.id=ir.invoice_id AND i.tenant_id=ir.tenant_id ${paymentJoin} LEFT JOIN branches b ON b.id=i.branch_id AND b.tenantId=ir.tenant_id
+      WHERE ir.tenant_id=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to AND ${exclusionSql("i.status")}`)
+      .all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to, ...exclusionParams() }));
+  }
+  if (has("finance_refunds", ["tenantId", "branchId", "invoiceId", "amount", "status", "createdAt"])) {
+    const scope = scopeList(ctx.branchIds, "r.branchId", "legacyRefundBranch");
+    const businessDate = dateSql("r.createdAt");
+    const noEnterpriseRefund = enterpriseAvailable ? "AND NOT EXISTS (SELECT 1 FROM invoice_refunds er WHERE er.tenant_id=@tenantId AND er.invoice_id=r.invoiceId)" : "";
+    rows.push(...db.prepare(`SELECT r.id,r.branchId,b.name AS branchName,r.invoiceId,r.amount,r.mode,r.reason,r.status,${businessDate} AS businessDate
+      FROM finance_refunds r LEFT JOIN branches b ON b.id=r.branchId AND b.tenantId=r.tenantId
+      WHERE r.tenantId=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to ${noEnterpriseRefund}`)
+      .all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to }));
+  }
+  return rows.sort((a, b) => String(b.businessDate).localeCompare(String(a.businessDate)) || String(b.id).localeCompare(String(a.id)));
+}
+
+function tipRows(ctx) {
+  if (!sourceAvailability().tips.available) return [];
+  const businessDate = dateSql("it.created_at");
+  const scope = scopeList(ctx.branchIds, "i.branch_id", "tipBranch");
+  return db.prepare(`SELECT it.id,i.branch_id AS branchId,COALESCE(it.amount,0) AS amount,${businessDate} AS businessDate
+    FROM invoice_tips it JOIN invoices i ON i.id=it.invoice_id AND i.tenant_id=it.tenant_id
+    WHERE it.tenant_id=@tenantId AND ${scope.sql} AND ${businessDate} BETWEEN @from AND @to AND ${exclusionSql("i.status")}`)
+    .all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to, ...exclusionParams() });
 }
 
 function simpleRows(ctx, table, fields, dateColumn) {
@@ -141,16 +238,20 @@ function financeData(access, query) {
   const priorSales = availability.sales.available ? salesRows(ctx, ctx.previousFrom, ctx.previousTo) : [];
   const invoices = availability.invoices.available ? invoiceRows(ctx) : [];
   const payments = availability.payments.available ? paymentRows(ctx) : [];
-  const refunds = availability.refunds.available ? simpleRows(ctx, "finance_refunds", "r.id,r.branchId,r.invoiceId,r.amount,r.mode,r.reason,r.status", "createdAt") : [];
+  const refunds = availability.refunds.available ? refundRows(ctx) : [];
   const expenses = availability.expenses.available ? simpleRows(ctx, "finance_expenses", "r.id,r.branchId,r.category,r.vendor,r.amount,r.taxAmount,r.paymentMode,r.status", "paidAt") : [];
+  const creditNotes = availability.creditNotes.available ? simpleRows(ctx, "credit_notes", "r.id,r.branchId,r.creditNoteNumber,r.amount,r.reason,r.status", "createdAt") : [];
+  const tips = availability.tips.available ? tipRows(ctx) : [];
   const gross = sales.reduce((sum, row) => sum + paise(row.subtotal), 0);
   const net = sales.reduce((sum, row) => sum + paise(row.total), 0);
   const priorGross = priorSales.reduce((sum, row) => sum + paise(row.subtotal), 0);
   const priorNet = priorSales.reduce((sum, row) => sum + paise(row.total), 0);
   const collected = payments.filter((row) => Number(row.amount) > 0).reduce((sum, row) => sum + paise(row.amount), 0);
   const outstanding = invoices.reduce((sum, row) => sum + Math.max(0, paise(row.balance)), 0);
-  const refundTotal = refunds.filter((row) => !["cancelled", "canceled", "void"].includes(text(row.status).toLowerCase())).reduce((sum, row) => sum + paise(row.amount), 0);
+  const refundTotal = refunds.filter((row) => !["pending", "pending_approval", "cancelled", "canceled", "void", "voided", "rejected", "failed"].includes(text(row.status).toLowerCase())).reduce((sum, row) => sum + paise(row.amount), 0);
   const expenseTotal = expenses.filter((row) => !["cancelled", "canceled", "void", "rejected"].includes(text(row.status).toLowerCase())).reduce((sum, row) => sum + paise(row.amount), 0);
+  const creditNoteTotal = creditNotes.filter((row) => !["draft", "cancelled", "canceled", "void", "voided", "rejected"].includes(text(row.status).toLowerCase())).reduce((sum, row) => sum + paise(row.amount), 0);
+  const tipTotal = tips.reduce((sum, row) => sum + paise(row.amount), 0);
   const discounts = sales.reduce((sum, row) => sum + paise(row.discount), 0);
   const taxes = sales.reduce((sum, row) => sum + paise(row.gstAmount), 0);
   const trendMap = new Map();
@@ -171,14 +272,14 @@ function financeData(access, query) {
       taxes: metric(taxes, null, availability.sales.available, availability.sales.reason),
       discounts: metric(discounts, null, availability.sales.available, availability.sales.reason),
       profit: metric(null, null, false, "Complete cost and expense coverage cannot be proven."),
-      tips: metric(null, null, false, "No authoritative tenant-and-branch scoped tip source is available.")
+      tips: metric(tipTotal, null, availability.tips.available, availability.tips.reason)
     },
     trend: [...trendMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, netRevenuePaise]) => ({ date, netRevenuePaise })),
     paymentMethods: [...paymentMap.entries()].sort((a, b) => b[1] - a[1]).map(([method, amountPaise]) => ({ method, amountPaise })),
-    breakdown: { grossSalesPaise: gross, discountsPaise: discounts, taxesPaise: taxes, netRevenuePaise: net, cashCollectedPaise: collected, outstandingPaise: outstanding, refundsPaise: refundTotal, expensesPaise: expenseTotal, creditNotesPaise: null, serviceRevenuePaise: null, productRevenuePaise: null, membershipRevenuePaise: null, packageRevenuePaise: null },
+    breakdown: { grossSalesPaise: gross, discountsPaise: discounts, taxesPaise: taxes, netRevenuePaise: net, cashCollectedPaise: collected, outstandingPaise: outstanding, refundsPaise: refundTotal, expensesPaise: expenseTotal, creditNotesPaise: availability.creditNotes.available ? creditNoteTotal : null, tipsPaise: availability.tips.available ? tipTotal : null, serviceRevenuePaise: null, productRevenuePaise: null, membershipRevenuePaise: null, packageRevenuePaise: null },
     branchComparison: branchRows,
-    drilldowns: { grossSales: "sales", netRevenue: "sales", cashCollected: "payments", outstanding: "outstanding", refunds: availability.refunds.available ? "refunds" : null, expenses: availability.expenses.available ? "expenses" : null, taxes: "sales", discounts: "sales", profit: null, tips: null },
-    availability: { ...availability, profit: { available: false, reason: "Complete cost and expense coverage cannot be proven." }, tips: { available: false, reason: "No authoritative tenant-and-branch scoped tip source is available." }, itemRevenueMix: { available: false, reason: "Sale item classification is not an authoritative revenue ledger." } },
+    drilldowns: { grossSales: "sales", netRevenue: "sales", cashCollected: "payments", outstanding: "outstanding", refunds: availability.refunds.available ? "refunds" : null, expenses: availability.expenses.available ? "expenses" : null, creditNotes: availability.creditNotes.available ? "creditNotes" : null, taxes: "sales", discounts: "sales", profit: null, tips: null },
+    availability: { ...availability, profit: { available: false, reason: "Complete cost and expense coverage cannot be proven." }, itemRevenueMix: { available: false, reason: "Sale item classification is not an authoritative revenue ledger." } },
     partial: warnings.length > 0,
     warnings
   };
@@ -198,26 +299,39 @@ function normalizedDrillRows(access, query) {
   if (!drillColumns[type]) throw badRequest("Unsupported drill-down type");
   const availability = unavailableReasons(sourceAvailability());
   let rows = [];
-  if (type === "sales" && availability.sales.available) rows = salesRows(ctx).map((r) => ({ ...r, subtotalPaise: paise(r.subtotal), discountPaise: paise(r.discount), taxPaise: paise(r.gstAmount), totalPaise: paise(r.total) }));
-  if (type === "payments" && availability.payments.available) rows = paymentRows(ctx).map((r) => ({ ...r, amountPaise: paise(r.amount) }));
-  if (type === "outstanding" && availability.invoices.available) rows = invoiceRows(ctx).filter((r) => Number(r.balance) > 0).map((r) => ({ ...r, totalPaise: paise(r.total), paidPaise: paise(r.paid), balancePaise: paise(r.balance) }));
-  if (type === "refunds" && availability.refunds.available) rows = simpleRows(ctx, "finance_refunds", "r.id,r.branchId,r.invoiceId,r.amount,r.mode,r.reason,r.status", "createdAt").map((r) => ({ ...r, amountPaise: paise(r.amount) }));
-  if (type === "expenses" && availability.expenses.available) rows = simpleRows(ctx, "finance_expenses", "r.id,r.branchId,r.category,r.vendor,r.amount,r.taxAmount,r.paymentMode,r.status", "paidAt").map((r) => ({ ...r, amountPaise: paise(r.amount), taxAmountPaise: paise(r.taxAmount) }));
-  if (type === "creditNotes" && availability.creditNotes.available) rows = simpleRows(ctx, "credit_notes", "r.id,r.branchId,r.creditNoteNumber,r.amount,r.reason,r.status", "createdAt").map((r) => ({ ...r, amountPaise: paise(r.amount) }));
+  if (type === "sales" && availability.sales.available) rows = salesRows(ctx).map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, clientName: r.clientName, staffName: r.staffName, status: r.status, subtotalPaise: paise(r.subtotal), discountPaise: paise(r.discount), taxPaise: paise(r.gstAmount), totalPaise: paise(r.total) }));
+  if (type === "payments" && availability.payments.available) rows = paymentRows(ctx).map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, invoiceNumber: r.invoiceNumber, mode: r.mode, reference: r.reference, amountPaise: paise(r.amount) }));
+  if (type === "outstanding" && availability.invoices.available) rows = invoiceRows(ctx).filter((r) => Number(r.balance) > 0).map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, invoiceNumber: r.invoiceNumber, clientName: r.clientName, dueDate: r.dueDate, status: r.status, totalPaise: paise(r.total), paidPaise: paise(r.paid), balancePaise: paise(r.balance) }));
+  if (type === "refunds" && availability.refunds.available) rows = refundRows(ctx).map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, invoiceId: r.invoiceId, mode: r.mode, reason: r.reason, status: r.status, amountPaise: paise(r.amount) }));
+  if (type === "expenses" && availability.expenses.available) rows = simpleRows(ctx, "finance_expenses", "r.id,r.branchId,r.category,r.vendor,r.amount,r.taxAmount,r.paymentMode,r.status", "paidAt").map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, category: r.category, vendor: r.vendor, paymentMode: r.paymentMode, status: r.status, amountPaise: paise(r.amount), taxAmountPaise: paise(r.taxAmount) }));
+  if (type === "creditNotes" && availability.creditNotes.available) rows = simpleRows(ctx, "credit_notes", "r.id,r.branchId,r.creditNoteNumber,r.amount,r.reason,r.status", "createdAt").map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, creditNoteNumber: r.creditNoteNumber, reason: r.reason, status: r.status, amountPaise: paise(r.amount) }));
   const source = type === "outstanding" ? "invoices" : type;
   const sourceState = availability[source] || { available: false, reason: "This report source is unavailable." };
   const status = text(query.status).toLowerCase(), method = text(query.paymentMethod).toLowerCase(), search = text(query.search).toLowerCase();
-  rows = rows.filter((row) => (!status || text(row.status).toLowerCase() === status) && (!method || text(row.mode || row.paymentMode).toLowerCase() === method) && (!search || drillColumns[type].some((key) => text(row[key]).toLowerCase().includes(search))));
+  rows = rows.filter((row) => (!status || text(row.status).toLowerCase() === status) && (!method || text(row.mode || row.paymentMode).toLowerCase() === method) && (!search || text(row.id).toLowerCase().includes(search) || drillColumns[type].some((key) => text(row[key]).toLowerCase().includes(search))));
   const sortBy = drillColumns[type].includes(text(query.sortBy)) ? text(query.sortBy) : "businessDate"; const direction = text(query.sortDirection).toLowerCase() === "asc" ? 1 : -1;
   rows.sort((a, b) => String(a[sortBy] ?? "").localeCompare(String(b[sortBy] ?? ""), "en", { numeric: true }) * direction);
   return { ctx, type, rows, columns: drillColumns[type], availability: sourceState };
 }
 
 function paginate(rows, query) { const page = Math.max(1, Number.parseInt(query.page, 10) || 1); const pageSize = Math.min(100, Math.max(10, Number.parseInt(query.pageSize, 10) || 25)); return { rows: rows.slice((page - 1) * pageSize, page * pageSize), pagination: { page, pageSize, total: rows.length, pages: Math.ceil(rows.length / pageSize) } }; }
-const typedColumns = (keys) => keys.map((key) => ({ key, label: key.replace(/Paise$/, "").replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()), type: key.endsWith("Paise") ? "money" : key.toLowerCase().includes("date") ? "date" : "text", sortable: true }));
+const typedColumns = (keys) => keys.map((key) => ({ key, label: key.replace(/Paise$/, "").replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()), type: key.endsWith("Paise") ? "money" : key.toLowerCase().includes("date") ? "date" : /count$|^(appointments|visits|clients|completed)$/i.test(key) ? "number" : "text", sortable: true }));
+
+function filteredReportSummary(key, rows, availability) {
+  if (key === "sales-summary") {
+    const totals = { grossSalesPaise: rows.reduce((s, r) => s + r.grossSalesPaise, 0), discountsPaise: rows.reduce((s, r) => s + r.discountsPaise, 0), taxesPaise: rows.reduce((s, r) => s + r.taxesPaise, 0), netRevenuePaise: rows.reduce((s, r) => s + r.netRevenuePaise, 0) };
+    const grouped = new Map(); for (const row of rows) grouped.set(row.businessDate, (grouped.get(row.businessDate) || 0) + row.netRevenuePaise);
+    return { totals, series: [...grouped].sort(([a], [b]) => a.localeCompare(b)).map(([label, value]) => ({ label, value })) };
+  }
+  if (key === "appointments") return { totals: { appointments: rows.length, completed: rows.filter((r) => ["completed", "billed", "paid"].includes(text(r.status).toLowerCase())).length }, series: [] };
+  if (key === "client-visits") return { totals: { clients: rows.length, visits: rows.reduce((s, r) => s + r.visits, 0) }, series: [] };
+  if (key === "staff-contribution") return { totals: { saleCount: rows.reduce((s, r) => s + r.saleCount, 0), netRevenuePaise: rows.reduce((s, r) => s + r.netRevenuePaise, 0) }, series: [] };
+  if (key === "branch-performance") return { totals: { saleCount: rows.reduce((s, r) => s + r.saleCount, 0), netRevenuePaise: availability.sales.available ? rows.reduce((s, r) => s + r.netRevenuePaise, 0) : null, appointments: availability.appointments.available ? rows.reduce((s, r) => s + r.appointments, 0) : null }, series: [] };
+  return { totals: {}, series: [] };
+}
 
 function reportData(access, key, query, exportAll = false) {
-  const catalogue = REPORTS.find((item) => item.key === key);
+  const catalogue = resolvedReports().find((item) => item.key === key);
   if (!catalogue) throw notFound("Report not found");
   const ctx = ownerContext(access, query);
   if (!catalogue.available) return { metadata: { ...catalogue, from: ctx.from, to: ctx.to, branchLabel: ctx.branchLabel }, totals: {}, series: [], columns: [], rows: [], pagination: { page: 1, pageSize: 0, total: 0, pages: 0 }, availability: { available: false, reason: catalogue.reason } };
@@ -226,23 +340,22 @@ function reportData(access, key, query, exportAll = false) {
     if (!availability.sales.available) return unavailableReport(catalogue, ctx, availability.sales.reason);
     rows = salesRows(ctx).map((r) => ({ id: r.id, businessDate: r.businessDate, branchName: r.branchName, clientName: r.clientName, staffName: r.staffName, status: r.status, grossSalesPaise: paise(r.subtotal), discountsPaise: paise(r.discount), taxesPaise: paise(r.gstAmount), netRevenuePaise: paise(r.total) }));
     keys = ["businessDate", "branchName", "clientName", "staffName", "status", "grossSalesPaise", "discountsPaise", "taxesPaise", "netRevenuePaise"];
-    totals = { grossSalesPaise: rows.reduce((s, r) => s + r.grossSalesPaise, 0), discountsPaise: rows.reduce((s, r) => s + r.discountsPaise, 0), taxesPaise: rows.reduce((s, r) => s + r.taxesPaise, 0), netRevenuePaise: rows.reduce((s, r) => s + r.netRevenuePaise, 0) };
-    const grouped = new Map(); for (const row of rows) grouped.set(row.businessDate, (grouped.get(row.businessDate) || 0) + row.netRevenuePaise); series = [...grouped].map(([label, value]) => ({ label, value }));
   } else if (key === "appointments" || key === "client-visits") {
     if (!availability.appointments.available) return unavailableReport(catalogue, ctx, availability.appointments.reason);
     const scope = scopeList(ctx.branchIds, "a.branchId", "appointmentReportBranch"); const day = dateSql("a.startAt");
-    const raw = db.prepare(`SELECT a.id,${day} AS businessDate,b.name AS branchName,COALESCE(c.name,'') AS clientName,COALESCE(st.name,'') AS staffName,a.status,a.source,a.clientId FROM appointments a LEFT JOIN branches b ON b.id=a.branchId AND b.tenantId=a.tenantId LEFT JOIN clients c ON c.id=a.clientId AND c.tenantId=a.tenantId LEFT JOIN staff st ON st.id=a.staffId AND st.tenantId=a.tenantId WHERE a.tenantId=@tenantId AND ${scope.sql} AND ${day} BETWEEN @from AND @to ORDER BY a.startAt DESC`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to });
-    if (key === "appointments") { rows = raw; keys = ["businessDate", "branchName", "clientName", "staffName", "status", "source"]; totals = { appointments: rows.length, completed: rows.filter((r) => ["completed", "billed", "paid"].includes(text(r.status).toLowerCase())).length }; }
-    else { const map = new Map(); for (const row of raw) { const current = map.get(row.clientId) || { clientId: row.clientId, clientName: row.clientName, branchName: row.branchName, visits: 0, lastVisitDate: "" }; current.visits++; if (row.businessDate > current.lastVisitDate) current.lastVisitDate = row.businessDate; map.set(row.clientId, current); } rows = [...map.values()]; keys = ["clientName", "branchName", "visits", "lastVisitDate"]; totals = { clients: rows.length, visits: raw.length }; }
+    const raw = db.prepare(`SELECT a.id,a.branchId,${day} AS businessDate,b.name AS branchName,COALESCE(c.name,'') AS clientName,COALESCE(st.name,'') AS staffName,a.status,a.source,a.clientId FROM appointments a LEFT JOIN branches b ON b.id=a.branchId AND b.tenantId=a.tenantId LEFT JOIN clients c ON c.id=a.clientId AND c.tenantId=a.tenantId LEFT JOIN staff st ON st.id=a.staffId AND st.tenantId=a.tenantId WHERE a.tenantId=@tenantId AND ${scope.sql} AND ${day} BETWEEN @from AND @to ORDER BY a.startAt DESC`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to });
+    if (key === "appointments") { rows = raw; keys = ["businessDate", "branchName", "clientName", "staffName", "status", "source"]; }
+    else { const map = new Map(); for (const row of raw) { const id = `${row.branchId}:${row.clientId || "unknown"}`; const current = map.get(id) || { clientId: row.clientId, clientName: row.clientName, branchName: row.branchName, visits: 0, lastVisitDate: "" }; current.visits++; if (row.businessDate > current.lastVisitDate) current.lastVisitDate = row.businessDate; map.set(id, current); } rows = [...map.values()]; keys = ["clientName", "branchName", "visits", "lastVisitDate"]; }
   } else if (key === "staff-contribution") {
     if (!availability.sales.available) return unavailableReport(catalogue, ctx, availability.sales.reason);
-    const map = new Map(); for (const row of salesRows(ctx)) { const id = row.staffId || "unassigned"; const current = map.get(id) || { staffId: id, staffName: row.staffName || "Unassigned", branchName: row.branchName, saleCount: 0, netRevenuePaise: 0 }; current.saleCount++; current.netRevenuePaise += paise(row.total); map.set(id, current); } rows = [...map.values()]; keys = ["staffName", "branchName", "saleCount", "netRevenuePaise"]; totals = { saleCount: rows.reduce((s, r) => s + r.saleCount, 0), netRevenuePaise: rows.reduce((s, r) => s + r.netRevenuePaise, 0) };
+    const map = new Map(); for (const row of salesRows(ctx)) { const staffId = row.staffId || "unassigned"; const id = `${row.branchId}:${staffId}`; const current = map.get(id) || { staffId, staffName: row.staffName || "Unassigned", branchName: row.branchName, saleCount: 0, netRevenuePaise: 0 }; current.saleCount++; current.netRevenuePaise += paise(row.total); map.set(id, current); } rows = [...map.values()]; keys = ["staffName", "branchName", "saleCount", "netRevenuePaise"];
   } else if (key === "branch-performance") {
     const sales = availability.sales.available ? salesRows(ctx) : []; const appointmentsAvailable = availability.appointments.available;
     let appointmentCounts = new Map(); if (appointmentsAvailable) { const scope = scopeList(ctx.branchIds, "branchId", "branchReportAppointment"); const day = dateSql("startAt"); const data = db.prepare(`SELECT branchId,COUNT(*) AS count FROM appointments WHERE tenantId=@tenantId AND ${scope.sql} AND ${day} BETWEEN @from AND @to GROUP BY branchId`).all({ tenantId: ctx.tenantId, ...scope.params, from: ctx.from, to: ctx.to }); appointmentCounts = new Map(data.map((r) => [r.branchId, Number(r.count)])); }
     rows = ctx.branches.map((branch) => { const own = sales.filter((r) => r.branchId === branch.id); return { branchName: branch.name, saleCount: own.length, netRevenuePaise: availability.sales.available ? own.reduce((s, r) => s + paise(r.total), 0) : null, appointments: appointmentsAvailable ? appointmentCounts.get(branch.id) || 0 : null }; }); keys = ["branchName", "saleCount", "netRevenuePaise", "appointments"]; totals = { saleCount: rows.reduce((s, r) => s + r.saleCount, 0), netRevenuePaise: availability.sales.available ? rows.reduce((s, r) => s + r.netRevenuePaise, 0) : null, appointments: appointmentsAvailable ? rows.reduce((s, r) => s + r.appointments, 0) : null };
   }
   const status = text(query.status).toLowerCase(), search = text(query.search).toLowerCase(); rows = rows.filter((row) => (!status || text(row.status).toLowerCase() === status) && (!search || keys.some((column) => text(row[column]).toLowerCase().includes(search))));
+  ({ totals, series } = filteredReportSummary(key, rows, availability));
   const sortBy = keys.includes(text(query.sortBy)) ? text(query.sortBy) : keys[0]; const direction = text(query.sortDirection).toLowerCase() === "asc" ? 1 : -1; rows.sort((a, b) => String(a[sortBy] ?? "").localeCompare(String(b[sortBy] ?? ""), "en", { numeric: true }) * direction);
   const page = exportAll ? { rows, pagination: { page: 1, pageSize: rows.length, total: rows.length, pages: rows.length ? 1 : 0 } } : paginate(rows, query);
   return { metadata: { ...catalogue, from: ctx.from, to: ctx.to, branchLabel: ctx.branchLabel, generatedAt: new Date().toISOString(), timezone: "Asia/Kolkata", appliedFilters: { search: text(query.search), status: text(query.status), sortBy, sortDirection: direction === 1 ? "asc" : "desc" } }, totals, series, columns: typedColumns(keys), rows: page.rows, pagination: page.pagination, availability: { available: true, reason: null }, partial: Object.values(availability).some((source) => !source.available) };
@@ -287,7 +400,7 @@ function tenantName(tenantId) { return db.prepare("SELECT name FROM tenants WHER
 export const ownerFinanceReportsService = {
   financeOverview(access, query) { return financeData(access, query); },
   financeDrilldown(access, query) { const result = normalizedDrillRows(access, query); const page = paginate(result.rows, query); return { metadata: { type: result.type, from: result.ctx.from, to: result.ctx.to, branchLabel: result.ctx.branchLabel }, columns: typedColumns(result.columns), ...page, availability: result.availability }; },
-  catalogue(access, query) { const ctx = ownerContext(access, query); return { categories: ["sales", "appointments", "clients", "staff", "inventory", "branch"], reports: REPORTS, context: { branchLabel: ctx.branchLabel, from: ctx.from, to: ctx.to } }; },
+  catalogue(access, query) { const ctx = ownerContext(access, query); return { categories: ["sales", "appointments", "clients", "staff", "inventory", "branch"], reports: resolvedReports(), context: { branchLabel: ctx.branchLabel, from: ctx.from, to: ctx.to } }; },
   report(access, key, query) { return reportData(access, key, query); },
   export(access, query) {
     const format = text(query.format).toLowerCase(); if (!new Set(["csv", "xlsx", "pdf"]).has(format)) throw badRequest("format must be csv, xlsx, or pdf");

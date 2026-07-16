@@ -1466,6 +1466,7 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
     if (ref) this.scheduleAppointmentPopoverPosition();
   }
   private readonly fb = inject(FormBuilder);
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly resizeState = signal<{ appointment: ApiRecord; startY: number; originalEnd: string } | null>(null);
   private handledStaffToggleRequests = 0;
   private timer = 0;
@@ -1525,6 +1526,23 @@ export class AppointmentsEnterpriseComponent implements OnInit, OnDestroy {
   readonly savedHiddenStaffIds = signal<string[]>([]);
   readonly staffPanelDragId = signal('');
   readonly drawer = signal<SchedulerDrawer>('');
+  private readonly drawerPortalSync = effect((onCleanup) => {
+    const activeDrawer = this.drawer();
+    if (!activeDrawer || typeof document === 'undefined') return;
+
+    const portaledNodes: HTMLElement[] = [];
+    queueMicrotask(() => {
+      if (this.drawer() !== activeDrawer) return;
+      for (const selector of ['.drawer-backdrop', '.scheduler-drawer']) {
+        const node = this.host.nativeElement.querySelector(selector) as HTMLElement | null;
+        if (!node) continue;
+        document.body.appendChild(node);
+        portaledNodes.push(node);
+      }
+    });
+
+    onCleanup(() => portaledNodes.forEach((node) => node.remove()));
+  });
   readonly blockMode = signal<BlockMode>('add');
   readonly selectedStaff = signal<StaffLane | null>(null);
   readonly selectedAppointment = signal<ApiRecord | null>(null);

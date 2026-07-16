@@ -15,7 +15,7 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
       @if (localError()) { <section staffPageState class="notice">{{ localError() }}</section> }
       @if (staff.error() && !localError()) { <section staffPageState class="notice">{{ staff.error() }}</section> }
       @if (canReadTasks() && today(); as data) {
-        <section class="grid four task-overview"><article class="kpi task-kpi task-kpi-today"><span>Today</span><strong>{{ data.tasks.length }}</strong></article><article class="kpi task-kpi task-kpi-open"><span>Open</span><strong>{{ taskCount('open') }}</strong></article><article class="kpi task-kpi task-kpi-progress"><span>In progress</span><strong>{{ taskCount('in_progress') }}</strong></article><article class="kpi task-kpi task-kpi-done"><span>Done</span><strong>{{ taskCount('completed') }}</strong></article></section>
+        <section class="task-summary"><div><span>Today's workload</span><strong>{{ data.tasks.length }} <small>tasks</small></strong></div><div class="task-summary-progress"><span>{{ completionRate() }}% complete</span><div class="task-progress-track"><i [style.width.%]="completionRate()"></i></div></div></section>
         <section class="kanban-board">
           @for (column of columns; track column.status) {
             <article class="panel kanban-column status-{{ column.status }}" (dragover)="$event.preventDefault()" (drop)="dropTask(column.status)">
@@ -35,15 +35,15 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
   styles: [`
     :host { display: block; }
     .tasks-page { max-width: 1240px; gap: 18px; }
-    .task-overview { gap: 9px; }
-    .task-kpi { --task-accent: var(--staff-text-secondary); position: relative; min-height: 88px; overflow: hidden; padding: 14px 16px; border-radius: 17px; box-shadow: none; }
-    .task-kpi::before { position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--task-accent); content: ""; }
-    .task-kpi span { letter-spacing: .075em; }
-    .task-kpi strong { margin-top: 6px; font-size: clamp(1.45rem, 2.5vw, 1.85rem); line-height: 1; }
-    .task-kpi-today { --task-accent: var(--staff-text); }
-    .task-kpi-open { --task-accent: var(--staff-warning); }
-    .task-kpi-progress { --task-accent: var(--staff-primary); }
-    .task-kpi-done { --task-accent: var(--staff-success); }
+    .task-summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 16px; border: 1px solid var(--staff-border); border-left: 3px solid var(--staff-primary); border-radius: 16px; background: var(--staff-surface-secondary); }
+    .task-summary > div:first-child { display: grid; gap: 3px; }
+    .task-summary span { color: var(--staff-text-secondary); font-size: .65rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+    .task-summary strong { font-size: 1.35rem; line-height: 1; }
+    .task-summary strong small { color: var(--staff-text-secondary); font-size: .7rem; font-weight: 700; }
+    .task-summary-progress { display: grid; flex: 1; max-width: 320px; gap: 6px; }
+    .task-summary-progress > span { text-align: right; }
+    .task-progress-track { height: 6px; overflow: hidden; border-radius: 999px; background: var(--staff-surface); }
+    .task-progress-track i { display: block; height: 100%; border-radius: inherit; background: var(--staff-success); transition: width var(--staff-motion-fast) var(--staff-motion-ease); }
     .kanban-board { gap: 10px; }
     .kanban-column { --task-accent: var(--staff-text-secondary); min-height: 250px; padding: 14px; border-radius: 18px; border-top: 3px solid var(--task-accent); background: color-mix(in srgb, var(--staff-surface-secondary) 55%, var(--staff-surface)); box-shadow: none; }
     .kanban-column.status-in_progress { --task-accent: var(--staff-primary); }
@@ -64,9 +64,9 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
     }
     @media (max-width: 700px) {
       .tasks-page { gap: 10px; padding-inline: 12px; }
-      .tasks-page > .task-overview.grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-      .task-kpi { min-height: 70px; padding: 10px 12px; border-radius: 14px; }
-      .task-kpi strong { margin-top: 4px; font-size: 1.35rem; }
+      .task-summary { gap: 12px; padding: 10px 12px; border-radius: 14px; }
+      .task-summary strong { font-size: 1.2rem; }
+      .task-summary-progress { max-width: 52%; }
       .tasks-page .kanban-board { grid-template-columns: 1fr; gap: 8px; }
       .tasks-page .kanban-column { min-height: 0; padding: 11px; border-radius: 15px; }
       .tasks-page .kanban-column .panel-title { min-height: 28px; margin-bottom: 4px; }
@@ -79,8 +79,8 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
     }
     @media (max-width: 340px) {
       .tasks-page { padding-inline: 10px; }
-      .task-kpi { padding-inline: 10px; }
-      .task-kpi span { font-size: .55rem; }
+      .task-summary { padding-inline: 10px; }
+      .task-summary span { font-size: .55rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       .kanban-card { transition: none; }
@@ -102,6 +102,7 @@ export class StaffTasksPage implements OnInit {
   canReadTasks(): boolean { return this.staff.hasPermission("read:staff"); }
   canUpdateTasks(): boolean { return this.staff.hasAnyPermission(["write:staff", "update:staff"]); }
   taskCount(status: string): number { return this.tasksByStatus(status).length; }
+  completionRate(): number { const total = this.today()?.tasks.length || 0; return total ? Math.round((this.taskCount("completed") / total) * 100) : 0; }
   tasksByStatus(status: string) { return (this.today()?.tasks || []).filter((task) => status === "open" ? !task.status || task.status === "open" : task.status === status); }
   dragTask(id: string, version: number) { this.draggedTask.set({ id, version }); }
   async dropTask(status: string) { const task = this.draggedTask(); if (!task || !this.canUpdateTasks()) return; await this.mutateTask(task.id, () => this.staff.moveTask(task.id, task.version, status), `Task moved to ${status.replace(/_/g, " ")}.`); this.draggedTask.set(null); }

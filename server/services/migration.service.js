@@ -151,7 +151,7 @@ const RESOURCE_TEMPLATES = {
   clients: {
     table: "clients",
     required: ["name", "phone"],
-    fields: ["originalRecordId", "name", "phone", "email", "gender", "birthday", "anniversary", "tags", "notes", "branchId", "branchName", "createdAt"]
+    fields: ["originalRecordId", "name", "phone", "email", "gender", "birthday", "anniversary", "tags", "notes", "branchId", "branchName", "totalSpend", "visitCount", "lastVisitAt", "noShowCount", "createdAt"]
   },
   staff: {
     table: "staff",
@@ -166,7 +166,7 @@ const RESOURCE_TEMPLATES = {
   products: {
     table: "products",
     required: ["name", "sku", "branchId"],
-    fields: ["originalRecordId", "name", "sku", "category", "supplier", "branchId", "branchName", "stock", "lowStockThreshold", "expiryDate", "unitCost", "price", "gstRate", "createdAt"]
+    fields: ["originalRecordId", "name", "sku", "category", "usageType", "supplier", "branchId", "branchName", "stock", "lowStockThreshold", "expiryDate", "unitCost", "price", "gstRate", "unit", "packSize", "packUnit", "createdAt"]
   },
   inventory: {
     table: "inventory_transactions",
@@ -1948,8 +1948,10 @@ function buildPayload(resource, fields, { branchId }) {
       notes: cleanText(fields.notes),
       walletBalance: 0,
       loyaltyPoints: 0,
-      visitCount: 0,
-      totalSpend: 0,
+      visitCount: integer(fields.visitCount, 0),
+      totalSpend: money(fields.totalSpend),
+      lastVisitAt: dateValue(fields.lastVisitAt),
+      noShowCount: integer(fields.noShowCount, 0),
       visitHistory: [],
       purchaseHistory: [],
       whatsappHistory: [],
@@ -1995,7 +1997,7 @@ function buildPayload(resource, fields, { branchId }) {
       name,
       sku: cleanText(fields.sku) || slug(name),
       category: cleanText(fields.category) || "Imported",
-      usageType: "retail",
+      usageType: cleanText(fields.usageType) || "retail",
       supplier: cleanText(fields.supplier),
       branchId,
       stock: numberValue(fields.stock, 0),
@@ -2004,6 +2006,9 @@ function buildPayload(resource, fields, { branchId }) {
       unitCost: money(fields.unitCost),
       price: money(fields.price),
       gstRate: numberValue(fields.gstRate, 18),
+      unit: cleanText(fields.unit),
+      packSize: numberValue(fields.packSize, 1),
+      packUnit: cleanText(fields.packUnit || fields.unit),
       status: cleanText(fields.status) || "active",
       createdAt: createdAt || undefined
     };
@@ -2281,7 +2286,7 @@ function duplicateFor(row, context, seen) {
   if (seen.has(fileKey)) return "duplicate row in uploaded file";
   seen.add(fileKey);
   const liveContext = { ...context, clients: liveOnly(context.clients), staff: liveOnly(context.staff), services: liveOnly(context.services), products: liveOnly(context.products), invoices: liveOnly(context.invoices) };
-  if (row.resource === "clients" && findClient({ ...payload, sourceExternalId: row.sourceExternalId }, liveContext, { strongOnly: true })) return "client already exists";
+  if (row.resource === "clients" && findClient({ ...payload, sourceExternalId: row.sourceExternalId }, liveContext, { strongOnly: true, ignorePending: true })) return "client already exists";
   if (row.resource === "staff" && liveContext.staff.some((item) => (payload.phone && normalizePhone(item.phone) === payload.phone) || (payload.email && same(item.email, payload.email)))) return "staff already exists";
   if (row.resource === "services" && liveContext.services.some((item) => same(item.name, payload.name))) return "service already exists";
   if (row.resource === "products" && liveContext.products.some((item) => same(item.sku, payload.sku) && item.branchId === payload.branchId)) return "product SKU already exists in branch";
@@ -2376,7 +2381,7 @@ function importOne(row, { access, batchId, sourceSoftware, migrationMode, contex
     if (accountPhoneConflict) {
       throw badRequest(`Client phone already exists in this account (${accountPhoneConflict.id})`);
     }
-    const existing = findClient({ ...payload, sourceExternalId: row.sourceExternalId }, context, { strongOnly: true });
+    const existing = findClient({ ...payload, sourceExternalId: row.sourceExternalId }, context, { strongOnly: true, ignorePending: true });
     if (existing) {
       const decision = duplicateDecisionFor(row, duplicateDecisions);
       if (decision === "keep") {
@@ -3392,11 +3397,12 @@ function indexClientRecord(context, client) {
   const phone = normalizePhone(client.phone);
   const email = cleanText(client.email).toLowerCase();
   const name = cleanText(client.name).toLowerCase();
+  const shouldIndex = (index, key) => key && (!index.has(key) || index.get(key)?.pending);
   if (id) context.clientIndex.id.set(id, client);
-  if (original && !context.clientIndex.original.has(original)) context.clientIndex.original.set(original, client);
-  if (phone && !context.clientIndex.phone.has(phone)) context.clientIndex.phone.set(phone, client);
-  if (email && !context.clientIndex.email.has(email)) context.clientIndex.email.set(email, client);
-  if (name && !context.clientIndex.name.has(name)) context.clientIndex.name.set(name, client);
+  if (shouldIndex(context.clientIndex.original, original)) context.clientIndex.original.set(original, client);
+  if (shouldIndex(context.clientIndex.phone, phone)) context.clientIndex.phone.set(phone, client);
+  if (shouldIndex(context.clientIndex.email, email)) context.clientIndex.email.set(email, client);
+  if (shouldIndex(context.clientIndex.name, name)) context.clientIndex.name.set(name, client);
 }
 
 function findClient(payload, context, options = {}) {
@@ -3409,10 +3415,10 @@ function findClient(payload, context, options = {}) {
     originalRecordId ? context.clientIndex?.original.get(originalRecordId) : null,
     phone ? context.clientIndex?.phone.get(phone) : null,
     email ? context.clientIndex?.email.get(email) : null
-  ].find((client) => client && sameClientBranch(client, branchId));
+  ].find((client) => client && (!options.ignorePending || !client.pending) && sameClientBranch(client, branchId));
   if (indexed || options.strongOnly) return indexed || null;
   const nameMatch = name ? context.clientIndex?.name.get(name) : null;
-  if (nameMatch && sameClientBranch(nameMatch, branchId)) return nameMatch;
+  if (nameMatch && (!options.ignorePending || !nameMatch.pending) && sameClientBranch(nameMatch, branchId)) return nameMatch;
   return null;
 }
 
@@ -3423,7 +3429,7 @@ function sameClientBranch(client, branchId) {
 function findClientByAccountPhone(payload, context) {
   const phoneKey = accountPhoneKey(payload.phone || payload.clientPhone);
   if (!phoneKey) return null;
-  return (context.clients || []).find((client) => isActiveClientRecord(client) && accountPhoneKey(client.phone) === phoneKey) || null;
+  return (context.clients || []).find((client) => !client.pending && isActiveClientRecord(client) && accountPhoneKey(client.phone) === phoneKey) || null;
 }
 
 function isActiveClientRecord(client = {}) {

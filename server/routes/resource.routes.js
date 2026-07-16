@@ -5,6 +5,7 @@ import { validateResourceName, validateResourcePayload } from "../validators/req
 import { resourceService } from "../services/resource.service.js";
 import { realtimeService } from "../services/realtime.service.js";
 import { securityService } from "../services/security.service.js";
+import { badRequest } from "../utils/app-error.js";
 
 export const resourceRouter = Router();
 
@@ -144,6 +145,7 @@ resourceRouter.delete(
   "/:resource/:id",
   requirePermission("write"),
   asyncHandler((req, res) => {
+    if (req.params.resource === "branches") throw badRequest("Branches cannot be deleted; set the branch status to inactive instead");
     const deleted = resourceService.delete(req.params.resource, req.params.id, req.access);
     if (deleted) auditResource(req, "deleted", { id: req.params.id });
     if (deleted) emitResourceEvent(req.params.resource, "deleted", { id: req.params.id, branchId: req.body?.branchId || "" }, req.access);

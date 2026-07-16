@@ -9181,7 +9181,7 @@ body,
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 .workspace-route-shell.workspace-route-shell--with-local-nav.workspace-route-shell--local-rail-collapsed {
@@ -9202,7 +9202,7 @@ body,
   grid-column: 2 !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   padding: 0 !important;
 }
 
@@ -15439,10 +15439,6 @@ app-purchase-bill-drafts .warning-list {
    — same palette, translucent surfaces, layered 3D depth
    ══════════════════════════════════════════════════ */
 
-:is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) {
-  perspective: 1200px;
-}
-
 :is(.workspace-route-content > router-outlet + *, .workspace > router-outlet + *) :where(
   .page-header, .page-heading, .page-title, .module-hero, .studio-hero,
   .apps-header, .lp-header, .client-command-hero, .inventory-hero,
@@ -18750,7 +18746,6 @@ app-purchase-bill-drafts .warning-list {
   max-width: none;
   min-height: 100%;
   box-sizing: border-box;
-  perspective: 1100px;
 }
 /* Content section — ensures children fill available width */
 .inner-page-content {

@@ -46,8 +46,11 @@ function safeJson(value) {
 
 function parseEntity(req) {
   const parts = req.path.split("/").filter(Boolean);
-  const entityType = parts[0] || "unknown";
-  const entityId = req.params?.id || parts[1] || req.body?.id || "";
+  const ownerOffset = parts[0] === "owner-console" ? 1 : 0;
+  const ownerGroups = new Set(["administration", "operations", "people"]);
+  const typeIndex = ownerOffset && ownerGroups.has(parts[ownerOffset]) ? ownerOffset + 1 : ownerOffset;
+  const entityType = parts[typeIndex] || "unknown";
+  const entityId = req.params?.id || parts[typeIndex + 1] || req.body?.id || "";
   return { entityType, entityId };
 }
 

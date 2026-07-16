@@ -14,7 +14,7 @@ import { StaffAppService } from "../../core/staff-app.service";
         <section class="staff-card">
           <div class="orb login-orb"></div>
           <div class="orb login-orb-secondary"></div>
-          <p class="eyebrow dark">Aura Staff OS</p>
+          <p class="eyebrow dark">Aura Workspace</p>
           <h2>Open your workspace</h2>
 
           @if (staff.error()) {
@@ -37,7 +37,7 @@ import { StaffAppService } from "../../core/staff-app.service";
             <div class="floating-field">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14Z"></path></svg>
               <input id="staff-login-id" [(ngModel)]="loginId" name="loginId" placeholder="isha.staff" autocomplete="username" />
-              <label for="staff-login-id">Staff login ID</label>
+              <label for="staff-login-id">Email or staff login ID</label>
             </div>
 
             <div class="floating-field password-field">
@@ -54,7 +54,7 @@ import { StaffAppService } from "../../core/staff-app.service";
             </div>
 
             <button type="submit" [disabled]="staff.loading()">
-              @if (staff.loading()) { <ion-spinner name="crescent"></ion-spinner> } @else { Open staff app }
+              @if (staff.loading()) { <ion-spinner name="crescent"></ion-spinner> } @else { Open workspace }
             </button>
           </form>
 
@@ -91,13 +91,14 @@ import { StaffAppService } from "../../core/staff-app.service";
     .floating-field input:focus::placeholder { color: var(--staff-input-placeholder); }
     .floating-field:focus-within > svg, .floating-field:focus-within label { color: var(--staff-input-focus); }
     .floating-field input:hover { border-color: #b9d5c2; }
-    .floating-field input:focus { border: 2px solid var(--staff-input-focus); outline: 0; box-shadow: 0 0 0 4px var(--staff-input-focus-ring); background: #fff; }
+    .floating-field input:focus { border: 2px solid var(--staff-input-focus); outline: 0; box-shadow: 0 0 0 4px var(--staff-input-focus-ring); background: var(--staff-input-background); }
     .floating-field input:disabled { border-color: var(--staff-input-border); background: var(--staff-input-disabled-background); color: var(--staff-input-disabled-text); cursor: not-allowed; opacity: 1; }
     .floating-field input:-webkit-autofill { -webkit-text-fill-color: var(--staff-input-text); box-shadow: 0 0 0 1000px var(--staff-input-background) inset; caret-color: var(--staff-input-focus); font-family: inherit !important; font-size: 16px !important; font-weight: 500 !important; line-height: 20px !important; }
     .floating-field input:-webkit-autofill::first-line { color: var(--staff-input-text); font-family: inherit; font-size: 16px; font-weight: 500; line-height: 20px; }
-    .floating-field input:-webkit-autofill:focus { box-shadow: 0 0 0 1000px #fff inset, 0 0 0 4px var(--staff-input-focus-ring); }
+    .floating-field input:-webkit-autofill:focus { box-shadow: 0 0 0 1000px var(--staff-input-background) inset, 0 0 0 4px var(--staff-input-focus-ring); }
     .floating-field input:active { transform: scale(.995); }
     .password-field input { padding-right: 60px; }
+    .password-field input::-ms-reveal, .password-field input::-ms-clear { display: none; }
     .password-toggle { position: absolute; z-index: 3; top: 0; right: 0; display: grid; place-items: center; width: 56px; min-height: 56px; margin: 0; padding: 0; border: 0; border-radius: 0 var(--staff-input-radius) var(--staff-input-radius) 0; background: transparent; color: #64748b; }
     .password-toggle:hover:not(:disabled), .password-toggle:focus-visible { border: 0; background: transparent; color: var(--staff-input-focus); }
     .password-toggle:focus-visible { outline: 3px solid var(--staff-input-focus-ring); outline-offset: -5px; }
@@ -129,9 +130,10 @@ export class StaffLoginPage {
     if (this.staff.loading()) return;
     this.message.set("");
     try {
-      await this.staff.login({ tenantId: this.tenantId, loginId: this.loginId, password: this.password });
-      this.message.set("Staff session created. Opening dashboard...");
-      await this.router.navigateByUrl("/staff/dashboard");
+      const user = await this.staff.login({ tenantId: this.tenantId, loginId: this.loginId, password: this.password });
+      const isOwner = String(user.role || "").trim().toLowerCase() === "owner";
+      this.message.set(isOwner ? "Owner verified. Opening dashboard..." : "Staff session created. Opening dashboard...");
+      await this.router.navigateByUrl(isOwner ? "/owner/dashboard" : "/staff/dashboard");
     } catch {
       this.message.set("");
     }

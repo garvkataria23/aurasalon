@@ -1,5 +1,5 @@
 import { db } from "../db.js";
-import { badRequest, forbidden, notFound } from "../utils/app-error.js";
+import { badRequest, conflict, forbidden, notFound } from "../utils/app-error.js";
 import { tenantService } from "./tenant.service.js";
 import { smartStaffService } from "./smart-staff.service.js";
 import { realtimeService } from "./realtime.service.js";
@@ -242,12 +242,15 @@ export class StaffEnterpriseService {
   decideLeave(id, status, payload = {}, access) {
     requireManager(access);
     const row = recordById("staff_leave_requests", id, access);
+    if (payload.version !== undefined && Number(payload.version) !== Number(row.version || 1)) throw conflict("Leave request was updated by another request");
+    if (row.status === status) return mapJson(row, ["history"]);
+    if (row.status !== "pending") throw conflict("This leave request has already been decided");
     const stamp = now();
     const history = parseJson(row.history, []);
     history.push({ at: stamp, status, role: access.role, reason: payload.reason || "" });
     db.prepare(`
       UPDATE staff_leave_requests
-      SET status = ?, decisionReason = ?, approvedBy = ?, history = ?, updatedAt = ?
+      SET status = ?, decisionReason = ?, approvedBy = ?, history = ?, version = version + 1, updatedAt = ?
       WHERE id = ? AND tenantId = ?
     `).run(status, payload.reason || "", access.userId || access.role || "", JSON.stringify(history), stamp, id, access.tenantId);
     insertApproval({ requestType: "leave", referenceId: id, staffId: row.staffId, branchId: row.branchId, status, reason: payload.reason, access });

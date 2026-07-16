@@ -1,5 +1,6 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { ErrorHandler } from '@angular/core';
+import { ErrorHandler, inject, provideAppInitializer } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { DATE_PIPE_DEFAULT_OPTIONS } from '@angular/common';
 import { provideRouter, RouteReuseStrategy, withComponentInputBinding, withPreloading } from '@angular/router';
@@ -11,10 +12,12 @@ import { httpErrorInterceptor } from './app/core/http-error.interceptor';
 import { NavigationPreloadingStrategy } from './app/core/navigation-preloading.strategy';
 import { RefreshOnNavigationRouteReuseStrategy } from './app/core/refresh-on-navigation-route-reuse.strategy';
 import { AURA_DATE_PIPE_DEFAULT_OPTIONS } from './app/core/i18n.service';
+import { AuthSessionService } from './app/core/auth-session.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideHttpClient(withInterceptors([csrfInterceptor, httpErrorInterceptor])),
+    provideAppInitializer(() => firstValueFrom(inject(AuthSessionService).bootstrapOwnerPosHandoff())),
     provideRouter(routes, withComponentInputBinding(), withPreloading(NavigationPreloadingStrategy)),
     { provide: RouteReuseStrategy, useClass: RefreshOnNavigationRouteReuseStrategy },
     { provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: AURA_DATE_PIPE_DEFAULT_OPTIONS },

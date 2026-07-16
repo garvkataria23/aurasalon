@@ -63,6 +63,7 @@ export function ensureAppointmentSystemSchema() {
   addColumn("services", "cleanupTimeMin INTEGER DEFAULT 0");
   addColumn("services", "onlineBookable INTEGER DEFAULT 1");
   addColumn("services", "requiresConsultation INTEGER DEFAULT 0");
+  addColumn("services", "branchId TEXT DEFAULT ''");
 
   addColumn("branches", "tierAdvanceBookingDays TEXT");
   addColumn("branches", "peakSlotsReservedPct INTEGER DEFAULT 0");
@@ -79,6 +80,7 @@ export function ensureAppointmentSystemSchema() {
     `CREATE INDEX IF NOT EXISTS idx_apt_source ON appointments(sourceChannel, sourceCampaign)`,
     `CREATE INDEX IF NOT EXISTS idx_apt_group ON appointments(bookingGroupId)`,
     `CREATE INDEX IF NOT EXISTS idx_apt_touchup ON appointments(touchupOfAppointmentId)`,
+    `CREATE INDEX IF NOT EXISTS idx_services_tenant_branch_status ON services(tenantId, branchId, status)`,
     `CREATE TABLE IF NOT EXISTS slot_reservations (
       id TEXT PRIMARY KEY,
       tenantId TEXT NOT NULL,

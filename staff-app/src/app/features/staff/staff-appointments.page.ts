@@ -25,7 +25,7 @@ function istDateKey(value: string | Date): string {
   standalone: true,
   imports: [PaiseInrPipe, DatePipe, RouterLink, StaffPageStateComponent],
   template: `
-    <section class="page">
+    <section class="page appointments-page">
       <header class="page-head"><div><p class="eyebrow">Appointments</p><h1>Appointments</h1><p>Assigned bookings with service actions.</p></div></header>
       @if (loading()) { <section staffPageState class="state" [loading]="true">Loading appointments...</section> }
       @if (staff.error()) { <section staffPageState class="notice">{{ staff.error() }}</section> }
