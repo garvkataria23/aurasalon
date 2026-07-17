@@ -2705,6 +2705,16 @@ function migrateBranchColumns() {
 
 migrateBranchColumns();
 
+function migrateBranchExtendedColumns() {
+  ensureColumn("branches", "onlineBookingEnabled", "INTEGER DEFAULT 1");
+  ensureColumn("branches", "tierAdvanceBookingDays", "TEXT DEFAULT '7'");
+  ensureColumn("branches", "peakSlotsReservedPct", "INTEGER DEFAULT 0");
+  ensureColumn("branches", "peakHoursDefinition", "TEXT DEFAULT '{}'");
+  ensureColumn("branches", "slug", "TEXT DEFAULT ''");
+}
+
+migrateBranchExtendedColumns();
+
 function migrateTenantSettingsKey() {
   const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'settings'").get();
   if (!row?.sql?.includes("key TEXT NOT NULL UNIQUE")) return;
