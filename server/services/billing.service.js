@@ -19,6 +19,7 @@ import {
 
 const now = () => new Date().toISOString();
 const money = (value) => Math.round((Number(value) || 0) * 100) / 100;
+const paise = (value) => Math.round((Number(value) || 0) * 100);
 const makeId = (prefix) => `${prefix}_${randomUUID().slice(0, 12)}`;
 
 function safeColumns(table) {
@@ -335,13 +336,16 @@ export class BillingService {
       db.prepare(
         `INSERT INTO invoices
           (id, tenant_id, branch_id, financial_year, invoice_no, invoice_type, appointment_id, customer_id,
-           corporate_account_id, credit_account_id, status, payment_status, source, subtotal, discount_total,
-           tax_total, tip_total, round_off, grand_total, paid_amount, due_amount, refund_amount, currency,
-           notes, terms, gstin, place_of_supply, created_by, created_at, updated_at${hasHappyHoursColumn ? ", happyHourDiscountPaise" : ""}${compatibilityColumns.map((column) => `, ${column}`).join("")})
+           corporate_account_id, credit_account_id, status, payment_status, source, subtotal, subtotal_paise,
+           discount_total, discount_total_paise, tax_total, tax_total_paise, tip_total, tip_total_paise,
+           round_off, grand_total, grand_total_paise, paid_amount, paid_amount_paise, due_amount, due_amount_paise,
+           refund_amount, refund_amount_paise, currency, notes, terms, gstin, place_of_supply, created_by, created_at, updated_at${hasHappyHoursColumn ? ", happyHourDiscountPaise" : ""}${compatibilityColumns.map((column) => `, ${column}`).join("")})
          VALUES
           (@id, @tenantId, @branchId, @financialYear, @invoiceNo, @invoiceType, @appointmentId, @customerId,
-           @corporateAccountId, @creditAccountId, 'draft', 'unpaid', @source, @subtotal, @discountTotal,
-           @taxTotal, @tipTotal, @roundOff, @grandTotal, 0, @dueAmount, 0, @currency,
+           @corporateAccountId, @creditAccountId, 'draft', 'unpaid', @source, @subtotal, @subtotalPaise,
+           @discountTotal, @discountTotalPaise, @taxTotal, @taxTotalPaise, @tipTotal, @tipTotalPaise,
+           @roundOff, @grandTotal, @grandTotalPaise, 0, 0, @dueAmount, @dueAmountPaise,
+           0, 0, @currency,
            @notes, @terms, @gstin, @placeOfSupply, @createdBy, @createdAt, @updatedAt${hasHappyHoursColumn ? ", @happyHourDiscountPaise" : ""}${compatibilityValues.map((value) => `, ${value}`).join("")})`
       ).run({
         id: invoiceId,
@@ -356,12 +360,18 @@ export class BillingService {
         creditAccountId: draft.credit_account_id,
         source: draft.source,
         subtotal: calculation.subtotal,
+        subtotalPaise: paise(calculation.subtotal),
         discountTotal: calculation.discount_total,
+        discountTotalPaise: paise(calculation.discount_total),
         taxTotal: calculation.tax_total,
+        taxTotalPaise: paise(calculation.tax_total),
         tipTotal: calculation.tip_total,
+        tipTotalPaise: paise(calculation.tip_total),
         roundOff: calculation.round_off,
         grandTotal: calculation.grand_total,
+        grandTotalPaise: paise(calculation.grand_total),
         dueAmount: calculation.due_amount,
+        dueAmountPaise: paise(calculation.due_amount),
         currency: draft.currency || "INR",
         notes: draft.notes || "",
         terms: draft.terms || "",
@@ -559,8 +569,10 @@ export class BillingService {
       };
 
       const totals = calculation
-        ? `subtotal = @subtotal, discount_total = @discountTotal, tax_total = @taxTotal,
-           tip_total = @tipTotal, round_off = @roundOff, grand_total = @grandTotal, due_amount = @dueAmount,`
+        ? `subtotal = @subtotal, subtotal_paise = @subtotalPaise, discount_total = @discountTotal, discount_total_paise = @discountTotalPaise,
+           tax_total = @taxTotal, tax_total_paise = @taxTotalPaise, tip_total = @tipTotal, tip_total_paise = @tipTotalPaise,
+           round_off = @roundOff, grand_total = @grandTotal, grand_total_paise = @grandTotalPaise,
+           due_amount = @dueAmount, due_amount_paise = @dueAmountPaise,`
         : "";
       db.prepare(
         `UPDATE invoices
@@ -574,12 +586,18 @@ export class BillingService {
       ).run({
         ...update,
         subtotal: calculation?.subtotal || invoice.subtotal,
+        subtotalPaise: calculation ? paise(calculation.subtotal) : paise(invoice.subtotal),
         discountTotal: calculation?.discount_total || invoice.discount_total,
+        discountTotalPaise: calculation ? paise(calculation.discount_total) : paise(invoice.discount_total),
         taxTotal: calculation?.tax_total || invoice.tax_total,
+        taxTotalPaise: calculation ? paise(calculation.tax_total) : paise(invoice.tax_total),
         tipTotal: calculation?.tip_total || invoice.tip_total,
+        tipTotalPaise: calculation ? paise(calculation.tip_total) : paise(invoice.tip_total),
         roundOff: calculation?.round_off || invoice.round_off,
         grandTotal: calculation?.grand_total || invoice.grand_total,
-        dueAmount: calculation ? money(calculation.grand_total - Number(invoice.paid_amount || 0)) : invoice.due_amount
+        grandTotalPaise: calculation ? paise(calculation.grand_total) : paise(invoice.grand_total),
+        dueAmount: calculation ? money(calculation.grand_total - Number(invoice.paid_amount || 0)) : invoice.due_amount,
+        dueAmountPaise: calculation ? paise(calculation.grand_total - Number(invoice.paid_amount || 0)) : paise(invoice.due_amount)
       });
 
       const next = this.getInvoice(invoiceId, access);
@@ -633,25 +651,31 @@ export class BillingService {
       this.replaceCalculatedRows(invoiceId, access.tenantId, calculation);
       db.prepare(
         `UPDATE invoices
-            SET subtotal = @subtotal,
-                discount_total = @discountTotal,
-                tax_total = @taxTotal,
-                tip_total = @tipTotal,
+            SET subtotal = @subtotal, subtotal_paise = @subtotalPaise,
+                discount_total = @discountTotal, discount_total_paise = @discountTotalPaise,
+                tax_total = @taxTotal, tax_total_paise = @taxTotalPaise,
+                tip_total = @tipTotal, tip_total_paise = @tipTotalPaise,
                 round_off = @roundOff,
-                grand_total = @grandTotal,
-                due_amount = @dueAmount,
+                grand_total = @grandTotal, grand_total_paise = @grandTotalPaise,
+                due_amount = @dueAmount, due_amount_paise = @dueAmountPaise,
                 updated_at = @updatedAt
           WHERE tenant_id = @tenantId AND id = @invoiceId`
       ).run({
         tenantId: access.tenantId,
         invoiceId,
         subtotal: calculation.subtotal,
+        subtotalPaise: paise(calculation.subtotal),
         discountTotal: calculation.discount_total,
+        discountTotalPaise: paise(calculation.discount_total),
         taxTotal: calculation.tax_total,
+        taxTotalPaise: paise(calculation.tax_total),
         tipTotal: calculation.tip_total,
+        tipTotalPaise: paise(calculation.tip_total),
         roundOff: calculation.round_off,
         grandTotal: calculation.grand_total,
+        grandTotalPaise: paise(calculation.grand_total),
         dueAmount: money(calculation.grand_total - Number(invoice.paid_amount || 0)),
+        dueAmountPaise: paise(calculation.grand_total - Number(invoice.paid_amount || 0)),
         updatedAt: now()
       });
       this.writeEvent({
@@ -677,10 +701,10 @@ export class BillingService {
       db.prepare(
         `INSERT INTO invoice_payments
           (id, tenant_id, invoice_id, payment_mode, provider, provider_payment_id, provider_order_id,
-           provider_link_id, terminal_id, amount, status, paid_at, reference_no, notes, created_by, created_at)
+           provider_link_id, terminal_id, amount, amount_paise, status, paid_at, reference_no, notes, created_by, created_at)
          VALUES
           (@id, @tenantId, @invoiceId, @paymentMode, @provider, @providerPaymentId, @providerOrderId,
-           @providerLinkId, @terminalId, @amount, 'paid', @paidAt, @referenceNo, @notes, @createdBy, @createdAt)`
+           @providerLinkId, @terminalId, @amount, @amountPaise, 'paid', @paidAt, @referenceNo, @notes, @createdBy, @createdAt)`
       ).run({
         id: makeId("ipay"),
         tenantId: access.tenantId,
@@ -692,6 +716,7 @@ export class BillingService {
         providerLinkId: payment.provider_link_id,
         terminalId: payment.terminal_id,
         amount: money(payment.amount),
+        amountPaise: paise(payment.amount),
         paidAt: payload.paid_at || payload.paidAt || now(),
         referenceNo: payment.reference_no,
         notes: payment.notes,
@@ -707,14 +732,18 @@ export class BillingService {
       db.prepare(
         `UPDATE invoices
             SET paid_amount = @paidAmount,
+                paid_amount_paise = @paidAmountPaise,
                 due_amount = @dueAmount,
+                due_amount_paise = @dueAmountPaise,
                 payment_status = @paymentStatus,
                 status = @status,
                 updated_at = @updatedAt
           WHERE tenant_id = @tenantId AND id = @invoiceId`
       ).run({
         paidAmount,
+        paidAmountPaise: paise(paidAmount),
         dueAmount,
+        dueAmountPaise: paise(dueAmount),
         paymentStatus,
         status,
         updatedAt: now(),
@@ -869,9 +898,9 @@ export class BillingService {
 
     const taxInsert = db.prepare(
       `INSERT INTO invoice_taxes
-        (id, tenant_id, invoice_id, invoice_item_id, tax_type, tax_rate, taxable_amount, tax_amount, hsn_sac_code, created_at)
+        (id, tenant_id, invoice_id, invoice_item_id, tax_type, tax_rate, taxable_amount, taxable_amount_paise, tax_amount, tax_amount_paise, hsn_sac_code, created_at)
        VALUES
-        (@id, @tenantId, @invoiceId, @invoiceItemId, @taxType, @taxRate, @taxableAmount, @taxAmount, @hsnSacCode, @createdAt)`
+        (@id, @tenantId, @invoiceId, @invoiceItemId, @taxType, @taxRate, @taxableAmount, @taxableAmountPaise, @taxAmount, @taxAmountPaise, @hsnSacCode, @createdAt)`
     );
 
     calculation.items.forEach((item) => {
@@ -879,13 +908,17 @@ export class BillingService {
       db.prepare(
         `INSERT INTO invoice_items
           (id, tenant_id, invoice_id, item_type, item_id, item_name, category_id, staff_id, quantity,
-           unit_price, gross_amount, discount_type, discount_value, discount_amount, taxable_amount,
-           tax_rate, tax_amount, total_amount, hsn_sac_code, batch_id, appointment_service_id,
+           unit_price, unit_price_paise, gross_amount, gross_amount_paise, discount_type, discount_value,
+           discount_amount, discount_amount_paise, taxable_amount, taxable_amount_paise,
+           tax_rate, tax_amount, tax_amount_paise, total_amount, total_amount_paise,
+           hsn_sac_code, batch_id, appointment_service_id,
            metadata_json, created_at)
          VALUES
           (@id, @tenantId, @invoiceId, @itemType, @itemId, @itemName, @categoryId, @staffId, @quantity,
-           @unitPrice, @grossAmount, @discountType, @discountValue, @discountAmount, @taxableAmount,
-           @taxRate, @taxAmount, @totalAmount, @hsnSacCode, @batchId, @appointmentServiceId,
+           @unitPrice, @unitPricePaise, @grossAmount, @grossAmountPaise, @discountType, @discountValue,
+           @discountAmount, @discountAmountPaise, @taxableAmount, @taxableAmountPaise,
+           @taxRate, @taxAmount, @taxAmountPaise, @totalAmount, @totalAmountPaise,
+           @hsnSacCode, @batchId, @appointmentServiceId,
            @metadataJson, @createdAt)`
       ).run({
         id: invoiceItemId,
@@ -898,14 +931,20 @@ export class BillingService {
         staffId: item.staff_id,
         quantity: item.quantity,
         unitPrice: item.unit_price,
+        unitPricePaise: paise(item.unit_price),
         grossAmount: item.gross_amount,
+        grossAmountPaise: paise(item.gross_amount),
         discountType: item.discount_type,
         discountValue: item.discount_value,
         discountAmount: item.discount_amount,
+        discountAmountPaise: paise(item.discount_amount),
         taxableAmount: item.taxable_amount,
+        taxableAmountPaise: paise(item.taxable_amount),
         taxRate: item.tax_rate,
         taxAmount: item.tax_amount,
+        taxAmountPaise: paise(item.tax_amount),
         totalAmount: item.total_amount,
+        totalAmountPaise: paise(item.total_amount),
         hsnSacCode: item.hsn_sac_code,
         batchId: item.batch_id,
         appointmentServiceId: item.appointment_service_id,
@@ -943,7 +982,9 @@ export class BillingService {
           taxType: tax.tax_type,
           taxRate: tax.tax_rate,
           taxableAmount: tax.taxable_amount,
+          taxableAmountPaise: paise(tax.taxable_amount),
           taxAmount: tax.tax_amount,
+          taxAmountPaise: paise(tax.tax_amount),
           hsnSacCode: tax.hsn_sac_code,
           createdAt: now()
         });

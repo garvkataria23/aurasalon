@@ -75,7 +75,7 @@ export const ownerBillingService = {
       params.search = `%${lower(query.search)}%`;
     }
     const whereSql = where.join(" AND ");
-    const sort = { invoiceNumber: "i.invoice_no", grandTotalPaise: "COALESCE(i.grand_total_paise, ROUND(i.grand_total * 100))", dueAmountPaise: "COALESCE(i.due_amount_paise, ROUND(i.due_amount * 100))" }[text(query.sortBy)] || "i.created_at";
+    const sort = { invoiceNumber: "i.invoice_no", grandTotalPaise: "COALESCE(NULLIF(i.grand_total_paise, 0), ROUND(i.grand_total * 100))", dueAmountPaise: "COALESCE(NULLIF(i.due_amount_paise, 0), ROUND(i.due_amount * 100))" }[text(query.sortBy)] || "i.created_at";
     const direction = lower(query.sortDirection) === "asc" ? "ASC" : "DESC";
     const rows = db.prepare(`SELECT i.*, b.name AS branchName, COALESCE(c.name,'') AS customerName
       FROM invoices i

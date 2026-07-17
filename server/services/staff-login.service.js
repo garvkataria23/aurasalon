@@ -931,14 +931,15 @@ export class StaffLoginService {
 
   targetProgress(rows = [], expectedRevenue = 0) {
     const target = rows.find((row) => String(row.target_type || row.targetType || "").toLowerCase().includes("revenue")) || rows[0] || null;
-    const targetValue = number(target?.target_value ?? target?.targetValue ?? expectedRevenue);
-    const achievedValue = number(target?.achieved_value ?? target?.achievedValue ?? expectedRevenue);
+    const hasTarget = rows.length > 0 && target != null;
+    const targetValue = hasTarget ? number(target.target_value ?? target.targetValue ?? 0) : 0;
+    const achievedValue = hasTarget ? number(target.achieved_value ?? target.achievedValue ?? 0) : 0;
     return {
       label: target?.target_name || target?.targetName || target?.target_type || target?.targetType || "Today revenue",
-      targetValue,
-      achievedValue,
-      percentage: targetValue ? pct((achievedValue / targetValue) * 100) : 0,
-      remaining: Math.max(0, targetValue - achievedValue)
+      targetValue: hasTarget ? targetValue : expectedRevenue,
+      achievedValue: hasTarget ? achievedValue : 0,
+      percentage: hasTarget && targetValue ? pct((achievedValue / targetValue) * 100) : 0,
+      remaining: hasTarget ? Math.max(0, targetValue - achievedValue) : expectedRevenue
     };
   }
 
@@ -1025,8 +1026,12 @@ export class StaffLoginService {
   }
 
   performanceIntelligence(dashboard, rows = []) {
-    const revenue = rows.reduce((sum, row) => sum + number(row.revenue_generated || row.revenueGenerated), dashboard.summary.revenue || 0);
-    const completedServices = rows.reduce((sum, row) => sum + number(row.completed_services || row.completedServices), dashboard.summary.completedAppointments || 0);
+    const revenue = rows.length
+      ? rows.reduce((sum, row) => sum + number(row.revenue_generated || row.revenueGenerated), 0)
+      : dashboard.summary.revenue || 0;
+    const completedServices = rows.length
+      ? rows.reduce((sum, row) => sum + number(row.completed_services || row.completedServices), 0)
+      : dashboard.summary.completedAppointments || 0;
     const avgUtilization = rows.length ? rows.reduce((sum, row) => sum + number(row.utilization_pct || row.utilizationPct), 0) / rows.length : 0;
     const avgRating = rows.length ? rows.reduce((sum, row) => sum + number(row.avg_rating || row.avgRating), 0) / rows.length : 0;
     const productivityScore = rows.length ? rows.reduce((sum, row) => sum + number(row.productivity_score || row.productivityScore), 0) / rows.length : Math.min(100, completedServices * 10);

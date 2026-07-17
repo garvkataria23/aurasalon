@@ -19,7 +19,7 @@ function firstColumn(columnNames, candidates) {
 
 function amountExpr(columnNames, decimalColumn, paiseColumn, alias = "") {
   const prefix = alias ? `${alias}.` : "";
-  if (paiseColumn && columnNames.includes(paiseColumn)) return `COALESCE(${prefix}${paiseColumn}, 0) / 100.0`;
+  if (paiseColumn && columnNames.includes(paiseColumn)) return `COALESCE(NULLIF(${prefix}${paiseColumn}, 0), ROUND(COALESCE(${prefix}${decimalColumn}, 0) * 100)) / 100.0`;
   if (decimalColumn && columnNames.includes(decimalColumn)) return `COALESCE(${prefix}${decimalColumn}, 0)`;
   return "0";
 }

@@ -3126,7 +3126,7 @@ export class StaffOsService {
         const itemGross = Math.max(0, submittedGross - submittedOtAmount + overtimeAmount);
         const pf = salaryProfile.pfApplicable === false ? 0 : Math.min(itemGross * 0.12, 1800);
         const tds = salaryProfile.tdsApplicable === false ? 0 : (itemGross > 50000 ? itemGross * 0.05 : 0);
-        const pt = salaryProfile.ptApplicable === false ? 0 : (itemGross > 15000 ? 200 : 0);
+        const pt = salaryProfile.ptApplicable === false ? 0 : (itemGross >= 10000 && itemGross <= 15000 ? 200 : itemGross > 15000 ? 300 : 0);
         const esic = salaryProfile.esicApplicable === false ? 0 : (itemGross <= 21000 ? itemGross * 0.0075 : 0);
         const statutoryDeduction = pf + tds + pt + esic;
         const previewDeduction = generatedRow
@@ -3140,12 +3140,13 @@ export class StaffOsService {
         const bonusAmount = generatedRow
           ? parseNumber(generatedRow.totalCommission, 0) + parseNumber(generatedRow.weekOffPayout, 0) + parseNumber(generatedRow.tips, 0) + parseNumber(generatedRow.allowances, 0)
           : 0;
-        gross += itemGross;
-        deductions += deduction;
-        net += netAmount;
+        gross += Math.round(itemGross * 100) / 100;
+        deductions += Math.round(deduction * 100) / 100;
+        net += Math.round(netAmount * 100) / 100;
         db.prepare(`INSERT INTO staff_payroll_items (id, tenant_id, payroll_run_id, branch_id, staff_id, gross_amount, deduction_amount, net_amount, statutory_json)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-          makeId("payitem"), access.tenantId, run.id, staff.branchId, staff.id, itemGross, deduction, netAmount,
+          makeId("payitem"), access.tenantId, run.id, staff.branchId, staff.id,
+          Math.round(itemGross * 100) / 100, Math.round(deduction * 100) / 100, Math.round(netAmount * 100) / 100,
           json({
             pf,
             esic,
@@ -3171,7 +3172,7 @@ export class StaffOsService {
         );
       }
       db.prepare(`UPDATE staff_payroll_runs SET gross_amount = ?, deductions_amount = ?, net_amount = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`)
-        .run(gross, deductions, net, now(), run.id, access.tenantId);
+        .run(Math.round(gross * 100) / 100, Math.round(deductions * 100) / 100, Math.round(net * 100) / 100, now(), run.id, access.tenantId);
       this.writeAudit("staff.payroll_generated", "staff_payroll_runs", run.id, access, { after: { ...run, gross, deductions, net }, branchId });
       return rowToCamel(db.prepare("SELECT * FROM staff_payroll_runs WHERE id = ? AND tenant_id = ?").get(run.id, access.tenantId));
     });

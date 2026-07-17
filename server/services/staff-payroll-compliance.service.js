@@ -94,7 +94,7 @@ export class StaffPayrollComplianceService {
     const esicEligible = profile.esic_enabled && gross <= 21000;
     const esicEmployee = esicEligible ? gross * 0.0075 : 0;
     const esicEmployer = esicEligible ? gross * 0.0325 : 0;
-    const professionalTax = gross > 15000 ? 200 : 0;
+    const professionalTax = gross >= 10000 && gross <= 15000 ? 200 : gross > 15000 ? 300 : 0;
     const tds = profile.tds_enabled && gross > 50000 ? gross * 0.05 : 0;
     const gratuity = gross * 0.0481;
     const bonus = profile.bonus_eligible ? gross * 0.0833 : 0;

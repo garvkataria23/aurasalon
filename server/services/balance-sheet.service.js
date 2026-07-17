@@ -68,15 +68,15 @@ function amountPaiseFromRow(row = {}, paiseKeys = [], rupeeKeys = []) {
   for (const key of paiseKeys) {
     const value = row[key];
     if (value !== undefined && value !== null && value !== "") {
-      const paise = Number(value);
-      if (Number.isFinite(paise)) return money(paise);
+      const paiseVal = Number(value);
+      if (Number.isFinite(paiseVal) && paiseVal !== 0) return Math.round(paiseVal);
     }
   }
   for (const key of rupeeKeys) {
     const value = row[key];
     if (value !== undefined && value !== null && value !== "") {
       const rupee = Number(value);
-      if (Number.isFinite(rupee)) return money(rupee * 100);
+      if (Number.isFinite(rupee) && rupee !== 0) return Math.round(rupee * 100);
     }
   }
   return 0;
