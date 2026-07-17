@@ -3125,10 +3125,25 @@ export class StaffOsService {
           : parseNumber(payload.grossAmountByStaff?.[staff.id], effectiveGross);
         const itemGross = Math.max(0, submittedGross - submittedOtAmount + overtimeAmount);
         const pf = salaryProfile.pfApplicable === false ? 0 : Math.min(itemGross * 0.12, 1800);
-        const tds = salaryProfile.tdsApplicable === false ? 0 : (itemGross > 50000 ? itemGross * 0.05 : 0);
+        const esicEmployee = salaryProfile.esicApplicable === false ? 0 : (itemGross <= 21000 ? itemGross * 0.0075 : 0);
+        const esicEmployer = salaryProfile.esicApplicable === false ? 0 : (itemGross <= 21000 ? itemGross * 0.0325 : 0);
         const pt = salaryProfile.ptApplicable === false ? 0 : (itemGross >= 10000 && itemGross <= 15000 ? 200 : itemGross > 15000 ? 300 : 0);
-        const esic = salaryProfile.esicApplicable === false ? 0 : (itemGross <= 21000 ? itemGross * 0.0075 : 0);
-        const statutoryDeduction = pf + tds + pt + esic;
+        let tds = 0;
+        if (salaryProfile.tdsApplicable !== false && itemGross > 0) {
+          const annualGross = itemGross * 12;
+          const standardDeduction = 75000;
+          const taxableIncome = Math.max(0, annualGross - standardDeduction);
+          if (taxableIncome > 300000) {
+            let annualTds = 0;
+            if (taxableIncome <= 700000) annualTds = (taxableIncome - 300000) * 0.05;
+            else if (taxableIncome <= 1000000) annualTds = 20000 + (taxableIncome - 700000) * 0.10;
+            else if (taxableIncome <= 1200000) annualTds = 50000 + (taxableIncome - 1000000) * 0.15;
+            else if (taxableIncome <= 1500000) annualTds = 80000 + (taxableIncome - 1200000) * 0.20;
+            else annualTds = 140000 + (taxableIncome - 1500000) * 0.30;
+            tds = annualTds / 12;
+          }
+        }
+        const statutoryDeduction = pf + tds + pt + esicEmployee;
         const previewDeduction = generatedRow
           ? parseNumber(generatedRow.deductions, 0) + parseNumber(generatedRow.advanceDeducted, 0)
           : 0;
@@ -3140,21 +3155,24 @@ export class StaffOsService {
         const bonusAmount = generatedRow
           ? parseNumber(generatedRow.totalCommission, 0) + parseNumber(generatedRow.weekOffPayout, 0) + parseNumber(generatedRow.tips, 0) + parseNumber(generatedRow.allowances, 0)
           : 0;
+        const bonusAccrual = salaryProfile.bonusApplicable === false ? 0 : Math.round(itemGross * 0.0833 * 100) / 100;
         gross += Math.round(itemGross * 100) / 100;
         deductions += Math.round(deduction * 100) / 100;
         net += Math.round(netAmount * 100) / 100;
-        db.prepare(`INSERT INTO staff_payroll_items (id, tenant_id, payroll_run_id, branch_id, staff_id, gross_amount, deduction_amount, net_amount, statutory_json)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+        db.prepare(`INSERT INTO staff_payroll_items (id, tenant_id, payroll_run_id, branch_id, staff_id, gross_amount, bonus_amount, deduction_amount, net_amount, statutory_json)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
           makeId("payitem"), access.tenantId, run.id, staff.branchId, staff.id,
-          Math.round(itemGross * 100) / 100, Math.round(deduction * 100) / 100, Math.round(netAmount * 100) / 100,
+          Math.round(itemGross * 100) / 100, Math.round(bonusAccrual * 100) / 100, Math.round(deduction * 100) / 100, Math.round(netAmount * 100) / 100,
           json({
             pf,
-            esic,
+            esicEmployee,
+            esicEmployer,
             tds,
             professionalTax: pt,
             overtimeMinutes: periodOvertimeMinutes,
             overtimeAmount,
             bonusAmount,
+            bonusAccrual,
             generatedFromPreview: Boolean(generatedRow),
             preview: generatedRow || null,
             complianceMode: "draft-ready",

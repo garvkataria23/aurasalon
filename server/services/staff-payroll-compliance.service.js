@@ -95,7 +95,21 @@ export class StaffPayrollComplianceService {
     const esicEmployee = esicEligible ? gross * 0.0075 : 0;
     const esicEmployer = esicEligible ? gross * 0.0325 : 0;
     const professionalTax = gross >= 10000 && gross <= 15000 ? 200 : gross > 15000 ? 300 : 0;
-    const tds = profile.tds_enabled && gross > 50000 ? gross * 0.05 : 0;
+    let tds = 0;
+    if (profile.tds_enabled && gross > 0) {
+      const annualGross = gross * 12;
+      const standardDeduction = 75000;
+      const taxableIncome = Math.max(0, annualGross - standardDeduction);
+      if (taxableIncome > 300000) {
+        let annualTds = 0;
+        if (taxableIncome <= 700000) annualTds = (taxableIncome - 300000) * 0.05;
+        else if (taxableIncome <= 1000000) annualTds = 20000 + (taxableIncome - 700000) * 0.10;
+        else if (taxableIncome <= 1200000) annualTds = 50000 + (taxableIncome - 1000000) * 0.15;
+        else if (taxableIncome <= 1500000) annualTds = 80000 + (taxableIncome - 1200000) * 0.20;
+        else annualTds = 140000 + (taxableIncome - 1500000) * 0.30;
+        tds = annualTds / 12;
+      }
+    }
     const gratuity = gross * 0.0481;
     const bonus = profile.bonus_eligible ? gross * 0.0833 : 0;
     const deduction = pfEmployee + esicEmployee + professionalTax + tds;
@@ -120,12 +134,12 @@ export class StaffPayrollComplianceService {
       snapshot_json: toJson({
         profile,
         formulas: {
-          pf: "12% capped at PF wage",
+          pf: "12% capped at PF wage 15000",
           esic: "0.75% employee and 3.25% employer when gross <= 21000",
-          professionalTax: "state placeholder",
-          tds: "placeholder 5% above monthly gross 50000",
-          gratuity: "4.81% accrual placeholder",
-          bonus: "8.33% accrual placeholder"
+          professionalTax: "Maharashtra slab: 200 (10K-15K), 300 (>15K)",
+          tds: "New regime slabs: 5% on 3L-7L, 10% on 7L-10L, 15% on 10L-12L, 20% on 12L-15L, 30% above 15L annual",
+          gratuity: "4.81% accrual",
+          bonus: "8.33% accrual (Payment of Bonus Act)"
         }
       }),
       status: payload.freeze ? "frozen" : "calculated",
