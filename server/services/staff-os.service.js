@@ -3133,7 +3133,7 @@ export class StaffOsService {
           ? parseNumber(generatedRow.deductions, 0) + parseNumber(generatedRow.advanceDeducted, 0)
           : 0;
         const deduction = generatedRow ? previewDeduction + statutoryDeduction : statutoryDeduction;
-        const submittedNet = generatedRow ? parseNumber(generatedRow.netSalary ?? generatedRow.net_amount, itemGross - deduction) : itemGross;
+        const submittedNet = generatedRow ? parseNumber(generatedRow.netSalary ?? generatedRow.net_amount, itemGross) : itemGross;
         const netAmount = generatedRow
           ? Math.max(0, submittedNet - submittedOtAmount + overtimeAmount - statutoryDeduction)
           : itemGross - deduction;
