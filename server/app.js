@@ -315,6 +315,7 @@ export function createApp() {
   ensureProfitActionQueueSchema();
   ensureProfitGovernanceSchema();
   ensureLocationSharingSchema();
+  console.log("=== ALL SCHEMAS INITIALIZED === pid =", process.pid, "time =", new Date().toISOString());
   const app = express();
   app.disable("x-powered-by");
   app.set("etag", false);
@@ -852,6 +853,7 @@ export function createApp() {
   app.use(notFoundHandler);
   app.use(errorHandler);
 
+  console.log("=== createApp() COMPLETE === pid =", process.pid, "time =", new Date().toISOString());
   return app;
 }
 
