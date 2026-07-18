@@ -5,12 +5,14 @@ const config: CapacitorConfig = {
   appName: "Aura Staff",
   webDir: "www/browser",
   server: {
-    androidScheme: "https",
-    hostname: "aurashinesalonwellness.in"
+    androidScheme: "https"
   },
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"]
+    },
+    CapacitorHttp: {
+      enabled: true
     }
   }
 };

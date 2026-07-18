@@ -3,6 +3,7 @@ import { Injectable, signal } from "@angular/core";
 import { firstValueFrom, Observable } from "rxjs";
 import { environment } from "../../environments/environment";
 import { resetCsrfState } from "./csrf.interceptor";
+import { CapacitorHttp } from "@capacitor/core";
 
 const STAFF_OFFLINE_QUEUE_KEY = "auraStaffOfflineQueue";
 const STAFF_OFFLINE_LEASE_KEY = "auraStaffOfflineQueueLease";
@@ -455,7 +456,7 @@ export class StaffAppService {
   async ensureDemoSession(): Promise<boolean> {
     if (this.isAuthenticated()) return true;
     try {
-      const response = await firstValueFrom(this.http.get<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/demo-staff-session`, { withCredentials: true }));
+      const response = await firstValueFrom(this.http.get<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/demo-staff-session`, { withCredentials: false }));
       const session = this.unwrap(response);
       if (!session.user?.staffId) return false;
       this.saveSession(session, "tenant_aura");
@@ -494,36 +495,45 @@ export class StaffAppService {
     try {
       const tenantId = payload.tenantId.trim() || "tenant_aura";
       const loginId = payload.loginId.trim();
-      push(`1. POST ${this.baseUrl}/auth/login tenantId=${tenantId} loginId=${loginId}`);
-      push(`2. withCredentials=true, body has device info`);
-      push(`3. Awaiting response... (request goes through csrfInterceptor → GET /auth/csrf first, then POST)`);
-      const response = await firstValueFrom(this.http.post<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/login`, {
-        tenantId,
-        loginId,
-        email: loginId.includes("@") ? loginId : undefined,
-        password: payload.password,
-        branchId: payload.branchId?.trim() || undefined,
-        device: { type: "staff-app", name: "Aura Staff App", platform: "web" }
-      }, { withCredentials: true }));
-      push(`4. Response received. typeof=${typeof response} isArray=${Array.isArray(response)} keys=${Object.keys(response as object).join(",")}`);
-      try { push(`4a. JSON preview=${JSON.stringify(response).slice(0, 200)}`); } catch {}
-      const session = this.unwrap(response);
-      push(`5. unwrap OK. has accessToken=${!!session.accessToken} has user=${!!(session as any).user} role=${(session as any).user?.role}`);
-      if (String(session.user?.role || "").trim().toLowerCase() === "owner") { push(`6. → owner dashboard`); return session.user; }
+      push(`1. login ${this.baseUrl}/auth/login tenantId=${tenantId} loginId=${loginId}`);
+      push(`2. Fetching CSRF token via CapacitorHttp...`);
+      const csrfResp = await CapacitorHttp.get({ url: `${this.baseUrl}/auth/csrf` });
+      push(`3. CSRF status=${csrfResp.status} data=${JSON.stringify(csrfResp.data).slice(0, 100)}`);
+      const csrfToken = csrfResp.data?.token || csrfResp.headers?.["x-csrf-token"] || "";
+      push(`4. CSRF token=${csrfToken.slice(0, 20)}`);
+
+      push(`5. POST login via CapacitorHttp...`);
+      const loginResp = await CapacitorHttp.post({
+        url: `${this.baseUrl}/auth/login`,
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": csrfToken } : {})
+        },
+        data: {
+          tenantId,
+          loginId,
+          email: loginId.includes("@") ? loginId : undefined,
+          password: payload.password,
+          branchId: payload.branchId?.trim() || undefined,
+          device: { type: "staff-app", name: "Aura Staff App", platform: "web" }
+        }
+      });
+      push(`6. Login status=${loginResp.status} dataType=${typeof loginResp.data}`);
+      try { push(`6a. data=${JSON.stringify(loginResp.data).slice(0, 200)}`); } catch {}
+      const session = this.unwrap(loginResp.data);
+      push(`7. unwrap OK. has accessToken=${!!session.accessToken} has user=${!!(session as any).user} role=${(session as any).user?.role}`);
+      if (String(session.user?.role || "").trim().toLowerCase() === "owner") { push(`8. → owner dashboard`); return session.user; }
       if (!session.user?.staffId) throw new Error("This login is not linked with a staff profile.");
       if (!this.isStaffRole(session.user.role)) throw new Error("Use a staff login, not an owner/admin login.");
-      push(`6. saving session...`);
+      push(`9. saving session...`);
       this.saveSession(session, tenantId);
-      push(`7. done. redirecting.`);
+      push(`10. done. redirecting.`);
       return session.user;
-    } catch (error) {
+    } catch (error: any) {
       push(`❌ CATCH BLOCK`);
-      if (error instanceof HttpErrorResponse) {
-        push(`   status=${error.status} ${error.statusText}`);
-        push(`   url=${error.url}`);
-        push(`   headers=${error.headers?.keys()?.join(",") || "none"}`);
-        try { push(`   body=${JSON.stringify(error.error).slice(0, 300)}`); } catch { push(`   body=[non-serializable: ${typeof error.error}]`); }
-        push(`   message=${error.message?.slice(0, 200)}`);
+      if (error?.status || error?.data) {
+        push(`   status=${error.status}`);
+        try { push(`   body=${JSON.stringify(error.data).slice(0, 300)}`); } catch { push(`   body=[non-serializable]`); }
       } else if (error instanceof Error) {
         push(`   name=${error.name} message=${error.message}`);
       } else {
@@ -534,7 +544,7 @@ export class StaffAppService {
       throw error;
     } finally {
       this.loading.set(false);
-      push(`8. finally done. loading=false`);
+      push(`11. finally done. loading=false`);
     }
   }
 
@@ -702,7 +712,7 @@ export class StaffAppService {
   async logout(): Promise<void> {
     try {
       if (!this.accessTokenValue) await this.refreshSession();
-      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { headers: this.authHeaders(), withCredentials: true }));
+      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { headers: this.authHeaders(), withCredentials: false }));
     } catch {
       // Local state must still be destroyed when the server session is already invalid.
     } finally {
@@ -927,7 +937,7 @@ export class StaffAppService {
         const response = await firstValueFrom(this.http.post<StaffRefreshResponse | ApiEnvelope<StaffRefreshResponse>>(
           `${this.baseUrl}/auth/refresh`,
           { device: { type: "staff-app", name: "Aura Staff App", platform: "web" } },
-          { withCredentials: true }
+          { withCredentials: false }
         ));
         const session = this.unwrap(response);
         if (!session.accessToken) throw new Error("Staff session refresh failed.");
@@ -1127,14 +1137,14 @@ export class StaffAppService {
   }
 
   private async publicPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
-    const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { withCredentials: true }));
+    const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { withCredentials: false }));
     return this.unwrap(response);
   }
 
   private async authPost<T = unknown>(path: string, body: Record<string, unknown>, authenticated = false): Promise<T> {
     if (!authenticated) return this.publicPost<T>(path, body);
     return this.withRefreshRetry(async () => {
-      const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders(), withCredentials: true }));
+      const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders(), withCredentials: false }));
       return this.unwrap(response);
     });
   }
