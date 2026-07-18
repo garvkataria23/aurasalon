@@ -19,8 +19,9 @@
     "seed:ai-knowledge": "node scripts/seed-aurashine-ai-knowledge.mjs",
     "backup:db": "node scripts/backup-database.mjs",
     "smoke:staff-mobile": "node scripts/smoke-staff-mobile.mjs",
+    "prebuild": "node -e \"const{execSync:c}=require('child_process');try{c('chmod -R 755 src',{stdio:'inherit'})}catch(e){}\"",
     "build": "npm run build:client",
-    "build:client": "ng build",
+    "build:client": "npx ng build",
     "build:staff": "npm --prefix staff-app run build",
     "start": "node server/index.js",
     "test:unit": "vitest run",
@@ -28,6 +29,8 @@
   },
   "dependencies": {
     "@angular/animations": "20.3.25",
+    "@angular/build": "20.3.32",
+    "@angular/cli": "20.3.30",
     "@angular/common": "20.3.25",
     "@angular/compiler": "20.3.25",
     "@angular/compiler-cli": "20.3.25",
@@ -43,19 +46,18 @@
     "firebase-admin": "^14.1.0",
     "multer": "^2.2.0",
     "rxjs": "^7.8.2",
+    "sqlite3": "^6.0.1",
     "three": "^0.184.0",
     "tslib": "^2.8.1",
+    "typescript": "~5.9.3",
     "web-push": "^3.6.7",
     "ws": "^8.20.0",
     "xlsx": "^0.18.5",
     "zone.js": "^0.15.1"
   },
   "devDependencies": {
-    "@angular/build": "20.3.32",
-    "@angular/cli": "20.3.30",
     "@types/three": "^0.184.1",
     "concurrently": "9.2.3",
-    "typescript": "~5.9.3",
     "vitest": "^3.2.6"
   }
 }
