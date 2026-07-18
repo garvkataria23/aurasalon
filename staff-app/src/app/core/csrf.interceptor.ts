@@ -59,15 +59,21 @@ export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
   const credentialedRequest = req.clone({ withCredentials: true });
   if (!MUTATING_METHODS.has(req.method) || isCsrfEndpoint(req.url)) return next(credentialedRequest);
   const http = new HttpClient(inject(HttpBackend));
-  const send = () => currentToken(http).pipe(
-    switchMap((token) => next(credentialedRequest.clone({
-      setHeaders: token ? { "x-csrf-token": token } : {}
-    })))
-  );
-  return send().pipe(catchError((error: unknown) => {
-    const message = error instanceof HttpErrorResponse ? JSON.stringify(error.error || "") : "";
-    if (!(error instanceof HttpErrorResponse) || error.status !== 403 || !/csrf/i.test(message)) return throwError(() => error);
-    resetCsrfState();
-    return send();
+  const send = (token: string) => next(credentialedRequest.clone({
+    setHeaders: token ? { "x-csrf-token": token } : {}
   }));
+  return currentToken(http).pipe(
+    catchError(() => of("")),
+    switchMap((token) => send(token))
+  ).pipe(
+    catchError((error: unknown) => {
+      const message = error instanceof HttpErrorResponse ? JSON.stringify(error.error || "") : "";
+      if (!(error instanceof HttpErrorResponse) || error.status !== 403 || !/csrf/i.test(message)) return throwError(() => error);
+      resetCsrfState();
+      return currentToken(http).pipe(
+        catchError(() => of("")),
+        switchMap((token) => send(token))
+      );
+    })
+  );
 };
