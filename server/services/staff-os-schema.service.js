@@ -33,9 +33,9 @@ export function ensureStaffOsSchema() {
     const migration = readFileSync(migrationPath, "utf8");
     db.exec(migration);
   }
+  ensureLegacyStaffManagementTables();
   const leaveRequestColumns = new Set(db.prepare("PRAGMA table_info(staff_leave_requests)").all().map((column) => column.name));
   if (!leaveRequestColumns.has("version")) db.exec("ALTER TABLE staff_leave_requests ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
-  ensureLegacyStaffManagementTables();
   ensureColumn("staff", "image", "TEXT DEFAULT ''");
   ensureColumn("warehouse_snapshots", "tenant_id", "TEXT NOT NULL DEFAULT 'tenant_aura'");
   ensureColumn("warehouse_snapshots", "branch_id", "TEXT DEFAULT ''");

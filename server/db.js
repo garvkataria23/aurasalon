@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { scryptSync } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -4463,3 +4463,44 @@ export function seedDatabase() {
 }
 
 seedDatabase();
+
+try {
+  console.error("[DB-STARTUP] ══════════════════════════════════════════════════════════");
+  console.error("[DB-STARTUP] DATABASE PATH:", dbPath);
+  console.error("[DB-STARTUP] DATABASE EXISTS:", existsSync(dbPath));
+  console.error("[DB-STARTUP] CWD:", process.cwd());
+  console.error("[DB-STARTUP] DATA DIRECTORY:", dataDir);
+  if (!existsSync(dbPath)) {
+    console.error("[DB-STARTUP] DATABASE NOT FOUND");
+  } else {
+    try {
+      const dbSize = statSync(dbPath).size;
+      console.error("[DB-STARTUP] DATABASE SIZE:", dbSize, "bytes");
+    } catch (_) {
+      console.error("[DB-STARTUP] DATABASE SIZE: UNKNOWN");
+    }
+    try {
+      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();
+      console.error("[DB-STARTUP] TOTAL TABLES:", tables.length);
+    } catch (_) {
+      console.error("[DB-STARTUP] TOTAL TABLES: ERROR");
+    }
+    try {
+      const tenantCount = db.prepare("SELECT COUNT(*) as count FROM tenants").get()?.count ?? -1;
+      console.error("[DB-STARTUP] TOTAL TENANTS:", tenantCount);
+      const tenants = db.prepare("SELECT id, name, status FROM tenants LIMIT 20").all();
+      console.table(tenants);
+    } catch (_) {
+      console.error("[DB-STARTUP] TENANTS TABLE NOT FOUND");
+    }
+    try {
+      const tenantUserCount = db.prepare("SELECT COUNT(*) as count FROM tenant_users").get()?.count ?? -1;
+      console.error("[DB-STARTUP] TOTAL TENANT USERS:", tenantUserCount);
+    } catch (_) {
+      console.error("[DB-STARTUP] TENANT_USERS TABLE NOT FOUND");
+    }
+  }
+  console.error("[DB-STARTUP] ══════════════════════════════════════════════════════════");
+} catch (e) {
+  console.error("[DB-STARTUP] DIAGNOSTIC ERROR:", e.message);
+}

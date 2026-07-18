@@ -2,7 +2,6 @@ import { Component, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { IonContent, IonSpinner } from "@ionic/angular/standalone";
-import { environment } from "../../../environments/environment";
 import { StaffAppService } from "../../core/staff-app.service";
 
 @Component({
@@ -64,8 +63,7 @@ import { StaffAppService } from "../../core/staff-app.service";
             </button>
           }
 
-          <a [href]="customerAppUrl" class="customer-link">Open customer app</a>
-        </section>
+         </section>
       </main>
     </ion-content>
   `,
@@ -110,13 +108,11 @@ import { StaffAppService } from "../../core/staff-app.service";
     .biometric-button { border-color: var(--staff-border-accent); background: var(--staff-primary-light); color: var(--staff-primary-hover); }
     .notice { margin: 18px 0; padding: 14px 16px; border: 1px solid var(--staff-error-border); border-radius: 16px; color: var(--staff-error-text); background: var(--staff-error-surface); font-weight: 650; }
     .success { border-color: var(--staff-success-border); color: var(--staff-success-text); background: var(--staff-success-surface); }
-    .customer-link { display: block; margin-top: 18px; color: var(--staff-primary-hover); font-weight: 700; text-align: center; text-decoration: none; }
     @media (max-width: 820px) { .login-grid { width: calc(100% - 40px); padding: 20px 0; } .staff-card { padding: 20px; } }
     @media (prefers-reduced-motion: reduce) { .floating-field input, .floating-field label, .floating-field > svg, .floating-field input::placeholder { transition: none; } }
   `]
 })
 export class StaffLoginPage {
-  readonly customerAppUrl = environment.customerAppUrl;
   readonly message = signal("");
   readonly showPassword = signal(false);
   tenantId = "tenant_aura";
