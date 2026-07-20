@@ -1,0 +1,10 @@
+node_modules
+dist
+www
+staff-app/www
+.angular
+staff-app/.angular
+data
+*.log
+.git
+.env

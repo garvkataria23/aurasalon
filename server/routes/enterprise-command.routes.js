@@ -1,0 +1,30 @@
+import { Router } from "express";
+import { autonomousEnterpriseRouter } from "./autonomous-enterprise.routes.js";
+import { aiWorkforceRouter } from "./ai-workforce.routes.js";
+import { clientMemoryGraphRouter } from "./client-memory-graph.routes.js";
+import { dataWarehouseRouter } from "./data-warehouse.routes.js";
+import { digitalTwinRouter } from "./digital-twin.routes.js";
+import { inventoryAutopilotRouter } from "./inventory-autopilot.routes.js";
+import { observabilityCenterRouter } from "./observability-center.routes.js";
+import { ownerCommandCenterRouter } from "./owner-command-center.routes.js";
+import { paymentFraudIntelligenceRouter } from "./payment-fraud-intelligence.routes.js";
+import { revenueLeakRouter } from "./revenue-leak.routes.js";
+import { securityHardeningRouter } from "./security-hardening.routes.js";
+import { staffCoachRouter } from "./staff-coach.routes.js";
+import { whatsappCampaignPlannerRouter } from "./whatsapp-campaign-planner.routes.js";
+
+export const enterpriseCommandRouter = Router();
+
+enterpriseCommandRouter.use(autonomousEnterpriseRouter);
+enterpriseCommandRouter.use(aiWorkforceRouter);
+enterpriseCommandRouter.use(revenueLeakRouter);
+enterpriseCommandRouter.use(digitalTwinRouter);
+enterpriseCommandRouter.use(ownerCommandCenterRouter);
+enterpriseCommandRouter.use(whatsappCampaignPlannerRouter);
+enterpriseCommandRouter.use(clientMemoryGraphRouter);
+enterpriseCommandRouter.use(staffCoachRouter);
+enterpriseCommandRouter.use(inventoryAutopilotRouter);
+enterpriseCommandRouter.use(paymentFraudIntelligenceRouter);
+enterpriseCommandRouter.use(observabilityCenterRouter);
+enterpriseCommandRouter.use(securityHardeningRouter);
+enterpriseCommandRouter.use(dataWarehouseRouter);

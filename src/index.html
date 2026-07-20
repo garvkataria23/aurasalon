@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Aura Salon CRM/POS</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#4B1238" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+  </head>
+  <body>
+    <app-root></app-root>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+          if (isLocalDev) {
+            navigator.serviceWorker.getRegistrations()
+              .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+              .catch(() => undefined);
+            if ('caches' in window) {
+              caches.keys()
+                .then((keys) => keys.forEach((key) => caches.delete(key)))
+                .catch(() => undefined);
+            }
+            return;
+          }
+          navigator.serviceWorker.register('/offline-sw.js').catch(() => undefined);
+        });
+      }
+    </script>
+  </body>
+</html>

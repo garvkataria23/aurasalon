@@ -1,0 +1,7 @@
+<section class="aura-toast-container" aria-live="polite" aria-relevant="additions">
+  <aura-toast
+    *ngFor="let item of toast.toasts()"
+    [toast]="item"
+    (dismissed)="toast.dismiss($event)"
+  ></aura-toast>
+</section>

@@ -1,0 +1,69 @@
+.activity-feed {
+  display: grid;
+  gap: 8px;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.activity-item.is-clickable:hover {
+  background: var(--surface-2);
+  border-color: #4B1238;
+}
+
+.activity-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e6eeee;
+  color: #6B1E4B;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.activity-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.activity-copy strong,
+.activity-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-copy small,
+time,
+.activity-state {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+time {
+  white-space: nowrap;
+}
+
+.activity-state {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.activity-state.error {
+  color: var(--red);
+  border-color: rgba(180, 35, 24, 0.24);
+}

@@ -1,0 +1,94 @@
+<section class="page-stack enterprise-reports inner-page-shell">
+  <div class="sticky-filter-bar">
+    <div class="module-hero reports-header inner-page-header">
+      <div>
+        <h2>Reports</h2>
+      </div>
+        <div class="hero-actions inner-action-bar">
+        <div class="date-range-group">
+          <button class="range-btn" [class.active]="filters.dateRange==='today'" (click)="setDateRange('today')">Today</button>
+          <button class="range-btn" [class.active]="filters.dateRange==='thisWeek'" (click)="setDateRange('thisWeek')">This Week</button>
+          <button class="range-btn" [class.active]="filters.dateRange==='thisMonth'" (click)="setDateRange('thisMonth')">This Month</button>
+          <button class="range-btn" [class.active]="filters.dateRange==='lastMonth'" (click)="setDateRange('lastMonth')">Last Month</button>
+          <button class="range-btn" [class.active]="filters.dateRange==='custom'" (click)="filters.dateRange='custom'">Custom</button>
+        </div>
+        <ng-container *ngIf="filters.dateRange==='custom'">
+          <label class="field compact"><span>From</span><input type="date" [(ngModel)]="filters.from" (change)="loadKpis()" /></label>
+          <label class="field compact"><span>To</span><input type="date" [(ngModel)]="filters.to" (change)="loadKpis()" /></label>
+        </ng-container>
+        <select class="branch-select" [ngModel]="filters.branchId" (ngModelChange)="setBranch($event)">
+          <option value="">All Branches</option>
+          <option value="main">Main Branch</option>
+          <option value="downtown">Downtown Studio</option>
+          <option value="mall">Mall Express</option>
+          <option value="luxury">Luxury Lounge</option>
+        </select>
+        <button class="ghost-button" (click)="exportReport()" title="Export">
+          <span class="btn-icon">📥</span> Export
+        </button>
+        <button class="ghost-button" [class.spinning]="refreshing()" (click)="refreshAll()" title="Refresh">
+          <span class="btn-icon">🔄</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="metrics-grid inner-stats-grid" *ngIf="!kpiLoading(); else kpiSkeleton">
+      <div *ngFor="let kpi of kpis()" class="metric-card reports-kpi" [ngClass]="kpi.tone">
+        <div class="kpi-top">
+          <span>{{ kpi.label }}</span>
+          <span class="kpi-icon">{{ kpi.icon }}</span>
+        </div>
+        <strong>{{ kpi.value }}</strong>
+        <div class="kpi-footer">
+          <small class="trend-{{kpi.trend}}">
+            <span class="trend-arrow">{{ kpi.trend === 'up' ? '↑' : kpi.trend === 'down' ? '↓' : '→' }}</span>
+            {{ kpi.change }}
+          </small>
+        </div>
+      </div>
+      <div class="metric-card payment-mode-card" *ngIf="!paymentModeLoading()">
+        <div class="kpi-top">
+          <span>Payment Mode Summary</span>
+          <span class="kpi-icon">💳</span>
+        </div>
+        <div class="payment-mode-list">
+          <div *ngFor="let pm of paymentModeSummary()" class="payment-mode-row">
+            <span class="pm-label">{{ pm.mode }}</span>
+            <span class="pm-amount">₹{{ pm.amount.toLocaleString('en-IN') }}</span>
+          </div>
+        </div>
+        <div class="payment-mode-total">
+          <span>Total Received</span>
+           <span>₹{{ paymentModeTotal().toLocaleString('en-IN') }}</span>
+        </div>
+      </div>
+    </div>
+    <ng-template #kpiSkeleton>
+      <div class="metrics-grid">
+        <div *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-card"><div class="skeleton-line w-60"></div><div class="skeleton-line w-80 h-8"></div><div class="skeleton-line w-40"></div></div>
+      </div>
+    </ng-template>
+  </div>
+
+
+
+  <nav class="reports-tab-nav">
+    <button *ngFor="let tab of tabs()" class="tab-btn" [class.active]="activeTab()===tab.id" (click)="activeTab.set(tab.id)">
+      <span class="tab-icon">{{ tab.icon }}</span>
+      <span class="tab-label">{{ tab.label }}</span>
+    </button>
+  </nav>
+
+  <div class="report-content">
+    <app-report-overview *ngIf="activeTab()==='overview'" [filters]="toFilters()" />
+    <app-report-revenue *ngIf="activeTab()==='revenue'" [filters]="toFilters()" />
+    <app-report-clients *ngIf="activeTab()==='clients'" [filters]="toFilters()" />
+    <app-report-staff *ngIf="activeTab()==='staff'" [filters]="toFilters()" />
+    <app-report-services *ngIf="activeTab()==='services'" [filters]="toFilters()" />
+    <app-report-inventory *ngIf="activeTab()==='inventory'" [filters]="toFilters()" />
+    <app-report-marketing *ngIf="activeTab()==='marketing'" [filters]="toFilters()" />
+    <app-report-branches *ngIf="activeTab()==='branches'" [filters]="toFilters()" />
+    <app-report-ai-insights *ngIf="activeTab()==='ai-insights'" [filters]="toFilters()" />
+    <app-report-custom-export *ngIf="activeTab()==='custom-export'" [filters]="toFilters()" />
+  </div>
+</section>

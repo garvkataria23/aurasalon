@@ -1,0 +1,25 @@
+<header class="aura-page-header">
+  <div class="aura-page-header__main">
+    <nav class="aura-page-header__breadcrumb" *ngIf="breadcrumb.length" aria-label="Breadcrumb">
+      <ng-container *ngFor="let item of breadcrumb; let last = last">
+        <a *ngIf="item.link && !last; else breadcrumbText" [routerLink]="item.link">{{ item.label }}</a>
+        <ng-template #breadcrumbText>
+          <span>{{ item.label }}</span>
+        </ng-template>
+        <span class="aura-page-header__separator" *ngIf="!last">/</span>
+      </ng-container>
+    </nav>
+
+    <div class="aura-page-header__title-row">
+      <h1>{{ title }}</h1>
+    </div>
+  </div>
+
+  <div class="aura-page-header__filters">
+    <ng-content select="[slot=filters]"></ng-content>
+  </div>
+
+  <div class="aura-page-header__actions">
+    <ng-content select="[slot=actions]"></ng-content>
+  </div>
+</header>

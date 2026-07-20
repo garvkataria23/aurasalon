@@ -1,0 +1,5 @@
+<article class="aura-toast" [class]="'aura-toast aura-toast--' + toast.variant" role="status">
+  <p>{{ toast.message }}</p>
+  <button class="aura-toast__action" type="button" *ngIf="toast.action" (click)="runAction()">{{ toast.action.label }}</button>
+  <button class="aura-toast__close" type="button" aria-label="Dismiss" (click)="dismissed.emit(toast.id)">x</button>
+</article>

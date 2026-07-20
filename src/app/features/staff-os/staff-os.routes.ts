@@ -1,0 +1,56 @@
+import { Routes } from '@angular/router';
+import { StaffOsStore } from './application/staff-os.store';
+
+export const STAFF_OS_ROUTES: Routes = [
+  {
+    path: '',
+    providers: [StaffOsStore],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'staff-list' },
+      { path: 'workspace', loadComponent: () => import('./pages/staff-workspace.page').then((m) => m.StaffWorkspacePage), title: 'Staff Workspace' },
+      { path: 'salary-workspace', loadComponent: () => import('./pages/salary-workspace.page').then((m) => m.SalaryWorkspacePage), title: 'Staff OS - Salary Setup' },
+      { path: 'staff-salary-workspace', loadComponent: () => import('./pages/salary-workspace.page').then((m) => m.SalaryWorkspacePage), title: 'Staff OS - Salary Setup' },
+      { path: 'employee-masters', loadComponent: () => import('./pages/employee-masters.page').then((m) => m.EmployeeMastersPage), title: 'Staff OS - Employee Masters' },
+      { path: 'staff-list', loadComponent: () => import('./pages/staff-list.page').then((m) => m.StaffListPage), title: 'Staff OS - Staff List' },
+      { path: 'staff-categories', loadComponent: () => import('./pages/staff-categories.page').then((m) => m.StaffCategoriesPage), title: 'Staff OS - Staff Categories' },
+      { path: 'attendance-master', loadComponent: () => import('./pages/attendance-master.page').then((m) => m.AttendanceMasterPage), title: 'Staff OS - Attendance Master' },
+      { path: 'leave-master', loadComponent: () => import('./pages/leave-master.page').then((m) => m.LeaveMasterPage), title: 'Staff OS - Leave Master' },
+      { path: 'shift-master', loadComponent: () => import('./pages/shift-master.page').then((m) => m.ShiftMasterPage), title: 'Staff OS - Shift Master' },
+      { path: 'attendance-category', loadComponent: () => import('./pages/attendance-category.page').then((m) => m.AttendanceCategoryPage), title: 'Staff OS - Attendance Category' },
+      { path: 'attendance-categories', pathMatch: 'full', redirectTo: 'attendance-category' },
+      { path: 'target-incentives/service', loadComponent: () => import('./pages/target-incentive.page').then((m) => m.ServiceTargetIncentivePage), title: 'Staff OS - Service Target Incentive' },
+      { path: 'target-incentives/product', loadComponent: () => import('./pages/target-incentive.page').then((m) => m.ProductTargetIncentivePage), title: 'Staff OS - Product Target Incentive' },
+      { path: 'target-incentives/membership', loadComponent: () => import('./pages/target-incentive.page').then((m) => m.MembershipTargetIncentivePage), title: 'Staff OS - Membership Target Incentive' },
+      { path: 'target-incentives/branch-admin', loadComponent: () => import('./pages/target-incentive.page').then((m) => m.BranchTargetIncentivePage), title: 'Staff OS - Branch Target Incentive' },
+      { path: 'target-incentives/admin', loadComponent: () => import('./pages/target-incentive.page').then((m) => m.AdminTargetIncentivePage), title: 'Staff OS - Admin Target Incentive' },
+      { path: 'target-incentives/all-transaction', loadComponent: () => import('./pages/target-incentive.page').then((m) => m.AllTransactionTargetIncentivePage), title: 'Staff OS - All Transaction Target Incentive' },
+      { path: 'service-assignment', loadComponent: () => import('./pages/service-assignment.page').then((m) => m.ServiceAssignmentPage), title: 'Staff OS - Employee Service Assignment' },
+      { path: 'fines-penalties', loadComponent: () => import('./pages/payroll-masters.page').then((m) => m.FinesPenaltyPage), title: 'Staff OS - Fines / Penalty' },
+      { path: 'allowance-deduction', loadComponent: () => import('./pages/payroll-masters.page').then((m) => m.AllowanceDeductionPage), title: 'Staff OS - Allowance / Deduction' },
+      { path: 'payroll-salary-structure', loadComponent: () => import('./pages/payroll-masters.page').then((m) => m.PayrollSalaryStructurePage), title: 'Staff OS - Payroll Salary Structure' },
+      { path: 'bulk-employee-update', loadComponent: () => import('./pages/bulk-employee-update.page').then((m) => m.BulkEmployeeUpdatePage), title: 'Staff OS - Bulk Employee Update' },
+      { path: 'staff-profile', loadComponent: () => import('./pages/staff-profile.page').then((m) => m.StaffProfilePage), title: 'Staff OS - Staff Profile' },
+      { path: 'attendance-dashboard', loadComponent: () => import('./pages/attendance-dashboard.page').then((m) => m.AttendanceDashboardPage), title: 'Staff OS - Attendance' },
+      { path: 'face-punch', loadComponent: () => import('./pages/face-punch.page').then((m) => m.FacePunchPage), title: 'Staff OS - Face Punch' },
+      { path: 'payroll-dashboard', loadComponent: () => import('./pages/payroll-dashboard.page').then((m) => m.PayrollDashboardPage), title: 'Staff OS - Payroll' },
+      { path: 'payroll-history', loadComponent: () => import('./pages/payroll-history.page').then((m) => m.PayrollHistoryPage), title: 'Staff OS - Payroll History' },
+      { path: 'payroll-rules', loadComponent: () => import('./pages/payroll-rules.page').then((m) => m.PayrollRulesPage), title: 'Staff OS - Payroll Rules' },
+      { path: 'salary-generate', loadComponent: () => import('./pages/salary-generate.page').then((m) => m.SalaryGeneratePage), title: 'Staff OS - Salary Generate' },
+      { path: 'generate-salary', pathMatch: 'full', redirectTo: 'salary-generate' },
+      { path: 'commission-dashboard', loadComponent: () => import('./pages/commission-dashboard.page').then((m) => m.CommissionDashboardPage), title: 'Staff OS - Commission' },
+      { path: 'roster-calendar', loadComponent: () => import('./pages/roster-calendar.page').then((m) => m.RosterCalendarPage), title: 'Staff OS - Roster' },
+      { path: 'leave-management', loadComponent: () => import('./pages/leave-management.page').then((m) => m.LeaveManagementPage), title: 'Staff OS - Leave' },
+      { path: 'performance-dashboard', loadComponent: () => import('./pages/performance-dashboard.page').then((m) => m.PerformanceDashboardPage), title: 'Staff OS - Performance' },
+      { path: 'performance-dashboard/:staffId', loadComponent: () => import('./pages/performance-detail.page').then((m) => m.PerformanceDetailPage), title: 'Staff OS - Performance Detail' },
+      { path: 'leaderboard', loadComponent: () => import('./pages/leaderboard.page').then((m) => m.LeaderboardPage), title: 'Staff OS - Leaderboard' },
+      { path: 'training-center', loadComponent: () => import('./pages/training-center.page').then((m) => m.TrainingCenterPage), title: 'Staff OS - Training' },
+      { path: 'task-board', loadComponent: () => import('./pages/task-board.page').then((m) => m.TaskBoardPage), title: 'Staff OS - Tasks' },
+      { path: 'mobile-preview', loadComponent: () => import('./pages/mobile-staff-dashboard-preview.page').then((m) => m.MobileStaffDashboardPreviewPage), title: 'Staff OS - Mobile Preview' },
+      { path: 'heatmaps/roster', loadComponent: () => import('./pages/heatmaps/roster-heatmap.page').then((m) => m.RosterHeatmapPage), title: 'Staff OS - Roster Heatmap' },
+      { path: 'heatmaps/attendance', loadComponent: () => import('./pages/heatmaps/attendance-heatmap.page').then((m) => m.AttendanceHeatmapPage), title: 'Staff OS - Attendance Heatmap' },
+      { path: 'heatmaps/utilization', loadComponent: () => import('./pages/heatmaps/utilization-heatmap.page').then((m) => m.UtilizationHeatmapPage), title: 'Staff OS - Utilization Heatmap' },
+      { path: 'heatmaps/payroll-cost', loadComponent: () => import('./pages/heatmaps/payroll-cost-heatmap.page').then((m) => m.PayrollCostHeatmapPage), title: 'Staff OS - Payroll Cost Heatmap' },
+      { path: 'heatmaps/leave-calendar', loadComponent: () => import('./pages/heatmaps/leave-calendar-heatmap.page').then((m) => m.LeaveCalendarHeatmapPage), title: 'Staff OS - Leave Calendar Heatmap' }
+    ]
+  }
+];

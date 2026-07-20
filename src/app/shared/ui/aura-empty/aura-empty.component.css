@@ -1,0 +1,78 @@
+:host {
+  display: block;
+}
+
+.aura-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 360px;
+  margin: auto;
+  padding: 48px var(--aura-space-6);
+  text-align: center;
+}
+
+.aura-empty__icon {
+  font-size: 40px;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+h3 {
+  margin: var(--aura-space-3) 0 0;
+  color: var(--aura-gray-800);
+  font-size: var(--aura-fs-md);
+  font-weight: var(--aura-fw-semibold);
+}
+
+p {
+  margin: var(--aura-space-1) 0 var(--aura-space-4);
+  color: var(--aura-gray-500);
+  font-size: var(--aura-fs-sm);
+}
+
+/* Premium shared empty-state refinement. */
+.aura-empty {
+  max-width: 460px;
+  padding: 44px 24px;
+  border: 1px dashed var(--aura-border-strong, var(--aura-gray-300));
+  border-radius: var(--aura-card-radius-premium, 14px);
+  background: color-mix(in srgb, var(--aura-bg, #faf7f2) 72%, white 28%);
+  color: var(--aura-text, var(--aura-gray-800));
+}
+
+.aura-empty__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(232, 167, 184, 0.16);
+  color: var(--aura-primary, #4b1238);
+  font-size: 24px;
+  opacity: 1;
+}
+
+h3 {
+  color: var(--aura-text, var(--aura-gray-800));
+  font-size: 16px;
+  font-weight: 700;
+}
+
+p {
+  max-width: 34rem;
+  color: var(--aura-muted, var(--aura-gray-500));
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+:host-context(:root[data-theme="dark"]) .aura-empty {
+  background: rgba(17, 24, 39, 0.72);
+  border-color: rgba(240, 168, 194, 0.28);
+}
+
+:host-context(:root[data-theme="dark"]) .aura-empty__icon {
+  background: rgba(240, 168, 194, 0.14);
+  color: #fbcfe8;
+}
+/* End premium shared empty-state refinement. */

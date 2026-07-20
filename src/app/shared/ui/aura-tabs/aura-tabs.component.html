@@ -1,0 +1,14 @@
+<nav class="aura-tabs" aria-label="Section tabs">
+  <button
+    type="button"
+    *ngFor="let tab of tabs"
+    class="aura-tabs__tab"
+    [class.is-active]="tab.id === activeTabId"
+    [disabled]="tab.disabled"
+    (click)="select(tab)"
+  >
+    <span class="aura-tabs__icon" *ngIf="tab.icon" aria-hidden="true">{{ tab.icon }}</span>
+    <span>{{ tab.label }}</span>
+    <span class="aura-tabs__badge" *ngIf="tab.badge !== undefined && tab.badge !== null">{{ tab.badge }}</span>
+  </button>
+</nav>

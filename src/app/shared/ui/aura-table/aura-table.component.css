@@ -1,0 +1,162 @@
+:host {
+  display: block;
+}
+
+.aura-table {
+  overflow: auto;
+  border: 1px solid var(--aura-gray-200);
+  border-radius: var(--aura-radius-lg);
+  background: var(--aura-white);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: var(--aura-z-sticky);
+  height: 36px;
+  border-bottom: 1px solid var(--aura-gray-200);
+  padding: 0 var(--aura-space-3);
+  background: var(--aura-gray-50);
+  color: var(--aura-gray-600);
+  font-size: var(--aura-fs-xs);
+  font-weight: var(--aura-fw-semibold);
+  letter-spacing: 0.5px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+th.is-sortable {
+  cursor: pointer;
+}
+
+td {
+  position: relative;
+  height: var(--aura-h-table-row);
+  border-bottom: 1px solid var(--aura-gray-100);
+  padding: 0 var(--aura-space-3);
+  color: var(--aura-gray-700);
+  font-size: var(--aura-fs-sm);
+}
+
+tbody tr:hover td {
+  background: var(--aura-gray-50);
+}
+
+.is-right {
+  text-align: right;
+}
+
+.is-center {
+  text-align: center;
+}
+
+.aura-table__select {
+  width: 38px;
+  text-align: center;
+}
+
+.aura-table__sort {
+  margin-left: var(--aura-space-1);
+}
+
+.aura-table__actions {
+  width: 1%;
+  min-width: 96px;
+}
+
+.aura-table__row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--aura-space-3);
+  opacity: 0;
+  transition: opacity var(--aura-transition-fast);
+}
+
+tr:hover .aura-table__row-actions {
+  opacity: 1;
+}
+
+/* Premium shared table refinement. */
+.aura-table {
+  border-color: var(--aura-border-soft, var(--aura-gray-200));
+  border-radius: var(--aura-card-radius-premium, 14px);
+  background: var(--aura-surface-strong, var(--aura-white));
+  box-shadow: 0 10px 26px rgba(75, 18, 56, 0.055);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--aura-plum, #4b1238) 28%, transparent) transparent;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 760px;
+}
+
+th {
+  height: 42px;
+  border-bottom-color: var(--aura-border-soft, var(--aura-gray-200));
+  padding: 0 14px;
+  background: var(--aura-table-header, var(--aura-gray-50));
+  color: color-mix(in srgb, var(--aura-text, #1f2933) 76%, var(--aura-muted, #6b7280));
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+td {
+  height: 46px;
+  border-bottom-color: color-mix(in srgb, var(--aura-border-soft, var(--aura-gray-100)) 76%, transparent);
+  padding: 0 14px;
+  color: var(--aura-text, var(--aura-gray-700));
+  font-size: 13px;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover td {
+  background: var(--aura-row-hover, var(--aura-gray-50));
+}
+
+.aura-table__row-actions {
+  gap: 8px;
+}
+
+.aura-table__row-actions :where(button, a) {
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 9px;
+  font-weight: 600;
+}
+
+tr:focus-within .aura-table__row-actions {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .aura-table {
+    border-radius: 12px;
+  }
+
+  table {
+    min-width: 680px;
+  }
+
+  th,
+  td {
+    padding-inline: 12px;
+  }
+}
+
+:host-context(:root[data-theme="dark"]) .aura-table {
+  background: rgba(17, 24, 39, 0.96);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+}
+/* End premium shared table refinement. */

@@ -1,0 +1,114 @@
+:host {
+  display: inline-flex;
+}
+
+.aura-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--aura-space-1);
+  border-radius: var(--aura-radius-full);
+  font-weight: var(--aura-fw-semibold);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.aura-badge--sm {
+  padding: 2px var(--aura-space-2);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.aura-badge--md {
+  padding: var(--aura-space-1) 10px;
+  font-size: var(--aura-fs-xs);
+  line-height: 16px;
+}
+
+.aura-badge--neutral {
+  background: var(--aura-gray-100);
+  color: var(--aura-gray-600);
+}
+
+.aura-badge--success {
+  background: var(--aura-success-bg);
+  color: var(--aura-success);
+}
+
+.aura-badge--warning {
+  background: var(--aura-warning-bg);
+  color: var(--aura-warning);
+}
+
+.aura-badge--danger {
+  background: var(--aura-danger-bg);
+  color: var(--aura-danger);
+}
+
+.aura-badge--info {
+  background: var(--aura-info-bg);
+  color: var(--aura-info);
+}
+
+.aura-badge--primary {
+  background: var(--aura-primary-100);
+  color: var(--aura-primary-700);
+}
+
+.aura-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--aura-radius-full);
+  background: currentColor;
+}
+
+/* Premium badge refinement. */
+.aura-badge {
+  border: 1px solid transparent;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.aura-badge--sm {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
+.aura-badge--md {
+  padding: 3px 10px;
+  font-size: 11px;
+}
+
+.aura-badge--neutral {
+  border-color: var(--aura-gray-200);
+}
+
+.aura-badge--primary {
+  border-color: color-mix(in srgb, var(--aura-primary) 18%, transparent);
+}
+
+.aura-badge--success {
+  border-color: color-mix(in srgb, var(--aura-success) 18%, transparent);
+}
+
+.aura-badge--warning {
+  border-color: color-mix(in srgb, var(--aura-warning) 18%, transparent);
+}
+
+.aura-badge--danger {
+  border-color: color-mix(in srgb, var(--aura-danger) 18%, transparent);
+}
+
+.aura-badge--info {
+  border-color: color-mix(in srgb, var(--aura-info) 18%, transparent);
+}
+
+:host-context(:root[data-theme="dark"]) .aura-badge--neutral {
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+:host-context(:root[data-theme="dark"]) .aura-badge--primary {
+  border-color: rgba(240, 168, 194, 0.22);
+}
+/* End premium badge refinement. */

@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.aura-tabs {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  gap: var(--aura-space-1);
+  padding-left: var(--aura-space-6);
+  border-bottom: 1px solid var(--aura-gray-200);
+  background: var(--aura-white);
+}
+
+.aura-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--aura-space-1);
+  height: 44px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--aura-gray-600);
+  font-family: var(--aura-font);
+  font-size: var(--aura-fs-sm);
+  font-weight: var(--aura-fw-medium);
+  cursor: pointer;
+}
+
+.aura-tabs__tab:hover:not(:disabled):not(.is-active) {
+  background: var(--aura-gray-50);
+  color: var(--aura-gray-900);
+}
+
+.aura-tabs__tab.is-active {
+  border-bottom-color: var(--aura-primary-600);
+  color: var(--aura-primary-600);
+  font-weight: var(--aura-fw-semibold);
+}
+
+.aura-tabs__tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.aura-tabs__badge {
+  display: inline-block;
+  margin-left: var(--aura-space-1);
+  border-radius: var(--aura-radius-full);
+  padding: 1px 6px;
+  background: var(--aura-gray-100);
+  color: var(--aura-gray-600);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.aura-tabs__tab.is-active .aura-tabs__badge {
+  background: var(--aura-primary-100);
+  color: var(--aura-primary-700);
+}
