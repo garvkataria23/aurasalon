@@ -149,7 +149,7 @@ export class OwnerAppService {
   ownerReport(key: string, params: OwnerFinanceQuery): Promise<OwnerReportData> { return this.get(`/owner-console/reports/${encodeURIComponent(key)}`, this.ownerFinanceParams(params)); }
   async exportOwnerReport(reportKey: string, format: "csv" | "xlsx" | "pdf", params: OwnerFinanceQuery): Promise<OwnerExportFile> {
     try { if (!this.accessToken) await this.refresh(); return await this.downloadRequest(reportKey, format, params); }
-    catch (error) { if (!(error instanceof HttpErrorResponse) || error.status !== 401) throw error; await this.refresh(); return this.downloadRequest(reportKey, format, params); }
+    catch (error) { if (!this.isSessionRejected(error)) throw error; await this.refresh(); return this.downloadRequest(reportKey, format, params); }
   }
   appointments(params: OwnerAppointmentListParams): Promise<OwnerAppointmentListResponse> {
     const query: { [key: string]: string | number | boolean } = { branchId: params.branchId, from: params.from, to: params.to, limit: params.limit || 100, offset: params.offset || 0 };
@@ -226,7 +226,7 @@ export class OwnerAppService {
       if (!this.accessToken) await this.refresh();
       return await this.request<T>(path, params);
     } catch (error) {
-      if (!(error instanceof HttpErrorResponse) || error.status !== 401) throw error;
+      if (!this.isSessionRejected(error)) throw error;
       await this.refresh();
       return this.request<T>(path, params);
     }
@@ -268,7 +268,7 @@ export class OwnerAppService {
       const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.mergeAuthHeaders(extraHeaders), withCredentials }));
       return this.unwrap(response);
     } catch (error) {
-      if (!(error instanceof HttpErrorResponse) || error.status !== 401) throw error;
+      if (!this.isSessionRejected(error)) throw error;
       await this.refresh();
       const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.mergeAuthHeaders(extraHeaders), withCredentials }));
       return this.unwrap(response);
@@ -281,7 +281,7 @@ export class OwnerAppService {
       const response = await firstValueFrom(this.http.patch<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.mergeAuthHeaders(extraHeaders) }));
       return this.unwrap(response);
     } catch (error) {
-      if (!(error instanceof HttpErrorResponse) || error.status !== 401) throw error;
+      if (!this.isSessionRejected(error)) throw error;
       await this.refresh();
       const response = await firstValueFrom(this.http.patch<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.mergeAuthHeaders(extraHeaders) }));
       return this.unwrap(response);
@@ -294,7 +294,7 @@ export class OwnerAppService {
       const response = await firstValueFrom(this.http.put<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
       return this.unwrap(response);
     } catch (error) {
-      if (!(error instanceof HttpErrorResponse) || error.status !== 401) throw error;
+      if (!this.isSessionRejected(error)) throw error;
       await this.refresh();
       const response = await firstValueFrom(this.http.put<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
       return this.unwrap(response);
@@ -388,6 +388,17 @@ export class OwnerAppService {
     return String(role || "").trim().replace(/[\s_-]+/g, "").toLowerCase();
   }
 
+  private isSessionRejected(error: unknown): boolean {
+    return error instanceof HttpErrorResponse && (
+      error.status === 401 ||
+      (error.status === 400 && this.isProxyBadRequest(error.error))
+    );
+  }
+
+  private isProxyBadRequest(body: unknown): boolean {
+    return typeof body === "string" && /<title>\s*400 Bad Request\s*<\/title>/i.test(body);
+  }
+
   private unwrap<T>(response: T | ApiEnvelope<T>): T {
     if (response && typeof response === "object" && "data" in response) {
       const envelope = response as ApiEnvelope<T>;
@@ -401,6 +412,7 @@ export class OwnerAppService {
   private errorMessage(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
       const body = error.error as ApiEnvelope<unknown> | { message?: string } | string | undefined;
+      if (this.isProxyBadRequest(body)) return "Session request was rejected. Please sign in again.";
       if (typeof body === "string" && body.trim()) return body;
       if (body && typeof body === "object") {
         const nested = "error" in body ? body.error : undefined;

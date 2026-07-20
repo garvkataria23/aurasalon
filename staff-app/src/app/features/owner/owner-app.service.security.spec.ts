@@ -107,6 +107,26 @@ describe("OwnerAppService security behavior", () => {
     expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
   });
 
+  it("refreshes an oversized legacy owner session after the proxy returns HTML 400", async () => {
+    let protectedCalls = 0;
+    const { service, http } = serviceWith((call) => {
+      if (call.url.endsWith("/auth/login")) return of(ownerSession("x".repeat(16_000)));
+      if (call.url.endsWith("/auth/refresh")) return of(ownerSession("compact-access"));
+      if (call.method === "GET" && call.url.endsWith("/finance/summary")) {
+        protectedCalls += 1;
+        if (protectedCalls === 1) return throwError(() => new HttpErrorResponse({ status: 400, error: "<!DOCTYPE html><title>400 Bad Request</title>" }));
+        return of({ total: 1 });
+      }
+      return throwError(() => new Error(`Unexpected request: ${call.method} ${call.url}`));
+    });
+    await service.login({ tenantId: "tenant-1", loginId: "owner", password: "password" });
+
+    await service.financeSummary();
+
+    expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
+    expect(http.calls.filter((call) => call.url.endsWith("/finance/summary"))).toHaveLength(2);
+  });
+
   it("invalidates the owner shell when refresh fails", async () => {
     const unauthorized = new HttpErrorResponse({ status: 401, error: { error: { message: "Refresh token expired" } } });
     const { service } = serviceWith((call) => {

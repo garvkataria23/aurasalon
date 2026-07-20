@@ -935,7 +935,14 @@ export class StaffAppService {
   }
 
   private isUnauthorized(error: unknown): boolean {
-    return error instanceof HttpErrorResponse && error.status === 401;
+    return error instanceof HttpErrorResponse && (
+      error.status === 401 ||
+      (error.status === 400 && this.isProxyBadRequest(error.error))
+    );
+  }
+
+  private isProxyBadRequest(body: unknown): boolean {
+    return typeof body === "string" && /<title>\s*400 Bad Request\s*<\/title>/i.test(body);
   }
 
   private base64UrlToArrayBuffer(value: string): ArrayBuffer {
@@ -1166,6 +1173,7 @@ export class StaffAppService {
     if (error && typeof error === "object" && "error" in error) {
       const httpError = error as { error?: ApiEnvelope<unknown> | { message?: string } | string; message?: string };
       const body = httpError.error;
+      if (this.isProxyBadRequest(body)) return "Session request was rejected. Please sign in again.";
       if (typeof body === "string" && body.trim()) return body;
       if (body && typeof body === "object") {
         const nested = "error" in body ? body.error : undefined;

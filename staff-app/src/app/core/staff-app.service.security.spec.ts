@@ -1,5 +1,5 @@
 import "@angular/compiler";
-import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Observable, Subject, of, throwError } from "rxjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -114,6 +114,25 @@ describe("StaffAppService security behavior", () => {
     refresh.next({ accessToken: "refreshed-access", user: user("one") });
     refresh.complete();
     await Promise.all([first, second]);
+
+    expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
+    expect(http.calls.filter((call) => call.url.endsWith("/staff-self/dashboard"))).toHaveLength(2);
+  });
+
+  it("refreshes an oversized legacy session after the proxy returns HTML 400", async () => {
+    let dashboardCalls = 0;
+    const { service, http } = serviceWith((method, url) => {
+      if (method === "POST" && url.endsWith("/auth/refresh")) return of(loginSession("one", "compact-access"));
+      if (method === "GET" && url.endsWith("/staff-self/dashboard")) {
+        dashboardCalls += 1;
+        if (dashboardCalls === 1) return throwError(() => new HttpErrorResponse({ status: 400, error: "<!DOCTYPE html><title>400 Bad Request</title>" }));
+        return of({ staff: user("one"), summary: {} });
+      }
+      return throwError(() => new Error(`Unexpected request: ${method} ${url}`));
+    });
+    service.openSession(loginSession("one", "x".repeat(16_000)));
+
+    await service.dashboard();
 
     expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
     expect(http.calls.filter((call) => call.url.endsWith("/staff-self/dashboard"))).toHaveLength(2);
