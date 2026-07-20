@@ -1,6 +1,6 @@
 import cors from "cors";
 import express from "express";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -323,41 +323,10 @@ export function createApp() {
 
   const clientDist = resolveClientDist();
 
-  console.log("=== HOSTINGER DEBUG STARTUP ===");
-  console.log("cwd =", process.cwd());
-  console.log("__dirname =", __dirname);
-  console.log("clientDist =", clientDist || "(EMPTY STRING)");
-  console.log("clientDist exists =", clientDist ? existsSync(clientDist) : false);
-  if (clientDist && existsSync(clientDist)) {
-    console.log("index.html exists =", existsSync(join(clientDist, "index.html")));
-    console.log("main-GXH73XHD.js exists =", existsSync(join(clientDist, "main-GXH73XHD.js")));
-    console.log("polyfills-5CFQRCPP.js exists =", existsSync(join(clientDist, "polyfills-5CFQRCPP.js")));
-    try { console.log("clientDist files =", readdirSync(clientDist)); } catch (e) { console.log("readdirSync ERROR =", e.message); }
-  } else {
-    console.log("WARNING: clientDist does not exist or is empty — static files WILL NOT be served by express.static");
-  }
-  console.log("=== HOSTINGER DEBUG END ===");
-
-  app.use((req, _res, next) => {
-    console.log("REQUEST =", req.method, req.originalUrl);
-    next();
-  });
-
   if (clientDist) {
-    app.use((req, _res, next) => {
-      const cleanUrl = req.originalUrl.split("?")[0];
-      const filename = cleanUrl.split("/").pop();
-      if (filename) {
-        const fullPath = join(clientDist, filename);
-        const fileExists = existsSync(fullPath);
-        console.log("STATIC CHECK =", filename, "| PATH =", fullPath, "| EXISTS =", fileExists);
-      }
-      next();
-    });
     app.use(express.static(clientDist));
     app.get(/^(?!\/api).*/, (_req, res) => {
       const indexPath = join(clientDist, "index.html");
-      console.log("ANGULAR FALLBACK =", _req.originalUrl, "| sending =", indexPath, "| exists =", existsSync(indexPath));
       res.sendFile(indexPath);
     });
   }

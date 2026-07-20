@@ -209,14 +209,12 @@ export class AuthService {
       typ: "access",
       sub: user.id,
       tenantId: tenant.id,
-      email: user.email,
-      loginId: user.loginId || "",
       role: user.role,
       staffId: user.staffId || "",
       branchId,
       branchIds: user.branchIds || [],
-      permissions,
-      permissionVersion: Number(user.permissionVersion || 1),
+      pc: permissions.length,
+      pv: Number(user.permissionVersion || 1),
       deviceId,
       jti: makeId("jwt")
     };

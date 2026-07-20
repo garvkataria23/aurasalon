@@ -352,8 +352,22 @@ export class ApiService {
   }
 
   private headersForMutation(resource: string, headers = this.headers()): HttpHeaders {
-    const keyRequired = new Set(['appointments', 'slot-holds', 'bills', 'payments', 'refunds', 'booking-portal/confirm', 'booking-portal/v2/confirm', 'booking-payments/payment-link/create', 'appointment-deposits/multi-service-bookings', 'online-booking/confirm', 'engagement/booking/create']);
-    if (!keyRequired.has(resource.replace(/^\/+/, ''))) return headers;
+    const keyRequired = new Set([
+      'appointments', 'slot-holds', 'bills', 'payments', 'refunds',
+      'booking-portal/confirm', 'booking-portal/v2/confirm',
+      'booking-payments/payment-link/create',
+      'appointment-deposits/multi-service-bookings',
+      'online-booking/confirm', 'engagement/booking/create',
+      'staff-os/attendance/clock-in', 'staff-os/attendance/clock-out',
+      'staff-os/attendance/break-start', 'staff-os/attendance/break-end',
+      'staff-os/attendance/correction', 'staff-os/tasks',
+      'staff-self/chat/messages', 'staff-enterprise/training/assign',
+      'staff-enterprise/approval-request', 'staff-enterprise/approve',
+      'staff-enterprise/reject', 'staff-enterprise/audit-event',
+      'owner-console/people/payroll/generate'
+    ]);
+    const normalized = resource.replace(/^\/+/, '');
+    if (!keyRequired.has(normalized) && !keyRequired.has(normalized.split('?')[0])) return headers;
     const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     return headers.set('Idempotency-Key', `${resource}-${id}`);
   }

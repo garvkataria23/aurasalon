@@ -2,11 +2,16 @@ import { env } from "../config/env.js";
 
 const HSTS_VALUE = "max-age=63072000; includeSubDomains; preload";
 
-const CSP_VALUE = [
-  "default-src 'none'",
+const CSP_API_VALUE = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
   "frame-ancestors 'none'",
-  "base-uri 'none'",
-  "form-action 'none'"
+  "base-uri 'self'",
+  "form-action 'self'"
 ].join("; ");
 
 export function securityHeadersPlus(req, res, next) {
@@ -17,7 +22,7 @@ export function securityHeadersPlus(req, res, next) {
     res.setHeader("strict-transport-security", HSTS_VALUE);
   }
 
-  res.setHeader("content-security-policy", CSP_VALUE);
+  res.setHeader("content-security-policy", CSP_API_VALUE);
   res.setHeader("x-xss-protection", "0");
   res.setHeader("cross-origin-opener-policy", "same-origin");
   res.setHeader("cross-origin-resource-policy", "same-origin");
