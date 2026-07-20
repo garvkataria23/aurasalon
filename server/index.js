@@ -26,20 +26,33 @@ process.on("SIGINT", () => {
 });
 
 console.log("=== INDEX.JS: importing modules === pid =", process.pid);
-import { createApp } from "./app.js";
-console.log("=== INDEX.JS: app.js imported === pid =", process.pid);
 import { env } from "./config/env.js";
-console.log("=== INDEX.JS: env imported === pid =", process.pid);
-import { startAbandonmentDetectorCron } from "./jobs/abandonment-detector.cron.js";
-import { startDashboardCron } from "./jobs/dashboard-cron.js";
-import { startIdempotencyCleanupCron } from "./jobs/idempotency-cleanup.cron.js";
-import { startReconciliationCron } from "./jobs/reconciliation-cron.js";
-import { startSecurityEphemeralGrantsCleanupCron } from "./jobs/security-ephemeral-grants-cleanup.cron.js";
-import { startSlotCleanupCron } from "./jobs/slot-cleanup.cron.js";
-import { startWizardCleanupCron } from "./jobs/wizard-cleanup.cron.js";
-import { realtimeService } from "./services/realtime.service.js";
-import { logger } from "./utils/logger.js";
-import { startJobWorker } from "./workers/job-worker.js";
+console.log("=== INDEX.JS: env imported; importing database consumers === pid =", process.pid);
+const [
+  { createApp },
+  { startAbandonmentDetectorCron },
+  { startDashboardCron },
+  { startIdempotencyCleanupCron },
+  { startReconciliationCron },
+  { startSecurityEphemeralGrantsCleanupCron },
+  { startSlotCleanupCron },
+  { startWizardCleanupCron },
+  { realtimeService },
+  { logger },
+  { startJobWorker }
+] = await Promise.all([
+  import("./app.js"),
+  import("./jobs/abandonment-detector.cron.js"),
+  import("./jobs/dashboard-cron.js"),
+  import("./jobs/idempotency-cleanup.cron.js"),
+  import("./jobs/reconciliation-cron.js"),
+  import("./jobs/security-ephemeral-grants-cleanup.cron.js"),
+  import("./jobs/slot-cleanup.cron.js"),
+  import("./jobs/wizard-cleanup.cron.js"),
+  import("./services/realtime.service.js"),
+  import("./utils/logger.js"),
+  import("./workers/job-worker.js")
+]);
 console.log("=== INDEX.JS: all imports done === pid =", process.pid);
 
 console.log("=== INDEX.JS: calling createApp() === pid =", process.pid);

@@ -1,8 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 loadLocalEnv();
+
+if (process.env.NODE_ENV === "production" && !process.env.AURA_DB_PATH) {
+  process.env.AURA_DB_PATH = "/home/u840940482/persistent-data/salon-crm.sqlite";
+}
+if (process.env.NODE_ENV === "production" && !isAbsolute(process.env.AURA_DB_PATH)) {
+  throw new Error("AURA_DB_PATH must be an absolute path in production");
+}
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",

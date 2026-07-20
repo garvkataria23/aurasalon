@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createCipheriv, createHash, randomBytes, scryptSync } from "node:crypto";
-import { join } from "node:path";
-import { dataDir, db, dbPath } from "../db.js";
+import { dirname, join } from "node:path";
+import { db, dbPath } from "../db.js";
 import { env } from "../config/env.js";
 import { repositories } from "../repositories/repository-registry.js";
 import { builtinRoles, can, staticGrantsForRole } from "../middleware/rbac.js";
@@ -10,7 +10,7 @@ import { tenantService } from "./tenant.service.js";
 import { permissionResources, staffPermissionCatalog } from "../config/staff-permission-catalog.js";
 import { assertOwnerControl, ensureTenantUserAccessColumns, normalizeBranchIdsForRole, normalizeRole, ownerControlRoles } from "./access-control.service.js";
 
-const backupDir = join(dataDir, "backups");
+const backupDir = join(dirname(dbPath), "backups");
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID().slice(0, 10)}`;
 const tenantUserStatuses = new Set(["active", "hidden", "disabled", "suspended"]);

@@ -14,12 +14,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4000
+ENV AURA_DB_PATH=/home/u840940482/persistent-data/salon-crm.sqlite
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/server ./server
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/docs ./docs
-RUN mkdir -p data/backups
+RUN mkdir -p /home/u840940482/persistent-data/backups
 EXPOSE 4000
 CMD ["npm", "run", "start:prod"]

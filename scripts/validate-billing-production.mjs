@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import Database from "better-sqlite3";
+import "../server/config/env.js";
 
 const root = process.cwd();
 const strictLive = process.argv.includes("--strict-live");
@@ -59,7 +60,7 @@ for (const table of requiredTables) {
   if (!tableBlock.includes("tenant_id")) warnings.push(`${table} migration block should be reviewed for tenant_id`);
 }
 
-const dbPath = join(root, "data", "salon-crm.sqlite");
+const dbPath = resolve(process.env.AURA_DB_PATH || join(root, "data", "salon-crm.sqlite"));
 if (existsSync(dbPath)) {
   const db = new Database(dbPath, { readonly: true });
   for (const table of requiredTables) {

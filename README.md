@@ -51,7 +51,7 @@ npm run dev
 npm run build
 ```
 
-SQLite data is created in `data/salon-crm.sqlite` when the API starts.
+Development SQLite data is created in `data/salon-crm.sqlite`. Production uses the external path supplied by `AURA_DB_PATH` (configured as `/home/u840940482/persistent-data/salon-crm.sqlite`).
 
 Quality and deployment commands:
 
