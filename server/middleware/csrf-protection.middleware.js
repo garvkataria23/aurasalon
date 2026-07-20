@@ -41,6 +41,10 @@ function hasCookieAuth(cookies) {
   return Boolean(cookies[env.refreshCookieName] || cookies.aura_refresh || cookies["__Host-aura_refresh"]);
 }
 
+function hasBearerAuth(req) {
+  return /^Bearer\s+\S+$/i.test(String(req.get("authorization") || ""));
+}
+
 export function csrfProtection(req, _res, next) {
   if (!MUTATING_METHODS.has(req.method)) {
     next();
@@ -48,6 +52,11 @@ export function csrfProtection(req, _res, next) {
   }
 
   if (AUTH_BOOTSTRAP_PATHS.has(normalizedPath(req))) {
+    next();
+    return;
+  }
+
+  if (hasBearerAuth(req)) {
     next();
     return;
   }

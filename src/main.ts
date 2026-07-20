@@ -16,7 +16,7 @@ import { AuthSessionService } from './app/core/auth-session.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideHttpClient(withInterceptors([csrfInterceptor, httpErrorInterceptor])),
+    provideHttpClient(withInterceptors([httpErrorInterceptor, csrfInterceptor])),
     provideAppInitializer(() => firstValueFrom(inject(AuthSessionService).bootstrapOwnerPosHandoff())),
     provideRouter(routes, withComponentInputBinding(), withPreloading(NavigationPreloadingStrategy)),
     { provide: RouteReuseStrategy, useClass: RefreshOnNavigationRouteReuseStrategy },

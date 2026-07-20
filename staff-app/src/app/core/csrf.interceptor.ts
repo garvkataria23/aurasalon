@@ -33,7 +33,7 @@ function unwrapCsrfResponse(response: CsrfResponse): CsrfPayload {
 function currentToken(http: HttpClient): Observable<string> {
   if (csrfToken && csrfExpiresAt > Date.now() + 30_000) return of(csrfToken);
   if (!csrfRequest$) {
-    csrfRequest$ = http.get<CsrfResponse>(`${environment.apiBaseUrl}/auth/csrf`).pipe(
+    csrfRequest$ = http.get<CsrfResponse>(`${environment.apiBaseUrl}/auth/csrf`, { withCredentials: true }).pipe(
       tap((response) => {
         const payload = unwrapCsrfResponse(response);
         csrfToken = payload.csrfToken || "";
@@ -59,6 +59,7 @@ export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
   if (!MUTATING_METHODS.has(req.method) || isCsrfEndpoint(req.url)) return next(req);
   const http = new HttpClient(inject(HttpBackend));
   const send = (token: string) => next(req.clone({
+    withCredentials: true,
     setHeaders: token ? { "x-csrf-token": token } : {}
   }));
   return currentToken(http).pipe(

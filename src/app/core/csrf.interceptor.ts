@@ -1,4 +1,4 @@
-import { HttpBackend, HttpClient, HttpInterceptorFn } from '@angular/common/http';
+import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, catchError, finalize, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -52,15 +52,33 @@ function currentToken(http: HttpClient): Observable<string> {
   return csrfRequest$;
 }
 
+function resetCsrfState(): void {
+  csrfToken = '';
+  csrfExpiresAt = 0;
+  csrfRequest$ = null;
+}
+
 export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
   if (!MUTATING_METHODS.has(req.method) || !isApiRequest(req.url) || isCsrfEndpoint(req.url)) {
     return next(req);
   }
   const http = new HttpClient(inject(HttpBackend));
+  const send = (token: string) => next(req.clone({
+    withCredentials: true,
+    setHeaders: token ? { 'x-csrf-token': token } : {}
+  }));
   return currentToken(http).pipe(
-    switchMap((token) => next(req.clone({
-      setHeaders: token ? { 'x-csrf-token': token } : {}
-    }))),
-    catchError(() => next(req))
+    catchError(() => of('')),
+    switchMap((token) => send(token))
+  ).pipe(
+    catchError((error: unknown) => {
+      const message = error instanceof HttpErrorResponse ? JSON.stringify(error.error || '') : '';
+      if (!(error instanceof HttpErrorResponse) || error.status !== 403 || !/csrf/i.test(message)) return throwError(() => error);
+      resetCsrfState();
+      return currentToken(http).pipe(
+        catchError(() => of('')),
+        switchMap((token) => send(token))
+      );
+    })
   );
 };

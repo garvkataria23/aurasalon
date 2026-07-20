@@ -22,9 +22,21 @@ function errorMessage(err: HttpErrorResponse): string {
   return String(raw || 'Request failed');
 }
 
+function normalizeProxyError(err: HttpErrorResponse): HttpErrorResponse {
+  if (err.status !== 400 || typeof err.error !== 'string' || !/<title>\s*400 Bad Request\s*<\/title>/i.test(err.error)) return err;
+  return new HttpErrorResponse({
+    error: { success: false, error: { message: 'Request rejected by the hosting proxy. Please retry.' } },
+    headers: err.headers,
+    status: err.status,
+    statusText: err.statusText,
+    url: err.url || undefined
+  });
+}
+
 export const httpErrorInterceptor: HttpInterceptorFn = (req, next) =>
   next(req).pipe(
-    catchError((err: HttpErrorResponse) => {
+    catchError((sourceError: HttpErrorResponse) => {
+      const err = normalizeProxyError(sourceError);
       const message = errorMessage(err);
       const isPermissionError = err.status === 403 && /permission|forbidden/i.test(message);
       const shouldSuppress = isPermissionError && req.url.includes('/reports/dashboard');
