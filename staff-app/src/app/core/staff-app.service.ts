@@ -331,6 +331,29 @@ export type StaffToday = {
   tasks: Array<{ id: string; title: string; description: string; status: string; priority: string; dueAt: string; version: number }>;
 };
 
+export type StaffShiftSwapCoworker = { id: string; name: string; branchId: string; designation: string };
+
+export type StaffShiftSwap = {
+  id: string;
+  branchId: string;
+  scheduleId: string;
+  fromStaffId: string;
+  toStaffId: string;
+  fromStaffName: string;
+  toStaffName: string;
+  scheduleDate: string;
+  startTime: string;
+  endTime: string;
+  shiftType: string;
+  reason: string;
+  status: "pending_staff" | "pending_manager" | "approved" | "rejected" | "declined" | "cancelled";
+  targetResponseNote?: string;
+  rejectionReason?: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type StaffPayrollItem = {
   id: string;
   periodStart: string;
@@ -588,6 +611,26 @@ export class StaffAppService {
 
   async updateSchedule(scheduleId: string, payload: { version: number; scheduleDate?: string; startTime?: string; endTime?: string; status?: string; notes?: string }): Promise<unknown> {
     return this.patch(`/staff-self/calendar/${encodeURIComponent(scheduleId)}`, payload);
+  }
+
+  async shiftSwapCoworkers(): Promise<StaffShiftSwapCoworker[]> {
+    return this.get<StaffShiftSwapCoworker[]>("/staff-self/shift-swap-coworkers");
+  }
+
+  async shiftSwaps(): Promise<StaffShiftSwap[]> {
+    return this.get<StaffShiftSwap[]>("/staff-self/shift-swaps");
+  }
+
+  async requestShiftSwap(payload: { scheduleId: string; toStaffId: string; reason: string }): Promise<StaffShiftSwap> {
+    return this.post<StaffShiftSwap>("/staff-self/shift-swaps", payload);
+  }
+
+  async respondShiftSwap(id: string, decision: "accept" | "decline", version: number, note = ""): Promise<StaffShiftSwap> {
+    return this.post<StaffShiftSwap>(`/staff-self/shift-swaps/${encodeURIComponent(id)}/respond`, { decision, version, note });
+  }
+
+  async cancelShiftSwap(id: string, version: number): Promise<StaffShiftSwap> {
+    return this.post<StaffShiftSwap>(`/staff-self/shift-swaps/${encodeURIComponent(id)}/cancel`, { version });
   }
 
   async chatThreads(): Promise<StaffChatThread[]> {

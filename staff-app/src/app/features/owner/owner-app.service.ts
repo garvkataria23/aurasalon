@@ -20,7 +20,7 @@ import {
   OwnerAppointmentStatusPayload,
   OwnerAppointmentWritePayload
 } from "./owner-appointments.models";
-import { OwnerAttendance, OwnerLeave, OwnerLeaveDetail, OwnerListResponse, OwnerPayroll, OwnerPayrollDetail, OwnerStaff, OwnerStaffDetail, OwnerStaffWrite } from "./owner-people.models";
+import { OwnerAttendance, OwnerLeave, OwnerLeaveDetail, OwnerListResponse, OwnerPayroll, OwnerPayrollDetail, OwnerShiftSwap, OwnerStaff, OwnerStaffDetail, OwnerStaffWrite } from "./owner-people.models";
 import { OwnerExportFile, OwnerFinanceDrilldown, OwnerFinanceOverview, OwnerFinanceQuery, OwnerReportCatalogue, OwnerReportData } from "./owner-finance-reports.models";
 import { OwnerCampaign, OwnerChatConversation, OwnerChatMessage, OwnerChatMessagesResponse, OwnerChatReceiptResponse, OwnerClient, OwnerClientDetail, OwnerInventoryDetail, OwnerInventoryResponse, OwnerNotification, OwnerNotificationReceipt, OwnerOperationsQuery, OwnerOperationsResponse } from "./owner-operations.models";
 import { OwnerAccessAdministration, OwnerAdministrationRole, OwnerAdministrationUser, OwnerBranchCatalogue, OwnerBranchMutation, OwnerBranchWrite, OwnerRoleWrite, OwnerSettingsResponse, OwnerUserWrite } from "./owner-administration.models";
@@ -186,6 +186,9 @@ export class OwnerAppService {
   setOwnerStaffLogin(id: string, payload: { loginId: string; email?: string; password?: string; role: string; status: string; branchIds: string[] }): Promise<OwnerRecord> { return this.post(`/owner-console/people/staff/${encodeURIComponent(id)}/login`, payload); }
   transferOwnerStaff(id: string, toBranchId: string, version: number, reason: string): Promise<OwnerStaff> { return this.post(`/owner-console/people/staff/${encodeURIComponent(id)}/transfer`, { toBranchId, version, reason }); }
   createOwnerSchedule(id: string, payload: { branchId: string; scheduleDate: string; startTime: string; endTime: string; shiftType: string; notes?: string }): Promise<OwnerRecord> { return this.post(`/owner-console/people/staff/${encodeURIComponent(id)}/schedules`, payload); }
+  ownerShiftSwaps(branchId = "all", status = ""): Promise<OwnerShiftSwap[]> { return this.get("/staff-os/shift-swaps", { branchId, ...(status ? { status } : {}) }); }
+  approveOwnerShiftSwap(id: string, version: number): Promise<OwnerShiftSwap> { return this.post(`/staff-os/shift-swaps/${encodeURIComponent(id)}/approve`, { version }); }
+  rejectOwnerShiftSwap(id: string, version: number, reason: string): Promise<OwnerShiftSwap> { return this.post(`/staff-os/shift-swaps/${encodeURIComponent(id)}/reject`, { version, reason }); }
   calculateOwnerCommission(id: string, payload: { periodStart: string; periodEnd: string; baseAmountPaise: number; rate: number; commissionType: string }): Promise<OwnerRecord> { return this.post(`/owner-console/people/staff/${encodeURIComponent(id)}/commissions`, payload); }
   ownerAttendance(params: Record<string, string | number | boolean>): Promise<OwnerListResponse<OwnerAttendance>> { return this.get("/owner-console/people/attendance", params); }
   correctOwnerAttendance(id: string, payload: { reason: string; patch: Record<string, string> }): Promise<OwnerRecord> { return this.post(`/owner-console/people/attendance/${encodeURIComponent(id)}/corrections`, payload); }

@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, signal } from "@angular/core";
-import { StaffAppService, StaffEnterpriseOs, StaffToday } from "../../core/staff-app.service";
+import { StaffAppService, StaffEnterpriseOs, StaffShiftSwap, StaffShiftSwapCoworker, StaffToday } from "../../core/staff-app.service";
 import { addBusinessDays, businessDate } from "../../core/business-date";
 import { StaffPageStateComponent } from "./staff-page-state.component";
 
@@ -63,6 +63,7 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
                         <button class="link-button" type="button" (click)="changeStatus(item, item.status === 'cancelled' ? 'scheduled' : 'cancelled')">{{ item.status === 'cancelled' ? 'Reinstate' : 'Cancel' }}</button>
                       }
                     }
+                    @if (item.status !== 'cancelled' && !activeSwapFor(item.id)) { <button class="link-button" type="button" (click)="openSwap(item.id)">Request swap</button> }
                   </div>
                 </div>
                 @if (editingId() === item.id) {
@@ -76,9 +77,20 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
                     </div>
                   </div>
                 }
+                @if (swapScheduleId() === item.id) {
+                  <div class="form-grid compact-grid">
+                    <label>Coworker<select [value]="swapToStaffId()" (change)="swapToStaffId.set($any($event.target).value)"><option value="">Choose coworker</option>@for (person of coworkers(); track person.id) { <option [value]="person.id">{{ person.name }}{{ person.designation ? ' · ' + person.designation : '' }}</option> }</select></label>
+                    <label class="wide">Reason<textarea maxlength="300" [value]="swapReason()" (input)="swapReason.set($any($event.target).value)" placeholder="Why do you need this swap?"></textarea></label>
+                    <div class="row-actions"><button class="button" type="button" [disabled]="swapBusy() || !swapToStaffId()" (click)="submitSwap()">Send request</button><button class="button" type="button" [disabled]="swapBusy()" (click)="closeSwap()">Close</button></div>
+                  </div>
+                }
               } @empty { <p class="empty">No upcoming roster entries.</p> }
             </div>
           </article>
+        </section>
+        <section class="grid two">
+          <article class="panel"><div class="panel-title"><h2>Needs your response</h2><span>{{ incomingSwaps().length }}</span></div><div class="list">@for (swap of incomingSwaps(); track swap.id) { <div class="row"><div class="row-main"><strong>{{ swap.scheduleDate }} · {{ swap.startTime }} - {{ swap.endTime }}</strong><small>{{ swap.fromStaffName || 'Coworker' }}: {{ swap.reason || 'No reason added' }}</small></div><div class="row-actions"><button class="button" type="button" [disabled]="swapBusy()" (click)="respondSwap(swap, 'accept')">Accept</button><button class="button" type="button" [disabled]="swapBusy()" (click)="respondSwap(swap, 'decline')">Decline</button></div></div> } @empty { <p class="empty">No swap request needs your response.</p> }</div></article>
+          <article class="panel"><div class="panel-title"><h2>Swap requests</h2><span>{{ swaps().length }}</span></div><div class="list">@for (swap of swaps(); track swap.id) { <div class="row"><div class="row-main"><strong>{{ swap.scheduleDate }} · {{ swap.startTime }} - {{ swap.endTime }}</strong><small>{{ swap.fromStaffName }} → {{ swap.toStaffName }}</small><small>{{ swapStatusLabel(swap.status) }}</small></div><div class="row-actions"><span class="badge">{{ swapStatusLabel(swap.status) }}</span>@if (swap.fromStaffId === staff.user()?.staffId && (swap.status === 'pending_staff' || swap.status === 'pending_manager')) { <button class="link-button" type="button" [disabled]="swapBusy()" (click)="cancelSwap(swap)">Cancel</button> }</div></div> } @empty { <p class="empty">No shift swap requests yet.</p> }</div></article>
         </section>
       }
     </section>
@@ -88,6 +100,8 @@ import { StaffPageStateComponent } from "./staff-page-state.component";
 export class StaffRosterPage implements OnInit, OnDestroy {
   readonly today = signal<StaffToday | null>(null);
   readonly os = signal<StaffEnterpriseOs | null>(null);
+  readonly coworkers = signal<StaffShiftSwapCoworker[]>([]);
+  readonly swaps = signal<StaffShiftSwap[]>([]);
   readonly loading = signal(false);
   readonly message = signal("");
   readonly errorMessage = signal("");
@@ -97,6 +111,10 @@ export class StaffRosterPage implements OnInit, OnDestroy {
   readonly moveDate = signal(this.windowStart());
   readonly moveStart = signal("09:00");
   readonly moveEnd = signal("18:00");
+  readonly swapScheduleId = signal<string | null>(null);
+  readonly swapToStaffId = signal("");
+  readonly swapReason = signal("");
+  readonly swapBusy = signal(false);
   private loadGeneration = 0;
   private readonly onRefresh = () => void this.load();
 
@@ -135,6 +153,13 @@ export class StaffRosterPage implements OnInit, OnDestroy {
       if (generation !== this.loadGeneration) return;
       this.today.set(today);
       this.os.set(os);
+      const [coworkers, swaps] = await Promise.allSettled([this.staff.shiftSwapCoworkers(), this.staff.shiftSwaps()]);
+      if (generation !== this.loadGeneration) return;
+      if (coworkers.status === "fulfilled") this.coworkers.set(coworkers.value);
+      if (swaps.status === "fulfilled") this.swaps.set(swaps.value);
+      if (coworkers.status === "rejected" || swaps.status === "rejected") this.errorMessage.set("Roster loaded, but shift swap data is temporarily unavailable.");
+    } catch {
+      if (generation === this.loadGeneration) this.errorMessage.set(this.staff.error() || "Unable to load roster and swap requests.");
     } finally {
       if (generation === this.loadGeneration) this.loading.set(false);
     }
@@ -180,6 +205,60 @@ export class StaffRosterPage implements OnInit, OnDestroy {
 
   cancelMove() {
     this.editingId.set(null);
+  }
+
+  openSwap(scheduleId: string) {
+    this.swapScheduleId.set(scheduleId);
+    this.swapToStaffId.set("");
+    this.swapReason.set("");
+  }
+
+  closeSwap() { this.swapScheduleId.set(null); }
+
+  activeSwapFor(scheduleId: string): StaffShiftSwap | undefined {
+    return this.swaps().find((swap) => swap.scheduleId === scheduleId && ["pending_staff", "pending_manager"].includes(swap.status));
+  }
+
+  incomingSwaps(): StaffShiftSwap[] {
+    const staffId = this.staff.user()?.staffId;
+    return this.swaps().filter((swap) => swap.toStaffId === staffId && swap.status === "pending_staff");
+  }
+
+  async submitSwap() {
+    const scheduleId = this.swapScheduleId();
+    const toStaffId = this.swapToStaffId();
+    if (!scheduleId || !toStaffId || this.swapBusy()) return;
+    this.swapBusy.set(true); this.message.set(""); this.errorMessage.set("");
+    try {
+      await this.staff.requestShiftSwap({ scheduleId, toStaffId, reason: this.swapReason() });
+      this.message.set("Swap request sent to your coworker.");
+      this.closeSwap();
+      await this.load();
+    } catch { this.errorMessage.set(this.staff.error() || "Unable to request this shift swap."); }
+    finally { this.swapBusy.set(false); }
+  }
+
+  async respondSwap(swap: StaffShiftSwap, decision: "accept" | "decline") {
+    if (this.swapBusy()) return;
+    this.swapBusy.set(true); this.message.set(""); this.errorMessage.set("");
+    try {
+      await this.staff.respondShiftSwap(swap.id, decision, swap.version);
+      this.message.set(decision === "accept" ? "Swap accepted and sent to the owner." : "Swap declined.");
+      await this.load();
+    } catch { this.errorMessage.set(this.staff.error() || "Unable to respond to the swap request."); }
+    finally { this.swapBusy.set(false); }
+  }
+
+  async cancelSwap(swap: StaffShiftSwap) {
+    if (this.swapBusy()) return;
+    this.swapBusy.set(true); this.message.set(""); this.errorMessage.set("");
+    try { await this.staff.cancelShiftSwap(swap.id, swap.version); this.message.set("Swap request cancelled."); await this.load(); }
+    catch { this.errorMessage.set(this.staff.error() || "Unable to cancel the swap request."); }
+    finally { this.swapBusy.set(false); }
+  }
+
+  swapStatusLabel(status: string): string {
+    return ({ pending_staff: "Waiting for coworker", pending_manager: "Waiting for owner", approved: "Approved", rejected: "Rejected", declined: "Declined", cancelled: "Cancelled" } as Record<string, string>)[status] || status.replaceAll("_", " ");
   }
 
   async saveMove(item: { id: string; version?: number }) {

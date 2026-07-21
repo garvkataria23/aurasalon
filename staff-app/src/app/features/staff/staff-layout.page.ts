@@ -662,6 +662,10 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     if (frame.type.startsWith("staff-self.") || ["dashboard.updated", "booking.updated", "queue.updated"].includes(frame.type)) {
       void this.loadShellData();
     }
+    if (frame.type.startsWith("staff:shift_swap_") || frame.type === "staff:shift_updated") {
+      void this.loadShellData();
+      window.dispatchEvent(new CustomEvent("aura:refresh-child"));
+    }
   }
 
   private async flushOfflineQueue() {

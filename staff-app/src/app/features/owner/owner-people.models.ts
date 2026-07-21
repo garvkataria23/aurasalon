@@ -6,6 +6,7 @@ export interface OwnerStaff {
   mobile: string; email: string; profilePhoto: string; employmentType: string; status: string; roleId: string; designation: string;
   department: string; loginStatus: string; loginId: string; attendanceStatus: string; businessPaise?: number; version: number;
 }
+export interface OwnerShiftSwap { id: string; branchId: string; scheduleId: string; fromStaffId: string; toStaffId: string; fromStaffName: string; toStaffName: string; scheduleDate: string; startTime: string; endTime: string; shiftType: string; reason: string; status: string; targetResponseNote?: string; rejectionReason?: string; version: number; createdAt: string; updatedAt: string; }
 export interface OwnerAttendance { id: string; branchId: string; branchName?: string; staffId: string; staffName: string; businessDate: string; clockInAt: string; clockOutAt: string; status: string; attendanceStatus: string; overtimeMinutes: number; workedMinutes?: number; lateMinutes?: number; missingClockOut: boolean; source: string; version: number; }
 export interface OwnerLeave { id: string; branchId: string; staffId: string; staffName: string; leaveType: string; startDate: string; endDate: string; days: number; reason: string; status: string; rejectionReason?: string; approvedAt?: string; documentAvailable: boolean; version: number; }
 export interface OwnerPayroll { id: string; branchId: string; periodStart: string; periodEnd: string; status: string; grossAmountPaise: number; deductionsAmountPaise: number; netAmountPaise: number; version: number; }

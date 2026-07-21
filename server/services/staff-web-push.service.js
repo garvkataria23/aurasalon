@@ -45,12 +45,15 @@ export const staffWebPushService = {
       ORDER BY createdAt ASC LIMIT 1`).get({ tenantId: notification.tenantId, staffId: notification.staffId });
     if (!user) return { queued: false, reason: "staff_login_not_found" };
     const createdAt = new Date().toISOString();
+    let notificationPayload = {};
+    try { notificationPayload = typeof notification.payload === "string" ? JSON.parse(notification.payload) : (notification.payload || {}); } catch {}
+    const url = String(notificationPayload.url || "/staff/notifications");
     const row = {
       id: makeId("push"), tenantId: notification.tenantId, userId: user.id,
       branchId: notification.branchId || "", deviceId: "",
       title: notification.title || "Aura Staff notification",
       message: notification.body || "You have a new staff notification.",
-      payload: JSON.stringify({ staffNotificationId: notification.id, type: notification.type || "staff", url: "/staff/notifications" }),
+      payload: JSON.stringify({ staffNotificationId: notification.id, type: notification.type || "staff", url: url.startsWith("/staff/") ? url : "/staff/notifications" }),
       status: "queued", providerMessageId: "", sentAt: "", createdAt, updatedAt: createdAt
     };
     db.prepare(`INSERT INTO push_notifications

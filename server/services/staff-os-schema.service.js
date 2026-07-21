@@ -36,6 +36,19 @@ export function ensureStaffOsSchema() {
   ensureLegacyStaffManagementTables();
   const leaveRequestColumns = new Set(db.prepare("PRAGMA table_info(staff_leave_requests)").all().map((column) => column.name));
   if (!leaveRequestColumns.has("version")) db.exec("ALTER TABLE staff_leave_requests ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("staff_shift_swaps", "target_responded_at", "TEXT");
+  ensureColumn("staff_shift_swaps", "target_response_note", "TEXT DEFAULT ''");
+  ensureColumn("staff_shift_swaps", "rejected_by", "TEXT DEFAULT ''");
+  ensureColumn("staff_shift_swaps", "rejected_at", "TEXT");
+  ensureColumn("staff_shift_swaps", "rejection_reason", "TEXT DEFAULT ''");
+  ensureColumn("staff_shift_swaps", "cancelled_at", "TEXT");
+  ensureColumn("staff_shift_swaps", "requested_schedule_date", "TEXT DEFAULT ''");
+  ensureColumn("staff_shift_swaps", "requested_start_time", "TEXT DEFAULT ''");
+  ensureColumn("staff_shift_swaps", "requested_end_time", "TEXT DEFAULT ''");
+  ensureColumn("staff_shift_swaps", "requested_shift_type", "TEXT DEFAULT ''");
+  db.exec("UPDATE staff_shift_swaps SET status = 'pending_manager' WHERE status = 'pending'");
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_staff_shift_swaps_participants
+    ON staff_shift_swaps(tenant_id, branch_id, from_staff_id, to_staff_id, status)`);
   ensureColumn("staff", "image", "TEXT DEFAULT ''");
   ensureColumn("warehouse_snapshots", "tenant_id", "TEXT NOT NULL DEFAULT 'tenant_aura'");
   ensureColumn("warehouse_snapshots", "branch_id", "TEXT DEFAULT ''");

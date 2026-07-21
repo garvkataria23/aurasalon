@@ -7,6 +7,7 @@ import { generalSettingsService } from "../services/general-settings.service.js"
 import { requireIdempotencyKey } from "../middleware/idempotency.middleware.js";
 import { staffSelfContext } from "../middleware/staff-self-context.middleware.js";
 import { staffSelfResponsePresenterService } from "../services/staff-self-response-presenter.service.js";
+import { staffShiftSwapService } from "../services/staff-shift-swap.service.js";
 
 export const staffSelfRouter = Router();
 
@@ -50,6 +51,46 @@ staffSelfRouter.patch(
   asyncHandler((req, res) => {
     res.json(staffLoginService.updateStaffNotification(req.params.id, req.body, req.access));
   })
+);
+
+staffSelfRouter.get(
+  "/staff-self/shift-swap-coworkers",
+  authenticateJwt(),
+  staffSelfContext(),
+  requirePermission("read", () => "staff"),
+  asyncHandler((req, res) => res.json(staffShiftSwapService.coworkers(req.access)))
+);
+
+staffSelfRouter.get(
+  "/staff-self/shift-swaps",
+  authenticateJwt(),
+  staffSelfContext(),
+  requirePermission("read", () => "staff"),
+  asyncHandler((req, res) => res.json(staffShiftSwapService.listForSelf(req.query, req.access)))
+);
+
+staffSelfRouter.post(
+  "/staff-self/shift-swaps",
+  authenticateJwt(),
+  staffSelfContext(["scheduleId", "toStaffId", "reason"]),
+  requirePermission("read", () => "staff"),
+  asyncHandler((req, res) => res.status(201).json(staffShiftSwapService.request(req.body, req.access)))
+);
+
+staffSelfRouter.post(
+  "/staff-self/shift-swaps/:id/respond",
+  authenticateJwt(),
+  staffSelfContext(["decision", "note", "version"]),
+  requirePermission("read", () => "staff"),
+  asyncHandler((req, res) => res.json(staffShiftSwapService.respond(req.params.id, req.body, req.access)))
+);
+
+staffSelfRouter.post(
+  "/staff-self/shift-swaps/:id/cancel",
+  authenticateJwt(),
+  staffSelfContext(["version"]),
+  requirePermission("read", () => "staff"),
+  asyncHandler((req, res) => res.json(staffShiftSwapService.cancel(req.params.id, req.body, req.access)))
 );
 
 staffSelfRouter.patch(
