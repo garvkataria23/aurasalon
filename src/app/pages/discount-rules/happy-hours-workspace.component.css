@@ -198,7 +198,6 @@
 :host ::ng-deep .detail-body > app-happy-hours-fraud-guard .page-header,
 :host ::ng-deep .detail-body > app-rule-conflict-detector .page-header,
 :host ::ng-deep .detail-body > app-discount-audit-log .page-header,
-:host ::ng-deep .detail-body > app-discount-rule-approvals .page-header,
 :host ::ng-deep .detail-body > app-cross-branch-analytics .page-header,
 :host ::ng-deep .detail-body > app-discount-simulation-sandbox .page-header,
 :host ::ng-deep .detail-body > app-discount-anomaly-inbox .page-header,

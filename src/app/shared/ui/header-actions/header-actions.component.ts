@@ -23,7 +23,7 @@ type PanelId = 'notifications' | 'profile' | null;
   template: `
     <div class="hdr-actions">
       <!-- Notifications -->
-      <div class="hdr-pop" *ngIf="notificationsVisible() && canAccessPath('/notification-center')">
+      <div class="hdr-pop" *ngIf="notificationsVisible()">
         <button
           class="hdr-icon-btn"
           type="button"
@@ -49,9 +49,6 @@ type PanelId = 'notifications' | 'profile' | null;
             <span class="hdr-notif-emoji" aria-hidden="true">✓</span>
             <strong>{{ notifications.loading() ? 'Loading notifications...' : "You're all caught up" }}</strong>
           </div></ng-template>
-          <a class="hdr-menu-foot" routerLink="/notification-center" (click)="closeAll()">
-            Open Notification Center →
-          </a>
         </div>
       </div>
 

@@ -26,7 +26,6 @@ type PreferencesResponse = {
         </div>
         <div class="hero-actions">
           <a class="ghost-button" routerLink="/message-logs">Message History</a>
-          <a class="ghost-button" routerLink="/notification-center">Notification Center</a>
           <button class="primary-button" type="button" (click)="loadAll()">Refresh</button>
         </div>
       </header>

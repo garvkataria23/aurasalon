@@ -409,9 +409,6 @@ export const routes: Routes = [
     path: 'discount-rules/new', loadComponent: () => import('./pages/discount-rules/rule-builder.component').then(m => m.RuleBuilderComponent), title: 'New Discount Rule'
   },
   {
-    path: 'discount-rules/approvals', loadComponent: () => import('./pages/discount-rules/approvals.component').then(m => m.DiscountRuleApprovalsComponent), title: 'Discount Rule Approvals'
-  },
-  {
     path: 'discount-rules/audit-log', loadComponent: () => import('./pages/discount-rules/audit-log.component').then(m => m.DiscountAuditLogComponent), title: 'Discount Audit Log'
   },
   {
@@ -457,15 +454,6 @@ export const routes: Routes = [
   },
   {
     path: 'fraud-detection', component: ModulePageComponent, title: 'AI Fraud Detection', data: { entity: 'fraudAlerts', title: 'AI Fraud Detection', createLabel: 'Add fraud alert', columns: [{ key: 'alertType', label: 'Type' }, { key: 'severity', label: 'Severity', type: 'badge' }, { key: 'riskScore', label: 'Risk' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'alertType', label: 'Alert type', required: true }, { key: 'severity', label: 'Severity', required: true, defaultValue: 'medium' }, { key: 'branchId', label: 'Branch ID' }, { key: 'riskScore', label: 'Risk score', type: 'number' }, { key: 'signals', label: 'Signals JSON', type: 'json', defaultValue: {} }, { key: 'evidence', label: 'Evidence JSON', type: 'json', defaultValue: [] }, { key: 'resolution', label: 'Resolution JSON', type: 'json', defaultValue: {} }] }
-  },
-  {
-    path: 'notification-center', component: ModulePageComponent, title: 'Notification Center', data: { entity: 'notifications', title: 'Enterprise Notification Center', createLabel: 'Add notification', variant: 'zenoti', columns: [{ key: 'channel', label: 'Channel' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'channel', label: 'Channel', required: true }, { key: 'message', label: 'Message', required: true }, { key: 'clientId', label: 'Client ID' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', defaultValue: 'queued' }] }
-  },
-  {
-    path: 'smart-forms', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Smart Forms', data: { workflowType: 'smart-forms', title: 'Smart Forms Builder', prompt: 'Design smart intake and consent forms for the current service mix and appointment flow.', primaryEndpoint: 'smartForms', secondaryEndpoint: 'formResponses', commandCenterRoute: '/future-features', recordLabel: 'Smart forms' }
-  },
-  {
-    path: 'recommendation-engine', component: ModulePageComponent, title: 'AI Recommendation Engine', data: { entity: 'recommendationEvents', title: 'AI Recommendation Engine', createLabel: 'Add recommendation', columns: [{ key: 'clientId', label: 'Client' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'clientId', label: 'Client ID', required: true }, { key: 'type', label: 'Type', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'input', label: 'Input JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }, { key: 'feedback', label: 'Feedback JSON', type: 'json', defaultValue: {} }] }
   },
   {
     path: 'data-warehouse', component: ModulePageComponent, title: 'Data Warehouse', data: { entity: 'warehouseSnapshots', title: 'Data Warehouse Layer', createLabel: 'Add snapshot', columns: [{ key: 'snapshotType', label: 'Type' }, { key: 'periodStart', label: 'Start' }, { key: 'periodEnd', label: 'End' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'snapshotType', label: 'Snapshot type', required: true }, { key: 'periodStart', label: 'Period start', required: true }, { key: 'periodEnd', label: 'Period end', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'dimensions', label: 'Dimensions JSON', type: 'json', defaultValue: {} }, { key: 'facts', label: 'Facts JSON', type: 'json', defaultValue: {} }, { key: 'aggregates', label: 'Aggregates JSON', type: 'json', defaultValue: {} }] }

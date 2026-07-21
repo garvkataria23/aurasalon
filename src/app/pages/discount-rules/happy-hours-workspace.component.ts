@@ -34,7 +34,6 @@ import { HappyHoursStaffIncentivesComponent } from './staff-incentives.component
 import { WeatherEventOffersComponent } from './weather-event-offers.component';
 import { WhiteLabelRulesComponent } from './white-label-rules.component';
 import { DiscountAuditLogComponent } from './audit-log.component';
-import { DiscountRuleApprovalsComponent } from './approvals.component';
 import { PricingIncrementalityComponent } from '../pricing/incrementality.component';
 import { Level6ReadinessComponent } from '../pricing/level6-readiness.component';
 import { MarketIntelligenceComponent } from '../pricing/market-intelligence.component';
@@ -68,7 +67,6 @@ type WorkspaceKey =
   | 'sunset'
   | 'public'
   | 'audit'
-  | 'approvals'
   | 'analytics'
   | 'simulations'
   | 'anomalies'
@@ -123,7 +121,6 @@ type WorkspaceItem = {
     WeatherEventOffersComponent,
     WhiteLabelRulesComponent,
     DiscountAuditLogComponent,
-    DiscountRuleApprovalsComponent,
     PricingIncrementalityComponent,
     Level6ReadinessComponent,
     MarketIntelligenceComponent
@@ -166,7 +163,6 @@ export class HappyHoursWorkspaceComponent implements OnInit {
     { key: 'sunset', label: 'Auto Sunset', source: 'auto-sunset decisions', note: 'review required', value: (m) => `${m.sunset || 0}`, status: (m) => m.sunset ? 'warn' : 'ready' },
     { key: 'public', label: 'Public Booking Offers', source: 'public offer wrapper', note: 'booking visibility', value: () => 'Live', status: () => 'live' },
     { key: 'audit', label: 'Audit Log', source: 'discountAuditLog', note: 'compliance trail', value: () => 'Log', status: () => 'live' },
-    { key: 'approvals', label: 'Approvals', source: 'ruleApprovals', note: 'role limits', value: (m) => `${m.pendingApprovals || 0}`, status: (m) => m.pendingApprovals ? 'warn' : 'live' },
     { key: 'analytics', label: 'Branch Analytics', source: 'cross-branch analytics', note: 'region view', value: (m) => `${m.branchCount || 0} branches`, status: () => 'live' },
     { key: 'simulations', label: 'Simulations', source: 'discountSimulations', note: 'sandbox', value: (m) => `${m.savedSimulations || 0}`, status: () => 'ready' },
     { key: 'anomalies', label: 'Anomalies', source: 'discountAnomalies', note: 'unusual activity', value: (m) => `${m.openAnomalies || 0}`, status: (m) => m.openAnomalies ? 'risk' : 'live' },

@@ -42,7 +42,7 @@ const GROUPS: GroupConfig[] = [
     label: 'AI Command',
     hint: 'Autonomous control',
     accent: 'coral',
-    paths: ['/command-center', '/ai', '/future-features', '/growth-advisor', '/recommendation-engine', '/predictive-forecasting', '/knowledge-base']
+    paths: ['/command-center', '/ai', '/future-features', '/growth-advisor', '/predictive-forecasting', '/knowledge-base']
   },
   {
     id: 'grow',

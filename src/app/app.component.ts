@@ -1239,11 +1239,7 @@ export class AppComponent implements OnDestroy {
             { path: '/discount-rules/new', label: 'Rule Builder', icon: 'RB', keywords: 'new edit discount rule builder' },
             { path: '/discount-rules/promotion-calendar', label: 'Promotion Calendar', icon: 'PC', keywords: 'promotion calendar offers' },
             { path: '/discount-rules/coupon-engine', label: 'Coupon Engine', icon: 'CE', keywords: 'coupon engine discounts' },
-            { path: '/discount-rules/approvals', label: 'Approvals', icon: 'AP', keywords: 'discount rule approvals' },
-            { path: '/discount-rules/control-tower', label: 'Control Tower', icon: 'CT', keywords: 'happy hours control tower' },
-            { path: '/smart-forms', label: 'Smart Forms', icon: 'SF', keywords: 'forms consent smart' },
-            { path: '/recommendation-engine', label: 'Recommend AI', icon: 'RE', keywords: 'recommendation upsell ai' },
-            { path: '/notification-center', label: 'Notify Center', icon: 'NC', keywords: 'notifications alerts' }
+            { path: '/discount-rules/control-tower', label: 'Control Tower', icon: 'CT', keywords: 'happy hours control tower' }
           ]
         }
       ]
@@ -2108,7 +2104,6 @@ export class AppComponent implements OnDestroy {
   }
 
   private canAccessNavItem(item: NavItem): boolean {
-    if (item.path === '/notification-center' && this.ownerNotificationPolicyBlocks()) return false;
     return this.canAccessPermission(item.permission || this.navPermissionForPath(item.path));
   }
 
@@ -2117,7 +2112,6 @@ export class AppComponent implements OnDestroy {
   }
 
   canAccessPath(path: string): boolean {
-    if (this.routePath(path) === '/notification-center' && this.ownerNotificationPolicyBlocks()) return false;
     return this.canAccessPermission(this.navPermissionForPath(path));
   }
 
@@ -2136,10 +2130,6 @@ export class AppComponent implements OnDestroy {
 
   private enforceRoutePermission(url: string): void {
     if (!this.session.isAuthenticated()) return;
-    if (this.routePath(url) === '/notification-center' && this.ownerNotificationPolicyBlocks()) {
-      void this.router.navigateByUrl('/dashboard');
-      return;
-    }
     const permission = this.navPermissionForPath(url);
     if (!this.canAccessPermission(permission)) {
       void this.router.navigateByUrl('/dashboard');

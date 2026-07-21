@@ -26,7 +26,6 @@ type MessageHistoryResponse = {
         </div>
         <div class="hero-actions inner-action-bar">
           <a class="ghost-button" routerLink="/whatsapp">WhatsApp</a>
-          <a class="ghost-button" routerLink="/notification-center">Notifications</a>
           <button class="primary-button" type="button" (click)="load()">Run Report</button>
         </div>
       </header>
