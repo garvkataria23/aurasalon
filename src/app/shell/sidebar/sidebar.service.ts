@@ -28,7 +28,7 @@ const GROUPS: GroupConfig[] = [
     label: 'Today',
     hint: 'Live floor',
     accent: 'green',
-    paths: ['/dashboard', '/appointments', '/pos', '/smart-booking', '/queue-system', '/booking-portal']
+    paths: ['/dashboard', '/appointments', '/pos', '/booking-portal']
   },
   {
     id: 'operate',

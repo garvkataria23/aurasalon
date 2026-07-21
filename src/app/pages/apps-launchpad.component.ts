@@ -65,11 +65,9 @@ const SUITE_GROUPS: SuiteGroup[] = [
       { path: '/appointments', label: 'Appointment Calendar', description: 'Create, move, complete and monitor front-desk appointments.', icon: 'CA', tone: 'teal', status: 'Live', tags: ['appointments', 'calendar'] },
       { path: '/appointments-enterprise', label: 'Enterprise Scheduler', description: 'Multi-staff and multi-service scheduling with resource-aware operations.', icon: 'ES', tone: 'blue', status: 'Ready', tags: ['scheduler', 'resources'] },
       { path: '/appointment-activity', label: 'Activity Center', description: 'Appointment lifecycle, cancellations, no-shows, reschedules and reliability audit.', icon: 'AC', tone: 'amber', status: 'Ready', tags: ['audit', 'appointments'] },
-      { path: '/smart-booking', label: 'Smart Booking', description: 'Booking workflow, slot logic and conversion tracking.', icon: 'SB', tone: 'violet', status: 'AI', tags: ['booking', 'ai'] },
       { path: '/book', label: 'Online Booking Site', description: 'Public guest booking experience for service discovery and appointment requests.', icon: 'OB', tone: 'green', status: 'Live', tags: ['online', 'guest'] },
       { path: '/clients', label: 'Client CRM', description: 'Guest records, visit history, preferences, notes and salon relationship data.', icon: 'CL', tone: 'teal', status: 'Live', tags: ['crm', 'guest'] },
-      { path: '/customer-360', label: 'Customer Profile', description: 'Lifetime value, visit history, retention and next actions.', icon: 'CI', tone: 'violet', status: 'AI', tags: ['customer', 'ai'] },
-      { path: '/queue-system', label: 'Smart Queue', description: 'Walk-in queue displays, live tokens and branch floor flow.', icon: 'QU', tone: 'amber', status: 'Ready', tags: ['queue', 'walkin'] }
+      { path: '/customer-360', label: 'Customer Profile', description: 'Lifetime value, visit history, retention and next actions.', icon: 'CI', tone: 'violet', status: 'AI', tags: ['customer', 'ai'] }
     ]
   },
   {

@@ -609,7 +609,6 @@ export class KpiDetailComponent implements OnInit {
       reports: '/reports',
       'saas-onboarding': '/saas-onboarding',
       security: '/security',
-      'smart-booking': '/smart-booking',
       staff: '/staff',
       'super-admin': '/super-admin',
       whatsapp: '/whatsapp',

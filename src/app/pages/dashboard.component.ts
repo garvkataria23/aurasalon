@@ -104,11 +104,6 @@ import { AuraMoneyPipe } from '../shared/pipes/aura-money.pipe';
             <span class="hub-sub">{{ data.newClients }} new clients this month</span>
             <span class="hub-cta">Open customer intelligence</span>
           </a>
-          <a class="hub-tile" routerLink="/smart-booking" *ngIf="canAccessPath('/smart-booking')">
-            <span class="hub-badge">WF</span>
-            <strong>Workflow</strong>
-            <span class="hub-cta">Open workflow</span>
-          </a>
           <a class="hub-tile" routerLink="/memberships" *ngIf="canAccessPath('/memberships')">
             <span class="hub-badge">MB</span>
             <strong>{{ data.membershipRevenue | auraMoney:'1.0-0' }}</strong>
@@ -179,7 +174,6 @@ import { AuraMoneyPipe } from '../shared/pipes/aura-money.pipe';
         <section class="card">
           <div class="card-h">
             <h2>Operational workflow</h2>
-            <a class="btn-ghost" routerLink="/smart-booking" *ngIf="canAccessPath('/smart-booking')">Open workflow</a>
           </div>
           <div class="stepper">
             <div class="step done"><span class="step-dot"></span>Requested</div>

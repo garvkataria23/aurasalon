@@ -18,7 +18,6 @@ export const routes: Routes = [
   { path: 'analytics', loadComponent: () => import('./pages/analytics-engine.component').then(m => m.AnalyticsEngineComponent), title: 'Advanced Analytics' },
   { path: 'engagement', loadComponent: () => import('./pages/engagement-command-center.component').then(m => m.EngagementCommandCenterComponent), title: 'Engagement Command Center' },
   { path: 'staff-chat', loadComponent: () => import('./pages/team-chat.component').then(m => m.TeamChatComponent), title: 'Team Chat', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
-  { path: 'smart-booking', loadComponent: () => import('./pages/smart-booking.component').then(m => m.SmartBookingComponent), title: 'Smart Booking System' },
   { path: 'security', loadComponent: () => import('./pages/security-layer.component').then(m => m.SecurityLayerComponent), title: 'Enterprise Security' },
   { path: 'enterprise-security-shield', loadComponent: () => import('./pages/enterprise-security-shield.component').then(m => m.EnterpriseSecurityShieldComponent), title: 'Enterprise Security Shield' },
   { path: 'two-factor', loadComponent: () => import('./pages/two-factor-setup.component').then(m => m.TwoFactorSetupComponent), title: 'Two-Factor Authentication' },
@@ -324,9 +323,6 @@ export const routes: Routes = [
   },
   {
     path: 'voice-receptionist', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'AI Voice Receptionist', data: { workflowType: 'voice-receptionist', title: 'AI Voice Receptionist', prompt: 'Classify this client call, suggest the next booking action, and prepare human handoff if needed.', primaryEndpoint: 'voice-receptionist/calls', commandCenterRoute: '/command-center/voice-ai-receptionist', recordLabel: 'Voice calls' }
-  },
-  {
-    path: 'queue-system', component: ModulePageComponent, title: 'Smart Queue System', data: { entity: 'queueDisplays', title: 'Smart Queue TV Displays', createLabel: 'Add queue display', columns: [{ key: 'name', label: 'Display' }, { key: 'displayCode', label: 'Code' }, { key: 'branchId', label: 'Branch' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'branchId', label: 'Branch ID', required: true }, { key: 'name', label: 'Display name', required: true }, { key: 'displayCode', label: 'Display code' }, { key: 'layout', label: 'Layout JSON', type: 'json', defaultValue: { mode: 'tv' } }, { key: 'filters', label: 'Filters JSON', type: 'json', defaultValue: {} }, { key: 'theme', label: 'Theme JSON', type: 'json', defaultValue: {} }] }
   },
   {
     path: 'dynamic-pricing', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Dynamic Pricing', data: { workflowType: 'dynamic-pricing', title: 'Dynamic Pricing Engine', prompt: 'Find safe dynamic pricing rules from live sales, services and appointment demand.', primaryEndpoint: 'dynamicPricingRules', commandCenterRoute: '/future-features', recordLabel: 'Pricing rules' }
