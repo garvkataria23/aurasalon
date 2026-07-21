@@ -3,6 +3,7 @@ import { Injectable, signal } from "@angular/core";
 import { firstValueFrom, Observable } from "rxjs";
 import { environment } from "../../environments/environment";
 import { resetCsrfState } from "./csrf.interceptor";
+import { addBusinessDays, businessDate } from "./business-date";
 import { CapacitorHttp } from "@capacitor/core";
 
 const STAFF_OFFLINE_QUEUE_KEY = "auraStaffOfflineQueue";
@@ -34,15 +35,7 @@ type OfflineQueueEntry = {
 };
 type BiometricLoginHint = { tenantId: string; loginId: string };
 
-function staffBusinessDate(value = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).formatToParts(value).reduce<Record<string, string>>((result, part) => ({ ...result, [part.type]: part.value }), {});
-  return `${parts["year"]}-${parts["month"]}-${parts["day"]}`;
-}
+const staffBusinessDate = businessDate;
 
 export type StaffUser = {
   id: string;
@@ -449,6 +442,12 @@ export class StaffAppService {
     return !!this.accessTokenValue && !!this.user()?.staffId;
   }
 
+  async tryRestoreSession(): Promise<boolean> {
+    if (this.isAuthenticated()) return true;
+    try { await this.refreshSession(); } catch { /* refresh failed */ }
+    return this.isAuthenticated();
+  }
+
   hasSavedSession(): boolean {
     return this.isAuthenticated();
   }
@@ -494,7 +493,7 @@ export class StaffAppService {
       const tenantId = payload.tenantId.trim() || "tenant_aura";
       const loginId = payload.loginId.trim();
       const csrfResp = await CapacitorHttp.get({ url: `${this.baseUrl}/auth/csrf` });
-      const csrfToken = csrfResp.data?.token || csrfResp.headers?.["x-csrf-token"] || "";
+      const csrfToken = csrfResp.data?.csrfToken || csrfResp.data?.token || csrfResp.headers?.["x-csrf-token"] || "";
       const loginResp = await CapacitorHttp.post({
         url: `${this.baseUrl}/auth/login`,
         headers: {
@@ -629,10 +628,9 @@ export class StaffAppService {
 
   async attendanceHistory(days = 30): Promise<StaffAttendance[]> {
     const to = staffBusinessDate();
-    const start = new Date(`${to}T00:00:00.000Z`);
-    start.setUTCDate(start.getUTCDate() - Math.max(0, days - 1));
+    const from = addBusinessDays(to, -(Math.max(0, days - 1)));
     return this.get<StaffAttendance[]>("/staff-os/attendance", {
-      from: start.toISOString().slice(0, 10),
+      from,
       to,
       limit: "500"
     });
@@ -914,7 +912,7 @@ export class StaffAppService {
         const response = await firstValueFrom(this.http.post<StaffRefreshResponse | ApiEnvelope<StaffRefreshResponse>>(
           `${this.baseUrl}/auth/refresh`,
           { device: { type: "staff-app", name: "Aura Staff App", platform: "web" } },
-          { withCredentials: false }
+          { withCredentials: true }
         ));
         const session = this.unwrap(response);
         if (!session.accessToken) throw new Error("Staff session refresh failed.");
@@ -1162,9 +1160,11 @@ export class StaffAppService {
     if (response && typeof response === "object" && "data" in response) {
       const envelope = response as ApiEnvelope<T>;
       if (envelope.data !== undefined) return envelope.data;
-      const error = envelope.error;
-      const message = typeof error === "string" ? error : error?.message || envelope.message;
-      throw new Error(message || "Unexpected staff API response.");
+      if (envelope.error) {
+        const message = typeof envelope.error === "string" ? envelope.error : envelope.error.message;
+        throw new Error(message || "Unexpected staff API response.");
+      }
+      throw new Error(envelope.message || "Unexpected staff API response.");
     }
     return response as T;
   }
@@ -1187,7 +1187,7 @@ export class StaffAppService {
   }
 
   private isNetworkError(error: unknown): boolean {
-    if (!navigator.onLine) return true;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return true;
     if (!(error instanceof Error)) return false;
     const msg = (error.message || "").toLowerCase();
     return msg.includes("no address associated with hostname") ||

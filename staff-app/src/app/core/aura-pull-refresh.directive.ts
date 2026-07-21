@@ -19,13 +19,15 @@ export class AuraPullRefresh implements OnDestroy {
   constructor(private readonly el: ElementRef<HTMLElement>) {
     const node = el.nativeElement;
     const opts: AddEventListenerOptions = { passive: false };
+    const start = (e: TouchEvent) => this.onStart(e);
     const move = (e: TouchEvent) => this.onMove(e);
     const end = () => this.onEnd();
-    node.addEventListener("touchstart", (e) => this.onStart(e), { passive: true });
+    node.addEventListener("touchstart", start, { passive: true });
     node.addEventListener("touchmove", move, opts);
     node.addEventListener("touchend", end, { passive: true });
     node.addEventListener("touchcancel", end, { passive: true });
     this.cleanups.push(
+      () => node.removeEventListener("touchstart", start),
       () => node.removeEventListener("touchmove", move, opts),
       () => node.removeEventListener("touchend", end),
       () => node.removeEventListener("touchcancel", end)

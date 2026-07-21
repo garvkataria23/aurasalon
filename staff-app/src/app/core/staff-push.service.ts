@@ -13,6 +13,7 @@ export class StaffPushService {
   readonly message = signal("");
 
   private nativeActionListenerReady = false;
+  private nativeActionHandle: { remove: () => Promise<void> } | null = null;
 
   constructor(private readonly staff: StaffAppService, private readonly router: Router) {}
 
@@ -124,14 +125,20 @@ export class StaffPushService {
 
   private async registerNativeDevice(): Promise<void> {
     const token = await new Promise<string>(async (resolve, reject) => {
+      let settled = false;
+      const timeout = window.setTimeout(() => {
+        if (!settled) { settled = true; reject(new Error("FCM registration timed out. Please try again.")); }
+      }, 15_000);
       const registration = await PushNotifications.addListener("registration", async (result) => {
-        await registration.remove();
-        await registrationError.remove();
+        if (settled) return;
+        settled = true; clearTimeout(timeout);
+        await registration.remove(); await registrationError.remove();
         resolve(result.value);
       });
       const registrationError = await PushNotifications.addListener("registrationError", async (error) => {
-        await registration.remove();
-        await registrationError.remove();
+        if (settled) return;
+        settled = true; clearTimeout(timeout);
+        await registration.remove(); await registrationError.remove();
         reject(new Error(error.error || "FCM registration failed."));
       });
       await PushNotifications.register();
@@ -141,6 +148,7 @@ export class StaffPushService {
 
   private async setupNativeActionListener(): Promise<void> {
     if (this.nativeActionListenerReady) return;
+    if (this.nativeActionHandle) { await this.nativeActionHandle.remove().catch(() => {}); this.nativeActionHandle = null; }
     this.nativeActionListenerReady = true;
     await PushNotifications.createChannel({
       id: "staff_notifications",
@@ -152,8 +160,9 @@ export class StaffPushService {
     });
     await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
       const url = String(action.notification.data?.["url"] || "/staff/notifications");
-      void this.router.navigateByUrl(url.startsWith("/staff/") ? url : "/staff/notifications");
-    });
+      const safe = url.startsWith("/staff/") && !url.includes("..") ? url : "/staff/notifications";
+      void this.router.navigateByUrl(safe);
+    }).then((handle) => { this.nativeActionHandle = handle; });
   }
 
   private base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {

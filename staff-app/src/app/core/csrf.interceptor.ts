@@ -40,7 +40,7 @@ function currentToken(http: HttpClient): Observable<string> {
         csrfExpiresAt = Date.parse(payload.expiresAt || "") || Date.now() + 10 * 60_000;
       }),
       map((response) => unwrapCsrfResponse(response).csrfToken || ""),
-      shareReplay({ bufferSize: 1, refCount: false }),
+      shareReplay({ bufferSize: 1, refCount: true }),
       catchError((error) => {
         csrfToken = "";
         csrfExpiresAt = 0;
