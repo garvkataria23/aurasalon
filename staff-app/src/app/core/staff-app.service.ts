@@ -687,7 +687,7 @@ export class StaffAppService {
   async logout(): Promise<void> {
     try {
       if (!this.accessTokenValue) await this.refreshSession();
-      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { headers: this.authHeaders(), withCredentials: false }));
+      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { headers: this.authHeaders(), withCredentials: true }));
     } catch {
       // Local state must still be destroyed when the server session is already invalid.
     } finally {

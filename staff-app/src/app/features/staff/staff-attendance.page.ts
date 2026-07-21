@@ -135,8 +135,6 @@ export class StaffAttendancePage implements OnInit, OnDestroy {
     if (!shift?.endTime) return "No shift end set";
     if (!attendance?.clockInAt) return "Not clocked in";
     if (attendance.clockOutAt) return "Shift ended";
-    const now = Date.now();
-    const endMinutes = Number(shift.endTime.split(":")[0]) * 60 + Number(shift.endTime.split(":")[1]);
     const todayDate = String(this.today()?.date || businessDate());
     const endMs = new Date(`${todayDate}T${shift.endTime}:00`).getTime();
     const diff = endMs - now;
