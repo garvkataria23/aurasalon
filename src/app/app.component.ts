@@ -1074,13 +1074,13 @@ export class AppComponent implements OnDestroy {
           keywords: 'staff employee setup masters directory category profile bulk update service assignment connected modules',
           children: [
             { path: '/staff-os/workspace', label: 'Command Center', icon: 'CC', keywords: 'staff workspace command center' },
-            { path: '/staff-os/employee-masters', label: 'Employee Masters', icon: 'EM', keywords: 'employee masters staff setup statutory profile category salary' },
+
             { path: '/staff-os/staff-list', label: 'Staff List', icon: 'SL', keywords: 'employee list staff directory active inactive' },
             { path: '/staff-os/staff-categories', label: 'Staff Categories', icon: 'SC', keywords: 'staff category designation role operator admin' },
             { path: '/staff-os/staff-profile', label: 'Staff Profile', icon: 'SP', keywords: 'staff profile documents skills login' },
             { path: '/staff-os/bulk-employee-update', label: 'Bulk Update', icon: 'BU', keywords: 'bulk master update employee pan aadhar statutory flexi' },
             { path: '/staff-os/service-assignment', label: 'Service Assignment', icon: 'SA', keywords: 'employee wise service assign operator admin flexi' },
-            { path: '/staff/connected-modules', label: 'Connected Modules', icon: 'CM', keywords: 'staff connected modules employee payroll attendance services reports' }
+
           ]
         },
         {

@@ -175,7 +175,7 @@ type StaffDirectoryRow = ApiRecord & {
                       <span>Search</span>
                       <input [ngModel]="staffQuery()" (ngModelChange)="staffQuery.set($event)" placeholder="Name, role, branch, phone" />
                     </label>
-                    <a class="primary-button compact-link-button" routerLink="/staff/connected-modules">Connected modules</a>
+
                   </div>
                 </div>
                 <div class="table-wrap compact-scroll staff-directory-scroll">

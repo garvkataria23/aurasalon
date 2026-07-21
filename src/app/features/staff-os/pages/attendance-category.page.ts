@@ -16,7 +16,7 @@ import { StaffOsAttendanceCategory, StaffOsAttendanceMaster, StaffOsAttendanceSl
           <h1>Attendance Category</h1>
         </div>
         <div class="topbar-actions">
-          <a class="refresh" routerLink="/staff-os/employee-masters">Masters</a>
+          <a class="refresh" routerLink="/staff-os/staff-list">Staff List</a>
           <button type="button" class="primary" (click)="startNew()">Add</button>
           <button type="button" class="refresh" (click)="load()">Refresh</button>
         </div>

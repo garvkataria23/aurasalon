@@ -92,7 +92,7 @@ import { AuraMoneyPipe } from '../shared/pipes/aura-money.pipe';
             <span class="hub-sub">{{ data.lowStockAlerts[0]?.name || 'Stock is healthy' }}</span>
             <span class="hub-cta">Open stock</span>
           </a>
-          <a class="hub-tile" routerLink="/staff-os/employee-masters" *ngIf="canAccessPath('/staff-os/employee-masters')">
+          <a class="hub-tile" routerLink="/staff-os/staff-list" *ngIf="canAccessPath('/staff-os/staff-list')">
             <span class="hub-badge">TM</span>
             <strong>{{ data.staffPerformance[0]?.name || 'No ranking yet' }}</strong>
             <span class="hub-sub">{{ (data.staffPerformance[0]?.revenue || 0) | auraMoney:'1.0-0' }} top revenue</span>

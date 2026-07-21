@@ -1360,7 +1360,7 @@ export class StaffEnterpriseComponent implements OnInit {
     const sourceCounts = this.command()?.sourceCounts || {};
     const kpis = this.kpis();
     return [
-      { label: 'Employee Masters', path: '/staff-os/employee-masters', metric: kpis.staffCount || this.staffOptions().length || 0, description: 'profile, category, salary and statutory master', tone: 'teal' },
+      { label: 'Staff List', path: '/staff-os/staff-list', metric: kpis.staffCount || this.staffOptions().length || 0, description: 'profile, category, salary and statutory master', tone: 'teal' },
       { label: 'Attendance Dash', path: '/staff-os/attendance-dashboard', metric: kpis.presentDays || 0, description: 'present days, late marks and attendance signals', tone: 'green' },
       { label: 'Roster Calendar', path: '/staff-os/roster-calendar', metric: kpis.scheduledShifts || 0, description: 'scheduled shifts and floor availability', tone: 'blue' },
       { label: 'Payroll Dash', path: '/staff-os/payroll-dashboard', metric: this.moneyShort(kpis.totalRevenue || 0), description: 'salary, payout and compliance review', tone: 'violet' },

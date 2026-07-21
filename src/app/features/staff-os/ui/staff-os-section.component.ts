@@ -64,7 +64,6 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
         </div>
         <div class="topbar-actions">
           <button type="button" class="primary" *ngIf="section === 'workspace' || section === 'staff-list' || section === 'staff-profile'" (click)="openAddStaff()">Add Staff</button>
-          <a class="refresh" routerLink="/staff-os/employee-masters">Employee Masters</a>
           <a class="refresh" *ngIf="showStaffCategoryHeaderAction()" routerLink="/staff-os/staff-categories">Staff Categories</a>
           <button type="button" class="refresh" (click)="store.load()">Refresh</button>
         </div>
@@ -161,7 +160,7 @@ type StaffListSortField = 'name' | 'contact' | 'employeeCode' | 'email' | 'salar
                 <article><span>Commission rows</span><strong>{{ store.performance().rows.length }}</strong></article>
               </section>
               <div class="workspace-actions inner-action-bar">
-                <a routerLink="/staff-os/employee-masters">Employee Masters</a>
+                <a routerLink="/staff-os/staff-list">Staff List</a>
                 <a routerLink="/staff-os/attendance-dashboard" [queryParams]="staffContextParams()">Attendance</a>
                 <a routerLink="/staff-os/salary-generate" [queryParams]="staffContextParams()">Salary Generate</a>
                 <a routerLink="/staff-os/commission-dashboard" [queryParams]="staffContextParams()">Commission</a>
@@ -3042,7 +3041,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   readonly heatmapCells = Array.from({ length: 42 });
   readonly staffShellLinks: StaffShellLink[] = [
     { label: 'Command Center', to: '/staff-enterprise', group: 'Staff command', icon: 'CC' },
-    { label: 'Masters', to: '/staff-os/employee-masters', group: 'Employee setup', icon: 'MS' },
+    { label: 'Staff List', to: '/staff-os/staff-list', group: 'Employee setup', icon: 'MS' },
     { label: 'Attendance', to: '/staff-os/attendance-dashboard', group: 'Live roster', icon: 'AT' },
     { label: 'Payroll', to: '/staff-os/payroll-dashboard', group: 'Salary rules', icon: 'PY' },
     { label: 'Commission', to: '/commissions', group: 'Incentives', icon: 'CO' },
@@ -3475,7 +3474,7 @@ export class StaffOsSectionComponent implements OnInit, OnDestroy {
   staffControlTabs(): StaffControlTab[] {
     return [
       { label: 'Overview', to: '/staff-enterprise', count: this.store.staff().length },
-      { label: 'Master', to: '/staff-os/employee-masters', count: this.store.staff().length },
+      { label: 'Staff List', to: '/staff-os/staff-list', count: this.store.staff().length },
       { label: 'Live Data', to: '/staff-os/attendance-dashboard', count: this.attendanceRows().length },
       { label: 'Reports', to: '/reports/staff-sales', count: this.store.performance().rows?.length || 0 },
       { label: 'Actions', to: '/staff-os/task-board', count: this.store.tasks().length }

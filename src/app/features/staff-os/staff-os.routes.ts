@@ -10,7 +10,7 @@ export const STAFF_OS_ROUTES: Routes = [
       { path: 'workspace', loadComponent: () => import('./pages/staff-workspace.page').then((m) => m.StaffWorkspacePage), title: 'Staff Workspace' },
       { path: 'salary-workspace', loadComponent: () => import('./pages/salary-workspace.page').then((m) => m.SalaryWorkspacePage), title: 'Staff OS - Salary Setup' },
       { path: 'staff-salary-workspace', loadComponent: () => import('./pages/salary-workspace.page').then((m) => m.SalaryWorkspacePage), title: 'Staff OS - Salary Setup' },
-      { path: 'employee-masters', loadComponent: () => import('./pages/employee-masters.page').then((m) => m.EmployeeMastersPage), title: 'Staff OS - Employee Masters' },
+
       { path: 'staff-list', loadComponent: () => import('./pages/staff-list.page').then((m) => m.StaffListPage), title: 'Staff OS - Staff List' },
       { path: 'staff-categories', loadComponent: () => import('./pages/staff-categories.page').then((m) => m.StaffCategoriesPage), title: 'Staff OS - Staff Categories' },
       { path: 'attendance-master', loadComponent: () => import('./pages/attendance-master.page').then((m) => m.AttendanceMasterPage), title: 'Staff OS - Attendance Master' },

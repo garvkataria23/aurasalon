@@ -24,7 +24,7 @@ type PenaltyPreviewRow = {
 @Component({
   selector: 'app-staff-payroll-definition',
   standalone: true,
-  imports: [AuraMoneyPipe, CommonModule, RouterLink],
+  imports: [AuraMoneyPipe, CommonModule],
   template: `
     <section class="definition-page">
       <header class="topbar">
@@ -32,7 +32,6 @@ type PenaltyPreviewRow = {
           <h1>{{ kind === 'fine' ? 'Fines / Penalty Definition' : 'Allowance / Deduction Master' }}</h1>
         </div>
         <div class="topbar-actions">
-          <a class="refresh" routerLink="/staff-os/employee-masters">Masters</a>
           <button type="button" class="refresh" (click)="load()">Refresh</button>
         </div>
       </header>
@@ -595,7 +594,7 @@ export class AllowanceDeductionPage {}
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <section class="payroll-page">
       <header class="topbar">
@@ -603,7 +602,6 @@ export class AllowanceDeductionPage {}
           <h1>Payroll Salary Structure</h1>
         </div>
         <div class="topbar-actions">
-          <a class="refresh" routerLink="/staff-os/employee-masters">Masters</a>
           <button type="button" class="refresh" (click)="load()">Refresh</button>
         </div>
       </header>

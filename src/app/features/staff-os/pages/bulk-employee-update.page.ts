@@ -18,7 +18,7 @@ type BulkField = keyof EditableBulkEmployeeRow;
           <h1>Employee Master - Bulk Edit</h1>
         </div>
         <div class="topbar-actions">
-          <a class="refresh" routerLink="/staff-os/employee-masters">Masters</a>
+          <a class="refresh" routerLink="/staff-os/staff-list">Staff List</a>
           <button type="button" class="refresh" (click)="exportCsv()" [disabled]="!rows().length">Excel</button>
           <button type="button" class="refresh" (click)="load()">Refresh</button>
           <button type="button" class="primary" [disabled]="saving() || !selectedRows().length" (click)="applyUpdate()">

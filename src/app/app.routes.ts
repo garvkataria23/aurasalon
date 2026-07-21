@@ -154,7 +154,7 @@ export const routes: Routes = [
   { path: 'memberships', loadComponent: () => import('./pages/memberships.component').then(m => m.MembershipsComponent), title: 'Memberships & Loyalty' },
   { path: 'packages', loadComponent: () => import('./pages/packages.component').then(m => m.PackagesComponent), title: 'Packages' },
   { path: 'staff/my-work', loadComponent: () => import('./pages/staff-my-work.component').then(m => m.StaffMyWorkComponent), title: 'My Staff Work', canActivate: [permissionGuard], data: { permission: 'read:appointments' } },
-  { path: 'staff/connected-modules', loadComponent: () => import('./pages/staff-connected-modules.component').then(m => m.StaffConnectedModulesComponent), title: 'Staff Connected Modules', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
+
   { path: 'staff', pathMatch: 'full', redirectTo: 'staff-os/staff-list' },
   { path: 'staff-enterprise', pathMatch: 'full', redirectTo: 'staff-os/staff-list' },
   { path: 'staff-os', loadChildren: () => import('./features/staff-os/staff-os.routes').then(m => m.STAFF_OS_ROUTES), title: 'Staff Operating System', canActivate: [permissionGuard], data: { permission: 'read:staff', preload: true, preloadPriority: 5 } },

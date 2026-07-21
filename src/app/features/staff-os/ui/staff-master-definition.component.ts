@@ -25,19 +25,19 @@ type MasterConfig = {
 const configs: Record<StaffMasterKind, MasterConfig> = {
   attendance: {
     title: 'Attendance Master',
-    eyebrow: 'Employee Masters',
+    eyebrow: 'Staff Setup',
     routeName: 'attendance-masters',
     primaryMetric: 'Attendance codes'
   },
   leave: {
     title: 'Leave Master',
-    eyebrow: 'Employee Masters',
+    eyebrow: 'Staff Setup',
     routeName: 'leave-masters',
     primaryMetric: 'Leave policies'
   },
   shift: {
     title: 'Shift Master',
-    eyebrow: 'Employee Masters',
+    eyebrow: 'Staff Setup',
     routeName: 'shift-masters',
     primaryMetric: 'Shift templates'
   }
@@ -55,7 +55,7 @@ const configs: Record<StaffMasterKind, MasterConfig> = {
           <h1>{{ config().title }}</h1>
         </div>
         <div class="topbar-actions">
-          <a class="ghost" routerLink="/staff-os/employee-masters">Masters</a>
+          <a class="ghost" routerLink="/staff-os/staff-list">Staff List</a>
           <button type="button" class="ghost" (click)="load()">Refresh</button>
           <button type="button" class="primary" (click)="startNew()">Add</button>
         </div>
