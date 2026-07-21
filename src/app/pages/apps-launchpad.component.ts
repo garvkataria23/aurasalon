@@ -126,11 +126,9 @@ const SUITE_GROUPS: SuiteGroup[] = [
     apps: [
       { path: '/marketing', label: 'Marketing', description: 'Campaigns, win-back, upsell, retention and client segments.', icon: 'MK', tone: 'violet', status: 'AI', tags: ['marketing', 'ai'] },
       { path: '/growth-rank-bot', label: 'AI Rank Bot', description: 'Instagram, Facebook and Google rank-readiness audits with ethical local SEO, content and review workflows.', icon: 'RB', tone: 'violet', status: 'AI', tags: ['rank', 'google', 'instagram'] },
-      { path: '/whatsapp', label: 'WhatsApp Automation', description: 'Reminders, renewals, templates, payment links and provider-ready messaging.', icon: 'WA', tone: 'green', status: 'Ready', tags: ['whatsapp'] },
       { path: '/engagement', label: 'Engagement Center', description: 'Client messages, actions and journeys.', icon: 'EC', tone: 'blue', status: 'Ready', tags: ['engagement'] },
       { path: '/message-logs', label: 'Message Logs', description: 'SMS, email and WhatsApp delivery tracking with provider payloads.', icon: 'ML', tone: 'neutral', status: 'Ready', tags: ['messages'] },
-      { path: '/reputation', label: 'Reputation', description: 'Review inbox, response drafting, alerts and reputation operations.', icon: 'RV', tone: 'amber', status: 'AI', tags: ['reviews'] },
-      { path: '/growth-advisor', label: 'Growth Advisor', description: 'Revenue growth tasks, missed opportunities and action plans.', icon: 'GA', tone: 'violet', status: 'AI', tags: ['growth'] }
+      { path: '/reputation', label: 'Reputation', description: 'Review inbox, response drafting, alerts and reputation operations.', icon: 'RV', tone: 'amber', status: 'AI', tags: ['reviews'] }
     ]
   },
   {

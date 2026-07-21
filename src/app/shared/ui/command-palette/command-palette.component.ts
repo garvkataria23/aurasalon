@@ -186,7 +186,7 @@ export class CommandPaletteComponent {
     { id: 'a-campaign', kind: 'action', label: 'New Campaign', hint: 'Launch a marketing campaign', icon: 'CP', path: '/marketing', keywords: 'marketing campaign whatsapp email sms promo' },
     // Navigation
     { id: 'n-dashboard', kind: 'nav', label: 'Dashboard', hint: 'Mission control overview', icon: 'D', path: '/dashboard', keywords: 'home kpi overview command' },
-    { id: 'n-apps', kind: 'nav', label: 'All Apps', hint: 'Full module launchpad', icon: 'AP', path: '/apps', keywords: 'launchpad modules suite' },
+
     { id: 'n-calendar', kind: 'nav', label: 'Calendar', hint: 'Appointments & scheduling', icon: 'C', path: '/appointments', keywords: 'booking schedule appointment' },
     { id: 'n-clients', kind: 'nav', label: 'Clients', hint: 'Client CRM directory', icon: 'CL', path: '/clients', keywords: 'crm guest customer' },
     { id: 'n-customer360', kind: 'nav', label: 'Customer 360', hint: 'Client intelligence', icon: '360', path: '/customer-360', keywords: 'intelligence ltv churn segment' },
@@ -200,7 +200,7 @@ export class CommandPaletteComponent {
     { id: 'n-reports', kind: 'nav', label: 'Reports', hint: 'Business reports', icon: 'R', path: '/reports', keywords: 'sales report analytics' },
     { id: 'n-analytics', kind: 'nav', label: 'Analytics', hint: 'Insights & metrics', icon: 'AN', path: '/analytics', keywords: 'metrics insight kpi' },
     { id: 'n-marketing', kind: 'nav', label: 'Marketing', hint: 'Campaigns & automation', icon: 'MK', path: '/marketing', keywords: 'campaign automation' },
-    { id: 'n-whatsapp', kind: 'nav', label: 'WhatsApp', hint: 'WhatsApp campaigns', icon: 'WA', path: '/whatsapp', keywords: 'whatsapp chat campaign' },
+
     { id: 'n-reviews', kind: 'nav', label: 'Reviews', hint: 'Reputation management', icon: 'RV', path: '/reputation', keywords: 'review reputation google rating' },
     { id: 'n-ai', kind: 'nav', label: 'AI Assistant', hint: 'AI workspace', icon: 'AI', path: '/ai', keywords: 'assistant ai chat copilot' },
     { id: 'n-finance', kind: 'nav', label: 'Finance', hint: 'Cash, expenses & ledger', icon: 'FN', path: '/finance', keywords: 'cash expense ledger accounting' },

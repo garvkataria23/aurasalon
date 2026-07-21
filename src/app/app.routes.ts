@@ -26,7 +26,6 @@ export const routes: Routes = [
   { path: 'permissions', loadComponent: () => import('./pages/permission-matrix.component').then(m => m.PermissionMatrixComponent), title: 'Permission Matrix' },
   { path: 'compliance', loadChildren: () => import('./features/compliance/compliance.routes').then(m => m.COMPLIANCE_ROUTES), title: 'Statutory Compliance' },
   { path: 'audit-compliance', loadComponent: () => import('./pages/compliance-audit.component').then(m => m.ComplianceAuditComponent), title: 'Audit and Compliance' },
-  { path: 'quality', loadComponent: () => import('./pages/quality-center.component').then(m => m.QualityCenterComponent), title: 'Testing and Quality' },
   { path: 'deployment', loadComponent: () => import('./pages/deployment-ready.component').then(m => m.DeploymentReadyComponent), title: 'Deployment Ready' },
   { path: 'data-migration', loadComponent: () => import('./pages/data-migration.component').then(m => m.DataMigrationComponent), title: 'Data Migration Center', children: [
     { path: '', pathMatch: 'full', loadComponent: () => import('./pages/data-migration-overview.component').then(m => m.DataMigrationOverviewComponent), title: 'Data Migration Center' },
@@ -187,8 +186,7 @@ export const routes: Routes = [
   { path: 'marketing', loadComponent: () => import('./pages/ai-marketing-automation.component').then(m => m.AiMarketingAutomationComponent), title: 'AI Marketing Automation', data: { preload: true, preloadPriority: 8 } },
   { path: 'marketing/birthdays', loadComponent: () => import('./pages/birthday-campaign.component').then(m => m.BirthdayCampaignComponent), title: 'Birthday AI Campaigns' },
   { path: 'growth-rank-bot', loadComponent: () => import('./pages/growth-rank-bot.component').then(m => m.GrowthRankBotComponent), title: 'AI Rank Bot' },
-  { path: 'whatsapp', loadComponent: () => import('./pages/whatsapp-automation.component').then(m => m.WhatsAppAutomationComponent), title: 'WhatsApp Automation' },
-    { path: 'message-templates', loadComponent: () => import('./pages/message-template-studio.component').then(m => m.MessageTemplateStudioComponent), title: 'Message Templates' },
+  { path: 'message-templates', loadComponent: () => import('./pages/message-template-studio.component').then(m => m.MessageTemplateStudioComponent), title: 'Message Templates' },
   { path: 'message-history', loadComponent: () => import('./pages/message-history-report.component').then(m => m.MessageHistoryReportComponent), title: 'Message History' },
   {
     path: 'message-logs',
@@ -317,10 +315,6 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/site-logs-command-center.component').then(m => m.SiteLogsCommandCenterComponent),
     title: 'Site Logs'
   },
-
-  {
-    path: 'dynamic-pricing', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Dynamic Pricing', data: { workflowType: 'dynamic-pricing', title: 'Dynamic Pricing Engine', prompt: 'Find safe dynamic pricing rules from live sales, services and appointment demand.', primaryEndpoint: 'dynamicPricingRules', commandCenterRoute: '/future-features', recordLabel: 'Pricing rules' }
-  },
   {
     path: 'discount-rules', loadComponent: () => import('./pages/discount-rules/happy-hours-workspace.component').then(m => m.HappyHoursWorkspaceComponent), title: 'Happy Hours'
   },
@@ -431,9 +425,6 @@ export const routes: Routes = [
   },
   {
     path: 'discount-rules/:id', loadComponent: () => import('./pages/discount-rules/rule-builder.component').then(m => m.RuleBuilderComponent), title: 'Edit Discount Rule'
-  },
-  {
-    path: 'growth-advisor', component: ModulePageComponent, title: 'AI Growth Advisor', data: { entity: 'growthAdvisorTasks', title: 'AI Growth Advisor Tasks', createLabel: 'Add growth task', columns: [{ key: 'title', label: 'Task' }, { key: 'priority', label: 'Priority', type: 'badge' }, { key: 'dueDate', label: 'Due' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'title', label: 'Title', required: true }, { key: 'priority', label: 'Priority', required: true, defaultValue: 'medium' }, { key: 'branchId', label: 'Branch ID' }, { key: 'dueDate', label: 'Due date' }, { key: 'signals', label: 'Signals JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }] }
   },
   {
     path: 'franchise', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Franchise System', data: { workflowType: 'franchise-os', title: 'Franchise OS', prompt: 'Create a franchise operator summary with royalty, compliance and branch action signals.', primaryEndpoint: 'franchise-os/units', commandCenterRoute: '/command-center/franchise-os', recordLabel: 'Franchise units' }

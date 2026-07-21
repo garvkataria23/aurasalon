@@ -145,7 +145,7 @@ const RESOURCE_GROUPS = [
     key: 'platform',
     label: 'Enterprise Platform',
     resources: [
-      ['quality', 'Quality center'],
+
       ['deployment', 'Deployment'],
       ['migration', 'Data migration'],
       ['marketplace-integrations', 'Integrations'],

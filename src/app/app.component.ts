@@ -888,7 +888,6 @@ export class AppComponent implements OnDestroy {
   @ViewChild('sidebarSearchInput') private sidebarSearchInput?: ElementRef<HTMLInputElement>;
   readonly favoriteNavItems: NavItem[] = [
     { path: '/home', label: 'Home', icon: 'HM', keywords: 'home dashboard kpi overview' },
-    { path: '/apps', label: 'All Apps', icon: 'AP', keywords: 'launchpad modules full suite apps' },
     { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo ai growth bot' },
     { path: '/appointments', label: 'Calendar', icon: 'C', keywords: 'booking appointment schedule enterprise scheduler staff calendar' },
     { path: '/appointment-activity', label: 'Appt Activity', icon: 'AA', keywords: 'appointment audit cancellation reschedule no show reliability' },
@@ -917,8 +916,7 @@ export class AppComponent implements OnDestroy {
           icon: 'HA',
           keywords: 'home dashboard overview kpi owner launchpad apps modules suite',
           children: [
-            { path: '/home', label: 'Home', icon: 'HM', keywords: 'home dashboard overview kpi owner' },
-            { path: '/apps', label: 'All Apps', icon: 'AP', keywords: 'launchpad modules full suite salon apps' }
+            { path: '/home', label: 'Home', icon: 'HM', keywords: 'home dashboard overview kpi owner' }
           ]
         },
         {
@@ -1221,10 +1219,8 @@ export class AppComponent implements OnDestroy {
             { path: '/marketing/birthdays', label: 'Birthdays', icon: 'BD', keywords: 'birthday campaign ai whatsapp sms offers clients' },
             { path: '/leads', label: 'Lead Management', icon: 'LM', keywords: 'leads pipeline follow up kanban sales crm prospect enquiry' },
             { path: '/engagement', label: 'Engagement Center', icon: 'EC', keywords: 'unified inbox hyperconnect client engagement whatsapp email calls' },
-            { path: '/whatsapp', label: 'WhatsApp', icon: 'WA', keywords: 'whatsapp campaign chat' },
             { path: '/message-logs', label: 'Messages', icon: 'ML', keywords: 'message logs communication' },
             { path: '/reputation', label: 'Reviews', icon: 'RV', keywords: 'reviews reputation google' },
-            { path: '/growth-advisor', label: 'Growth AI', icon: 'GA', keywords: 'growth advisor ai' },
             { path: '/growth-rank-bot', label: 'AI Rank Bot', icon: 'RB', keywords: 'instagram facebook google rank local seo dhanda ai growth bot reviews' }
           ]
         },
@@ -1263,8 +1259,7 @@ export class AppComponent implements OnDestroy {
             { path: '/settings/general', label: 'General Settings', icon: 'GS', keywords: 'general settings tenant defaults workspace' },
             { path: '/permissions', label: 'Permissions', icon: 'PM', keywords: 'role rbac permission' },
             { path: '/business-details', label: 'Business Details', icon: 'BD', keywords: 'business profile details' },
-            { path: '/white-label', label: 'White Label', icon: 'WL', keywords: 'brand theme white label' },
-            { path: '/quality', label: 'Quality', icon: 'QA', keywords: 'quality checks qa' }
+            { path: '/white-label', label: 'White Label', icon: 'WL', keywords: 'brand theme white label' }
           ]
         },
         {
@@ -1393,7 +1388,6 @@ export class AppComponent implements OnDestroy {
           icon: 'DP',
           keywords: 'dynamic pricing ai incrementality market intelligence level 6',
           children: [
-            { path: '/dynamic-pricing', label: 'Dynamic Pricing', icon: 'DP', keywords: 'dynamic pricing ai' },
             { path: '/pricing/incrementality', label: 'Incrementality', icon: 'CI', keywords: 'causal incrementality pricing' },
             { path: '/pricing/market-intelligence', label: 'Market Intelligence', icon: 'MI', keywords: 'competitive price intelligence market' },
             { path: '/pricing/level6-readiness', label: 'Level 6 Readiness', icon: 'L6', keywords: 'pricing level 6 readiness center' }
@@ -2066,14 +2060,14 @@ export class AppComponent implements OnDestroy {
     for (const group of this.navGroups) {
       for (const item of group.items) {
         if (!item.children?.length) continue;
-        if (item.children.some((child) => cleanUrl === child.path || cleanUrl.startsWith(`${child.path}/`))) {
+        if (item.children.some((child) => this.isRouteActive(cleanUrl, child.path))) {
           return { group, item };
         }
       }
     }
     for (const group of this.navGroups) {
       for (const item of group.items) {
-        if (cleanUrl === item.path || cleanUrl.startsWith(`${item.path}/`)) {
+        if (this.isRouteActive(cleanUrl, item.path)) {
           return { group, item };
         }
       }

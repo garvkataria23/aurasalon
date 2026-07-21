@@ -605,7 +605,7 @@ export class KpiDetailComponent implements OnInit {
       inventory: '/inventory',
       offline: '/offline',
       prd: '/prd',
-      quality: '/quality',
+
       reports: '/reports',
       'saas-onboarding': '/saas-onboarding',
       security: '/security',
