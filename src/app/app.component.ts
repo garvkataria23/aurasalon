@@ -940,7 +940,7 @@ export class AppComponent implements OnDestroy {
             { path: '/reports', label: 'Reports', icon: 'R', keywords: 'sales business reports' },
             { path: '/reports/invoices', label: 'Invoice Reports', icon: 'IR', keywords: 'invoice staff discount gst product membership wallet due audit reports' },
 
-            { path: '/predictive-forecasting', label: 'Forecast AI', icon: 'PF', keywords: 'forecast prediction revenue' }
+
           ]
         }
       ]

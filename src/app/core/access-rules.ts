@@ -16,7 +16,7 @@ const ACCESS_PERMISSION_RULES: Array<{ pattern: RegExp; permission: string | str
   { pattern: /^\/(memberships|gift-cards|loyalty)/, permission: ['read:memberships', 'read:services'] },
   { pattern: /^\/(staff|staff-os|staff-enterprise|payroll|commissions)/, permission: 'read:staff' },
   { pattern: /^\/(finance|profit-intelligence|account-master|balance-sheet|transactions)/, permission: 'read:finance' },
-  { pattern: /^\/(reports|analytics|kpi-details|predictive-forecasting)/, permission: ['read:reports', 'read:analytics'] },
+  { pattern: /^\/(reports|analytics|kpi-details)/, permission: ['read:reports', 'read:analytics'] },
   { pattern: /^\/(marketing|growth-rank-bot|discount-rules|coupons|sales-tools|leads|engagement|message-templates|message-history)/, permission: 'read:marketing' },
   { pattern: /^\/reputation/, permission: ['read:reputation', 'read:reviews'] },
   { pattern: /^\/message-logs/, permission: 'read:whatsapp' },
