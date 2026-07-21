@@ -612,8 +612,7 @@ export class KpiDetailComponent implements OnInit {
       staff: '/staff',
       'super-admin': '/super-admin',
       whatsapp: '/whatsapp',
-      'white-label': '/white-label',
-      workflow: '/workflows'
+      'white-label': '/white-label'
     };
 
     return routes[moduleName] || '/dashboard';

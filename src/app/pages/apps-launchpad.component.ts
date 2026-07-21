@@ -130,8 +130,7 @@ const SUITE_GROUPS: SuiteGroup[] = [
       { path: '/engagement', label: 'Engagement Center', description: 'Client messages, actions and journeys.', icon: 'EC', tone: 'blue', status: 'Ready', tags: ['engagement'] },
       { path: '/message-logs', label: 'Message Logs', description: 'SMS, email and WhatsApp delivery tracking with provider payloads.', icon: 'ML', tone: 'neutral', status: 'Ready', tags: ['messages'] },
       { path: '/reputation', label: 'Reputation', description: 'Review inbox, response drafting, alerts and reputation operations.', icon: 'RV', tone: 'amber', status: 'AI', tags: ['reviews'] },
-      { path: '/growth-advisor', label: 'Growth Advisor', description: 'Revenue growth tasks, missed opportunities and action plans.', icon: 'GA', tone: 'violet', status: 'AI', tags: ['growth'] },
-      { path: '/voice-receptionist', label: 'Voice Receptionist', description: 'Call transcript, multilingual intent, callback and booking action records.', icon: 'VR', tone: 'blue', status: 'AI', tags: ['voice'] }
+      { path: '/growth-advisor', label: 'Growth Advisor', description: 'Revenue growth tasks, missed opportunities and action plans.', icon: 'GA', tone: 'violet', status: 'AI', tags: ['growth'] }
     ]
   },
   {

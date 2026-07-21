@@ -21,11 +21,11 @@ const ACCESS_PERMISSION_RULES: Array<{ pattern: RegExp; permission: string | str
   { pattern: /^\/reputation/, permission: ['read:reputation', 'read:reviews'] },
   { pattern: /^\/(whatsapp|message-logs)/, permission: 'read:whatsapp' },
   { pattern: /^\/customer-care-ai/, permission: ['read:clients', 'read:customer-360'] },
-  { pattern: /^\/(ai|command-center|image-analysis|knowledge-base|gamification|fraud-detection|appointment-optimization|dynamic-pricing|pricing|future-features|voice-receptionist)/, permission: 'read:ai' },
+  { pattern: /^\/(command-center|dynamic-pricing|pricing|future-features)/, permission: 'read:ai' },
   { pattern: /^\/smart-booking/, permission: 'read:smart-booking' },
   { pattern: /^\/(book|online-booking)/, permission: 'read:booking-portal' },
   { pattern: /^\/offline/, permission: 'read:offline' },
-  { pattern: /^\/workflows/, permission: 'read:workflows' },
+
   { pattern: /^\/quality/, permission: 'read:quality' },
   { pattern: /^\/deployment/, permission: 'read:deployment' },
   { pattern: /^\/data-migration/, permission: 'read:migration' },

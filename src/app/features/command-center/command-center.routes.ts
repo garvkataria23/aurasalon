@@ -22,7 +22,7 @@ export const COMMAND_CENTER_ROUTES: Routes = [
       { path: 'whatsapp-campaign-planner', loadComponent: () => import('./pages/whatsapp-campaign-planner.page').then((m) => m.WhatsappCampaignPlannerPage), title: 'WhatsApp Campaign Planner' },
       { path: 'customer-super-graph', loadComponent: () => import('./pages/customer-super-graph.page').then((m) => m.CustomerSuperGraphPage), title: 'Customer Super Graph' },
       { path: 'client-memory-graph', loadComponent: () => import('./pages/client-memory-graph.page').then((m) => m.ClientMemoryGraphPage), title: 'Client Memory Graph' },
-      { path: 'voice-ai-receptionist', loadComponent: () => import('./pages/voice-ai-receptionist.page').then((m) => m.VoiceAiReceptionistPage), title: 'Voice AI Receptionist' },
+
       { path: 'computer-vision-readiness', loadComponent: () => import('./pages/computer-vision-readiness.page').then((m) => m.ComputerVisionReadinessPage), title: 'Computer Vision Readiness' },
       { path: 'whatsapp-commerce', loadComponent: () => import('./pages/whatsapp-commerce.page').then((m) => m.WhatsappCommercePage), title: 'WhatsApp Commerce' },
       { path: 'owner-mobile', loadComponent: () => import('./pages/owner-mobile.page').then((m) => m.OwnerMobilePage), title: 'Owner Mobile' },

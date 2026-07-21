@@ -138,8 +138,7 @@ const RESOURCE_GROUPS = [
       ['marketing', 'Marketing'],
       ['whatsapp', 'WhatsApp campaigns'],
       ['reviews', 'Reviews'],
-      ['ai', 'AI tools'],
-      ['workflows', 'Workflow engine']
+      ['ai', 'AI tools']
     ]
   },
   {

@@ -12,8 +12,7 @@ export const routes: Routes = [
   { path: 'kpi-details/:module/:kpiKey', loadComponent: () => import('./pages/kpi-detail.component').then(m => m.KpiDetailComponent), title: 'KPI Details' },
   { path: 'prd', loadComponent: () => import('./pages/prd.component').then(m => m.PrdComponent), title: 'Product Requirement Document' },
   { path: 'design-system', loadComponent: () => import('./pages/design-system.component').then(m => m.DesignSystemComponent), title: 'Design System' },
-  { path: 'ai/:section', loadComponent: () => import('./pages/ai-assistant.component').then(m => m.AiAssistantComponent), title: 'AI Assistant', canActivate: [permissionGuard], data: { permission: 'read:ai' } },
-  { path: 'ai', loadComponent: () => import('./pages/ai-assistant.component').then(m => m.AiAssistantComponent), title: 'AI Assistant', canActivate: [permissionGuard], data: { permission: 'read:ai' } },
+
   { path: 'customer-care-ai', loadComponent: () => import('./pages/customer-care-ai.component').then(m => m.CustomerCareAiComponent), title: 'Customer Care AI' },
   { path: 'analytics', loadComponent: () => import('./pages/analytics-engine.component').then(m => m.AnalyticsEngineComponent), title: 'Advanced Analytics' },
   { path: 'engagement', loadComponent: () => import('./pages/engagement-command-center.component').then(m => m.EngagementCommandCenterComponent), title: 'Engagement Command Center' },
@@ -66,7 +65,7 @@ export const routes: Routes = [
   { path: 'offline/risk-alerts', loadComponent: () => import('./pages/offline-risk-alerts.component').then(m => m.OfflineRiskAlertsComponent), title: 'Offline Risk Alerts' },
   { path: 'white-label', loadComponent: () => import('./pages/white-label.component').then(m => m.WhiteLabelComponent), title: 'White Label SaaS' },
   { path: 'future-features', loadComponent: () => import('./pages/future-features.component').then(m => m.FutureFeaturesComponent), title: 'Future Salon Intelligence' },
-  { path: 'workflows', loadComponent: () => import('./pages/workflow-engine.component').then(m => m.WorkflowEngineComponent), title: 'Workflow Engine' },
+
   { path: 'finance', loadComponent: () => import('./pages/finance-engine.component').then(m => m.FinanceEngineComponent), title: 'Finance Engine' },
     { path: 'profit-intelligence', loadComponent: () => import('./pages/profit-intelligence.component').then(m => m.ProfitIntelligenceComponent), title: 'Profit Intelligence' },
   { path: 'account-master', loadComponent: () => import('./pages/account-master.component').then(m => m.AccountMasterComponent), title: 'Account Master' },
@@ -318,9 +317,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/site-logs-command-center.component').then(m => m.SiteLogsCommandCenterComponent),
     title: 'Site Logs'
   },
-  {
-    path: 'voice-receptionist', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'AI Voice Receptionist', data: { workflowType: 'voice-receptionist', title: 'AI Voice Receptionist', prompt: 'Classify this client call, suggest the next booking action, and prepare human handoff if needed.', primaryEndpoint: 'voice-receptionist/calls', commandCenterRoute: '/command-center/voice-ai-receptionist', recordLabel: 'Voice calls' }
-  },
+
   {
     path: 'dynamic-pricing', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'Dynamic Pricing', data: { workflowType: 'dynamic-pricing', title: 'Dynamic Pricing Engine', prompt: 'Find safe dynamic pricing rules from live sales, services and appointment demand.', primaryEndpoint: 'dynamicPricingRules', commandCenterRoute: '/future-features', recordLabel: 'Pricing rules' }
   },
@@ -444,26 +441,18 @@ export const routes: Routes = [
   {
     path: 'training-academy', component: ModulePageComponent, title: 'Training Academy', data: { entity: 'trainingLessons', title: 'Training Academy', createLabel: 'Add lesson', columns: [{ key: 'title', label: 'Lesson' }, { key: 'category', label: 'Category' }, { key: 'level', label: 'Level' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'title', label: 'Lesson title', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'level', label: 'Level', defaultValue: 'beginner' }, { key: 'durationMinutes', label: 'Duration', type: 'number' }, { key: 'content', label: 'Content JSON', type: 'json', defaultValue: {} }, { key: 'quiz', label: 'Quiz JSON', type: 'json', defaultValue: {} }] }
   },
-  {
-    path: 'image-analysis', component: ModulePageComponent, title: 'AI Image Analysis', data: { entity: 'imageAnalyses', title: 'AI Beauty Image Analysis', createLabel: 'Add analysis', columns: [{ key: 'clientId', label: 'Client' }, { key: 'analysisType', label: 'Type' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'clientId', label: 'Client ID', required: true }, { key: 'analysisType', label: 'Analysis type', required: true, defaultValue: 'skin' }, { key: 'branchId', label: 'Branch ID' }, { key: 'imageUri', label: 'Secure image URI' }, { key: 'findings', label: 'Findings JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }, { key: 'consent', label: 'Consent JSON', type: 'json', defaultValue: {} }] }
-  },
+
   { path: 'reputation', loadChildren: () => import('./features/reputation/reputation.routes').then(m => m.REPUTATION_ROUTES), title: 'Reputation Management' },
   { path: 'marketplace-integrations', loadComponent: () => import('./pages/marketplace-integrations.component').then(m => m.MarketplaceIntegrationsComponent), title: 'Marketplace Integrations' },
-  {
-    path: 'gamification', component: ModulePageComponent, title: 'Gamification', data: { entity: 'gamificationEvents', title: 'Gamification System', createLabel: 'Add gamification event', columns: [{ key: 'subjectType', label: 'Subject' }, { key: 'subjectId', label: 'ID' }, { key: 'eventType', label: 'Event' }, { key: 'createdAt', label: 'Created' }], fields: [{ key: 'subjectType', label: 'Subject type', required: true, defaultValue: 'staff' }, { key: 'subjectId', label: 'Subject ID', required: true }, { key: 'eventType', label: 'Event type', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'points', label: 'Points JSON', type: 'json', defaultValue: {} }, { key: 'badges', label: 'Badges JSON', type: 'json', defaultValue: [] }, { key: 'metadata', label: 'Metadata JSON', type: 'json', defaultValue: {} }] }
-  },
-  {
-    path: 'fraud-detection', component: ModulePageComponent, title: 'AI Fraud Detection', data: { entity: 'fraudAlerts', title: 'AI Fraud Detection', createLabel: 'Add fraud alert', columns: [{ key: 'alertType', label: 'Type' }, { key: 'severity', label: 'Severity', type: 'badge' }, { key: 'riskScore', label: 'Risk' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'alertType', label: 'Alert type', required: true }, { key: 'severity', label: 'Severity', required: true, defaultValue: 'medium' }, { key: 'branchId', label: 'Branch ID' }, { key: 'riskScore', label: 'Risk score', type: 'number' }, { key: 'signals', label: 'Signals JSON', type: 'json', defaultValue: {} }, { key: 'evidence', label: 'Evidence JSON', type: 'json', defaultValue: [] }, { key: 'resolution', label: 'Resolution JSON', type: 'json', defaultValue: {} }] }
-  },
+
+
   {
     path: 'data-warehouse', component: ModulePageComponent, title: 'Data Warehouse', data: { entity: 'warehouseSnapshots', title: 'Data Warehouse Layer', createLabel: 'Add snapshot', columns: [{ key: 'snapshotType', label: 'Type' }, { key: 'periodStart', label: 'Start' }, { key: 'periodEnd', label: 'End' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'snapshotType', label: 'Snapshot type', required: true }, { key: 'periodStart', label: 'Period start', required: true }, { key: 'periodEnd', label: 'Period end', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'dimensions', label: 'Dimensions JSON', type: 'json', defaultValue: {} }, { key: 'facts', label: 'Facts JSON', type: 'json', defaultValue: {} }, { key: 'aggregates', label: 'Aggregates JSON', type: 'json', defaultValue: {} }] }
   },
   {
     path: 'kpi-monitoring', component: ModulePageComponent, title: 'KPI Monitoring', data: { entity: 'kpiMonitors', title: 'KPI Monitoring', createLabel: 'Add KPI monitor', columns: [{ key: 'name', label: 'KPI' }, { key: 'metric', label: 'Metric' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'KPI name', required: true }, { key: 'metric', label: 'Metric', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'target', label: 'Target JSON', type: 'json', defaultValue: {} }, { key: 'current', label: 'Current JSON', type: 'json', defaultValue: {} }, { key: 'alerts', label: 'Alerts JSON', type: 'json', defaultValue: [] }] }
   },
-  {
-    path: 'appointment-optimization', component: ModulePageComponent, title: 'Appointment Optimization', data: { entity: 'appointmentOptimizations', title: 'Smart Appointment Optimization', createLabel: 'Add optimization run', columns: [{ key: 'branchId', label: 'Branch' }, { key: 'optimizationType', label: 'Type' }, { key: 'score', label: 'Score' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'branchId', label: 'Branch ID', required: true }, { key: 'optimizationType', label: 'Optimization type', required: true }, { key: 'input', label: 'Input JSON', type: 'json', defaultValue: {} }, { key: 'recommendations', label: 'Recommendations JSON', type: 'json', defaultValue: [] }, { key: 'appliedChanges', label: 'Applied changes JSON', type: 'json', defaultValue: [] }, { key: 'score', label: 'Score', type: 'number' }] }
-  },
+
   {
     path: 'developer-api', component: ModulePageComponent, title: 'API Platform', data: { entity: 'apiKeys', title: 'Developer API Platform', createLabel: 'Add API key record', columns: [{ key: 'name', label: 'Key' }, { key: 'keyPrefix', label: 'Prefix' }, { key: 'status', label: 'Status', type: 'badge' }, { key: 'lastUsedAt', label: 'Last used' }], fields: [{ key: 'name', label: 'Name', required: true }, { key: 'keyHash', label: 'Key hash', required: true }, { key: 'keyPrefix', label: 'Key prefix' }, { key: 'scopes', label: 'Scopes JSON', type: 'json', defaultValue: [] }, { key: 'rateLimits', label: 'Rate limits JSON', type: 'json', defaultValue: {} }, { key: 'metadata', label: 'Metadata JSON', type: 'json', defaultValue: {} }] }
   },
@@ -473,9 +462,7 @@ export const routes: Routes = [
   {
     path: 'predictive-forecasting', component: ModulePageComponent, title: 'Predictive Forecasting', data: { entity: 'forecastingModels', title: 'AI Predictive Forecasting', createLabel: 'Add forecast model', columns: [{ key: 'name', label: 'Model' }, { key: 'modelType', label: 'Type' }, { key: 'horizonDays', label: 'Horizon' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Model name', required: true }, { key: 'modelType', label: 'Model type', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'horizonDays', label: 'Horizon days', type: 'number', defaultValue: 30 }, { key: 'features', label: 'Features JSON', type: 'json', defaultValue: {} }, { key: 'metrics', label: 'Metrics JSON', type: 'json', defaultValue: {} }, { key: 'predictions', label: 'Predictions JSON', type: 'json', defaultValue: [] }] }
   },
-  {
-    path: 'knowledge-base', component: ModulePageComponent, title: 'AI Knowledge Base', data: { entity: 'knowledgeBaseArticles', title: 'AI Knowledge Base', createLabel: 'Add article', columns: [{ key: 'title', label: 'Article' }, { key: 'audience', label: 'Audience' }, { key: 'category', label: 'Category' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'title', label: 'Title', required: true }, { key: 'audience', label: 'Audience', required: true }, { key: 'category', label: 'Category' }, { key: 'body', label: 'Body' }, { key: 'tags', label: 'Tags JSON', type: 'json', defaultValue: [] }, { key: 'contentBlocks', label: 'Content blocks JSON', type: 'json', defaultValue: [] }] }
-  },
+
   {
     path: 'plugins', component: ModulePageComponent, title: 'Plugin Ecosystem', data: { entity: 'pluginManifests', title: 'Plugin Ecosystem', createLabel: 'Add plugin', columns: [{ key: 'name', label: 'Plugin' }, { key: 'version', label: 'Version' }, { key: 'vendor', label: 'Vendor' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Plugin name', required: true }, { key: 'version', label: 'Version', required: true }, { key: 'vendor', label: 'Vendor' }, { key: 'permissions', label: 'Permissions JSON', type: 'json', defaultValue: [] }, { key: 'extensionPoints', label: 'Extension points JSON', type: 'json', defaultValue: [] }, { key: 'settings', label: 'Settings JSON', type: 'json', defaultValue: {} }] }
   },

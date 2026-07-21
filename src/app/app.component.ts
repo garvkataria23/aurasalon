@@ -1370,15 +1370,8 @@ export class AppComponent implements OnDestroy {
           path: '/ai',
           label: 'AI Tools',
           icon: 'AT',
-          keywords: 'assistant ai workflows image gamification fraud appointment optimization knowledge',
+          keywords: '',
           children: [
-            { path: '/ai', label: 'AI Assistant', icon: 'A', keywords: 'assistant ai' },
-            { path: '/workflows', label: 'Workflows', icon: 'WF', keywords: 'workflow automation' },
-            { path: '/image-analysis', label: 'Image AI', icon: 'IA', keywords: 'image analysis ai' },
-            { path: '/gamification', label: 'Gamification', icon: 'GM', keywords: 'points badges gamification' },
-            { path: '/fraud-detection', label: 'Fraud AI', icon: 'FD', keywords: 'fraud detection risk' },
-            { path: '/appointment-optimization', label: 'Appt Optimize', icon: 'AO', keywords: 'appointment optimization ai' },
-            { path: '/knowledge-base', label: 'Knowledge', icon: 'KB', keywords: 'knowledge base ai' }
           ]
         },
         {
@@ -1388,7 +1381,6 @@ export class AppComponent implements OnDestroy {
           keywords: 'future features ai voice franchise marketplace data warehouse financial brain inventory autopilot',
           children: [
             { path: '/future-features', label: 'Future AI', icon: 'F', keywords: 'future features ai' },
-            { path: '/command-center/voice-ai-receptionist', label: 'Voice AI', icon: 'VR', keywords: 'voice receptionist ai command center' },
             { path: '/command-center/franchise-os', label: 'Franchise OS', icon: 'FR', keywords: 'franchise expansion command center' },
             { path: '/command-center/marketplace-platform', label: 'Marketplace Platform', icon: 'MP', keywords: 'marketplace integrations apps platform' },
             { path: '/command-center/financial-brain', label: 'Financial Brain', icon: 'FB', keywords: 'financial brain ai' },

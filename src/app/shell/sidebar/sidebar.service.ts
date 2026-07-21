@@ -42,14 +42,14 @@ const GROUPS: GroupConfig[] = [
     label: 'AI Command',
     hint: 'Autonomous control',
     accent: 'coral',
-    paths: ['/command-center', '/ai', '/future-features', '/growth-advisor', '/predictive-forecasting', '/knowledge-base']
+    paths: ['/command-center', '/future-features', '/growth-advisor', '/predictive-forecasting']
   },
   {
     id: 'grow',
     label: 'Grow',
     hint: 'Marketing engine',
     accent: 'amber',
-    paths: ['/marketing', '/whatsapp', '/message-logs', '/reputation', '/dynamic-pricing', '/gamification']
+    paths: ['/marketing', '/whatsapp', '/message-logs', '/reputation', '/dynamic-pricing']
   },
   {
     id: 'manage',
