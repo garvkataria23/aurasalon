@@ -9,19 +9,18 @@ export const routes: Routes = [
   { path: 'dashboard/executive', loadComponent: () => import('./pages/dashboard/executive/executive.page').then(m => m.ExecutiveDashboardPage), title: 'Executive Dashboard' },
   { path: 'command-center', loadChildren: () => import('./features/command-center/command-center.routes').then(m => m.COMMAND_CENTER_ROUTES), title: 'AI Command Center' },
   { path: 'kpi-details/:module/:kpiKey', loadComponent: () => import('./pages/kpi-detail.component').then(m => m.KpiDetailComponent), title: 'KPI Details' },
-  { path: 'prd', loadComponent: () => import('./pages/prd.component').then(m => m.PrdComponent), title: 'Product Requirement Document' },
+
   { path: 'design-system', loadComponent: () => import('./pages/design-system.component').then(m => m.DesignSystemComponent), title: 'Design System' },
 
   { path: 'customer-care-ai', loadComponent: () => import('./pages/customer-care-ai.component').then(m => m.CustomerCareAiComponent), title: 'Customer Care AI' },
   { path: 'analytics', loadComponent: () => import('./pages/analytics-engine.component').then(m => m.AnalyticsEngineComponent), title: 'Advanced Analytics' },
   { path: 'engagement', loadComponent: () => import('./pages/engagement-command-center.component').then(m => m.EngagementCommandCenterComponent), title: 'Engagement Command Center' },
   { path: 'staff-chat', loadComponent: () => import('./pages/team-chat.component').then(m => m.TeamChatComponent), title: 'Team Chat', canActivate: [permissionGuard], data: { permission: 'read:staff' } },
-  { path: 'security', loadComponent: () => import('./pages/security-layer.component').then(m => m.SecurityLayerComponent), title: 'Enterprise Security' },
+
   { path: 'enterprise-security-shield', loadComponent: () => import('./pages/enterprise-security-shield.component').then(m => m.EnterpriseSecurityShieldComponent), title: 'Enterprise Security Shield' },
   { path: 'two-factor', loadComponent: () => import('./pages/two-factor-setup.component').then(m => m.TwoFactorSetupComponent), title: 'Two-Factor Authentication' },
   { path: 'security-alerts', loadComponent: () => import('./pages/security-alerts.component').then(m => m.SecurityAlertsComponent), title: 'Security Alerts' },
-  { path: 'security-blocklist', loadComponent: () => import('./pages/security-blocklist.component').then(m => m.SecurityBlocklistComponent), title: 'Security Blocklist' },
-  { path: 'security-policy-center', loadComponent: () => import('./pages/security-policy-center.component').then(m => m.SecurityPolicyCenterComponent), title: 'Security Policy Center' },
+
   { path: 'permissions', loadComponent: () => import('./pages/permission-matrix.component').then(m => m.PermissionMatrixComponent), title: 'Permission Matrix' },
   { path: 'compliance', loadChildren: () => import('./features/compliance/compliance.routes').then(m => m.COMPLIANCE_ROUTES), title: 'Statutory Compliance' },
   { path: 'audit-compliance', loadComponent: () => import('./pages/compliance-audit.component').then(m => m.ComplianceAuditComponent), title: 'Audit and Compliance' },
@@ -53,14 +52,13 @@ export const routes: Routes = [
     { path: 'purchase-bill-history', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Historical Purchase Bill Migration' },
     { path: 'jobs-audits-rollback-history', loadComponent: () => import('./pages/data-migration-section.component').then(m => m.DataMigrationSectionComponent), title: 'Jobs, Audits and Rollback History' }
   ] },
-  { path: 'offline', loadComponent: () => import('./pages/offline-support.component').then(m => m.OfflineSupportComponent), title: 'Offline Support' },
-  { path: 'offline/readiness', loadComponent: () => import('./pages/offline-readiness.component').then(m => m.OfflineReadinessComponent), title: 'Offline Readiness Score' },
+
   { path: 'offline/devices', loadComponent: () => import('./pages/offline-device-health.component').then(m => m.OfflineDeviceHealthComponent), title: 'Device Sync Health' },
   { path: 'offline/sync-queue', loadComponent: () => import('./pages/offline-sync-queue.component').then(m => m.OfflineSyncQueueComponent), title: 'Smart Sync Queue' },
   { path: 'offline/conflicts', loadComponent: () => import('./pages/offline-conflict-center.component').then(m => m.OfflineConflictCenterComponent), title: 'Conflict Resolution Center' },
   { path: 'offline/billing', loadComponent: () => import('./pages/offline-billing-protection.component').then(m => m.OfflineBillingProtectionComponent), title: 'Offline Billing Protection' },
   { path: 'offline/appointments', loadComponent: () => import('./pages/offline-appointment-protection.component').then(m => m.OfflineAppointmentProtectionComponent), title: 'Offline Appointment Protection' },
-  { path: 'offline/risk-alerts', loadComponent: () => import('./pages/offline-risk-alerts.component').then(m => m.OfflineRiskAlertsComponent), title: 'Offline Risk Alerts' },
+
   { path: 'white-label', loadComponent: () => import('./pages/white-label.component').then(m => m.WhiteLabelComponent), title: 'White Label SaaS' },
   { path: 'future-features', loadComponent: () => import('./pages/future-features.component').then(m => m.FutureFeaturesComponent), title: 'Future Salon Intelligence' },
 
@@ -438,20 +436,10 @@ export const routes: Routes = [
 
 
 
-  {
-    path: 'developer-api', component: ModulePageComponent, title: 'API Platform', data: { entity: 'apiKeys', title: 'Developer API Platform', createLabel: 'Add API key record', columns: [{ key: 'name', label: 'Key' }, { key: 'keyPrefix', label: 'Prefix' }, { key: 'status', label: 'Status', type: 'badge' }, { key: 'lastUsedAt', label: 'Last used' }], fields: [{ key: 'name', label: 'Name', required: true }, { key: 'keyHash', label: 'Key hash', required: true }, { key: 'keyPrefix', label: 'Key prefix' }, { key: 'scopes', label: 'Scopes JSON', type: 'json', defaultValue: [] }, { key: 'rateLimits', label: 'Rate limits JSON', type: 'json', defaultValue: {} }, { key: 'metadata', label: 'Metadata JSON', type: 'json', defaultValue: {} }] }
-  },
-  {
-    path: 'webhooks', component: ModulePageComponent, title: 'Webhooks', data: { entity: 'webhooks', title: 'Webhook Subscriptions', createLabel: 'Add webhook', columns: [{ key: 'name', label: 'Webhook' }, { key: 'url', label: 'URL' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Webhook name', required: true }, { key: 'url', label: 'URL', required: true }, { key: 'events', label: 'Events JSON', type: 'json', defaultValue: [] }, { key: 'headers', label: 'Headers JSON', type: 'json', defaultValue: {} }, { key: 'retryPolicy', label: 'Retry policy JSON', type: 'json', defaultValue: {} }] }
-  },
 
 
-  {
-    path: 'plugins', component: ModulePageComponent, title: 'Plugin Ecosystem', data: { entity: 'pluginManifests', title: 'Plugin Ecosystem', createLabel: 'Add plugin', columns: [{ key: 'name', label: 'Plugin' }, { key: 'version', label: 'Version' }, { key: 'vendor', label: 'Vendor' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Plugin name', required: true }, { key: 'version', label: 'Version', required: true }, { key: 'vendor', label: 'Vendor' }, { key: 'permissions', label: 'Permissions JSON', type: 'json', defaultValue: [] }, { key: 'extensionPoints', label: 'Extension points JSON', type: 'json', defaultValue: [] }, { key: 'settings', label: 'Settings JSON', type: 'json', defaultValue: {} }] }
-  },
-  {
-    path: 'app-marketplace', loadComponent: () => import('./pages/future-workflow.component').then(m => m.FutureWorkflowComponent), title: 'App Marketplace', data: { workflowType: 'marketplace', title: 'App Marketplace', prompt: 'Recommend marketplace connectors and plugins that should be installed for this tenant.', primaryEndpoint: 'marketplace/connectors', secondaryEndpoint: 'marketplace/plugins', commandCenterRoute: '/command-center/marketplace-platform', recordLabel: 'Marketplace connectors' }
-  },
+
+
   {
     path: 'localization', component: ModulePageComponent, title: 'Multi-Country', data: { entity: 'localizationProfiles', title: 'Multi-Country Localization', createLabel: 'Add localization profile', columns: [{ key: 'name', label: 'Profile' }, { key: 'primaryCountry', label: 'Primary country' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'Profile name', required: true }, { key: 'primaryCountry', label: 'Primary country', required: true }, { key: 'countries', label: 'Countries JSON', type: 'json', defaultValue: [] }, { key: 'currencies', label: 'Currencies JSON', type: 'json', defaultValue: [] }, { key: 'taxRules', label: 'Tax rules JSON', type: 'json', defaultValue: {} }, { key: 'translations', label: 'Translations JSON', type: 'json', defaultValue: {} }] }
   },

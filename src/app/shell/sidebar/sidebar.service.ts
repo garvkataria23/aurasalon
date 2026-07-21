@@ -63,7 +63,7 @@ const GROUPS: GroupConfig[] = [
     label: 'Admin',
     hint: 'SaaS and platform',
     accent: 'neutral',
-    paths: ['/super-admin', '/saas', '/branches', '/settings', '/setting/calendar', '/permissions', '/security', '/compliance', '/deployment', '/data-migration', '/marketplace-integrations', '/plugins', '/app-marketplace']
+    paths: ['/super-admin', '/saas', '/branches', '/settings', '/setting/calendar', '/permissions', '/security', '/compliance', '/deployment', '/data-migration', '/marketplace-integrations']
   }
 ];
 

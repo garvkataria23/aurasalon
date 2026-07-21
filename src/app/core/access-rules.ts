@@ -1,7 +1,7 @@
 import { grantsAllow } from './permission.guard';
 
 const ACCESS_PERMISSION_RULES: Array<{ pattern: RegExp; permission: string | string[] }> = [
-  { pattern: /^\/(security|enterprise-security-shield|security-alerts|security-blocklist|security-policy-center|permissions|compliance|audit-compliance|two-factor|mfa-security|passkeys|audit-logs|site-logs)/, permission: ['read:security', 'write:security', 'admin:security'] },
+  { pattern: /^\/(enterprise-security-shield|security-alerts|permissions|compliance|audit-compliance|two-factor|mfa-security|passkeys|audit-logs|site-logs)/, permission: ['read:security', 'write:security', 'admin:security'] },
   { pattern: /^\/(business-details|settings|setting|branches|white-label|localization|locations|super-admin|saas)/, permission: ['read:settings', 'write:settings', 'read:branches', 'write:branches'] },
   { pattern: /^\/dashboard\//, permission: 'read:dashboard' },
   { pattern: /^\/(appointments|appointment-activity|appointment-reports|scheduler|staff\/my-work|queue-system)/, permission: 'read:appointments' },
@@ -29,7 +29,7 @@ const ACCESS_PERMISSION_RULES: Array<{ pattern: RegExp; permission: string | str
 
   { pattern: /^\/deployment/, permission: 'read:deployment' },
   { pattern: /^\/data-migration/, permission: 'read:migration' },
-  { pattern: /^\/(developer-api|webhooks|plugins|app-marketplace|marketplace-integrations|prd|design-system)/, permission: ['read:developer-api', 'read:plugins', 'read:marketplace-integrations'] },
+  { pattern: /^\/(marketplace-integrations|design-system)/, permission: ['read:marketplace-integrations'] },
   { pattern: /^\/(franchise|training-academy)/, permission: 'read:franchise' }
 ];
 

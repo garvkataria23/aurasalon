@@ -1264,11 +1264,8 @@ export class AppComponent implements OnDestroy {
           icon: 'SA',
           keywords: 'security auth sessions shield alerts blocklist policy two factor audit compliance',
           children: [
-            { path: '/security', label: 'Security', icon: 'SL', keywords: 'security auth sessions' },
             { path: '/enterprise-security-shield', label: 'Security Shield', icon: 'ES', keywords: 'enterprise security shield detect alert block audit recover' },
             { path: '/security-alerts', label: 'Security Alerts', icon: 'SA', keywords: 'security alerts intrusion threat critical warning' },
-            { path: '/security-blocklist', label: 'Security Blocklist', icon: 'BL', keywords: 'security blocklist ip block active defense' },
-            { path: '/security-policy-center', label: 'Policy Center', icon: 'PC', keywords: 'security policy center device trust pin export field audit' },
             { path: '/two-factor', label: 'Two-Factor Auth', icon: '2F', keywords: 'security 2fa totp authenticator recovery code' },
             { path: '/mfa-security', label: 'MFA Security', icon: 'MF', keywords: 'security mfa totp sessions recovery step up' },
             { path: '/passkeys', label: 'Passkeys', icon: 'PK', keywords: 'security passkey webauthn biometric phishing resistant' },
@@ -1283,14 +1280,11 @@ export class AppComponent implements OnDestroy {
           icon: 'OF',
           keywords: 'offline sync pos resilience command center',
           children: [
-            { path: '/offline', label: 'Command Center', icon: 'OC', keywords: 'offline resilience command center overview' },
-            { path: '/offline/readiness', label: 'Readiness Score', icon: 'RS', keywords: 'offline readiness score cache branch device risk' },
             { path: '/offline/devices', label: 'Device Health', icon: 'DH', keywords: 'offline device sync health terminal tablet' },
             { path: '/offline/sync-queue', label: 'Sync Queue', icon: 'SQ', keywords: 'offline smart sync queue retry force conflict' },
             { path: '/offline/conflicts', label: 'Conflict Center', icon: 'CR', keywords: 'offline conflict resolution server device merge' },
             { path: '/offline/billing', label: 'Offline Billing', icon: 'OB', keywords: 'offline billing protection invoice cash drawer duplicate' },
-            { path: '/offline/appointments', label: 'Offline Appointments', icon: 'OA', keywords: 'offline appointment protection slot staff duplicate' },
-            { path: '/offline/risk-alerts', label: 'Risk Alerts', icon: 'RA', keywords: 'offline risk alerts stale cache failed sync' }
+            { path: '/offline/appointments', label: 'Offline Appointments', icon: 'OA', keywords: 'offline appointment protection slot staff duplicate' }
           ]
         },
         {
@@ -1299,13 +1293,8 @@ export class AppComponent implements OnDestroy {
           icon: 'DV',
           keywords: 'developer api webhooks plugins marketplace localization design system prd data migration deployment',
           children: [
-            { path: '/developer-api', label: 'API Platform', icon: 'API', keywords: 'api platform developer' },
-            { path: '/webhooks', label: 'Webhooks', icon: 'WH', keywords: 'webhooks api events' },
-            { path: '/plugins', label: 'Plugins', icon: 'PL', keywords: 'plugins extension' },
-            { path: '/app-marketplace', label: 'Marketplace', icon: 'AM', keywords: 'marketplace apps' },
             { path: '/localization', label: 'Countries', icon: 'LC', keywords: 'localization countries tax' },
             { path: '/design-system', label: 'Design System', icon: 'DS', keywords: 'design system ui' },
-            { path: '/prd', label: 'PRD', icon: 'P', keywords: 'product requirements prd' },
             { path: '/data-migration', label: 'Data Migration', icon: 'DM', keywords: 'import migration data' },
             { path: '/deployment', label: 'Deployment', icon: 'DP', keywords: 'deployment release' }
           ]
