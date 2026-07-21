@@ -436,12 +436,7 @@ export const routes: Routes = [
   { path: 'marketplace-integrations', loadComponent: () => import('./pages/marketplace-integrations.component').then(m => m.MarketplaceIntegrationsComponent), title: 'Marketplace Integrations' },
 
 
-  {
-    path: 'data-warehouse', component: ModulePageComponent, title: 'Data Warehouse', data: { entity: 'warehouseSnapshots', title: 'Data Warehouse Layer', createLabel: 'Add snapshot', columns: [{ key: 'snapshotType', label: 'Type' }, { key: 'periodStart', label: 'Start' }, { key: 'periodEnd', label: 'End' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'snapshotType', label: 'Snapshot type', required: true }, { key: 'periodStart', label: 'Period start', required: true }, { key: 'periodEnd', label: 'Period end', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'dimensions', label: 'Dimensions JSON', type: 'json', defaultValue: {} }, { key: 'facts', label: 'Facts JSON', type: 'json', defaultValue: {} }, { key: 'aggregates', label: 'Aggregates JSON', type: 'json', defaultValue: {} }] }
-  },
-  {
-    path: 'kpi-monitoring', component: ModulePageComponent, title: 'KPI Monitoring', data: { entity: 'kpiMonitors', title: 'KPI Monitoring', createLabel: 'Add KPI monitor', columns: [{ key: 'name', label: 'KPI' }, { key: 'metric', label: 'Metric' }, { key: 'status', label: 'Status', type: 'badge' }], fields: [{ key: 'name', label: 'KPI name', required: true }, { key: 'metric', label: 'Metric', required: true }, { key: 'branchId', label: 'Branch ID' }, { key: 'target', label: 'Target JSON', type: 'json', defaultValue: {} }, { key: 'current', label: 'Current JSON', type: 'json', defaultValue: {} }, { key: 'alerts', label: 'Alerts JSON', type: 'json', defaultValue: [] }] }
-  },
+
 
   {
     path: 'developer-api', component: ModulePageComponent, title: 'API Platform', data: { entity: 'apiKeys', title: 'Developer API Platform', createLabel: 'Add API key record', columns: [{ key: 'name', label: 'Key' }, { key: 'keyPrefix', label: 'Prefix' }, { key: 'status', label: 'Status', type: 'badge' }, { key: 'lastUsedAt', label: 'Last used' }], fields: [{ key: 'name', label: 'Name', required: true }, { key: 'keyHash', label: 'Key hash', required: true }, { key: 'keyPrefix', label: 'Key prefix' }, { key: 'scopes', label: 'Scopes JSON', type: 'json', defaultValue: [] }, { key: 'rateLimits', label: 'Rate limits JSON', type: 'json', defaultValue: {} }, { key: 'metadata', label: 'Metadata JSON', type: 'json', defaultValue: {} }] }

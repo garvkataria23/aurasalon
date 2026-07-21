@@ -925,13 +925,9 @@ export class AppComponent implements OnDestroy {
           icon: 'CC',
           keywords: 'control tower enterprise ai workforce owner command approval data warehouse',
           children: [
-            { path: '/command-center/ai-workforce-dashboard', label: 'AI Workforce', icon: 'AW', keywords: 'ai workforce dashboard' },
             { path: '/command-center/owner-command-center', label: 'Owner Command', icon: 'OC', keywords: 'owner command center' },
-            { path: '/command-center/ai-ceo-daily-brief', label: 'CEO Brief', icon: 'CB', keywords: 'ceo daily brief ai' },
-            { path: '/command-center/approval-hub', label: 'Approval Hub', icon: 'AH', keywords: 'approval hub command center' },
             { path: '/command-center/oversight', label: 'Oversight', icon: 'OV', keywords: 'scrutiny oversight fraud audit verify staff risk reconciliation siem' },
-            { path: '/command-center/engagement', label: 'Engagement', icon: 'EC', keywords: 'hyperconnect unified inbox whatsapp client engagement' },
-            { path: '/command-center/data-warehouse', label: 'Data Warehouse', icon: 'DW', keywords: 'data warehouse snapshots command center' }
+            { path: '/command-center/engagement', label: 'Engagement', icon: 'EC', keywords: 'hyperconnect unified inbox whatsapp client engagement' }
           ]
         },
         {
@@ -943,7 +939,7 @@ export class AppComponent implements OnDestroy {
             { path: '/analytics', label: 'Analytics', icon: 'AN', keywords: 'metrics insight kpi' },
             { path: '/reports', label: 'Reports', icon: 'R', keywords: 'sales business reports' },
             { path: '/reports/invoices', label: 'Invoice Reports', icon: 'IR', keywords: 'invoice staff discount gst product membership wallet due audit reports' },
-            { path: '/kpi-monitoring', label: 'KPI Monitor', icon: 'KM', keywords: 'monitor alerts targets' },
+
             { path: '/predictive-forecasting', label: 'Forecast AI', icon: 'PF', keywords: 'forecast prediction revenue' }
           ]
         }

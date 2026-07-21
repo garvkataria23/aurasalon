@@ -6,11 +6,8 @@ export const COMMAND_CENTER_ROUTES: Routes = [
     path: '',
     providers: [CommandCenterStore],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'ai-workforce-dashboard' },
-      { path: 'ai-workforce-dashboard', loadComponent: () => import('./pages/ai-workforce-dashboard.page').then((m) => m.AiWorkforceDashboardPage), title: 'AI Workforce' },
+      { path: '', pathMatch: 'full', redirectTo: 'owner-command-center' },
       { path: 'engagement', loadComponent: () => import('../../pages/engagement-command-center.component').then((m) => m.EngagementCommandCenterComponent), title: 'Engagement Command Center' },
-      { path: 'ai-ceo-daily-brief', loadComponent: () => import('./pages/ai-ceo-daily-brief.page').then((m) => m.AiCeoDailyBriefPage), title: 'AI CEO Daily Brief' },
-      { path: 'approval-hub', loadComponent: () => import('./pages/approval-hub.page').then((m) => m.ApprovalHubPage), title: 'Approval Hub' },
       { path: 'ai-model-router', loadComponent: () => import('./pages/ai-model-router.page').then((m) => m.AiModelRouterPage), title: 'AI Model Router' },
       { path: 'event-ledger', loadComponent: () => import('./pages/event-ledger.page').then((m) => m.EventLedgerPage), title: 'Event Ledger' },
       { path: 'oversight', loadComponent: () => import('../../pages/oversight-command-center.component').then((m) => m.OversightCommandCenterComponent), title: 'Oversight Command Center' },
@@ -34,7 +31,7 @@ export const COMMAND_CENTER_ROUTES: Routes = [
       { path: 'payment-intelligence', loadComponent: () => import('./pages/payment-intelligence.page').then((m) => m.PaymentIntelligencePage), title: 'Payment Intelligence' },
       { path: 'observability-center', loadComponent: () => import('./pages/observability-center.page').then((m) => m.ObservabilityCenterPage), title: 'Observability Center' },
       { path: 'security-hardening', loadComponent: () => import('./pages/security-hardening.page').then((m) => m.SecurityHardeningPage), title: 'Security Hardening' },
-      { path: 'data-warehouse', loadComponent: () => import('./pages/data-warehouse.page').then((m) => m.DataWarehousePage), title: 'Data Warehouse' }
+
     ]
   }
 ];

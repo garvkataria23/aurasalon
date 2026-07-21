@@ -56,7 +56,7 @@ const GROUPS: GroupConfig[] = [
     label: 'Manage',
     hint: 'Finance and control',
     accent: 'blue',
-    paths: ['/finance', '/billing', '/commissions', '/reports', '/reports/enterprise', '/analytics', '/data-warehouse', '/kpi-monitoring', '/audit-logs']
+    paths: ['/finance', '/billing', '/commissions', '/reports', '/reports/enterprise', '/analytics', '/audit-logs']
   },
   {
     id: 'admin',
