@@ -7,7 +7,6 @@ export const routes: Routes = [
   { path: 'home', loadComponent: () => import('./pages/dashboard.component').then(m => m.DashboardComponent), title: 'Home', data: { preload: true, preloadPriority: 1 } },
   { path: 'dashboard', loadComponent: () => import('./pages/dashboard.component').then(m => m.DashboardComponent), title: 'Dashboard', data: { preload: true, preloadPriority: 1 } },
   { path: 'dashboard/executive', loadComponent: () => import('./pages/dashboard/executive/executive.page').then(m => m.ExecutiveDashboardPage), title: 'Executive Dashboard' },
-  { path: 'apps', loadComponent: () => import('./pages/apps-launchpad.component').then(m => m.AppsLaunchpadComponent), title: 'All Apps' },
   { path: 'command-center', loadChildren: () => import('./features/command-center/command-center.routes').then(m => m.COMMAND_CENTER_ROUTES), title: 'AI Command Center' },
   { path: 'kpi-details/:module/:kpiKey', loadComponent: () => import('./pages/kpi-detail.component').then(m => m.KpiDetailComponent), title: 'KPI Details' },
   { path: 'prd', loadComponent: () => import('./pages/prd.component').then(m => m.PrdComponent), title: 'Product Requirement Document' },

@@ -39,7 +39,7 @@ function isPublicRoutePath(path: string): boolean {
 
 export function routePermissionForPath(path: string): string | string[] {
   const cleanPath = (path || '/').split(/[?#]/)[0] || '/';
-  if (!cleanPath || cleanPath === '/' || cleanPath === '/home' || cleanPath === '/dashboard' || cleanPath === '/apps' || isPublicRoutePath(cleanPath)) return '';
+  if (!cleanPath || cleanPath === '/' || cleanPath === '/home' || cleanPath === '/dashboard' || isPublicRoutePath(cleanPath)) return '';
   return ACCESS_PERMISSION_RULES.find((rule) => rule.pattern.test(cleanPath))?.permission || 'admin:system';
 }
 
