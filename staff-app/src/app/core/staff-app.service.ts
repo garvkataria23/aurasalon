@@ -1045,7 +1045,7 @@ export class StaffAppService {
   private bearerHeaders(): Record<string, string> {
     const token = this.accessTokenValue;
     if (!token) throw new Error("Staff login required.");
-    return { Authorization: `Bearer ${token}` };
+    return { "x-auth-token": token };
   }
 
   private throwNativeError(response: { data: unknown; status: number }): never {

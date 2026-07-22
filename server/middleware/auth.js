@@ -5,6 +5,8 @@ import { ensureTenantUserAccessColumns, normalizeRole } from "../services/access
 import { unauthorized } from "../utils/app-error.js";
 
 function bearerToken(req) {
+  const alt = req.get("x-auth-token") || "";
+  if (alt) return alt;
   const header = req.get("authorization") || "";
   const [scheme, token] = header.split(" ");
   return scheme?.toLowerCase() === "bearer" ? token : "";
