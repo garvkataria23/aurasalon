@@ -285,7 +285,9 @@ function auditDenied(req, { action = "", resource = "", reason = "forbidden" } =
 
 export function can(role, action, resource, access = {}) {
   role = normalizeRole(role);
-  if (cappedBuiltinRoles.has(role)) return staticGrantAllows(permissions[role] || [], action, resource);
+  if (cappedBuiltinRoles.has(role) && !resource.startsWith("staff-app-")) {
+    return staticGrantAllows(permissions[role] || [], action, resource);
+  }
   if (staticGrantAllows(access.permissions || [], action, resource)) return true;
   const grants = permissions[role] || [];
   if (grants.includes("*")) return true;
@@ -375,6 +377,40 @@ export function requireSelfServiceOrAnyPermission(action, resources, checks = []
       return;
     }
     fallback(req, res, next);
+  };
+}
+
+function hasStaffAppPolicy(role, access = {}) {
+  try {
+    return Boolean(db.prepare(`SELECT 1
+      FROM security_permissions
+      WHERE tenantId = @tenantId
+        AND role = @role
+        AND resource LIKE 'staff-app-%'
+        AND status = 'active'
+      LIMIT 1`).get({ tenantId: access.tenantId || "", role: normalizeRole(role) }));
+  } catch {
+    return false;
+  }
+}
+
+export function requireStaffAppSelfPermission(action, resource) {
+  return (req, _res, next) => {
+    if (!req.access?.staffId) {
+      auditDenied(req, { action, resource, reason: req.access || req.user ? "forbidden" : "unauthorized" });
+      next(req.access || req.user ? forbidden() : unauthorized());
+      return;
+    }
+    const role = req.access.role || req.user?.role || "staff";
+    const checkedAction = requestAction(action, req);
+    const legacyResource = String(resource || "").replace(/^staff-app-/, "");
+    const requiredResource = hasStaffAppPolicy(role, req.access) ? resource : legacyResource;
+    if (!can(role, checkedAction, requiredResource, req.access)) {
+      auditDenied(req, { action: checkedAction, resource: requiredResource, reason: "forbidden" });
+      next(forbidden());
+      return;
+    }
+    next();
   };
 }
 

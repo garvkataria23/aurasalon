@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { authenticateJwt } from "../middleware/auth.js";
-import { requirePermission, requireSelfServiceOrAnyPermission } from "../middleware/rbac.js";
+import { requirePermission, requireSelfServiceOrAnyPermission, requireStaffAppSelfPermission } from "../middleware/rbac.js";
 import { staffLoginService } from "../services/staff-login.service.js";
 import { generalSettingsService } from "../services/general-settings.service.js";
 import { requireIdempotencyKey } from "../middleware/idempotency.middleware.js";
@@ -15,7 +15,7 @@ staffSelfRouter.get(
   "/staff-self/workspace-preferences",
   authenticateJwt(),
   staffSelfContext(),
-  requirePermission("read", () => "appointments"),
+  requireStaffAppSelfPermission("read", "staff-app-appointments"),
   asyncHandler((req, res) => {
     res.json(generalSettingsService.staffWorkspacePreferences(req.access));
   })
@@ -25,7 +25,7 @@ staffSelfRouter.get(
   "/staff-self/dashboard",
   authenticateJwt(),
   staffSelfContext(),
-  requirePermission("read", () => "appointments"),
+  requireStaffAppSelfPermission("read", "staff-app-appointments"),
   asyncHandler((req, res) => {
     const result = staffLoginService.staffDashboard(req.query, req.access);
     res.json(staffSelfResponsePresenterService.dashboard(result, req.access));
@@ -36,7 +36,7 @@ staffSelfRouter.get(
   "/staff-self/enterprise-os",
   authenticateJwt(),
   staffSelfContext(),
-  requirePermission("read", () => "appointments"),
+  requireStaffAppSelfPermission("read", "staff-app-appointments"),
   asyncHandler((req, res) => {
     const result = staffLoginService.enterpriseOs(req.query, req.access);
     res.json(staffSelfResponsePresenterService.enterprise(result, req.access));
