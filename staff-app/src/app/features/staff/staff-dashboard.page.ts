@@ -206,9 +206,9 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   private isStaffRecordError(message: string): boolean { return /staff (record|profile)|not linked/i.test(message); }
   private isSessionError(message: string): boolean { return /jwt|expired|session|401|login required/i.test(message); }
   private friendlyBlockingError(message: string): string {
-    if (this.isSessionError(message)) return "Your session has expired. Sign in again to continue.";
-    if (this.isStaffRecordError(message)) return "This login is not currently linked to an available staff profile.";
-    return "We could not load your staff workspace. Please retry, or contact your administrator if the issue continues.";
+    if (this.isSessionError(message)) return "Your session has expired. Sign in again to continue.\n\n[Debug] " + message;
+    if (this.isStaffRecordError(message)) return "This login is not currently linked to an available staff profile.\n\n[Debug] " + message;
+    return "We could not load your staff workspace.\n\n[Debug] " + message;
   }
   private moduleError(module: DashboardModule): string {
     const labels: Record<DashboardModule, string> = { enterprise: "Floor alerts are unavailable.", today: "Shift, attendance, and tasks are unavailable.", overtime: "Overtime totals are unavailable.", leave: "Leave balance is unavailable.", preferences: "Workspace preferences are unavailable." };

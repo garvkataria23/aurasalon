@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable, signal } from "@angular/core";
-import { firstValueFrom, Observable } from "rxjs";
+import { Observable } from "rxjs";
 import { environment } from "../../environments/environment";
 import { resetCsrfState } from "./csrf.interceptor";
 import { addBusinessDays, businessDate } from "./business-date";
@@ -530,8 +530,8 @@ export class StaffAppService {
   async ensureDemoSession(): Promise<boolean> {
     if (this.isAuthenticated()) return true;
     try {
-      const response = await firstValueFrom(this.http.get<StaffLoginResponse | ApiEnvelope<StaffLoginResponse>>(`${this.baseUrl}/auth/demo-staff-session`, { withCredentials: false }));
-      const session = this.unwrap(response);
+      const response = await CapacitorHttp.get({ url: `${this.baseUrl}/auth/demo-staff-session` });
+      const session = this.unwrap(response.data);
       if (!session.user?.staffId) return false;
       this.saveSession(session, "tenant_aura");
       return true;
@@ -604,11 +604,11 @@ export class StaffAppService {
     this.error.set("");
     try {
       return await this.withRefreshRetry(async () => {
-        const response = await firstValueFrom(this.http.get<StaffDashboard | ApiEnvelope<StaffDashboard>>(`${this.baseUrl}/staff-self/dashboard`, {
-          headers: this.authHeaders(),
-          params
-        }));
-        const dashboard = this.unwrap(response);
+        const qs = Object.entries(params).filter(([, v]) => v != null && v !== "").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+        const url = `${this.baseUrl}/staff-self/dashboard${qs ? "?" + qs : ""}`;
+        const response = await this.nativeGet<StaffDashboard>(url, this.bearerHeaders());
+        if (response.status >= 300) this.throwNativeError(response);
+        const dashboard = this.unwrap(response.data);
         this.profile.set(dashboard.staff);
         return dashboard;
       });
@@ -1013,7 +1013,7 @@ export class StaffAppService {
       try {
         item.state = "syncing";
         this.writeOfflineQueue(queue);
-        const headers = this.authHeaders().set("Idempotency-Key", item.idempotencyKey);
+        const headers = { ...this.bearerHeaders(), "Idempotency-Key": item.idempotencyKey };
         await this.requestMutation(item.method, item.path, item.body, headers);
         const index = queue.indexOf(item);
         if (index >= 0) queue.splice(index, 1);
@@ -1042,6 +1042,22 @@ export class StaffAppService {
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
+  private bearerHeaders(): Record<string, string> {
+    const token = this.accessTokenValue;
+    if (!token) throw new Error("Staff login required.");
+    return { Authorization: `Bearer ${token}` };
+  }
+
+  private throwNativeError(response: { data: unknown; status: number }): never {
+    const body = response.data as Record<string, unknown> | undefined;
+    const errorObj = body?.["error"] as Record<string, unknown> | string | undefined;
+    const msg = typeof errorObj === "string" ? errorObj : typeof errorObj === "object" && errorObj?.["message"] ? String(errorObj["message"]) : body?.["message"] ? String(body["message"]) : `Server error (${response.status})`;
+    const err = new Error(msg);
+    (err as unknown as { status: number }).status = response.status;
+    (err as unknown as { error: unknown }).error = body?.["error"] || body;
+    throw err;
+  }
+
   private stringQuery(query: StaffBusinessQuery): Record<string, string> {
     return Object.fromEntries(
       Object.entries(query)
@@ -1050,13 +1066,28 @@ export class StaffAppService {
     );
   }
 
+  private nativeGet<T>(url: string, headers: Record<string, string> = {}): Promise<{ data: T | ApiEnvelope<T>; status: number }> {
+    return CapacitorHttp.get({ url, headers }) as Promise<{ data: T | ApiEnvelope<T>; status: number }>;
+  }
+
+  private nativePost<T>(url: string, body: unknown, headers: Record<string, string> = {}): Promise<{ data: T | ApiEnvelope<T>; status: number }> {
+    return CapacitorHttp.post({ url, headers: { "Content-Type": "application/json", ...headers }, data: body }) as Promise<{ data: T | ApiEnvelope<T>; status: number }>;
+  }
+
+  private nativePatch<T>(url: string, body: unknown, headers: Record<string, string> = {}): Promise<{ data: T | ApiEnvelope<T>; status: number }> {
+    return CapacitorHttp.patch({ url, headers: { "Content-Type": "application/json", ...headers }, data: body }) as Promise<{ data: T | ApiEnvelope<T>; status: number }>;
+  }
+
   private async get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
     this.loading.set(true);
     this.error.set("");
     try {
       return await this.withRefreshRetry(async () => {
-        const response = await firstValueFrom(this.http.get<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, { headers: this.authHeaders(), params }));
-        return this.unwrap(response);
+        const qs = Object.entries(params).filter(([, v]) => v != null && v !== "").map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+        const url = `${this.baseUrl}${path}${qs ? "?" + qs : ""}`;
+        const response = await this.nativeGet<T>(url, this.bearerHeaders());
+        if (response.status >= 300) this.throwNativeError(response);
+        return this.unwrap(response.data);
       });
     } catch (error) {
       const message = this.errorMessage(error, "Unable to load staff data.");
@@ -1073,8 +1104,9 @@ export class StaffAppService {
     if (!this.isOnline()) { this.loading.set(false); throw new Error("This action requires an internet connection."); }
     try {
       return await this.withRefreshRetry(async () => {
-        const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
-        return this.unwrap(response);
+        const response = await this.nativePost<T>(`${this.baseUrl}${path}`, body, this.bearerHeaders());
+        if (response.status >= 300) this.throwNativeError(response);
+        return this.unwrap(response.data);
       });
     } catch (error) {
       const message = this.errorMessage(error, "Unable to update staff data.");
@@ -1091,8 +1123,9 @@ export class StaffAppService {
     if (!this.isOnline()) { this.loading.set(false); throw new Error("This action requires an internet connection."); }
     try {
       return await this.withRefreshRetry(async () => {
-        const response = await firstValueFrom(this.http.patch<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders() }));
-        return this.unwrap(response);
+        const response = await this.nativePatch<T>(`${this.baseUrl}${path}`, body, this.bearerHeaders());
+        if (response.status >= 300) this.throwNativeError(response);
+        return this.unwrap(response.data);
       });
     } catch (error) {
       const message = this.errorMessage(error, "Unable to update staff data.");
@@ -1156,10 +1189,17 @@ export class StaffAppService {
   }
 
   private isUnauthorized(error: unknown): boolean {
-    return error instanceof HttpErrorResponse && (
-      error.status === 401 ||
-      (error.status === 400 && this.isProxyBadRequest(error.error))
-    );
+    if (error instanceof HttpErrorResponse) {
+      return error.status === 401 || (error.status === 400 && this.isProxyBadRequest(error.error));
+    }
+    if (error instanceof Error) {
+      const status = (error as unknown as { status?: number }).status;
+      if (status === 401) return true;
+      if (status === 400 && this.isProxyBadRequest((error as unknown as { error?: unknown }).error)) return true;
+      const msg = (error.message || "").toLowerCase();
+      return msg.includes("401") || msg.includes("unauthorized") || msg.includes("session") || msg.includes("expired");
+    }
+    return false;
   }
 
   private isProxyBadRequest(body: unknown): boolean {
@@ -1199,9 +1239,10 @@ export class StaffAppService {
     if (!this.isOnline()) { this.loading.set(false); throw new Error("This action requires an internet connection."); }
     try {
       return await this.withRefreshRetry(async () => {
-        const headers = this.authHeaders().set("Idempotency-Key", idempotencyKey);
-        const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers }));
-        return this.unwrap(response);
+        const headers = { ...this.bearerHeaders(), "Idempotency-Key": idempotencyKey };
+        const response = await this.nativePost<T>(`${this.baseUrl}${path}`, body, headers);
+        if (response.status >= 300) this.throwNativeError(response);
+        return this.unwrap(response.data);
       });
     } catch (error) {
       this.error.set(this.errorMessage(error, "Unable to update chat."));
@@ -1306,10 +1347,12 @@ export class StaffAppService {
     } catch { localStorage.removeItem(STAFF_OFFLINE_LEASE_KEY); }
   }
 
-  private async requestMutation(method: "POST" | "PATCH", path: string, body: Record<string, unknown>, headers: HttpHeaders): Promise<unknown> {
+  private async requestMutation(method: "POST" | "PATCH", path: string, body: Record<string, unknown>, headers: Record<string, string>): Promise<unknown> {
     return this.withRefreshRetry(async () => {
-      const request = method === "POST" ? this.http.post<unknown>(`${this.baseUrl}${path}`, body, { headers }) : this.http.patch<unknown>(`${this.baseUrl}${path}`, body, { headers });
-      return firstValueFrom(request);
+      const fn = method === "POST" ? this.nativePost : this.nativePatch;
+      const response = await fn.call(this, `${this.baseUrl}${path}`, body, headers);
+      if (response.status >= 300) this.throwNativeError(response);
+      return response.data;
     });
   }
 
@@ -1342,15 +1385,17 @@ export class StaffAppService {
   }
 
   private async publicPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
-    const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { withCredentials: false }));
-    return this.unwrap(response);
+    const response = await this.nativePost<T>(`${this.baseUrl}${path}`, body);
+    if (response.status >= 300) this.throwNativeError(response);
+    return this.unwrap(response.data);
   }
 
   private async authPost<T = unknown>(path: string, body: Record<string, unknown>, authenticated = false): Promise<T> {
     if (!authenticated) return this.publicPost<T>(path, body);
     return this.withRefreshRetry(async () => {
-      const response = await firstValueFrom(this.http.post<T | ApiEnvelope<T>>(`${this.baseUrl}${path}`, body, { headers: this.authHeaders(), withCredentials: false }));
-      return this.unwrap(response);
+      const response = await this.nativePost<T>(`${this.baseUrl}${path}`, body, this.bearerHeaders());
+      if (response.status >= 300) this.throwNativeError(response);
+      return this.unwrap(response.data);
     });
   }
 
