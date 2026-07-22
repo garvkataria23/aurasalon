@@ -47,6 +47,22 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
+def isolatedWebDir = System.getenv('AURA_ANDROID_WEB_DIR')
+def isolatedAssetsDir = System.getenv('AURA_ANDROID_ASSETS_DIR')
+if (isolatedWebDir && isolatedAssetsDir) {
+    android.sourceSets.main.assets.srcDirs = [file(isolatedAssetsDir)]
+    def prepareIsolatedWebAssets = tasks.register('prepareIsolatedWebAssets', Sync) {
+        from(file(isolatedWebDir))
+        into(file("${isolatedAssetsDir}/public"))
+        doLast {
+            file("${isolatedAssetsDir}/capacitor.config.json").text = '{"appId":"com.aura.staff","appName":"Aura Staff","webDir":"www/browser","server":{"androidScheme":"https"},"plugins":{"PushNotifications":{"presentationOptions":["badge","sound","alert"]},"CapacitorHttp":{"enabled":true}}}'
+            file("${isolatedAssetsDir}/public/cordova.js").text = ''
+            file("${isolatedAssetsDir}/public/cordova_plugins.js").text = ''
+        }
+    }
+    tasks.named('preBuild').configure { dependsOn prepareIsolatedWebAssets }
+}
+
 apply from: 'capacitor.build.gradle'
 
 try {

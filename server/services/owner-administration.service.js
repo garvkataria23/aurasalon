@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db, columnsFor } from "../db.js";
-import { permissionResources, staffPermissionCatalog } from "../config/staff-permission-catalog.js";
+import { staffAppPermissionCatalog } from "../config/staff-permission-catalog.js";
 import { can } from "../middleware/rbac.js";
 import { securityService } from "./security.service.js";
 import { generalSettingsService } from "./general-settings.service.js";
@@ -11,6 +11,7 @@ const text = (value) => String(value ?? "").trim();
 const lower = (value) => text(value).toLowerCase();
 const now = () => new Date().toISOString();
 const jsonArray = (value) => { try { const parsed = Array.isArray(value) ? value : JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed.map(text).filter(Boolean) : []; } catch { return []; } };
+const jsonObject = (value) => { try { const parsed = value && typeof value === "object" ? value : JSON.parse(value || "{}"); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } };
 const branchStatuses = new Set(["active", "inactive"]);
 const roleStatuses = new Set(["active", "inactive"]);
 const userStatuses = new Set(["active", "hidden", "disabled", "suspended"]);
@@ -85,8 +86,7 @@ function assertAssignableRole(role, access) {
 
 function catalogueKeys() {
   const keys = new Set();
-  for (const resource of permissionResources) for (const action of ["read", "write", "admin"]) keys.add(`${action}:${resource}`);
-  for (const item of staffPermissionCatalog) keys.add(`${item.action}:${item.resource}`);
+  for (const item of staffAppPermissionCatalog) keys.add(`${item.action}:${item.resource}`);
   return keys;
 }
 
@@ -129,13 +129,14 @@ function userInOwnerScope(user, owner) {
 
 function accessCatalogue(access, owner) {
   const management = securityService.userManagement(access);
-  const permissionGroups = [...new Map(staffPermissionCatalog.map((item) => [item.groupKey, { key: item.groupKey, label: item.groupLabel }])).values()].map((group) => {
-    const items = staffPermissionCatalog.filter((item) => item.groupKey === group.key).map((item) => ({ key: `${item.action}:${item.resource}`, label: item.label, resource: item.resource, action: item.action, sensitive: ["security", "settings", "finance", "payroll", "refunds", "branches", "tax-settings"].includes(item.resource) || ["delete", "admin"].includes(item.action) }));
+  const staffAppKeys = catalogueKeys();
+  const permissionGroups = [...new Map(staffAppPermissionCatalog.map((item) => [item.groupKey, { key: item.groupKey, label: item.groupLabel }])).values()].map((group) => {
+    const items = staffAppPermissionCatalog.filter((item) => item.groupKey === group.key).map((item) => ({ key: `${item.action}:${item.resource}`, label: item.label, resource: item.resource, action: item.action, sensitive: ["staff-app-finance", "staff-app-payroll"].includes(item.resource) }));
     return { ...group, items: [...new Map(items.map((item) => [item.key, item])).values()] };
   });
   return {
     branches: assignedBranches(owner),
-    roles: management.roles.map((role) => ({ ...role, status: management.customRoles.find((item) => item.role === role.role)?.status || "active", permissionKeys: rolePermissionKeys(management, role.role), editable: !Number(role.isSystem) })),
+    roles: management.roles.map((role) => ({ ...role, status: management.customRoles.find((item) => item.role === role.role)?.status || "active", permissionKeys: rolePermissionKeys(management, role.role).filter((key) => staffAppKeys.has(key)), editable: !Number(role.isSystem) })),
     users: management.users.filter((user) => userInOwnerScope(user, owner)),
     permissionGroups,
     capabilities: { createRole: true, editCustomRole: true, duplicateRole: true, setCustomRoleStatus: true, createUser: true, updateUser: true, disableUser: true },
@@ -232,9 +233,14 @@ export const ownerAdministrationService = {
     if (!roleStatuses.has(status)) throw badRequest("Role status must be active or inactive");
     const keys = validatePermissionKeys(payload.permissionKeys);
     if (!keys.length) throw badRequest("Choose at least one catalogue permission");
+    const appResources = [...new Set(staffAppPermissionCatalog.map((item) => item.resource))];
     const save = db.transaction(() => {
-      db.prepare(`UPDATE security_permissions SET status = 'inactive', updatedAt = @updatedAt WHERE tenantId = @tenantId AND role = @role`).run({ updatedAt: now(), tenantId: owner.tenantId, role });
-      const result = securityService.upsertRoleDefinition({ role, name: text(payload.name), description: text(payload.description), status, permissions: permissionRows(keys, status), isSystem: false }, access, req);
+      const storedPermissions = db.prepare(`SELECT resource, actions, effect, conditions, status FROM security_permissions WHERE tenantId = @tenantId AND role = @role`).all({ tenantId: owner.tenantId, role });
+      const preservedPermissions = storedPermissions.filter((item) => !appResources.includes(item.resource)).map((item) => ({ ...item, actions: jsonArray(item.actions), conditions: jsonObject(item.conditions) }));
+      const resourceParams = { updatedAt: now(), tenantId: owner.tenantId, role };
+      const resourceSlots = appResources.map((resource, index) => { resourceParams[`resource${index}`] = resource; return `@resource${index}`; });
+      db.prepare(`UPDATE security_permissions SET status = 'inactive', updatedAt = @updatedAt WHERE tenantId = @tenantId AND role = @role AND resource IN (${resourceSlots.join(",")})`).run(resourceParams);
+      const result = securityService.upsertRoleDefinition({ role, name: text(payload.name), description: text(payload.description), status, permissions: [...preservedPermissions, ...permissionRows(keys, status)], isSystem: false }, access, req);
       const users = db.prepare(`SELECT id FROM tenant_users WHERE tenantId = @tenantId AND role = @role`).all({ tenantId: owner.tenantId, role });
       if (users.length) db.prepare(`UPDATE tenant_users SET permissionVersion = permissionVersion + 1, updatedAt = @updatedAt WHERE tenantId = @tenantId AND role = @role`).run({ updatedAt: now(), tenantId: owner.tenantId, role });
       return { result, users };

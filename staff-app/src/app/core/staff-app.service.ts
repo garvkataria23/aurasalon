@@ -544,9 +544,16 @@ export class StaffAppService {
     const grants = this.user()?.permissions || [];
     if (!permission) return true;
     if (grants.includes("*")) return true;
-    if (grants.includes(permission)) return true;
     const [action, resource] = permission.split(":");
     const writeAliases = new Set(["create", "update", "delete", "back", "print", "export"]);
+    const scopedResource = resource ? `staff-app-${resource === "staff-checkin-checkout" ? "checkin-checkout" : resource}` : "";
+    const scopedPolicy = grants.some((grant) => grant.includes(":staff-app-"));
+    if (scopedPolicy) {
+      return grants.includes(`${action}:${scopedResource}`) ||
+        grants.includes("admin:staff-app-*") ||
+        (writeAliases.has(action) && (grants.includes(`write:${scopedResource}`) || grants.includes("write:staff-app-*")));
+    }
+    if (grants.includes(permission)) return true;
     return grants.includes(`${action}:*`) ||
       grants.includes("admin:*") ||
       (resource ? grants.includes(`admin:${resource}`) : false) ||

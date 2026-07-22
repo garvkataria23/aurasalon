@@ -310,7 +310,12 @@ export function can(role, action, resource, access = {}) {
   } catch {
     // Fall back to built-in grants when persisted role grants cannot be inspected.
   }
-  return staticGrantAllows(grants, action, resource);
+  if (staticGrantAllows(grants, action, resource)) return true;
+  if (!resource.startsWith("staff-app-")) {
+    const staffAppResource = `staff-app-${resource}`;
+    if (can(role, action, staffAppResource, access)) return true;
+  }
+  return false;
 }
 export function requirePermission(action, resourceResolver = (req) => req.params.resource || "system") {
   return (req, _res, next) => {

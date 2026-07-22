@@ -1183,6 +1183,17 @@ export class StaffLoginService {
       const defaultStaff = this.defaultStaffForManager(access);
       if (defaultStaff?.id) return defaultStaff.id;
     }
+    if (access.userId && access.tenantId) {
+      const userRow = db.prepare("SELECT email, name FROM tenant_users WHERE id = ? AND tenantId = ?").get(access.userId, access.tenantId);
+      if (userRow) {
+        const matched = db.prepare("SELECT id FROM staff_master WHERE tenant_id = @tenantId AND lower(email) = lower(@email) AND COALESCE(status, 'active') NOT IN ('archived', 'blocked', 'deleted', 'inactive', 'suspended', 'terminated') LIMIT 1")
+          .get({ tenantId: access.tenantId, email: userRow.email || "" });
+        if (matched?.id) {
+          db.prepare("UPDATE tenant_users SET staffId = @staffId WHERE id = @userId AND tenantId = @tenantId").run({ staffId: matched.id, userId: access.userId, tenantId: access.tenantId });
+          return matched.id;
+        }
+      }
+    }
     throw forbidden("This login is not linked with a staff profile");
   }
 
@@ -1209,12 +1220,12 @@ export class StaffLoginService {
     if (!row) {
       const legacy = db.prepare("SELECT * FROM staff WHERE id = ? AND tenantId = ?").get(staffId, access.tenantId);
       if (!legacy) throw notFound("Staff record not found");
-      if (!privilegedRoles.has(normalizeRole(access.role)) && access.branchId && legacy.branchId !== access.branchId) {
+      if (!privilegedRoles.has(normalizeRole(access.role)) && access.branchId && legacy.branchId !== access.branchId && access.staffId !== staffId) {
         throw forbidden("This staff record is outside your branch access");
       }
       return legacyRowToStaff(legacy);
     }
-    if (!privilegedRoles.has(normalizeRole(access.role)) && access.branchId && row.branch_id !== access.branchId) {
+    if (!privilegedRoles.has(normalizeRole(access.role)) && access.branchId && row.branch_id !== access.branchId && access.staffId !== staffId) {
       throw forbidden("This staff record is outside your branch access");
     }
     return rowToStaff(row);

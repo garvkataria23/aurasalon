@@ -200,7 +200,27 @@ export const staffPermissionCatalog = [
   item("home-screen", "Micro Permission - Home Screen", "home-sales-graph", "read", "Sales Graph", "homeScreen", ["/home"], ["GET /dashboard"])
 ];
 
+export const staffAppPermissionCatalog = [
+  item("scheduling", "Scheduling", "staff-app-appointments", "read", "View appointments", "scheduling", ["/staff/appointments"], ["GET /appointments"]),
+  item("scheduling", "Scheduling", "staff-app-appointments", "update", "Update appointment status", "scheduling", ["/staff/calendar"], ["PATCH /appointments"]),
+  item("scheduling", "Scheduling", "staff-app-appointments", "write", "Send chat messages", "scheduling", ["/staff/chat"], ["POST /team-chat"]),
+
+  item("team", "Team", "staff-app-staff", "read", "View staff data", "team", ["/staff/tasks", "/staff/reports", "/staff/leaderboard"], ["GET /staff"]),
+  item("team", "Team", "staff-app-staff", "write", "Manage tasks and leaves", "team", ["/staff/attendance", "/staff/tasks"], ["POST /staff-attendance", "POST /team-tasks"]),
+  item("team", "Team", "staff-app-staff", "update", "Update tasks and leaves", "team", ["/staff/tasks", "/staff/leaves"], ["PATCH /team-tasks"]),
+
+  item("attendance", "Attendance", "staff-app-checkin-checkout", "allow", "Staff can check in and out", "attendance", ["/staff/attendance"], ["POST /staff-attendance"]),
+
+  item("finance", "Finance & Revenue", "staff-app-finance", "read", "View finance data", "finance", ["/staff/payroll", "/staff/performance"], ["GET /finance"]),
+  item("finance", "Finance & Revenue", "staff-app-payroll", "read", "View payroll", "finance", ["/staff/payroll"], ["GET /staff-payroll"]),
+  item("finance", "Finance & Revenue", "staff-app-sales", "read", "View sales data", "finance", ["/staff/performance"], ["GET /sales"]),
+  item("finance", "Finance & Revenue", "staff-app-payments", "read", "View payments data", "finance", ["/staff/performance"], ["GET /payments"]),
+  item("finance", "Finance & Revenue", "staff-app-invoices", "read", "View invoices data", "finance", ["/staff/performance"], ["GET /invoices"]),
+
+  item("notifications", "Notifications", "staff-app-notifications", "update", "Mark notifications read", "notifications", ["/staff/notifications"], ["PATCH /notifications"])
+];
+
 export const permissionResources = [
-  ...new Set([...basePermissionResources, ...staffPermissionCatalog.map((permission) => permission.resource)])
+  ...new Set([...basePermissionResources, ...staffPermissionCatalog.map((permission) => permission.resource), ...staffAppPermissionCatalog.map((permission) => permission.resource)])
 ].sort();
 
