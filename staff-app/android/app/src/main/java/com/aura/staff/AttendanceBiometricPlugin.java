@@ -53,7 +53,7 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
-import java.security.Signature;
+
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
@@ -104,7 +104,13 @@ public class AttendanceBiometricPlugin extends Plugin {
             latitude = location.getLatitude();
             longitude = location.getLongitude();
             accuracyMeters = location.getAccuracy();
-            capturedAt = Instant.ofEpochMilli(location.getTime() > 0 ? location.getTime() : System.currentTimeMillis()).toString();
+            long millis = location.getTime() > 0 ? location.getTime() : System.currentTimeMillis();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                capturedAt = Instant.ofEpochMilli(millis).toString();
+            } else {
+                capturedAt = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT)
+                    .format(new java.util.Date(millis));
+            }
             mockLocation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? location.isMock() : LocationCompat.isMock(location);
             integrityVerdict = integrityToken != null ? "provided" : "not_provided";
             this.integrityToken = integrityToken;
@@ -212,8 +218,17 @@ public class AttendanceBiometricPlugin extends Plugin {
 
     private boolean isAppTampered() {
         try {
-            PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES);
-            Signature[] sigs = info.signingInfo != null ? info.signingInfo.getAp contentsSigners() : null;
+            Signature[] sigs;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES);
+                sigs = info.signingInfo != null ? info.signingInfo.getApkContentsSigners() : null;
+            } else {
+                @SuppressWarnings("deprecation")
+                PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), PackageManager.GET_SIGNATURES);
+                @SuppressWarnings("deprecation")
+                Signature[] legacySigs = info.signatures;
+                sigs = legacySigs;
+            }
             if (sigs == null || sigs.length == 0) return true;
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(sigs[0].toByteArray());
@@ -355,7 +370,7 @@ public class AttendanceBiometricPlugin extends Plugin {
             rejectVerificationUnavailable(call, status);
             return;
         }
-        Signature signature = Signature.getInstance("SHA256withECDSA");
+        java.security.Signature signature = java.security.Signature.getInstance("SHA256withECDSA");
         boolean cryptoPrompt = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q;
         if (cryptoPrompt) signature.initSign(keyPair.getPrivate());
         BiometricPrompt prompt = new BiometricPrompt((FragmentActivity) getActivity(), ContextCompat.getMainExecutor(getContext()),
@@ -370,7 +385,7 @@ public class AttendanceBiometricPlugin extends Plugin {
                 @Override
                 public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                     try {
-                        Signature unlocked = cryptoPrompt && result.getCryptoObject() != null
+                        java.security.Signature unlocked = cryptoPrompt && result.getCryptoObject() != null
                             ? result.getCryptoObject().getSignature() : signature;
                         if (unlocked == null) throw new IllegalStateException("Attendance key was not unlocked");
                         if (!cryptoPrompt) unlocked.initSign(keyPair.getPrivate());
@@ -379,7 +394,12 @@ public class AttendanceBiometricPlugin extends Plugin {
                         response.put("signatureBase64", Base64.encodeToString(unlocked.sign(), Base64.NO_WRAP));
                         response.put("algorithm", "ECDSA_P256_SHA256");
                         response.put("userVerified", true);
-                        response.put("verifiedAt", Instant.now().toString());
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            response.put("verifiedAt", Instant.now().toString());
+                        } else {
+                            response.put("verifiedAt", new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.ROOT)
+                                .format(new java.util.Date()));
+                        }
                         cachedLocation = null;
                         call.resolve(response);
                     } catch (Exception error) {
@@ -416,7 +436,10 @@ public class AttendanceBiometricPlugin extends Plugin {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             builder.setUserAuthenticationValidityDurationSeconds(30);
         } else {
-            builder.setUserAuthenticationValidityDurationSeconds(-1).setInvalidatedByBiometricEnrollment(true);
+            builder.setUserAuthenticationValidityDurationSeconds(-1);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                builder.setInvalidatedByBiometricEnrollment(true);
+            }
         }
         generator.initialize(builder.build());
         return generator.generateKeyPair();
