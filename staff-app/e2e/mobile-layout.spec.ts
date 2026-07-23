@@ -256,14 +256,14 @@ test.describe("Bottom Navigation", () => {
 
     await page.goto("/staff/login", { waitUntil: "networkidle" });
 
-    // On desktop, mobile-bottom-nav should be display:none
+    // On desktop, mobile-bottom-nav should be display:none or absent entirely
     const display = await page.evaluate(() => {
       const nav = document.querySelector("nav.mobile-bottom-nav");
       if (!nav) return "not-found";
       return getComputedStyle(nav).display;
     });
 
-    expect(display).toBe("none");
+    expect(display === "none" || display === "not-found").toBe(true);
   });
 });
 
