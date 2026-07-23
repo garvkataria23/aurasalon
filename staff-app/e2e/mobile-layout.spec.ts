@@ -297,8 +297,9 @@ test.describe("Hamburger Menu", () => {
     await expect(page.locator(".staff-sidebar")).toHaveClass(/open/);
     await expect(page.locator(".drawer-backdrop")).toHaveClass(/open/);
 
-    // Click backdrop to close
-    await page.locator(".drawer-backdrop").click();
+    // Click visible backdrop (right side, outside the 72vw sidebar)
+    const vw = viewport?.width ?? 412;
+    await page.locator(".drawer-backdrop").click({ position: { x: vw - 20, y: 100 } });
     await expect(page.locator(".staff-sidebar")).not.toHaveClass(/open/);
   });
 });

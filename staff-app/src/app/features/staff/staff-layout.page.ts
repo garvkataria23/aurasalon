@@ -49,7 +49,7 @@ const STAFF_HINT_SESSION_KEY = "auraStaffHintSeen";
         <button type="button" class="nav-logout" (click)="logout()">Logout</button>
       </aside>
 
-       <div class="staff-main-shell" [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null" [auraPullRefresh]="refreshChildPage.bind(this)">
+       <div class="staff-main-shell" #mainShell [attr.inert]="menuOpen() || notificationsOpen() || commandOpen() ? '' : null" [auraPullRefresh]="refreshChildPage.bind(this)">
         <header class="staff-topbar">
            <button type="button" class="menu-button" (click)="openMenu()" aria-label="Open menu" [attr.aria-expanded]="menuOpen()" #menuButton><span></span><span></span><span></span></button>
            <a class="staff-identity" routerLink="/staff/profile" [attr.aria-label]="'Open my profile — ' + identitySubtitle()"><b class="profile-avatar">{{ initials() }}</b><div><span>{{ greetingLabel() }}</span><strong>{{ staff.user()?.name || 'Aura Staff' }}</strong><small [title]="identitySubtitle()" [attr.aria-label]="identitySubtitle()">{{ identitySubtitle() }}</small></div></a>
@@ -296,6 +296,7 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
   @ViewChild("menuButton") private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild("commandButton") private commandButton?: ElementRef<HTMLButtonElement>;
   @ViewChild("notificationButton") private notificationButton?: ElementRef<HTMLButtonElement>;
+  @ViewChild("mainShell") private mainShell?: ElementRef<HTMLElement>;
   readonly menuOpen = signal(false);
   readonly commandOpen = signal(false);
   readonly notificationsOpen = signal(false);
@@ -366,7 +367,10 @@ export class StaffLayoutPage implements OnInit, OnDestroy {
     void this.connectRealtime();
     void this.push.refreshStatus();
     this.routerSubscription = this.router.events.subscribe((event) => {
-      if (event instanceof NavigationEnd) this.showStaffHintOnce(event.urlAfterRedirects);
+      if (event instanceof NavigationEnd) {
+        this.showStaffHintOnce(event.urlAfterRedirects);
+        this.mainShell.nativeElement.scrollTop = 0;
+      }
     });
     this.showStaffHintOnce(this.router.url);
     this.pollTimer = window.setInterval(() => {

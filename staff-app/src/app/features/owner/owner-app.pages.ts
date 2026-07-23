@@ -1,7 +1,7 @@
 import { DecimalPipe } from "@angular/common";
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, computed, effect, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
+import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { Subscription } from "rxjs";
 import { AuraPullRefresh } from "../../core/aura-pull-refresh.directive";
 import { OwnerAppService, OwnerRecord } from "./owner-app.service";
@@ -116,7 +116,7 @@ export class OwnerLoginPage implements OnInit {
         </nav>
         <div class="owner-side-footer"><span><i></i> Owner access</span><small>{{ context.workspaceName() }}</small></div>
       </aside>
-      <div class="owner-main owner-shell-frame" [attr.inert]="overlay() ? '' : null" [auraPullRefresh]="refreshChildPage.bind(this)">
+      <div class="owner-main owner-shell-frame" #ownerMain [attr.inert]="overlay() ? '' : null" [auraPullRefresh]="refreshChildPage.bind(this)">
         <header class="owner-topbar">
           <button type="button" class="owner-menu" (click)="openOverlay('navigation', $event)" aria-label="Open owner navigation"><span></span><span></span><span></span></button>
           <div class="owner-location"><span>Owner workspace</span><strong>{{ currentLabel() }}</strong></div>
@@ -217,6 +217,7 @@ export class OwnerLoginPage implements OnInit {
 })
 export class OwnerLayoutPage implements OnInit, OnDestroy {
   @ViewChild("overlayPanel") overlayPanel?: ElementRef<HTMLElement>;
+  @ViewChild("ownerMain") ownerMain?: ElementRef<HTMLElement>;
   readonly nav = NAV;
   readonly mobileNav = ["dashboard", "appointments", "staff", "revenue"].map((module) => NAV.find((item) => item.module === module)).filter((item): item is OwnerNavItem & { path: string } => !!item?.path);
   readonly periods: Array<{ value: OwnerPeriod; label: string }> = [{ value: "today", label: "Today" }, { value: "week", label: "Week" }, { value: "month", label: "Month" }, { value: "quarter", label: "Quarter" }, { value: "year", label: "Year" }, { value: "custom", label: "Custom" }];
@@ -235,6 +236,7 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
   private triggerElement: HTMLElement | null = null;
   private touchStartX = 0;
   private touchStartY = 0;
+  private routerSubscription?: { unsubscribe(): void };
   private readonly mobileSwipeRoutes = ["/owner/dashboard", "/owner/appointments", "/owner/staff", "/owner/revenue"];
 
   constructor(readonly owner: OwnerAppService, readonly context: OwnerContextService, private readonly router: Router) {
@@ -243,8 +245,11 @@ export class OwnerLayoutPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     try { this.sidebarCollapsed.set(localStorage.getItem("auraOwner:sidebarCollapsed") === "true"); } catch { /* Default expanded. */ }
     void this.context.initialize();
+    this.routerSubscription = this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd && this.ownerMain) this.ownerMain.nativeElement.scrollTop = 0;
+    });
   }
-  ngOnDestroy(): void { this.closeOverlay(false); this.context.leaveOwnerSurface(); }
+  ngOnDestroy(): void { this.closeOverlay(false); this.context.leaveOwnerSurface(); this.routerSubscription?.unsubscribe(); }
   @HostListener("window:keydown", ["$event"])
   onKeydown(event: KeyboardEvent): void {
     if (!this.overlay()) return;
