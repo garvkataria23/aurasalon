@@ -1,30 +1,30 @@
 "use client";
 
 import { Hero } from "@/components/landing/Hero";
+import { TrustBadges } from "@/components/landing/TrustBadges";
 import { LogoCloud } from "@/components/landing/LogoCloud";
 import { ProblemSolution } from "@/components/landing/ProblemSolution";
-import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { VideoDemo } from "@/components/landing/VideoDemo";
+import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { Stats } from "@/components/landing/Stats";
-import { HowItWorks } from "@/components/landing/HowItWorks";
+import { CompetitorComparison } from "@/components/landing/CompetitorComparison";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { PricingPreview } from "@/components/landing/PricingPreview";
-import { IntegrationLogos } from "@/components/landing/IntegrationLogos";
 import { CTASection } from "@/components/landing/CTASection";
 
 export default function HomePage() {
   return (
     <>
       <Hero />
+      <TrustBadges />
       <LogoCloud />
       <ProblemSolution />
       <VideoDemo />
       <FeatureGrid />
       <Stats />
-      <HowItWorks />
+      <CompetitorComparison />
       <Testimonials />
       <PricingPreview />
-      <IntegrationLogos />
       <CTASection />
     </>
   );

@@ -43,11 +43,27 @@ export function Hero() {
       {/* Content */}
       <motion.div style={{ y: textY }} className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8 py-20 md:py-32">
         <div className="text-center max-w-5xl mx-auto">
+          {/* Urgency Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+            className="mb-6"
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-bold tracking-wide uppercase rounded-full bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-violet-500/10 text-aura-amber border border-amber-400/30">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              Launch Offer — 20% off first 3 months
+            </span>
+          </motion.div>
+
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+            transition={{ duration: 0.5, type: "spring", stiffness: 200, delay: 0.1 }}
           >
             <Badge variant="gradient" className="mb-8 text-sm px-4 py-1.5">
               Trusted by 500+ salons across India

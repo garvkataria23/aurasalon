@@ -10,9 +10,9 @@ export const NAV_LINKS: NavLink[] = [
 ];
 
 export const CTA_LINKS = {
-  login: "http://localhost:4300/home",
-  trial: "http://localhost:4300/saas",
-  demo: "http://localhost:4300/book",
+  login: "/demo",
+  trial: "/demo",
+  demo: "/demo",
 };
 
 /* ===== FEATURES ===== */
@@ -477,8 +477,8 @@ export const FOOTER_LINKS = {
     { label: "Features", href: "/features" },
     { label: "Pricing", href: "/pricing" },
     { label: "Customers", href: "/customers" },
-    { label: "Booking Portal", href: "http://localhost:4300/book" },
-    { label: "Admin Dashboard", href: "http://localhost:4300/home" },
+    { label: "Demo", href: "/demo" },
+    { label: "Integrations", href: "/features" },
   ],
   company: [
     { label: "About Us", href: "/about" },
@@ -487,14 +487,14 @@ export const FOOTER_LINKS = {
     { label: "Careers", href: "/about" },
   ],
   resources: [
-    { label: "Documentation", href: "#" },
-    { label: "API Reference", href: "#" },
-    { label: "Help Center", href: "#" },
-    { label: "Status Page", href: "#" },
+    { label: "Documentation", href: "/blog" },
+    { label: "Help Center", href: "/contact" },
+    { label: "Status Page", href: "/contact" },
+    { label: "API Reference", href: "/features" },
   ],
   legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Cookie Policy", href: "#" },
+    { label: "Privacy Policy", href: "/about" },
+    { label: "Terms of Service", href: "/about" },
+    { label: "Cookie Policy", href: "/about" },
   ],
 };
