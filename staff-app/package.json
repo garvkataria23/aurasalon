@@ -12,7 +12,13 @@
     "cap:sync": "npx cap sync android",
     "cap:open:android": "npx cap open android",
     "apk:debug": "npm run build && npx cap sync android && android\\gradlew.bat -p android assembleDebug",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "npx playwright test --config=playwright.config.ts",
+    "test:e2e:mobile": "npx playwright test --config=playwright.config.ts --project=pixel-4 --project=iphone-se --project=pixel-7 --project=iphone-14 --project=pixel-8-pro --project=iphone-15-pro-max",
+    "test:e2e:tablet": "npx playwright test --config=playwright.config.ts --project=ipad --project=ipad-pro",
+    "test:e2e:desktop": "npx playwright test --config=playwright.config.ts --project=desktop-1280 --project=desktop-1920",
+    "test:e2e:update-snapshots": "npx playwright test --config=playwright.config.ts --update-snapshots",
+    "test:e2e:report": "npx playwright show-report playwright-report"
   },
   "dependencies": {
     "@angular/animations": "20.3.25",
@@ -36,6 +42,7 @@
     "@angular/cli": "20.3.30",
     "@angular/compiler-cli": "20.3.25",
     "@capacitor/cli": "^7.6.8",
+    "@playwright/test": "^1.61.1",
     "typescript": "~5.8.0",
     "vitest": "^3.2.6"
   }
