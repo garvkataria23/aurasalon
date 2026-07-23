@@ -1,0 +1,406 @@
+@import "tailwindcss";
+
+/* ===== AURA DESIGN TOKENS ===== */
+:root {
+  /* Core Palette */
+  --aura-burgundy: #4B1238;
+  --aura-burgundy-strong: #6D1B4D;
+  --aura-rose: #E8A7B8;
+  --aura-rose-soft: rgba(232, 167, 184, 0.15);
+  --aura-amber: #C87D4B;
+  --aura-amber-soft: rgba(200, 125, 75, 0.12);
+
+  /* Bold Gradient Palette */
+  --gradient-primary: linear-gradient(135deg, #7C3AED, #E879A8, #F59E0B);
+  --gradient-hero: linear-gradient(135deg, #4B1238 0%, #7C3AED 40%, #E879A8 70%, #F59E0B 100%);
+  --gradient-cta: linear-gradient(135deg, #4B1238, #7C3AED, #E879A8);
+  --gradient-surface: linear-gradient(180deg, #FAF7F2 0%, #FFFFFF 100%);
+  --gradient-dark: linear-gradient(180deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);
+  --gradient-mesh: radial-gradient(at 40% 20%, rgba(124,58,237,0.12) 0%, transparent 50%),
+                   radial-gradient(at 80% 0%, rgba(232,121,168,0.1) 0%, transparent 50%),
+                   radial-gradient(at 0% 50%, rgba(245,158,11,0.08) 0%, transparent 50%);
+
+  /* Surfaces */
+  --aura-bg: #FAF7F2;
+  --aura-bg-warm: #F5EFE8;
+  --aura-surface: #FFFFFF;
+  --aura-surface-elevated: #FFFFFF;
+  --aura-surface-muted: #FCFAF7;
+
+  /* Text */
+  --aura-text: #0F172A;
+  --aura-text-secondary: #475569;
+  --aura-text-muted: #94A3B8;
+  --aura-text-inverse: #FFFFFF;
+
+  /* Borders */
+  --aura-border: #E2E8F0;
+  --aura-border-strong: #CBD5E1;
+  --aura-border-glow: rgba(124, 58, 237, 0.3);
+
+  /* Semantic Colors */
+  --aura-success: #10B981;
+  --aura-warning: #F59E0B;
+  --aura-danger: #EF4444;
+  --aura-info: #3B82F6;
+
+  /* Shadows */
+  --aura-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --aura-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --aura-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --aura-shadow-xl: 0 24px 64px rgba(15, 23, 42, 0.16);
+  --aura-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.2);
+  --aura-shadow-glow-rose: 0 0 40px rgba(232, 121, 168, 0.25);
+
+  /* Radius */
+  --aura-radius-sm: 8px;
+  --aura-radius-md: 12px;
+  --aura-radius-lg: 16px;
+  --aura-radius-xl: 24px;
+  --aura-radius-full: 999px;
+
+  /* Spacing Scale */
+  --aura-space-1: 4px;
+  --aura-space-2: 8px;
+  --aura-space-3: 12px;
+  --aura-space-4: 16px;
+  --aura-space-5: 20px;
+  --aura-space-6: 24px;
+  --aura-space-8: 32px;
+  --aura-space-10: 40px;
+  --aura-space-12: 48px;
+  --aura-space-16: 64px;
+  --aura-space-20: 80px;
+  --aura-space-24: 96px;
+
+  /* Typography */
+  --aura-font: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --aura-font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ===== TAILWIND v4 THEME ===== */
+@theme inline {
+  --color-aura-burgundy: var(--aura-burgundy);
+  --color-aura-burgundy-strong: var(--aura-burgundy-strong);
+  --color-aura-rose: var(--aura-rose);
+  --color-aura-amber: var(--aura-amber);
+  --color-aura-bg: var(--aura-bg);
+  --color-aura-bg-warm: var(--aura-bg-warm);
+  --color-aura-surface: var(--aura-surface);
+  --color-aura-surface-muted: var(--aura-surface-muted);
+  --color-aura-text: var(--aura-text);
+  --color-aura-text-secondary: var(--aura-text-secondary);
+  --color-aura-text-muted: var(--aura-text-muted);
+  --color-aura-border: var(--aura-border);
+  --color-aura-border-strong: var(--aura-border-strong);
+  --color-aura-success: var(--aura-success);
+  --color-aura-warning: var(--aura-warning);
+  --color-aura-danger: var(--aura-danger);
+  --color-aura-info: var(--aura-info);
+  --color-neon-violet: #7C3AED;
+  --color-electric-blue: #3B82F6;
+  --color-deep-navy: #0F172A;
+  --color-warm-cream: #FAF7F2;
+
+  --font-sans: var(--aura-font);
+  --font-display: var(--aura-font-display);
+}
+
+/* ===== GLOBAL STYLES ===== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--aura-bg);
+  color: var(--aura-text);
+  font-family: var(--aura-font);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Selection */
+::selection {
+  background: rgba(124, 58, 237, 0.2);
+  color: var(--aura-text);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--aura-border-glow);
+  outline-offset: 2px;
+  border-radius: var(--aura-radius-sm);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--aura-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--aura-text-muted);
+}
+
+/* ===== GRADIENT TEXT UTILITY ===== */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-animated {
+  background: var(--gradient-hero);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ===== GLOW EFFECTS ===== */
+.glow-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(232,121,168,0.2), rgba(245,158,11,0.15));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.glow-card:hover::before {
+  opacity: 1;
+}
+
+/* ===== GRID BACKGROUND ===== */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.dot-bg {
+  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.15); }
+  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.3); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee-reverse {
+  animation: marquee-reverse 30s linear infinite;
+}
+
+/* ===== FILM GRAIN TEXTURE ===== */
+.grain-overlay::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ===== GLASS MORPHISM ===== */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ===== 3D PERSPECTIVE ===== */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* ===== CURSOR HIDE (for custom cursor) ===== */
+@media (pointer: fine) {
+  .hide-cursor * {
+    cursor: none !important;
+  }
+}
+
+/* ===== CLIP PATH ANIMATIONS ===== */
+.clip-reveal {
+  clip-path: inset(100% 0% 0% 0%);
+}
+
+.clip-reveal-left {
+  clip-path: inset(0% 100% 0% 0%);
+}
+
+.clip-reveal-active {
+  clip-path: inset(0% 0% 0% 0%);
+}
+
+/* ===== GLOW FOLLOW CURSOR ===== */
+.glow-follow {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-follow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle 300px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(124, 58, 237, 0.12), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.glow-follow:hover::before {
+  opacity: 1;
+}
+
+/* ===== BREATHING BORDER ===== */
+@keyframes breathe {
+  0%, 100% { border-color: rgba(124, 58, 237, 0.2); box-shadow: 0 0 0px rgba(124, 58, 237, 0); }
+  50% { border-color: rgba(124, 58, 237, 0.5); box-shadow: 0 0 30px rgba(124, 58, 237, 0.15); }
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* ===== ANIMATED GRADIENT BORDER ===== */
+@keyframes borderGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #7C3AED, #E879A8, #F59E0B, #7C3AED);
+  background-size: 300% 300%;
+  animation: borderGlow 4s ease infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* ===== SMOOTH SCROLL FIX ===== */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+/* ===== PREMIUM SECTION DIVIDERS ===== */
+.section-divider {
+  position: relative;
+}
+
+.section-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-border), transparent);
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .grain-overlay::after {
+    display: none;
+  }
+}
