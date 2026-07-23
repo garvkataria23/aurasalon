@@ -35,8 +35,8 @@ export function derivedStaffMutation(allowedSelfFields = null) {
 export function derivedStaffQuery() {
   return (req, _res, next) => {
     if (!req.access?.staffId || managedRoles.has(req.access.role)) return next();
-    for (const field of identityFields) delete req.query?.[field];
-    req.query = { ...req.query, staffId: req.access.staffId };
+    for (const field of identityFields) delete req.query[field];
+    req.query.staffId = req.access.staffId;
     next();
   };
 }
