@@ -57,7 +57,6 @@ public class MainActivity extends BridgeActivity {
         }
 
         @Override
-        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
             String url = request.getUrl().toString();
             String method = request.getMethod();
@@ -99,7 +98,6 @@ public class MainActivity extends BridgeActivity {
         }
 
         @Override
-        @RequiresApi(api = Build.VERSION_CODES.M)
         public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
             try { delegate.onReceivedError(view, request, error); } catch (Exception e) { }
         }

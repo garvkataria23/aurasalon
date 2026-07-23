@@ -203,14 +203,14 @@ public class AttendanceBiometricPlugin extends Plugin {
 
     private boolean isHookFrameworkDetected() {
         try {
-            String[] fridaPaths = { "/tmp/frida-server", "/data/local/tmp/frida-server", "/sdcard/frida-server" };
+            String[] fridaPaths = { "/tmp/frida-server", "/data/local/tmp/frida-server", android.os.Environment.getExternalStorageDirectory().getPath() + "/frida-server" };
             for (String path : fridaPaths) { if (new java.io.File(path).exists()) return true; }
             String maps;
             java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"));
             StringBuilder sb = new StringBuilder();
             while ((maps = reader.readLine()) != null) sb.append(maps);
             reader.close();
-            String mapsContent = sb.toString().toLowerCase();
+            String mapsContent = sb.toString().toLowerCase(java.util.Locale.ROOT);
             if (mapsContent.contains("frida") || mapsContent.contains("xposed") || mapsContent.contains("substrate") || mapsContent.contains("gadget")) return true;
         } catch (Exception ignored) {}
         return false;
@@ -236,7 +236,7 @@ public class AttendanceBiometricPlugin extends Plugin {
             SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             String stored = prefs.getString("app_signing_hash", null);
             if (stored == null) {
-                prefs.edit().putString("app_signing_hash", signingHash).commit();
+                prefs.edit().putString("app_signing_hash", signingHash).apply();
                 return false;
             }
             return !stored.equals(signingHash);

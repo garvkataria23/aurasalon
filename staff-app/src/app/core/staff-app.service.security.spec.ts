@@ -8,11 +8,55 @@ vi.mock("./csrf.interceptor", async (importOriginal) => {
   return { ...actual, resetCsrfState: vi.fn(actual.resetCsrfState) };
 });
 
-import { resetCsrfState } from "./csrf.interceptor";
-import { isQueuedMutation, StaffAppService, StaffUser } from "./staff-app.service";
-
 type RequestOptions = { headers?: HttpHeaders; withCredentials?: boolean };
 type Responder = (method: "GET" | "POST" | "PATCH", url: string, body: unknown, options: RequestOptions) => Observable<unknown>;
+
+const sharedCalls: Array<{ method: "GET" | "POST" | "PATCH"; url: string; body: unknown; options: RequestOptions }> = [];
+let mockCapacitorHttpResponder: Responder | null = null;
+
+function recordCall(method: "GET" | "POST" | "PATCH", url: string, body: unknown, options: RequestOptions): void {
+  sharedCalls.push({ method, url, body, options });
+}
+
+function firstValueFrom<T>(obs: Observable<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => { obs.subscribe({ next: resolve, error: reject }); });
+}
+
+vi.mock("@capacitor/core", () => ({
+  Capacitor: { isNativePlatform: () => false, getPlatform: () => "web" },
+  CapacitorHttp: {
+    get: (opts: { url: string; headers?: Record<string, string> }) => {
+      const hdrs = new HttpHeaders(opts.headers || {});
+      const options: RequestOptions = { headers: hdrs };
+      recordCall("GET", opts.url, undefined, options);
+      if (!mockCapacitorHttpResponder) return Promise.resolve({ data: {}, status: 200, headers: {} });
+      return firstValueFrom(mockCapacitorHttpResponder("GET", opts.url, undefined, options)).then(
+        (data) => ({ data, status: 200, headers: {} })
+      );
+    },
+    post: (opts: { url: string; headers?: Record<string, string>; data?: unknown }) => {
+      const hdrs = new HttpHeaders(opts.headers || {});
+      const options: RequestOptions = { headers: hdrs };
+      recordCall("POST", opts.url, opts.data, options);
+      if (!mockCapacitorHttpResponder) return Promise.resolve({ data: {}, status: 200, headers: {} });
+      return firstValueFrom(mockCapacitorHttpResponder("POST", opts.url, opts.data, options)).then(
+        (data) => ({ data, status: 200, headers: {} })
+      );
+    },
+    patch: (opts: { url: string; headers?: Record<string, string>; data?: unknown }) => {
+      const hdrs = new HttpHeaders(opts.headers || {});
+      const options: RequestOptions = { headers: hdrs };
+      recordCall("PATCH", opts.url, opts.data, options);
+      if (!mockCapacitorHttpResponder) return Promise.resolve({ data: {}, status: 200, headers: {} });
+      return firstValueFrom(mockCapacitorHttpResponder("PATCH", opts.url, opts.data, options)).then(
+        (data) => ({ data, status: 200, headers: {} })
+      );
+    },
+  },
+}));
+
+import { resetCsrfState } from "./csrf.interceptor";
+import { isQueuedMutation, StaffAppService, StaffUser } from "./staff-app.service";
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -23,21 +67,6 @@ class MemoryStorage implements Storage {
   key(index: number): string | null { return [...this.values.keys()][index] ?? null; }
   removeItem(key: string): void { this.values.delete(key); }
   setItem(key: string, value: string): void { this.values.set(key, String(value)); }
-}
-
-class MockHttpClient {
-  readonly calls: Array<{ method: "GET" | "POST" | "PATCH"; url: string; body: unknown; options: RequestOptions }> = [];
-
-  constructor(private readonly responder: Responder) {}
-
-  get = vi.fn((url: string, options: RequestOptions = {}) => this.respond("GET", url, undefined, options));
-  post = vi.fn((url: string, body: unknown, options: RequestOptions = {}) => this.respond("POST", url, body, options));
-  patch = vi.fn((url: string, body: unknown, options: RequestOptions = {}) => this.respond("PATCH", url, body, options));
-
-  private respond(method: "GET" | "POST" | "PATCH", url: string, body: unknown, options: RequestOptions): Observable<unknown> {
-    this.calls.push({ method, url, body, options });
-    return this.responder(method, url, body, options);
-  }
 }
 
 const user = (id: string, loginId = `${id}.staff`): StaffUser => ({
@@ -58,9 +87,10 @@ const loginSession = (id: string, accessToken = `access-${id}`) => ({
   user: user(id)
 });
 
-function serviceWith(responder: Responder): { service: StaffAppService; http: MockHttpClient } {
-  const http = new MockHttpClient(responder);
-  return { service: new StaffAppService(http as unknown as HttpClient), http };
+function serviceWith(responder: Responder): { service: StaffAppService; calls: typeof sharedCalls } {
+  mockCapacitorHttpResponder = responder;
+  const http = { get: vi.fn(), post: vi.fn(), patch: vi.fn() } as unknown as HttpClient;
+  return { service: new StaffAppService(http), calls: sharedCalls };
 }
 
 function setOnline(online: boolean): void {
@@ -80,6 +110,8 @@ describe("StaffAppService security behavior", () => {
     Object.defineProperty(globalThis, "localStorage", { configurable: true, value: new MemoryStorage() });
     setOnline(true);
     vi.mocked(resetCsrfState).mockClear();
+    mockCapacitorHttpResponder = null;
+    sharedCalls.length = 0;
   });
 
   it("keeps login access, refresh, and user session material out of localStorage", async () => {
@@ -100,7 +132,7 @@ describe("StaffAppService security behavior", () => {
 
   it("shares one refresh request between concurrent requests without an access token", async () => {
     const refresh = new Subject<unknown>();
-    const { service, http } = serviceWith((method, url) => {
+    const { service, calls } = serviceWith((method, url) => {
       if (method === "POST" && url.endsWith("/auth/refresh")) return refresh;
       if (method === "GET" && url.endsWith("/staff-self/dashboard")) return of({ summary: {} });
       return throwError(() => new Error(`Unexpected request: ${method} ${url}`));
@@ -110,18 +142,18 @@ describe("StaffAppService security behavior", () => {
     const second = service.dashboard();
     await Promise.resolve();
 
-    expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
+    expect(calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
     refresh.next({ accessToken: "refreshed-access", user: user("one") });
     refresh.complete();
     await Promise.all([first, second]);
 
-    expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
-    expect(http.calls.filter((call) => call.url.endsWith("/staff-self/dashboard"))).toHaveLength(2);
+    expect(calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
+    expect(calls.filter((call) => call.url.endsWith("/staff-self/dashboard"))).toHaveLength(2);
   });
 
   it("refreshes an oversized legacy session after the proxy returns HTML 400", async () => {
     let dashboardCalls = 0;
-    const { service, http } = serviceWith((method, url) => {
+    const { service, calls } = serviceWith((method, url) => {
       if (method === "POST" && url.endsWith("/auth/refresh")) return of(loginSession("one", "compact-access"));
       if (method === "GET" && url.endsWith("/staff-self/dashboard")) {
         dashboardCalls += 1;
@@ -134,8 +166,8 @@ describe("StaffAppService security behavior", () => {
 
     await service.dashboard();
 
-    expect(http.calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
-    expect(http.calls.filter((call) => call.url.endsWith("/staff-self/dashboard"))).toHaveLength(2);
+    expect(calls.filter((call) => call.url.endsWith("/auth/refresh"))).toHaveLength(1);
+    expect(calls.filter((call) => call.url.endsWith("/staff-self/dashboard"))).toHaveLength(2);
   });
 
   it("clears all local auth state when backend logout fails", async () => {
@@ -191,7 +223,7 @@ describe("StaffAppService security behavior", () => {
 
   it("returns a queued mutation result and reuses its idempotency key during flush", async () => {
     const session = loginSession("one");
-    const { service, http } = serviceWith((method, url) => {
+    const { service, calls } = serviceWith((method, url) => {
       if (method === "POST" && url.endsWith("/auth/login")) return of(session);
       if (method === "PATCH" && url.endsWith("/staff-os/tasks/task-1")) return of({ updated: true });
       return of({});
@@ -207,7 +239,7 @@ describe("StaffAppService security behavior", () => {
     setOnline(true);
     await expect(service.flushOfflineActions()).resolves.toBe(1);
 
-    const flush = http.calls.find((call) => call.method === "PATCH" && call.url.endsWith("/staff-os/tasks/task-1"));
+    const flush = calls.find((call) => call.method === "PATCH" && call.url.endsWith("/staff-os/tasks/task-1"));
     expect(flush?.options.headers?.get("Idempotency-Key")).toBe(queuedIdempotencyKey);
     expect(service.offlineQueueSize()).toBe(0);
   });
