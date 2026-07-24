@@ -226,7 +226,7 @@ export class MobileAttendanceVerificationService {
     if (attestationChain && attestationStatus === "unverified") {
       try {
         const certs = attestationChain.split(",").filter(Boolean);
-        if (certs.length >= 2) attestationStatus = "attested";
+        if (certs.length >= 2) attestationStatus = "verified";
       } catch { /* attestation chain parsing failed, keep unverified */ }
     }
     const stamp = timestamp();
