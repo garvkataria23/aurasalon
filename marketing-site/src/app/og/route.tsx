@@ -12,6 +12,7 @@ const titles: Record<string, string> = {
   "/pricing": "Aura Pricing — Plans for Every Salon",
   "/demo": "Book a Demo — See Aura in Action",
   "/about": "About Aura — Built for Indian Salons",
+  "/faq": "Aura FAQ — Answers to Common Questions",
   "/contact": "Contact Aura — Get in Touch",
   "/blog": "Aura Blog — Salon Business Insights",
   "/features": "Aura Features — Complete Salon Platform",

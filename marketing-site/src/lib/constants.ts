@@ -498,6 +498,7 @@ export const FOOTER_LINKS = {
     { label: "Careers", href: "/about" },
   ],
   resources: [
+    { label: "FAQ", href: "/faq" },
     { label: "Documentation", href: "/blog" },
     { label: "Help Center", href: "/contact" },
     { label: "Status Page", href: "/contact" },

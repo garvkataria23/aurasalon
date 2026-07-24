@@ -18,7 +18,7 @@ const footerLabelKeys: Record<string, string> = {
   Platform: "nav.platform", "Owner CRM": "nav.owner-crm", "Customer App": "nav.customer-app", "Staff App": "nav.staff-app", Workflows: "nav.workflows",
   Features: "footer.features", Pricing: "footer.pricing", Customers: "footer.customers", Demo: "footer.demo", Integrations: "footer.integrations",
   "About Us": "footer.aboutUs", Blog: "footer.blog", Contact: "footer.contact", Careers: "footer.careers", Documentation: "footer.documentation",
-  "Help Center": "footer.help", "Status Page": "footer.status", "API Reference": "footer.api", "Privacy Policy": "footer.privacy",
+  "Help Center": "footer.help", "Status Page": "footer.status", "API Reference": "footer.api", FAQ: "footer.faq", "Privacy Policy": "footer.privacy",
   "Terms of Service": "footer.terms", "Cookie Policy": "footer.cookies",
 };
 

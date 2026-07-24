@@ -7,6 +7,7 @@ import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvide
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { CommandPalette } from "@/components/ui/CommandPalette";
+import { CookieConsent } from "@/components/ui/CookieConsent";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 const inter = Inter({
@@ -16,6 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://aura.example.com"),
   title: {
     default: "Aura — The Living Salon Operating System",
     template: "%s | Aura Salon CRM/POS",
@@ -80,6 +82,7 @@ export default function RootLayout({
           <ScrollProgress />
           <WhatsAppButton />
           <CommandPalette />
+          <CookieConsent />
           <Navbar />
           <main id="main-content" className="flex-1">{children}</main>
           <Footer />
