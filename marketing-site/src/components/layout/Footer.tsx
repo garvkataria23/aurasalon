@@ -112,9 +112,9 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Aura Salon CRM/POS. {t("footer.rights")}
           </p>
           <div className="flex items-center gap-6">
-            <Link href="#" className="text-sm text-white/30 hover:text-white/60 transition-colors">{t("footer.privacy")}</Link>
-            <Link href="#" className="text-sm text-white/30 hover:text-white/60 transition-colors">{t("footer.terms")}</Link>
-            <Link href="#" className="text-sm text-white/30 hover:text-white/60 transition-colors">{t("footer.cookies")}</Link>
+            <Link href="/privacy" className="text-sm text-white/30 hover:text-white/60 transition-colors">{t("footer.privacy")}</Link>
+            <Link href="/terms" className="text-sm text-white/30 hover:text-white/60 transition-colors">{t("footer.terms")}</Link>
+            <Link href="/cookies" className="text-sm text-white/30 hover:text-white/60 transition-colors">{t("footer.cookies")}</Link>
           </div>
         </div>
       </div>

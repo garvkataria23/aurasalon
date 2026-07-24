@@ -336,7 +336,7 @@ export class MobileAttendanceVerificationService {
       id: challengeId, ...scope, deviceKeyId: device.id, deviceId, action, attendanceId, nonce, signingPayload,
       policySnapshot: JSON.stringify(policy), policyVersion: policy.version, latitude, longitude, accuracyMeters,
       capturedAt: captured.toISOString(), mockLocation: mockLocation ? 1 : 0, integrityVerdict, integrityToken, riskVerdict,
-       clientPunchId, retainUntil: addDays(createdAt, 1), createdAt
+       expiresAt, clientPunchId, retainUntil: addDays(createdAt, 1), createdAt
     });
     return {
       enforcementRequired: true, challengeId, expiresAt, algorithm: "ECDSA_P256_SHA256",

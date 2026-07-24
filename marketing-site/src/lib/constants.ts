@@ -504,8 +504,8 @@ export const FOOTER_LINKS = {
     { label: "API Reference", href: "/features" },
   ],
   legal: [
-    { label: "Privacy Policy", href: "/about" },
-    { label: "Terms of Service", href: "/about" },
-    { label: "Cookie Policy", href: "/about" },
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Cookie Policy", href: "/cookies" },
   ],
 };

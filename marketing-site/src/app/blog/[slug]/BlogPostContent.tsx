@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
-import { ArrowLeft, Clock } from "lucide-react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { motion, useScroll, useSpring } from "motion/react";
+import { ArrowLeft, Clock, ChevronRight } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
@@ -317,8 +318,19 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
     });
   };
 
+  const toc = useMemo(() => {
+    if (!content) return [];
+    return content.split("\n").filter((l) => l.trim().startsWith("## ")).map((l) => ({
+      id: l.trim().replace(/^##\s+/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      label: l.trim().replace(/^##\s+/, ""),
+    }));
+  }, [content]);
+
   return (
     <>
+      {/* Reading progress */}
+      <ReadingProgress />
+
       <section className="pt-28 pb-8 md:pt-36 bg-gradient-to-b from-aura-bg to-white">
         <Container>
           <Link href="/blog" className="inline-flex items-center gap-1.5 text-sm text-aura-text-muted hover:text-aura-text transition-colors mb-8">
@@ -345,20 +357,52 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
             <h1 className="text-3xl md:text-4xl font-bold text-aura-text leading-tight">
                {translated?.title ?? post.title}
             </h1>
+            <p className="mt-4 text-base text-aura-text-secondary leading-relaxed max-w-2xl">
+              {post.excerpt}
+            </p>
           </motion.div>
         </Container>
       </section>
 
       <section className="pb-20 md:pb-28 bg-white">
-        <Container size="narrow">
-          <motion.article
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="prose-aura"
-          >
-            {renderContent(content)}
-          </motion.article>
+        <Container size="wide">
+          <div className="mx-auto flex max-w-5xl gap-12">
+            {/* Table of contents - sidebar */}
+            {toc.length > 0 && (
+              <aside className="hidden lg:block w-56 shrink-0 pt-2">
+                <div className="sticky top-28">
+                  <p className="text-[10px] font-bold uppercase tracking-[.14em] text-aura-text-muted mb-4">
+                    {language === "hi" ? "इस लेख में" : "In this article"}
+                  </p>
+                  <nav aria-label="Table of contents">
+                    <ul className="space-y-1">
+                      {toc.map((item) => (
+                        <li key={item.id}>
+                          <a
+                            href={`#${item.id}`}
+                            className="group flex items-center gap-1.5 py-1.5 text-xs text-aura-text-muted transition-colors hover:text-aura-burgundy"
+                          >
+                            <ChevronRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+                            <span className="line-clamp-2">{item.label}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                </div>
+              </aside>
+            )}
+
+            {/* Article body */}
+            <motion.article
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="min-w-0 max-w-3xl prose-aura"
+            >
+              {renderContent(content)}
+            </motion.article>
+          </div>
         </Container>
       </section>
     </>
