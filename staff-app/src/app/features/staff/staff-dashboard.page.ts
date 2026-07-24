@@ -171,7 +171,16 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   async runAction(action: DashboardAction) {
     if (this.pendingMutation()) return;
     if (action.route) { await this.router.navigate(Array.isArray(action.route) ? [...action.route] : [action.route]); return; }
-    if (action.kind === "clock") { await this.clockAction(); return; }
+    if (action.kind === "clock") {
+      const isOpen = this.today()?.attendance.some((item) => !item.clockOutAt && !/out|closed|complete/i.test(String(item.status || "")));
+      if (isOpen) {
+        const attendanceId = this.today()?.attendance.find((item) => !item.clockOutAt && !/out|closed|complete/i.test(String(item.status || "")))?.id || "";
+        await this.runMutation("clock-out", () => this.staff.clockOut(attendanceId), "Clocked out.");
+      } else {
+        await this.runMutation("clock-in", () => this.staff.clockIn(), "Clocked in.");
+      }
+      return;
+    }
     if (action.kind === "end-break") { await this.runMutation("end-break", () => this.staff.endBreak(), "Break ended."); return; }
   }
 
@@ -183,11 +192,6 @@ export class StaffDashboardPage implements OnInit, OnDestroy {
   }
 
   async signOut() { await this.staff.logout(); await this.router.navigateByUrl("/staff/login"); }
-
-  private async clockAction() {
-    if (!this.staff.hasAnyPermission(["allow:staff-checkin-checkout", "write:staff"])) return;
-    await this.router.navigateByUrl("/staff/attendance");
-  }
 
   private async runMutation(id: string, mutate: () => Promise<MutationResult<unknown>>, completedMessage: string) {
     if (this.pendingMutation()) return;

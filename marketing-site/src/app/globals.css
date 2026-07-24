@@ -504,3 +504,148 @@ textarea {
 @media (min-width: 1600px) {
   :root { --aura-space-24: 112px; }
 }
+
+/* ===== PROSE AURA — long-form article typography ===== */
+.prose-aura {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--aura-text-secondary);
+}
+
+.prose-aura h1 {
+  font-family: var(--aura-font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--aura-text);
+  margin-bottom: 1rem;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.prose-aura h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--aura-text);
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  scroll-margin-top: 7rem;
+}
+
+.prose-aura h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--aura-text);
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-aura p {
+  margin-bottom: 1.25rem;
+  text-wrap: pretty;
+}
+
+.prose-aura strong {
+  font-weight: 600;
+  color: var(--aura-text);
+}
+
+.prose-aura a {
+  color: var(--aura-burgundy);
+  text-decoration: underline;
+  text-decoration-color: rgba(104, 31, 55, 0.3);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.prose-aura a:hover {
+  text-decoration-color: var(--aura-burgundy);
+}
+
+.prose-aura ul,
+.prose-aura ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.prose-aura li {
+  margin-bottom: 0.5rem;
+}
+
+.prose-aura ul {
+  list-style-type: disc;
+}
+
+.prose-aura ol {
+  list-style-type: decimal;
+}
+
+.prose-aura blockquote {
+  border-left: 3px solid var(--aura-burgundy);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--aura-text-muted);
+}
+
+.prose-aura code {
+  font-size: 0.875em;
+  background: var(--aura-surface-muted);
+  border: 1px solid var(--aura-border);
+  border-radius: var(--aura-radius-sm);
+  padding: 0.15em 0.35em;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.prose-aura pre {
+  background: var(--aura-bg-warm);
+  border: 1px solid var(--aura-border);
+  border-radius: var(--aura-radius-md);
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.prose-aura pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.prose-aura hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-border), transparent);
+  margin: 2rem 0;
+}
+
+.prose-aura img {
+  border-radius: var(--aura-radius-md);
+  margin: 1.5rem 0;
+}
+
+.prose-aura table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9375rem;
+}
+
+.prose-aura th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--aura-text);
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--aura-border);
+}
+
+.prose-aura td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--aura-border);
+}

@@ -286,17 +286,12 @@ function hero(input: ActionContext, activeAlerts: DashboardAlert[]): StaffDashbo
     if (input.hasPermission("read:appointments")) actions.push({ id: "schedule", label: "Today’s Schedule", route: "/staff/appointments", primary: !actions.length });
   } else {
     eyebrow = "Clocked in";
-    title = "You’re clocked in";
+    title = "You're clocked in";
     detail = `Clocked in at ${timeLabel(input.openAttendance.clockInAt)}`;
-    if (input.today?.activeBreak && canClock) actions.push({ id: "end-break", label: "End break", kind: "end-break", primary: true });
-    else if (input.activeAppointment) {
-      if (input.hasPermission("read:appointments")) actions.push({ id: "queue", label: "View Current Service", route: "/staff/queue", primary: true });
-    } else if (input.nextAppointment && input.hasPermission("read:appointments")) {
-      actions.push({ id: "next", label: "View Next Appointment", route: "/staff/appointments", primary: true });
-    } else if (input.openTaskCount > 0 && input.hasPermission("read:staff")) {
-      actions.push({ id: "tasks", label: "Open Tasks", route: "/staff/tasks", primary: true });
-    } else if (input.hasPermission("read:appointments")) {
-      actions.push({ id: "queue", label: "View Today’s Queue", route: "/staff/queue", primary: true });
+    if (input.today?.activeBreak && canClock) {
+      actions.push({ id: "end-break", label: "End break", kind: "end-break", primary: true });
+    } else if (canClock) {
+      actions.push({ id: "clock-out", label: "Clock Out", kind: "clock", primary: true });
     }
     if (canOpenAttendance) actions.push({ id: "attendance-details", label: "Attendance", route: "/staff/attendance" });
   }
