@@ -16,7 +16,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-neon-violet via-aura-rose to-aura-amber text-white shadow-md hover:shadow-lg hover:scale-[1.03] active:scale-[0.98]",
+    "bg-aura-burgundy text-white shadow-md hover:bg-aura-burgundy-strong hover:shadow-lg active:scale-[0.98]",
   secondary:
     "bg-aura-text text-white hover:bg-aura-text/90 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
   ghost:
@@ -26,9 +26,9 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-4 py-2 text-sm rounded-lg gap-1.5",
-  md: "px-5 py-2.5 text-sm rounded-xl gap-2",
-  lg: "px-8 py-4 text-base rounded-2xl gap-2",
+  sm: "min-h-10 px-4 py-2 text-sm rounded-full gap-1.5",
+  md: "min-h-11 px-5 py-2.5 text-sm rounded-full gap-2",
+  lg: "min-h-12 px-7 py-3.5 text-base rounded-full gap-2",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

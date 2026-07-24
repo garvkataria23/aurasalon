@@ -6,6 +6,8 @@ import { ArrowLeft, Clock } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { BLOG_CONTENT_HI, BLOG_META_HI } from "@/lib/translations";
 
 const BLOG_CONTENT: Record<string, string> = {
   "how-to-increase-salon-revenue": `
@@ -249,18 +251,20 @@ interface BlogPostContentProps {
 }
 
 export function BlogPostContent({ slug }: BlogPostContentProps) {
+  const { language, t } = useLanguage();
   const post = BLOG_POSTS.find((p) => p.slug === slug);
 
   if (!post) {
     return (
       <Container className="pt-40 pb-20 text-center">
-        <h1 className="text-2xl font-bold text-aura-text">Post not found</h1>
-        <Link href="/blog" className="text-neon-violet mt-4 inline-block">← Back to blog</Link>
+         <h1 className="text-2xl font-bold text-aura-text">{t("blog.postMissing")}</h1>
+         <Link href="/blog" className="text-neon-violet mt-4 inline-block">← {t("common.backBlog")}</Link>
       </Container>
     );
   }
 
-  const content = BLOG_CONTENT[slug] || post.excerpt;
+  const translated = language === "hi" ? BLOG_META_HI[slug] : undefined;
+  const content = language === "hi" ? BLOG_CONTENT_HI[slug] || translated?.excerpt || post.excerpt : BLOG_CONTENT[slug] || post.excerpt;
 
   // Render content: split by double newlines, detect headings and bold
   const renderContent = (text: string) => {
@@ -275,6 +279,10 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
             {trimmed.replace("## ", "")}
           </h2>
         );
+      }
+
+      if (trimmed.startsWith("### ")) {
+        return <h3 key={i} className="mt-8 mb-3 text-lg font-bold text-aura-text">{trimmed.replace("### ", "")}</h3>;
       }
 
       // List items (lines starting with -)
@@ -315,7 +323,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
         <Container>
           <Link href="/blog" className="inline-flex items-center gap-1.5 text-sm text-aura-text-muted hover:text-aura-text transition-colors mb-8">
             <ArrowLeft className="w-4 h-4" />
-            Back to blog
+             {t("common.backBlog")}
           </Link>
 
           <motion.div
@@ -325,17 +333,17 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
             className="max-w-3xl"
           >
             <div className="flex items-center gap-3 mb-4">
-              <Badge>{post.category}</Badge>
+               <Badge>{translated?.category ?? post.category}</Badge>
               <span className="flex items-center gap-1 text-xs text-aura-text-muted">
                 <Clock className="w-3 h-3" />
-                {post.readTime}
+                 {translated?.readTime ?? post.readTime}
               </span>
               <span className="text-xs text-aura-text-muted">
-                {new Date(post.date).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
+                 {new Date(post.date).toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", { year: "numeric", month: "long", day: "numeric" })}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-aura-text leading-tight">
-              {post.title}
+               {translated?.title ?? post.title}
             </h1>
           </motion.div>
         </Container>

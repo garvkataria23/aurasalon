@@ -7,9 +7,10 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { GridBackground } from "@/components/ui/GridBackground";
-import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { MagneticElement } from "@/components/ui/MagneticElement";
 import { staggerContainer, staggerChild } from "@/lib/animations";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { ABOUT_TIMELINE_HI, ABOUT_VALUES_HI } from "@/lib/translations";
 
 const values = [
   { icon: Heart, title: "Salon-First", description: "Every feature is designed for real salon operations, not generic business needs." },
@@ -19,13 +20,14 @@ const values = [
 ];
 
 const timeline = [
-  { year: "2024", title: "The Spark", description: "Frustrated salon owners inspired us to build better tools." },
-  { year: "2024", title: "First 50 Salons", description: "Beta launched with 50 salons in Hyderabad. Instant traction." },
-  { year: "2025", title: "500+ Salons", description: "Expanded to 12 cities across India. Processing ₹50Cr+ monthly." },
-  { year: "2026", title: "What's Next", description: "AI features, white-label, and franchise management launching." },
+  { year: "01", title: "Connected core", description: "Appointments, client CRM, POS and stock share operational context." },
+  { year: "02", title: "Intelligent operations", description: "Staff, marketing, inventory and finance workflows add focused automation." },
+  { year: "03", title: "Multi-location foundation", description: "Tenant isolation and branch-aware access support authorised operations." },
+  { year: "04", title: "Evidence-led rollout", description: "Real product media and customer proof will be published only with approval." },
 ];
 
 export default function AboutPage() {
+  const { language, t } = useLanguage();
   return (
     <>
       <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 bg-gradient-to-b from-aura-bg to-white overflow-hidden">
@@ -40,15 +42,14 @@ export default function AboutPage() {
           >
             <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-neon-violet/10 text-neon-violet mb-6">
               <Sparkles className="w-3 h-3" />
-              Our Story
+               {t("about.story")}
             </span>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-aura-text leading-[1.1]">
-              We&apos;re Building the{" "}
-              <span className="gradient-text">Future of Salons</span>
+               {t("about.titleA")} {" "}
+               <span className="gradient-text">{t("about.titleB")}</span>
             </h1>
             <p className="mt-6 text-lg text-aura-text-secondary max-w-2xl mx-auto leading-relaxed">
-              Aura was born from a simple frustration: salon owners deserve better tools.
-              We saw talented stylists spending more time on paperwork than clients, and we decided to change that.
+               {t("about.body")}
             </p>
           </motion.div>
         </Container>
@@ -64,10 +65,9 @@ export default function AboutPage() {
               transition={{ duration: 0.7 }}
               className="text-center mb-16"
             >
-              <h2 className="text-2xl md:text-3xl font-bold text-aura-text mb-4">Our Mission</h2>
+               <h2 className="text-2xl md:text-3xl font-bold text-aura-text mb-4">{t("about.mission")}</h2>
               <p className="text-lg text-aura-text-secondary leading-relaxed max-w-2xl mx-auto">
-                To empower every salon in India with intelligent, beautifully simple technology
-                that automates the mundane and lets them focus on what matters most — their clients.
+                 {t("about.missionBody")}
               </p>
             </motion.div>
 
@@ -78,7 +78,7 @@ export default function AboutPage() {
               viewport={{ once: true }}
               className="grid md:grid-cols-2 gap-6"
             >
-              {values.map((value) => (
+               {values.map((value, valueIndex) => (
                 <motion.div
                   key={value.title}
                   variants={staggerChild}
@@ -87,8 +87,8 @@ export default function AboutPage() {
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-violet/15 to-aura-rose/15 flex items-center justify-center mb-4">
                     <value.icon className="w-6 h-6 text-neon-violet" />
                   </div>
-                  <h3 className="text-lg font-bold text-aura-text mb-2">{value.title}</h3>
-                  <p className="text-sm text-aura-text-secondary leading-relaxed">{value.description}</p>
+                   <h3 className="text-lg font-bold text-aura-text mb-2">{language === "hi" ? ABOUT_VALUES_HI[valueIndex].title : value.title}</h3>
+                   <p className="text-sm text-aura-text-secondary leading-relaxed">{language === "hi" ? ABOUT_VALUES_HI[valueIndex].description : value.description}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -100,16 +100,13 @@ export default function AboutPage() {
         <Container>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
             {[
-              { value: 500, suffix: "+", label: "Salons" },
-              { value: 50, suffix: "Cr+", label: "Transactions" },
-              { value: 10, suffix: "K+", label: "Daily Bookings" },
-              { value: 99.9, suffix: "%", label: "Uptime" },
+              { value: "CRM · POS", label: t("about.foundation0") },
+              { value: "GST · UPI", label: t("about.foundation1") },
+              { value: "Tenant · Branch", label: t("about.foundation2") },
+              { value: "IST · Realtime", label: t("about.foundation3") },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="text-3xl md:text-4xl font-bold text-white">
-                  <AnimatedCounter value={stat.value} />
-                  <span>{stat.suffix}</span>
-                </div>
+                <div className="text-lg md:text-xl font-bold text-white">{stat.value}</div>
                 <div className="text-sm text-white/50 mt-1">{stat.label}</div>
               </div>
             ))}
@@ -119,15 +116,15 @@ export default function AboutPage() {
 
       <section className="py-20 md:py-28 bg-aura-bg">
         <Container>
-          <SectionHeading badge="Timeline" title="Our Journey" subtitle="From a frustration to 500+ salons and counting." />
+           <SectionHeading badge={t("about.timeline")} title={t("about.journey")} subtitle={t("about.journeyBody")} />
           <div className="mt-16 max-w-3xl mx-auto relative">
             {/* Line */}
             <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-neon-violet/40 via-aura-rose/30 to-transparent" />
 
             <div className="space-y-12">
-              {timeline.map((item, i) => (
+               {timeline.map((item, i) => (
                 <motion.div
-                  key={item.year}
+                   key={`${item.year}-${item.title}`}
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
@@ -138,8 +135,8 @@ export default function AboutPage() {
                     {item.year}
                   </div>
                   <div className="pt-2">
-                    <h3 className="text-lg font-bold text-aura-text mb-1">{item.title}</h3>
-                    <p className="text-sm text-aura-text-secondary leading-relaxed">{item.description}</p>
+                     <h3 className="text-lg font-bold text-aura-text mb-1">{language === "hi" ? ABOUT_TIMELINE_HI[i].title : item.title}</h3>
+                     <p className="text-sm text-aura-text-secondary leading-relaxed">{language === "hi" ? ABOUT_TIMELINE_HI[i].description : item.description}</p>
                   </div>
                 </motion.div>
               ))}
@@ -152,20 +149,20 @@ export default function AboutPage() {
         <Container>
           <div className="text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-aura-text mb-4">
-              Want to Join Our Journey?
+               {t("about.join")}
             </h2>
             <p className="text-aura-text-secondary mb-8 max-w-xl mx-auto">
-              We&apos;re always looking for passionate people and forward-thinking salons.
+               {t("about.joinBody")}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <MagneticElement as="a" href={CTA_LINKS.trial}>
                 <Button variant="primary" size="lg">
-                  Start Free Trial
+                   {t("nav.trial")}
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </MagneticElement>
               <a href="/contact">
-                <Button variant="outline" size="lg">Contact Us</Button>
+                 <Button variant="outline" size="lg">{t("about.contact")}</Button>
               </a>
             </div>
           </div>

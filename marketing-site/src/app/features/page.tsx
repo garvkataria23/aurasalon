@@ -9,6 +9,8 @@ import { FEATURES_OVERVIEW } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { staggerContainer, staggerChild } from "@/lib/animations";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { FEATURE_OVERVIEW_HI } from "@/lib/translations";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   calendar: Calendar,
@@ -23,14 +25,15 @@ const iconMap: Record<string, React.ComponentType<{ className?: string; style?: 
 };
 
 export default function FeaturesPage() {
+  const { language, t } = useLanguage();
   return (
     <>
       <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-gradient-to-b from-aura-bg to-white">
         <Container>
           <SectionHeading
-            badge="Features"
-            title="Everything Your Salon Needs"
-            subtitle="Explore every module built into Aura — designed for real salon operations, not generic business tools."
+            badge={t("features.badge")}
+            title={t("features.pageTitle")}
+            subtitle={t("features.pageBody")}
           />
         </Container>
       </section>
@@ -44,8 +47,9 @@ export default function FeaturesPage() {
             viewport={{ once: true, margin: "-80px" }}
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto"
           >
-            {FEATURES_OVERVIEW.map((feature) => {
+            {FEATURES_OVERVIEW.map((feature, featureIndex) => {
               const Icon = iconMap[feature.icon] || Calendar;
+              const translated = language === "hi" ? FEATURE_OVERVIEW_HI[featureIndex] : undefined;
               return (
                 <motion.div key={feature.title} variants={staggerChild}>
                   <Link href={feature.href} className="block group">
@@ -57,13 +61,13 @@ export default function FeaturesPage() {
                         <Icon className="w-7 h-7" style={{ color: feature.color }} />
                       </div>
                       <h3 className="text-lg font-bold text-aura-text mb-2 group-hover:text-neon-violet transition-colors">
-                        {feature.title}
+                        {translated?.title ?? feature.title}
                       </h3>
                       <p className="text-sm text-aura-text-secondary leading-relaxed">
-                        {feature.description}
+                        {translated?.description ?? feature.description}
                       </p>
                       <div className="mt-4 text-sm font-semibold text-neon-violet opacity-0 group-hover:opacity-100 transition-opacity">
-                        Learn more →
+                        {t("features.learn")} →
                       </div>
                     </div>
                   </Link>

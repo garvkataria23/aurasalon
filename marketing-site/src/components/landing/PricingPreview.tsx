@@ -9,8 +9,12 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { staggerContainer, staggerChild } from "@/lib/animations";
 import Link from "next/link";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { PRICING_FEATURES_HI } from "@/lib/translations";
 
 function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[number]; index: number }) {
+  const { language, t } = useLanguage();
+  const features = language === "hi" ? PRICING_FEATURES_HI[index] : tier.features;
   const cardRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0 });
 
@@ -45,28 +49,28 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[number]; inde
         <>
           <div className="absolute -inset-[1px] rounded-2xl animate-breathe pointer-events-none" />
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-gradient-to-r from-neon-violet to-aura-rose text-white text-xs font-bold shadow-lg">
-            Most Popular
+            {t("pricing.popular")}
           </div>
         </>
       )}
 
       <div className="text-center mb-6">
-        <h3 className="text-lg font-bold text-aura-text">{tier.name}</h3>
+        <h3 className="text-lg font-bold text-aura-text">{t(`pricing.tier.${index}.name`, tier.name)}</h3>
         <div className="mt-3">
           {tier.monthlyPrice > 0 ? (
             <div className="flex items-baseline justify-center gap-1">
               <span className="text-4xl font-bold text-aura-text">₹{tier.monthlyPrice.toLocaleString("en-IN")}</span>
-              <span className="text-sm text-aura-text-muted">/mo</span>
+               <span className="text-sm text-aura-text-muted">{t("common.month")}</span>
             </div>
           ) : (
-            <div className="text-4xl font-bold text-aura-text">Custom</div>
+            <div className="text-4xl font-bold text-aura-text">{t("common.custom")}</div>
           )}
         </div>
-        <p className="mt-2 text-sm text-aura-text-secondary">{tier.description}</p>
+        <p className="mt-2 text-sm text-aura-text-secondary">{t(`pricing.tier.${index}.desc`, tier.description)}</p>
       </div>
 
       <ul className="space-y-2.5 mb-8">
-        {tier.features.slice(0, 5).map((feature) => (
+        {features.slice(0, 5).map((feature) => (
           <li key={feature} className="flex items-start gap-2.5 text-sm">
             <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
             <span className="text-aura-text-secondary">{feature}</span>
@@ -76,7 +80,7 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[number]; inde
 
       <a href={CTA_LINKS.trial} className="block">
         <Button variant={tier.highlighted ? "primary" : "outline"} className="w-full">
-          {tier.cta}
+          {index === 2 ? t("pricing.sales") : t("pricing.start")}
         </Button>
       </a>
     </motion.div>
@@ -84,6 +88,7 @@ function PricingCard({ tier, index }: { tier: typeof PRICING_TIERS[number]; inde
 }
 
 export function PricingPreview() {
+  const { t } = useLanguage();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -91,9 +96,9 @@ export function PricingPreview() {
     <section ref={ref} className="py-24 md:py-32 bg-aura-bg section-divider">
       <Container>
         <SectionHeading
-          badge="Pricing"
-          title="Simple, Transparent Pricing"
-          subtitle="Start free. Scale as you grow. No hidden fees, no surprises."
+          badge={t("pricing.badge")}
+          title={t("pricing.title")}
+          subtitle={t("pricing.subtitle")}
         />
 
         <motion.div
@@ -112,7 +117,7 @@ export function PricingPreview() {
             href="/pricing"
             className="inline-flex items-center gap-2 text-sm font-semibold text-neon-violet hover:text-neon-violet/80 transition-colors"
           >
-            View full pricing comparison →
+            {t("pricing.all")} →
           </Link>
         </div>
       </Container>

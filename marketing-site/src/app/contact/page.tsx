@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Send, CheckCircle, Mail, Phone, MapPin, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Container } from "@/components/ui/Container";
@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { GridBackground } from "@/components/ui/GridBackground";
 import { fadeInUp } from "@/lib/animations";
 import { CTA_LINKS } from "@/lib/constants";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const MAX_MESSAGE = 500;
 
@@ -23,6 +24,7 @@ function FloatingInput({
   label: string; type?: string; required?: boolean; value: string;
   onChange: (v: string) => void; placeholder: string; error?: string;
 }) {
+  const id = useId();
   const filled = value.length > 0;
   return (
     <div className="relative">
@@ -32,11 +34,14 @@ function FloatingInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        id={id}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
         className={`peer w-full px-4 pt-6 pb-2 rounded-xl border bg-white text-sm text-aura-text placeholder-transparent focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all ${
           error ? "border-danger/50 focus:ring-danger/30" : "border-aura-border"
         }`}
       />
-      <label className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+       <label htmlFor={id} className={`absolute left-4 transition-all duration-200 pointer-events-none ${
         filled || error
           ? "top-2 text-[11px] font-medium"
           : "top-3.5 text-sm text-aura-text-muted"
@@ -49,6 +54,7 @@ function FloatingInput({
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
+            id={`${id}-error`}
             className="flex items-center gap-1 text-xs text-danger mt-1"
           >
             <AlertCircle className="w-3 h-3" />
@@ -61,11 +67,12 @@ function FloatingInput({
 }
 
 function FloatingTextarea({
-  label, required, value, onChange, placeholder, maxLength,
+  label, required, value, onChange, placeholder, maxLength, error,
 }: {
   label: string; required?: boolean; value: string;
-  onChange: (v: string) => void; placeholder: string; maxLength?: number;
+  onChange: (v: string) => void; placeholder: string; maxLength?: number; error?: string;
 }) {
+  const id = useId();
   const filled = value.length > 0;
   const remaining = maxLength ? maxLength - value.length : null;
   return (
@@ -77,9 +84,12 @@ function FloatingTextarea({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
+        id={id}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
         className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder-transparent focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all resize-none"
       />
-      <label className={`absolute left-4 transition-all duration-200 pointer-events-none ${
+       <label htmlFor={id} className={`absolute left-4 transition-all duration-200 pointer-events-none ${
         filled
           ? "top-2 text-[11px] font-medium text-aura-text-secondary"
           : "top-3.5 text-sm text-aura-text-muted"
@@ -91,13 +101,16 @@ function FloatingTextarea({
           {remaining}
         </span>
       )}
+      {error && <p id={`${id}-error`} className="mt-1 flex items-center gap-1 text-xs text-danger"><AlertCircle className="h-3 w-3" />{error}</p>}
     </div>
   );
 }
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -108,19 +121,21 @@ export default function ContactPage() {
 
   const validate = (): boolean => {
     const e: FieldErrors = {};
-    if (!formData.name.trim()) e.name = "Name is required";
-    if (!formData.email.trim()) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = "Enter a valid email";
-    if (!formData.message.trim()) e.message = "Message is required";
-    else if (formData.message.length < 10) e.message = "At least 10 characters";
+    if (!formData.name.trim()) e.name = t("contact.requiredName");
+    if (!formData.email.trim()) e.email = t("contact.requiredEmail");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = t("contact.validEmail");
+    if (!formData.message.trim()) e.message = t("contact.requiredMessage");
+    else if (formData.message.length < 10) e.message = t("contact.shortMessage");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === "sending") return;
     if (!validate()) return;
     setStatus("sending");
+    setSubmitError("");
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -132,9 +147,12 @@ export default function ContactPage() {
         setFormData({ name: "", email: "", phone: "", salonName: "", message: "" });
         setErrors({});
       } else {
+        const payload = await res.json().catch(() => null) as { code?: string } | null;
+        setSubmitError(payload?.code === "DELIVERY_NOT_CONFIGURED" ? t("contact.deliveryMissing") : t("common.error"));
         setStatus("error");
       }
     } catch {
+      setSubmitError(t("common.error"));
       setStatus("error");
     }
   };
@@ -145,9 +163,9 @@ export default function ContactPage() {
         <GridBackground className="opacity-30" />
         <Container className="relative z-10">
           <SectionHeading
-            badge="Contact"
-            title="Get in Touch"
-            subtitle="Have a question, need a demo, or want to discuss enterprise solutions? We'd love to hear from you."
+            badge={t("contact.badge")}
+            title={t("contact.title")}
+            subtitle={t("contact.body")}
           />
         </Container>
       </section>
@@ -166,31 +184,32 @@ export default function ContactPage() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-12 text-center"
+                   className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-12 text-center"
+                   role="status"
                 >
                   <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-aura-text mb-2">Message Sent!</h3>
+                   <h3 className="text-xl font-bold text-aura-text mb-2">{t("contact.sent")}</h3>
                   <p className="text-sm text-aura-text-secondary">
-                    Thank you for reaching out. We&apos;ll get back to you within 24 hours.
+                     {t("contact.sentBody")}
                   </p>
                   <button
                     onClick={() => setStatus("idle")}
                     className="mt-6 text-sm font-semibold text-neon-violet hover:underline"
                   >
-                    Send another message
+                     {t("contact.another")}
                   </button>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-busy={status === "sending"} aria-describedby={status === "error" ? "contact-submit-error" : undefined}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <FloatingInput label="Your Name" required value={formData.name} onChange={(v) => setFormData({ ...formData, name: v })} placeholder="Priya Sharma" error={errors.name} />
-                    <FloatingInput label="Email" type="email" required value={formData.email} onChange={(v) => setFormData({ ...formData, email: v })} placeholder="priya@salon.com" error={errors.email} />
+                     <FloatingInput label={t("contact.name")} required value={formData.name} onChange={(v) => setFormData({ ...formData, name: v })} placeholder="Priya Sharma" error={errors.name} />
+                     <FloatingInput label={t("contact.email")} type="email" required value={formData.email} onChange={(v) => setFormData({ ...formData, email: v })} placeholder="priya@salon.com" error={errors.email} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <FloatingInput label="Phone" value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} placeholder="+91 98765 43210" />
-                    <FloatingInput label="Salon Name" value={formData.salonName} onChange={(v) => setFormData({ ...formData, salonName: v })} placeholder="Glow Studio" />
+                     <FloatingInput label={t("contact.phone")} value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} placeholder="+91 98765 43210" />
+                     <FloatingInput label={t("contact.salon")} value={formData.salonName} onChange={(v) => setFormData({ ...formData, salonName: v })} placeholder="Glow Studio" />
                   </div>
-                  <FloatingTextarea label="Message" required value={formData.message} onChange={(v) => setFormData({ ...formData, message: v })} placeholder="Tell us about your salon and what you're looking for..." maxLength={MAX_MESSAGE} />
+                   <FloatingTextarea label={t("contact.message")} required value={formData.message} onChange={(v) => setFormData({ ...formData, message: v })} placeholder="Tell us about your salon and what you're looking for..." maxLength={MAX_MESSAGE} error={errors.message} />
 
                   <button
                     type="submit"
@@ -199,18 +218,17 @@ export default function ContactPage() {
                   >
                     {status === "sending" ? (
                       <>
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Sending...
+                         {t("common.loading")}
                       </>
                     ) : (
                       <>
-                        Send Message
+                         {t("contact.send")}
                         <Send className="w-4 h-4" />
                       </>
                     )}
                   </button>
                   {status === "error" && (
-                    <p className="text-sm text-danger">Something went wrong. Please try again.</p>
+                     <p id="contact-submit-error" className="text-sm text-danger" role="alert">{submitError || t("common.error")}</p>
                   )}
                 </form>
               )}
@@ -226,9 +244,9 @@ export default function ContactPage() {
             >
               <div className="space-y-6">
                 {[
-                  { icon: Mail, label: "Email", value: "hello@aurasalon.in" },
-                  { icon: Phone, label: "Phone", value: "+91 98765 43210" },
-                  { icon: MapPin, label: "Office", value: "Hitech City, Hyderabad\nTelangana, India 500081" },
+                   { icon: Mail, label: t("contact.email"), value: "hello@aurasalon.in" },
+                   { icon: Phone, label: t("contact.phone"), value: "+91 98765 43210" },
+                   { icon: MapPin, label: t("contact.office"), value: "Hitech City, Hyderabad\nTelangana, India 500081" },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-aura-border bg-aura-bg-warm p-6 hover:shadow-md hover:border-aura-border-strong transition-all duration-300">
                     <div className="flex items-start gap-3">
@@ -242,11 +260,11 @@ export default function ContactPage() {
                 ))}
 
                 <div className="rounded-2xl border border-aura-border bg-white p-6">
-                  <h3 className="text-sm font-bold text-aura-text mb-3">Quick Links</h3>
+                   <h3 className="text-sm font-bold text-aura-text mb-3">{t("contact.quick")}</h3>
                   <ul className="space-y-2">
-                    <li><a href={CTA_LINKS.demo} className="text-sm text-neon-violet hover:underline">Schedule a Demo</a></li>
-                    <li><a href="/features" className="text-sm text-neon-violet hover:underline">View Features</a></li>
-                    <li><a href="/pricing" className="text-sm text-neon-violet hover:underline">See Pricing</a></li>
+                     <li><a href={CTA_LINKS.demo} className="text-sm text-neon-violet hover:underline">{t("contact.schedule")}</a></li>
+                     <li><a href="/features" className="text-sm text-neon-violet hover:underline">{t("contact.viewFeatures")}</a></li>
+                     <li><a href="/pricing" className="text-sm text-neon-violet hover:underline">{t("contact.viewPricing")}</a></li>
                   </ul>
                 </div>
               </div>

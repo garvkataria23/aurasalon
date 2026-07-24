@@ -1,55 +1,40 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useScroll, useTransform, useInView } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
-import { MagneticElement } from "@/components/ui/MagneticElement";
-import { FloatingGeometry } from "@/components/three/FloatingGeometry";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function CTASection() {
+  const { t } = useLanguage();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const textY = useTransform(scrollYProgress, [0, 1], [40, -20]);
 
   return (
-    <section ref={ref} className="relative py-24 md:py-32 bg-white overflow-hidden">
+    <section ref={ref} className="relative py-20 md:py-28 bg-[#fffdf9] overflow-hidden">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="relative overflow-hidden rounded-3xl"
+          className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#21191c]"
         >
-          {/* Background with parallax */}
-          <motion.div style={{ y: bgY }} className="absolute inset-0 bg-gradient-to-br from-neon-violet via-aura-burgundy-strong to-deep-navy" />
-
-          {/* Three.js floating orbs */}
-          <div className="absolute inset-0 opacity-40">
-            <FloatingGeometry variant="cta" />
-          </div>
-
-          {/* Additional CSS orbs */}
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-aura-rose/15 blur-[100px] animate-float" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-neon-violet/20 blur-[100px] animate-float" style={{ animationDelay: "3s" }} />
+          <div className="absolute inset-y-0 right-0 w-2/5 border-l border-white/10 opacity-50 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:48px_48px]" aria-hidden="true" />
 
           {/* Content with parallax */}
-          <motion.div style={{ y: textY }} className="relative z-10 p-10 md:p-16 lg:p-20 text-center">
+          <div className="relative z-10 grid gap-10 p-6 sm:p-10 md:p-14 lg:grid-cols-[1.4fr_.6fr] lg:items-end lg:p-16">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.7, delay: 0.2 }}
             >
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
-                Ready to Transform
-                <br />
-                Your Salon?
+              <h2 className="max-w-3xl font-display text-[clamp(2.6rem,6vw,5.5rem)] font-normal leading-[.96] tracking-[-.04em] text-white text-balance">
+                {t("cta.title")}
               </h2>
-              <p className="text-lg text-white/60 max-w-xl mx-auto mb-8">
-                Join 500+ salons already growing with Aura. Start your free trial today — no credit card required.
+              <p className="mt-6 text-base leading-7 text-white/55 max-w-2xl">
+                {t("cta.body")}
               </p>
             </motion.div>
 
@@ -57,30 +42,24 @@ export function CTASection() {
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
+              className="flex flex-col items-stretch gap-3 sm:flex-row lg:flex-col"
             >
-              <MagneticElement as="a" href={CTA_LINKS.trial} className="group inline-flex items-center gap-2.5 px-8 py-4 text-base font-bold text-aura-burgundy rounded-2xl bg-white shadow-lg hover:shadow-xl transition-shadow">
-                Start Free Trial
+              <a href={CTA_LINKS.trial} className="group inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full bg-[#f5e8dc] px-7 text-sm font-bold text-aura-burgundy shadow-lg transition-colors hover:bg-white">
+                {t("cta.primary")}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </MagneticElement>
-              <MagneticElement as="a" href={CTA_LINKS.demo} className="inline-flex items-center gap-2.5 px-8 py-4 text-base font-semibold text-white rounded-2xl border border-white/20 hover:bg-white/10 transition-colors">
-                See Live Demo
-              </MagneticElement>
+              </a>
+              <a href="/features" className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full border border-white/20 px-7 text-sm font-semibold text-white transition-colors hover:bg-white/10">{t("cta.secondary")}</a>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: 0.6 }}
-              className="mt-6 flex items-center justify-center gap-6 text-sm text-white/40"
+              className="col-span-full flex flex-wrap gap-x-6 gap-y-2 border-t border-white/10 pt-6 text-xs text-white/40"
             >
-              <span>14-day free trial</span>
-              <span>·</span>
-              <span>No credit card</span>
-              <span>·</span>
-              <span>Setup in 2 minutes</span>
+              <span>{t("cta.meta1")}</span><span aria-hidden="true">·</span><span>{t("cta.meta2")}</span><span aria-hidden="true">·</span><span>{t("cta.meta3")}</span>
             </motion.div>
-          </motion.div>
+          </div>
         </motion.div>
       </Container>
     </section>

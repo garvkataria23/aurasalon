@@ -11,6 +11,9 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { GridBackground } from "@/components/ui/GridBackground";
 import { staggerContainer, staggerChild } from "@/lib/animations";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { PRICING_COMPARISON_HI, PRICING_FAQ_HI, PRICING_FEATURES_HI } from "@/lib/translations";
+import { PlanAdvisor } from "@/components/pricing/PlanAdvisor";
 
 const COMPARISON_FEATURES = [
   { name: "Branches", starter: "1", growth: "Up to 5", enterprise: "Unlimited" },
@@ -22,7 +25,7 @@ const COMPARISON_FEATURES = [
   { name: "Basic Reports", starter: true, growth: true, enterprise: true },
   { name: "Staff OS (Attendance, Payroll)", starter: false, growth: true, enterprise: true },
   { name: "Inventory Management", starter: false, growth: true, enterprise: true },
-  { name: "AI Marketing Automation", starter: false, growth: true, enterprise: true },
+  { name: "Marketing Campaign Workflows", starter: false, growth: true, enterprise: true },
   { name: "Finance Engine", starter: false, growth: true, enterprise: true },
   { name: "Customer 360 Intelligence", starter: false, growth: true, enterprise: true },
   { name: "Discount Rules (Happy Hours)", starter: false, growth: true, enterprise: true },
@@ -47,6 +50,13 @@ function FeatureValue({ value }: { value: boolean | string }) {
 }
 
 export default function PricingPage() {
+  const { language, t } = useLanguage();
+  const localizeValue = (value: boolean | string) => {
+    if (language !== "hi" || typeof value !== "string") return value;
+    if (value === "Up to 5") return t("pricing.upTo5");
+    if (value === "Unlimited") return t("pricing.unlimited");
+    return value;
+  };
   const [annual, setAnnual] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
@@ -58,9 +68,9 @@ export default function PricingPage() {
         <GridBackground className="opacity-30" />
         <Container className="relative z-10">
           <SectionHeading
-            badge="Pricing"
-            title="Simple, Transparent Pricing"
-            subtitle="Start free, scale as you grow. No hidden fees, no surprises."
+            badge={t("pricing.badge")}
+            title={t("pricing.pageTitle")}
+            subtitle={t("pricing.pageBody")}
           />
         </Container>
       </section>
@@ -70,16 +80,18 @@ export default function PricingPage() {
         <Container>
           {/* Toggle */}
           <div className="flex items-center justify-center gap-3 mb-12">
-            <span className={`text-sm font-medium ${!annual ? "text-aura-text" : "text-aura-text-muted"}`}>Monthly</span>
-            <button
-              onClick={() => setAnnual(!annual)}
+            <span className={`text-sm font-medium ${!annual ? "text-aura-text" : "text-aura-text-muted"}`}>{t("pricing.monthly")}</span>
+             <button
+               onClick={() => setAnnual(!annual)}
+               role="switch"
+               aria-checked={annual}
               className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${annual ? "bg-neon-violet" : "bg-aura-border-strong"}`}
-              aria-label="Toggle annual billing"
+               aria-label={t("pricing.toggle")}
             >
               <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${annual ? "translate-x-7" : "translate-x-0.5"}`} />
             </button>
             <span className={`text-sm font-medium ${annual ? "text-aura-text" : "text-aura-text-muted"}`}>
-              Annual <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full ml-1">Save 20%</span>
+              {t("pricing.annual")} <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full ml-1">{t("pricing.save")}</span>
             </span>
           </div>
 
@@ -90,7 +102,7 @@ export default function PricingPage() {
             animate={inView ? "visible" : "hidden"}
             className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto"
           >
-            {PRICING_TIERS.map((tier) => (
+            {PRICING_TIERS.map((tier, tierIndex) => (
               <motion.div
                 key={tier.name}
                 variants={staggerChild}
@@ -102,33 +114,33 @@ export default function PricingPage() {
               >
                 {tier.highlighted && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-neon-violet to-aura-rose text-white text-xs font-bold">
-                    Most Popular
+                    {t("pricing.popular")}
                   </div>
                 )}
                 <div className="text-center mb-6">
-                  <h3 className="text-lg font-bold text-aura-text">{tier.name}</h3>
+                  <h3 className="text-lg font-bold text-aura-text">{t(`pricing.tier.${tierIndex}.name`, tier.name)}</h3>
                   <div className="mt-3">
                     {tier.monthlyPrice > 0 ? (
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold text-aura-text">
                           ₹{(annual ? tier.yearlyPrice : tier.monthlyPrice).toLocaleString("en-IN")}
                         </span>
-                        <span className="text-sm text-aura-text-muted">/mo</span>
+                        <span className="text-sm text-aura-text-muted">{t("common.month")}</span>
                       </div>
                     ) : (
-                      <div className="text-4xl font-bold text-aura-text">Custom</div>
+                      <div className="text-4xl font-bold text-aura-text">{t("common.custom")}</div>
                     )}
                     {annual && tier.monthlyPrice > 0 && (
                       <div className="text-xs text-aura-text-muted mt-1">
-                        Billed ₹{(tier.yearlyPrice * 12).toLocaleString("en-IN")}/year
+                        {t("pricing.billed").replace("{amount}", `₹${(tier.yearlyPrice * 12).toLocaleString("en-IN")}`)}
                       </div>
                     )}
                   </div>
-                  <p className="mt-3 text-sm text-aura-text-secondary">{tier.description}</p>
+                  <p className="mt-3 text-sm text-aura-text-secondary">{t(`pricing.tier.${tierIndex}.desc`, tier.description)}</p>
                 </div>
 
                 <ul className="space-y-3 mb-8">
-                  {tier.features.map((feature) => (
+                  {(language === "hi" ? PRICING_FEATURES_HI[tierIndex] : tier.features).map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5 text-sm">
                       <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                       <span className="text-aura-text-secondary">{feature}</span>
@@ -138,7 +150,7 @@ export default function PricingPage() {
 
                 <a href={CTA_LINKS.trial} className="block">
                   <Button variant={tier.highlighted ? "primary" : "outline"} className="w-full">
-                    {tier.cta}
+                    {tierIndex === 2 ? t("pricing.sales") : t("pricing.start")}
                     {tier.highlighted && <ArrowRight className="w-4 h-4 ml-1" />}
                   </Button>
                 </a>
@@ -148,19 +160,21 @@ export default function PricingPage() {
         </Container>
       </section>
 
+      <PlanAdvisor />
+
       {/* Comparison Table */}
       <section className="py-20 md:py-28 bg-aura-bg">
         <Container>
           <SectionHeading
-            badge="Compare"
-            title="Feature Comparison"
-            subtitle="See exactly what's included in every plan."
+            badge={t("pricing.compare")}
+            title={t("pricing.compareTitle")}
+            subtitle={t("pricing.compareBody")}
           />
           <div className="mt-16 overflow-x-auto max-w-5xl mx-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-aura-border">
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-aura-text w-1/3">Feature</th>
+                  <th className="text-left py-4 px-4 text-sm font-semibold text-aura-text w-1/3">{t("pricing.feature")}</th>
                   <th className="text-center py-4 px-4 text-sm font-semibold text-aura-text">Starter</th>
                   <th className="text-center py-4 px-4 text-sm font-semibold text-neon-violet bg-neon-violet/5 rounded-t-xl">Growth</th>
                   <th className="text-center py-4 px-4 text-sm font-semibold text-aura-text">Enterprise</th>
@@ -169,10 +183,10 @@ export default function PricingPage() {
               <tbody>
                 {COMPARISON_FEATURES.map((feat, i) => (
                   <tr key={feat.name} className={`border-b border-aura-border/50 ${i % 2 === 0 ? "bg-white/50" : ""}`}>
-                    <td className="py-3 px-4 text-sm text-aura-text-secondary">{feat.name}</td>
-                    <td className="py-3 px-4 text-center"><FeatureValue value={feat.starter} /></td>
-                    <td className="py-3 px-4 text-center bg-neon-violet/[0.02]"><FeatureValue value={feat.growth} /></td>
-                    <td className="py-3 px-4 text-center"><FeatureValue value={feat.enterprise} /></td>
+                    <td className="py-3 px-4 text-sm text-aura-text-secondary">{language === "hi" ? PRICING_COMPARISON_HI[i] : feat.name}</td>
+                     <td className="py-3 px-4 text-center"><FeatureValue value={localizeValue(feat.starter)} /></td>
+                     <td className="py-3 px-4 text-center bg-neon-violet/[0.02]"><FeatureValue value={localizeValue(feat.growth)} /></td>
+                     <td className="py-3 px-4 text-center"><FeatureValue value={localizeValue(feat.enterprise)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -185,13 +199,13 @@ export default function PricingPage() {
       <section className="py-20 md:py-28 bg-white">
         <Container>
           <SectionHeading
-            badge="FAQ"
-            title="Frequently Asked Questions"
-            subtitle="Everything you need to know about Aura pricing."
+            badge={t("pricing.faq")}
+            title={t("pricing.faqTitle")}
+            subtitle={t("pricing.faqBody")}
           />
           <div className="mt-12 max-w-2xl mx-auto">
             <Accordion.Root type="single" collapsible className="space-y-3">
-              {PRICING_FAQ.map((item, i) => (
+              {(language === "hi" ? PRICING_FAQ_HI : PRICING_FAQ).map((item, i) => (
                 <Accordion.Item key={i} value={`faq-${i}`} className="rounded-xl border border-aura-border overflow-hidden">
                   <Accordion.Trigger className="flex items-center justify-between w-full px-6 py-4 text-left text-sm font-semibold text-aura-text hover:bg-aura-bg-warm transition-colors">
                     {item.question}

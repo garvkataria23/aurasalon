@@ -3,54 +3,52 @@
 /* ===== AURA DESIGN TOKENS ===== */
 :root {
   /* Core Palette */
-  --aura-burgundy: #4B1238;
-  --aura-burgundy-strong: #6D1B4D;
-  --aura-rose: #E8A7B8;
-  --aura-rose-soft: rgba(232, 167, 184, 0.15);
-  --aura-amber: #C87D4B;
-  --aura-amber-soft: rgba(200, 125, 75, 0.12);
+  --aura-burgundy: #681f37;
+  --aura-burgundy-strong: #451225;
+  --aura-rose: #c58a99;
+  --aura-rose-soft: rgba(104, 31, 55, 0.09);
+  --aura-amber: #b87343;
+  --aura-amber-soft: rgba(184, 115, 67, 0.12);
 
   /* Bold Gradient Palette */
-  --gradient-primary: linear-gradient(135deg, #7C3AED, #E879A8, #F59E0B);
-  --gradient-hero: linear-gradient(135deg, #4B1238 0%, #7C3AED 40%, #E879A8 70%, #F59E0B 100%);
-  --gradient-cta: linear-gradient(135deg, #4B1238, #7C3AED, #E879A8);
-  --gradient-surface: linear-gradient(180deg, #FAF7F2 0%, #FFFFFF 100%);
-  --gradient-dark: linear-gradient(180deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);
-  --gradient-mesh: radial-gradient(at 40% 20%, rgba(124,58,237,0.12) 0%, transparent 50%),
-                   radial-gradient(at 80% 0%, rgba(232,121,168,0.1) 0%, transparent 50%),
-                   radial-gradient(at 0% 50%, rgba(245,158,11,0.08) 0%, transparent 50%);
+  --gradient-primary: linear-gradient(110deg, #681f37, #a44d5e 55%, #b87343);
+  --gradient-hero: linear-gradient(110deg, #451225, #681f37 55%, #b87343);
+  --gradient-cta: linear-gradient(125deg, #28161c, #681f37);
+  --gradient-surface: linear-gradient(180deg, #f5f0e8 0%, #fffdf9 100%);
+  --gradient-dark: linear-gradient(145deg, #171415 0%, #2a181e 60%, #181617 100%);
+  --gradient-mesh: radial-gradient(at 80% 10%, rgba(184,115,67,.12), transparent 42%), radial-gradient(at 12% 70%, rgba(104,31,55,.1), transparent 40%);
 
   /* Surfaces */
-  --aura-bg: #FAF7F2;
-  --aura-bg-warm: #F5EFE8;
-  --aura-surface: #FFFFFF;
+  --aura-bg: #f5f0e8;
+  --aura-bg-warm: #eee5d9;
+  --aura-surface: #fffdf9;
   --aura-surface-elevated: #FFFFFF;
-  --aura-surface-muted: #FCFAF7;
+  --aura-surface-muted: #f8f3ec;
 
   /* Text */
-  --aura-text: #0F172A;
-  --aura-text-secondary: #475569;
-  --aura-text-muted: #94A3B8;
+  --aura-text: #211d1e;
+  --aura-text-secondary: #61595a;
+  --aura-text-muted: #8b8181;
   --aura-text-inverse: #FFFFFF;
 
   /* Borders */
-  --aura-border: #E2E8F0;
-  --aura-border-strong: #CBD5E1;
-  --aura-border-glow: rgba(124, 58, 237, 0.3);
+  --aura-border: #ded4c8;
+  --aura-border-strong: #c7b8aa;
+  --aura-border-glow: rgba(104,31,55,.42);
 
   /* Semantic Colors */
-  --aura-success: #10B981;
-  --aura-warning: #F59E0B;
+  --aura-success: #567565;
+  --aura-warning: #b87343;
   --aura-danger: #EF4444;
   --aura-info: #3B82F6;
 
   /* Shadows */
   --aura-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
   --aura-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
-  --aura-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
-  --aura-shadow-xl: 0 24px 64px rgba(15, 23, 42, 0.16);
-  --aura-shadow-glow: 0 0 40px rgba(124, 58, 237, 0.2);
-  --aura-shadow-glow-rose: 0 0 40px rgba(232, 121, 168, 0.25);
+  --aura-shadow-lg: 0 18px 45px rgba(49, 28, 33, 0.11);
+  --aura-shadow-xl: 0 34px 90px rgba(49, 28, 33, 0.16);
+  --aura-shadow-glow: 0 0 40px rgba(104,31,55,.14);
+  --aura-shadow-glow-rose: 0 0 40px rgba(197, 138, 153, 0.22);
 
   /* Radius */
   --aura-radius-sm: 8px;
@@ -75,7 +73,7 @@
 
   /* Typography */
   --aura-font: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --aura-font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --aura-font-display: Georgia, "Times New Roman", "Noto Serif Devanagari", serif;
 }
 
 /* ===== TAILWIND v4 THEME ===== */
@@ -97,10 +95,10 @@
   --color-aura-warning: var(--aura-warning);
   --color-aura-danger: var(--aura-danger);
   --color-aura-info: var(--aura-info);
-  --color-neon-violet: #7C3AED;
-  --color-electric-blue: #3B82F6;
-  --color-deep-navy: #0F172A;
-  --color-warm-cream: #FAF7F2;
+  --color-neon-violet: #681f37;
+  --color-electric-blue: #526d68;
+  --color-deep-navy: #171415;
+  --color-warm-cream: #f5f0e8;
 
   --font-sans: var(--aura-font);
   --font-display: var(--aura-font-display);
@@ -117,6 +115,22 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html[lang^="hi"] body { letter-spacing: 0; }
+html[lang^="hi"] .font-display,
+html[lang^="hi"] main h1,
+html[lang^="hi"] main h2 {
+  font-family: var(--aura-font);
+  letter-spacing: -.025em;
+  line-height: 1.14;
+}
+html[lang^="hi"] button,
+html[lang^="hi"] a { white-space: normal; }
+html[lang^="hi"] p,
+html[lang^="hi"] li,
+html[lang^="hi"] h1,
+html[lang^="hi"] h2,
+html[lang^="hi"] h3 { overflow-wrap: anywhere; }
+
 body {
   background: var(--aura-bg);
   color: var(--aura-text);
@@ -125,9 +139,14 @@ body {
   overflow-x: hidden;
 }
 
+a, button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+.skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 10000; transform: translateY(-180%); padding: .75rem 1rem; border-radius: .5rem; background: #fff; color: var(--aura-text); box-shadow: var(--aura-shadow-lg); }
+.skip-link:focus { transform: translateY(0); }
+
 /* Selection */
 ::selection {
-  background: rgba(124, 58, 237, 0.2);
+  background: rgba(104, 31, 55, 0.18);
   color: var(--aura-text);
 }
 
@@ -170,7 +189,13 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: gradientShift 6s ease-in-out infinite;
+  animation: none;
+}
+
+/* Retire the previous rainbow CTA treatment across legacy routes. */
+.from-neon-violet.via-aura-rose.to-aura-amber {
+  background-image: none;
+  background-color: var(--aura-burgundy);
 }
 
 @keyframes gradientShift {
@@ -190,7 +215,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(232,121,168,0.2), rgba(245,158,11,0.15));
+  background: linear-gradient(135deg, rgba(104,31,55,.2), rgba(197,138,153,.18), rgba(184,115,67,.15));
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
@@ -206,13 +231,13 @@ body {
 /* ===== GRID BACKGROUND ===== */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(104,31,55,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(104,31,55,.045) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
 .dot-bg {
-  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(104, 31, 55, 0.08) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
@@ -223,8 +248,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.15); }
-  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(104, 31, 55, 0.12); }
+  50% { box-shadow: 0 0 40px rgba(104, 31, 55, 0.24); }
 }
 
 @keyframes marquee {
@@ -260,7 +285,7 @@ body {
   inset: 0;
   z-index: 9990;
   pointer-events: none;
-  opacity: 0.03;
+  opacity: 0.018;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
@@ -321,7 +346,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(circle 300px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(124, 58, 237, 0.12), transparent 70%);
+  background: radial-gradient(circle 300px at var(--glow-x, 50%) var(--glow-y, 50%), rgba(104, 31, 55, 0.11), transparent 70%);
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
@@ -333,8 +358,8 @@ body {
 
 /* ===== BREATHING BORDER ===== */
 @keyframes breathe {
-  0%, 100% { border-color: rgba(124, 58, 237, 0.2); box-shadow: 0 0 0px rgba(124, 58, 237, 0); }
-  50% { border-color: rgba(124, 58, 237, 0.5); box-shadow: 0 0 30px rgba(124, 58, 237, 0.15); }
+  0%, 100% { border-color: rgba(104, 31, 55, 0.2); box-shadow: 0 0 0 rgba(104, 31, 55, 0); }
+  50% { border-color: rgba(104, 31, 55, 0.45); box-shadow: 0 0 30px rgba(104, 31, 55, 0.13); }
 }
 
 .animate-breathe {
@@ -358,7 +383,7 @@ body {
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #7C3AED, #E879A8, #F59E0B, #7C3AED);
+  background: linear-gradient(135deg, #681f37, #c58a99, #b87343, #681f37);
   background-size: 300% 300%;
   animation: borderGlow 4s ease infinite;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -403,4 +428,79 @@ html.lenis, html.lenis body {
   .grain-overlay::after {
     display: none;
   }
+}
+
+/* Shared editorial route treatment */
+main > section:first-child:not(:has(video)) {
+  background-color: var(--aura-bg);
+}
+
+/* Fixed marketing header clearance, including notched-device safe area. */
+main > section:first-child {
+  padding-top: calc(6.5rem + env(safe-area-inset-top));
+}
+
+main h1,
+main h2 {
+  text-wrap: balance;
+}
+
+main > section:first-child h1 {
+  font-family: var(--aura-font-display);
+  font-weight: 400;
+  letter-spacing: -.04em;
+}
+
+.feature-editorial-grid > :nth-child(1),
+.feature-editorial-grid > :nth-child(6) { grid-column: span 7; }
+.feature-editorial-grid > :nth-child(2),
+.feature-editorial-grid > :nth-child(5) { grid-column: span 5; }
+.feature-editorial-grid > :nth-child(3),
+.feature-editorial-grid > :nth-child(4),
+.feature-editorial-grid > :nth-child(7),
+.feature-editorial-grid > :nth-child(8) { grid-column: span 6; }
+
+main p {
+  text-wrap: pretty;
+}
+
+.ecosystem-orbit::before,
+.ecosystem-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 12% 4%;
+  border: 1px solid rgba(104, 31, 55, .2);
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+
+.ecosystem-orbit::after {
+  inset: 20% 10%;
+  border-color: rgba(184, 115, 67, .28);
+  transform: rotate(24deg);
+}
+
+canvas {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+
+@media (max-width: 639px) {
+  body { min-width: 320px; }
+  table { font-size: .8125rem; }
+  th, td { white-space: nowrap; }
+  .grain-overlay::after { opacity: .012; }
+}
+
+@media (max-width: 1023px) {
+  .feature-editorial-grid > * { grid-column: auto !important; }
+}
+
+@media (min-width: 1600px) {
+  :root { --aura-space-24: 112px; }
 }

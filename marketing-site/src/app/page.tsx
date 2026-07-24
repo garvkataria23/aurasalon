@@ -1,28 +1,26 @@
 "use client";
 
 import { Hero } from "@/components/landing/Hero";
-import { TrustBadges } from "@/components/landing/TrustBadges";
-import { LogoCloud } from "@/components/landing/LogoCloud";
-import { ProblemSolution } from "@/components/landing/ProblemSolution";
-import { VideoDemo } from "@/components/landing/VideoDemo";
-import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { Stats } from "@/components/landing/Stats";
-import { CompetitorComparison } from "@/components/landing/CompetitorComparison";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { PricingPreview } from "@/components/landing/PricingPreview";
 import { CTASection } from "@/components/landing/CTASection";
+import { ROICalculator } from "@/components/landing/ROICalculator";
+import { EcosystemSelector } from "@/components/landing/EcosystemSelector";
+import { WorkflowNarrative } from "@/components/landing/WorkflowNarrative";
+import { RoleChapters } from "@/components/landing/RoleChapters";
+import { ProductTour } from "@/components/landing/ProductTour";
 
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <TrustBadges />
-      <LogoCloud />
-      <ProblemSolution />
-      <VideoDemo />
-      <FeatureGrid />
+      <EcosystemSelector />
+      <WorkflowNarrative compact />
+      <RoleChapters />
+      <ProductTour />
+      <ROICalculator />
       <Stats />
-      <CompetitorComparison />
       <Testimonials />
       <PricingPreview />
       <CTASection />

@@ -780,7 +780,8 @@ export class StaffAppService {
 
   attendanceDevice(deviceId: string): Promise<AttendanceDevice | null> {
     return this.get<AttendanceDevice>("/staff-self/attendance-device", { deviceId }).catch((error) => {
-      if (error instanceof HttpErrorResponse && error.status === 404) return null;
+      const status = error instanceof HttpErrorResponse ? error.status : Number((error as { status?: unknown } | null)?.status);
+      if (status === 404) return null;
       throw error;
     });
   }
