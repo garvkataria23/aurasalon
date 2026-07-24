@@ -12,7 +12,7 @@ type CommandItem = {
   label: string;
   labelHi?: string;
   href: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string } & Record<string, unknown>>;
   group: string;
 };
 

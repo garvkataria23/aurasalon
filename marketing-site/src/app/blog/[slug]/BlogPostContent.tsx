@@ -251,6 +251,22 @@ interface BlogPostContentProps {
   slug: string;
 }
 
+function ReadingProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
+
+  return (
+    <motion.div
+      className="fixed top-0 left-0 right-0 h-[2px] z-50 origin-left"
+      style={{
+        scaleX,
+        background: "linear-gradient(90deg, var(--color-aura-burgundy), var(--color-aura-copper))",
+      }}
+      aria-hidden="true"
+    />
+  );
+}
+
 export function BlogPostContent({ slug }: BlogPostContentProps) {
   const { language, t } = useLanguage();
   const post = BLOG_POSTS.find((p) => p.slug === slug);
@@ -275,9 +291,11 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
 
       // Heading
       if (trimmed.startsWith("## ")) {
+        const headingText = trimmed.replace("## ", "");
+        const headingId = headingText.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         return (
-          <h2 key={i} className="text-xl md:text-2xl font-bold text-aura-text mt-10 mb-4 first:mt-0">
-            {trimmed.replace("## ", "")}
+          <h2 key={i} id={headingId} className="text-xl md:text-2xl font-bold text-aura-text mt-10 mb-4 first:mt-0 scroll-mt-28">
+            {headingText}
           </h2>
         );
       }
