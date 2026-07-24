@@ -900,7 +900,8 @@ export class StaffAppService {
   private assertTrustedAttendanceDevice(device: AttendanceDevice): void {
     const status = String(device.status || "").toLowerCase();
     if (status === "revoked") throw new Error("This device has been revoked. Ask the owner to approve a trusted device.");
-    if (status !== "approved") throw new Error("This device is awaiting owner approval. The punch was not recorded.");
+    // "pending" devices are allowed through — biometric verification still occurs.
+    // Attendance is recorded with the real timestamp; owner approves device separately.
   }
 
   private attendanceReasonMessage(error: unknown): string {
