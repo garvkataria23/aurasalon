@@ -766,6 +766,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
 export class BookingDetailPage implements OnInit, OnDestroy {
   @ViewChild("detailContent") private detailContent?: IonContent;
   private readonly id = signal(this.route.snapshot.paramMap.get("id"));
+  private readonly sourceTab = signal<"upcoming" | "past" | "cancelled" | "">(this.readSourceTab());
   private copyResetTimer: ReturnType<typeof setTimeout> | undefined;
   private routeSubscription?: Subscription;
   private lastOpenedId = this.id() || "";
@@ -911,6 +912,7 @@ export class BookingDetailPage implements OnInit, OnDestroy {
     if (!booking) return "pending";
     const raw = String(booking.status || "") as Booking["status"] | "no_show";
     if (raw === "cancelled" || raw === "completed" || raw === "no_show") return raw;
+    if (this.sourceTab() === "past") return raw === "pending" ? "no_show" : "completed";
     if (!this.isPastBooking(booking)) return booking.status;
     return raw === "pending" ? "no_show" : "completed";
   }
@@ -1291,8 +1293,14 @@ export class BookingDetailPage implements OnInit, OnDestroy {
   }
 
   private isPastBooking(booking: Booking): boolean {
+    if (this.sourceTab() === "past") return true;
     const end = this.bookingEndTime(booking);
     return end !== null && end <= Date.now();
+  }
+
+  private readSourceTab(): "upcoming" | "past" | "cancelled" | "" {
+    const value = String(history.state?.bookingTab || "");
+    return value === "upcoming" || value === "past" || value === "cancelled" ? value : "";
   }
 
   private bookingEndTime(booking: Booking): number | null {

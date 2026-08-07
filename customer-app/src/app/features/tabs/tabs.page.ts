@@ -272,12 +272,12 @@ import { MarketplaceService } from "../../core/marketplace.service";
     @media (max-width: 599px) {
       ion-tab-bar {
         position: fixed;
-        left: 8px;
-        right: 8px;
-        bottom: calc(8px + env(safe-area-inset-bottom));
+        left: 10px;
+        right: 10px;
+        bottom: calc(6px + env(safe-area-inset-bottom));
         width: auto;
-        height: calc(42px + env(safe-area-inset-bottom));
-        min-height: calc(42px + env(safe-area-inset-bottom));
+        height: calc(38px + env(safe-area-inset-bottom));
+        min-height: calc(38px + env(safe-area-inset-bottom));
         margin: 0;
         border-radius: 13px;
         box-sizing: border-box;
@@ -353,8 +353,8 @@ import { MarketplaceService } from "../../core/marketplace.service";
     ion-tab-bar {
       --background: var(--glass);
       --border: 1px solid rgba(99, 102, 241, 0.16);
-      height: calc(44px + env(safe-area-inset-bottom));
-      min-height: calc(44px + env(safe-area-inset-bottom));
+      height: calc(40px + env(safe-area-inset-bottom));
+      min-height: calc(40px + env(safe-area-inset-bottom));
       padding: 2px 6px calc(2px + env(safe-area-inset-bottom));
       box-shadow: 0 -2px 8px rgba(28, 28, 28, 0.035);
       backdrop-filter: blur(14px);
@@ -365,16 +365,16 @@ import { MarketplaceService } from "../../core/marketplace.service";
       --color-selected: var(--primary);
       --ripple-color: rgba(99, 102, 241, 0.18);
       min-width: 0;
-      min-height: 38px;
+      min-height: 34px;
       border-radius: 9px;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 850;
     }
 
     ion-tab-button ion-icon {
       padding: 2px 10px;
       border-radius: 999px;
-      font-size: 1rem;
+      font-size: 0.96rem;
       transition: background-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
     }
 
@@ -391,7 +391,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
       ion-tabs.with-bottom-nav {
         padding-top: 0;
-        padding-bottom: calc(52px + env(safe-area-inset-bottom));
+        padding-bottom: calc(48px + env(safe-area-inset-bottom));
       }
 
       ion-tabs:not(.with-bottom-nav) {

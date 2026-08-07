@@ -10,6 +10,7 @@ type BookingTab = "upcoming" | "past" | "cancelled";
 type BookingGroup = { key: string; label: string; countLabel: string; items: Booking[] };
 type PaymentTone = "paid" | "pending" | "refunded" | "default";
 type EffectiveBookingStatus = Booking["status"] | "no_show";
+type BookingWithClientBucket = Booking & { __auraTab?: BookingTab };
 type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden"; reason?: string };
 
 @Component({
@@ -805,7 +806,7 @@ export class BookingsPage implements OnDestroy, OnInit {
 
   async openBooking(booking: Booking) {
     await this.saveScrollPosition();
-    void this.router.navigateByUrl(this.bookingDetailUrl(booking.id));
+    void this.router.navigateByUrl(this.bookingDetailUrl(booking.id), { state: { bookingTab: this.tab() } });
   }
 
   handleBookingKeydown(event: KeyboardEvent, booking: Booking) {
@@ -851,7 +852,7 @@ export class BookingsPage implements OnDestroy, OnInit {
     if (this.tabBusy()[tab]) return;
     this.tabBusy.update((state) => ({ ...state, [tab]: true }));
     try {
-      const rows = await this.marketplace.loadBookings(tab, force);
+      const rows = (await this.marketplace.loadBookings(tab, force)).map((row) => ({ ...row, __auraTab: tab }));
       this.mergeBookings(rows);
       this.reclassifyBookings();
       this.tabLoaded.update((state) => ({ ...state, [tab]: true }));
@@ -1110,8 +1111,10 @@ export class BookingsPage implements OnDestroy, OnInit {
   }
 
   effectiveStatus(booking: Booking): EffectiveBookingStatus {
+    const bucket = (booking as BookingWithClientBucket).__auraTab;
     const rawStatus = String(booking.status || "") as EffectiveBookingStatus;
     if (rawStatus === "cancelled" || rawStatus === "completed" || rawStatus === "no_show") return rawStatus;
+    if (bucket === "past") return rawStatus === "pending" ? "no_show" : "completed";
     if (!this.hasAppointmentEnded(booking)) return booking.status;
     return rawStatus === "pending" ? "no_show" : "completed";
   }
@@ -1119,7 +1122,11 @@ export class BookingsPage implements OnDestroy, OnInit {
   private mergeBookings(rows: Booking[]) {
     const byId = new Map<string, Booking>();
     for (const booking of this.allBookings()) byId.set(booking.id, booking);
-    for (const booking of rows) byId.set(booking.id, booking);
+    for (const booking of rows) {
+      const existing = byId.get(booking.id) as BookingWithClientBucket | undefined;
+      const merged = { ...existing, ...booking, __auraTab: (booking as BookingWithClientBucket).__auraTab || existing?.__auraTab } as BookingWithClientBucket;
+      byId.set(booking.id, merged);
+    }
     this.allBookings.set([...byId.values()]);
   }
 
@@ -1137,6 +1144,8 @@ export class BookingsPage implements OnDestroy, OnInit {
 
   private bookingBucket(booking: Booking): BookingTab {
     if (String(booking.status) === "cancelled") return "cancelled";
+    const bucket = (booking as BookingWithClientBucket).__auraTab;
+    if (bucket === "past" || bucket === "cancelled") return bucket;
     return this.hasAppointmentEnded(booking) ? "past" : "upcoming";
   }
 
