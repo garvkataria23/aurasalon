@@ -157,8 +157,8 @@ import { MarketplaceService } from "../../core/marketplace.service";
         </a>
       </div>
     </nav>
-    <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()">
-      @if (!salonModeActive() && !supportSubflowActive()) {
+    <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
+      @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
         <ion-tab-button tab="search" href="/tabs/search">
           <ion-icon name="compass-outline"></ion-icon>
@@ -276,10 +276,10 @@ import { MarketplaceService } from "../../core/marketplace.service";
         right: 8px;
         bottom: calc(8px + env(safe-area-inset-bottom));
         width: auto;
-        height: calc(46px + env(safe-area-inset-bottom));
-        min-height: calc(46px + env(safe-area-inset-bottom));
+        height: calc(42px + env(safe-area-inset-bottom));
+        min-height: calc(42px + env(safe-area-inset-bottom));
         margin: 0;
-        border-radius: 14px;
+        border-radius: 13px;
         box-sizing: border-box;
         overflow: hidden;
       }
@@ -353,11 +353,11 @@ import { MarketplaceService } from "../../core/marketplace.service";
     ion-tab-bar {
       --background: var(--glass);
       --border: 1px solid rgba(99, 102, 241, 0.16);
-      height: calc(48px + env(safe-area-inset-bottom));
-      min-height: calc(48px + env(safe-area-inset-bottom));
-      padding: 3px 6px calc(3px + env(safe-area-inset-bottom));
-      box-shadow: 0 -4px 14px rgba(28, 28, 28, 0.05);
-      backdrop-filter: blur(18px);
+      height: calc(44px + env(safe-area-inset-bottom));
+      min-height: calc(44px + env(safe-area-inset-bottom));
+      padding: 2px 6px calc(2px + env(safe-area-inset-bottom));
+      box-shadow: 0 -2px 8px rgba(28, 28, 28, 0.035);
+      backdrop-filter: blur(14px);
     }
 
     ion-tab-button {
@@ -365,23 +365,23 @@ import { MarketplaceService } from "../../core/marketplace.service";
       --color-selected: var(--primary);
       --ripple-color: rgba(99, 102, 241, 0.18);
       min-width: 0;
-      min-height: 44px;
-      border-radius: 10px;
-      font-size: 0.75rem;
+      min-height: 38px;
+      border-radius: 9px;
+      font-size: 0.7rem;
       font-weight: 850;
     }
 
     ion-tab-button ion-icon {
-      padding: 3px 12px;
+      padding: 2px 10px;
       border-radius: 999px;
-      font-size: 1.1rem;
+      font-size: 1rem;
       transition: background-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
     }
 
     ion-tab-button.tab-selected ion-icon {
       color: #ffffff;
       background: var(--primary);
-      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.24);
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.18);
     }
 
     @media (max-width: 1023px) {
@@ -389,9 +389,14 @@ import { MarketplaceService } from "../../core/marketplace.service";
         display: none;
       }
 
-      ion-tabs {
+      ion-tabs.with-bottom-nav {
         padding-top: 0;
-        padding-bottom: calc(58px + env(safe-area-inset-bottom));
+        padding-bottom: calc(52px + env(safe-area-inset-bottom));
+      }
+
+      ion-tabs:not(.with-bottom-nav) {
+        padding-top: 0;
+        padding-bottom: 0;
       }
     }
 
@@ -952,6 +957,12 @@ export class TabsPage implements OnInit {
   supportSubflowActive(): boolean {
     const url = this.currentUrl();
     return this.normalizeSwipeRoute(url) === "/tabs/support" && /(?:[?&])mode=booking(?:&|$)/.test(url) && /(?:[?&])bookingId=/.test(url);
+  }
+
+  bottomNavVisible(): boolean {
+    if (this.salonModeActive() || this.supportSubflowActive()) return false;
+    const route = this.normalizeSwipeRoute(this.currentUrl());
+    return route === "/tabs/search" || route === "/tabs/bookings" || route === "/tabs/profile";
   }
 
   onSalonDashboard(): boolean {

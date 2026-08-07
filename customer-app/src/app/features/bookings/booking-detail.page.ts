@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Subscription } from "rxjs";
 import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, storefrontOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
+import { addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, sparklesOutline, storefrontOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
 import { Booking, Business } from "../../core/api.types";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-header.component";
@@ -22,7 +22,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
 
           <section class="itinerary-card" aria-labelledby="booking-service">
             <div class="summary-top">
-              <span class="booking-status-pill status-{{ booking.status }}" role="status">{{ statusLabel() }}</span>
+              <span class="booking-status-pill status-{{ effectiveStatus() }}" role="status">{{ statusLabel() }}</span>
               <h1 id="booking-service">{{ booking.serviceName }}</h1>
               <p>{{ branchName() }}</p>
             </div>
@@ -170,8 +170,8 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
             }
           </section>
 
-          @if (!isActive()) {
-            <section class="book-again-section" aria-labelledby="book-again-title">
+            @if (!isActive()) {
+              <section class="book-again-section" aria-labelledby="book-again-title">
               <div class="book-again-copy">
                 <ion-icon name="repeat-outline" aria-hidden="true"></ion-icon>
                 <div>
@@ -180,8 +180,16 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
                 </div>
               </div>
               <ion-button expand="block" class="primary-gradient" (click)="rebook()">{{ booking.status === "cancelled" ? "Rebook" : "Book again" }}</ion-button>
-            </section>
-          }
+              </section>
+            }
+
+            @if (showLeaveReview()) {
+              <button type="button" class="review-action" (click)="leaveReview()">
+                <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+                <span>Leave review</span>
+                <ion-icon class="row-chevron" name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+              </button>
+            }
 
           <section class="help-salon" aria-labelledby="help-salon-title">
             <h2 id="help-salon-title">Help &amp; salon</h2>
@@ -192,11 +200,13 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
                 <ion-icon class="row-chevron" name="chevron-forward-outline" aria-hidden="true"></ion-icon>
               </a>
             }
+            @if (canRequestBookingSupport()) {
             <button type="button" class="option-row" (click)="requestSupport()">
               <ion-icon name="chatbubbles-outline" aria-hidden="true"></ion-icon>
               <span>Request support for this booking</span>
               <ion-icon class="row-chevron" name="chevron-forward-outline" aria-hidden="true"></ion-icon>
             </button>
+            }
             <a class="option-row" [routerLink]="helpRoute()">
               <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
               <span>General Help Centre</span>
@@ -368,6 +378,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
     .booking-status-pill.status-confirmed { color: #047857; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.13); }
     .booking-status-pill.status-completed { color: #1D4ED8; border-color: rgba(59, 130, 246, 0.36); background: rgba(59, 130, 246, 0.12); }
     .booking-status-pill.status-cancelled { color: #B91C1C; border-color: rgba(239, 68, 68, 0.38); background: rgba(239, 68, 68, 0.11); }
+    .booking-status-pill.status-no_show { color: #92400E; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.13); }
     .summary-top h1 {
       margin: 8px 0 2px;
       color: #FFFFFF;
@@ -556,6 +567,8 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
     .book-again-copy h2 { margin: 0; font-size: 1rem; letter-spacing: -0.02em; }
     .book-again-copy p { margin: 3px 0 0; color: var(--muted); font-size: 0.82rem; line-height: 1.45; }
     .book-again-section ion-button { min-height: 44px; margin: 0; text-transform: none; }
+    .review-action { width: 100%; min-height: 50px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid rgba(99, 102, 241, 0.24); border-radius: 18px; color: var(--text); background: var(--surface); font-family: inherit; font-size: 0.9rem; font-weight: 900; text-align: left; }
+    .review-action > ion-icon:first-child { color: var(--primary); font-size: 1.2rem; }
 
     .help-salon {
       display: grid;
@@ -800,12 +813,13 @@ export class BookingDetailPage implements OnInit, OnDestroy {
   readonly invoiceAvailable = computed(() => {
     const booking = this.booking();
     if (!booking) return false;
-    return booking.status === "completed" && (booking.paymentStatus === "paid" || booking.paymentStatus === "refunded");
+    return this.effectiveStatus() === "completed" && (booking.paymentStatus === "paid" || booking.paymentStatus === "refunded");
   });
   readonly statusNote = computed<string | null>(() => {
-    const status = this.booking()?.status;
+    const status = this.effectiveStatus();
     if (status === "cancelled") return "This booking was cancelled.";
     if (status === "completed") return "This visit is complete.";
+    if (status === "no_show") return "This appointment is marked as no-show.";
     return null;
   });
 
@@ -857,7 +871,7 @@ export class BookingDetailPage implements OnInit, OnDestroy {
   readonly canCancelBooking = computed(() => this.isActive() && !this.cancellationCutoffExpired());
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
-    addIcons({ addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, storefrontOutline, swapHorizontalOutline, timeOutline });
+    addIcons({ addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, sparklesOutline, storefrontOutline, swapHorizontalOutline, timeOutline });
   }
 
   ngOnInit() {
@@ -887,8 +901,35 @@ export class BookingDetailPage implements OnInit, OnDestroy {
   }
 
   statusLabel(): string {
-    const status = this.booking()?.status || "";
+    const status = this.effectiveStatus();
+    if (status === "no_show") return "No-show";
     return status ? status.charAt(0).toUpperCase() + status.slice(1) : "Booking";
+  }
+
+  effectiveStatus(): Booking["status"] | "no_show" {
+    const booking = this.booking();
+    if (!booking) return "pending";
+    const raw = String(booking.status || "") as Booking["status"] | "no_show";
+    if (raw === "cancelled" || raw === "completed" || raw === "no_show") return raw;
+    if (!this.isPastBooking(booking)) return booking.status;
+    return raw === "pending" ? "no_show" : "completed";
+  }
+
+  showLeaveReview(): boolean {
+    const status = this.effectiveStatus();
+    return status === "completed" || status === "no_show";
+  }
+
+  canRequestBookingSupport(): boolean {
+    const booking = this.booking();
+    if (!booking) return false;
+    if (this.isActive()) return true;
+    const end = this.bookingEndTime(booking);
+    return end !== null && Date.now() - end <= 7 * 24 * 60 * 60 * 1000;
+  }
+
+  leaveReview(): void {
+    this.setFeedback("Review collection is coming soon for this booking.");
   }
 
   bookingChatLink(id: string): string {
@@ -1250,14 +1291,19 @@ export class BookingDetailPage implements OnInit, OnDestroy {
   }
 
   private isPastBooking(booking: Booking): boolean {
+    const end = this.bookingEndTime(booking);
+    return end !== null && end <= Date.now();
+  }
+
+  private bookingEndTime(booking: Booking): number | null {
     const start = this.parseDate(booking.startsAt || booking.startAt || booking.displayStartAt);
-    if (!start) return false;
+    if (!start) return null;
     const explicitEnd = this.parseDate(booking.endsAt || booking.endAt);
     const duration = Number(booking.durationMinutes || booking.serviceDurationMinutes || 60);
     const end = explicitEnd && explicitEnd.getTime() > start.getTime()
       ? explicitEnd
       : new Date(start.getTime() + (Number.isFinite(duration) && duration > 0 ? duration : 60) * 60_000);
-    return end.getTime() <= Date.now();
+    return end.getTime();
   }
 
   private bookingDurationMinutes(): number {

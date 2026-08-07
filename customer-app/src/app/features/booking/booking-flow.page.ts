@@ -4,7 +4,7 @@ import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
-import { AvailabilityDay, AvailabilitySlot, ServiceItem, StaffMember, CustomerPackage, SlotHold, SlotHoldPayload } from "../../core/api.types";
+import { AvailabilityDay, AvailabilitySlot, Booking, ServiceItem, StaffMember, CustomerPackage, SlotHold, SlotHoldPayload } from "../../core/api.types";
 import { BookingProgressComponent, BookingProgressStepId } from "./booking-progress.component";
 import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-header.component";
 
@@ -337,7 +337,7 @@ type BookingFlowItem = {
                     <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
                   </button>
                   <span class="month-title">{{ currentMonthLabel() }}</span>
-                  <button type="button" class="month-nav-btn" (click)="nextDatePage()" aria-label="Next week">
+                  <button type="button" class="month-nav-btn" (click)="nextDatePage()" [disabled]="!canNextDatePage()" aria-label="Next week">
                     <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
                   </button>
                 </div>
@@ -358,7 +358,7 @@ type BookingFlowItem = {
                         [class.selected]="getActiveItemDate() === date.date"
                         [class.current]="isCurrentAppointmentDate(date.date)"
                         [class.full]="dateAvailabilityClass(date) === 'full'"
-                        [disabled]="isPastDate(date.date)"
+                        [disabled]="!isDateSelectable(date)"
                         [attr.aria-label]="dateCardLabel(date)"
                         [attr.aria-pressed]="getActiveItemDate() === date.date"
                         (click)="setDate(date.date)">
@@ -372,6 +372,11 @@ type BookingFlowItem = {
                       <section class="state-card stable-state"><h2>No slots available</h2></section>
                     }
                   }
+                </div>
+                <div class="availability-legend" aria-label="Date availability legend">
+                  <span><i class="date-dot many" aria-hidden="true"></i> Available</span>
+                  <span><i class="date-dot partial" aria-hidden="true"></i> Filling fast</span>
+                  <span><i class="date-dot full" aria-hidden="true"></i> Unavailable</span>
                 </div>
               </div>
 
@@ -390,14 +395,14 @@ type BookingFlowItem = {
                 }
               </div>
 
-              <!-- Generated Complete Visit Timeline (Immediately shown when selected) -->
-              @if (continuousTimelineItems().length && allSlotsSelected()) {
+              <!-- Generated Complete Visit Timeline -->
+              @if (validTimelineItems().length) {
                 <section class="visit-timeline-card premium-card" aria-label="Generated Visit Timeline">
                   <div class="timeline-header">
                     <div>
                       <span class="timeline-badge">Complete Visit Timeline</span>
-                      <strong>{{ continuousVisitTimeRangeLabel() }}</strong>
-                      <small>Sequence total: {{ visitWindowDurationLabel() }} (incl. preparation/buffer)</small>
+                      <strong>{{ validVisitTimeRangeLabel() }}</strong>
+                      <small>Sequence total: {{ reviewWindowDurationLabel() }} (includes preparation/buffer where needed)</small>
                     </div>
                     @if (slotHoldSeconds(); as seconds) {
                       <span class="hold-timer-badge" role="status">
@@ -406,7 +411,7 @@ type BookingFlowItem = {
                     }
                   </div>
                   <div class="timeline-sequence">
-                    @for (stepItem of continuousTimelineItems(); track stepItem.serviceId; let idx = $index) {
+                    @for (stepItem of validTimelineItems(); track stepItem.startIso; let idx = $index) {
                       <div class="timeline-step">
                         <span class="step-time">{{ stepItem.startTimeLabel }}–{{ stepItem.endTimeLabel }}</span>
                         <div class="step-details">
@@ -414,6 +419,9 @@ type BookingFlowItem = {
                           <small>{{ stepItem.staffName }} · {{ stepItem.durationMinutes }} min</small>
                         </div>
                       </div>
+                      @if (stepItem.gapAfterMinutes > 0) {
+                        <div class="timeline-gap">{{ stepItem.gapAfterMinutes }} min gap before next service</div>
+                      }
                     }
                   </div>
                 </section>
@@ -598,6 +606,18 @@ type BookingFlowItem = {
                   </div>
 
                   <div class="validated-timeline-box">
+                    @if (isRescheduling()) {
+                      <div class="reschedule-compare-grid" aria-label="Old and new appointment comparison">
+                        <span>
+                          <small>Current appointment</small>
+                          <strong>{{ currentAppointmentLabel() }}</strong>
+                        </span>
+                        <span>
+                          <small>New appointment</small>
+                          <strong>{{ newAppointmentLabel() }}</strong>
+                        </span>
+                      </div>
+                    }
                     <div class="visit-date-badge">
                       <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
                       <strong>{{ selectedDateLabel() }}</strong>
@@ -611,8 +631,11 @@ type BookingFlowItem = {
                             <span class="step-num-badge">{{ idx + 1 }}</span>
                             <span class="step-time-window">{{ stepItem.startTimeLabel }}–{{ stepItem.endTimeLabel }}</span>
                             <span class="step-name">{{ stepItem.serviceName }}</span>
-                            <small class="step-staff">({{ stepItem.staffName }})</small>
+                            <small class="step-staff">{{ stepItem.staffName }} · {{ stepItem.durationMinutes }} min</small>
                           </div>
+                          @if (stepItem.gapAfterMinutes > 0) {
+                            <div class="validated-gap">{{ stepItem.gapAfterMinutes }} min gap before next service</div>
+                          }
                         }
                       </div>
                     }
@@ -723,7 +746,7 @@ type BookingFlowItem = {
             } @else {
               <ion-button class="primary-gradient" [disabled]="!canConfirm() || marketplace.loading()" (click)="confirmBooking()">
                   @if (marketplace.loading()) { <span class="button-spinner" aria-hidden="true"></span> }
-                  <span>{{ isRescheduling() ? "Save changes" : (marketplace.isAuthenticated() ? "Confirm booking" : "Sign in to book") }}</span>
+                  <span>{{ isRescheduling() ? "Confirm changes" : (marketplace.isAuthenticated() ? "Confirm booking" : "Sign in to book") }}</span>
               </ion-button>
             }
             </div>
@@ -830,7 +853,7 @@ type BookingFlowItem = {
     </ion-content>
   `,
   styles: [`
-    :host { --booking-footer-height: 108px; --booking-footer-gap: 16px; }
+    :host { --booking-footer-height: 124px; --booking-footer-gap: 32px; }
     .booking-page { max-width: 980px; padding-bottom: calc(var(--booking-footer-height) + var(--booking-footer-gap) + env(safe-area-inset-bottom)); }
     .edit-toolbar-title {
       padding-inline: 0 16px;
@@ -844,7 +867,7 @@ type BookingFlowItem = {
     .booking-page.editing app-booking-progress { display: block; margin-top: 2px; }
     .booking-cta { width: min(980px, calc(100% - 24px)); margin: 0 auto; }
     .booking-cta.sticky-cta { bottom: calc(8px + env(safe-area-inset-bottom)); }
-    .booking-cta .bottom-action-card { min-height: var(--booking-footer-height); display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; align-items: center; gap: 8px; padding: 12px; overflow: hidden; }
+    .booking-cta .bottom-action-card { min-height: var(--booking-footer-height); display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; align-items: center; gap: 8px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); overflow: hidden; }
     .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
     .assign-status { margin: 0; color: var(--muted); font-size: 0.84rem; font-weight: 850; letter-spacing: 0.02em; }
     .booking-summary-metrics { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, auto)); gap: 14px; align-items: center; padding: 6px; border: 0; border-radius: 14px; background: transparent; color: var(--text); text-align: left; }
@@ -1002,7 +1025,7 @@ type BookingFlowItem = {
       .sticky-cta { bottom: calc(24px + env(safe-area-inset-bottom)); }
       .sticky-cta--confirm { bottom: calc(8px + env(safe-area-inset-bottom)); }
     @media (max-width: 599px) {
-      .booking-page { padding-bottom: calc(var(--booking-footer-height) + 24px + env(safe-area-inset-bottom)); }
+      .booking-page { padding-bottom: calc(var(--booking-footer-height) + 44px + env(safe-area-inset-bottom)); }
 
       .sticky-cta { bottom: calc(10px + env(safe-area-inset-bottom)); }
 
@@ -1047,6 +1070,7 @@ type BookingFlowItem = {
       .review-summary-strip small { font-size: 0.70rem; }
       .review-summary-strip strong { font-size: 0.84rem; }
       .review-summary-strip .review-total strong { font-size: 0.94rem; }
+      .reschedule-compare-grid { grid-template-columns: 1fr; }
       dl div { padding: 9px 0; gap: 10px; }
     }
     @media (max-width: 430px) {
@@ -1259,6 +1283,11 @@ type BookingFlowItem = {
     .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.28); }
     .date-card.selected span, .date-card.selected .status-text { color: rgba(255, 255, 255, 0.88); }
     .date-card.selected .date-dot { background: #FFFFFF; }
+    .date-card:disabled { color: var(--muted); border-color: var(--border); background: var(--surface-soft); cursor: not-allowed; opacity: 0.58; box-shadow: none; }
+    .date-card:disabled .status-text { color: var(--muted); }
+    .availability-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 0 2px; color: var(--muted); font-size: 0.74rem; font-weight: 850; }
+    .availability-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .availability-legend .date-dot { margin: 0; }
     
     .shortcuts-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
     .shortcut-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.84rem; font-weight: 900; cursor: pointer; }
@@ -1273,6 +1302,7 @@ type BookingFlowItem = {
     .hold-timer-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; color: #059669; background: #D1FAE5; font-size: 0.82rem; font-weight: 950; }
     .timeline-sequence { display: grid; gap: 8px; }
     .timeline-step { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--surface-soft); }
+    .timeline-gap, .validated-gap { width: fit-content; margin-left: 18px; padding: 4px 9px; border-radius: 999px; color: #92400E; background: #FEF3C7; font-size: 0.76rem; font-weight: 900; }
     .step-time { font-size: 0.8rem; font-weight: 950; color: var(--primary); white-space: nowrap; }
     .step-details strong { display: block; font-size: 0.88rem; color: var(--text); }
     .step-details small { color: var(--muted); font-size: 0.84rem; font-weight: 800; }
@@ -1329,6 +1359,10 @@ type BookingFlowItem = {
     .review-staff-chip ion-icon { color: var(--primary); font-size: 0.9rem; }
     
     .validated-timeline-box { display: grid; gap: 8px; padding: 12px; border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 16px; background: var(--primary-soft); }
+    .reschedule-compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .reschedule-compare-grid span { min-width: 0; display: grid; gap: 3px; padding: 10px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); }
+    .reschedule-compare-grid small { color: var(--muted); font-size: 0.72rem; font-weight: 950; letter-spacing: 0.06em; text-transform: uppercase; }
+    .reschedule-compare-grid strong { overflow: hidden; color: var(--text); font-size: 0.84rem; font-weight: 950; text-overflow: ellipsis; white-space: nowrap; }
     .visit-date-badge { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.86rem; color: var(--text); }
     .visit-date-badge ion-icon { color: var(--primary); font-size: 1.05rem; }
     .validated-timeline-sequence { display: grid; gap: 6px; margin-top: 6px; }
@@ -1471,6 +1505,7 @@ export class BookingFlowPage implements OnInit, OnDestroy {
       endIso: string;
       startTimeLabel: string;
       endTimeLabel: string;
+      gapAfterMinutes: number;
     }> = [];
     for (const item of this.bookingItems()) {
       if (!item.slotStartAt) continue;
@@ -1486,14 +1521,29 @@ export class BookingFlowPage implements OnInit, OnDestroy {
         startIso: start.toISOString(),
         endIso: end.toISOString(),
         startTimeLabel: start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-        endTimeLabel: end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+        endTimeLabel: end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        gapAfterMinutes: 0
       });
     }
-    return rows.sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    const sorted = rows.sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+    return sorted.map((row, index) => {
+      const next = sorted[index + 1];
+      if (!next) return row;
+      const gap = Math.max(0, Math.round((new Date(next.startIso).getTime() - new Date(row.endIso).getTime()) / 60000));
+      return { ...row, gapAfterMinutes: gap };
+    });
   });
+
+  readonly validTimelineItems = computed(() => this.allSlotsSelected() ? this.reviewTimelineItems() : []);
 
   readonly reviewVisitTimeRangeLabel = computed(() => {
     const items = this.reviewTimelineItems();
+    if (!items.length) return "";
+    return `${items[0].startTimeLabel}–${items[items.length - 1].endTimeLabel}`;
+  });
+
+  readonly validVisitTimeRangeLabel = computed(() => {
+    const items = this.validTimelineItems();
     if (!items.length) return "";
     return `${items[0].startTimeLabel}–${items[items.length - 1].endTimeLabel}`;
   });
@@ -1964,7 +2014,7 @@ async reload() {
     if (this.isPastDate(day.date)) return "Past date";
     const slots = day.periods.flatMap((period) => period.slots);
     const available = slots.filter((slot) => this.isSlotSelectable(slot)).length;
-    if (!slots.length || available === 0) return "Booked";
+    if (!slots.length || available === 0) return "Unavailable";
     if (available / slots.length >= 0.6) return "Available";
     return "Filling fast";
   }
@@ -1977,6 +2027,11 @@ async reload() {
 
   isPastDate(date: string): boolean {
     return !!date && date < localDateKey();
+  }
+
+  isDateSelectable(day: AvailabilityDay): boolean {
+    if (this.isPastDate(day.date)) return false;
+    return day.periods.some((period) => period.slots.some((slot) => this.isSlotSelectable(slot)));
   }
 
   isCurrentAppointmentDate(date: string): boolean {
@@ -2154,6 +2209,8 @@ async reload() {
     }
     const slotStillAvailable = await this.revalidateSelectedSlot();
     if (!slotStillAvailable) return;
+    const customerScheduleClear = await this.revalidateCustomerSchedule();
+    if (!customerScheduleClear) return;
     if (this.rescheduleBookingId) {
       const item = items[0];
       await this.marketplace.rescheduleBooking(this.rescheduleBookingId, {
@@ -2161,6 +2218,7 @@ async reload() {
         staffId: item.staffId || undefined,
         serviceId: item.serviceId
       });
+      await this.marketplace.loadBooking(this.rescheduleBookingId).catch(() => undefined);
       await this.router.navigateByUrl(this.bookingDetailUrl(this.rescheduleBookingId), { replaceUrl: true });
       return;
     }
@@ -2224,6 +2282,42 @@ async reload() {
     return true;
   }
 
+  private async revalidateCustomerSchedule(): Promise<boolean> {
+    const existingBookings = await this.marketplace.loadBookings("upcoming", true).catch(() => []);
+    const proposed = this.bookingItems()
+      .map((item) => this.bookingWindowForItem(item))
+      .filter((window): window is { start: number; end: number } => !!window);
+    for (const booking of existingBookings) {
+      if (booking.id === this.rescheduleBookingId || booking.status === "cancelled" || booking.status === "completed" || booking.status === "no_show") continue;
+      const existing = this.bookingWindowForBooking(booking);
+      if (!existing) continue;
+      if (proposed.some((window) => window.start < existing.end && existing.start < window.end)) {
+        this.step.set(3);
+        this.marketplace.error.set("This time overlaps another appointment in your schedule. Please choose a different slot.");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private bookingWindowForItem(item: BookingFlowItem): { start: number; end: number } | null {
+    if (!item.slotStartAt) return null;
+    const service = this.serviceById(item.serviceId);
+    const start = new Date(item.slotStartAt).getTime();
+    if (!Number.isFinite(start)) return null;
+    return { start, end: start + (service?.durationMinutes || 20) * 60000 };
+  }
+
+  private bookingWindowForBooking(booking: Booking): { start: number; end: number } | null {
+    const startIso = booking.startAt || booking.startsAt || booking.displayStartAt || "";
+    const start = new Date(startIso).getTime();
+    if (!Number.isFinite(start)) return null;
+    const explicitEndIso = booking.endAt || booking.endsAt || "";
+    const explicitEnd = explicitEndIso ? new Date(explicitEndIso).getTime() : NaN;
+    const duration = booking.durationMinutes || booking.serviceDurationMinutes || 20;
+    return { start, end: Number.isFinite(explicitEnd) ? explicitEnd : start + duration * 60000 };
+  }
+
   private async reloadAvailability() {
     const business = this.business();
     const item = this.activeItem();
@@ -2282,6 +2376,15 @@ async reload() {
     return `Current: ${date} at ${time}`;
   }
 
+  newAppointmentLabel(): string {
+    const items = this.validTimelineItems();
+    if (!items.length) return "Select a valid new time";
+    const start = new Date(items[0].startIso);
+    if (!Number.isFinite(start.getTime())) return "Select a valid new time";
+    const date = start.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    return `New: ${date} at ${items[0].startTimeLabel}`;
+  }
+
   itemSlotLabel(index: number): string {
     const item = this.bookingItems()[index];
     if (!item?.slotStartAt) return "";
@@ -2314,25 +2417,40 @@ async reload() {
     this.dateOffset.update((curr) => Math.min(maxOffset, curr + 7));
   }
 
+  canNextDatePage(): boolean {
+    return this.dateOffset() < Math.max(0, this.availabilityDays().length - 7);
+  }
+
   selectNextAvailable() {
-    for (const day of this.availabilityDays()) {
-      for (const period of day.periods) {
-        const slot = period.slots.find((s) => s.available && this.isSlotSelectable(s));
-        if (slot) {
-          this.setDate(day.date);
-          this.selectActiveSlot(slot);
-          return;
-        }
-      }
+    const match = this.findSelectableSlot(this.availabilityDays());
+    if (match) {
+      this.setDate(match.day.date);
+      void this.selectActiveSlot(match.slot);
+      return;
     }
+    this.flowWarning.set("No available slots were found in this window. Try another week or join the waitlist.");
   }
 
   selectThisWeek() {
     this.dateOffset.set(0);
-    const firstSelectableDay = this.availabilityDays().find((day) => !this.isPastDate(day.date));
-    if (firstSelectableDay?.date) {
-      this.setDate(firstSelectableDay.date);
+    const week = this.availabilityDays().slice(0, 7);
+    const match = this.findSelectableSlot(week);
+    if (match) {
+      this.setDate(match.day.date);
+      return;
     }
+    this.flowWarning.set("No available slots were found this week. Try Next available.");
+  }
+
+  private findSelectableSlot(days: AvailabilityDay[]): { day: AvailabilityDay; slot: AvailabilitySlot } | null {
+    for (const day of days) {
+      if (this.isPastDate(day.date)) continue;
+      for (const period of day.periods) {
+        const slot = period.slots.find((s) => this.isSlotSelectable(s));
+        if (slot) return { day, slot };
+      }
+    }
+    return null;
   }
 
   joinWaitlist() {
