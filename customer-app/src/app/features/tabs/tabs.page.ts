@@ -164,6 +164,10 @@ import { MarketplaceService } from "../../core/marketplace.service";
           <ion-icon name="compass-outline"></ion-icon>
           <ion-label>Explore</ion-label>
         </ion-tab-button>
+        <ion-tab-button tab="my-salon" href="/tabs/my-salon">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <ion-label>My Salon</ion-label>
+        </ion-tab-button>
         <ion-tab-button tab="bookings" href="/tabs/bookings">
           <ion-icon name="calendar-outline"></ion-icon>
           <ion-label>Bookings</ion-label>
@@ -880,7 +884,7 @@ export class TabsPage implements OnInit {
   readonly locationLabel = signal(this.readLocationLabel());
   readonly menuOpen = signal(false);
   readonly currentUrl = signal(this.router.url);
-  private readonly mobileSwipeRoutes = ["/tabs/search", "/tabs/bookings", "/tabs/profile"];
+  private readonly mobileSwipeRoutes = ["/tabs/search", "/tabs/my-salon", "/tabs/bookings", "/tabs/profile"];
   private swipeStartX = 0;
   private swipeStartY = 0;
   private swipeStartRoute = "";
@@ -962,7 +966,7 @@ export class TabsPage implements OnInit {
   bottomNavVisible(): boolean {
     if (this.salonModeActive() || this.supportSubflowActive()) return false;
     const route = this.normalizeSwipeRoute(this.currentUrl());
-    return route === "/tabs/search" || route === "/tabs/bookings" || route === "/tabs/profile";
+    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/bookings" || route === "/tabs/profile";
   }
 
   onSalonDashboard(): boolean {
