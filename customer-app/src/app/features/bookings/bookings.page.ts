@@ -845,6 +845,7 @@ export class BookingsPage implements OnDestroy, OnInit {
 
   private ensureTab(tab: BookingTab, force = false) {
     if (this.tabBusy()[tab]) return;
+    if (!force && this.tabLoaded()[tab]) return;
     void this.loadTab(tab, force);
   }
 
@@ -902,10 +903,11 @@ export class BookingsPage implements OnDestroy, OnInit {
   async onPullRefresh(event: Event) {
     const refresher = event.target as unknown as { complete(): Promise<void> };
     try {
-      const rows = await this.marketplace.loadBookings(this.tab(), true);
+      const currentTab = this.tab();
+      const rows = (await this.marketplace.loadBookings(currentTab, true)).map((row) => ({ ...row, __auraTab: currentTab }));
       this.mergeBookings(rows);
       this.reclassifyBookings();
-      this.tabLoaded.update((state) => ({ ...state, [this.tab()]: true }));
+      this.tabLoaded.update((state) => ({ ...state, [currentTab]: true }));
     } catch {
       // handled through marketplace.error()
     } finally {

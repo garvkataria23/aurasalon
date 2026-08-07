@@ -24,7 +24,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
               }
             </div>
             <div class="profile-identity">
-              <h1>{{ profileName() || "Loading profile" }}</h1>
+              <h1>{{ profileName() || "Your profile" }}</h1>
               <div class="profile-contact-list" aria-label="Profile contact details">
                 <button type="button" (click)="showContactDetail('Email', marketplace.customer()?.email || 'No email saved')">
                   <ion-icon name="mail-outline" aria-hidden="true"></ion-icon>
@@ -850,11 +850,11 @@ export class ProfilePage implements OnInit {
 
   async ngOnInit() {
     if (this.marketplace.isAuthenticated()) {
-      await this.marketplace.loadCustomer().then(() => this.syncForm()).catch(() => undefined);
-      await this.marketplace.loadBookings().catch(() => undefined);
-      await this.marketplace.loadFavorites().catch(() => undefined);
-      await this.marketplace.ensureSavedSalons().catch(() => undefined);
-      await this.marketplace.loadMySalons().catch(() => undefined);
+      this.marketplace.loadCustomer().then(() => this.syncForm()).catch(() => undefined);
+      void this.marketplace.loadBookings().catch(() => undefined);
+      void this.marketplace.loadFavorites().catch(() => undefined);
+      void this.marketplace.ensureSavedSalons().catch(() => undefined);
+      void this.marketplace.loadMySalons().catch(() => undefined);
     }
   }
 
