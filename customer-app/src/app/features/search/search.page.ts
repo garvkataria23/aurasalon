@@ -152,6 +152,18 @@ interface QuickFilterChip {
             </button>
           </div>
 
+          @if (serviceCategoryTiles().length) {
+            <section class="service-category-panel" aria-label="All treatment categories">
+              <div class="service-category-grid">
+                @for (category of serviceCategoryTiles(); track category.key) {
+                  <button type="button" [class.active]="query().trim().toLowerCase() === category.label.toLowerCase()" (click)="selectServiceCategory(category.label)">
+                    <strong>{{ category.label }}</strong>
+                  </button>
+                }
+              </div>
+            </section>
+          }
+
           <div #overlayHost class="search-overlay-host">
           @if (filterPanelOpen()) {
             <div class="sheet-backdrop" (click)="closeSheets()" aria-hidden="true"></div>
@@ -597,7 +609,8 @@ interface QuickFilterChip {
       background: var(--background, #FFFFFF);
     }
     .search-page.keyboard-open .premium-chip-row,
-    .search-page.keyboard-open .premium-result-row {
+    .search-page.keyboard-open .premium-result-row,
+    .search-page.keyboard-open .service-category-panel {
       display: none;
     }
     .search-page.keyboard-open .results-panel {
@@ -963,6 +976,140 @@ interface QuickFilterChip {
       margin-top: 4px;
       color: var(--muted);
       font-weight: 800;
+    }
+
+    .service-category-panel {
+      display: grid;
+      gap: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+
+    .service-category-panel > div:first-child {
+      display: grid;
+      gap: 2px;
+    }
+
+    .service-category-panel strong {
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 950;
+    }
+
+    .service-category-panel span {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .service-category-grid {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: max-content;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .service-category-grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    .service-category-grid button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      align-content: center;
+      gap: 2px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--surface), var(--surface-soft));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+      font: inherit;
+      text-align: center;
+      scroll-snap-align: start;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .service-category-grid button strong {
+      display: -webkit-box;
+      overflow: hidden;
+      font-size: 0.78rem;
+      line-height: 1.08;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
+
+    .service-category-grid button span {
+      font-size: 0.64rem;
+      line-height: 1.1;
+    }
+
+    .service-category-grid button.active {
+      color: #ffffff;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    }
+
+    .service-category-grid button:active {
+      transform: scale(0.98);
+    }
+
+    .service-category-grid button.active span,
+    .service-category-grid button.active strong {
+      color: #ffffff;
+    }
+
+    @media (max-width: 599px) {
+      .service-category-panel {
+        gap: 0;
+        padding: 0;
+        border-radius: 0;
+      }
+
+      .service-category-panel > div:first-child {
+        gap: 0;
+      }
+
+      .service-category-panel > div:first-child > strong {
+        font-size: 0.62rem;
+        line-height: 1;
+      }
+
+      .service-category-panel > div:first-child > span {
+        font-size: 0.44rem;
+        line-height: 1.08;
+      }
+
+      .service-category-grid {
+        grid-auto-columns: max-content;
+        gap: 4px;
+      }
+
+      .service-category-grid button {
+        min-height: 28px;
+        padding: 0 9px;
+        border-radius: 999px;
+      }
+
+      .service-category-grid button strong {
+        font-size: 0.56rem;
+        line-height: 1.08;
+        letter-spacing: -0.01em;
+      }
+
+      .service-category-grid button span {
+        font-size: 0.4rem;
+      }
     }
 
     ion-segment {
@@ -1436,21 +1583,21 @@ interface QuickFilterChip {
 
       .premium-chip-row {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         overflow-x: auto;
-        padding: 2px 0 4px;
+        padding: 1px 0 3px;
         scrollbar-width: none;
       }
 
       .premium-chip-row button {
         flex: 0 0 auto;
-        min-height: 44px;
-        padding: 0 12px;
+        min-height: 28px;
+        padding: 0 9px;
         border: 1px solid rgba(75, 18, 56, 0.18);
         border-radius: 999px;
         color: #463449;
         background: var(--surface);
-        font-size: 0.84rem;
+        font-size: 0.62rem;
         font-weight: 900;
       }
 
@@ -1509,21 +1656,21 @@ interface QuickFilterChip {
 
       .premium-map-switch {
         flex: 0 0 auto;
-        min-height: 44px;
-        padding: 0 12px;
+        min-height: 32px;
+        padding: 0 9px;
         border: 1px solid rgba(99, 102, 241, 0.18);
         border-radius: 999px;
         background: var(--primary-soft);
         color: var(--primary);
-        font-size: 0.82rem;
+        font-size: 0.7rem;
         font-weight: 900;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
       }
 
       .premium-map-switch ion-icon {
-        font-size: 0.92rem;
+        font-size: 0.78rem;
       }
 
       .premium-map-switch.active {
@@ -1937,6 +2084,20 @@ interface QuickFilterChip {
       background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(231, 240, 248, 0.98));
       box-shadow: 0 -24px 70px rgba(28, 28, 28, 0.2);
       overflow: hidden;
+    }
+
+    @media (max-width: 599px) {
+      .bottom-sheet {
+        top: 30%;
+        right: auto;
+        bottom: auto;
+        left: 50%;
+        width: min(calc(100vw - 28px), 420px);
+        max-height: min(74vh, 640px);
+        border-radius: 24px;
+        box-shadow: 0 24px 80px rgba(28, 28, 28, 0.24);
+        transform: translate(-50%, -50%);
+      }
     }
 
     .sheet-header,
@@ -2881,6 +3042,29 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     { label: "Top rated", filter: "top", sort: "rating" },
     { label: "Offers", filter: "deals" }
   ];
+  readonly serviceCategoryTiles = computed(() => {
+    if (this.mode() !== "services") return [];
+    const categories = new Map<string, { label: string; businessIds: Set<string> }>();
+    for (const business of this.marketplace.businesses()) {
+      const labels = [
+        ...(business.services || []).map((service) => service.category || service.name),
+        ...(business.categories || []),
+        business.category,
+        business.popularService
+      ];
+      for (const raw of labels) {
+        const label = this.serviceCategoryLabel(raw);
+        if (!label) continue;
+        const key = label.toLowerCase();
+        const entry = categories.get(key) || { label, businessIds: new Set<string>() };
+        entry.businessIds.add(String(business.id));
+        categories.set(key, entry);
+      }
+    }
+    return Array.from(categories.entries())
+      .map(([key, entry]) => ({ key, label: entry.label, count: entry.businessIds.size }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  });
   readonly flatFilterOptions = computed(() => this.filterSections().flatMap((section) => section.options));
   readonly activeFilterCount = computed(() => {
     let count = this.activeFilters().length + (this.minPrice() || this.maxPrice() ? 1 : 0) + (this.draftRadiusKm() !== 25 ? 1 : 0) + (this.hasRatingFilter() ? 1 : 0) + (this.hasInstantBookingFilter() ? 1 : 0) + (this.hasGenderFilter() ? 1 : 0);
@@ -3548,6 +3732,14 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     this.scheduleSearch();
   }
 
+  selectServiceCategory(category: string) {
+    this.query.set(category);
+    this.mode.set("services");
+    this.draftMode.set("services");
+    this.selectedBusiness.set(null);
+    void this.executeSearch();
+  }
+
   private scheduleSearch() {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => void this.executeSearch(), 300);
@@ -3686,7 +3878,19 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   }
 
   resultsHeading(): string {
+    if (this.mode() === "services") return this.query().trim() ? `${this.query().trim()} treatments` : "All treatments";
+    if (this.mode() === "staff") return this.query().trim() ? `${this.query().trim()} professionals` : "All professionals";
+    if (this.mode() === "locations") return this.location() ? `Places near ${this.areaLabel()}` : "Places by area";
     return this.location() ? `Salons near ${this.areaLabel()}` : "Recommended salons";
+  }
+
+  private serviceCategoryLabel(value: string | null | undefined): string {
+    const label = String(value || "").trim().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
+    if (!label) return "";
+    return label
+      .split(" ")
+      .map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : "")
+      .join(" ");
   }
 
   applyAnyTime() {

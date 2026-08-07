@@ -1,7 +1,7 @@
 import { Component, HostListener, OnInit, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
-import { IonButton, IonContent, IonHeader, IonIcon, IonSearchbar, IonToolbar } from "@ionic/angular/standalone";
+import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { firstValueFrom } from "rxjs";
 import { addIcons } from "ionicons";
 import {
@@ -81,47 +81,27 @@ interface ConsultationChatMessage {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink, IonButton, IonContent, IonHeader, IonIcon, IonSearchbar, IonToolbar, BusinessCardComponent, MySalonCardComponent],
+  imports: [FormsModule, RouterLink, IonButton, IonContent, IonIcon, BusinessCardComponent, MySalonCardComponent],
   template: `
     <ion-content>
-      <ion-header class="ion-no-border">
-        <ion-toolbar>
-          <div class="home-toolbar app-container">
-            <span class="aura-shine-brand" aria-label="Aura Shine"><img src="assets/branding/aurashine-logo.png" alt="Aura Shine" /></span>
-            <button type="button" class="location-copy location-trigger" [disabled]="locating()" (click)="openLocationChooser()" aria-label="Choose location">
-              <span>{{ hasSelectedLocation() ? "Location" : "Choose location" }}</span>
-              <div class="location-row">
-                <strong><ion-icon name="location-outline"></ion-icon> {{ areaLabel() }}</strong>
-                <ion-icon class="location-chevron" name="chevron-forward-outline"></ion-icon>
-              </div>
-            </button>
-            <div class="toolbar-actions">
-              <ion-button fill="clear" shape="round" routerLink="/notifications" aria-label="Open notifications">
-                <ion-icon name="notifications-outline"></ion-icon>
-              </ion-button>
-              <ion-button fill="clear" shape="round" routerLink="/tabs/profile" aria-label="Open profile">
-                <ion-icon name="person-circle-outline"></ion-icon>
-              </ion-button>
-            </div>
-          </div>
-        </ion-toolbar>
-      </ion-header>
-
       <main class="page home-page">
+        <button type="button" class="location-copy location-trigger inline-location" [disabled]="locating()" (click)="openLocationChooser()" aria-label="Choose location">
+          <span>{{ hasSelectedLocation() ? "Location" : "Choose location" }}</span>
+          <div class="location-row">
+            <strong><ion-icon name="location-outline"></ion-icon> {{ areaLabel() }}</strong>
+            <ion-icon class="location-chevron" name="chevron-forward-outline"></ion-icon>
+          </div>
+        </button>
         <section class="hero dashboard-hero">
           <div class="hero-copy">
             <span class="eyebrow">Your day, beautifully planned</span>
             <h1 class="page-title">{{ greeting() }}</h1>
             <div class="search-panel compact">
               <div class="home-search-wrap">
-                <ion-searchbar
-                  placeholder="Search services or salons"
-                  [value]="query()"
-                  (ionFocus)="openExploreFromSearch()"
-                  (click)="openExploreFromSearch()"
-                  (ionInput)="setQuery($any($event.target).value || '')"
-                  (ionSearch)="search()">
-                </ion-searchbar>
+                <button type="button" class="home-search-button" (click)="openExploreFromSearch()" aria-label="Search services or salons">
+                  <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+                  <span>Search services or salons</span>
+                </button>
                 @if (suggestions().length) {
                   <div class="home-suggestion-panel" aria-label="Home search suggestions">
                     @for (suggestion of suggestions(); track suggestion.key) {
@@ -171,16 +151,6 @@ interface ConsultationChatMessage {
           }
         </section>
 
-        @if (!searchActive() && openNowBusinesses().length) {
-          <button type="button" class="open-now-banner premium-card" (click)="openOpenNowSearch()" aria-label="Show salons open now">
-            <div>
-              <span class="section-kicker">Open now</span>
-              <strong>{{ openNowBannerLabel() }}</strong>
-            </div>
-            <ion-icon name="chevron-forward-outline"></ion-icon>
-          </button>
-        }
-
         @if (marketplace.isAuthenticated()) {
           <section class="aura-dashboard" aria-label="Personalized Aura dashboard">
             <aura-my-salon-card
@@ -193,10 +163,18 @@ interface ConsultationChatMessage {
           </section>
         }
 
+        @if (!searchActive()) {
+          <nav class="account-shortcuts" aria-label="Balance and benefits">
+            <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span></a>
+            <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span></a>
+            <a routerLink="/tabs/rewards"><ion-icon name="pricetag-outline"></ion-icon><span>Rewards</span><strong>{{ marketplace.customer()?.loyaltyPoints ?? 0 }} pts</strong></a>
+          </nav>
+        }
+
         <!-- Book Again faster (shown when authenticated with visit history) -->
         @if (!searchActive() && recentlyVisited().length) {
           <section class="mobile-secondary-section">
-          <div class="section-heading priority-heading">
+          <div class="section-heading priority-heading quiet-home-heading">
             <div>
                <span class="section-kicker">From your visits</span>
                <h2 class="section-title">Book again</h2>
@@ -222,76 +200,15 @@ interface ConsultationChatMessage {
 
         @if (!searchActive() && recentlyViewed().length) {
           <section class="mobile-secondary-section">
-            <div class="section-heading">
+            <div class="section-heading recently-viewed-heading">
               <div><span class="section-kicker">Recently viewed</span><h2 class="section-title">Continue where you left off</h2></div>
             </div>
-            <div class="business-rail continue-rail">
+            <div class="business-rail continue-rail" [class.single-card]="recentlyViewed().length === 1">
               @for (business of recentlyViewed(); track business.id) {
                 <aura-business-card variant="miniRail" [business]="business" [userLocation]="currentLocation()"></aura-business-card>
               }
             </div>
           </section>
-        }
-
-        @if (!searchActive() && marketplace.isAuthenticated()) {
-          <section class="mobile-secondary-section">
-            <div class="section-heading"><div><span class="section-kicker">Saved by you</span><h2 class="section-title">Favourites</h2></div><a routerLink="/tabs/wishlist">View all</a></div>
-            @if (favoriteBusinesses().length) {
-              <div class="business-rail favourites-rail">
-                @for (business of favoriteBusinesses(); track business.id) {
-                  <a class="favourite-mini-card" [routerLink]="['/business', business.slug]">
-                    @if (businessImage(business)) {
-                      <img [src]="businessImage(business)" [alt]="business.businessName + ' cover'" loading="lazy" />
-                    } @else {
-                      <b aria-hidden="true">{{ businessInitials(business) }}</b>
-                    }
-                    <span>
-                      <strong>{{ business.businessName }}</strong>
-                      <small>{{ business.category || business.popularService || 'Salon' }}</small>
-                    </span>
-                  </a>
-                }
-              </div>
-            } @else {
-              <a class="favourites-empty" routerLink="/tabs/wishlist"><span>Keep your shortlist close</span><strong>Browse saved salons <ion-icon name="chevron-forward-outline"></ion-icon></strong></a>
-            }
-          </section>
-        }
-
-        @if (!searchActive() && relevantOffers().length) {
-          <section class="mobile-secondary-section">
-            <div class="section-heading"><div><span class="section-kicker">Available now</span><h2 class="section-title">Offers from relevant salons</h2></div><a routerLink="/tabs/offers">All offers</a></div>
-            <div class="business-rail">
-              @for (business of relevantOffers(); track business.id) {
-                <aura-business-card variant="rail" [business]="business" [userLocation]="currentLocation()"></aura-business-card>
-              }
-            </div>
-          </section>
-        }
-
-        @if (!searchActive()) {
-          <nav class="account-shortcuts" aria-label="Balance and benefits">
-            <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span></a>
-            <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span></a>
-            <a routerLink="/tabs/rewards"><ion-icon name="pricetag-outline"></ion-icon><span>Rewards</span><strong>{{ marketplace.customer()?.loyaltyPoints ?? 0 }} pts</strong></a>
-          </nav>
-        }
-
-        @if (!searchActive()) {
-          <div class="section-heading priority-heading">
-            <div>
-              <span class="section-kicker">{{ mainSalonKicker() }}</span>
-              <h2 class="section-title">{{ mainSalonHeading() }}</h2>
-            </div>
-            <a routerLink="/tabs/search">Explore</a>
-          </div>
-          <div class="business-grid recommended priority-grid">
-            @for (business of recommendations(); track business.id) {
-              <aura-business-card variant="personal" [business]="business" [userLocation]="currentLocation()"></aura-business-card>
-            } @empty {
-              <section class="state-card premium-card"><h2>No recommendations yet</h2></section>
-            }
-          </div>
         }
 
         @if (marketplace.loadingForSkeleton() && !marketplace.businesses().length && !searchActive()) {
@@ -321,113 +238,9 @@ interface ConsultationChatMessage {
           </div>
         }
 
-        @if (!searchActive() && showSecondaryNearbySection()) {
-        <section class="mobile-secondary-section">
-        <div class="section-heading">
-          <div>
-            <span class="section-kicker">{{ nearbyContextLabel() }}</span>
-            <h2 class="section-title">Salons near {{ areaLabel() }}</h2>
-          </div>
-          <a routerLink="/search" [queryParams]="{ filter: 'nearest', sort: 'distance', nearMe: true, map: true }">View map</a>
-        </div>
-        <div class="nearby-grid">
-          @for (business of nearby(); track business.id) {
-            <aura-business-card variant="personal" [business]="business" [userLocation]="currentLocation()"></aura-business-card>
-          } @empty {
-            <section class="state-card premium-card"><h2>No nearby businesses yet</h2></section>
-          }
-        </div>
-        </section>
-        }
-
-        @if (!searchActive()) {
-          <section class="mobile-secondary-section category-section">
-            <div class="section-heading">
-              <div>
-                <span class="section-kicker">Browse by category</span>
-                <h2 class="section-title">Popular categories</h2>
-              </div>
-              <button type="button" class="section-link category-view-all" (click)="viewAllCategories()">View all</button>
-            </div>
-            <div class="category-grid" aria-label="Popular service categories">
-              @for (category of categoryTiles(); track category.key) {
-                <button type="button" class="category-tile" (click)="setCategory(category.search)">
-                  <span class="category-icon"><ion-icon [name]="category.icon"></ion-icon></span>
-                  <strong>{{ category.label }}</strong>
-                </button>
-              }
-            </div>
-          </section>
-        }
-
-        @if (!searchActive()) {
-          <section class="mobile-secondary-section concierge-section">
-            <article class="concierge-card premium-card">
-              <div class="concierge-icon-wrap">
-                <span class="concierge-icon"><ion-icon name="chatbubbles-outline"></ion-icon></span>
-              </div>
-              <div class="concierge-copy">
-                <span class="section-kicker">Aura concierge</span>
-                <h2 class="section-title">Get recommendations</h2>
-                <p>Not sure what to book? Get a guided treatment plan.</p>
-              </div>
-              <ion-button class="primary-gradient concierge-action" (click)="getConciergeRecommendations()">Get recommendations</ion-button>
-            </article>
-            @if (consultationResponse(); as response) {
-              <div class="concierge-result premium-card">
-                <p class="consultation-copy">{{ response.answer }}</p>
-              </div>
-            }
-          </section>
-        }
-
-        @if (!searchActive() && noteworthyBusinesses().length) {
-          <section class="mobile-secondary-section">
-            <div class="section-heading">
-              <div><span class="section-kicker">New & noteworthy</span><h2 class="section-title">Fresh picks</h2></div>
-            </div>
-            <div class="business-grid recommended">
-              @for (business of noteworthyBusinesses(); track business.id) {
-                <aura-business-card variant="personal" [business]="business" [userLocation]="currentLocation()"></aura-business-card>
-              }
-            </div>
-          </section>
-        }
-
-        @if (!searchActive() && discoverServices().length) {
-          <section class="mobile-secondary-section service-discovery-section">
-            <div class="section-heading">
-              <div><span class="section-kicker">Services to discover</span><h2 class="section-title">Try something new</h2></div>
-            </div>
-            <div class="discover-service-grid">
-              @for (item of discoverServices(); track item.key) {
-                <button type="button" class="discover-service-card premium-card" (click)="openDiscoverService(item)">
-                  <div class="discover-service-media">
-                    @if (item.image) {
-                      <img [src]="item.image" [alt]="item.serviceName + ' at ' + item.business.businessName" loading="lazy" />
-                    } @else {
-                      <span class="discover-service-icon"><ion-icon [name]="serviceIcon(item.categoryLabel)"></ion-icon></span>
-                    }
-                  </div>
-                  <div class="discover-service-copy">
-                    <span class="business-category-chip">{{ item.categoryLabel }}</span>
-                    <strong>{{ item.serviceName }}</strong>
-                    <small>{{ item.business.businessName }}</small>
-                    <div class="discover-service-meta">
-                      <span>{{ item.durationMinutes }} min</span>
-                      <span>{{ discoverServicePriceLabel(item) }}</span>
-                    </div>
-                  </div>
-                  <span class="discover-service-action">Book</span>
-                </button>
-              }
-            </div>
-          </section>
-        }
-
         @if (!searchActive()) {
           <section class="lower-actions">
-            <div class="section-heading"><div><span class="section-kicker">More to do</span><h2 class="section-title">Quick actions</h2></div></div>
+            <div class="section-heading quiet-home-heading"><div><span class="section-kicker">More to do</span><h2 class="section-title">Quick actions</h2></div></div>
             <nav class="customer-quick-actions" aria-label="Quick actions">
               <a routerLink="/tabs/bookings"><ion-icon name="calendar-outline"></ion-icon><span>Bookings</span><small>Manage visits</small></a>
               <a routerLink="/tabs/offers"><ion-icon name="pricetag-outline"></ion-icon><span>Offers</span><small>Browse live deals</small></a>
@@ -483,6 +296,21 @@ interface ConsultationChatMessage {
       color: inherit;
       background: transparent;
       text-align: left;
+    }
+
+    .inline-location {
+      width: fit-content;
+      min-height: 24px;
+      justify-self: start;
+      margin: 0 0 -4px -16px;
+    }
+
+    .inline-location .location-row {
+      min-height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
     }
 
     .location-copy strong,
@@ -918,6 +746,36 @@ interface ConsultationChatMessage {
     .home-search-wrap {
       position: relative;
       min-width: 0;
+    }
+
+    .home-search-button {
+      width: 100%;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 14px;
+      color: var(--muted);
+      background: var(--surface);
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .home-search-button ion-icon {
+      flex: 0 0 auto;
+      color: #6B7C8E;
+      font-size: 1rem;
+    }
+
+    .home-search-button span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
 
@@ -1612,11 +1470,6 @@ interface ConsultationChatMessage {
         position: relative;
       }
 
-      .home-search-wrap ion-searchbar {
-        width: 100%;
-        padding-right: 0;
-      }
-
       .live-consultation-card {
         border-radius: 26px;
         padding: 16px;
@@ -1726,9 +1579,9 @@ interface ConsultationChatMessage {
       }
 
       .home-page {
-        gap: 24px;
-        padding-top: 10px;
-        padding-inline: 16px;
+        gap: 14px;
+        padding-top: 0;
+        padding-inline: 14px;
         padding-bottom: calc(92px + env(safe-area-inset-bottom));
         scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom));
       }
@@ -1755,13 +1608,6 @@ interface ConsultationChatMessage {
         box-shadow: 0 12px 28px rgba(28, 28, 28, 0.08);
       }
 
-      .home-search-wrap ion-searchbar {
-        width: 100%;
-        padding: 0;
-        --border-radius: 18px;
-        --box-shadow: none;
-      }
-
       .search-panel ion-button {
         min-height: 44px;
         margin: 0;
@@ -1779,13 +1625,13 @@ interface ConsultationChatMessage {
 
       .mobile-secondary-section {
         display: grid;
-        gap: 12px;
+        gap: 9px;
         min-width: 0;
       }
 
       .section-heading {
         align-items: flex-start;
-        gap: 12px;
+        gap: 8px;
         min-width: 0;
         text-align: left;
       }
@@ -1873,25 +1719,26 @@ interface ConsultationChatMessage {
     }
 
     @media (max-width: 599px) {
-      .home-page { scroll-padding-top: 54px; }
-      ion-header { height: 44px; }
-      ion-toolbar { height: 44px; --min-height: 44px; }
-      .home-toolbar { grid-template-columns: auto 1fr; }
-      .aura-shine-brand { display: inline-flex; align-self: center; margin-top: 0; }
-      .location-copy { justify-self: end; text-align: right; }
-      .location-row { justify-content: flex-end; }
-      .home-page .home-toolbar { min-height: 44px; padding-block: 2px; }
-      .home-page .location-row strong { font-size: 0.84rem; }
+      .home-page { scroll-padding-top: 0; }
+      .home-toolbar { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 0; }
+      .aura-shine-brand { display: inline-flex; width: 40px; height: 24px; align-self: center; justify-self: center; margin-top: 0; }
+      .location-copy { width: fit-content; min-height: 24px; justify-self: start; text-align: left; }
+      .location-copy > span { display: none; }
+      .location-row { flex-wrap: nowrap; justify-content: flex-start; min-height: 24px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+      .home-page .home-toolbar { height: 28px; min-height: 0; box-sizing: border-box; padding-block: 0; }
+      .home-page .location-row strong { flex: 0 1 auto; overflow: hidden; font-size: 0.76rem; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+      .home-page .location-row ion-icon { flex: 0 0 auto; font-size: 0.76rem; }
+      .home-page .location-chevron { margin-left: 2px; }
       .home-page .hero { margin-top: 0; }
       .home-page .search-panel {
         position: relative;
         top: auto;
         z-index: 2;
         display: block;
-        margin-inline: 0;
+        margin: 0;
         padding: 0;
-        border-radius: 16px;
-        box-shadow: 0 7px 18px rgba(28, 28, 28, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 6px 16px rgba(28, 28, 28, 0.06);
       }
       .home-page .home-search-wrap {
         position: relative;
@@ -1899,19 +1746,13 @@ interface ConsultationChatMessage {
         min-width: 0;
         margin-inline: 0;
       }
-      .home-page .home-search-wrap ion-searchbar {
-        width: 100%;
-        height: 42px;
-        min-height: 42px;
-        padding: 0;
-        padding-right: 0;
-        --padding-end: 112px;
-        --background: var(--surface);
-        --border-radius: 13px;
-        --box-shadow: none;
-        --icon-color: #6B7C8E;
-        --placeholder-color: #8493A3;
-        font-size: 0.82rem;
+      .home-page .home-search-button {
+        min-height: 30px;
+        padding: 0 11px;
+        border: 1px solid rgba(17, 24, 39, 0.08);
+        border-radius: 12px;
+        background: #fff;
+        font-size: 0.68rem;
       }
       .home-page .home-control-row {
         position: absolute;
@@ -2191,6 +2032,16 @@ interface ConsultationChatMessage {
       white-space: nowrap;
     }
     .section-heading { align-items: flex-start; text-align: left; }
+    .home-page .mobile-secondary-section,
+    .home-page .lower-actions,
+    .home-page .section-heading,
+    .home-page .section-heading > div {
+      justify-items: start;
+      justify-content: flex-start;
+      text-align: left;
+    }
+    .favourites-heading { align-items: center; justify-content: space-between; }
+    .favourites-heading a { min-height: auto; }
     .section-title { margin-top: 3px; }
     .lower-actions { display: grid; gap: 12px; margin-top: 16px; opacity: 0.9; }
     .lower-actions .customer-quick-actions { display: grid; }
@@ -2221,32 +2072,33 @@ interface ConsultationChatMessage {
       .dashboard-hero {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        gap: 12px;
+        gap: 8px;
         padding: 0;
       }
       .dashboard-hero .eyebrow,
       .dashboard-hero .page-title { display: none; }
-      .dashboard-hero .search-panel { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; padding: 4px; border-radius: 18px; box-shadow: 0 6px 18px rgba(28, 28, 28, 0.06); }
+      .dashboard-hero .search-panel { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; padding: 2px; border-radius: 14px; box-shadow: 0 6px 16px rgba(28, 28, 28, 0.06); }
       .next-appointment {
-        grid-template-columns: 54px minmax(0, 1fr) auto;
-        gap: 10px;
+        grid-template-columns: 50px minmax(0, 1fr) auto;
+        gap: 9px;
         width: 100%;
-        padding: 12px;
-        border-radius: 20px;
+        padding: 10px;
+        border-radius: 18px;
         color: var(--text);
-        background: var(--surface);
-        border-color: var(--border);
-        box-shadow: 0 8px 22px rgba(28, 28, 28, 0.06);
+        background: linear-gradient(135deg, #ffffff, #f8f7ff);
+        border-color: rgba(99, 102, 241, 0.16);
+        box-shadow: 0 10px 24px rgba(28, 28, 28, 0.07);
       }
-      .next-appointment > a { grid-column: auto; justify-self: end; min-width: 60px; margin: 0; padding-inline: 10px; }
-      .appointment-date { width: 54px; min-width: 54px; height: 58px; border-radius: 15px; color: var(--primary); background: var(--primary-soft); }
+      .next-appointment > a { grid-column: auto; justify-self: end; min-width: 46px; min-height: 32px; margin: 0; padding-inline: 9px; font-size: 0.68rem; }
+      .appointment-date { width: 50px; min-width: 50px; height: 58px; border-radius: 15px; color: var(--primary); background: #EEF2FF; }
       .appointment-date span { color: var(--primary); }
-      .appointment-date strong { color: var(--primary); font-size: 1.55rem; }
+      .appointment-date strong { color: var(--primary); font-size: 1.48rem; }
       .appointment-copy .eyebrow { color: var(--primary); }
-      .appointment-copy h2 { margin-block: 2px; color: var(--text); font-size: 1rem; }
-      .appointment-copy p { color: var(--muted); font-size: 0.82rem; line-height: 1.25; }
+      .appointment-copy h2 { margin-block: 1px; color: var(--text); font-size: 0.96rem; line-height: 1.1; }
+      .appointment-copy p { color: var(--muted); font-size: 0.76rem; line-height: 1.2; }
       .next-appointment > a { color: #FFFFFF; background: var(--primary); }
       .account-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; overflow: visible; padding: 0; }
+      .aura-dashboard + .account-shortcuts { margin-top: 10px; }
       .account-shortcuts a {
         grid-template-columns: minmax(0, 1fr);
         justify-items: center;
@@ -2265,49 +2117,79 @@ interface ConsultationChatMessage {
 
     @media (max-width: 599px) {
       .home-page .visited-rail {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(148px, 44vw);
+        grid-template-columns: none;
         gap: 8px;
         align-items: stretch;
+        overflow-x: auto;
+        padding: 0 2px 4px;
+        scrollbar-width: none;
       }
+      .home-page .visited-rail::-webkit-scrollbar { display: none; }
       .home-page .visited-rail .visited-card:nth-child(-n + 4) { display: grid; }
       .home-page .visited-rail .visited-card:nth-child(n + 5) { display: none; }
       .home-page .visited-rail .visited-card {
-        grid-template-columns: 52px minmax(0, 1fr);
+        grid-template-columns: 48px minmax(0, 1fr);
         grid-template-rows: auto auto;
         align-content: center;
         gap: 3px 7px;
-        min-height: 74px;
-        max-height: 74px;
+        min-height: 68px;
+        max-height: 68px;
         padding: 6px;
         overflow: hidden;
-        border-radius: 14px;
+        border-radius: 13px;
+        border-color: rgba(17, 24, 39, 0.08);
+        background: #fff;
+        box-shadow: 0 8px 18px rgba(28, 28, 28, 0.06);
       }
       .home-page .visited-rail .visited-card img,
       .home-page .visited-rail .visited-fallback {
         grid-row: span 2;
-        width: 52px;
-        height: 62px;
-        border-radius: 12px;
+        width: 48px;
+        height: 56px;
+        border-radius: 11px;
       }
       .home-page .visited-rail .visited-card > span,
       .home-page .visited-rail .visited-card ion-icon { display: none; }
       .home-page .visited-rail .visited-card strong {
         grid-column: 2;
-        font-size: 0.84rem;
+        font-size: 0.78rem;
         line-height: 1.1;
       }
       .home-page .visited-rail .visited-card small {
         grid-column: 2;
-        font-size: 0.74rem;
+        font-size: 0.68rem;
         line-height: 1.15;
       }
 
       .home-page .business-rail.continue-rail,
       .home-page .business-rail.favourites-rail {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(148px, 44vw);
+        grid-template-columns: none;
+        gap: 7px;
         align-items: stretch;
+        overflow-x: auto;
+        padding: 0 2px 4px;
         margin-bottom: 4px;
+        scrollbar-width: none;
+      }
+      .home-page .business-rail.continue-rail::-webkit-scrollbar,
+      .home-page .business-rail.favourites-rail::-webkit-scrollbar { display: none; }
+      .home-page .business-rail.continue-rail.single-card {
+        grid-auto-flow: row;
+        grid-auto-columns: auto;
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .home-page .recently-viewed-heading .section-kicker,
+      .home-page .quiet-home-heading .section-kicker {
+        font-size: 0.66rem;
+      }
+      .home-page .recently-viewed-heading .section-title,
+      .home-page .quiet-home-heading .section-title {
+        font-size: 1rem;
+        line-height: 1.08;
       }
       .home-page :is(.continue-rail, .favourites-rail) aura-business-card:nth-child(-n + 4) { display: block; }
       .home-page :is(.continue-rail, .favourites-rail) aura-business-card:nth-child(n + 5) { display: none; }
@@ -2363,6 +2245,7 @@ interface ConsultationChatMessage {
         text-overflow: ellipsis;
       }
       .home-page .lower-actions .customer-quick-actions small { display: none; }
+
     }
 
     @media (max-width: 349px) {
@@ -2409,7 +2292,7 @@ export class HomePage implements OnInit {
   readonly searchActive = computed(() => !!this.activeQuery().trim());
   readonly homeResults = computed(() => this.filterBusinesses(this.marketplace.businesses()));
   readonly openNowBusinesses = computed(() => this.homeResults().filter((business) => business.isOpen && business.services.some((service) => service.active !== false)));
-  readonly recommendations = computed(() => this.uniqueBusinesses(this.recommendedBusinesses()).slice(0, 4));
+  readonly recommendations = computed(() => this.uniqueBusinesses(this.recommendedBusinesses()).slice(0, 2));
   readonly recommendedMore = computed(() => {
     const recommendationIds = new Set(this.recommendations().map((business) => business.id));
     return this.uniqueBusinesses(this.recommendedBusinesses())

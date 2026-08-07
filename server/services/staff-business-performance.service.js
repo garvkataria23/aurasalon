@@ -469,8 +469,8 @@ function appointmentBatch(context, cursor) {
     LIMIT @limit`).all(params);
 }
 
-function enrichBatch(rawRows, context, enrichment = null) {
-  const appointments = staffLoginService.enrichAppointments(rawRows, context.access.tenantId, context.branchId, enrichment);
+function enrichBatch(rawRows, context) {
+  const appointments = staffLoginService.enrichAppointments(rawRows, context.access.tenantId, context.branchId);
   const logs = rowsByIds("appointment_activity_log", "appointmentId", appointments.map((row) => row.id), context.access, context.branchId);
   const eventsByAppointment = new Map();
   for (const event of logs) {
@@ -701,7 +701,6 @@ function scan(query, access, options = {}) {
   const invoiceSeen = new Set();
   const attendance = attendanceFor(context);
   Object.assign(performance, attendance.overall);
-  const enrichment = staffLoginService.appointmentEnrichment(context.access.tenantId, context.branchId);
   let totalItems = 0;
   let cursor = null;
   const appointments = [];
@@ -709,7 +708,7 @@ function scan(query, access, options = {}) {
   while (true) {
     const raw = appointmentBatch(context, cursor);
     if (!raw.length) break;
-    const enriched = enrichBatch(raw, context, enrichment);
+    const enriched = enrichBatch(raw, context);
     for (const row of enriched) {
       if (!matchesFilters(row, query)) continue;
       const index = totalItems++;

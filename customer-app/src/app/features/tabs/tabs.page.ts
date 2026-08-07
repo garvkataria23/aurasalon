@@ -40,7 +40,9 @@ import { MarketplaceService } from "../../core/marketplace.service";
               Salon
             </button>
           }
-          <button type="button" class="salon-mode-exit" (click)="exitSalonMode()">Exit</button>
+          <button type="button" class="salon-mode-exit" (click)="exitSalonMode()" aria-label="Exit My Salon">
+            <ion-icon name="exit-outline" aria-hidden="true"></ion-icon>
+          </button>
         </div>
       </header>
     }
@@ -160,17 +162,17 @@ import { MarketplaceService } from "../../core/marketplace.service";
     <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
       @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="search" href="/tabs/search">
-          <ion-icon name="compass-outline"></ion-icon>
-          <ion-label>Explore</ion-label>
+        <ion-tab-button tab="home" href="/tabs/home">
+          <ion-icon name="home-outline"></ion-icon>
+          <ion-label>Home</ion-label>
         </ion-tab-button>
         <ion-tab-button tab="my-salon" href="/tabs/my-salon">
           <ion-icon name="sparkles-outline"></ion-icon>
           <ion-label>My Salon</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="bookings" href="/tabs/bookings">
-          <ion-icon name="calendar-outline"></ion-icon>
-          <ion-label>Bookings</ion-label>
+        <ion-tab-button tab="search" href="/tabs/search">
+          <ion-icon name="compass-outline"></ion-icon>
+          <ion-label>Explore</ion-label>
         </ion-tab-button>
         <ion-tab-button tab="profile" href="/tabs/profile">
           <ion-icon name="person-outline"></ion-icon>
@@ -212,8 +214,8 @@ import { MarketplaceService } from "../../core/marketplace.service";
       justify-content: space-between;
       min-height: 58px;
       padding: 8px 14px;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.18);
-      background: var(--glass-strong);
+      border-bottom: 1px solid rgba(225, 214, 251, 0.72);
+      background: linear-gradient(180deg, rgba(225, 214, 251, 0.92), rgba(255, 255, 255, 0.96));
       box-shadow: 0 8px 24px rgba(28, 28, 28, 0.08);
       backdrop-filter: blur(18px);
     }
@@ -227,7 +229,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
 
     .salon-mode-title ion-icon {
-      color: var(--primary);
+      color: #7c63df;
       font-size: 1.15rem;
     }
 
@@ -240,13 +242,13 @@ import { MarketplaceService } from "../../core/marketplace.service";
     .salon-mode-back {
       min-height: 36px;
       padding: 0 14px;
-      border: 1px solid rgba(99, 102, 241, 0.22);
+      border: 1px solid rgba(225, 214, 251, 0.82);
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      color: var(--primary);
-      background: var(--surface);
+      color: #5f46cf;
+      background: #f4f0ff;
       font-size: 0.84rem;
       font-weight: 800;
       cursor: pointer;
@@ -257,16 +259,20 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
 
     .salon-mode-exit {
-      min-width: 64px;
+      width: 44px;
       min-height: 36px;
-      padding: 0 16px;
-      border: 1px solid #dc2626;
+      padding: 0;
+      border: 1px solid rgba(244, 63, 94, 0.24);
       border-radius: 999px;
-      color: #fff;
-      background: #dc2626;
+      color: #e11d48;
+      background: rgba(255, 255, 255, 0.82);
       font-size: 0.84rem;
       font-weight: 950;
       cursor: pointer;
+    }
+
+    .salon-mode-exit ion-icon {
+      font-size: 1rem;
     }
 
     ion-tabs.salon-mode-active {
@@ -884,7 +890,7 @@ export class TabsPage implements OnInit {
   readonly locationLabel = signal(this.readLocationLabel());
   readonly menuOpen = signal(false);
   readonly currentUrl = signal(this.router.url);
-  private readonly mobileSwipeRoutes = ["/tabs/search", "/tabs/my-salon", "/tabs/bookings", "/tabs/profile"];
+  private readonly mobileSwipeRoutes = ["/tabs/search", "/tabs/my-salon", "/tabs/home", "/tabs/profile"];
   private swipeStartX = 0;
   private swipeStartY = 0;
   private swipeStartRoute = "";
@@ -966,7 +972,7 @@ export class TabsPage implements OnInit {
   bottomNavVisible(): boolean {
     if (this.salonModeActive() || this.supportSubflowActive()) return false;
     const route = this.normalizeSwipeRoute(this.currentUrl());
-    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/bookings" || route === "/tabs/profile";
+    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/home" || route === "/tabs/profile";
   }
 
   onSalonDashboard(): boolean {

@@ -21,7 +21,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       <ion-refresher slot="fixed" (ionRefresh)="onPullRefresh($event)">
         <ion-refresher-content pullingIcon="crescent" pullingText="Refreshing bookings..." refreshingSpinner="crescent"></ion-refresher-content>
       </ion-refresher>
-      <main class="page bookings-page">
+      <main class="page bookings-page" [class.salon-mode-bookings]="salonModeRoute()">
         <section class="bookings-hero">
           <div class="header-actions-row">
             <a class="support-link" [routerLink]="supportLink()" aria-label="Open booking support">
@@ -161,6 +161,10 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       max-width: 1180px;
       padding-top: 0;
       scroll-padding-top: calc(174px + env(safe-area-inset-top));
+    }
+
+    .bookings-page.salon-mode-bookings {
+      padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
 
     .bookings-hero {
@@ -825,6 +829,10 @@ export class BookingsPage implements OnDestroy, OnInit {
 
   supportLink(): string {
     return this.marketplace.salonMode() ? this.marketplace.salonModeUrl("support") : "/tabs/support";
+  }
+
+  salonModeRoute(): boolean {
+    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
   }
 
   private bookingDetailUrl(id: string): string {

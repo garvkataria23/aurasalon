@@ -1,5 +1,3 @@
-import { invalidateStaffDashboardCache } from "../services/staff-dashboard-cache.service.js";
-
 const identityFields = new Set(["tenantId", "tenant_id", "userId", "user_id", "staffId", "staff_id", "branchId", "branch_id"]);
 const managedRoles = new Set(["owner", "admin", "superAdmin", "manager"]);
 
@@ -30,7 +28,6 @@ export function derivedStaffMutation(allowedSelfFields = null) {
       staffId: req.access.staffId,
       ...(req.access.branchId ? { branchId: req.access.branchId } : {})
     };
-    invalidateStaffDashboardCache(req.access);
     next();
   };
 }

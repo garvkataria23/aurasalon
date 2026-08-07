@@ -116,7 +116,11 @@ export class MarketplaceService {
 
   enterSalonMode(context?: SalonModeContext | null): void {
     this.salonModeStore.set(true);
-    if (context?.tenantId && context.branchId) this.salonModeContextStore.set(context);
+    if (context?.tenantId && context.branchId) {
+      const previous = this.salonModeContextStore();
+      if (previous?.tenantId !== context.tenantId || previous?.branchId !== context.branchId) this.accountModule.set(null);
+      this.salonModeContextStore.set(context);
+    }
     try {
       localStorage.setItem("aura_salon_mode", "1");
       if (context?.tenantId && context.branchId) localStorage.setItem("aura_salon_mode_context", JSON.stringify(context));
@@ -498,14 +502,14 @@ export class MarketplaceService {
     return this.run("Unable to load customer records", async () => {
       const data = await this.accountModuleRequest(slug);
       this.accountModule.set(data);
-      this.moduleCacheStore.set(slug, data);
+      this.moduleCacheStore.set(this.accountModuleCacheKey(slug), data);
       return data;
     });
   }
 
   /** Last successfully loaded module for a hub slug, or null on the very first load. */
   cachedModule(slug: string): CustomerAccountModule | null {
-    return this.moduleCacheStore.get(slug) ?? null;
+    return this.moduleCacheStore.get(this.accountModuleCacheKey(slug)) ?? null;
   }
 
   async loadMembershipPlans(branchId?: string): Promise<CustomerMembershipPlan[]> {
@@ -681,6 +685,11 @@ export class MarketplaceService {
     if (slug === "notifications") return firstValueFrom(this.api.listNotifications());
     if (slug === "invoices") return firstValueFrom(this.api.listInvoices());
     return Promise.resolve([]);
+  }
+
+  private accountModuleCacheKey(slug: string): string {
+    const context = this.salonModeContext();
+    return context?.tenantId && context.branchId ? `${context.tenantId}:${context.branchId}:${slug}` : slug;
   }
 
   private mergeAccountList(slug: "memberships" | "gift-cards" | "invoices", item: CustomerMembership | CustomerGiftCard | CustomerInvoice) {

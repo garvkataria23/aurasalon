@@ -10,19 +10,19 @@ function scopeOf(access = {}) {
     .join("|");
 }
 
-function keyOf(query = {}, access = {}, namespace = "") {
+function keyOf(query = {}, access = {}) {
   const scope = scopeOf(access);
   const hash = createHash("sha1").update(JSON.stringify(query || {})).digest("hex");
-  return `${scope}|${namespace}|${hash}`;
+  return `${scope}|${hash}`;
 }
 
-export function cachedStaffRead(query, access, compute, ttlMs = TTL_MS, namespace = "") {
-  const key = keyOf(query, access, namespace);
+export function cachedStaffDashboard(query, access, compute) {
+  const key = keyOf(query, access);
   const now = Date.now();
   const hit = cache.get(key);
   if (hit && now < hit.expiresAt) return hit.value;
   const value = compute(query, access);
-  cache.set(key, { value, expiresAt: now + ttlMs });
+  cache.set(key, { value, expiresAt: now + TTL_MS });
   if (cache.size > MAX_ENTRIES) {
     const entries = [...cache.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt);
     for (let index = 0; index < entries.length - Math.floor(MAX_ENTRIES / 2); index += 1) {
@@ -30,17 +30,6 @@ export function cachedStaffRead(query, access, compute, ttlMs = TTL_MS, namespac
     }
   }
   return value;
-}
-
-export function cachedStaffDashboard(query, access, compute, namespace = "") {
-  return cachedStaffRead(query, access, compute, TTL_MS, namespace);
-}
-
-export function applyCachedResponseHeaders(res, value, ttlSeconds) {
-  if (!res || typeof res.set !== "function") return;
-  const etag = createHash("sha1").update(JSON.stringify(value ?? {})).digest("hex");
-  res.set("Cache-Control", `private, max-age=${ttlSeconds}`);
-  res.set("ETag", `"${etag}"`);
 }
 
 export function invalidateStaffDashboardCache(access) {

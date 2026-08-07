@@ -222,20 +222,6 @@ function addMinutesIso(startAt, minutes) {
   return date.toISOString();
 }
 
-function appointmentEndTime(row = {}) {
-  const start = new Date(row.startAt || "");
-  if (!Number.isFinite(start.getTime())) return 0;
-  const explicitEnd = new Date(row.endAt || "");
-  if (Number.isFinite(explicitEnd.getTime()) && explicitEnd.getTime() > start.getTime()) return explicitEnd.getTime();
-  return start.getTime() + 60 * 60_000;
-}
-
-function assertBookingActionAllowed(row = {}, action = "update") {
-  const status = String(row.status || "").toLowerCase();
-  if (["cancelled", "completed", "no_show"].includes(status)) throw badRequest(`This booking cannot be ${action}.`);
-  if (appointmentEndTime(row) <= Date.now()) throw badRequest(`Past bookings cannot be ${action}.`);
-}
-
 function createBooking(access, payload = {}) {
   client(access);
   const business = customerMarketplaceService.business(payload.businessSlug || payload.businessId || "");
@@ -266,7 +252,6 @@ function createBooking(access, payload = {}) {
 
 function cancelBooking(access, bookingId, payload = {}) {
   const row = bookingById(access, bookingId);
-  assertBookingActionAllowed(row, "cancelled");
   const updated = updateRow("appointments", row.id, { status: "cancelled", notes: [row.notes, payload.reason ? `Customer cancel reason: ${payload.reason}` : "Customer cancelled from app"].filter(Boolean).join("\n") }, { tenantId: access.tenantId });
   customerNotificationService.safeNotifyAppointmentChanged(row, updated);
   return mapBooking(updated);
@@ -274,9 +259,7 @@ function cancelBooking(access, bookingId, payload = {}) {
 
 function rescheduleBooking(access, bookingId, payload = {}) {
   const row = bookingById(access, bookingId);
-  assertBookingActionAllowed(row, "rescheduled");
   if (!payload.startAt) throw badRequest("startAt is required");
-  if (new Date(payload.startAt).getTime() <= Date.now()) throw badRequest("Reschedule time must be in the future");
   const serviceId = payload.serviceId || serviceIds(row)[0] || "";
   const business = businessForBranch(row.branchId);
   const service = serviceById(serviceId, business?.slug || business?.id || row.branchId);
@@ -523,8 +506,7 @@ function packages(access) {
     creditsRemaining: 0,
     status: item.status || "active",
     createdAt: item.createdAt || "",
-    updatedAt: item.updatedAt || "",
-    serviceIds: JSON.parse(item.serviceIds || "[]")
+    updatedAt: item.updatedAt || ""
   }));
 }
 

@@ -9,9 +9,11 @@ import { chevronBackOutline, exitOutline } from "ionicons/icons";
   imports: [IonIcon],
   template: `
     <header class="my-salon-header" role="navigation" aria-label="My Salon controls">
-      <button type="button" class="header-back" aria-label="Back" (click)="back.emit()">
-        <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
-      </button>
+      @if (showBack) {
+        <button type="button" class="header-back" aria-label="Back" (click)="back.emit()">
+          <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
+        </button>
+      }
 
       <a class="header-brand" [href]="homeHref" (click)="home.emit($event)">
         <span class="header-logo" aria-hidden="true">
@@ -49,7 +51,7 @@ import { chevronBackOutline, exitOutline } from "ionicons/icons";
       padding: 7px 8px 7px 10px;
       border: 1px solid var(--border);
       border-radius: 999px;
-      background: color-mix(in srgb, var(--ms-shell-accent, var(--primary, #6366F1)) 13%, var(--glass));
+      background: color-mix(in srgb, var(--ms-shell-accent-soft, #e1d6fb) 28%, var(--glass));
       box-shadow: 0 18px 46px rgba(28, 28, 28, 0.18);
       backdrop-filter: blur(18px);
       contain: layout paint;
@@ -63,9 +65,9 @@ import { chevronBackOutline, exitOutline } from "ionicons/icons";
       height: 34px;
       justify-content: center;
       padding: 0;
-      border: 1px solid rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(225, 214, 251, 0.72);
       border-radius: 999px;
-      color: var(--primary, #6366F1);
+      color: var(--ms-shell-accent, #7c63df);
       background: var(--glass);
       font-size: 1rem;
     }
@@ -73,7 +75,7 @@ import { chevronBackOutline, exitOutline } from "ionicons/icons";
       flex: 1 1 auto;
       min-width: 0;
       gap: 8px;
-      color: var(--text, #1C1C1C);
+      color: #fff;
       text-decoration: none;
     }
     .header-logo {
@@ -84,9 +86,9 @@ import { chevronBackOutline, exitOutline } from "ionicons/icons";
       place-items: center;
       overflow: hidden;
       border-radius: 999px;
-      color: #fff;
-      background: var(--ms-shell-accent, var(--primary, #6366F1));
-      box-shadow: 0 10px 22px color-mix(in srgb, var(--ms-shell-accent, var(--primary, #6366F1)) 30%, transparent);
+      color: var(--text, #1C1C1C);
+      background: var(--ms-shell-accent, #7c63df);
+      box-shadow: 0 10px 22px color-mix(in srgb, var(--ms-shell-accent, #7c63df) 30%, transparent);
       font-size: 0.72rem;
       font-weight: 900;
       letter-spacing: -0.03em;
@@ -112,7 +114,7 @@ import { chevronBackOutline, exitOutline } from "ionicons/icons";
       touch-action: manipulation;
     }
     .header-back:focus-visible, .header-brand:focus-visible, .header-action:focus-visible {
-      outline: 2px solid color-mix(in srgb, var(--ms-shell-accent, var(--primary, #6366F1)) 72%, white);
+      outline: 2px solid color-mix(in srgb, var(--ms-shell-accent, #7c63df) 72%, white);
       outline-offset: 3px;
     }
     .header-back:active, .header-brand:active, .header-action:active { transform: scale(0.98); }
@@ -131,6 +133,7 @@ export class MySalonHeaderComponent {
   @Input() initials = "MS";
   @Input() logoImage = "";
   @Input() homeHref = "#";
+  @Input() showBack = true;
   @Input() actionLabel = "Exit";
   @Input() actionIcon = "exit-outline";
   @Input() actionAriaLabel = "Exit My Salon";

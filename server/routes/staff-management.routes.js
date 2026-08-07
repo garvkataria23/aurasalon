@@ -15,14 +15,6 @@ staffManagementRouter.get(
   })
 );
 
-staffManagementRouter.patch(
-  "/staff-management/staff/:staffId/service-staff",
-  requirePermission("write", () => "staff"),
-  asyncHandler((req, res) => {
-    res.json(staffEnterpriseService.setServiceStaff(req.params.staffId, req.body.isServiceStaff, req.access));
-  })
-);
-
 staffManagementRouter.get(
   "/staff-management/summary",
   requirePermission("read", () => "staff"),

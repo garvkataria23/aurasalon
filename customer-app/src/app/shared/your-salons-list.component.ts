@@ -96,9 +96,9 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     .salons-section {
       display: grid;
       gap: 6px;
-      padding: 12px;
+      padding: 10px 12px;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: 20px;
       background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.96));
     }
 
@@ -111,7 +111,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     .salons-header h3 {
       margin: 0;
       color: var(--text);
-      font-size: 1.05rem;
+      font-size: 0.98rem;
       font-weight: 950;
     }
 
@@ -123,8 +123,8 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
 
     .empty-state {
       display: grid;
-      gap: 8px;
-      padding: 4px 0;
+      gap: 7px;
+      padding: 2px 0;
       text-align: center;
     }
 
@@ -133,11 +133,11 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .empty-state-facts span {
-      padding: 4px 9px;
+      padding: 3px 8px;
       border-radius: 999px;
       color: var(--muted);
       background: var(--surface-soft);
@@ -146,7 +146,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     }
 
     .empty-state ion-button {
-      min-height: 44px;
+      min-height: 38px;
       margin: 0;
     }
 
@@ -156,12 +156,12 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0 18px;
+      padding: 0 16px;
       border: 1px solid var(--border);
       border-radius: 999px;
       color: var(--primary);
       background: var(--surface);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 900;
       text-decoration: none;
     }
@@ -173,7 +173,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     .empty-state p {
       margin: 0;
       color: var(--muted);
-      font-size: 0.88rem;
+      font-size: 0.8rem;
     }
 
     .salon-list {

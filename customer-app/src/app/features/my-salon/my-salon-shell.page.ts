@@ -1,4 +1,4 @@
-import { Component, computed, OnDestroy, signal } from "@angular/core";
+import { Component, computed, OnDestroy, OnInit, signal } from "@angular/core";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { filter, Subscription } from "rxjs";
 import { IonIcon, IonRouterOutlet } from "@ionic/angular/standalone";
@@ -19,13 +19,14 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
         [initials]="salonInitials()"
         [logoImage]="salonLogo()"
         [homeHref]="homeHref()"
+        [showBack]="headerBackVisible()"
         actionLabel="Exit"
         actionIcon="exit-outline"
         actionAriaLabel="Exit My Salon"
         (back)="back()"
         (home)="goHome($event)"
         (action)="exit()" />
-      <ion-router-outlet></ion-router-outlet>
+      <ion-router-outlet class="my-salon-shell-outlet"></ion-router-outlet>
       @if (contextNavVisible()) {
         <nav class="my-salon-context-nav" aria-label="My Salon navigation">
           <a [routerLink]="navHref('')" class="context-nav-item" [class.active]="navOverviewActive()" aria-label="My Salon overview">
@@ -50,20 +51,26 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
   `,
   styles: [`
     :host { display: block; min-height: 100%; }
-    .my-salon-shell { min-height: 100%; --ms-shell-accent: var(--primary, #6366F1); }
+    .my-salon-shell { min-height: 100%; --ms-shell-accent: #7c63df; --ms-shell-accent-soft: #e1d6fb; }
+    .my-salon-shell-outlet { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+    :host ::ng-deep ion-back-button,
+    :host ::ng-deep .content-back-button,
+    :host ::ng-deep .cover-back-button {
+      display: none;
+    }
 
     /* Contextual bottom navigation — compact, matches marketplace tab bar */
     .my-salon-context-nav {
       position: fixed;
       z-index: 900;
       left: 50%;
-      bottom: calc(8px + env(safe-area-inset-bottom));
+      bottom: env(safe-area-inset-bottom);
       width: min(520px, calc(100% - 16px));
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 4px;
       padding: 4px 6px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(225, 214, 251, 0.72);
       border-radius: 18px;
       background: var(--glass);
       box-shadow: 0 -8px 24px rgba(28, 28, 28, 0.08);
@@ -93,15 +100,15 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
       transition: background-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
     }
     .context-nav-item.active {
-      color: var(--primary);
+      color: var(--ms-shell-accent);
     }
     .context-nav-item.active ion-icon {
       color: #ffffff;
-      background: var(--primary);
-      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.24);
+      background: var(--ms-shell-accent);
+      box-shadow: 0 6px 14px rgba(95, 70, 207, 0.22);
     }
     .context-nav-item:focus-visible {
-      outline: 2px solid color-mix(in srgb, var(--primary) 72%, white);
+      outline: 2px solid color-mix(in srgb, var(--ms-shell-accent) 72%, white);
       outline-offset: 2px;
     }
     .context-nav-item:active {
@@ -120,7 +127,7 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
     }
   `]
 })
-export class MySalonShellPage implements OnDestroy {
+export class MySalonShellPage implements OnDestroy, OnInit {
   readonly salonLabel = computed(() => this.marketplace.mySalonDashboard()?.salon?.name || this.marketplace.primarySalon()?.businessName || this.marketplace.salonModeContext()?.businessName || "Selected salon");
   readonly salonLogo = computed(() => this.marketplace.mySalonDashboard()?.salon?.logoImage || "");
   readonly salonInitials = computed(() => this.initials(this.salonLabel()));
@@ -133,6 +140,12 @@ export class MySalonShellPage implements OnDestroy {
       .subscribe((event) => this.currentPath.set(event.urlAfterRedirects.split(/[?#]/)[0]));
     this.currentPath.set(this.router.url.split(/[?#]/)[0]);
     addIcons({ homeOutline, calendarOutline, giftOutline, storefrontOutline });
+  }
+
+  ngOnInit(): void {
+    if (!this.marketplace.mySalonDashboard()?.salon?.slug) {
+      void this.marketplace.loadMySalonDashboard().catch(() => undefined);
+    }
   }
 
   ngOnDestroy(): void {
@@ -160,26 +173,27 @@ export class MySalonShellPage implements OnDestroy {
     void this.router.navigateByUrl("/tabs/home");
   }
 
-  navHref(segment: string): string {
+  navHref(...segments: string[]): string {
     const base = this.marketplace.salonModeUrl();
-    return segment ? `${base}/${encodeURIComponent(segment)}` : base;
+    const tail = segments.filter(Boolean).map((segment) => encodeURIComponent(segment)).join("/");
+    return tail ? `${base}/${tail}` : base;
   }
 
   bookHref(): string {
     const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
-    return slug ? this.navHref(`business/${encodeURIComponent(slug)}/book`) : this.navHref("");
+    return slug ? this.navHref("business", slug, "book") : this.navHref();
   }
 
   salonHref(): string {
     const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
-    return slug ? this.navHref(`business/${encodeURIComponent(slug)}`) : this.navHref("");
+    return slug ? this.navHref("business", slug) : this.navHref();
   }
 
-  /** Hidden on full-screen flows that bring their own bottom UI (booking flow, booking detail, chat). */
+  /** Hidden only on booking detail/chat flows that bring their own full-screen controls. */
   readonly contextNavVisible = computed(() => {
     const path = this.currentPath();
     if (!path.startsWith("/my-salon/")) return false;
-    return !/(\/business\/[^/]+\/book|\/booking\/(?:summary|success)|\/bookings\/[^/]+(?:\/chat)?)$/.test(path);
+    return !/(\/booking\/(?:summary|success)|\/bookings\/[^/]+(?:\/chat)?)$/.test(path);
   });
 
   readonly navOverviewActive = computed(() => {
@@ -192,6 +206,16 @@ export class MySalonShellPage implements OnDestroy {
   readonly navBenefitsActive = computed(() => /(?:\/rewards|\/wallet|\/memberships?|\/packages|\/gift-cards|\/loyalty)$/.test(this.currentPath()));
 
   readonly navSalonActive = computed(() => /\/business\/[^/]+$/.test(this.currentPath()));
+
+  readonly headerBackVisible = computed(() => {
+    const path = this.currentPath();
+    const base = this.marketplace.salonModeUrl().replace(/\/+$/, "");
+    if (path === base || path === `${base}/home`) return false;
+    if (/\/business\/[^/]+\/book$/.test(path)) return false;
+    if (/(?:\/rewards|\/wallet|\/memberships?|\/packages|\/gift-cards|\/loyalty)$/.test(path)) return false;
+    if (/\/business\/[^/]+$/.test(path)) return false;
+    return true;
+  });
 
   private initials(value: string): string {
     return value

@@ -36,7 +36,7 @@ import { Subscription } from "rxjs";
   template: `
     <ion-content>
       @if (business(); as b) {
-      <main class="profile-page">
+       <main class="profile-page" [class.salon-mode-profile]="salonModeRoute()">
         <section class="cover" [class.cover--placeholder]="!hasCoverPhoto()">
           <ion-back-button class="cover-back-button" [defaultHref]="backHref()"></ion-back-button>
           @if (hasCoverPhoto()) {
@@ -561,6 +561,15 @@ import { Subscription } from "rxjs";
   styles: [`
     .profile-page {
       padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    }
+
+    .profile-page.salon-mode-profile {
+      padding-top: calc(72px + env(safe-area-inset-top));
+      padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    }
+
+    .profile-page.salon-mode-profile .sticky-cta {
+      bottom: calc(64px + env(safe-area-inset-bottom));
     }
 
     .cover {
@@ -2314,6 +2323,10 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
 
   mySalonHref(): string {
     return this.marketplace.salonMode() ? this.marketplace.salonModeUrl() : "/tabs/my-salon";
+  }
+
+  salonModeRoute(): boolean {
+    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
   }
 
   callSalon() {

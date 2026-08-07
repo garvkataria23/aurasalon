@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from "@angular/core";
+import { Component, HostListener, OnInit, computed, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
@@ -81,7 +81,7 @@ import { Business } from "../../core/api.types";
         }
 
         <section class="explore-section">
-          <div class="explore-section-head"><div><span>Find your treatment</span><h2>Browse categories</h2></div><a routerLink="/search">View all</a></div>
+          <div class="explore-section-head"><div><span>Find your treatment</span><h2>Browse categories</h2></div><a routerLink="/search" [queryParams]="{ mode: 'services' }">View all</a></div>
           <div class="explore-categories">
             @for (cat of mainCategories(); track cat.slug) {
               <a routerLink="/search" [queryParams]="{ q: cat.label, mode: 'services' }" class="category-card"><ion-icon [name]="categoryIcon(cat.label)" aria-hidden="true"></ion-icon><span>{{ cat.label }}</span></a>
@@ -138,9 +138,9 @@ import { Business } from "../../core/api.types";
       display: grid;
       width: 100%;
       max-width: 1240px;
-      gap: 28px;
+      gap: 14px;
       margin: 0 auto;
-      padding: 18px 16px calc(76px + env(safe-area-inset-bottom));
+      padding: 12px 16px calc(76px + env(safe-area-inset-bottom));
       overflow-x: clip;
       scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom));
     }
@@ -156,8 +156,8 @@ import { Business } from "../../core/api.types";
 
     .explore-header {
       display: grid;
-      gap: 2px;
-      padding-top: 2px;
+      gap: 0;
+      padding-top: 0;
     }
 
     .explore-header h1 {
@@ -175,7 +175,7 @@ import { Business } from "../../core/api.types";
       gap: 6px;
       justify-self: start;
       min-width: 0;
-      min-height: 44px;
+      min-height: 30px;
       max-width: 100%;
       margin: 0;
       padding: 0 4px 0 2px;
@@ -206,10 +206,10 @@ import { Business } from "../../core/api.types";
 
     .search-command {
       display: grid;
-      gap: 8px;
-      padding: 8px;
+      gap: 6px;
+      padding: 7px;
       border: 1px solid var(--border);
-      border-radius: 22px;
+      border-radius: 18px;
       background: var(--surface);
       box-shadow: 0 12px 30px rgba(28, 28, 28, 0.08);
     }
@@ -218,11 +218,11 @@ import { Business } from "../../core/api.types";
       display: flex;
       align-items: center;
       width: 100%;
-      min-height: 56px;
+      min-height: 46px;
       gap: 10px;
       padding: 0 14px;
       border: 0;
-      border-radius: 16px;
+      border-radius: 13px;
       color: var(--muted);
       background: var(--surface-soft);
       font: inherit;
@@ -250,7 +250,7 @@ import { Business } from "../../core/api.types";
       justify-content: center;
       gap: 6px;
       min-width: 0;
-      min-height: 44px;
+      min-height: 38px;
       padding: 0 8px;
       border: 1px solid var(--border);
       border-radius: 13px;
@@ -372,17 +372,17 @@ import { Business } from "../../core/api.types";
       display: grid;
       align-content: center;
       justify-items: center;
-      gap: 6px;
+      gap: 4px;
       width: 100%;
       min-width: 0;
-      min-height: 82px;
-      padding: 9px 4px 8px;
+      min-height: 58px;
+      padding: 6px 3px 5px;
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 12px;
       color: var(--text);
       background: var(--surface);
       box-shadow: none;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
       font-family: inherit;
       font-weight: 900;
       text-decoration: none;
@@ -392,24 +392,24 @@ import { Business } from "../../core/api.types";
     }
 
     .category-card ion-icon {
-      width: 38px;
-      height: 38px;
-      padding: 10px;
-      border-radius: 12px;
+      width: 26px;
+      height: 26px;
+      padding: 7px;
+      border-radius: 9px;
       color: #fff;
       background: linear-gradient(145deg, var(--brand-600), var(--brand-800));
-      font-size: 1.05rem;
+      font-size: 0.78rem;
     }
 
     .category-card span {
       display: -webkit-box;
       width: 100%;
       min-width: 0;
-      min-height: 2.4em;
+      min-height: 2em;
       overflow: hidden;
       color: var(--text);
-      font-size: 0.76rem;
-      line-height: 1.2;
+      font-size: 0.58rem;
+      line-height: 1;
       text-align: center;
       overflow-wrap: anywhere;
       -webkit-box-orient: vertical;
@@ -418,7 +418,7 @@ import { Business } from "../../core/api.types";
 
     .concierge-card {
       display: grid;
-      grid-template-columns: 44px minmax(0, 1fr) auto;
+      grid-template-columns: 46px minmax(0, 1fr) auto;
       align-items: center;
       gap: 12px;
       min-height: 82px;
@@ -433,8 +433,8 @@ import { Business } from "../../core/api.types";
     }
 
     .concierge-card > ion-icon {
-      width: 44px;
-      height: 44px;
+      width: 46px;
+      height: 46px;
       padding: 11px;
       border-radius: 14px;
       color: #fff;
@@ -445,6 +445,37 @@ import { Business } from "../../core/api.types";
     .concierge-card h2 { margin: 0; font-size: 0.9rem; line-height: 1.2; }
     .concierge-card p { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.35; }
     .concierge-card b { display: inline-flex; align-items: center; gap: 4px; color: var(--primary); font-size: 0.84rem; font-weight: 900; white-space: nowrap; }
+
+    @media (max-width: 599px) {
+      .concierge-card {
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 8px;
+        min-height: 70px;
+        padding: 10px;
+        border-radius: 16px;
+      }
+
+      .concierge-card > ion-icon {
+        box-sizing: border-box;
+        width: 34px;
+        min-width: 34px;
+        max-width: 34px;
+        height: 34px;
+        min-height: 34px;
+        max-height: 34px;
+        padding: 8px;
+        border-radius: 11px;
+      }
+
+      .concierge-card > div {
+        grid-column: 2;
+        padding-left: 14px;
+      }
+
+      .concierge-card h2 { font-size: 0.82rem; }
+      .concierge-card p { font-size: 0.72rem; line-height: 1.25; }
+      .concierge-card b { font-size: 0.74rem; }
+    }
 
     .salon-group { gap: 14px; }
     .salon-previews {
@@ -768,10 +799,7 @@ export class ExplorePage implements OnInit {
       waterOutline
     });
 
-    const saved = localStorage.getItem("aura_customer_location");
-    if (saved) {
-      try { this.currentLocation.set(JSON.parse(saved)); } catch {}
-    }
+    this.currentLocation.set(this.savedLocation());
   }
 
   ngOnInit() {
@@ -782,6 +810,16 @@ export class ExplorePage implements OnInit {
       this.marketplace.isAuthenticated() ? this.marketplace.loadBookings() : Promise.resolve([]),
       this.marketplace.isAuthenticated() ? this.marketplace.loadMySalons().catch(() => null) : Promise.resolve(null)
     ]).catch(() => undefined);
+  }
+
+  @HostListener("window:storage")
+  @HostListener("window:focus")
+  @HostListener("window:aura:customer-location-updated", ["$event"])
+  refreshLocation(event?: Event) {
+    this.areaLabel.set(this.savedAreaLabel());
+    const detailLocation = (event as CustomEvent<{ location?: { lat?: number; lng?: number } }> | undefined)?.detail?.location;
+    const nextLocation = this.validLocation(detailLocation) || this.savedLocation();
+    this.currentLocation.set(nextLocation);
   }
 
   money(pricePaise: number): string {
@@ -844,6 +882,21 @@ export class ExplorePage implements OnInit {
     } catch {
       return "";
     }
+  }
+
+  private savedLocation(): { lat: number; lng: number } | null {
+    try {
+      return this.validLocation(JSON.parse(localStorage.getItem("aura_customer_location") || "null"));
+    } catch {
+      return null;
+    }
+  }
+
+  private validLocation(value: unknown): { lat: number; lng: number } | null {
+    const location = value as { lat?: number; lng?: number } | null;
+    const lat = Number(location?.lat);
+    const lng = Number(location?.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
   }
 
   /** Returns the first `limit` items not already present in `excluded` (matched by id). */

@@ -14,6 +14,7 @@ import {
   giftOutline,
   heartOutline,
   helpCircleOutline,
+  homeOutline,
   informationCircleOutline,
   locationOutline,
   notificationsOutline,
@@ -665,6 +666,26 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
           }
         }
       </main>
+      @if (salonModeNavVisible()) {
+        <nav class="ms-context-nav" aria-label="My Salon navigation">
+          <a [routerLink]="scopedLink()" class="ms-context-nav-item active" aria-label="My Salon overview">
+            <ion-icon name="home-outline" aria-hidden="true"></ion-icon>
+            <span>Overview</span>
+          </a>
+          <a [routerLink]="bottomBookLink()" class="ms-context-nav-item" aria-label="Book a service at this salon">
+            <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+            <span>Book</span>
+          </a>
+          <a [routerLink]="scopedLink('rewards')" class="ms-context-nav-item" aria-label="View salon benefits">
+            <ion-icon name="gift-outline" aria-hidden="true"></ion-icon>
+            <span>Benefits</span>
+          </a>
+          <a [routerLink]="bottomSalonLink()" class="ms-context-nav-item" aria-label="View salon details">
+            <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+            <span>Salon</span>
+          </a>
+        </nav>
+      }
     </ion-content>
   `,
   styles: [`
@@ -675,8 +696,8 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       --ms-line: var(--border, #E8E8E8);
       --ms-emerald: #10b981;
       --ms-rose: #f43f5e;
-      --ms-accent: var(--primary, #6366F1);
-      --ms-accent-soft: var(--primary-soft, #EEF2FF);
+      --ms-accent: #7c63df;
+      --ms-accent-soft: #e1d6fb;
       --ms-radius-card: 22px;
       --ms-radius-item: 18px;
       --ms-elevation: 0 14px 36px rgba(28, 28, 28, 0.07);
@@ -701,7 +722,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       width: min(100%, 1120px);
       min-height: 100%;
       margin: 0 auto;
-      padding: calc(76px + env(safe-area-inset-top)) 16px calc(88px + var(--safe-bottom));
+      padding: calc(16px + env(safe-area-inset-top)) 16px calc(88px + var(--safe-bottom));
       color: var(--ms-ink);
       overflow-x: clip;
     }
@@ -761,10 +782,10 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-choice-copy strong { font-size: .9rem; }
     .ms-choice-copy small { color: var(--ms-muted); font-size: .72rem; }
     .ms-choice-badge { padding: 6px 12px; border-radius: 999px; color: var(--ms-muted); background: #eee; font-size: .72rem; font-weight: 760; }
-    .ms-choice-badge.is-active { color: #fff; background: var(--ms-accent); }
+    .ms-choice-badge.is-active { color: white; background: var(--ms-accent); }
 
     /* Salon Hero Card */
-    .ms-hero { position: relative; overflow: hidden; display: grid; gap: 18px; margin-top: 12px; padding: 20px 16px; border: 1px solid var(--ms-line); border-radius: 22px; color: var(--ms-ink); background: var(--surface); box-shadow: 0 10px 28px rgba(28,28,28,.06); }
+    .ms-hero { position: relative; overflow: hidden; display: grid; gap: 18px; margin-top: 0; padding: 20px 16px; border: 1px solid var(--ms-line); border-radius: 22px; color: var(--ms-ink); background: var(--surface); box-shadow: 0 10px 28px rgba(28,28,28,.06); }
     .ms-hero::after { display: none; }
     .ms-hero-main { position: relative; z-index: 1; display: grid; grid-template-columns: 62px minmax(0,1fr); align-items: center; gap: 14px; }
     .ms-salon-mark { width: 62px; height: 62px; overflow: hidden; border: 1px solid var(--ms-line); border-radius: 20px; box-shadow: inset 0 1px rgba(255,255,255,.25); }
@@ -784,7 +805,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-star-icon { color: #f59e0b !important; }
     .ms-hero-actions { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr; gap: 10px; }
     .ms-book-button, .ms-profile-button { min-height: 48px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: .86rem; font-weight: 780; text-decoration: none; transition: background-color var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion), transform var(--ms-motion); }
-    .ms-book-button { color: #fff; background: var(--ms-accent); box-shadow: 0 10px 22px rgba(99,102,241,.2); }
+    .ms-book-button { color: #fff; background: var(--ms-accent); box-shadow: 0 10px 22px rgba(95,70,207,.22); }
     .ms-profile-button { border: 1px solid var(--ms-line); color: var(--ms-ink); background: var(--surface); }
 
     /* Quick Shortcuts Bar */
@@ -797,14 +818,14 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     /* Relationship Snapshot Cards */
     .ms-relationship { margin-top: 32px; }
     .ms-relationship-label { padding: 6px 12px; border-radius: 999px; color: var(--ms-accent); background: var(--ms-accent-soft); font-size: .74rem; font-weight: 780; text-transform: capitalize; }
-    .ms-snapshot { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 4px; }
-    .ms-snapshot-item { min-width: 0; min-height: 114px; display: grid; align-content: space-between; gap: 6px; padding: 16px; border: 1px solid var(--ms-line); border-radius: 20px; color: inherit; background: var(--ms-ivory); text-decoration: none; transition: transform var(--ms-motion), box-shadow var(--ms-motion), border-color var(--ms-motion); }
+    .ms-snapshot { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 2px; }
+    .ms-snapshot-item { min-width: 0; min-height: 92px; display: grid; align-content: space-between; gap: 4px; padding: 12px; border: 1px solid var(--ms-line); border-radius: 18px; color: inherit; background: var(--ms-ivory); text-decoration: none; transition: transform var(--ms-motion), box-shadow var(--ms-motion), border-color var(--ms-motion); }
     .ms-snapshot-item:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.05); }
-    .ms-snap-top { display: flex; align-items: center; justify-content: space-between; color: var(--ms-muted); font-size: .72rem; font-weight: 750; letter-spacing: .01em; }
+    .ms-snap-top { display: flex; align-items: center; justify-content: space-between; color: var(--ms-muted); font-size: .66rem; font-weight: 750; letter-spacing: .01em; }
     .ms-snap-top span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ms-snap-top ion-icon { color: var(--ms-accent); font-size: 17px; }
-    .ms-snapshot-item strong { overflow: hidden; font-size: 1.25rem; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
-    .ms-snapshot-item small { color: var(--ms-muted); font-size: .7rem; line-height: 1.25; }
+    .ms-snap-top ion-icon { color: var(--ms-accent); font-size: 15px; }
+    .ms-snapshot-item strong { overflow: hidden; font-size: 1.06rem; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-snapshot-item small { color: var(--ms-muted); font-size: .66rem; line-height: 1.22; }
     .ms-currency { color: var(--ms-accent); }
 
     /* Appointments & Rebooking */
@@ -845,11 +866,11 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-empty-line a { color: var(--ms-accent); font-weight: 760; text-decoration: none; }
 
     /* Category Filter & Service Menu */
-    .ms-cat-pills { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; scroll-padding-inline: 2px; -webkit-overflow-scrolling: touch; }
+    .ms-cat-pills { position: sticky; top: calc(64px + env(safe-area-inset-top)); z-index: 20; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 8px 16px 10px; background: var(--ms-ivory); scroll-padding-inline: 2px; -webkit-overflow-scrolling: touch; }
     .ms-cat-pills::-webkit-scrollbar { display: none; }
-    .ms-cat-pill { min-height: 38px; padding: 7px 14px; border: 1px solid var(--ms-line); border-radius: 999px; color: var(--ms-ink); background: var(--ms-ivory); font: inherit; font-size: .75rem; font-weight: 740; cursor: pointer; white-space: nowrap; transition: background-color var(--ms-motion), border-color var(--ms-motion), color var(--ms-motion), transform var(--ms-motion); }
-    .ms-cat-pill:active { transform: scale(.98); }
-    .ms-cat-pill.active { border-color: var(--ms-accent); color: #fff; background: var(--ms-accent); }
+    .ms-cat-pills .ms-cat-pill { min-height: 38px; padding: 8px 16px; border: 1px solid color-mix(in srgb, var(--ms-accent) 22%, var(--ms-line)); border-radius: 999px; color: var(--ms-ink); background: var(--ms-ivory); font: inherit; font-size: .78rem; font-weight: 780; cursor: pointer; white-space: nowrap; box-shadow: 0 1px 2px rgba(28,28,28,.04); transition: background-color var(--ms-motion), border-color var(--ms-motion), color var(--ms-motion), transform var(--ms-motion), box-shadow var(--ms-motion); }
+    .ms-cat-pills .ms-cat-pill:active { transform: scale(.98); }
+    .ms-cat-pills .ms-cat-pill.active { border-color: transparent; color: #fff; background: var(--ms-accent); box-shadow: 0 8px 18px rgba(95,70,207,.28); }
     .ms-service-list { display: grid; gap: 8px; border-top: 1px solid var(--ms-line); }
     .ms-service { min-height: 68px; display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--ms-line); color: inherit; }
     .ms-service-index { color: var(--ms-accent); font-size: .72rem; font-weight: 800; }
@@ -858,17 +879,18 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-service-copy small { overflow: hidden; color: var(--ms-muted); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
     .ms-service-right { display: flex; align-items: center; gap: 10px; }
     .ms-service-price { font-size: .84rem; font-weight: 780; color: var(--ms-ink); }
-    .ms-service-book-btn { padding: 6px 14px; border-radius: 999px; color: #fff; background: var(--ms-accent); font-size: .74rem; font-weight: 760; text-decoration: none; }
+    .ms-service-book-btn { min-width: 46px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid rgba(255,255,255,.26); border-radius: 999px; color: #fff; background: var(--ms-accent); box-shadow: 0 8px 18px rgba(95,70,207,.22), inset 0 1px rgba(255,255,255,.22); font-size: .68rem; font-weight: 850; line-height: 1; text-decoration: none; }
 
     /* Staff Rail */
-    .ms-staff-rail { grid-auto-columns: 140px; gap: 10px; margin-inline: -16px; padding: 2px 16px 8px; }
-    .ms-staff { min-height: 180px; scroll-snap-align: start; display: grid; justify-items: center; align-content: space-between; gap: 6px; padding: 16px 10px; border: 1px solid var(--ms-line); border-radius: 22px; color: inherit; background: var(--ms-ivory); text-align: center; text-decoration: none; transition: transform var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion); }
+    .ms-staff-rail { grid-auto-columns: 118px; gap: 8px; margin-inline: -16px; padding: 2px 16px 8px; }
+    .ms-staff { min-height: 142px; scroll-snap-align: start; display: grid; justify-items: center; align-content: space-between; gap: 4px; padding: 12px 8px; border: 1px solid rgba(225,214,251,.72); border-radius: 18px; color: inherit; background: linear-gradient(180deg, #fff, rgba(225,214,251,.16)); text-align: center; text-decoration: none; transition: transform var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion); }
     .ms-staff:hover { transform: translateY(-2px); }
-    .ms-staff-avatar { width: 56px; height: 56px; border-radius: 20px; font-size: .9rem; }
-    .ms-staff strong, .ms-staff small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ms-staff strong { font-size: .84rem; }
-    .ms-staff small { color: var(--ms-muted); font-size: .68rem; }
-    .ms-staff-action { padding: 4px 10px; border-radius: 999px; color: var(--ms-accent); background: var(--ms-accent-soft); font-size: .68rem; font-weight: 780; }
+    .ms-staff-avatar { width: 44px; height: 44px; border-radius: 16px; font-size: .78rem; }
+    .ms-staff strong, .ms-staff small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+    .ms-staff strong { display: -webkit-box; font-size: .74rem; line-height: 1.12; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; }
+    .ms-staff small { white-space: nowrap; }
+    .ms-staff small { color: var(--ms-muted); font-size: .62rem; }
+    .ms-staff-action { max-width: 100%; padding: 4px 8px; overflow: hidden; border-radius: 999px; color: var(--ms-accent); background: var(--ms-accent-soft); font-size: .6rem; font-weight: 780; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Benefits Grid */
     .ms-benefit-grid { display: grid; gap: 12px; }
@@ -923,12 +945,18 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
 
     /* More & Support Grid */
     .ms-more { margin-bottom: 24px; }
-    .ms-more-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
-    .ms-more-grid a { min-height: 110px; display: grid; align-content: space-between; gap: 10px; padding: 16px; border: 1px solid var(--ms-line); border-radius: 20px; color: inherit; background: var(--ms-ivory); text-decoration: none; transition: transform var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion); }
+    .ms-more-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+    .ms-more-grid a { min-height: 88px; display: grid; align-content: space-between; gap: 6px; padding: 12px; border: 1px solid var(--ms-line); border-radius: 18px; color: inherit; background: var(--ms-ivory); text-decoration: none; transition: transform var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion); }
     .ms-more-grid a:hover { transform: translateY(-2px); }
-    .ms-more-grid ion-icon { color: var(--ms-accent); font-size: 22px; }
-    .ms-more-grid strong { display: block; font-size: .84rem; }
-    .ms-more-grid small { color: var(--ms-muted); font-size: .68rem; line-height: 1.3; }
+    .ms-more-grid ion-icon { color: var(--ms-accent); font-size: 18px; }
+    .ms-more-grid strong { display: block; font-size: .76rem; }
+    .ms-more-grid small { color: var(--ms-muted); font-size: .62rem; line-height: 1.22; }
+
+    .ms-context-nav { position: fixed; z-index: 900; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); width: min(520px, calc(100% - 16px)); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px 6px; border: 1px solid rgba(225,214,251,.72); border-radius: 18px; background: var(--glass); box-shadow: 0 -8px 24px rgba(28,28,28,.08); backdrop-filter: blur(18px); box-sizing: border-box; transform: translateX(-50%); contain: layout paint; }
+    .ms-context-nav-item { min-height: 44px; display: grid; justify-items: center; align-content: center; gap: 2px; border-radius: 12px; color: var(--ms-muted); font-size: .76rem; font-weight: 850; text-decoration: none; touch-action: manipulation; }
+    .ms-context-nav-item ion-icon { padding: 4px 14px; border-radius: 999px; font-size: 1.12rem; }
+    .ms-context-nav-item.active { color: var(--ms-accent); }
+    .ms-context-nav-item.active ion-icon { color: #fff; background: var(--ms-accent); box-shadow: 0 6px 14px rgba(95,70,207,.22); }
 
     /* States & Skeletons */
     .ms-state { min-height: 60vh; display: grid; place-items: center; align-content: center; gap: 12px; padding: 40px 16px; text-align: center; }
@@ -1014,6 +1042,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
 
     @media (max-width: 380px) {
       .ms-page { padding-inline: 12px; }
+      .ms-cat-pills { margin-inline: -12px; padding-inline: 12px; }
       .ms-hero-main { grid-template-columns: 54px minmax(0,1fr); gap: 12px; }
       .ms-salon-mark { width: 54px; height: 54px; border-radius: 18px; }
       .ms-quick-actions { gap: 6px; }
@@ -1041,6 +1070,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     }
     @media (min-width: 700px) {
       .ms-page { padding-inline: 28px; }
+      .ms-cat-pills { margin-inline: -28px; padding-inline: 28px; }
       .ms-hero { grid-template-columns: minmax(0,1.2fr) minmax(260px,.8fr); align-items: center; padding: 32px; }
       .ms-hero-main { grid-column: 1; }
       .ms-contact-list { grid-column: 1; }
@@ -1053,7 +1083,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       .ms-more-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
     }
     @media (min-width: 1024px) {
-      .ms-page { padding-top: calc(76px + env(safe-area-inset-top)); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+      .ms-page { padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
       .ms-service-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 32px; }
     }
     @keyframes ms-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
@@ -1130,6 +1160,7 @@ export class MySalonPage implements OnInit {
       giftOutline,
       heartOutline,
       helpCircleOutline,
+      homeOutline,
       informationCircleOutline,
       locationOutline,
       notificationsOutline,
@@ -1248,6 +1279,20 @@ export class MySalonPage implements OnInit {
   }
 
   salonProfileLink(salon: MySalonDashboard["salon"]): string {
+    return salon?.slug ? this.scopedLink("business", salon.slug) : this.scopedLink();
+  }
+
+  salonModeNavVisible(): boolean {
+    return this.router.url.split(/[?#]/)[0] === "/tabs/my-salon" && this.marketplace.salonMode() && !!this.dash()?.salon;
+  }
+
+  bottomBookLink(): string {
+    const salon = this.dash()?.salon;
+    return salon?.slug ? this.scopedLink("business", salon.slug, "book") : this.scopedLink();
+  }
+
+  bottomSalonLink(): string {
+    const salon = this.dash()?.salon;
     return salon?.slug ? this.scopedLink("business", salon.slug) : this.scopedLink();
   }
 

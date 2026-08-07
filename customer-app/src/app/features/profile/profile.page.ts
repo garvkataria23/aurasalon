@@ -280,9 +280,9 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       position: relative;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 16px;
+      gap: 12px;
       align-items: start;
-      padding: 18px;
+      padding: 14px;
     }
 
     .edit-profile-button {
@@ -317,25 +317,25 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
     }
 
     .avatar {
-      width: 88px;
-      height: 88px;
+      width: 64px;
+      height: 64px;
       display: grid;
       place-items: center;
       overflow: hidden;
-      border-radius: 30px;
+      border-radius: 22px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2), var(--accent));
       box-shadow: 0 16px 34px rgba(99, 102, 241, 0.2);
-      font-size: 2rem;
+      font-size: 1.45rem;
       font-weight: 900;
     }
 
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .avatar span { display: block; line-height: 1; }
 
-    .profile-identity { min-width: 0; display: grid; gap: 8px; padding-top: 2px; }
+    .profile-identity { min-width: 0; display: grid; gap: 6px; padding-top: 0; }
 
-    .profile-contact-list { display: grid; gap: 6px; min-width: 0; }
+    .profile-contact-list { display: grid; gap: 4px; min-width: 0; }
     .profile-contact-list button {
       width: 100%;
       min-width: 0;
@@ -360,7 +360,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
     h1 {
       margin: 0;
-      font-size: 2rem;
+      font-size: 1.45rem;
       letter-spacing: -0.05em;
     }
 
@@ -371,7 +371,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       justify-content: space-between;
       gap: 16px;
       overflow: hidden;
-      padding: 22px;
+      padding: 14px 16px;
       border-radius: var(--radius-lg);
       color: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.3);
@@ -407,7 +407,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
     .pass-card ion-icon {
       flex: 0 0 auto;
-      font-size: 2.4rem;
+      font-size: 2rem;
       filter: drop-shadow(0 10px 16px rgba(28, 28, 28, 0.24));
     }
 
@@ -423,32 +423,32 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
     .account-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+      gap: 8px;
     }
 
     .summary-card {
       display: grid;
       gap: 5px;
-      padding: 12px;
+      padding: 10px;
       color: inherit;
       text-decoration: none;
     }
 
     .summary-card ion-icon {
-      width: 36px;
-      height: 36px;
-      padding: 8px;
-      border-radius: 14px;
+      width: 32px;
+      height: 32px;
+      padding: 7px;
+      border-radius: 12px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
     }
 
-    .summary-card strong { font-size: 0.95rem; line-height: 1.2; }
+    .summary-card strong { font-size: 0.86rem; line-height: 1.15; }
 
     .summary-card span {
       color: var(--muted);
-      font-size: 0.8rem;
+      font-size: 0.74rem;
       font-weight: 800;
       line-height: 1.3;
     }
@@ -653,45 +653,53 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
     @media (max-width: 767px) {
       .profile-page {
-        gap: 10px;
-        padding-top: calc(18px + env(safe-area-inset-top));
+        gap: 8px;
+        padding-top: calc(10px + env(safe-area-inset-top));
         padding-bottom: calc(116px + env(safe-area-inset-bottom));
       }
 
       .profile-card {
         grid-template-columns: auto minmax(0, 1fr);
-        gap: 10px;
-        padding: 14px;
-        border-radius: 20px;
+        gap: 6px 9px;
+        padding: 8px 10px;
+        border-radius: 16px;
       }
 
       .avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 16px;
-        font-size: 1.2rem;
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        font-size: 1rem;
       }
 
       h1 {
-        font-size: 1.25rem;
+        font-size: 1.08rem;
         line-height: 1.05;
       }
 
+      .profile-contact-list button {
+        min-height: 24px;
+        font-size: 0.72rem;
+      }
+
+      .profile-contact-list ion-icon { font-size: 0.82rem; }
+
       .edit-profile-button {
-        grid-column: 2;
+        grid-column: 1 / -1;
         justify-self: start;
-        min-height: 34px;
-        padding: 0 11px;
+        min-height: 28px;
+        padding: 0 9px;
+        margin-left: 51px;
       }
 
       .edit-profile-button span {
-        font-size: 0.80rem;
+        font-size: 0.72rem;
       }
 
       .pass-card {
-        min-height: 62px;
-        padding: 12px 14px;
-        border-radius: 18px;
+        min-height: 56px;
+        padding: 10px 12px;
+        border-radius: 16px;
       }
 
       .pass-card span {
@@ -711,25 +719,32 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       }
 
       .account-grid {
-        gap: 8px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
       }
 
       .summary-card {
-        gap: 5px;
-        padding: 12px;
-        border-radius: 14px;
+        gap: 3px;
+        min-height: 110px;
+        padding: 8px;
+        border-radius: 13px;
       }
 
       .summary-card ion-icon {
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         padding: 6px;
-        border-radius: 11px;
+        border-radius: 10px;
       }
 
       .summary-card strong {
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         line-height: 1.15;
+      }
+
+      .summary-card span {
+        font-size: 0.68rem;
+        line-height: 1.18;
       }
 
       .discover-card {

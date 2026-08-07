@@ -171,7 +171,7 @@ const hubConfigs: Record<string, HubConfig> = {
   imports: [FormsModule, RouterLink, IonBackButton, IonButton, IonContent, IonIcon],
   template: `
     <ion-content>
-      <main class="page hub-page" [class.wallet-hub-page]="walletMode() || rewardsMode() || membershipsMode() || packagesMode() || paymentsMode() || familyMode() || referralsMode() || giftCardsMode() || corporateMode() || goalsMode() || slug() === 'support'">
+      <main class="page hub-page" [class.salon-mode-hub]="salonModeRoute()" [class.wallet-hub-page]="walletMode() || rewardsMode() || membershipsMode() || packagesMode() || paymentsMode() || familyMode() || referralsMode() || giftCardsMode() || corporateMode() || goalsMode() || slug() === 'support'">
         @if (bookingSupportMode()) {
           <section class="booking-support" aria-labelledby="booking-support-title">
             <header class="support-heading">
@@ -2056,6 +2056,20 @@ const hubConfigs: Record<string, HubConfig> = {
       gap: 18px;
     }
 
+    .hub-page.salon-mode-hub {
+      padding-top: calc(72px + env(safe-area-inset-top));
+      padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    .hub-page.salon-mode-hub .wallet-heading {
+      padding-inline: 0;
+    }
+
+    .hub-page.salon-mode-hub .wallet-title-row,
+    .hub-page.salon-mode-hub .wallet-heading .wallet-eyebrow {
+      margin-left: 0;
+    }
+
     .hub-hero {
       min-height: 330px;
       display: grid;
@@ -3860,6 +3874,10 @@ export class CustomerHubPage implements OnInit {
     if (route.startsWith("/bookings/")) return this.marketplace.salonModeUrl("bookings", route.slice("/bookings/".length));
     if (route === "/help" || route === "/settings" || route === "/notifications") return this.marketplace.salonModeUrl(route.slice(1));
     return route;
+  }
+
+  salonModeRoute(): boolean {
+    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
   }
 
   ngOnInit() {

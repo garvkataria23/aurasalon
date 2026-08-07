@@ -1,6 +1,5 @@
 import { columnsFor, db } from "../db.js";
 import { badRequest, notFound } from "../utils/app-error.js";
-import { enrichServicesWithHappyHours } from "../utils/happy-hours-portal-enrichment.js";
 
 const DEFAULT_TIMEZONE = "Asia/Kolkata";
 const DEFAULT_OPEN = "10:00";
@@ -268,7 +267,6 @@ function staffRows(tenantId, branchId, serviceId = "") {
   `).all(params);
   if (!serviceId) return rows;
   return rows.filter((person) => {
-    if (Number(person.isServiceStaff) === 0) return false;
     const assigned = parseJson(person.assignedServices, []);
     return !assigned.length || assigned.includes(serviceId);
   });
@@ -309,7 +307,6 @@ function serviceItem(service, businessId = "") {
 function staffMember(person, serviceIds = []) {
   const performance = parseJson(person.performance, {});
   const assigned = parseJson(person.assignedServices, []);
-  const isServiceStaff = Number(person.isServiceStaff) !== 0;
   return {
     id: person.id,
     businessId: person.branchId || "",
@@ -319,7 +316,7 @@ function staffMember(person, serviceIds = []) {
     specialty: assigned.length ? assigned.join(", ") : person.role || "",
     image: person.image || "",
     nextAvailable: "",
-    bookableServiceIds: isServiceStaff ? (assigned.length ? assigned : serviceIds) : []
+    bookableServiceIds: assigned.length ? assigned : serviceIds
   };
 }
 
@@ -561,8 +558,7 @@ export const customerMarketplaceService = {
 
   services(slug) {
     const business = resolveBusiness(slug);
-    const services = serviceRows(business.tenantId, business.branchId).map((service) => serviceItem(service, business.branchId));
-    return enrichServicesWithHappyHours(services, { tenantId: business.tenantId, branchId: business.branchId });
+    return serviceRows(business.tenantId, business.branchId).map((service) => serviceItem(service, business.branchId));
   },
 
   staff(slug) {

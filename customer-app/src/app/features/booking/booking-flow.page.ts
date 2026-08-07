@@ -48,7 +48,7 @@ type BookingFlowItem = {
     <ion-content>
       @if (business(); as business) {
         @if (hasBookableServices() || marketplace.loading()) {
-        <main class="page booking-page" [class.editing]="isRescheduling()">
+        <main class="page booking-page" [class.editing]="isRescheduling()" [class.salon-mode-flow]="isSalonModeRoute()">
           @if (!isRescheduling()) {
             <section class="booking-hero premium-card">
               <div>
@@ -717,7 +717,7 @@ type BookingFlowItem = {
           }
         </main>
 
-        <div class="booking-cta sticky-cta">
+        <div class="booking-cta sticky-cta" [class.salon-mode-flow]="isSalonModeRoute()">
         <div class="bottom-action-card">
           @if (currentBookingStep() === 2) {
             <p class="assign-status" role="status">{{ assignStatusLabel() }}</p>
@@ -855,6 +855,7 @@ type BookingFlowItem = {
   styles: [`
     :host { --booking-footer-height: 124px; --booking-footer-gap: 32px; }
     .booking-page { max-width: 980px; padding-bottom: calc(var(--booking-footer-height) + var(--booking-footer-gap) + env(safe-area-inset-bottom)); }
+    .booking-page.salon-mode-flow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
     .edit-toolbar-title {
       padding-inline: 0 16px;
       color: var(--text);
@@ -867,16 +868,24 @@ type BookingFlowItem = {
     .booking-page.editing app-booking-progress { display: block; margin-top: 2px; }
     .booking-cta { width: min(980px, calc(100% - 24px)); margin: 0 auto; }
     .booking-cta.sticky-cta { bottom: calc(8px + env(safe-area-inset-bottom)); }
+      .booking-cta.sticky-cta.salon-mode-flow { bottom: calc(64px + env(safe-area-inset-bottom)); }
     .booking-cta .bottom-action-card { min-height: var(--booking-footer-height); display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; align-items: center; gap: 8px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); overflow: hidden; }
+    .booking-cta.salon-mode-flow .bottom-action-card { width: fit-content; margin: 0 auto; min-height: 0; grid-template-rows: auto 1fr; padding: 2px 12px; overflow: visible; }
     .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
     .assign-status { margin: 0; color: var(--muted); font-size: 0.84rem; font-weight: 850; letter-spacing: 0.02em; }
     .booking-summary-metrics { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, auto)); gap: 14px; align-items: center; padding: 6px; border: 0; border-radius: 14px; background: transparent; color: var(--text); text-align: left; }
+    .salon-mode-flow .booking-summary-metrics { flex: none; display: flex; gap: 14px; padding: 0; text-align: center; }
     .booking-summary-metrics:hover, .booking-summary-metrics:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.35); outline-offset: 2px; }
     .summary-row { min-width: 0; display: grid; gap: 2px; }
     .summary-row small { overflow: hidden; color: var(--muted); font-size: 0.6rem; font-weight: 950; letter-spacing: 0.08em; line-height: 1.1; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
     .summary-row strong { overflow: hidden; color: var(--text); font-size: 0.88rem; font-weight: 950; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+    .salon-mode-flow .summary-row { flex: none; text-align: center; }
+    .salon-mode-flow .summary-row small { font-size: 0.8rem !important; letter-spacing: 0; }
+    .salon-mode-flow .summary-row strong { font-size: 0.55rem !important; }
     .summary-row.summary-total strong { color: var(--primary); }
     .booking-cta .bottom-action-card ion-button { min-width: 128px; height: 48px; margin: 0; }
+    .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 72px; min-height: 24px; height: 24px; font-size: 0.7rem; }
+    .salon-mode-flow .assign-footer-row { display: flex; gap: 14px; align-items: center; justify-content: center; }
     .button-spinner { width: 16px; height: 16px; display: inline-block; margin-right: 8px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 999px; animation: button-spin 700ms linear infinite; vertical-align: -3px; }
     .booking-hero { display: grid; gap: 4px; align-items: center; padding: 16px; }
     .booking-hero .page-title { font-size: clamp(1.45rem, 4vw, 2.7rem); }
@@ -1026,8 +1035,10 @@ type BookingFlowItem = {
       .sticky-cta--confirm { bottom: calc(8px + env(safe-area-inset-bottom)); }
     @media (max-width: 599px) {
       .booking-page { padding-bottom: calc(var(--booking-footer-height) + 44px + env(safe-area-inset-bottom)); }
+    .booking-page.salon-mode-flow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
 
       .sticky-cta { bottom: calc(10px + env(safe-area-inset-bottom)); }
+    .booking-cta.sticky-cta.salon-mode-flow { bottom: calc(64px + env(safe-area-inset-bottom)); }
 
       .sticky-cta--confirm {
         bottom: calc(2px + env(safe-area-inset-bottom));
@@ -1035,12 +1046,19 @@ type BookingFlowItem = {
 
       .booking-cta { width: min(100% - 16px, 980px); }
       .booking-cta .bottom-action-card { min-height: var(--booking-footer-height); gap: 6px; padding: 12px; border-radius: 20px; }
+      .booking-cta.salon-mode-flow .bottom-action-card { width: 100%; margin: 0; min-height: 0; padding: 2px 10px; overflow: visible; }
       .assign-footer-row { gap: 8px; }
       .booking-summary-metrics { gap: 10px; }
       .booking-summary-metrics strong { font-size: 0.84rem; }
       .summary-row small { font-size: 0.70rem; }
+      .booking-cta.salon-mode-flow .booking-summary-metrics { flex: none; display: flex; gap: 14px; padding: 0; text-align: center; }
+      .booking-cta.salon-mode-flow .summary-row { flex: none; }
+      .booking-cta.salon-mode-flow .summary-row small { font-size: 0.8rem !important; letter-spacing: 0; }
+      .booking-cta.salon-mode-flow .summary-row strong { font-size: 0.55rem !important; }
+      .booking-cta.salon-mode-flow .assign-footer-row { display: flex; gap: 14px; align-items: center; justify-content: center; }
 
       .booking-cta .bottom-action-card ion-button { min-width: 112px; height: 44px; }
+      .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 72px; min-height: 24px; height: 24px; font-size: 0.7rem; }
 
       .booking-intent-row, .resource-grid, .time-mode-row { grid-template-columns: 1fr; }
       .service-list { gap: 8px; }
@@ -1770,6 +1788,10 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
   }
 
+  isSalonModeRoute(): boolean {
+    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
+  }
+
   ngOnInit() {
     this.reload();
   }
@@ -2069,6 +2091,8 @@ async reload() {
 
   serviceCountLabel(): string {
     const count = this.selectedServices().length;
+    const total = this.business()?.services?.length ?? 0;
+    if (total > 0 && count >= total) return "All services";
     return `${count} service${count === 1 ? "" : "s"}`;
   }
 

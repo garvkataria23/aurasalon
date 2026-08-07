@@ -214,8 +214,11 @@ import { MarketplaceService } from "../core/marketplace.service";
     @media (max-width: 599px) {
       .my-salon-card {
         gap: 8px;
-        padding: 12px;
+        padding: 11px;
+        border-color: rgba(99, 102, 241, 0.16);
         border-radius: 18px;
+        background: linear-gradient(135deg, #ffffff, #f8fbff);
+        box-shadow: 0 10px 24px rgba(28, 28, 28, 0.07);
       }
 
       .salon-header {
@@ -262,10 +265,11 @@ import { MarketplaceService } from "../core/marketplace.service";
 
       .action-pill {
         min-width: 0;
-        min-height: 44px;
+        min-height: 40px;
         gap: 4px;
         padding: 8px 6px;
         border-radius: 12px;
+        background: #fff;
         font-size: 0.72rem;
         white-space: nowrap;
       }
