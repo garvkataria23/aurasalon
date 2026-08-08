@@ -906,6 +906,40 @@ type BookingFlowItem = {
         </main>
       }
     </ion-content>
+
+    @if (categoryMenuOpen()) {
+      <div class="category-menu-backdrop" role="presentation" (click)="categoryMenuOpen.set(false)">
+        <section class="category-menu-sheet" role="dialog" aria-modal="true" aria-label="Service category menu" (click)="$event.stopPropagation()">
+          <div class="category-menu-head">
+            <div>
+              <strong>Categories</strong>
+              <span>Jump to service category</span>
+            </div>
+            <button type="button" (click)="categoryMenuOpen.set(false)">Close</button>
+          </div>
+          <div class="category-menu-list">
+            @for (chip of serviceChips(); track chip) {
+              <button type="button" [class.active]="activeCategory() === chip" (click)="chooseCategoryFromMenu(chip)">
+                <span>{{ chip }}</span>
+                <small>{{ serviceChipCount(chip) }}</small>
+              </button>
+            }
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (currentBookingStep() === 1 && serviceChips().length > 1) {
+      <button
+        type="button"
+        class="category-floating-menu-trigger"
+        [class.has-services]="selectedServices().length > 0"
+        (click)="categoryMenuOpen.set(true)"
+        aria-label="Open service category menu">
+        <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
+        <span>Menu</span>
+      </button>
+    }
   `,
   styles: [`
     :host { --booking-footer-height: 124px; --booking-footer-gap: 32px; }
