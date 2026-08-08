@@ -1244,31 +1244,32 @@ type BookingFlowItem = {
     .category-floating-menu-trigger {
       position: fixed;
       z-index: 1200;
-      right: 14px;
+      right: 8px;
       bottom: calc(52px + env(safe-area-inset-bottom));
-      min-height: 36px;
+      min-height: 28px;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 0 14px;
+      gap: 4px;
+      padding: 0 10px;
       border: 0;
       border-radius: 999px;
       color: #ffffff;
       background: #7c63df;
-      box-shadow: 0 8px 24px rgba(124, 99, 223, 0.38);
-      font-size: 0.80rem;
+      box-shadow: 0 4px 14px rgba(124, 99, 223, 0.32);
+      font-size: 0.72rem;
       font-weight: 950;
+      letter-spacing: 0.01em;
       cursor: pointer;
       transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms ease, box-shadow 160ms ease;
     }
     .category-floating-menu-trigger.has-services {
-      bottom: calc(102px + env(safe-area-inset-bottom));
+      bottom: calc(98px + env(safe-area-inset-bottom));
     }
     .category-floating-menu-trigger ion-icon {
-      font-size: 0.92rem;
+      font-size: 0.82rem;
     }
     .category-floating-menu-trigger:active {
-      transform: scale(0.96);
+      transform: scale(0.95);
     }
     .salon-mode-flow .category-chips { min-width: 0; flex: 1 1 auto; padding-bottom: 0; }
     .salon-mode-flow .category-chip { display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
