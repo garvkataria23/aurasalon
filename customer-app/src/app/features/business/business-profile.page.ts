@@ -55,7 +55,6 @@ import { Subscription } from "rxjs";
             <ion-button fill="clear" shape="round" [class.saved-action]="isSalonSaved()" [disabled]="savedSalonPending" [attr.aria-label]="isSalonSaved() ? 'Remove saved salon' : 'Save salon'" (click)="toggleSavedSalon()">
               <ion-icon [name]="isSalonSaved() ? 'bookmark' : 'bookmark-outline'"></ion-icon>
             </ion-button>
-            <ion-button fill="clear" shape="round" aria-label="Share business" (click)="shareBusiness()"><ion-icon name="share-outline"></ion-icon></ion-button>
           </div>
           <div class="cover-copy">
             <div class="hero-business-name" role="heading" aria-level="1">{{ b.businessName }}</div>
@@ -416,19 +415,11 @@ import { Subscription } from "rxjs";
 
               <section class="info-grid section-anchor" id="about">
                 <article class="premium-card info-card">
-                  <h2>Location & Directions</h2>
+                  <h2>Location & Address</h2>
                   <p><ion-icon name="location-outline"></ion-icon>{{ b.address }}</p>
-                  <div class="info-actions">
-                    <ion-button size="small" fill="outline" class="secondary-button" [href]="b.mapsUrl || undefined" target="_blank">
-                      <ion-icon name="navigate-outline" slot="start"></ion-icon>
-                      Directions
-                    </ion-button>
-                    <ion-button size="small" fill="outline" class="secondary-button" [href]="phoneHref()">
-                      <ion-icon name="call-outline" slot="start"></ion-icon>
-                      Call
-                    </ion-button>
-                  </div>
-                  <span class="muted">{{ b.area }}, {{ b.city }} {{ b.postalCode || "" }}</span>
+                  @if (b.area || b.city) {
+                    <span class="muted">{{ b.area }}{{ b.area && b.city ? ', ' : '' }}{{ b.city }}{{ b.postalCode ? ' ' + b.postalCode : '' }}</span>
+                  }
                 </article>
                 <article class="premium-card info-card">
                   <h2>Working Hours</h2>

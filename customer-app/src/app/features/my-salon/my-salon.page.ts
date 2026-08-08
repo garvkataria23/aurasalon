@@ -183,40 +183,14 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
               </div>
 
               <div class="ms-hero-actions">
-                <a class="ms-book-button" [routerLink]="salonBookLink(d.salon)">
-                  <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
-                  Book Appointment
-                </a>
                 <a class="ms-profile-button" [routerLink]="salonProfileLink(d.salon)">
-                  Salon Details
+                  Explore Salon & Services
                   <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
                 </a>
               </div>
             </section>
 
-            <!-- 2. QUICK ACTION SHORTCUT STRIP -->
-            <nav class="ms-quick-actions" aria-label="Salon quick navigation">
-              <a [routerLink]="salonBookLink(d.salon)">
-                <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon><span>Book</span>
-              </a>
-              <a [routerLink]="scopedLink('wallet')">
-                <ion-icon name="wallet-outline" aria-hidden="true"></ion-icon><span>Salon credit</span>
-              </a>
-              <a [routerLink]="scopedLink('rewards')">
-                <ion-icon name="ribbon-outline" aria-hidden="true"></ion-icon><span>Salon loyalty</span>
-              </a>
-              <a [routerLink]="scopedLink('memberships')">
-                <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon><span>Membership</span>
-              </a>
-              <a [routerLink]="scopedLink('packages')">
-                <ion-icon name="gift-outline" aria-hidden="true"></ion-icon><span>Packages</span>
-              </a>
-              <a [routerLink]="scopedLink('notifications')">
-                <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon><span>Updates</span>
-              </a>
-            </nav>
-
-            <!-- 3. RELATIONSHIP & ACCOUNT SNAPSHOT (4 METRICS) -->
+            <!-- 2. RELATIONSHIP & ACCOUNT SNAPSHOT (4 METRICS) -->
             <section class="ms-section ms-relationship" aria-labelledby="relationship-title">
               <div class="ms-section-head">
                 <div>
