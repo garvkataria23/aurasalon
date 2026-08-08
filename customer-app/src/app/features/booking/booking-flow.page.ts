@@ -85,23 +85,6 @@ type BookingFlowItem = {
                 <input type="search" [value]="serviceQuery()" (input)="onServiceSearch($event)" placeholder="Search services" aria-label="Search services" />
               </label>
 
-              @if (serviceChips().length > 1) {
-                <div class="category-menu-shell" role="tablist" aria-label="Service categories">
-                  <div class="category-chips">
-                    @for (chip of serviceChips(); track chip) {
-                      <button
-                        type="button"
-                        class="category-chip"
-                        [class.active]="activeCategory() === chip"
-                        (click)="chooseCategoryFromMenu(chip)">
-                        <span>{{ chip }}</span>
-                        <small>{{ serviceChipCount(chip) }}</small>
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-
               @if (personalizedRecommendations().length) {
                 <section class="recommendations-section">
                   <div class="section-heading">
@@ -113,24 +96,36 @@ type BookingFlowItem = {
                   <div class="recommendations-list">
                     @for (service of personalizedRecommendations(); track service.id) {
                       <div class="service-card premium-card recommended" [class.selected]="isServiceSelected(service.id)">
-                        <button type="button" class="service-card-main" (click)="toggleServiceDetails(service.id)">
-                          <span class="service-title-row">
-                            <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
-                            <span class="offer-pill recommended-pill">Recommended</span>
-                            @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
-                            @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
-                          </span>
-                          <span class="service-price-row">
-                            <strong>{{ money(service.pricePaise) }}</strong>
-                            <span>{{ service.durationMinutes || 0 }} min</span>
-                          </span>
-                          <span class="service-desc">{{ serviceDescription(service) }}</span>
-                        </button>
-                        <div class="service-card-footer">
-                          <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
-                          <button type="button" class="add-service-btn" [class.added]="isServiceSelected(service.id)" [attr.aria-pressed]="isServiceSelected(service.id)" (click)="toggleService(service.id)">
-                            @if (isServiceSelected(service.id)) { <ion-icon name="checkmark-outline" aria-hidden="true"></ion-icon> Added } @else { Add }
+                        <div class="service-card-row">
+                          <button type="button" class="service-card-main" (click)="toggleServiceDetails(service.id)">
+                            <span class="service-title-row">
+                              <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
+                              <span class="offer-pill recommended-pill">Recommended</span>
+                              @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
+                              @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
+                            </span>
+                            <span class="service-price-row">
+                              <strong>{{ money(service.pricePaise) }}</strong>
+                              <span>{{ service.durationMinutes || 0 }} min</span>
+                            </span>
+                            <span class="service-desc">{{ serviceDescription(service) }}</span>
+                            <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
                           </button>
+                          <div class="service-card-action">
+                            <button
+                              type="button"
+                              class="add-service-btn"
+                              [class.added]="isServiceSelected(service.id)"
+                              [attr.aria-pressed]="isServiceSelected(service.id)"
+                              (click)="$event.stopPropagation(); toggleService(service.id)">
+                              @if (isServiceSelected(service.id)) {
+                                <ion-icon name="checkmark-outline" aria-hidden="true"></ion-icon>
+                                Added
+                              } @else {
+                                + Add
+                              }
+                            </button>
+                          </div>
                         </div>
                       </div>
                     }
@@ -149,35 +144,47 @@ type BookingFlowItem = {
                     <div class="service-list">
                       @for (service of group.services; track service.id) {
                         <div class="service-card premium-card" [class.selected]="isServiceSelected(service.id)" [class.expanded]="expandedServiceId() === service.id">
-                          <button type="button" class="service-card-main" (click)="toggleServiceDetails(service.id)" [attr.aria-expanded]="expandedServiceId() === service.id">
-                            <span class="service-title-row">
-                              <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
-                              @if (service.popular) { <span class="offer-pill">Popular</span> }
-                              @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
-                              @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
-                            </span>
-                            <span class="service-price-row">
-                              @if (getHappyHour(service); as hh) {
-                                <span class="original-price">{{ money(service.pricePaise) }}</span>
-                                <strong class="discounted-price">{{ money(hh.finalPricePaise) }}</strong>
-                                <span class="discount-badge">{{ hh.discountValue }}{{ hh.discountType === 'percent' ? '%' : '₹' }} off</span>
-                              } @else {
-                                <strong>{{ money(service.pricePaise) }}</strong>
-                              }
-                              <span>{{ service.durationMinutes || 0 }} min</span>
-                            </span>
-                            <span class="service-desc">{{ serviceDescription(service) }}</span>
-                          </button>
-                          <div class="service-card-footer">
-                            <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
-                            <button type="button" class="add-service-btn" [class.added]="isServiceSelected(service.id)" [attr.aria-pressed]="isServiceSelected(service.id)" (click)="toggleService(service.id)">
-                              @if (isServiceSelected(service.id)) { <ion-icon name="checkmark-outline" aria-hidden="true"></ion-icon> Added } @else { Add }
+                          <div class="service-card-row">
+                            <button type="button" class="service-card-main" (click)="toggleServiceDetails(service.id)" [attr.aria-expanded]="expandedServiceId() === service.id">
+                              <span class="service-title-row">
+                                <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
+                                @if (service.popular) { <span class="offer-pill">Popular</span> }
+                                @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
+                                @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
+                              </span>
+                              <span class="service-price-row">
+                                @if (getHappyHour(service); as hh) {
+                                  <span class="original-price">{{ money(service.pricePaise) }}</span>
+                                  <strong class="discounted-price">{{ money(hh.finalPricePaise) }}</strong>
+                                  <span class="discount-badge">{{ hh.discountValue }}{{ hh.discountType === 'percent' ? '%' : '₹' }} off</span>
+                                } @else {
+                                  <strong>{{ money(service.pricePaise) }}</strong>
+                                }
+                                <span>{{ service.durationMinutes || 0 }} min</span>
+                              </span>
+                              <span class="service-desc">{{ serviceDescription(service) }}</span>
+                              <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
                             </button>
+                            <div class="service-card-action">
+                              <button
+                                type="button"
+                                class="add-service-btn"
+                                [class.added]="isServiceSelected(service.id)"
+                                [attr.aria-pressed]="isServiceSelected(service.id)"
+                                (click)="$event.stopPropagation(); toggleService(service.id)">
+                                @if (isServiceSelected(service.id)) {
+                                  <ion-icon name="checkmark-outline" aria-hidden="true"></ion-icon>
+                                  Added
+                                } @else {
+                                  + Add
+                                }
+                              </button>
+                            </div>
                           </div>
                           @if (expandedServiceId() === service.id) {
                             <div class="service-details">
                               <p>{{ service.description || serviceDescription(service) }}</p>
-<dl>
+                              <dl>
                                 <div><dt>Duration</dt><dd>{{ service.durationMinutes || 0 }} min</dd></div>
                                 @if (getHappyHour(service); as hh) {
                                   <div><dt>Original price</dt><dd class="original-price">{{ money(service.pricePaise) }}</dd></div>
@@ -900,35 +907,6 @@ type BookingFlowItem = {
         </main>
       }
     </ion-content>
-
-    @if (isSalonModeRoute() && categoryMenuOpen()) {
-      <div class="category-menu-backdrop" role="presentation" (click)="categoryMenuOpen.set(false)">
-        <section class="category-menu-sheet" role="dialog" aria-modal="true" aria-label="Service category menu" (click)="$event.stopPropagation()">
-          <div class="category-menu-head">
-            <div>
-              <strong>Menu</strong>
-              <span>Jump to service category</span>
-            </div>
-            <button type="button" (click)="categoryMenuOpen.set(false)">Close</button>
-          </div>
-          <div class="category-menu-list">
-            @for (chip of serviceChips(); track chip) {
-              <button type="button" [class.active]="activeCategory() === chip" (click)="chooseCategoryFromMenu(chip)">
-                <span>{{ chip }}</span>
-                <small>{{ serviceChipCount(chip) }}</small>
-              </button>
-            }
-          </div>
-        </section>
-      </div>
-    }
-
-    @if (isSalonModeRoute() && currentBookingStep() === 1) {
-      <button type="button" class="category-floating-menu-trigger" [class.has-services]="selectedServices().length > 0" (click)="categoryMenuOpen.set(true)">
-        <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
-        Menu
-      </button>
-    }
   `,
   styles: [`
     :host { --booking-footer-height: 124px; --booking-footer-gap: 32px; }
@@ -1258,24 +1236,25 @@ type BookingFlowItem = {
     .group-count { min-width: 22px; min-height: 22px; display: grid; place-items: center; padding: 0 6px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.80rem; font-weight: 950; }
     .group-header ion-icon { color: var(--muted); font-size: 1rem; transition: transform 180ms ease; }
     .service-group.collapsed .group-header ion-icon { transform: rotate(-90deg); }
-    .service-card { display: grid; gap: 8px; min-height: 108px; width: 100%; max-width: 100%; box-sizing: border-box; align-content: center; padding: 12px 14px; border-color: var(--border); overflow: hidden; }
+    .service-card { display: grid; gap: 8px; min-height: 96px; width: 100%; max-width: 100%; box-sizing: border-box; align-content: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); overflow: hidden; box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04); }
     .service-card.selected { border-color: rgba(99, 102, 241, 0.5); background: var(--primary-soft); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.1); }
     .service-card.expanded { border-color: rgba(99, 102, 241, 0.34); }
-    .service-card-main { display: grid; gap: 6px; width: 100%; padding: 0; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; cursor: pointer; }
+    .service-card-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; }
+    .service-card-main { flex: 1 1 auto; min-width: 0; display: grid; gap: 6px; padding: 0; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; cursor: pointer; }
+    .service-card-action { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; }
     .service-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .service-name { font-size: 1.02rem; font-weight: 950; letter-spacing: -0.03em; line-height: 1.2; }
     .service-price-row { display: flex; align-items: baseline; gap: 10px; }
     .service-price-row strong { color: var(--primary); font-size: 0.9rem; font-weight: 950; }
     .service-price-row span { color: var(--muted); font-size: 0.88rem; font-weight: 850; }
     .service-desc { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 0.82rem; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.offer-pill.extended { color: var(--muted); border-color: var(--border); background: var(--surface-soft); }
+    .service-eligibility { color: var(--muted); font-size: 0.84rem; font-weight: 800; }
+    .offer-pill.extended { color: var(--muted); border-color: var(--border); background: var(--surface-soft); }
     .offer-pill.package-tag { color: #059669; border-color: #D1FAE5; background: #ECFDF5; }
     .service-price-row .original-price { text-decoration: line-through; color: var(--muted); font-weight: 800; }
     .service-price-row .discounted-price { color: #059669; font-size: 0.92rem; }
     .discount-badge { font-size: 0.72rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: #059669; background: #ECFDF5; }
-    .service-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; box-sizing: border-box; }
-    .service-eligibility { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--muted); font-size: 0.84rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-    .add-service-btn { flex: 0 0 auto; min-width: 84px; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; border: 1.5px solid rgba(99, 102, 241, 0.5); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.84rem; font-weight: 950; cursor: pointer; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08); }
+    .add-service-btn { min-width: 86px; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; border: 1.5px solid var(--primary); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.84rem; font-weight: 950; cursor: pointer; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08); transition: all 160ms ease; }
     .add-service-btn.added { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 6px 14px rgba(99, 102, 241, 0.28); }
     .add-service-btn:hover, .add-service-btn:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
     .service-details { display: grid; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
