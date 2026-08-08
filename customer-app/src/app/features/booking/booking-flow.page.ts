@@ -1241,9 +1241,35 @@ type BookingFlowItem = {
     .salon-mode-flow .category-menu-shell { position: sticky; top: calc(204px + env(safe-area-inset-top)); z-index: 17; display: flex; align-items: center; gap: 8px; padding: 6px 0 8px; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.94)); backdrop-filter: blur(12px); }
     .salon-mode-flow .category-menu-trigger { flex: 0 0 auto; min-height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border: 0; border-radius: 999px; color: #fff; background: var(--primary); box-shadow: 0 8px 18px rgba(99,102,241,.24); font-size: .84rem; font-weight: 950; }
     .salon-mode-flow .category-menu-trigger ion-icon { font-size: 1rem; }
-    .category-floating-menu-trigger { position: fixed; z-index: 1200; right: 0; bottom: calc(98px + env(safe-area-inset-bottom)); min-height: 30px; display: inline-flex; align-items: center; gap: 4px; padding: 0 10px; border: 0; border-radius: 999px 0 0 999px; color: #fff; background: #7c63df; box-shadow: 0 8px 20px rgba(95,70,207,.22); font-size: .7rem; font-weight: 950; }
-    .category-floating-menu-trigger.has-services { bottom: calc(148px + env(safe-area-inset-bottom)); }
-    .category-floating-menu-trigger ion-icon { font-size: .82rem; }
+    .category-floating-menu-trigger {
+      position: fixed;
+      z-index: 1200;
+      right: 14px;
+      bottom: calc(52px + env(safe-area-inset-bottom));
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      color: #ffffff;
+      background: #7c63df;
+      box-shadow: 0 8px 24px rgba(124, 99, 223, 0.38);
+      font-size: 0.80rem;
+      font-weight: 950;
+      cursor: pointer;
+      transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms ease, box-shadow 160ms ease;
+    }
+    .category-floating-menu-trigger.has-services {
+      bottom: calc(102px + env(safe-area-inset-bottom));
+    }
+    .category-floating-menu-trigger ion-icon {
+      font-size: 0.92rem;
+    }
+    .category-floating-menu-trigger:active {
+      transform: scale(0.96);
+    }
     .salon-mode-flow .category-chips { min-width: 0; flex: 1 1 auto; padding-bottom: 0; }
     .salon-mode-flow .category-chip { display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
     .salon-mode-flow .category-chip small { min-width: 20px; min-height: 20px; display: inline-grid; place-items: center; padding: 0 6px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: .72rem; font-weight: 950; }
