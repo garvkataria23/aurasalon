@@ -85,16 +85,16 @@ type BookingFlowItem = {
                 <input type="search" [value]="serviceQuery()" (input)="onServiceSearch($event)" placeholder="Search services" aria-label="Search services" />
               </label>
 
-              @if (personalizedRecommendations().length) {
+              @if (topRecommendedServices().length && !serviceQuery().trim()) {
                 <section class="recommendations-section">
                   <div class="section-heading">
                     <div>
-                      <h3 class="section-title">Top recommendations for you</h3>
-                      <p class="muted">Based on your past visits</p>
+                      <h3 class="section-title">{{ personalizedRecommendations().length ? "Top recommendations for you" : "Popular at this salon" }}</h3>
+                      <p class="muted">{{ personalizedRecommendations().length ? "Based on your past visits" : "Most requested treatments & services" }}</p>
                     </div>
                   </div>
                   <div class="recommendations-list">
-                    @for (service of personalizedRecommendations(); track service.id) {
+                    @for (service of topRecommendedServices(); track service.id) {
                       <article
                         class="salon-service-item service-card premium-card recommended"
                         [class.is-picked]="isServiceSelected(service.id)"
@@ -106,12 +106,18 @@ type BookingFlowItem = {
                         <div class="salon-service-copy">
                           <span class="service-title-row">
                             <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
-                            <span class="offer-pill recommended-pill">Recommended</span>
+                            <span class="offer-pill recommended-pill">{{ service.popular ? "Popular" : "Recommended" }}</span>
                             @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
                             @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
                           </span>
                           <span class="service-price-row">
-                            <strong>{{ money(service.pricePaise) }}</strong>
+                            @if (getHappyHour(service); as hh) {
+                              <span class="original-price">{{ money(service.pricePaise) }}</span>
+                              <strong class="discounted-price">{{ money(hh.finalPricePaise) }}</strong>
+                              <span class="discount-badge">{{ hh.discountValue }}{{ hh.discountType === 'percent' ? '%' : '₹' }} off</span>
+                            } @else {
+                              <strong>{{ money(service.pricePaise) }}</strong>
+                            }
                             <span>{{ service.durationMinutes || 0 }} min</span>
                           </span>
                           <span class="service-desc">{{ serviceDescription(service) }}</span>
@@ -1932,6 +1938,16 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
       || (service.category || "").toLowerCase().includes(query));
   });
 
+  readonly topRecommendedServices = computed(() => {
+    const allServices = this.filteredServices();
+    if (!allServices.length) return [];
+    const personalized = this.personalizedRecommendations();
+    if (personalized.length) return personalized;
+    const popular = allServices.filter((s) => s.popular);
+    if (popular.length) return popular.slice(0, 4);
+    return allServices.slice(0, 3);
+  });
+
   readonly serviceChips = computed(() => {
     const services = this.business()?.services ?? [];
     const categories = Array.from(new Set(services.map((service) => this.formatServiceName(service.category || "Other")).filter(Boolean)));
@@ -1944,13 +1960,9 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     const services = this.filteredServices();
     const groups: { label: string; services: ServiceItem[] }[] = [];
     
-    // Popular section
-    const popular = services.filter((service) => service.popular);
-    if (popular.length) groups.push({ label: "Popular at this salon", services: popular });
-    
-    // Category sections (all visible)
+    // Group all services by category
     const byCategory = new Map<string, ServiceItem[]>();
-    for (const service of services.filter((service) => !service.popular)) {
+    for (const service of services) {
       const key = this.formatServiceName(service.category || "Other");
       if (!byCategory.has(key)) byCategory.set(key, []);
       byCategory.get(key)!.push(service);
