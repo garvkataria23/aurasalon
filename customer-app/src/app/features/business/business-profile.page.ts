@@ -23,7 +23,8 @@ import {
   sparklesOutline,
   starOutline,
   timeOutline,
-  walletOutline
+  walletOutline,
+  listOutline
 } from "ionicons/icons";
 import { PublicOfferItem, ServiceItem, StaffMember } from "../../core/api.types";
 import { CustomerFeedbackService } from "../../core/customer-feedback.service";
@@ -215,27 +216,6 @@ import { Subscription } from "rxjs";
                   </button>
                 }
               </div>
-
-              @if (availableCategories().length > 1) {
-                <div class="category-pills-strip" role="tablist" aria-label="Service category filters">
-                  <button
-                    type="button"
-                    class="category-pill"
-                    [class.active]="!selectedCategory()"
-                    (click)="selectedCategory.set('')">
-                    All services
-                  </button>
-                  @for (cat of availableCategories(); track cat) {
-                    <button
-                      type="button"
-                      class="category-pill"
-                      [class.active]="selectedCategory() === cat"
-                      (click)="selectedCategory.set(cat)">
-                      {{ categoryLabel(cat) }}
-                    </button>
-                  }
-                </div>
-              }
 
               <div class="service-stack">
                 @for (service of paginatedServices(); track service.id) {
@@ -557,6 +537,48 @@ import { Subscription } from "rxjs";
         </main>
       }
     </ion-content>
+
+    @if (business(); as b) {
+      @if (categoryMenuOpen()) {
+        <div class="category-menu-backdrop" role="presentation" (click)="categoryMenuOpen.set(false)">
+          <section class="category-menu-sheet" role="dialog" aria-modal="true" aria-label="Service category menu" (click)="$event.stopPropagation()">
+            <div class="category-menu-head">
+              <div>
+                <strong>Categories</strong>
+                <span>Jump to service category</span>
+              </div>
+              <button type="button" (click)="categoryMenuOpen.set(false)">Close</button>
+            </div>
+            <div class="category-menu-list">
+              <button type="button" [class.active]="!selectedCategory()" (click)="chooseCategoryFromMenu('')">
+                <span>All services</span>
+                <small>{{ b.services.length }}</small>
+              </button>
+              @for (cat of availableCategories(); track cat) {
+                <button type="button" [class.active]="selectedCategory() === cat" (click)="chooseCategoryFromMenu(cat)">
+                  <span>{{ categoryLabel(cat) }}</span>
+                  <small>{{ categoryChipCount(cat) }}</small>
+                </button>
+              }
+            </div>
+          </section>
+        </div>
+      }
+
+      @if (availableCategories().length > 1) {
+        <button
+          type="button"
+          class="category-floating-menu-trigger"
+          [class.has-services]="selectedServices().length > 0"
+          [class.is-open]="categoryMenuOpen()"
+          (click)="toggleCategoryMenu()"
+          [attr.aria-expanded]="categoryMenuOpen()"
+          aria-label="Toggle service category menu">
+          <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
+          <span>Menu</span>
+        </button>
+      }
+    }
   `,
   styles: [`
     .profile-page {
@@ -2063,6 +2085,125 @@ import { Subscription } from "rxjs";
       }
     }
 
+    .category-floating-menu-trigger {
+      position: fixed;
+      z-index: 1200;
+      right: 0;
+      bottom: calc(68px + env(safe-area-inset-bottom));
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 0 10px;
+      border: 0;
+      border-radius: 999px 0 0 999px;
+      color: #ffffff;
+      background: #7c63df;
+      box-shadow: -2px 4px 16px rgba(124, 99, 223, 0.38);
+      font-size: 0.72rem;
+      font-weight: 950;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms ease, box-shadow 160ms ease;
+    }
+    .category-floating-menu-trigger.has-services {
+      bottom: calc(118px + env(safe-area-inset-bottom));
+    }
+    .category-floating-menu-trigger ion-icon {
+      font-size: 0.82rem;
+    }
+    .category-floating-menu-trigger:active {
+      transform: scale(0.95);
+    }
+    .category-menu-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.28);
+    }
+    .category-menu-sheet {
+      position: fixed;
+      z-index: 1010;
+      right: calc(8px + env(safe-area-inset-right));
+      left: auto;
+      bottom: calc(110px + env(safe-area-inset-bottom));
+      top: auto;
+      width: min(300px, calc(100% - 28px));
+      max-height: 60vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid rgba(225, 214, 251, 0.86);
+      border-radius: 24px;
+      background: #ffffff;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+    }
+    .category-menu-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .category-menu-head div { display: grid; gap: 1px; }
+    .category-menu-head strong { font-size: 0.92rem; font-weight: 950; }
+    .category-menu-head span { color: var(--muted); font-size: 0.72rem; font-weight: 800; }
+    .category-menu-head button {
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--primary);
+      background: var(--surface);
+      font-size: 0.72rem;
+      font-weight: 950;
+    }
+    .category-menu-list {
+      display: grid;
+      gap: 6px;
+      overflow-y: scroll;
+      padding: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
+    }
+    .category-menu-list::-webkit-scrollbar { width: 1px; height: 3px; background: transparent; }
+    .category-menu-list::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.1); border-radius: 3px; }
+    .category-menu-list button {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 10px;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      color: var(--text);
+      background: transparent;
+      font: inherit;
+      font-weight: 800;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+    .category-menu-list button.active {
+      border-color: rgba(99, 102, 241, 0.28);
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .category-menu-list button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .category-menu-list small {
+      flex: 0 0 auto;
+      min-width: 26px;
+      min-height: 22px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0 7px;
+      border-radius: 999px;
+      color: var(--primary);
+      background: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 950;
+    }
     @media (min-width: 1024px) {
       .profile-page {
         padding-bottom: 40px;
@@ -2091,6 +2232,28 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   readonly serviceQuery = signal<string>("");
   readonly selectedCategory = signal<string>("");
   readonly visibleServiceLimit = signal(12);
+  readonly categoryMenuOpen = signal<boolean>(false);
+
+  toggleCategoryMenu(): void {
+    this.categoryMenuOpen.update((open) => !open);
+  }
+
+  chooseCategoryFromMenu(cat: string): void {
+    this.selectedCategory.set(cat);
+    this.categoryMenuOpen.set(false);
+    this.scrollToServices();
+  }
+
+  categoryChipCount(cat: string): number {
+    return (this.business()?.services ?? []).filter((s) => (s.category || "Other") === cat).length;
+  }
+
+  scrollToServices(): void {
+    const el = document.getElementById("services");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   readonly business = computed(() => {
     const slug = this.slug();
@@ -2215,7 +2378,8 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       sparklesOutline,
       starOutline,
       timeOutline,
-      walletOutline
+      walletOutline,
+      listOutline
     });
   }
 
