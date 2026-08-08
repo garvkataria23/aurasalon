@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, computed, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
+import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { AvailabilityDay, AvailabilitySlot, Booking, ServiceItem, StaffMember, CustomerPackage, SlotHold, SlotHoldPayload } from "../../core/api.types";
 import { BookingProgressComponent, BookingProgressStepId } from "./booking-progress.component";
@@ -40,10 +40,12 @@ type BookingFlowItem = {
   standalone: true,
   imports: [IonButton, IonContent, IonIcon, RouterLink, BookingProgressComponent, CustomerMobileHeaderComponent],
   template: `
-    <aura-customer-mobile-header
-      [title]="isRescheduling() ? 'Edit appointment' : 'Book appointment'"
-      [subtitle]="headerSubtitle()"
-      [backHref]="backHref()" />
+    @if (!isSalonModeRoute()) {
+      <aura-customer-mobile-header
+        [title]="isRescheduling() ? 'Edit appointment' : 'Book appointment'"
+        [subtitle]="headerSubtitle()"
+        [backHref]="backHref()" />
+    }
 
     <ion-content>
       @if (business(); as business) {
@@ -64,9 +66,7 @@ type BookingFlowItem = {
 
           @if (flowWarning()) {
             <section class="state-card premium-card flow-warning" role="status"><h2>Selections updated</h2><p>{{ flowWarning() }}</p></section>
-          }
-
-          @if (isRescheduling()) {
+          }          @if (isRescheduling()) {
             <section class="edit-context-card premium-card" aria-label="Current appointment being edited">
               <span>Edit appointment</span>
               <strong>{{ activeService()?.name || selectedServices()[0]?.name || 'Selected service' }}</strong>
@@ -85,21 +85,68 @@ type BookingFlowItem = {
                 <input type="search" [value]="serviceQuery()" (input)="onServiceSearch($event)" placeholder="Search services" aria-label="Search services" />
               </label>
 
-              <div class="category-chips" role="group" aria-label="Service categories">
-                @for (chip of serviceChips(); track chip) {
-                  <button type="button" class="category-chip" [class.active]="activeCategory() === chip" (click)="setActiveCategory(chip)">{{ chip }}</button>
-                }
-              </div>
+              @if (serviceChips().length > 1) {
+                <div class="category-menu-shell" role="tablist" aria-label="Service categories">
+                  <div class="category-chips">
+                    @for (chip of serviceChips(); track chip) {
+                      <button
+                        type="button"
+                        class="category-chip"
+                        [class.active]="activeCategory() === chip"
+                        (click)="chooseCategoryFromMenu(chip)">
+                        <span>{{ chip }}</span>
+                        <small>{{ serviceChipCount(chip) }}</small>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (personalizedRecommendations().length) {
+                <section class="recommendations-section">
+                  <div class="section-heading">
+                    <div>
+                      <h3 class="section-title">Top recommendations for you</h3>
+                      <p class="muted">Based on your past visits</p>
+                    </div>
+                  </div>
+                  <div class="recommendations-list">
+                    @for (service of personalizedRecommendations(); track service.id) {
+                      <div class="service-card premium-card recommended" [class.selected]="isServiceSelected(service.id)">
+                        <button type="button" class="service-card-main" (click)="toggleServiceDetails(service.id)">
+                          <span class="service-title-row">
+                            <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
+                            <span class="offer-pill recommended-pill">Recommended</span>
+                            @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
+                            @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
+                          </span>
+                          <span class="service-price-row">
+                            <strong>{{ money(service.pricePaise) }}</strong>
+                            <span>{{ service.durationMinutes || 0 }} min</span>
+                          </span>
+                          <span class="service-desc">{{ serviceDescription(service) }}</span>
+                        </button>
+                        <div class="service-card-footer">
+                          <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
+                          <button type="button" class="add-service-btn" [class.added]="isServiceSelected(service.id)" [attr.aria-pressed]="isServiceSelected(service.id)" (click)="toggleService(service.id)">
+                            @if (isServiceSelected(service.id)) { <ion-icon name="checkmark-outline" aria-hidden="true"></ion-icon> Added } @else { Add }
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </section>
+              }
 
               @for (group of groupedServices(); track group.label) {
-                <section class="service-group" [class.collapsed]="groupCollapsed(group.label)">
+                <section class="service-group" [class.collapsed]="groupCollapsed(group.label)" [id]="categorySectionId(group.label)">
                   <button type="button" class="group-header" (click)="toggleGroup(group.label)" [attr.aria-expanded]="!groupCollapsed(group.label)">
                     <span class="group-title">{{ group.label }}</span>
                     <span class="group-count">{{ group.services.length }}</span>
                     <ion-icon name="chevron-down-outline" aria-hidden="true"></ion-icon>
                   </button>
                   @if (!groupCollapsed(group.label)) {
-<div class="service-list">
+                    <div class="service-list">
                       @for (service of group.services; track service.id) {
                         <div class="service-card premium-card" [class.selected]="isServiceSelected(service.id)" [class.expanded]="expandedServiceId() === service.id">
                           <button type="button" class="service-card-main" (click)="toggleServiceDetails(service.id)" [attr.aria-expanded]="expandedServiceId() === service.id">
@@ -109,7 +156,7 @@ type BookingFlowItem = {
                               @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
                               @if (packageCoverageLabel(service); as label) { <span class="offer-pill package-tag">{{ label }}</span> }
                             </span>
-<span class="service-price-row">
+                            <span class="service-price-row">
                               @if (getHappyHour(service); as hh) {
                                 <span class="original-price">{{ money(service.pricePaise) }}</span>
                                 <strong class="discounted-price">{{ money(hh.finalPricePaise) }}</strong>
@@ -717,6 +764,7 @@ type BookingFlowItem = {
           }
         </main>
 
+        @if (selectedServices().length) {
         <div class="booking-cta sticky-cta" [class.salon-mode-flow]="isSalonModeRoute()">
         <div class="bottom-action-card">
           @if (currentBookingStep() === 2) {
@@ -752,6 +800,7 @@ type BookingFlowItem = {
             </div>
           </div>
         </div>
+        }
 
         @if (showPolicyModal()) {
           <div class="drawer-backdrop" (click)="showPolicyModal.set(false)"></div>
@@ -851,11 +900,41 @@ type BookingFlowItem = {
         </main>
       }
     </ion-content>
+
+    @if (isSalonModeRoute() && categoryMenuOpen()) {
+      <div class="category-menu-backdrop" role="presentation" (click)="categoryMenuOpen.set(false)">
+        <section class="category-menu-sheet" role="dialog" aria-modal="true" aria-label="Service category menu" (click)="$event.stopPropagation()">
+          <div class="category-menu-head">
+            <div>
+              <strong>Menu</strong>
+              <span>Jump to service category</span>
+            </div>
+            <button type="button" (click)="categoryMenuOpen.set(false)">Close</button>
+          </div>
+          <div class="category-menu-list">
+            @for (chip of serviceChips(); track chip) {
+              <button type="button" [class.active]="activeCategory() === chip" (click)="chooseCategoryFromMenu(chip)">
+                <span>{{ chip }}</span>
+                <small>{{ serviceChipCount(chip) }}</small>
+              </button>
+            }
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (isSalonModeRoute() && currentBookingStep() === 1) {
+      <button type="button" class="category-floating-menu-trigger" [class.has-services]="selectedServices().length > 0" (click)="categoryMenuOpen.set(true)">
+        <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
+        Menu
+      </button>
+    }
   `,
   styles: [`
     :host { --booking-footer-height: 124px; --booking-footer-gap: 32px; }
     .booking-page { max-width: 980px; padding-bottom: calc(var(--booking-footer-height) + var(--booking-footer-gap) + env(safe-area-inset-bottom)); }
-    .booking-page.salon-mode-flow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+    .booking-page.salon-mode-flow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); padding-top: calc(72px + env(safe-area-inset-top)); }
+    .salon-mode-flow app-booking-progress { top: calc(72px + env(safe-area-inset-top)); z-index: 26; }
     .edit-toolbar-title {
       padding-inline: 0 16px;
       color: var(--text);
@@ -1035,7 +1114,7 @@ type BookingFlowItem = {
       .sticky-cta--confirm { bottom: calc(8px + env(safe-area-inset-bottom)); }
     @media (max-width: 599px) {
       .booking-page { padding-bottom: calc(var(--booking-footer-height) + 44px + env(safe-area-inset-bottom)); }
-    .booking-page.salon-mode-flow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+    .booking-page.salon-mode-flow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); padding-top: calc(72px + env(safe-area-inset-top)); }
 
       .sticky-cta { bottom: calc(10px + env(safe-area-inset-bottom)); }
     .booking-cta.sticky-cta.salon-mode-flow { bottom: calc(64px + env(safe-area-inset-bottom)); }
@@ -1133,25 +1212,56 @@ type BookingFlowItem = {
     @media (max-width: 420px) {
       .recovery-actions { grid-template-columns: 1fr; }
     }
-    .service-panel { display: grid; gap: 12px; }
+.service-panel { display: grid; gap: 12px; }
+    .recommendations-section { display: grid; gap: 8px; }
+    .recommendations-list { display: grid; gap: 8px; }
+    .recommendations-section .service-card.recommended { border-color: rgba(99,102,241,.4); background: linear-gradient(145deg, rgba(99,102,241,.06), rgba(246,249,252,.96)); }
+    .recommended-pill { border-color: transparent; color: #fff; background: var(--primary); }
     .service-search { position: sticky; top: 78px; z-index: 15; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
     .service-search ion-icon { color: var(--muted); font-size: 1.1rem; }
     .service-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--text); background: transparent; font: inherit; font-size: 0.95rem; -webkit-appearance: none; appearance: none; }
     .service-search input::placeholder { color: var(--muted); }
+    .category-menu-shell { display: grid; gap: 8px; }
     .category-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 1px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .category-chips::-webkit-scrollbar { display: none; }
     .category-chip { flex: 0 0 auto; min-height: 38px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: var(--surface); font-size: 0.84rem; font-weight: 900; white-space: nowrap; }
     .category-chip.active { color: #FFFFFF; border-color: transparent; background: var(--primary); }
-    .service-group { display: grid; gap: 8px; }
+    .salon-mode-flow .service-search { top: calc(150px + env(safe-area-inset-top)); z-index: 18; }
+    .salon-mode-flow .category-menu-shell { position: sticky; top: calc(204px + env(safe-area-inset-top)); z-index: 17; display: flex; align-items: center; gap: 8px; padding: 6px 0 8px; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.94)); backdrop-filter: blur(12px); }
+    .salon-mode-flow .category-menu-trigger { flex: 0 0 auto; min-height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border: 0; border-radius: 999px; color: #fff; background: var(--primary); box-shadow: 0 8px 18px rgba(99,102,241,.24); font-size: .84rem; font-weight: 950; }
+    .salon-mode-flow .category-menu-trigger ion-icon { font-size: 1rem; }
+    .category-floating-menu-trigger { position: fixed; z-index: 1200; right: 0; bottom: calc(98px + env(safe-area-inset-bottom)); min-height: 30px; display: inline-flex; align-items: center; gap: 4px; padding: 0 10px; border: 0; border-radius: 999px 0 0 999px; color: #fff; background: #7c63df; box-shadow: 0 8px 20px rgba(95,70,207,.22); font-size: .7rem; font-weight: 950; }
+    .category-floating-menu-trigger.has-services { bottom: calc(148px + env(safe-area-inset-bottom)); }
+    .category-floating-menu-trigger ion-icon { font-size: .82rem; }
+    .salon-mode-flow .category-chips { min-width: 0; flex: 1 1 auto; padding-bottom: 0; }
+    .salon-mode-flow .category-chip { display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+    .salon-mode-flow .category-chip small { min-width: 20px; min-height: 20px; display: inline-grid; place-items: center; padding: 0 6px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: .72rem; font-weight: 950; }
+    .salon-mode-flow .category-chip.active small { color: var(--primary); background: rgba(255,255,255,.9); }
+.category-menu-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.28); }
+    .category-menu-sheet { position: fixed; z-index: 1010; right: calc(8px + env(safe-area-inset-right)); left: auto; bottom: calc(140px + env(safe-area-inset-bottom)); top: auto; width: min(300px, calc(100% - 28px)); max-height: 60vh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px solid rgba(225,214,251,.86); border-radius: 24px; background: #fff; box-shadow: 0 24px 60px rgba(15,23,42,.24); }
+    .category-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 14px 6px; border-bottom: 1px solid var(--border); }
+    .category-menu-head div { display: grid; gap: 1px; }
+    .category-menu-head strong { font-size: .92rem; font-weight: 950; }
+    .category-menu-head span { color: var(--muted); font-size: .72rem; font-weight: 800; }
+    .category-menu-head button { min-height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: .72rem; font-weight: 950; }
+    .category-menu-list { display: grid; gap: 6px; overflow-y: scroll; padding: 10px; scrollbar-width: thin; scrollbar-color: rgba(15,23,42,.28) transparent; }
+    .category-menu-list::-webkit-scrollbar { width: 1px; height: 3px; background: transparent; }
+    .category-menu-list::-webkit-scrollbar-thumb { background: rgba(15,23,42,.1); border-radius: 3px; }
+    .category-menu-list button { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 10px; border: 1px solid transparent; border-radius: 14px; color: var(--text); background: transparent; font: inherit; font-weight: 800; font-size: .82rem; text-align: left; }
+    .category-menu-list button.active { border-color: rgba(99,102,241,.28); background: var(--primary-soft); color: var(--primary); }
+    .category-menu-list button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .category-menu-list small { flex: 0 0 auto; min-width: 26px; min-height: 22px; display: inline-grid; place-items: center; padding: 0 7px; border-radius: 999px; color: var(--primary); background: #fff; font-size: .7rem; font-weight: 950; }
+    .service-group { display: grid; gap: 8px; scroll-margin-top: calc(215px + env(safe-area-inset-top)); }
+    .booking-page:not(.salon-mode-flow) .service-group { scroll-margin-top: calc(145px + env(safe-area-inset-top)); }
     .group-header { display: inline-flex; align-items: center; gap: 8px; padding: 4px 2px; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; }
     .group-title { font-size: 0.84rem; font-weight: 950; letter-spacing: 0.08em; text-transform: uppercase; }
     .group-count { min-width: 22px; min-height: 22px; display: grid; place-items: center; padding: 0 6px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.80rem; font-weight: 950; }
     .group-header ion-icon { color: var(--muted); font-size: 1rem; transition: transform 180ms ease; }
     .service-group.collapsed .group-header ion-icon { transform: rotate(-90deg); }
-    .service-card { display: grid; gap: 8px; min-height: 108px; align-content: center; padding: 12px 14px; border-color: var(--border); }
+    .service-card { display: grid; gap: 8px; min-height: 108px; width: 100%; max-width: 100%; box-sizing: border-box; align-content: center; padding: 12px 14px; border-color: var(--border); overflow: hidden; }
     .service-card.selected { border-color: rgba(99, 102, 241, 0.5); background: var(--primary-soft); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.1); }
     .service-card.expanded { border-color: rgba(99, 102, 241, 0.34); }
-    .service-card-main { display: grid; gap: 6px; width: 100%; padding: 0; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; }
+    .service-card-main { display: grid; gap: 6px; width: 100%; padding: 0; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; cursor: pointer; }
     .service-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .service-name { font-size: 1.02rem; font-weight: 950; letter-spacing: -0.03em; line-height: 1.2; }
     .service-price-row { display: flex; align-items: baseline; gap: 10px; }
@@ -1163,10 +1273,10 @@ type BookingFlowItem = {
     .service-price-row .original-price { text-decoration: line-through; color: var(--muted); font-weight: 800; }
     .service-price-row .discounted-price { color: #059669; font-size: 0.92rem; }
     .discount-badge { font-size: 0.72rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: #059669; background: #ECFDF5; }
-    .service-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .service-eligibility { min-width: 0; overflow: hidden; color: var(--muted); font-size: 0.84rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-    .add-service-btn { min-width: 84px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; border: 1.5px solid rgba(99, 102, 241, 0.45); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.84rem; font-weight: 950; }
-    .add-service-btn.added { color: #FFFFFF; border-color: transparent; background: var(--primary); }
+    .service-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; box-sizing: border-box; }
+    .service-eligibility { flex: 1 1 auto; min-width: 0; overflow: hidden; color: var(--muted); font-size: 0.84rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .add-service-btn { flex: 0 0 auto; min-width: 84px; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; border: 1.5px solid rgba(99, 102, 241, 0.5); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.84rem; font-weight: 950; cursor: pointer; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08); }
+    .add-service-btn.added { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 6px 14px rgba(99, 102, 241, 0.28); }
     .add-service-btn:hover, .add-service-btn:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
     .service-details { display: grid; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
     .service-details p { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
@@ -1602,6 +1712,7 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   readonly flowWarning = signal("");
   readonly serviceQuery = signal("");
   readonly activeCategory = signal("Popular");
+  readonly categoryMenuOpen = signal(false);
   readonly collapsedGroups = signal<Record<string, boolean>>({});
   readonly expandedServiceId = signal("");
   readonly selectionsOpen = signal(false);
@@ -1610,6 +1721,7 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   readonly pendingStaffChange = signal<{ index: number; staffId: string | null } | null>(null);
   readonly myPackages = signal<CustomerPackage[]>([]);
   readonly activeHoldId = signal<string | null>(null);
+  readonly pastBookings = signal<Booking[]>([]);
   private readonly slug = signal(this.route.snapshot.paramMap.get("slug"));
   readonly business = computed(() => this.marketplace.findBusiness(this.slug()));
   readonly selectedServices = computed(() => this.bookingItems().map((item) => this.serviceById(item.serviceId)).filter((service): service is ServiceItem => !!service));
@@ -1637,6 +1749,35 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   }
 
   readonly hasBookableServices = computed(() => (this.business()?.services?.length ?? 0) > 0);
+
+  readonly personalizedRecommendations = computed(() => {
+    const past = this.pastBookings();
+    const allServices = this.business()?.services ?? [];
+    if (!past.length || !allServices.length) return [];
+
+    // Count service frequency from past bookings (each booking has one service)
+    const freq = new Map<string, number>();
+    for (const booking of past) {
+      if (booking.serviceId) {
+        freq.set(booking.serviceId, (freq.get(booking.serviceId) || 0) + 1);
+      }
+    }
+    // If only 1-2 unique services in history, diversify with popular/other services
+    const uniqueFromHistory = freq.size;
+    const fromHistory = [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([id]) => allServices.find((s) => s.id === id))
+      .filter((s): s is ServiceItem => !!s);
+
+    if (uniqueFromHistory >= 3 || fromHistory.length >= 3) return fromHistory;
+
+    // Diversify: add popular services not in history, then others
+    const historyIds = new Set(fromHistory.map(s => s.id));
+    const popular = allServices.filter(s => s.popular && !historyIds.has(s.id));
+    const others = allServices.filter(s => !s.popular && !historyIds.has(s.id));
+    return [...fromHistory, ...popular, ...others].slice(0, 3);
+  });
 
   readonly servicePackageCoverage = computed(() => {
     const packages = this.myPackages();
@@ -1674,28 +1815,30 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   });
 
   readonly serviceChips = computed(() => {
-    const categories = Array.from(new Set((this.business()?.services ?? []).map((service) => this.formatServiceName(service.category || "Other")).filter(Boolean)));
-    return ["Popular", ...categories];
+    const services = this.business()?.services ?? [];
+    const categories = Array.from(new Set(services.map((service) => this.formatServiceName(service.category || "Other")).filter(Boolean)));
+    const chips: string[] = [];
+    if (services.some(s => s.popular)) chips.push("Popular at this salon");
+    return [...chips, ...categories];
   });
 
   readonly groupedServices = computed(() => {
     const services = this.filteredServices();
-    const active = this.activeCategory();
     const groups: { label: string; services: ServiceItem[] }[] = [];
-    if (active === "Popular") {
-      const popular = services.filter((service) => service.popular);
-      if (popular.length) groups.push({ label: "Popular at this salon", services: popular });
-      const byCategory = new Map<string, ServiceItem[]>();
-      for (const service of services.filter((service) => !service.popular)) {
-        const key = this.formatServiceName(service.category || "Other");
-        if (!byCategory.has(key)) byCategory.set(key, []);
-        byCategory.get(key)!.push(service);
-      }
-      for (const [label, items] of byCategory) groups.push({ label, services: items });
-      return groups;
+    
+    // Popular section
+    const popular = services.filter((service) => service.popular);
+    if (popular.length) groups.push({ label: "Popular at this salon", services: popular });
+    
+    // Category sections (all visible)
+    const byCategory = new Map<string, ServiceItem[]>();
+    for (const service of services.filter((service) => !service.popular)) {
+      const key = this.formatServiceName(service.category || "Other");
+      if (!byCategory.has(key)) byCategory.set(key, []);
+      byCategory.get(key)!.push(service);
     }
-    const matching = services.filter((service) => this.formatServiceName(service.category || "Other") === active);
-    if (matching.length) groups.push({ label: active, services: matching });
+    for (const [label, items] of byCategory) groups.push({ label, services: items });
+    
     return groups;
   });
 
@@ -1772,6 +1915,60 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     this.expandedServiceId.set("");
   }
 
+  chooseCategoryFromMenu(chip: string) {
+    this.activeCategory.set(chip);
+    this.categoryMenuOpen.set(false);
+    this.scrollToCategory(chip);
+  }
+
+  private scrollToCategory(chip: string) {
+    if (this.groupCollapsed(chip)) {
+      this.collapsedGroups.update((state) => ({ ...state, [chip]: false }));
+    }
+    const id = this.categorySectionId(chip);
+
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const isSalonMode = this.isSalonModeRoute();
+      const headerOffset = isSalonMode ? 215 : 145;
+
+      const contentEl = document.querySelector("ion-content");
+      if (contentEl && typeof (contentEl as any).scrollToPoint === "function") {
+        const elRect = el.getBoundingClientRect();
+        const contentRect = contentEl.getBoundingClientRect();
+        (contentEl as any).getScrollElement?.().then((scrollEl: HTMLElement) => {
+          const currentTop = scrollEl ? scrollEl.scrollTop : 0;
+          const targetY = currentTop + (elRect.top - contentRect.top) - headerOffset;
+          (contentEl as any).scrollToPoint(0, Math.max(0, targetY), 350);
+        }).catch(() => {
+          const y = el.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+          window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+        });
+      } else {
+        const y = el.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      }
+
+      try {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch {
+        // Fallback performed above
+      }
+    }, 40);
+  }
+
+  categorySectionId(label: string): string {
+    return "cat-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  }
+
+  serviceChipCount(chip: string): number {
+    const services = this.business()?.services ?? [];
+    if (chip === "Popular at this salon") return services.filter((service) => service.popular).length;
+    return services.filter((service) => this.formatServiceName(service.category || "Other") === chip).length;
+  }
+
   toggleGroup(label: string) {
     this.collapsedGroups.update((state) => ({ ...state, [label]: !state[label] }));
   }
@@ -1785,11 +1982,12 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   }
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
-    addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
+    addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
   }
 
   isSalonModeRoute(): boolean {
-    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
+    const url = this.router.url.split(/[?#]/)[0];
+    return url.startsWith("/my-salon/") || this.marketplace.salonMode();
   }
 
   ngOnInit() {
@@ -1818,6 +2016,7 @@ async reload() {
     });
     if (this.marketplace.isAuthenticated()) {
       this.marketplace.loadMyPackages().then((pkgs) => this.myPackages.set(pkgs)).catch(() => this.myPackages.set([]));
+      this.marketplace.loadBookings("past").then((bookings) => this.pastBookings.set(bookings)).catch(() => this.pastBookings.set([]));
     }
     if (!this.isRescheduling()) this.restorePendingIntent();
     if (!this.route.snapshot.queryParamMap.has("step")) {

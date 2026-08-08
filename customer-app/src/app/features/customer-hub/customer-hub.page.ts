@@ -3877,7 +3877,8 @@ export class CustomerHubPage implements OnInit {
   }
 
   salonModeRoute(): boolean {
-    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
+    const url = this.router.url.split(/[?#]/)[0];
+    return url.startsWith("/my-salon/") || this.marketplace.salonMode();
   }
 
   ngOnInit() {

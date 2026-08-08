@@ -165,6 +165,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
 
     .bookings-page.salon-mode-bookings {
       padding-bottom: calc(96px + env(safe-area-inset-bottom));
+      padding-top: calc(72px + env(safe-area-inset-top));
     }
 
     .bookings-hero {
@@ -832,7 +833,8 @@ export class BookingsPage implements OnDestroy, OnInit {
   }
 
   salonModeRoute(): boolean {
-    return this.router.url.split(/[?#]/)[0].startsWith("/my-salon/");
+    const url = this.router.url.split(/[?#]/)[0];
+    return url.startsWith("/my-salon/") || this.marketplace.salonMode();
   }
 
   private bookingDetailUrl(id: string): string {

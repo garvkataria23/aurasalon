@@ -362,30 +362,14 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Salon Menu</span>
-                  <h2 id="services-title">Services & Pricing</h2>
+                  <h2 id="services-title">Top Recommended</h2>
                 </div>
                 <a [routerLink]="salonProfileLink(d.salon)">Full Menu</a>
               </div>
 
-              <!-- Category Filter Pills -->
-              @if (categories().length > 1) {
-                <div class="ms-cat-pills">
-                  @for (cat of categories(); track cat) {
-                    <button
-                      type="button"
-                      class="ms-cat-pill"
-                      [class.active]="activeCategory() === cat"
-                      [attr.aria-pressed]="activeCategory() === cat"
-                      (click)="setCategory(cat)">
-                      {{ cat }}
-                    </button>
-                  }
-                </div>
-              }
-
-              @if (filteredServices().length) {
+              @if (topRecommendedServices().length) {
                 <div class="ms-service-list">
-                  @for (service of filteredServices().slice(0, 8); track service.id) {
+                  @for (service of topRecommendedServices(); track service.id) {
                     <div class="ms-service">
                       <span class="ms-service-index" aria-hidden="true">{{ serviceIndex($index) }}</span>
                       <div class="ms-service-copy">
@@ -1140,6 +1124,12 @@ export class MySalonPage implements OnInit {
     const services = this.dash()?.services || [];
     if (cat === "All") return services;
     return services.filter((s) => s.category === cat);
+  });
+
+  readonly topRecommendedServices = computed(() => {
+    const services = this.dash()?.services || [];
+    // Return top 5 services (lower price first for affordability, then by name)
+    return [...services].sort((a, b) => a.pricePaise - b.pricePaise || a.name.localeCompare(b.name)).slice(0, 5);
   });
 
   constructor(
