@@ -59,17 +59,25 @@ import { Subscription } from "rxjs";
           </div>
           <div class="cover-copy">
             <div class="hero-business-name" role="heading" aria-level="1">{{ b.businessName }}</div>
-            <p>{{ b.area }}, {{ b.city }}</p>
+            @if (b.area || b.city) {
+              <p>{{ b.area }}{{ b.area && b.city ? ', ' : '' }}{{ b.city }}</p>
+            }
           </div>
         </section>
 
         <section class="app-container profile-shell">
           <div class="main-column">
             <section class="intro premium-card">
-              <div>
-                <p class="eyebrow">{{ b.area }}, {{ b.city }}</p>
-                <h2>{{ b.description }}</h2>
-              </div>
+              @if (b.area || b.city || b.description) {
+                <div>
+                  @if (b.area || b.city) {
+                    <p class="eyebrow">{{ b.area }}{{ b.area && b.city ? ', ' : '' }}{{ b.city }}</p>
+                  }
+                  @if (b.description) {
+                    <h2>{{ b.description }}</h2>
+                  }
+                </div>
+              }
 
               <div class="quick-actions" role="group" aria-label="Salon quick actions">
                 <button type="button" class="quick-action" [disabled]="!phoneHref()" (click)="callSalon()">
