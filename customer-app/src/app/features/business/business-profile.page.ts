@@ -147,7 +147,7 @@ import { Subscription } from "rxjs";
                 [class.active]="activeProfileTab() === 'services'"
                 [attr.aria-selected]="activeProfileTab() === 'services'"
                 (click)="activeProfileTab.set('services')">
-                Services @if (b.services.length) { <span>({{ b.services.length }})</span> }
+                Services
               </button>
               <button
                 type="button"
@@ -155,7 +155,7 @@ import { Subscription } from "rxjs";
                 [class.active]="activeProfileTab() === 'team'"
                 [attr.aria-selected]="activeProfileTab() === 'team'"
                 (click)="activeProfileTab.set('team')">
-                Team @if (b.staff.length) { <span>({{ b.staff.length }})</span> }
+                Team
               </button>
               <button
                 type="button"
@@ -986,35 +986,37 @@ import { Subscription } from "rxjs";
       position: sticky;
       top: calc(8px + env(safe-area-inset-top));
       z-index: 30;
-      display: flex;
-      gap: 6px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
       margin: 2px 0 14px;
-      padding: 6px;
-      overflow-x: auto;
+      padding: 4px;
+      width: 100%;
+      box-sizing: border-box;
       border: 1px solid var(--border);
       border-radius: 16px;
       background: var(--glass);
       backdrop-filter: blur(14px);
-      scrollbar-width: none;
-    }
-
-    .page-section-nav::-webkit-scrollbar {
-      display: none;
     }
 
     .page-section-nav button {
-      flex: 0 0 auto;
+      width: 100%;
       min-height: 34px;
-      padding: 0 14px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       border: 0;
       border-radius: 11px;
       color: var(--muted);
       background: transparent;
       font: inherit;
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       font-weight: 900;
+      text-align: center;
+      white-space: nowrap;
       cursor: pointer;
-      transition: color 160ms ease, background 160ms ease;
+      transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
     }
 
     .page-section-nav button:active {
@@ -1965,14 +1967,20 @@ import { Subscription } from "rxjs";
       }
 
       .page-section-nav {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
         margin: 0 0 10px;
-        padding: 5px;
+        padding: 3px;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .page-section-nav button {
+        width: 100%;
         min-height: 32px;
-        padding: 0 12px;
-        font-size: 0.82rem;
+        padding: 0 2px;
+        font-size: 0.78rem;
       }
 
       .section-heading {
