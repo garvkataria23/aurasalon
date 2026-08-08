@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, computed, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
+import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { AvailabilityDay, AvailabilitySlot, Booking, ServiceItem, StaffMember, CustomerPackage, SlotHold, SlotHoldPayload } from "../../core/api.types";
 import { BookingProgressComponent, BookingProgressStepId } from "./booking-progress.component";
@@ -934,8 +934,10 @@ type BookingFlowItem = {
         type="button"
         class="category-floating-menu-trigger"
         [class.has-services]="selectedServices().length > 0"
-        (click)="categoryMenuOpen.set(true)"
-        aria-label="Open service category menu">
+        [class.is-open]="categoryMenuOpen()"
+        (click)="toggleCategoryMenu()"
+        [attr.aria-expanded]="categoryMenuOpen()"
+        aria-label="Toggle service category menu">
         <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
         <span>Menu</span>
       </button>
@@ -1244,18 +1246,18 @@ type BookingFlowItem = {
     .category-floating-menu-trigger {
       position: fixed;
       z-index: 1200;
-      right: 8px;
-      bottom: calc(52px + env(safe-area-inset-bottom));
+      right: 0;
+      bottom: calc(68px + env(safe-area-inset-bottom));
       min-height: 28px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 0 10px;
+      padding: 0 8px 0 10px;
       border: 0;
-      border-radius: 999px;
+      border-radius: 999px 0 0 999px;
       color: #ffffff;
       background: #7c63df;
-      box-shadow: 0 4px 14px rgba(124, 99, 223, 0.32);
+      box-shadow: -2px 4px 16px rgba(124, 99, 223, 0.38);
       font-size: 0.72rem;
       font-weight: 950;
       letter-spacing: 0.01em;
@@ -1263,7 +1265,7 @@ type BookingFlowItem = {
       transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms ease, box-shadow 160ms ease;
     }
     .category-floating-menu-trigger.has-services {
-      bottom: calc(98px + env(safe-area-inset-bottom));
+      bottom: calc(118px + env(safe-area-inset-bottom));
     }
     .category-floating-menu-trigger ion-icon {
       font-size: 0.82rem;
@@ -2097,12 +2099,16 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     return !!this.collapsedGroups()[label];
   }
 
+  toggleCategoryMenu(): void {
+    this.categoryMenuOpen.update((open) => !open);
+  }
+
   toggleServiceDetails(serviceId: string) {
     this.expandedServiceId.update((current) => (current === serviceId ? "" : serviceId));
   }
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
-    addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
+    addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
   }
 
   isSalonModeRoute(): boolean {
