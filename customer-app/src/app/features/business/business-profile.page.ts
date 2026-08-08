@@ -140,308 +140,346 @@ import { Subscription } from "rxjs";
               </div>
             </section>
 
-            <nav class="page-section-nav" aria-label="Salon sections">
-              <button type="button" (click)="scrollToSection('services')">Services</button>
-              <button type="button" (click)="scrollToSection('team')">Team</button>
-              <button type="button" (click)="scrollToSection('reviews')">Reviews</button>
-              <button type="button" (click)="scrollToSection('about')">About</button>
+            <nav class="page-section-nav" role="tablist" aria-label="Salon sections">
+              <button
+                type="button"
+                role="tab"
+                [class.active]="activeProfileTab() === 'services'"
+                [attr.aria-selected]="activeProfileTab() === 'services'"
+                (click)="activeProfileTab.set('services')">
+                Services @if (b.services.length) { <span>({{ b.services.length }})</span> }
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [class.active]="activeProfileTab() === 'team'"
+                [attr.aria-selected]="activeProfileTab() === 'team'"
+                (click)="activeProfileTab.set('team')">
+                Team @if (b.staff.length) { <span>({{ b.staff.length }})</span> }
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [class.active]="activeProfileTab() === 'reviews'"
+                [attr.aria-selected]="activeProfileTab() === 'reviews'"
+                (click)="activeProfileTab.set('reviews')">
+                Reviews
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [class.active]="activeProfileTab() === 'about'"
+                [attr.aria-selected]="activeProfileTab() === 'about'"
+                (click)="activeProfileTab.set('about')">
+                About
+              </button>
             </nav>
 
-            @if (otherBranches().length) {
-            <section class="other-branches-section">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Other branches ({{ otherBranches().length }})</h2>
-                  <p class="muted">More locations from this salon group</p>
-                </div>
-              </div>
-              <div class="other-branches-rail" aria-label="Other branches from this salon group">
-                @for (branch of otherBranches(); track branch.branchId || branch.id) {
-                  <a class="branch-option" [routerLink]="businessProfileLink(branch.slug)">
-                    <span class="branch-option-mark">{{ branch.businessName.slice(0, 1).toUpperCase() }}</span>
-                    <span class="branch-option-copy">
-                      <strong>{{ branch.businessName }}</strong>
-                      <small>{{ branch.area || branch.city || 'Location details' }}</small>
-                      <small>
-                        {{ branch.distanceKm != null ? branch.distanceKm + " km" : "Distance not known" }} ·
-                        <span [class.open]="branch.isOpen">{{ branch.isOpen ? "Open" : "Closed" }}</span>
-                        @if (branch.nextAvailableSlot) { · next {{ branch.nextAvailableSlot }} }
-                      </small>
-                    </span>
-                    <ion-icon name="location-outline"></ion-icon>
-                  </a>
-                }
-              </div>
-            </section>
-            }
-            @if (b.galleryImages.length) {
-            <section class="gallery-section">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Inside the studio</h2>
-                </div>
-              </div>
-              <div class="gallery-strip">
-                @for (image of b.galleryImages; track image) {
-                  <img [src]="image" [alt]="b.businessName + ' gallery image'" loading="lazy" />
-                }
-              </div>
-            </section>
-            }
-
-            <section class="services-section section-anchor" id="services">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">
-                    Services @if (b.services.length) { <span class="section-title-count">· {{ b.services.length }}</span> }
-                  </h2>
-                </div>
-                @if (serviceQuery() || selectedCategory()) {
-                  <button type="button" class="clear-filter-text-btn" (click)="clearServiceFilters()">Show all</button>
-                }
-              </div>
-
-              <div class="service-search-box">
-                <ion-icon name="search-outline" class="search-icon" aria-hidden="true"></ion-icon>
-                <input
-                  type="text"
-                  class="service-search-input"
-                  [ngModel]="serviceQuery()"
-                  (ngModelChange)="serviceQuery.set($event)"
-                  placeholder="Search services"
-                  aria-label="Search salon services" />
-                @if (serviceQuery()) {
-                  <button type="button" class="clear-search-btn" (click)="serviceQuery.set('')" aria-label="Clear search">
-                    <ion-icon name="close-circle-outline" aria-hidden="true"></ion-icon>
-                  </button>
-                }
-              </div>
-
-              <div class="service-stack">
-                @for (service of paginatedServices(); track service.id) {
-                  <article
-                    class="salon-service-item"
-                    [class.is-picked]="isServiceSelected(service.id)"
-                    role="button"
-                    tabindex="0"
-                    (click)="openServicePopup(service.id)"
-                    (keydown.enter)="openServicePopup(service.id)">
-                    <div class="salon-service-copy">
-                      @if (service.popular) {
-                        <span class="offer-pill">Popular</span>
-                      }
-                      <h3>{{ service.name }}</h3>
-                      <strong>{{ servicePriceLabel(service) }}</strong>
-                      @if (service.description) {
-                        <p class="service-description" [class.expanded]="expandedServiceId() === service.id">{{ service.description }}</p>
-                        @if (isLongDescription(service.description)) {
-                          <button type="button" class="service-more" (click)="$event.stopPropagation(); toggleDescription(service.id)">
-                            {{ expandedServiceId() === service.id ? "Less" : "More" }}
-                          </button>
-                        }
-                      }
-                    </div>
-                    <div class="salon-service-action">
-                      @if (serviceImage(service, $index)) {
-                        <div class="salon-service-thumb" [style.background-image]="serviceImageBackground(service, $index)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
-                      } @else {
-                        <div class="salon-service-thumb salon-service-thumb--letter" role="img" [attr.aria-label]="service.name">
-                          <span aria-hidden="true">{{ serviceInitial(service.name) }}</span>
-                        </div>
-                      }
-                      <button
-                        type="button"
-                        class="salon-service-add"
-                        [class.selected]="isServiceSelected(service.id)"
-                        [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
-                        (click)="$event.stopPropagation(); openServicePopup(service.id)">
-                        @if (isServiceSelected(service.id)) {
-                          <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
-                        } @else {
-                          Add
-                        }
-                      </button>
-                    </div>
-                  </article>
-                } @empty {
-                  <section class="state-card premium-card service-empty-card">
-                    <div class="empty-icon"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
-                    <h3>No services found</h3>
-                    <p>No services match "{{ serviceQuery() }}"{{ selectedCategory() ? ' in ' + categoryLabel(selectedCategory()) : '' }}.</p>
-                    <button type="button" class="reset-search-btn" (click)="clearServiceFilters()">Clear search</button>
-                  </section>
-                }
-              </div>
-
-              @if (paginatedServices().length < filteredServices().length) {
-                <button type="button" class="show-more-btn" (click)="showMoreServices()">
-                  Show more services · {{ filteredServices().length - paginatedServices().length }} more
-                </button>
-              }
-            </section>
-
-            @if (activeOffers().length > 0) {
-            <section class="offers-section">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Offers & promotions</h2>
-                </div>
-              </div>
-              <div class="offers-stack">
-                @for (offer of activeOffers(); track offer.id) {
-                  <article class="offer-card premium-card" [class.coupon-offer]="offer.type === 'coupon'" [class.rule-offer]="offer.type === 'discount_rule'" [class.promo-offer]="offer.type === 'calendar_promotion'">
-                    <div class="offer-icon">
-                      @if (offer.type === 'coupon') {
-                        <ion-icon name="pricetag-outline"></ion-icon>
-                      } @else if (offer.type === 'discount_rule') {
-                        <ion-icon name="clipboard-outline"></ion-icon>
-                      } @else {
-                        <ion-icon name="time-outline"></ion-icon>
-                      }
-                    </div>
-                    <div class="offer-body">
-                      <strong>{{ offer.title }}</strong>
-                      <span class="offer-summary">{{ offerSummary(offer) }}</span>
-                      @if (offer.type === 'coupon') {
-                        <code class="coupon-code">{{ offer.code }}</code>
-                      }
-                      @if (offerValidity(offer); as validity) {
-                        <small class="offer-validity">Valid {{ validity.from }} – {{ validity.to }}</small>
-                      }
-                    </div>
-                  </article>
-                }
-              </div>
-            </section>
-            }
-
-            <section class="staff-section section-anchor" id="team">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Choose your professional</h2>
-                </div>
-              </div>
-              <div class="staff-grid">
-                @for (staff of b.staff; track staff.id) {
-                  <article class="staff-card premium-card">
-                    @if (staff.image) {
-                      <img [src]="staff.image" [alt]="staff.name" />
-                    } @else {
-                      <span class="staff-avatar" [style.background]="staffGradientStyle(staff)" aria-hidden="true">{{ initials(staff.name) }}</span>
-                    }
-                    <strong>{{ staff.name }}</strong>
-                    <span>{{ staff.title }}</span>
-                    <small>{{ staff.rating }} · {{ staff.specialty }}</small>
-                    <em>{{ staff.nextAvailable }}</em>
-                    <ion-button size="small" fill="outline" class="secondary-button" [routerLink]="businessBookLink(b.slug)">Book with {{ staff.name.split(' ')[0] }}</ion-button>
-                  </article>
-                } @empty {
-                  <section class="state-card premium-card"><h2>No staff available</h2></section>
-                }
-              </div>
-            </section>
-
-            <section class="review-section section-anchor" id="reviews">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Loved by customers</h2>
-                  @if (hasRating()) {
-                    <p class="muted">Rated {{ b.ratingAverage }} · {{ b.ratingCount }} reviews</p>
+            @if (activeProfileTab() === 'services') {
+              <section class="services-section section-anchor" id="services">
+                <div class="section-heading">
+                  <div>
+                    <h2 class="section-title">
+                      Services @if (b.services.length) { <span class="section-title-count">· {{ b.services.length }}</span> }
+                    </h2>
+                  </div>
+                  @if (serviceQuery() || selectedCategory()) {
+                    <button type="button" class="clear-filter-text-btn" (click)="clearServiceFilters()">Show all</button>
                   }
                 </div>
-              </div>
-              <div class="review-grid">
-                @for (review of b.reviews; track review.id) {
-                  <article class="review-card premium-card">
-                    <span class="rating-pill">Star {{ review.rating }}</span>
-                    <p>{{ review.text }}</p>
-                    <strong>{{ review.author }}</strong>
-                    <small>{{ review.dateLabel }}</small>
-                  </article>
-                } @empty {
-                  <section class="state-card premium-card"><h2>No reviews yet</h2></section>
-                }
-              </div>
-            </section>
 
-            @if (isAuthenticated()) {
-            <section class="loyalty-section">
-              <div class="section-heading">
-                <div>
-                  <h2 class="section-title">Loyalty & rewards</h2>
+                <div class="service-search-box">
+                  <ion-icon name="search-outline" class="search-icon" aria-hidden="true"></ion-icon>
+                  <input
+                    type="text"
+                    class="service-search-input"
+                    [ngModel]="serviceQuery()"
+                    (ngModelChange)="serviceQuery.set($event)"
+                    placeholder="Search services"
+                    aria-label="Search salon services" />
+                  @if (serviceQuery()) {
+                    <button type="button" class="clear-search-btn" (click)="serviceQuery.set('')" aria-label="Clear search">
+                      <ion-icon name="close-circle-outline" aria-hidden="true"></ion-icon>
+                    </button>
+                  }
                 </div>
-              </div>
-              <div class="loyalty-grid">
-                <a class="loyalty-card" [routerLink]="hubLink('wallet')">
-                  <ion-icon name="wallet-outline"></ion-icon>
-                  <div>
-                    <strong>Wallet</strong>
-                    <span>View credits, balance, and payment history for this salon</span>
+
+                <div class="service-stack">
+                  @for (service of paginatedServices(); track service.id) {
+                    <article
+                      class="salon-service-item"
+                      [class.is-picked]="isServiceSelected(service.id)"
+                      role="button"
+                      tabindex="0"
+                      (click)="openServicePopup(service.id)"
+                      (keydown.enter)="openServicePopup(service.id)">
+                      <div class="salon-service-copy">
+                        @if (service.popular) {
+                          <span class="offer-pill">Popular</span>
+                        }
+                        <h3>{{ service.name }}</h3>
+                        <strong>{{ servicePriceLabel(service) }}</strong>
+                        @if (service.description) {
+                          <p class="service-description" [class.expanded]="expandedServiceId() === service.id">{{ service.description }}</p>
+                          @if (isLongDescription(service.description)) {
+                            <button type="button" class="service-more" (click)="$event.stopPropagation(); toggleDescription(service.id)">
+                              {{ expandedServiceId() === service.id ? "Less" : "More" }}
+                            </button>
+                          }
+                        }
+                      </div>
+                      <div class="salon-service-action">
+                        @if (serviceImage(service, $index)) {
+                          <div class="salon-service-thumb" [style.background-image]="serviceImageBackground(service, $index)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
+                        } @else {
+                          <div class="salon-service-thumb salon-service-thumb--letter" role="img" [attr.aria-label]="service.name">
+                            <span aria-hidden="true">{{ serviceInitial(service.name) }}</span>
+                          </div>
+                        }
+                        <button
+                          type="button"
+                          class="salon-service-add"
+                          [class.selected]="isServiceSelected(service.id)"
+                          [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
+                          (click)="$event.stopPropagation(); openServicePopup(service.id)">
+                          @if (isServiceSelected(service.id)) {
+                            <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
+                          } @else {
+                            Add
+                          }
+                        </button>
+                      </div>
+                    </article>
+                  } @empty {
+                    <section class="state-card premium-card service-empty-card">
+                      <div class="empty-icon"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
+                      <h3>No services found</h3>
+                      <p>No services match "{{ serviceQuery() }}"{{ selectedCategory() ? ' in ' + categoryLabel(selectedCategory()) : '' }}.</p>
+                      <button type="button" class="reset-search-btn" (click)="clearServiceFilters()">Clear search</button>
+                    </section>
+                  }
+                </div>
+
+                @if (paginatedServices().length < filteredServices().length) {
+                  <button type="button" class="show-more-btn" (click)="showMoreServices()">
+                    Show more services · {{ filteredServices().length - paginatedServices().length }} more
+                  </button>
+                }
+              </section>
+
+              @if (activeOffers().length) {
+                <section class="offers-section">
+                  <div class="section-heading">
+                    <div>
+                      <h2 class="section-title">Special offers & discounts</h2>
+                    </div>
                   </div>
-                </a>
-                <a class="loyalty-card" [routerLink]="hubLink('rewards')">
-                  <ion-icon name="ribbon-outline"></ion-icon>
-                  <div>
-                    <strong>Rewards</strong>
-                    <span>Loyalty points, referrals, and redemption options</span>
+                  <div class="offers-stack">
+                    @for (offer of activeOffers(); track offer.id) {
+                      <article class="offer-card premium-card" [class.coupon-offer]="offer.type === 'coupon'" [class.rule-offer]="offer.type === 'discount_rule'" [class.promo-offer]="offer.type === 'calendar_promotion'">
+                        <div class="offer-icon">
+                          @if (offer.type === 'coupon') {
+                            <ion-icon name="pricetag-outline"></ion-icon>
+                          } @else if (offer.type === 'discount_rule') {
+                            <ion-icon name="clipboard-outline"></ion-icon>
+                          } @else {
+                            <ion-icon name="time-outline"></ion-icon>
+                          }
+                        </div>
+                        <div class="offer-body">
+                          <strong>{{ offer.title }}</strong>
+                          <span class="offer-summary">{{ offerSummary(offer) }}</span>
+                          @if (offer.type === 'coupon') {
+                            <code class="coupon-code">{{ offer.code }}</code>
+                          }
+                          @if (offerValidity(offer); as validity) {
+                            <small class="offer-validity">Valid {{ validity.from }} – {{ validity.to }}</small>
+                          }
+                        </div>
+                      </article>
+                    }
                   </div>
-                </a>
-                <a class="loyalty-card" [routerLink]="hubLink('memberships')">
-                  <ion-icon name="card-outline"></ion-icon>
-                  <div>
-                    <strong>Memberships</strong>
-                    <span>Exclusive plans and benefits for regular customers</span>
-                  </div>
-                </a>
-              </div>
-            </section>
+                </section>
+              }
             }
 
-            <section class="info-grid section-anchor" id="about">
-              <article class="premium-card info-card">
-                <h2>Location</h2>
-                <p><ion-icon name="location-outline"></ion-icon>{{ b.address }}</p>
-                <div class="info-actions">
-                  <ion-button size="small" fill="outline" class="secondary-button" [href]="b.mapsUrl || undefined" target="_blank">
-                    <ion-icon name="navigate-outline" slot="start"></ion-icon>
-                    Directions
-                  </ion-button>
-                  <ion-button size="small" fill="outline" class="secondary-button" [href]="phoneHref()">
-                    <ion-icon name="call-outline" slot="start"></ion-icon>
-                    Call
-                  </ion-button>
+            @if (activeProfileTab() === 'team') {
+              <section class="staff-section section-anchor" id="team">
+                <div class="section-heading">
+                  <div>
+                    <h2 class="section-title">Our professional team ({{ b.staff.length }})</h2>
+                    <p class="muted">Skilled stylists, therapists & beauticians</p>
+                  </div>
                 </div>
-                <span class="muted">{{ b.area }}, {{ b.city }} {{ b.postalCode || "" }}</span>
-              </article>
-              <article class="premium-card info-card">
-                <h2>Hours</h2>
-                @for (day of b.businessHours || []; track day.day) {
-                  <p class="hours-row"><strong>{{ day.label }}</strong><span>{{ day.display }}{{ day.note ? " · " + day.note : "" }}</span></p>
-                } @empty {
-                  <p class="muted">{{ b.hoursLabel || "Business hours have not been published yet." }}</p>
-                }
-              </article>
-              <article class="premium-card info-card">
-                <h2>Contact</h2>
-                @if (b.phone || b.appointmentNumber || b.mobileNumber) {
-                  <p><ion-icon name="call-outline"></ion-icon>{{ b.appointmentNumber || b.mobileNumber || b.phone }}</p>
-                }
-                @if (b.websiteUrl) {
-                  <p><ion-icon name="navigate-outline"></ion-icon>{{ b.websiteUrl }}</p>
-                }
-                @if (b.instagramUrl) {
-                  <p><ion-icon name="sparkles-outline"></ion-icon>{{ b.instagramUrl }}</p>
-                }
-              </article>
-              <article class="premium-card info-card">
-                <h2>Policies</h2>
-                @for (policy of b.policies || []; track policy) {
-                  <p>{{ policy }}</p>
-                } @empty {
-                  <p class="muted">No public policies have been published yet.</p>
-                }
-              </article>
-            </section>
+                <div class="staff-grid">
+                  @for (staff of b.staff; track staff.id) {
+                    <article class="staff-card premium-card">
+                      @if (staff.image) {
+                        <img [src]="staff.image" [alt]="staff.name" />
+                      } @else {
+                        <span class="staff-avatar" [style.background]="staffGradientStyle(staff)" aria-hidden="true">{{ initials(staff.name) }}</span>
+                      }
+                      <strong>{{ staff.name }}</strong>
+                      <span>{{ staff.title }}</span>
+                      <small>{{ staff.rating }} · {{ staff.specialty }}</small>
+                      <em>{{ staff.nextAvailable }}</em>
+                      <ion-button size="small" fill="outline" class="secondary-button" [routerLink]="businessBookLink(b.slug)">Book with {{ staff.name.split(' ')[0] }}</ion-button>
+                    </article>
+                  } @empty {
+                    <section class="state-card premium-card"><h2>No staff profiles published yet</h2></section>
+                  }
+                </div>
+              </section>
+            }
+
+            @if (activeProfileTab() === 'reviews') {
+              <section class="review-section section-anchor" id="reviews">
+                <div class="section-heading">
+                  <div>
+                    <h2 class="section-title">Loved by customers</h2>
+                    @if (hasRating()) {
+                      <p class="muted">Rated {{ b.ratingAverage }} · {{ b.ratingCount }} verified customer reviews</p>
+                    }
+                  </div>
+                </div>
+                <div class="review-grid">
+                  @for (review of b.reviews; track review.id) {
+                    <article class="review-card premium-card">
+                      <span class="rating-pill">Star {{ review.rating }}</span>
+                      <p>{{ review.text }}</p>
+                      <strong>{{ review.author }}</strong>
+                      <small>{{ review.dateLabel }}</small>
+                    </article>
+                  } @empty {
+                    <section class="state-card premium-card"><h2>No reviews yet</h2><p class="muted">Be the first to share your experience after your visit.</p></section>
+                  }
+                </div>
+              </section>
+            }
+
+            @if (activeProfileTab() === 'about') {
+              @if (b.galleryImages.length) {
+                <section class="gallery-section">
+                  <div class="section-heading">
+                    <div>
+                      <h2 class="section-title">Inside the studio</h2>
+                    </div>
+                  </div>
+                  <div class="gallery-strip">
+                    @for (image of b.galleryImages; track image) {
+                      <img [src]="image" [alt]="b.businessName + ' gallery image'" loading="lazy" />
+                    }
+                  </div>
+                </section>
+              }
+
+              @if (isAuthenticated()) {
+                <section class="loyalty-section">
+                  <div class="section-heading">
+                    <div>
+                      <h2 class="section-title">Loyalty & rewards</h2>
+                    </div>
+                  </div>
+                  <div class="loyalty-grid">
+                    <a class="loyalty-card" [routerLink]="hubLink('wallet')">
+                      <ion-icon name="wallet-outline"></ion-icon>
+                      <div>
+                        <strong>Wallet</strong>
+                        <span>View credits, balance, and payment history for this salon</span>
+                      </div>
+                    </a>
+                    <a class="loyalty-card" [routerLink]="hubLink('rewards')">
+                      <ion-icon name="ribbon-outline"></ion-icon>
+                      <div>
+                        <strong>Rewards</strong>
+                        <span>Loyalty points, referrals, and redemption options</span>
+                      </div>
+                    </a>
+                    <a class="loyalty-card" [routerLink]="hubLink('memberships')">
+                      <ion-icon name="card-outline"></ion-icon>
+                      <div>
+                        <strong>Memberships</strong>
+                        <span>Exclusive plans and benefits for regular customers</span>
+                      </div>
+                    </a>
+                  </div>
+                </section>
+              }
+
+              <section class="info-grid section-anchor" id="about">
+                <article class="premium-card info-card">
+                  <h2>Location & Directions</h2>
+                  <p><ion-icon name="location-outline"></ion-icon>{{ b.address }}</p>
+                  <div class="info-actions">
+                    <ion-button size="small" fill="outline" class="secondary-button" [href]="b.mapsUrl || undefined" target="_blank">
+                      <ion-icon name="navigate-outline" slot="start"></ion-icon>
+                      Directions
+                    </ion-button>
+                    <ion-button size="small" fill="outline" class="secondary-button" [href]="phoneHref()">
+                      <ion-icon name="call-outline" slot="start"></ion-icon>
+                      Call
+                    </ion-button>
+                  </div>
+                  <span class="muted">{{ b.area }}, {{ b.city }} {{ b.postalCode || "" }}</span>
+                </article>
+                <article class="premium-card info-card">
+                  <h2>Working Hours</h2>
+                  @for (day of b.businessHours || []; track day.day) {
+                    <p class="hours-row"><strong>{{ day.label }}</strong><span>{{ day.display }}{{ day.note ? " · " + day.note : "" }}</span></p>
+                  } @empty {
+                    <p class="muted">{{ b.hoursLabel || "Business hours have not been published yet." }}</p>
+                  }
+                </article>
+                <article class="premium-card info-card">
+                  <h2>Contact & Social</h2>
+                  @if (b.phone || b.appointmentNumber || b.mobileNumber) {
+                    <p><ion-icon name="call-outline"></ion-icon>{{ b.appointmentNumber || b.mobileNumber || b.phone }}</p>
+                  }
+                  @if (b.websiteUrl) {
+                    <p><ion-icon name="navigate-outline"></ion-icon>{{ b.websiteUrl }}</p>
+                  }
+                  @if (b.instagramUrl) {
+                    <p><ion-icon name="sparkles-outline"></ion-icon>{{ b.instagramUrl }}</p>
+                  }
+                </article>
+                <article class="premium-card info-card">
+                  <h2>Salon Policies</h2>
+                  @for (policy of b.policies || []; track policy) {
+                    <p>{{ policy }}</p>
+                  } @empty {
+                    <p class="muted">No public policies have been published yet.</p>
+                  }
+                </article>
+              </section>
+
+              @if (otherBranches().length) {
+                <section class="other-branches-section">
+                  <div class="section-heading">
+                    <div>
+                      <h2 class="section-title">Other branches ({{ otherBranches().length }})</h2>
+                      <p class="muted">More locations from this salon group</p>
+                    </div>
+                  </div>
+                  <div class="other-branches-rail" aria-label="Other branches from this salon group">
+                    @for (branch of otherBranches(); track branch.branchId || branch.id) {
+                      <a class="branch-option" [routerLink]="businessProfileLink(branch.slug)">
+                        <span class="branch-option-mark">{{ branch.businessName.slice(0, 1).toUpperCase() }}</span>
+                        <span class="branch-option-copy">
+                          <strong>{{ branch.businessName }}</strong>
+                          <small>{{ branch.area || branch.city || 'Location details' }}</small>
+                          <small>
+                            {{ branch.distanceKm != null ? branch.distanceKm + " km" : "Distance not known" }} ·
+                            <span [class.open]="branch.isOpen">{{ branch.isOpen ? "Open" : "Closed" }}</span>
+                            @if (branch.nextAvailableSlot) { · next {{ branch.nextAvailableSlot }} }
+                          </small>
+                        </span>
+                        <ion-icon name="location-outline"></ion-icon>
+                      </a>
+                    }
+                  </div>
+                </section>
+              }
+            }
           </div>
 
           <aside class="booking-rail premium-card">
@@ -982,6 +1020,12 @@ import { Subscription } from "rxjs";
     .page-section-nav button:active {
       color: var(--primary);
       background: var(--primary-soft);
+    }
+
+    .page-section-nav button.active {
+      color: #ffffff;
+      background: var(--primary);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.32);
     }
 
     .section-anchor {
@@ -2233,6 +2277,7 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   readonly selectedCategory = signal<string>("");
   readonly visibleServiceLimit = signal(12);
   readonly categoryMenuOpen = signal<boolean>(false);
+  readonly activeProfileTab = signal<"services" | "team" | "reviews" | "about">("services");
 
   toggleCategoryMenu(): void {
     this.categoryMenuOpen.update((open) => !open);
