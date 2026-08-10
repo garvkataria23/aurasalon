@@ -1287,6 +1287,35 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
         font-size: .68rem;
         line-height: 1.25;
       }
+
+      .ms-more { gap: 10px; margin-top: 24px; margin-bottom: 14px; }
+      .ms-more-grid { gap: 7px; }
+      .ms-more-grid a {
+        min-height: 72px;
+        gap: 5px;
+        padding: 10px;
+        border-color: rgba(124, 99, 223, .13);
+        border-radius: 16px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .76));
+        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 6px 16px rgba(28,28,28,.035);
+      }
+      .ms-more-grid ion-icon {
+        width: 22px;
+        height: 22px;
+        padding: 4px;
+        border-radius: 8px;
+        background: rgba(124, 99, 223, .08);
+        font-size: 14px;
+      }
+      .ms-more-grid strong { font-size: .7rem; line-height: 1.08; }
+      .ms-more-grid small {
+        display: -webkit-box;
+        overflow: hidden;
+        font-size: .58rem;
+        line-height: 1.18;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
     }
 
     @media (max-width: 380px) {
