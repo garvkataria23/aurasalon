@@ -2120,6 +2120,8 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     this.expandedServiceId.update((current) => (current === serviceId ? "" : serviceId));
   }
 
+  private reloadedOnce = false;
+
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
     addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
   }
@@ -2133,6 +2135,18 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     this.reload();
   }
 
+  /**
+   * Ionic fires this on EVERY page activation, including when the page is
+   * re-attached from Ionic's navigation cache (IonicRouteStrategy). reload()
+   * re-applies the URL booking intent so a reused booking flow never shows
+   * stale or empty selections. Guarded so the very first activation does not
+   * double-load (ngOnInit already triggered a reload).
+   */
+  ionViewWillEnter() {
+    if (!this.reloadedOnce) this.reloadedOnce = true;
+    else this.reload();
+  }
+
   ngOnDestroy() {
     if (this.holdTimerInterval) {
       clearInterval(this.holdTimerInterval);
@@ -2144,6 +2158,9 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   }
 
 async reload() {
+    // Refresh the slug from the CURRENT url — on a reused (cached) page the
+    // constructor-time slug would otherwise be stale.
+    this.slug.set(this.route.snapshot.paramMap.get("slug"));
     const slug = await this.resolveBusinessSlug();
     if (!slug) return;
     this.slug.set(slug);
@@ -2157,6 +2174,7 @@ async reload() {
       this.marketplace.loadMyPackages().then((pkgs) => this.myPackages.set(pkgs)).catch(() => this.myPackages.set([]));
       this.marketplace.loadBookings("past").then((bookings) => this.pastBookings.set(bookings)).catch(() => this.pastBookings.set([]));
     }
+    this.applyUrlIntentToBookingItems();
     if (!this.isRescheduling()) this.restorePendingIntent();
     if (!this.route.snapshot.queryParamMap.has("step")) {
       this.step.set(this.bookingItems().length ? 2 : 1);
@@ -3150,6 +3168,45 @@ async selectActiveSlot(slot: AvailabilitySlot) {
     } catch {
       // Booking can continue without local draft persistence.
     }
+  }
+
+  /**
+   * Re-apply the explicit URL booking intent (serviceId / serviceIds / staffId /
+   * date / slotStartAt / …) to bookingItems on every page activation. Required
+   * because Ionic's route reuse strategy (IonicRouteStrategy) reattaches the same
+   * component instance on repeat visits, so constructor-time query params are stale.
+   */
+  private applyUrlIntentToBookingItems(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const hasIntent = ["serviceId", "serviceIds", "staffId", "date", "slotStartAt", "rescheduleBookingId", "rebookFrom"].some((key) => params.has(key));
+    if (!hasIntent) return;
+    const ids = this.initialServiceIds();
+    if (!ids.length) return;
+
+    const slotStartAt = params.get("slotStartAt") ?? "";
+    const staffId = params.get("staffId") || null;
+    let date = params.get("date") ?? "";
+    if (slotStartAt) {
+      const start = new Date(slotStartAt);
+      if (Number.isFinite(start.getTime())) {
+        date = localDateKey(start);
+        if (date < localDateKey()) date = localDateKey();
+      }
+    } else if (date && date < localDateKey()) {
+      date = localDateKey();
+    }
+    const slotTimestamp = slotStartAt ? new Date(slotStartAt).getTime() : NaN;
+    const editableSlot = Number.isFinite(slotTimestamp) && slotTimestamp > Date.now() ? slotStartAt : "";
+    const stepParam = Number(params.get("step") || 1);
+
+    const itemKey = (item: BookingFlowItem): string => [item.serviceId, item.staffId ?? "", item.date, item.slotStartAt].join("|");
+    const currentKey = this.bookingItems().map((item) => `${itemKey(item)}#${this.step()}`).join(";");
+    const incomingKey = ids.map((serviceId) => `${itemKey({ serviceId, staffId, date, slotStartAt: editableSlot })}#${stepParam}`).join(";");
+    if (currentKey === incomingKey) return;
+
+    this.bookingItems.set(ids.map((serviceId) => ({ serviceId, staffId, date, slotStartAt: editableSlot })));
+    this.activeItemIndex.set(0);
+    this.step.set(stepParam >= 1 && stepParam <= 4 ? stepParam : 1);
   }
 
   private restorePendingIntent() {
