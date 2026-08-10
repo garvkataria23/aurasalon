@@ -485,7 +485,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                   <span class="ms-kicker">Past Experience</span>
                   <h2 id="history-title">Visit History</h2>
                 </div>
-                <a [routerLink]="scopedLink('bookings')">Full History</a>
+                <a [routerLink]="scopedLink('invoices')">Full History</a>
               </div>
 
               @if (d.recentBookings.length) {
