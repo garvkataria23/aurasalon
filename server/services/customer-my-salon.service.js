@@ -476,14 +476,16 @@ function bookingTotalPaise(row, tenantId, branchId) {
 }
 
 function recentBookings(access, tenantId, branchId) {
-  const whereTenant = tableHasColumn("appointments", "tenantId")
-    ? "tenantId = @tenantId AND"
-    : "";
+  const clauses = ["clientId = @clientId"];
+  const params = { tenantId, branchId, clientId: access.userId };
+  if (tableHasColumn("appointments", "tenantId")) clauses.unshift("tenantId = @tenantId");
+  if (branchId && tableHasColumn("appointments", "branchId")) clauses.push("branchId = @branchId");
+  clauses.push("LOWER(COALESCE(status, '')) IN ('completed', 'billed', 'paid', 'no_show', 'no-show')");
   const rows = db
     .prepare(
-      `SELECT * FROM appointments WHERE ${whereTenant} clientId = @clientId ORDER BY datetime(startAt) DESC LIMIT 3`
+      `SELECT * FROM appointments WHERE ${clauses.join(" AND ")} ORDER BY datetime(startAt) DESC LIMIT 3`
     )
-    .all({ tenantId, clientId: access.userId });
+    .all(params);
 
   return rows.map((row) => ({
     id: row.id,
