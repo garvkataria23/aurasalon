@@ -332,7 +332,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
             </section>
 
             <!-- 6. FEATURED SERVICES & PRICING MENU -->
-            <section class="ms-section" aria-labelledby="services-title">
+            <section class="ms-section ms-services-section" aria-labelledby="services-title">
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Salon Menu</span>
@@ -1133,6 +1133,52 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       }
       .ms-offers-section .ms-empty-line span { font-size: .68rem; line-height: 1.25; }
       .ms-offers-section .ms-empty-line a { min-height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 999px; background: var(--ms-accent-soft); font-size: .65rem; font-weight: 900; text-align: center; text-decoration: none; white-space: nowrap; }
+
+      .ms-services-section { gap: 10px; margin-top: 24px; }
+      .ms-services-section .ms-section-head > a {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(124, 99, 223, .14);
+        border-radius: 999px;
+        background: rgba(124, 99, 223, .07);
+        font-size: .65rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .ms-service-list {
+        gap: 0;
+        overflow: hidden;
+        border: 1px solid rgba(124, 99, 223, .12);
+        border-radius: 18px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .72));
+        box-shadow: 0 8px 18px rgba(28,28,28,.035);
+      }
+      .ms-service {
+        min-height: 58px;
+        grid-template-columns: 24px minmax(0,1fr) auto;
+        gap: 8px;
+        padding: 9px 10px;
+        border-bottom-color: rgba(124, 99, 223, .1);
+      }
+      .ms-service-index { font-size: .62rem; font-weight: 950; }
+      .ms-service-copy { gap: 1px; }
+      .ms-service-copy strong { font-size: .78rem; line-height: 1.12; }
+      .ms-service-copy small { font-size: .58rem; line-height: 1.15; }
+      .ms-service-right {
+        display: grid;
+        justify-items: end;
+        gap: 5px;
+      }
+      .ms-service-price { font-size: .72rem; font-weight: 950; line-height: 1; }
+      .ms-service-book-btn {
+        min-width: 42px;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 12px;
+        font-size: .62rem;
+        font-weight: 950;
+        box-shadow: 0 7px 14px rgba(95,70,207,.18), inset 0 1px rgba(255,255,255,.22);
+      }
     }
 
     @media (max-width: 380px) {
@@ -1146,6 +1192,8 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       .ms-date-tile { width: 52px; height: 64px; border-radius: 16px; }
       .ms-service { grid-template-columns: 24px minmax(0,1fr); gap: 8px; }
       .ms-service-right { grid-column: 2; justify-content: space-between; width: 100%; }
+      .ms-services-section .ms-service { grid-template-columns: 22px minmax(0,1fr) auto; }
+      .ms-services-section .ms-service-right { grid-column: auto; width: auto; }
       .ms-gift-card, .ms-history-item, .ms-invoice-item { gap: 8px; }
       .ms-offer-rail { grid-auto-columns: minmax(236px, 86vw); }
       .ms-staff-rail { grid-auto-columns: 132px; }
