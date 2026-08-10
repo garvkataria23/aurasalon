@@ -1216,6 +1216,10 @@ import { Subscription } from "rxjs";
       box-sizing: border-box;
     }
 
+    .salon-service-item.service-card {
+      display: flex;
+    }
+
     .service-custom-card {
       grid-column: 1 / -1;
       display: grid;
@@ -2161,6 +2165,10 @@ import { Subscription } from "rxjs";
 
       .sticky-cta {
         bottom: calc(8px + env(safe-area-inset-bottom));
+      }
+
+      .profile-page.salon-mode-profile .sticky-cta {
+        bottom: calc(84px + env(safe-area-inset-bottom));
       }
     }
 
