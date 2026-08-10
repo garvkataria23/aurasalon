@@ -1195,19 +1195,25 @@ import { Subscription } from "rxjs";
     .salon-service-item {
       width: 100%;
       box-sizing: border-box;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 112px;
-      align-items: start;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 14px;
-      min-height: 132px;
-      padding: 16px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
-      border-radius: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
       color: var(--text);
       background: var(--surface);
-      box-shadow: 0 8px 22px rgba(28, 28, 28, 0.07);
+      box-shadow: 0 4px 14px rgba(28, 28, 28, 0.04);
       text-align: left;
       cursor: pointer;
+    }
+
+    .service-card {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .service-custom-card {
@@ -1424,15 +1430,23 @@ import { Subscription } from "rxjs";
     }
 
     .salon-service-item.is-picked {
-      border-color: rgba(16, 185, 129, 0.34);
-      background: linear-gradient(145deg, rgba(240, 253, 244, 0.98), #FFFFFF 54%);
+      border-color: rgba(99, 102, 241, 0.5);
+      background: linear-gradient(145deg, rgba(240, 244, 255, 0.98), #FFFFFF 54%);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.1);
+    }
+
+    .salon-service-item.selected {
+      border-color: rgba(99, 102, 241, 0.5);
+      background: linear-gradient(145deg, rgba(240, 244, 255, 0.98), #FFFFFF 54%);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.1);
     }
 
     .salon-service-copy {
+      flex: 1 1 auto;
       display: grid;
-      align-content: start;
-      gap: 7px;
+      gap: 6px;
       min-width: 0;
+      text-align: left;
     }
 
     .salon-service-copy h3 {
@@ -1454,9 +1468,10 @@ import { Subscription } from "rxjs";
 
     .service-name {
       color: var(--text);
-      font-size: 0.98rem;
+      font-size: 1.02rem;
       font-weight: 950;
-      line-height: 1.15;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
       overflow-wrap: anywhere;
     }
 
@@ -1473,8 +1488,9 @@ import { Subscription } from "rxjs";
     }
 
     .offer-pill.extended {
-      color: #B45309;
-      background: #FEF3C7;
+      color: var(--muted);
+      border-color: var(--border);
+      background: var(--surface-soft);
     }
 
     .service-price-row {
@@ -1509,7 +1525,7 @@ import { Subscription } from "rxjs";
     .service-eligibility {
       color: var(--muted);
       font-size: 0.84rem;
-      font-weight: 850;
+      font-weight: 800;
     }
 
     .service-description {
@@ -1546,8 +1562,17 @@ import { Subscription } from "rxjs";
       font-weight: 900;
     }
 
+    .salon-service-copy .service-name {
+      color: var(--text);
+      font-size: 1.02rem;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
     .salon-service-action {
-      width: 112px;
+      flex: 0 0 100px;
+      width: 100px;
       display: grid;
       justify-items: center;
       gap: 0;
@@ -1556,15 +1581,15 @@ import { Subscription } from "rxjs";
     }
 
     .salon-service-thumb {
-      width: 112px;
-      height: 92px;
+      width: 100px;
+      height: 84px;
       display: block;
       border-radius: 18px;
       background-color: var(--primary-soft, #EEF2FF);
       background-position: center;
       background-size: cover;
       background-repeat: no-repeat;
-      box-shadow: 0 12px 28px rgba(28, 28, 28, 0.1);
+      box-shadow: 0 8px 20px rgba(28, 28, 28, 0.06);
       visibility: visible;
       opacity: 1;
     }
@@ -1572,39 +1597,39 @@ import { Subscription } from "rxjs";
     .salon-service-thumb--letter {
       display: grid;
       place-items: center;
-      background: linear-gradient(145deg, var(--primary-soft), #F3E8FF);
+      background: linear-gradient(145deg, #f0ebff, #e8e0ff);
       box-shadow: none;
     }
 
     .salon-service-thumb--letter span,
     .service-popup-thumb--letter span {
       color: var(--brand-700);
-      font-size: 1.7rem;
+      font-size: 1.65rem;
       font-weight: 950;
       letter-spacing: -0.04em;
     }
 
     .salon-service-add {
-      min-width: 76px;
+      min-width: 74px;
       min-height: 34px;
-      margin-top: -15px;
+      margin-top: -16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 4px;
       padding: 0 14px;
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(99, 102, 241, 0.22);
       border-radius: 12px;
-      color: var(--primary);
-      background: var(--surface);
+      color: #5f46cf;
+      background: #FFFFFF;
       font-size: 0.86rem;
       font-weight: 950;
       cursor: pointer;
-      box-shadow: 0 10px 20px rgba(28, 28, 28, 0.1);
+      box-shadow: 0 8px 18px rgba(28, 28, 28, 0.1);
       visibility: visible;
       opacity: 1;
       z-index: 2;
-      transition: color 180ms ease, background 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+      transition: all 160ms ease;
     }
 
     .salon-service-add.selected {
@@ -2088,20 +2113,20 @@ import { Subscription } from "rxjs";
       }
 
       .salon-service-item {
-        grid-template-columns: minmax(0, 1fr) 98px;
-        min-height: 128px;
-        padding: 13px;
-        border-radius: 16px;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: 20px;
       }
 
       .salon-service-action {
-        width: 98px;
+        flex: 0 0 100px;
+        width: 100px;
       }
 
       .salon-service-thumb {
-        width: 98px;
-        height: 82px;
-        border-radius: 16px;
+        width: 100px;
+        height: 84px;
+        border-radius: 18px;
       }
 
       .salon-service-thumb--letter span,
@@ -2110,18 +2135,18 @@ import { Subscription } from "rxjs";
       }
 
       .salon-service-add {
-        min-width: 70px;
-        min-height: 32px;
-        margin-top: -14px;
-        font-size: 0.8rem;
+        min-width: 74px;
+        min-height: 34px;
+        margin-top: -16px;
+        font-size: 0.86rem;
       }
 
       .salon-service-copy h3 {
         font-size: 0.95rem;
       }
 
-      .salon-service-copy strong {
-        font-size: 0.82rem;
+      .salon-service-copy .service-name {
+        font-size: 1.02rem;
       }
 
       .salon-service-item ion-button {
