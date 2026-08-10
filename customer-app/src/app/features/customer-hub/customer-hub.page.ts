@@ -2618,12 +2618,12 @@ const hubConfigs: Record<string, HubConfig> = {
     }
 
     .plan-load-button {
-      min-height: 48px;
+      min-height: 38px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 0 18px;
+      gap: 6px;
+      padding: 0 14px;
       border: 1px solid transparent;
       border-radius: 14px;
       color: #FFFFFF;
@@ -2878,7 +2878,7 @@ const hubConfigs: Record<string, HubConfig> = {
       height: 44px;
       display: grid;
       place-items: center;
-      border-radius: 14px;
+      border-radius: 12px;
       color: #087443;
       background: #E8F8F0;
       font-size: 1.12rem;
@@ -3081,7 +3081,7 @@ const hubConfigs: Record<string, HubConfig> = {
       max-width: 520px;
       margin-top: 7px;
       color: var(--muted);
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       line-height: 1.55;
     }
 
@@ -3558,6 +3558,13 @@ const hubConfigs: Record<string, HubConfig> = {
         padding: 14px;
       }
 
+      .plan-load-button {
+        min-height: 34px;
+        padding-inline: 12px;
+        border-radius: 11px;
+        font-size: 0.78rem;
+      }
+
       .wallet-guide-list {
         margin-top: 10px;
       }
@@ -3888,11 +3895,18 @@ export class CustomerHubPage implements OnInit {
     if (!route || !this.marketplace.salonMode()) return route;
     if (route.startsWith("/tabs/")) {
       const segment = route.slice("/tabs/".length);
-      return segment === "home" || segment === "search" ? this.marketplace.salonModeUrl() : this.marketplace.salonModeUrl(segment);
+      if (segment === "home") return this.marketplace.salonModeUrl();
+      if (segment === "search") return this.salonModeBookRoute();
+      return this.marketplace.salonModeUrl(segment);
     }
     if (route.startsWith("/bookings/")) return this.marketplace.salonModeUrl("bookings", route.slice("/bookings/".length));
     if (route === "/help" || route === "/settings" || route === "/notifications") return this.marketplace.salonModeUrl(route.slice(1));
     return route;
+  }
+
+  private salonModeBookRoute(): string {
+    const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
+    return slug ? this.marketplace.salonModeUrl("business", slug, "book") : this.marketplace.salonModeUrl();
   }
 
   salonModeRoute(): boolean {

@@ -590,14 +590,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                   <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
                   <span><strong>Booking Policies</strong><small>Cancellation & venue terms</small></span>
                 </a>
-                <a [routerLink]="salonProfileLink(d.salon)">
-                  <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
-                  <span><strong>Salon Reviews</strong><small>Ratings & community feedback</small></span>
-                </a>
-                <a [routerLink]="scopedLink()">
-                  <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-                  <span><strong>Favorites</strong><small>Saved salons & staff</small></span>
-                </a>
               </div>
             </section>
 
@@ -630,26 +622,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
           }
         }
       </main>
-      @if (salonModeNavVisible()) {
-        <nav class="ms-context-nav" aria-label="My Salon navigation">
-          <a [routerLink]="scopedLink()" class="ms-context-nav-item active" aria-label="My Salon overview">
-            <ion-icon name="home-outline" aria-hidden="true"></ion-icon>
-            <span>Overview</span>
-          </a>
-          <a [routerLink]="bottomBookLink()" class="ms-context-nav-item" aria-label="Book a service at this salon">
-            <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
-            <span>Book</span>
-          </a>
-          <a [routerLink]="scopedLink('rewards')" class="ms-context-nav-item" aria-label="View salon benefits">
-            <ion-icon name="gift-outline" aria-hidden="true"></ion-icon>
-            <span>Benefits</span>
-          </a>
-          <a [routerLink]="bottomSalonLink()" class="ms-context-nav-item" aria-label="View salon details">
-            <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
-            <span>Salon</span>
-          </a>
-        </nav>
-      }
     </ion-content>
   `,
   styles: [`
@@ -917,11 +889,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-more-grid strong { display: block; font-size: .76rem; }
     .ms-more-grid small { color: var(--ms-muted); font-size: .62rem; line-height: 1.22; }
 
-    .ms-context-nav { position: fixed; z-index: 900; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); width: min(520px, calc(100% - 16px)); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px 6px; border: 1px solid rgba(225,214,251,.72); border-radius: 18px; background: var(--glass); box-shadow: 0 -8px 24px rgba(28,28,28,.08); backdrop-filter: blur(18px); box-sizing: border-box; transform: translateX(-50%); contain: layout paint; }
-    .ms-context-nav-item { min-height: 44px; display: grid; justify-items: center; align-content: center; gap: 2px; border-radius: 12px; color: var(--ms-muted); font-size: .76rem; font-weight: 850; text-decoration: none; touch-action: manipulation; }
-    .ms-context-nav-item ion-icon { padding: 4px 14px; border-radius: 999px; font-size: 1.12rem; }
-    .ms-context-nav-item.active { color: var(--ms-accent); }
-    .ms-context-nav-item.active ion-icon { color: #fff; background: var(--ms-accent); box-shadow: 0 6px 14px rgba(95,70,207,.22); }
 
     /* States & Skeletons */
     .ms-state { min-height: 60vh; display: grid; place-items: center; align-content: center; gap: 12px; padding: 40px 16px; text-align: center; }
@@ -1576,20 +1543,6 @@ export class MySalonPage implements OnInit {
   }
 
   salonProfileLink(salon: MySalonDashboard["salon"]): string {
-    return salon?.slug ? this.scopedLink("business", salon.slug) : this.scopedLink();
-  }
-
-  salonModeNavVisible(): boolean {
-    return this.router.url.split(/[?#]/)[0] === "/tabs/my-salon" && this.marketplace.salonMode() && !!this.dash()?.salon;
-  }
-
-  bottomBookLink(): string {
-    const salon = this.dash()?.salon;
-    return salon?.slug ? this.scopedLink("business", salon.slug, "book") : this.scopedLink();
-  }
-
-  bottomSalonLink(): string {
-    const salon = this.dash()?.salon;
     return salon?.slug ? this.scopedLink("business", salon.slug) : this.scopedLink();
   }
 

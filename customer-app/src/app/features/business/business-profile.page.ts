@@ -979,8 +979,8 @@ import { Subscription } from "rxjs";
 
     .intro {
       display: grid;
-      gap: 20px;
-      padding: 22px;
+      gap: 14px;
+      padding: 16px;
     }
 
     .intro h2 {
@@ -992,18 +992,18 @@ import { Subscription } from "rxjs";
     }
 
     .quick-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
     }
 
     .quick-action {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      min-height: 40px;
-      padding: 0 16px;
+      gap: 5px;
+      min-height: 34px;
+      padding: 0 10px;
       border: 1px solid var(--border);
       border-radius: 999px;
       color: var(--text);
@@ -1013,6 +1013,7 @@ import { Subscription } from "rxjs";
       font-weight: 900;
       text-decoration: none;
       cursor: pointer;
+      width: 100%;
       transition: border-color 160ms ease, background 160ms ease;
     }
 
@@ -1035,18 +1036,18 @@ import { Subscription } from "rxjs";
     .hero-meta {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
+      gap: 6px;
     }
 
     .hero-meta-item {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
       min-width: 0;
-      min-height: 46px;
-      padding: 8px 12px;
+      min-height: 38px;
+      padding: 6px 10px;
       border: 0;
-      border-radius: 14px;
+      border-radius: 12px;
       color: var(--muted);
       background: var(--surface-soft);
       font: inherit;
@@ -1468,7 +1469,7 @@ import { Subscription } from "rxjs";
       color: var(--text);
       background: linear-gradient(180deg, #FFFFFF, rgba(248, 247, 255, 0.82));
       font: inherit;
-      font-size: 0.84rem;
+      font-size: 0.8rem;
       line-height: 1.35;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
       transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
@@ -2344,7 +2345,7 @@ import { Subscription } from "rxjs";
     .loyalty-card strong {
       display: block;
       margin: 0;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       letter-spacing: -0.02em;
     }
 
@@ -2451,9 +2452,9 @@ import { Subscription } from "rxjs";
       }
 
       .intro {
-        gap: 7px;
-        padding: 9px 10px;
-        border-radius: 16px;
+        gap: 5px;
+        padding: 7px 8px;
+        border-radius: 14px;
       }
 
       .intro .eyebrow {
@@ -2466,20 +2467,21 @@ import { Subscription } from "rxjs";
       }
 
       .quick-action {
-        min-height: 38px;
-        padding: 0 14px;
-        font-size: 0.84rem;
+        min-height: 32px;
+        padding: 0 12px;
+        font-size: 0.8rem;
       }
 
       .hero-meta {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
+        gap: 5px;
       }
 
       .hero-meta-item {
-        min-height: 42px;
-        padding: 6px 10px;
-        font-size: 0.80rem;
+        min-height: 34px;
+        padding: 5px 8px;
+        border-radius: 11px;
+        font-size: 0.76rem;
       }
 
       .primary-salon-strip {
