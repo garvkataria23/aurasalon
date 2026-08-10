@@ -117,7 +117,7 @@ import { Subscription } from "rxjs";
                 </span>
               </div>
 
-              @if (isAuthenticated()) {
+              @if (isAuthenticated() && !marketplace.salonMode()) {
                 <div class="primary-salon-strip">
                   @if (isPrimarySalon()) {
                     <div>
