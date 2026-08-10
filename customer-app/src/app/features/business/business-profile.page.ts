@@ -504,7 +504,7 @@ import { Subscription } from "rxjs";
       </main>
 
       @if (selectedServices().length) {
-      <div class="sticky-cta mobile-only">
+      <div class="booking-cta sticky-cta mobile-only salon-mode-flow">
         <div class="bottom-action-card">
           <div class="assign-footer-row">
             <div class="booking-summary-metrics" aria-label="Selected services summary">
@@ -709,6 +709,51 @@ import { Subscription } from "rxjs";
       height: 30px;
       margin: 0;
       font-size: 0.72rem;
+    }
+
+    .booking-cta.salon-mode-flow .bottom-action-card {
+      width: fit-content;
+      margin: 0 auto;
+      min-height: 0;
+      grid-template-rows: auto 1fr;
+      padding: 2px 12px;
+      overflow: visible;
+    }
+
+    .booking-cta.salon-mode-flow .booking-summary-metrics {
+      flex: none;
+      display: flex;
+      gap: 14px;
+      padding: 0;
+      text-align: center;
+    }
+
+    .booking-cta.salon-mode-flow .summary-row {
+      flex: none;
+      text-align: center;
+    }
+
+    .booking-cta.salon-mode-flow .summary-row small {
+      font-size: 0.8rem !important;
+      letter-spacing: 0;
+    }
+
+    .booking-cta.salon-mode-flow .summary-row strong {
+      font-size: 0.55rem !important;
+    }
+
+    .booking-cta.salon-mode-flow .assign-footer-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .booking-cta.salon-mode-flow .bottom-action-card ion-button {
+      min-width: 72px;
+      min-height: 24px;
+      height: 24px;
+      font-size: 0.7rem;
     }
 
     .cover {
@@ -2273,6 +2318,49 @@ import { Subscription } from "rxjs";
         min-height: 30px;
         height: 30px;
         font-size: 0.72rem;
+      }
+
+      .booking-cta.salon-mode-flow .bottom-action-card {
+        width: 100%;
+        margin: 0;
+        min-height: 0;
+        padding: 2px 10px;
+        overflow: visible;
+      }
+
+      .booking-cta.salon-mode-flow .booking-summary-metrics {
+        flex: none;
+        display: flex;
+        gap: 14px;
+        padding: 0;
+        text-align: center;
+      }
+
+      .booking-cta.salon-mode-flow .summary-row {
+        flex: none;
+      }
+
+      .booking-cta.salon-mode-flow .summary-row small {
+        font-size: 0.8rem !important;
+        letter-spacing: 0;
+      }
+
+      .booking-cta.salon-mode-flow .summary-row strong {
+        font-size: 0.55rem !important;
+      }
+
+      .booking-cta.salon-mode-flow .assign-footer-row {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .booking-cta.salon-mode-flow .bottom-action-card ion-button {
+        min-width: 72px;
+        min-height: 24px;
+        height: 24px;
+        font-size: 0.7rem;
       }
     }
 
