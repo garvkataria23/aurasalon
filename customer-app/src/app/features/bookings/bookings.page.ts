@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewChild, computed, signal } from "@angular/core";
-import { Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon, IonRefresher, IonRefresherContent, IonSegment, IonSegmentButton, ToastController } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { cardOutline, checkmarkCircleOutline, chevronForwardOutline, helpCircleOutline, locationOutline, repeatOutline, timeOutline } from "ionicons/icons";
@@ -30,7 +30,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
             </a>
           </div>
           <div class="content-title-row">
-            <h1 class="page-title">My bookings</h1>
+                  <h1 class="page-title">{{ pageTitle() }}</h1>
           </div>
         </section>
 
@@ -752,6 +752,8 @@ export class BookingsPage implements OnDestroy, OnInit {
   readonly tabLoaded = signal<Record<BookingTab, boolean>>({ upcoming: false, past: false, cancelled: false });
   readonly tabBusy = signal<Record<BookingTab, boolean>>({ upcoming: false, past: false, cancelled: false });
   readonly filtered = computed(() => this.tabResults()[this.tab()]);
+  readonly historyMode = computed(() => this.route.snapshot.queryParamMap.get("view") === "history");
+  readonly pageTitle = computed(() => this.historyMode() ? "Visit History" : "My bookings");
   readonly showTopProgress = computed(() => this.tabBusy()[this.tab()] && this.tabLoaded()[this.tab()]);
   readonly groups = computed<BookingGroup[]>(() => {
     const rows = this.filtered();
@@ -780,7 +782,7 @@ export class BookingsPage implements OnDestroy, OnInit {
   readonly emptyActionLabel = computed(() => this.tab() === "upcoming" ? "Find a place" : "Book a visit");
   private midnightRefreshId: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly toasts: ToastController) {
+  constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly toasts: ToastController, private readonly route: ActivatedRoute) {
     addIcons({ cardOutline, checkmarkCircleOutline, chevronForwardOutline, helpCircleOutline, locationOutline, repeatOutline, timeOutline });
   }
 
@@ -875,6 +877,8 @@ export class BookingsPage implements OnDestroy, OnInit {
   }
 
   private readSavedTab(): BookingTab {
+    const requested = this.route.snapshot.queryParamMap.get("tab");
+    if (requested === "past" || requested === "cancelled" || requested === "upcoming") return requested;
     try {
       const value = sessionStorage.getItem(BookingsPage.TAB_STORAGE_KEY);
       return value === "past" || value === "cancelled" || value === "upcoming" ? value : "upcoming";

@@ -123,7 +123,8 @@ ensureSchema();
 
 function appointmentSelectWhere(access, extra = "") {
   const tenantClause = tableHasColumn("appointments", "tenantId") ? "a.tenantId = @tenantId AND " : "";
-  return `${tenantClause}a.clientId = @clientId${extra}`;
+  const branchClause = access.branchId && tableHasColumn("appointments", "branchId") ? "a.branchId = @branchId AND " : "";
+  return `${tenantClause}${branchClause}a.clientId = @clientId${extra}`;
 }
 
 function serviceById(serviceId, businessSlug = "") {
@@ -202,7 +203,7 @@ function mapBooking(row = {}) {
 
 function bookings(access, status = "") {
   client(access);
-  const params = { tenantId: access.tenantId, clientId: access.userId };
+  const params = { tenantId: access.tenantId, branchId: access.branchId, clientId: access.userId };
   let statusSql = "";
   if (status === "cancelled") statusSql = " AND LOWER(COALESCE(a.status, '')) = 'cancelled'";
   if (status === "upcoming") statusSql = " AND LOWER(COALESCE(a.status, '')) NOT IN ('cancelled', 'completed', 'no_show')";
@@ -223,7 +224,7 @@ function bookingById(access, bookingId) {
     FROM appointments a
     WHERE ${appointmentSelectWhere(access, " AND a.id = @bookingId")}
     LIMIT 1
-  `).get({ tenantId: access.tenantId, clientId: access.userId, bookingId });
+  `).get({ tenantId: access.tenantId, branchId: access.branchId, clientId: access.userId, bookingId });
   if (!row) throw notFound("Booking not found");
   return row;
 }
