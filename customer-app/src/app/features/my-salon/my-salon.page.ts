@@ -490,14 +490,14 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
 
               @if (d.recentBookings.length) {
                 <div class="ms-history-list">
-                  @for (booking of d.recentBookings.slice(0, 5); track booking.id) {
+                  @for (booking of d.recentBookings.slice(0, 3); track booking.id) {
                     <a [routerLink]="scopedLink('bookings', booking.id)" class="ms-history-item">
                       <span class="ms-history-date">{{ formatDate(booking.startAt) }}</span>
                       <div class="ms-history-copy">
                         <strong>{{ booking.serviceName }}</strong>
                         <small>{{ booking.staffName || 'Salon Professional' }} · {{ statusLabel(booking.status) }}</small>
                       </div>
-                      @if (validPrice(booking.totalPricePaise)) {
+                      @if (validHistoryPrice(booking.totalPricePaise)) {
                         <strong class="ms-history-price">{{ formatMoney(booking.totalPricePaise) }}</strong>
                       }
                       <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
@@ -1333,6 +1333,10 @@ export class MySalonPage implements OnInit {
 
   validPrice(value: number): boolean {
     return Number.isFinite(Number(value)) && Number(value) >= 0;
+  }
+
+  validHistoryPrice(value: number): boolean {
+    return Number.isFinite(Number(value)) && Number(value) > 0;
   }
 
   safeDuration(minutes: number): string {

@@ -13,7 +13,7 @@
  *  - customer's loyalty points + tier
  *  - active membership at this salon
  *  - active packages at this salon
- *  - recent bookings at this salon (last 5)
+ *  - recent bookings at this salon (last 3)
  *  - relationship info (visit count, type, last visit)
  *  - salon services (top 10 active)
  *  - salon staff (active, public-bookable)
@@ -68,6 +68,11 @@ function json(value, fallback) {
 function paiseFromRupees(value) {
   const amount = Number(value || 0);
   return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
+
+function paiseValue(value) {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? Math.round(amount) : 0;
 }
 
 function hasColumn(table, column) {
@@ -388,13 +393,66 @@ function packagesForTenant(tenantId) {
 
 // ─── Recent Bookings ──────────────────────────────────────────────
 
-function recentBookings(access, tenantId) {
+function bookingSaleTotalPaise(appointmentId, tenantId, branchId) {
+  if (!appointmentId || !tableExists("sales") || !hasColumn("sales", "appointmentId")) return 0;
+  const clauses = ["appointmentId = @appointmentId"];
+  const params = { appointmentId, tenantId, branchId };
+  if (hasColumn("sales", "tenantId")) clauses.push("tenantId = @tenantId");
+  if (hasColumn("sales", "branchId")) clauses.push("branchId = @branchId");
+  const row = db
+    .prepare(`SELECT * FROM sales WHERE ${clauses.join(" AND ")} ORDER BY datetime(createdAt) DESC LIMIT 1`)
+    .get(params);
+  if (!row) return 0;
+  const paiseColumn = ["totalPaise", "grandTotalPaise", "amountPaise", "netAmountPaise"].find((column) => Number(row[column] || 0) > 0);
+  if (paiseColumn) return paiseValue(row[paiseColumn]);
+  const rupeesColumn = ["total", "grandTotal", "totalAmount", "amount"].find((column) => Number(row[column] || 0) > 0);
+  return rupeesColumn ? paiseFromRupees(row[rupeesColumn]) : 0;
+}
+
+function bookingServiceTotalPaise(row, tenantId, branchId) {
+  if (!tableExists("services")) return 0;
+  const serviceIds = json(row.serviceIds, [])
+    .map((id) => String(id || "").trim())
+    .filter(Boolean);
+  const clauses = [];
+  const params = { tenantId, branchId, serviceName: row.serviceName || "" };
+  if (hasColumn("services", "tenantId")) clauses.push("tenantId = @tenantId");
+  if (hasColumn("services", "branchId")) clauses.push("(branchId = @branchId OR COALESCE(branchId, '') = '')");
+  const priceColumn = hasColumn("services", "pricePaise") ? "pricePaise" : "price";
+
+  if (serviceIds.length) {
+    return serviceIds.reduce((sum, serviceId, index) => {
+      const key = `serviceId${index}`;
+      const service = db
+        .prepare(`SELECT ${priceColumn} AS price FROM services WHERE ${[...clauses, `id = @${key}`].join(" AND ")} LIMIT 1`)
+        .get({ ...params, [key]: serviceId });
+      const price = hasColumn("services", "pricePaise") ? paiseValue(service?.price) : paiseFromRupees(service?.price);
+      return sum + price;
+    }, 0);
+  }
+
+  if (!params.serviceName) return 0;
+  const service = db
+    .prepare(`SELECT ${priceColumn} AS price FROM services WHERE ${[...clauses, "name = @serviceName"].join(" AND ")} LIMIT 1`)
+    .get(params);
+  return hasColumn("services", "pricePaise") ? paiseValue(service?.price) : paiseFromRupees(service?.price);
+}
+
+function bookingTotalPaise(row, tenantId, branchId) {
+  const directPaise = ["totalPricePaise", "totalPaise", "grandTotalPaise", "amountPaise", "netAmountPaise"].find((column) => Number(row[column] || 0) > 0);
+  if (directPaise) return paiseValue(row[directPaise]);
+  const directRupees = ["totalAmount", "total", "grandTotal", "amount"].find((column) => Number(row[column] || 0) > 0);
+  if (directRupees) return paiseFromRupees(row[directRupees]);
+  return bookingSaleTotalPaise(row.id, tenantId, branchId) || bookingServiceTotalPaise(row, tenantId, branchId);
+}
+
+function recentBookings(access, tenantId, branchId) {
   const whereTenant = tableHasColumn("appointments", "tenantId")
     ? "tenantId = @tenantId AND"
     : "";
   const rows = db
     .prepare(
-      `SELECT * FROM appointments WHERE ${whereTenant} clientId = @clientId ORDER BY datetime(startAt) DESC LIMIT 5`
+      `SELECT * FROM appointments WHERE ${whereTenant} clientId = @clientId ORDER BY datetime(startAt) DESC LIMIT 3`
     )
     .all({ tenantId, clientId: access.userId });
 
@@ -404,7 +462,7 @@ function recentBookings(access, tenantId) {
     staffName: row.staffName || "",
     startAt: row.startAt || "",
     status: row.status || "",
-    totalPricePaise: paiseFromRupees(row.totalAmount || row.total || 0),
+    totalPricePaise: bookingTotalPaise(row, tenantId, branchId),
   }));
 }
 
@@ -543,7 +601,7 @@ export function getMySalonDashboard(access, context = {}) {
     ? membershipForClient(access.userId, tenantId)
     : null;
   const packages = packagesForTenant(tenantId);
-  const bookings = recentBookings(access, tenantId);
+  const bookings = recentBookings(access, tenantId, branchId);
   const services = salonServices(tenantId, branchId);
   const staff = salonStaff(tenantId, branchId);
   const offers = activeOffers(tenantId, branchId);
