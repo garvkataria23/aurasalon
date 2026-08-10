@@ -50,14 +50,16 @@ import { Subscription } from "rxjs";
             </div>
           }
           <div class="cover-overlay"></div>
-          <div class="cover-actions">
-            <ion-button fill="clear" shape="round" [class.saved-action]="isSaved()" [disabled]="favoritePending" [attr.aria-label]="isSaved() ? 'Remove from wishlist' : 'Save to wishlist'" (click)="toggleWishlist()">
-              <ion-icon [name]="isSaved() ? 'heart' : 'heart-outline'"></ion-icon>
-            </ion-button>
-            <ion-button fill="clear" shape="round" [class.saved-action]="isSalonSaved()" [disabled]="savedSalonPending" [attr.aria-label]="isSalonSaved() ? 'Remove saved salon' : 'Save salon'" (click)="toggleSavedSalon()">
-              <ion-icon [name]="isSalonSaved() ? 'bookmark' : 'bookmark-outline'"></ion-icon>
-            </ion-button>
-          </div>
+          @if (!salonModeRoute()) {
+            <div class="cover-actions">
+              <ion-button fill="clear" shape="round" [class.saved-action]="isSaved()" [disabled]="favoritePending" [attr.aria-label]="isSaved() ? 'Remove from wishlist' : 'Save to wishlist'" (click)="toggleWishlist()">
+                <ion-icon [name]="isSaved() ? 'heart' : 'heart-outline'"></ion-icon>
+              </ion-button>
+              <ion-button fill="clear" shape="round" [class.saved-action]="isSalonSaved()" [disabled]="savedSalonPending" [attr.aria-label]="isSalonSaved() ? 'Remove saved salon' : 'Save salon'" (click)="toggleSavedSalon()">
+                <ion-icon [name]="isSalonSaved() ? 'bookmark' : 'bookmark-outline'"></ion-icon>
+              </ion-button>
+            </div>
+          }
           <div class="cover-copy">
             <div class="hero-business-name" role="heading" aria-level="1">{{ b.businessName }}</div>
             @if (b.area || b.city) {
