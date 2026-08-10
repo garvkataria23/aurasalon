@@ -638,12 +638,12 @@ import { Subscription } from "rxjs";
     }
 
     .sticky-cta .bottom-action-card {
-      width: fit-content;
+      width: min(340px, calc(100vw - 28px));
       margin: 0 auto;
       min-height: 0;
       display: grid;
       align-items: center;
-      padding: 2px 12px;
+      padding: 4px 10px;
       overflow: visible;
     }
 
@@ -651,13 +651,15 @@ import { Subscription } from "rxjs";
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 10px;
     }
 
     .booking-summary-metrics {
       min-width: 0;
+      flex: 1 1 auto;
       display: flex;
-      gap: 14px;
+      justify-content: space-between;
+      gap: 7px;
       align-items: center;
       padding: 0;
       border: 0;
@@ -678,7 +680,7 @@ import { Subscription } from "rxjs";
     .summary-row small {
       overflow: hidden;
       color: var(--muted);
-      font-size: 0.8rem;
+      font-size: 0.68rem;
       font-weight: 950;
       line-height: 1.1;
       text-overflow: ellipsis;
@@ -701,11 +703,12 @@ import { Subscription } from "rxjs";
     }
 
     .sticky-cta .bottom-action-card ion-button {
-      min-width: 72px;
-      min-height: 24px;
-      height: 24px;
+      flex: 0 0 auto;
+      min-width: 88px;
+      min-height: 30px;
+      height: 30px;
       margin: 0;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
     }
 
     .cover {
@@ -2243,6 +2246,34 @@ import { Subscription } from "rxjs";
       .profile-page.salon-mode-profile + .sticky-cta {
         bottom: calc(84px + env(safe-area-inset-bottom));
       }
+
+      .sticky-cta .bottom-action-card {
+        width: min(340px, calc(100vw - 28px));
+        padding: 4px 10px;
+      }
+
+      .assign-footer-row {
+        gap: 10px;
+      }
+
+      .booking-summary-metrics {
+        gap: 7px;
+      }
+
+      .summary-row small {
+        font-size: 0.68rem;
+      }
+
+      .summary-row strong {
+        font-size: 0.55rem;
+      }
+
+      .sticky-cta .bottom-action-card ion-button {
+        min-width: 88px;
+        min-height: 30px;
+        height: 30px;
+        font-size: 0.72rem;
+      }
     }
 
     .other-branches-section {
@@ -2357,7 +2388,7 @@ import { Subscription } from "rxjs";
       transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms ease, box-shadow 160ms ease;
     }
     .category-floating-menu-trigger.has-services {
-      bottom: calc(118px + env(safe-area-inset-bottom));
+      bottom: calc(148px + env(safe-area-inset-bottom));
     }
     .category-floating-menu-trigger ion-icon {
       font-size: 0.82rem;
