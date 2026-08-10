@@ -803,6 +803,15 @@ export class ExplorePage implements OnInit {
   }
 
   ngOnInit() {
+    this.refreshExploreData();
+  }
+
+  /** Silent re-entry hook used by the route-reuse strategy. */
+  onTabReenter(): void {
+    this.refreshExploreData();
+  }
+
+  private refreshExploreData(): void {
     void Promise.all([
       this.marketplace.loadPublicBusinesses(),
       this.marketplace.loadCategories(),

@@ -116,8 +116,8 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
           </section>
         } 
         
-        <!-- ─── ERROR STATE ─── -->
-        @else if (loadError()) {
+        <!-- ─── ERROR STATE (only when there is nothing cached to show) ─── -->
+        @else if (loadError() && !dash()) {
           <section class="ms-state" role="alert">
             <span class="ms-state-icon"><ion-icon name="refresh-outline" aria-hidden="true"></ion-icon></span>
             <span class="ms-kicker">Connection Error</span>
@@ -1339,7 +1339,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
 })
 export class MySalonPage implements OnInit {
   readonly dash = signal<MySalonDashboard | null>(null);
-  readonly loading = signal(true);
+  readonly loading = signal(this.marketplace.mySalonDashboard() === null);
   readonly loadError = signal("");
   readonly selectingSalon = signal(false);
   readonly salonPickerOpen = signal(false);
@@ -1444,9 +1444,19 @@ export class MySalonPage implements OnInit {
     void this.loadDashboard();
   }
 
+  /**
+   * Silent re-entry hook used by the route-reuse strategy. Previously loaded
+   * content stays visible while the dashboard refreshes in the background.
+   */
+  onTabReenter(): void {
+    if (this.auth.isAuthenticated()) void this.loadDashboard();
+  }
+
   async loadDashboard(): Promise<void> {
-    this.loading.set(true);
     this.loadError.set("");
+    // Only show the full-page skeleton when nothing has ever been rendered;
+    // a re-fetch must never blank out already-visible content.
+    if (!this.dash()) this.loading.set(true);
     let lastError = "";
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
@@ -1472,7 +1482,8 @@ export class MySalonPage implements OnInit {
         if (attempt < 3) await this.sleep(450 * attempt);
       }
     }
-    this.dash.set(null);
+    // Keep last known content on transient failures; only blank on a true first load.
+    if (!this.dash()) this.dash.set(null);
     this.loadError.set(lastError);
     this.loading.set(false);
   }

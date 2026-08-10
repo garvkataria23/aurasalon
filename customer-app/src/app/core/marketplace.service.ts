@@ -277,9 +277,11 @@ export class MarketplaceService {
   }
 
   /**
-   * Cache-first loader: serves a fresh cached value instantly (no loading
-   * state) and only hits the network on a miss or when forced. Cache writes
-   * stay inside `cachedGet` so every successful response refreshes the store.
+   * Stale-while-revalidate loader: serves the last known data instantly (from
+   * memory or storage, even after the TTL expires) and refreshes it silently in
+   * the background so the UI never blocks on a network round-trip. The loading
+   * counter/skeleton only engages on a true cache miss. Cache writes stay inside
+   * `cachedGet` so every successful response refreshes the store.
    */
   private async cachedLoad<T>(
     name: string,
@@ -291,17 +293,20 @@ export class MarketplaceService {
     onData?: (data: T) => void
   ): Promise<T> {
     if (!force) {
-      const cached = this.peekCached<T>(name, key);
-      if (cached !== null) {
-        onData?.(cached);
-        return cached;
+      const cacheKey = this.cacheKey(name, key);
+      const fresh = this.peekCached<T>(name, key);
+      if (fresh !== null) {
+        onData?.(fresh);
+        return fresh;
       }
-      if (this.offline()) {
-        const stale = this.readStaleData<T>(this.cacheKey(name, key));
-        if (stale !== null) {
-          onData?.(stale);
-          return stale;
-        }
+      const staleMem = this.memCache.get(cacheKey)?.value as T | undefined;
+      const stale = this.readStaleData<T>(cacheKey) ?? (staleMem !== undefined ? staleMem : null);
+      if (stale !== null) {
+        onData?.(stale);
+        void this.cachedGet(name, key, ttlMs, fetcher, true)
+          .then((data) => onData?.(data))
+          .catch(() => undefined);
+        return stale;
       }
     }
     return this.run(fallback, async () => {
@@ -309,6 +314,25 @@ export class MarketplaceService {
       onData?.(data);
       return data;
     });
+  }
+
+  /**
+   * Warms the caches for the primary tabs (salon/profile, services, rewards,
+   * bookings) right after app load so the first visit to each tab renders
+   * instantly. Every call is cache-first and best-effort, so this never
+   * re-fetches unchanged data and never blocks first paint.
+   */
+  prefetchPrimaryTabs(): void {
+    if (this.offline()) return;
+    void this.loadPublicBusinesses().catch(() => undefined);
+    void this.loadCategories().catch(() => undefined);
+    if (!this.isAuthenticated()) return;
+    void this.loadCustomer().catch(() => undefined);
+    void this.loadBookings().catch(() => undefined);
+    void this.loadMySalons().catch(() => undefined);
+    void this.loadMySalonDashboard().catch(() => undefined);
+    void this.loadAccountModule("rewards").catch(() => undefined);
+    void this.loadAccountModule("wallet").catch(() => undefined);
   }
 
   clearAllCached(): void {

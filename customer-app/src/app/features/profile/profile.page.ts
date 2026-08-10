@@ -864,6 +864,18 @@ export class ProfilePage implements OnInit {
   }
 
   async ngOnInit() {
+    this.refreshProfileData();
+  }
+
+  /**
+   * Silent re-entry hook used by the route-reuse strategy. Cached profile data
+   * stays rendered while this revalidates it in the background.
+   */
+  onTabReenter(): void {
+    this.refreshProfileData();
+  }
+
+  private refreshProfileData(): void {
     if (this.marketplace.isAuthenticated()) {
       this.marketplace.loadCustomer().then(() => this.syncForm()).catch(() => undefined);
       void this.marketplace.loadBookings().catch(() => undefined);

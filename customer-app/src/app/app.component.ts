@@ -100,6 +100,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private navigationSubscription?: Subscription;
   private salonBoundarySubscription?: Subscription;
   private redirectingToSalon = false;
+  private primaryTabsPrefetched = false;
   readonly launchVisible = signal(true);
   readonly launchClosing = signal(false);
   readonly launchImageFailed = signal(false);
@@ -114,6 +115,7 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe((event) => {
         this.rememberRoute(event.urlAfterRedirects);
         this.finishLaunchShell();
+        this.prefetchPrimaryTabs();
       });
     this.salonBoundarySubscription = this.router.events
       .pipe(filter((event): event is NavigationStart => event instanceof NavigationStart))
@@ -183,5 +185,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.launchClosing.set(true);
     window.setTimeout(() => this.launchVisible.set(false), 220);
     SplashScreen.hide().catch(() => undefined);
+  }
+
+  /** Prefetches tab data once, in the background, after the app is up. */
+  private prefetchPrimaryTabs() {
+    if (this.primaryTabsPrefetched) return;
+    this.primaryTabsPrefetched = true;
+    window.setTimeout(() => this.marketplace.prefetchPrimaryTabs(), 250);
   }
 }

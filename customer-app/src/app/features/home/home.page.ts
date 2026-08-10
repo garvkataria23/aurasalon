@@ -2517,6 +2517,18 @@ export class HomePage implements OnInit {
   }
 
   ngOnInit() {
+    this.refreshHomeData();
+  }
+
+  /**
+   * Silent re-entry hook used by the route-reuse strategy. Previously rendered
+   * content stays visible while cached data is revalidated in the background.
+   */
+  onTabReenter(): void {
+    this.refreshHomeData();
+  }
+
+  private refreshHomeData(): void {
     void Promise.all([
       this.marketplace.loadPublicBusinesses(),
       this.marketplace.loadCategories(),

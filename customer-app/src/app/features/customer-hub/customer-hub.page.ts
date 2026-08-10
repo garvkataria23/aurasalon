@@ -3918,6 +3918,14 @@ export class CustomerHubPage implements OnInit {
     this.reload();
   }
 
+  /**
+   * Silent re-entry hook used by the route-reuse strategy. Cached module data
+   * is already rendered; this only revalidates it in the background.
+   */
+  onTabReenter(): void {
+    this.reload();
+  }
+
   @HostListener("document:visibilitychange")
   persistDraftOnBackground(): void {
     if (document.visibilityState === "hidden") this.persistSupportDraft();
