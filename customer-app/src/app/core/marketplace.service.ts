@@ -48,6 +48,7 @@ export interface CustomerBookingDraft {
 export class MarketplaceService {
   private static readonly PUBLIC_BUSINESSES_CACHE_KEY = "aura_cached_public_businesses";
   private static readonly PUBLIC_BUSINESSES_CACHE_TTL_MS = 15 * 60_000;
+  private static readonly AVAILABILITY_CACHE_TTL_MS = 15_000;
   private readonly loadingCount = signal(0);
   readonly loading = computed(() => this.loadingCount() > 0);
   readonly offline = signal(false);
@@ -332,23 +333,22 @@ export class MarketplaceService {
     }
   }
 
-  async loadPublicBusinesses(params: SearchBusinessesParams = {}): Promise<Business[]> {
-    return this.run("Unable to load businesses", async () => {
-      const isDefault = Object.keys(params).length === 0;
-      if (isDefault && this.publicBusinessesLoadedAt > Date.now() - 5 * 60_000 && this.businesses().length) {
-        return this.businesses();
-      }
+  async loadPublicBusinesses(params: SearchBusinessesParams = {}, force = false): Promise<Business[]> {
+    const key = this.businessListKey(params);
+    return this.cachedLoad("public-businesses", key, MarketplaceService.PUBLIC_BUSINESSES_CACHE_TTL_MS, "Unable to load businesses", force, async () => {
       const requestId = ++this.businessesRequestCounter;
       const rows = (await firstValueFrom(this.api.listPublicBusinesses(params))).map((business) => this.normalizeBusiness(business));
       if (requestId !== this.businessesRequestCounter) return this.businesses();
-      this.setBusinesses(rows);
-      if (isDefault) this.publicBusinessesLoadedAt = Date.now();
       return rows;
+    }, (rows) => {
+      this.setBusinesses(rows);
+      if (Object.keys(params).length === 0) this.publicBusinessesLoadedAt = Date.now();
     });
   }
 
-  async searchBusinesses(params: SearchBusinessesParams = {}): Promise<Business[]> {
-    return this.run("Search service is unavailable. Please try again.", async () => {
+  async searchBusinesses(params: SearchBusinessesParams = {}, force = false): Promise<Business[]> {
+    const key = this.businessListKey(params);
+    return this.cachedLoad("search", key, this.BUSINESS_CACHE_TTL_MS, "Search service is unavailable. Please try again.", force, async () => {
       const requestId = ++this.businessesRequestCounter;
       const rows = (await firstValueFrom(this.api.searchPublicBusinesses(params))).map((business) => this.normalizeBusiness(business));
       if (requestId !== this.businessesRequestCounter) return this.businesses();
@@ -357,11 +357,14 @@ export class MarketplaceService {
     });
   }
 
-  async loadCategories(): Promise<Category[]> {
-    return this.run("Unable to load categories", async () => {
-      const rows = await firstValueFrom(this.api.listPublicCategories());
+  private businessListKey(params: SearchBusinessesParams): string {
+    if (Object.keys(params).length === 0) return "all";
+    return JSON.stringify(params);
+  }
+
+  async loadCategories(force = false): Promise<Category[]> {
+    return this.cachedLoad("categories", "all", MarketplaceService.PUBLIC_BUSINESSES_CACHE_TTL_MS, "Unable to load categories", force, () => firstValueFrom(this.api.listPublicCategories()), (rows) => {
       this.categories.set(rows);
-      return rows;
     });
   }
 
@@ -400,11 +403,10 @@ export class MarketplaceService {
     this.bookingDraft.set(null);
   }
 
-  async loadAvailability(slug: string, query: AvailabilityQuery): Promise<AvailabilityDay[]> {
-    return this.run("Unable to load availability", async () => {
-      const rows = await firstValueFrom(this.api.getAvailability(slug, query));
+  async loadAvailability(slug: string, query: AvailabilityQuery, force = false): Promise<AvailabilityDay[]> {
+    const key = `${slug}:${JSON.stringify(query)}`;
+    return this.cachedLoad("availability", key, MarketplaceService.AVAILABILITY_CACHE_TTL_MS, "Unable to load availability", force, () => firstValueFrom(this.api.getAvailability(slug, query)), (rows) => {
       this.availability.set(rows);
-      return rows;
     });
   }
 
@@ -496,8 +498,8 @@ export class MarketplaceService {
     return result;
   }
 
-  async loadCustomer() {
-    return this.run("Unable to load customer profile", () => this.auth.loadMe());
+  async loadCustomer(force = false) {
+    return this.run("Unable to load customer profile", () => this.auth.loadMe(force));
   }
 
   async loadFavorites(force = false): Promise<CustomerFavorite[]> {

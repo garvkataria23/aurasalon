@@ -82,7 +82,7 @@ import { CustomerDeviceSession, CustomerNotificationPreferences } from "../../co
               <p>Device security</p>
               <h2 id="security-settings-title">Protect your access</h2>
             </div>
-            <ion-button size="small" fill="outline" (click)="loadDevices()" [disabled]="auth.loading()">Refresh</ion-button>
+            <ion-button size="small" fill="outline" (click)="loadDevices(true)" [disabled]="auth.loading()">Refresh</ion-button>
           </div>
 
           <section class="setting-row security-row">
@@ -364,8 +364,8 @@ export class SettingsPage implements OnInit {
       .catch(() => undefined);
   }
 
-  async loadDevices() {
-    this.devices = await this.auth.loadDevices().catch(() => []);
+  async loadDevices(force = false) {
+    this.devices = await this.auth.loadDevices(force).catch(() => []);
   }
 
   async logoutDevice(device: CustomerDeviceSession) {

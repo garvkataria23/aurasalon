@@ -16,6 +16,10 @@ const BIOMETRIC_CREDENTIAL_KEY = "auraCustomerBiometricCredentialId";
 const LAST_ROUTE_KEY = "auraCustomerLastRoute";
 const SALON_MODE_KEY = "aura_salon_mode";
 const SALON_MODE_CONTEXT_KEY = "aura_salon_mode_context";
+const PROFILE_CACHE_KEY = "auraCustomerProfileCache";
+const PROFILE_CACHE_TTL_MS = 60_000;
+const DEVICES_CACHE_KEY = "auraCustomerDevicesCache";
+const DEVICES_CACHE_TTL_MS = 30_000;
 
 @Injectable({ providedIn: "root" })
 export class AuthService {
@@ -246,11 +250,19 @@ export class AuthService {
     }
   }
 
-  async loadMe(): Promise<CustomerProfile> {
+  async loadMe(force = false): Promise<CustomerProfile> {
+    if (!force) {
+      const cached = this.readProfileCache();
+      if (cached) {
+        this.customer.set({ ...cached, isLoggedIn: true });
+        return this.customer() as CustomerProfile;
+      }
+    }
     this.loading.set(true);
     this.error.set("");
     try {
       const profile = await firstValueFrom(this.api.getMe());
+      this.writeProfileCache(profile);
       this.customer.set({ ...profile, isLoggedIn: true });
       return this.customer() as CustomerProfile;
     } catch (error) {
@@ -262,11 +274,44 @@ export class AuthService {
     }
   }
 
+  private readProfileCache(): CustomerProfile | null {
+    try {
+      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { at?: number; profile?: CustomerProfile };
+      if (!parsed || typeof parsed.at !== "number" || !parsed.profile) return null;
+      if (Date.now() - parsed.at > PROFILE_CACHE_TTL_MS) {
+        localStorage.removeItem(PROFILE_CACHE_KEY);
+        return null;
+      }
+      return parsed.profile;
+    } catch {
+      return null;
+    }
+  }
+
+  private writeProfileCache(profile: CustomerProfile): void {
+    try {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ at: Date.now(), profile }));
+    } catch {
+      // storage unavailable — cache is best-effort only.
+    }
+  }
+
+  private clearProfileCache(): void {
+    try {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+    } catch {
+      // storage unavailable.
+    }
+  }
+
   async updateMe(payload: Partial<CustomerProfile>): Promise<CustomerProfile> {
     this.loading.set(true);
     this.error.set("");
     try {
       const profile = await firstValueFrom(this.api.updateMe(payload));
+      this.writeProfileCache(profile);
       this.customer.set({ ...profile, profileComplete: this.profileComplete(profile), isLoggedIn: true });
       return this.customer() as CustomerProfile;
     } catch (error) {
@@ -300,6 +345,7 @@ export class AuthService {
     this.error.set("");
     try {
       const profile = await firstValueFrom(this.api.verifyProfileEmailCode(email.trim(), cleanCode));
+      this.writeProfileCache(profile);
       this.customer.set({ ...profile, isLoggedIn: true });
       return this.customer() as CustomerProfile;
     } catch (error) {
@@ -333,6 +379,7 @@ export class AuthService {
     this.error.set("");
     try {
       const profile = await firstValueFrom(this.api.verifyProfilePhoneOtp(phone.trim(), cleanOtp));
+      this.writeProfileCache(profile);
       this.customer.set({ ...profile, isLoggedIn: true });
       return this.customer() as CustomerProfile;
     } catch (error) {
@@ -366,6 +413,7 @@ export class AuthService {
     this.error.set("");
     try {
       const profile = await firstValueFrom(this.api.verifyProfilePhoneOtp(phone.trim(), cleanOtp));
+      this.writeProfileCache(profile);
       this.customer.set({ ...profile, isLoggedIn: true });
       await this.firebaseAuth.updatePasswordAfterVerification(newPassword);
     } catch (error) {
@@ -516,11 +564,19 @@ export class AuthService {
     }
   }
 
-  async loadDevices(): Promise<CustomerDeviceSession[]> {
+  async loadDevices(force = false): Promise<CustomerDeviceSession[]> {
+    if (!force) {
+      const cached = this.readDevicesCache();
+      if (cached) {
+        this.devices.set(cached);
+        return cached;
+      }
+    }
     this.loading.set(true);
     this.error.set("");
     try {
       const rows = await firstValueFrom(this.api.listDevices());
+      this.writeDevicesCache(rows);
       this.devices.set(rows);
       return rows;
     } catch (error) {
@@ -531,12 +587,45 @@ export class AuthService {
     }
   }
 
+  private readDevicesCache(): CustomerDeviceSession[] | null {
+    try {
+      const raw = localStorage.getItem(DEVICES_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { at?: number; devices?: CustomerDeviceSession[] };
+      if (!parsed || typeof parsed.at !== "number" || !Array.isArray(parsed.devices)) return null;
+      if (Date.now() - parsed.at > DEVICES_CACHE_TTL_MS) {
+        localStorage.removeItem(DEVICES_CACHE_KEY);
+        return null;
+      }
+      return parsed.devices;
+    } catch {
+      return null;
+    }
+  }
+
+  private writeDevicesCache(devices: CustomerDeviceSession[]): void {
+    try {
+      localStorage.setItem(DEVICES_CACHE_KEY, JSON.stringify({ at: Date.now(), devices }));
+    } catch {
+      // storage unavailable — cache is best-effort only.
+    }
+  }
+
+  private clearDevicesCache(): void {
+    try {
+      localStorage.removeItem(DEVICES_CACHE_KEY);
+    } catch {
+      // storage unavailable.
+    }
+  }
+
   async logoutDevice(sessionId: string): Promise<void> {
     this.loading.set(true);
     this.error.set("");
     try {
       await firstValueFrom(this.api.logoutDevice(sessionId));
       this.devices.update((rows) => rows.filter((row) => row.id !== sessionId));
+      this.clearDevicesCache();
     } catch (error) {
       this.error.set(this.message(error, "Unable to logout this device"));
       throw error;
@@ -550,6 +639,7 @@ export class AuthService {
     this.error.set("");
     try {
       await firstValueFrom(this.api.logoutAllDevices());
+      this.clearDevicesCache();
       await this.firebaseAuth.logout();
     } catch (error) {
       this.error.set(this.message(error, "Unable to logout all devices"));
@@ -610,6 +700,8 @@ export class AuthService {
     localStorage.removeItem(LAST_ROUTE_KEY);
     localStorage.removeItem(SALON_MODE_KEY);
     localStorage.removeItem(SALON_MODE_CONTEXT_KEY);
+    this.clearProfileCache();
+    this.clearDevicesCache();
     this.accessToken.set(null);
     this.refreshToken.set(null);
     this.customer.set(null);
