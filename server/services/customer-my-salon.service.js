@@ -409,6 +409,35 @@ function bookingSaleTotalPaise(appointmentId, tenantId, branchId) {
   return rupeesColumn ? paiseFromRupees(row[rupeesColumn]) : 0;
 }
 
+function bookingInvoiceId(appointmentId, tenantId, branchId, clientId) {
+  if (!appointmentId || !tableExists("invoices")) return "";
+  const invoiceTenant = hasColumn("invoices", "tenantId") ? " AND i.tenantId = @tenantId" : "";
+  const invoiceClient = hasColumn("invoices", "clientId") ? " AND i.clientId = @clientId" : "";
+  const invoiceBranch = hasColumn("invoices", "branchId") ? " AND i.branchId = @branchId" : "";
+
+  if (hasColumn("invoices", "appointmentId")) {
+    const row = db
+      .prepare(`SELECT i.id FROM invoices i WHERE i.appointmentId = @appointmentId${invoiceTenant}${invoiceClient}${invoiceBranch} ORDER BY datetime(i.createdAt) DESC LIMIT 1`)
+      .get({ appointmentId, tenantId, branchId, clientId });
+    if (row?.id) return row.id;
+  }
+
+  if (!tableExists("sales") || !hasColumn("sales", "appointmentId") || !hasColumn("invoices", "saleId")) return "";
+  const salesTenant = hasColumn("sales", "tenantId") ? " AND s.tenantId = @tenantId" : "";
+  const salesBranch = hasColumn("sales", "branchId") ? " AND s.branchId = @branchId" : "";
+  const row = db
+    .prepare(
+      `SELECT i.id
+       FROM invoices i
+       JOIN sales s ON s.id = i.saleId
+       WHERE s.appointmentId = @appointmentId${salesTenant}${salesBranch}${invoiceTenant}${invoiceClient}${invoiceBranch}
+       ORDER BY datetime(i.createdAt) DESC
+       LIMIT 1`
+    )
+    .get({ appointmentId, tenantId, branchId, clientId });
+  return row?.id || "";
+}
+
 function bookingServiceTotalPaise(row, tenantId, branchId) {
   if (!tableExists("services")) return 0;
   const serviceIds = json(row.serviceIds, [])
@@ -462,6 +491,7 @@ function recentBookings(access, tenantId, branchId) {
     staffName: row.staffName || "",
     startAt: row.startAt || "",
     status: row.status || "",
+    invoiceId: bookingInvoiceId(row.id, tenantId, branchId, access.userId),
     totalPricePaise: bookingTotalPaise(row, tenantId, branchId),
   }));
 }

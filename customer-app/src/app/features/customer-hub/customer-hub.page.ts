@@ -522,7 +522,7 @@ const hubConfigs: Record<string, HubConfig> = {
                 <p>{{ marketplace.error() }}</p>
                 <ion-button class="primary-gradient" (click)="reload()">Try again</ion-button>
               </section>
-            } @else if (invoices(); as invoiceList) {
+            } @else if (displayInvoices(); as invoiceList) {
               <section class="wallet-balance-card" aria-labelledby="invoices-summary-label">
                 <div class="wallet-balance-copy">
                   <div class="wallet-status-row">
@@ -560,7 +560,7 @@ const hubConfigs: Record<string, HubConfig> = {
                   @if (invoiceList.length) {
                     <div class="wallet-transactions">
                       @for (invoice of invoiceList; track invoice.id) {
-                        <article class="wallet-transaction" [class.invoice-due]="invoice.balancePaise > 0">
+                        <article class="wallet-transaction" [class.invoice-due]="invoice.balancePaise > 0" [class.selected-invoice]="invoice.id === selectedInvoiceId()">
                           <div class="transaction-icon" [class.transaction-debit]="invoice.status === 'paid'">
                             <ion-icon name="receipt-outline" aria-hidden="true"></ion-icon>
                           </div>
@@ -2861,6 +2861,18 @@ const hubConfigs: Record<string, HubConfig> = {
       border-top: 1px solid rgba(203, 213, 225, 0.74);
     }
 
+    .wallet-transaction.selected-invoice {
+      margin: 8px;
+      border: 1px solid rgba(124, 99, 223, 0.28);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(124, 99, 223, 0.1), rgba(255, 255, 255, 0.96));
+      box-shadow: 0 12px 28px rgba(124, 99, 223, 0.14);
+    }
+
+    .wallet-transaction.selected-invoice + .wallet-transaction {
+      border-top: 0;
+    }
+
     .transaction-icon {
       width: 44px;
       height: 44px;
@@ -3721,6 +3733,13 @@ export class CustomerHubPage implements OnInit {
     const cached = this.cachedModule();
     if (Array.isArray(cached) && cached.length && typeof cached[0] === "object" && "invoiceNumber" in cached[0]) return cached as CustomerInvoice[];
     return [];
+  });
+  readonly selectedInvoiceId = computed(() => this.route.snapshot.queryParamMap.get("invoiceId") || "");
+  readonly displayInvoices = computed<CustomerInvoice[]>(() => {
+    const selectedId = this.selectedInvoiceId();
+    const invoices = this.invoices();
+    if (!selectedId) return invoices;
+    return [...invoices].sort((left, right) => Number(right.id === selectedId) - Number(left.id === selectedId));
   });
   readonly invoiceTotalOutstanding = computed(() => this.invoices().reduce((sum, inv) => sum + (inv.balancePaise || 0), 0));
   readonly invoiceDueCount = computed(() => this.invoices().filter((inv) => inv.balancePaise > 0).length);

@@ -782,6 +782,7 @@ export interface MySalonDashboardStaff {
 
 export interface MySalonDashboardBooking {
   id: string;
+  invoiceId?: string;
   serviceName: string;
   staffName: string;
   startAt: string;
