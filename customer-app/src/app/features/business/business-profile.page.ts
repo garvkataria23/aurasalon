@@ -1260,16 +1260,18 @@ import { Subscription } from "rxjs";
     .service-note-input {
       width: 100%;
       resize: vertical;
-      min-height: 118px;
-      padding: 14px 13px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
-      border-radius: 12px;
+      min-height: 116px;
+      padding: 15px 14px;
+      border: 1px solid rgba(124, 99, 223, 0.2);
+      border-radius: 17px;
       outline: none;
       color: var(--text);
-      background: var(--surface);
+      background: linear-gradient(180deg, #FFFFFF, rgba(248, 247, 255, 0.82));
       font: inherit;
       font-size: 0.84rem;
       line-height: 1.35;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
     }
 
     .service-note-input::placeholder {
@@ -1277,8 +1279,9 @@ import { Subscription } from "rxjs";
     }
 
     .service-note-input:focus {
-      border-color: rgba(99, 102, 241, 0.42);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      border-color: rgba(92, 72, 217, 0.5);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.95);
     }
 
     .service-popup-backdrop {
@@ -1288,23 +1291,26 @@ import { Subscription } from "rxjs";
       display: grid;
       align-items: center;
       justify-items: center;
-      padding: 16px;
-      background: rgba(28, 28, 28, 0.42);
-      backdrop-filter: blur(8px);
+      padding: 18px;
+      background: radial-gradient(circle at 50% 22%, rgba(124, 99, 223, 0.24), transparent 32%), rgba(16, 18, 28, 0.52);
+      backdrop-filter: blur(12px) saturate(1.08);
     }
 
     .service-popup-sheet {
       position: relative;
-      width: min(420px, 100%);
+      width: min(408px, 100%);
       max-height: min(86vh, 720px);
       margin: 0;
       display: grid;
-      gap: 18px;
+      gap: 17px;
       overflow: auto;
       padding: 24px 18px 18px;
-      border-radius: 26px;
-      background: var(--surface);
-      box-shadow: 0 24px 70px rgba(28, 28, 28, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 88% 10%, rgba(238, 232, 255, 0.95), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.97));
+      box-shadow: 0 30px 76px rgba(18, 16, 38, 0.28), 0 2px 0 rgba(255, 255, 255, 0.82) inset;
     }
 
     .service-popup-close {
@@ -1317,67 +1323,81 @@ import { Subscription } from "rxjs";
       min-height: 34px;
       border: 0;
       border-radius: 999px;
-      color: var(--text);
-      background: var(--surface-soft);
+      color: rgba(25, 28, 40, 0.78);
+      background: rgba(255, 255, 255, 0.82);
       font-size: 1.35rem;
       line-height: 1;
       cursor: pointer;
+      box-shadow: 0 8px 20px rgba(25, 28, 40, 0.08);
     }
 
     .service-popup-head {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 106px;
-      gap: 14px;
+      grid-template-columns: minmax(0, 1fr) 108px;
+      gap: 16px;
       align-items: start;
-      padding-top: 34px;
+      padding: 36px 1px 2px;
     }
 
     .service-popup-head small {
-      color: var(--muted);
-      font-size: 0.84rem;
+      display: inline-flex;
+      width: fit-content;
+      padding: 5px 8px;
+      border: 1px solid rgba(124, 99, 223, 0.14);
+      border-radius: 999px;
+      color: rgba(67, 56, 128, 0.76);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.68rem;
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
     }
 
     .service-popup-head h2 {
-      margin: 5px 0 6px;
+      margin: 8px 0 7px;
       color: var(--text);
-      font-size: 1.35rem;
+      font-size: clamp(1.25rem, 6vw, 1.56rem);
       line-height: 1.08;
-      letter-spacing: -0.04em;
+      letter-spacing: -0.045em;
     }
 
     .service-popup-head strong {
-      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: #4F46E5;
+      background: rgba(79, 70, 229, 0.1);
       font-weight: 950;
     }
 
     .service-popup-thumb {
-      width: 106px;
+      width: 108px;
       height: 92px;
-      border-radius: 20px;
+      border-radius: 24px;
       background-color: var(--primary-soft, #EEF2FF);
       background-position: center;
       background-size: cover;
-      box-shadow: 0 12px 28px rgba(28, 28, 28, 0.1);
+      box-shadow: 0 16px 34px rgba(75, 58, 168, 0.16), 0 1px 0 rgba(255, 255, 255, 0.72) inset;
     }
 
     .service-popup-thumb--letter {
       display: grid;
       place-items: center;
-      background: linear-gradient(145deg, var(--primary-soft), #F3E8FF);
-      box-shadow: none;
+      background: linear-gradient(145deg, rgba(239, 235, 255, 0.96), rgba(228, 220, 255, 0.88));
     }
 
     .service-popup-section {
       display: grid;
-      gap: 10px;
+      gap: 9px;
     }
 
     .service-popup-section h3 {
       margin: 0;
-      font-size: 0.95rem;
+      color: rgba(25, 28, 40, 0.9);
+      font-size: 0.92rem;
+      font-weight: 950;
       letter-spacing: -0.02em;
     }
 
@@ -1387,15 +1407,21 @@ import { Subscription } from "rxjs";
     }
 
     .service-popup-add {
-      min-height: 48px;
+      min-height: 50px;
       border: 0;
-      border-radius: 16px;
+      border-radius: 17px;
       color: #FFFFFF;
-      background: var(--primary);
+      background: linear-gradient(135deg, #6D5DF7, #4F46E5 58%, #4338CA);
       font-size: 0.98rem;
       font-weight: 950;
       cursor: pointer;
-      box-shadow: 0 14px 30px rgba(99, 102, 241, 0.22);
+      box-shadow: 0 15px 30px rgba(79, 70, 229, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .service-popup-add:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 10px 22px rgba(79, 70, 229, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .salon-service-item.is-picked {
