@@ -428,7 +428,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
 
             <!-- 9. SALON WALLET & GIFT CARDS SECTION -->
             @if (d.wallet || (d.giftCards && d.giftCards.length)) {
-              <section class="ms-section" aria-labelledby="wallet-title">
+              <section class="ms-section ms-wallet-section" aria-labelledby="wallet-title">
                 <div class="ms-section-head">
                   <div>
                     <span class="ms-kicker">Prepaid & Gift Balances</span>
@@ -479,7 +479,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
             }
 
             <!-- 10. VISIT & SERVICE HISTORY -->
-            <section class="ms-section" aria-labelledby="history-title">
+            <section class="ms-section ms-history-section" aria-labelledby="history-title">
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Past Experience</span>
@@ -1218,6 +1218,74 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
         justify-content: center;
         font-size: .5rem;
         font-weight: 950;
+      }
+
+      .ms-wallet-section,
+      .ms-history-section { gap: 10px; margin-top: 24px; }
+      .ms-wallet-section .ms-section-head > a,
+      .ms-history-section .ms-section-head > a {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(124, 99, 223, .14);
+        border-radius: 999px;
+        background: rgba(124, 99, 223, .07);
+        font-size: .65rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .ms-wallet-container { gap: 8px; }
+      .ms-wallet-card {
+        padding: 12px 13px;
+        border-color: rgba(124, 99, 223, .13);
+        border-radius: 18px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .78));
+        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 8px 18px rgba(28,28,28,.04);
+      }
+      .ms-wallet-top { align-items: start; gap: 12px; }
+      .ms-wallet-top span { font-size: .64rem; font-weight: 900; line-height: 1.1; }
+      .ms-wallet-amount { font-size: 1.25rem; line-height: .95; }
+      .ms-wallet-hint { margin-top: 8px; font-size: .66rem; line-height: 1.28; }
+      .ms-tx-list { gap: 6px; margin-top: 8px; }
+      .ms-tx-head { font-size: .58rem; }
+      .ms-tx-item { gap: 8px; font-size: .64rem; }
+      .ms-gift-card {
+        min-height: 54px;
+        padding: 10px 11px;
+        border-radius: 16px;
+      }
+      .ms-gift-card ion-icon { font-size: 18px; }
+      .ms-gift-card strong { font-size: .7rem; }
+      .ms-gift-card small { font-size: .58rem; }
+      .ms-gift-status { font-size: .56rem; }
+
+      .ms-history-list {
+        gap: 0;
+        overflow: hidden;
+        border: 1px solid rgba(124, 99, 223, .12);
+        border-radius: 18px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .72));
+        box-shadow: 0 8px 18px rgba(28,28,28,.035);
+      }
+      .ms-history-item {
+        min-height: 52px;
+        grid-template-columns: 42px minmax(0,1fr) auto 14px;
+        gap: 8px;
+        padding: 9px 10px;
+        border-bottom-color: rgba(124, 99, 223, .1);
+      }
+      .ms-history-date { font-size: .6rem; font-weight: 950; }
+      .ms-history-copy { gap: 1px; }
+      .ms-history-copy strong { font-size: .72rem; line-height: 1.12; }
+      .ms-history-copy small { font-size: .58rem; line-height: 1.15; }
+      .ms-history-price { font-size: .7rem; font-weight: 950; }
+      .ms-history-section .ms-empty-line {
+        min-height: 0;
+        padding: 11px 12px;
+        border-color: rgba(124, 99, 223, .12);
+        border-radius: 16px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .74));
+        font-size: .68rem;
+        line-height: 1.25;
       }
     }
 
