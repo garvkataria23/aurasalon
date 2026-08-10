@@ -109,11 +109,11 @@ import { Subscription } from "rxjs";
                 }
                 <span class="hero-meta-item">
                   <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
-                  <strong>{{ b.area }}</strong>
+                  <strong>{{ locationSummary() }}</strong>
                 </span>
                 <span class="hero-meta-item">
-                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
-                  <strong>{{ b.hoursLabel || "Hours not published" }}</strong>
+                  <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                  <strong>{{ bookingStatusLabel() }}</strong>
                 </span>
               </div>
 
@@ -2552,6 +2552,18 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   hasRating(): boolean {
     const b = this.business();
     return Boolean(b && Number(b.ratingCount) > 0 && Number(b.ratingAverage) > 0);
+  }
+
+  locationSummary(): string {
+    const b = this.business();
+    if (!b) return "Location";
+    if (typeof b.distanceKm === "number" && Number.isFinite(b.distanceKm)) return `${b.distanceKm.toFixed(b.distanceKm < 10 ? 1 : 0)} km away`;
+    return b.area || b.city || b.address || "Location";
+  }
+
+  bookingStatusLabel(): string {
+    const modes = this.business()?.paymentModes ?? [];
+    return modes.includes("online") ? "Online booking" : "Call to book";
   }
 
   coverGradientStyle(): string {
