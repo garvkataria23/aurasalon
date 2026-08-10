@@ -96,10 +96,11 @@ export class MarketplaceService {
   private savedSalonsLoaded = false;
   private businessesRequestCounter = 0;
   private publicBusinessesLoadedAt = 0;
-  private readonly businessCacheStore = new Map<string, { at: number; business: Business }>();
-  private readonly bookingsCacheStore = new Map<string, { at: number; rows: Booking[] }>();
   private readonly BUSINESS_CACHE_TTL_MS = 60_000;
   private readonly BOOKINGS_CACHE_TTL_MS = 30_000;
+  private readonly memCache = new Map<string, { expiresAt: number; value: unknown }>();
+  private readonly inFlightResponses = new Map<string, Promise<unknown>>();
+  private static readonly DATA_CACHE_PREFIX = "auraCustomerDataCache:";
 
   constructor(private readonly api: CustomerApiService, private readonly auth: AuthService) {
     try {
@@ -175,6 +176,133 @@ export class MarketplaceService {
     return parsed.tenantId && parsed.branchId ? { ...parsed, tenantId: parsed.tenantId, branchId: parsed.branchId } : null;
   }
 
+  private get cacheAuth(): { tid: string; bid: string } | null {
+    try {
+      const tid = localStorage.getItem("tenantId");
+      const bid = localStorage.getItem("branchId");
+      return tid && bid ? { tid, bid } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private cacheKey(name: string, key: string): string {
+    const a = this.cacheAuth ?? { tid: "anon", bid: "anon" };
+    return `${MarketplaceService.DATA_CACHE_PREFIX}${a.tid}:${a.bid}:${name}:${key}`;
+  }
+
+  private readStoredData<T>(key: string): T | null {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { expiresAt?: number; value?: T };
+      if (!parsed || typeof parsed.expiresAt !== "number" || parsed.value === undefined) return null;
+      if (Date.now() > parsed.expiresAt) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return parsed.value;
+    } catch {
+      return null;
+    }
+  }
+
+  private writeStoredData<T>(key: string, value: T, ttlMs: number): void {
+    try {
+      localStorage.setItem(key, JSON.stringify({ expiresAt: Date.now() + ttlMs, value }));
+    } catch {
+      // storage unavailable or full — cache is best-effort only.
+    }
+  }
+
+  private async cachedGet<T>(name: string, key: string, ttlMs: number, fetcher: () => Promise<T>, force = false): Promise<T> {
+    const cacheKey = this.cacheKey(name, key);
+    if (!force) {
+      const mem = this.memCache.get(cacheKey);
+      if (mem && mem.expiresAt > Date.now()) return mem.value as T;
+      const stored = this.readStoredData<T>(cacheKey);
+      if (stored !== null) return stored;
+    }
+    const inFlight = this.inFlightResponses.get(cacheKey);
+    if (inFlight) return inFlight as Promise<T>;
+    const p = fetcher()
+      .then((data) => {
+        this.memCache.set(cacheKey, { expiresAt: Date.now() + ttlMs, value: data });
+        this.writeStoredData(cacheKey, data, ttlMs);
+        return data;
+      })
+      .finally(() => {
+        this.inFlightResponses.delete(cacheKey);
+      });
+    this.inFlightResponses.set(cacheKey, p);
+    return p;
+  }
+
+  private peekCached<T>(name: string, key: string): T | null {
+    const cacheKey = this.cacheKey(name, key);
+    const mem = this.memCache.get(cacheKey);
+    if (mem && mem.expiresAt > Date.now()) return mem.value as T;
+    return this.readStoredData<T>(cacheKey);
+  }
+
+  /**
+   * Cache-first loader: serves a fresh cached value instantly (no loading
+   * state) and only hits the network on a miss or when forced. Cache writes
+   * stay inside `cachedGet` so every successful response refreshes the store.
+   */
+  private async cachedLoad<T>(
+    name: string,
+    key: string,
+    ttlMs: number,
+    fallback: string,
+    force: boolean,
+    fetcher: () => Promise<T>,
+    onData?: (data: T) => void
+  ): Promise<T> {
+    if (!force) {
+      const cached = this.peekCached<T>(name, key);
+      if (cached !== null) {
+        onData?.(cached);
+        return cached;
+      }
+    }
+    return this.run(fallback, async () => {
+      const data = await this.cachedGet(name, key, ttlMs, fetcher, force);
+      onData?.(data);
+      return data;
+    });
+  }
+
+  clearAllCached(): void {
+    this.memCache.clear();
+    try {
+      Object.keys(localStorage)
+        .filter((storedKey) => storedKey.startsWith(MarketplaceService.DATA_CACHE_PREFIX))
+        .forEach((storedKey) => localStorage.removeItem(storedKey));
+    } catch {
+      // storage unavailable — memory cache still cleared above.
+    }
+  }
+
+  private clearCached(name: string, key?: string): void {
+    const prefix = key ? this.cacheKey(name, key) : `${MarketplaceService.DATA_CACHE_PREFIX}${name}:`;
+    try {
+      if (key) {
+        this.memCache.delete(prefix);
+        localStorage.removeItem(prefix);
+        return;
+      }
+      for (const cacheKey of this.memCache.keys()) {
+        if (cacheKey.startsWith(prefix)) this.memCache.delete(cacheKey);
+      }
+      Object.keys(localStorage)
+        .filter((storedKey) => storedKey.startsWith(prefix))
+        .forEach((storedKey) => localStorage.removeItem(storedKey));
+    } catch {
+      // storage unavailable — memory cache still cleared above.
+    }
+  }
+
   private setBusinesses(rows: Business[]) {
     this.businesses.set(rows);
     this.persistBusinessesCache(rows);
@@ -238,20 +366,15 @@ export class MarketplaceService {
   }
 
   async loadBusiness(slug: string, force = false): Promise<Business> {
-    const cached = this.businessCacheStore.get(slug);
-    if (!force && cached && cached.at > Date.now() - this.BUSINESS_CACHE_TTL_MS) {
-      this.selectedBusiness.set(cached.business);
-      return cached.business;
-    }
-    return this.run("Unable to load business profile", async () => {
+    return this.cachedLoad("business", slug, this.BUSINESS_CACHE_TTL_MS, "Unable to load business profile", force, async () => {
       const [business, services, staff, reviews] = await Promise.all([
         firstValueFrom(this.api.getPublicBusiness(slug)),
         firstValueFrom(this.api.getPublicBusinessServices(slug)),
         firstValueFrom(this.api.getPublicBusinessStaff(slug)),
         firstValueFrom(this.api.listBusinessReviews(slug)).catch(() => [])
       ]);
-      const profile: Business = this.normalizeBusiness({ ...business, services, staff, reviews });
-      this.businessCacheStore.set(slug, { at: Date.now(), business: profile });
+      return this.normalizeBusiness({ ...business, services, staff, reviews });
+    }, (profile) => {
       this.selectedBusiness.set(profile);
       this.businesses.update((rows) => {
         const index = rows.findIndex((row) => row.slug === slug || row.id === profile.id);
@@ -259,7 +382,6 @@ export class MarketplaceService {
         return rows.map((row, rowIndex) => rowIndex === index ? profile : row);
       });
       this.persistBusinessesCache(this.businesses());
-      return profile;
     });
   }
 
@@ -288,15 +410,8 @@ export class MarketplaceService {
 
   async loadBookings(status?: "upcoming" | "past" | "cancelled", force = false): Promise<Booking[]> {
     const key = this.bookingsCacheKey(status);
-    const cached = this.bookingsCacheStore.get(key);
-    if (!force && cached && cached.at > Date.now() - this.BOOKINGS_CACHE_TTL_MS) {
-      return cached.rows;
-    }
-    return this.run("Unable to load bookings", async () => {
-      const rows = await firstValueFrom(this.api.listBookings(status));
-      this.bookingsCacheStore.set(key, { at: Date.now(), rows });
+    return this.cachedLoad("bookings", key, this.BOOKINGS_CACHE_TTL_MS, "Unable to load bookings", force, () => firstValueFrom(this.api.listBookings(status)), (rows) => {
       this.bookings.set(rows);
-      return rows;
     });
   }
 
@@ -329,7 +444,7 @@ export class MarketplaceService {
       const booking = await firstValueFrom(this.api.createBooking(payload));
       this.latestBooking.set(booking);
       this.bookings.update((rows) => [booking, ...rows.filter((row) => row.id !== booking.id)]);
-      this.bookingsCacheStore.clear();
+      this.clearCached("bookings");
       return booking;
     });
   }
@@ -338,7 +453,7 @@ export class MarketplaceService {
     return this.run("Unable to cancel booking", async () => {
       const booking = await firstValueFrom(this.api.cancelBooking(id));
       this.replaceBooking(booking);
-      this.bookingsCacheStore.clear();
+      this.clearCached("bookings");
       return booking;
     });
   }
@@ -347,7 +462,7 @@ export class MarketplaceService {
     return this.run("Unable to reschedule booking", async () => {
       const booking = await firstValueFrom(this.api.rescheduleBooking(id, payload));
       this.replaceBooking(booking);
-      this.bookingsCacheStore.clear();
+      this.clearCached("bookings");
       return booking;
     });
   }
@@ -376,19 +491,19 @@ export class MarketplaceService {
   }
 
   async logout() {
-    return this.run("Unable to logout", () => this.auth.logout());
+    const result = await this.run("Unable to logout", () => this.auth.logout());
+    this.clearAllCached();
+    return result;
   }
 
   async loadCustomer() {
     return this.run("Unable to load customer profile", () => this.auth.loadMe());
   }
 
-  async loadFavorites(): Promise<CustomerFavorite[]> {
-    return this.run("Unable to load saved salons", async () => {
-      const rows = await firstValueFrom(this.api.listFavorites());
+  async loadFavorites(force = false): Promise<CustomerFavorite[]> {
+    return this.cachedLoad("favorites", "all", this.BUSINESS_CACHE_TTL_MS, "Unable to load saved salons", force, () => firstValueFrom(this.api.listFavorites()), (rows) => {
       this.favorites.set(rows);
       this.favoritesLoaded = true;
-      return rows;
     });
   }
 
@@ -407,6 +522,7 @@ export class MarketplaceService {
       const favorite = await firstValueFrom(this.api.addFavorite(businessId));
       this.favorites.update((rows) => [favorite, ...rows.filter((row) => row.businessId !== favorite.businessId)]);
       this.favoritesLoaded = true;
+      this.clearCached("favorites");
       return favorite;
     });
   }
@@ -416,6 +532,7 @@ export class MarketplaceService {
       await firstValueFrom(this.api.removeFavorite(businessId));
       this.favorites.update((rows) => rows.filter((row) => row.businessId !== businessId && row.business?.id !== businessId && row.business?.slug !== businessId));
       this.favoritesLoaded = true;
+      this.clearCached("favorites");
     });
   }
 
@@ -430,10 +547,12 @@ export class MarketplaceService {
       try {
         if (wasFavorite) {
           await firstValueFrom(this.api.removeFavorite(businessId));
+          this.clearCached("favorites");
           return false;
         }
         const favorite = await firstValueFrom(this.api.addFavorite(businessId));
         this.favorites.update((rows) => [favorite, ...this.withoutFavorite(rows, businessId)]);
+        this.clearCached("favorites");
         return true;
       } catch (error) {
         this.favorites.update((rows) => wasFavorite
@@ -452,13 +571,12 @@ export class MarketplaceService {
     return rows.filter((row) => row.businessId !== businessId && row.business?.id !== businessId && row.business?.slug !== businessId);
   }
 
-  async ensureSavedSalons(): Promise<CustomerFavorite[]> {
+  async ensureSavedSalons(force = false): Promise<CustomerFavorite[]> {
     if (!this.isAuthenticated()) return [];
-    if (this.savedSalonsLoaded) return this.savedSalons();
-    const rows = await firstValueFrom(this.api.listSavedSalons());
-    this.savedSalons.set(rows);
-    this.savedSalonsLoaded = true;
-    return rows;
+    return this.cachedLoad("saved-salons", "all", this.BUSINESS_CACHE_TTL_MS, "Unable to load saved salons", force, () => firstValueFrom(this.api.listSavedSalons()), (rows) => {
+      this.savedSalons.set(rows);
+      this.savedSalonsLoaded = true;
+    });
   }
 
   isSalonSaved(businessId: string): boolean {
@@ -476,10 +594,12 @@ export class MarketplaceService {
       try {
         if (wasSaved) {
           await firstValueFrom(this.api.removeSavedSalon(businessId));
+          this.clearCached("saved-salons");
           return false;
         }
         const saved = await firstValueFrom(this.api.saveSalon(businessId));
         this.savedSalons.update((rows) => [saved, ...this.withoutFavorite(rows, businessId)]);
+        this.clearCached("saved-salons");
         return true;
       } catch (error) {
         this.savedSalons.update((rows) => wasSaved
@@ -519,15 +639,16 @@ export class MarketplaceService {
   }
 
   async deleteAccount(currentPassword = ""): Promise<void> {
-    return this.run("Unable to delete account", () => this.auth.deleteAccount(currentPassword));
+    const result = await this.run("Unable to delete account", () => this.auth.deleteAccount(currentPassword));
+    this.clearAllCached();
+    return result;
   }
 
-  async loadAccountModule(slug: string): Promise<CustomerAccountModule> {
-    return this.run("Unable to load customer records", async () => {
-      const data = await this.accountModuleRequest(slug);
+  async loadAccountModule(slug: string, force = false): Promise<CustomerAccountModule> {
+    const moduleCacheKey = this.accountModuleCacheKey(slug);
+    return this.cachedLoad("account-module", moduleCacheKey, this.BOOKINGS_CACHE_TTL_MS, "Unable to load customer records", force, () => this.accountModuleRequest(slug), (data) => {
       this.accountModule.set(data);
-      this.moduleCacheStore.set(this.accountModuleCacheKey(slug), data);
-      return data;
+      this.moduleCacheStore.set(moduleCacheKey, data);
     });
   }
 
@@ -536,38 +657,33 @@ export class MarketplaceService {
     return this.moduleCacheStore.get(this.accountModuleCacheKey(slug)) ?? null;
   }
 
-  async loadMembershipPlans(branchId?: string): Promise<CustomerMembershipPlan[]> {
-    return this.run("Unable to load memberships", async () => {
-      const rows = await firstValueFrom(this.api.listMembershipPlans({ branchId }));
+  async loadMembershipPlans(branchId?: string, force = false): Promise<CustomerMembershipPlan[]> {
+    const key = branchId ?? "all";
+    return this.cachedLoad("membership-plans", key, this.BUSINESS_CACHE_TTL_MS, "Unable to load memberships", force, () => firstValueFrom(this.api.listMembershipPlans({ branchId })), (rows) => {
       this.membershipPlans.set(rows);
-      return rows;
     });
   }
 
-  async loadMyPackages(): Promise<CustomerPackage[]> {
-    return this.run("Unable to load packages", async () => {
-      const rows = await firstValueFrom(this.api.listPackages());
-      return rows;
-    });
+  async loadMyPackages(force = false): Promise<CustomerPackage[]> {
+    return this.cachedLoad("packages", "all", this.BUSINESS_CACHE_TTL_MS, "Unable to load packages", force, () => firstValueFrom(this.api.listPackages()));
   }
 
   async buyMembership(planId: string, branchId?: string): Promise<CustomerMembership> {
     return this.run("Unable to buy membership", async () => {
       const result = await firstValueFrom(this.api.buyMembership(planId, branchId));
       this.mergeAccountList("memberships", result.membership);
+      this.clearCached("account-module", "memberships");
       return result.membership;
     });
   }
 
   // ─── Customer-Salon Relationships ────────────────────────────────
-  async loadMySalons(): Promise<CustomerSalonsResponse> {
-    return this.run("Unable to load your salons", async () => {
-      const response = await firstValueFrom(this.api.getMySalons());
+  async loadMySalons(force = false): Promise<CustomerSalonsResponse> {
+    return this.cachedLoad("my-salons", "all", this.BUSINESS_CACHE_TTL_MS, "Unable to load your salons", force, () => firstValueFrom(this.api.getMySalons()), (response) => {
       this.mySalons.set(response.salons || []);
       this.primarySalon.set(response.primarySalon);
       this.shouldPromptPrimary.set(response.shouldPromptPrimary);
       this.suggestedSalon.set(response.suggestedSalon);
-      return response;
     });
   }
 
@@ -578,6 +694,7 @@ export class MarketplaceService {
       this.syncSalonModeContext({ tenantId, branchId, businessId, businessName });
       this.shouldPromptPrimary.set(false);
       this.suggestedSalon.set(null);
+      this.clearCached("my-salons");
       return primarySalon;
     });
   }
@@ -586,6 +703,7 @@ export class MarketplaceService {
     return this.run("Unable to remove primary salon", async () => {
       await firstValueFrom(this.api.removePrimarySalon());
       this.primarySalon.set(null);
+      this.clearCached("my-salons");
     });
   }
 
@@ -596,14 +714,14 @@ export class MarketplaceService {
         this.shouldPromptPrimary.set(true);
         this.suggestedSalon.set(response.suggestedSalon as CustomerSalonRelationship | null);
       }
+      this.clearCached("my-salons");
     });
   }
 
-  async loadSalonOffers(tenantId: string, branchId: string): Promise<PublicOffersResponse | null> {
-    return this.run("Unable to load salon offers", async () => {
-      const response = await firstValueFrom(this.api.getPublicOffers(tenantId, branchId));
+  async loadSalonOffers(tenantId: string, branchId: string, force = false): Promise<PublicOffersResponse | null> {
+    const key = `${tenantId}:${branchId}`;
+    return this.cachedLoad("salon-offers", key, this.BOOKINGS_CACHE_TTL_MS, "Unable to load salon offers", force, () => firstValueFrom(this.api.getPublicOffers(tenantId, branchId)), (response) => {
       this.salonOffers.set(response);
-      return response;
     });
   }
 
@@ -611,11 +729,9 @@ export class MarketplaceService {
     return this.primarySalon() !== null;
   }
 
-  async loadMySalonDashboard(): Promise<MySalonDashboard | null> {
-    return this.run("Unable to load salon dashboard", async () => {
-      const dashboard = await firstValueFrom(this.api.getMySalonDashboard());
+  async loadMySalonDashboard(force = false): Promise<MySalonDashboard | null> {
+    return this.cachedLoad("my-salon-dashboard", "all", this.BUSINESS_CACHE_TTL_MS, "Unable to load salon dashboard", force, () => firstValueFrom(this.api.getMySalonDashboard()), (dashboard) => {
       this.mySalonDashboard.set(dashboard);
-      return dashboard;
     });
   }
 
@@ -623,6 +739,7 @@ export class MarketplaceService {
     return this.run("Unable to purchase gift card", async () => {
       const giftCard = await firstValueFrom(this.api.purchaseGiftCard(payload));
       this.mergeAccountList("gift-cards", giftCard);
+      this.clearCached("account-module", "gift-cards");
       return giftCard;
     });
   }
@@ -630,11 +747,9 @@ export class MarketplaceService {
   async redeemGiftCard(payload: RedeemGiftCardPayload): Promise<RedeemGiftCardResponse> {
     return this.run("Unable to redeem gift card", async () => {
       const result = await firstValueFrom(this.api.redeemGiftCard(payload));
-      await Promise.all([
-        this.loadAccountModule("gift-cards").catch(() => null),
-        this.loadAccountModule("invoices").catch(() => null),
-        this.loadAccountModule("payments").catch(() => null)
-      ]);
+      this.clearCached("account-module", "gift-cards");
+      this.clearCached("account-module", "invoices");
+      this.clearCached("account-module", "payments");
       return result;
     });
   }
