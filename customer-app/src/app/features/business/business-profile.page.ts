@@ -626,7 +626,7 @@ import { Subscription } from "rxjs";
       padding-bottom: calc(120px + env(safe-area-inset-bottom));
     }
 
-    .profile-page.salon-mode-profile .sticky-cta {
+    .profile-page.salon-mode-profile + .sticky-cta {
       bottom: calc(64px + env(safe-area-inset-bottom));
     }
 
@@ -1210,14 +1210,9 @@ import { Subscription } from "rxjs";
     }
 
     .service-card {
-      display: block;
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
-    }
-
-    .salon-service-item.service-card {
-      display: flex;
     }
 
     .service-custom-card {
@@ -2167,7 +2162,7 @@ import { Subscription } from "rxjs";
         bottom: calc(8px + env(safe-area-inset-bottom));
       }
 
-      .profile-page.salon-mode-profile .sticky-cta {
+      .profile-page.salon-mode-profile + .sticky-cta {
         bottom: calc(84px + env(safe-area-inset-bottom));
       }
     }
