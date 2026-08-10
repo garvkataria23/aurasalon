@@ -246,7 +246,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
             </section>
 
             <!-- 4. UPCOMING APPOINTMENTS & REBOOKING CANDIDATE -->
-            <section class="ms-section" aria-labelledby="upcoming-title">
+            <section class="ms-section ms-schedule-section" aria-labelledby="upcoming-title">
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Schedule & Visits</span>
@@ -300,7 +300,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
             </section>
 
             <!-- 5. HAPPY HOURS & SALON OFFERS -->
-            <section class="ms-section" aria-labelledby="offers-title">
+            <section class="ms-section ms-offers-section" aria-labelledby="offers-title">
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Happy Hours & Savings</span>
@@ -1055,6 +1055,84 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       .ms-snap-top ion-icon { width: 20px; height: 20px; padding: 4px; border-radius: 7px; font-size: 13px; }
       .ms-snapshot-item strong { font-size: .9rem; line-height: 1.02; }
       .ms-snapshot-item small { display: -webkit-box; overflow: hidden; font-size: .58rem; line-height: 1.18; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+      .ms-schedule-section,
+      .ms-offers-section { gap: 10px; margin-top: 24px; }
+      .ms-schedule-section .ms-section-head > a,
+      .ms-offers-section .ms-section-head > a {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(124, 99, 223, .14);
+        border-radius: 999px;
+        background: rgba(124, 99, 223, .07);
+        font-size: .65rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .ms-empty-panel {
+        grid-template-columns: 38px minmax(0,1fr);
+        gap: 10px;
+        padding: 13px;
+        border-style: solid;
+        border-color: rgba(124, 99, 223, .13);
+        border-radius: 18px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .82));
+        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 8px 18px rgba(28,28,28,.04);
+      }
+      .ms-empty-icon { width: 38px; height: 38px; border-radius: 13px; font-size: 18px; }
+      .ms-empty-panel h3 { font-size: .92rem; line-height: 1.08; }
+      .ms-empty-panel p { display: -webkit-box; overflow: hidden; font-size: .66rem; line-height: 1.28; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .ms-empty-panel > a {
+        grid-column: 1 / -1;
+        min-height: 39px;
+        margin-top: 2px;
+        font-size: .74rem;
+        font-weight: 900;
+        box-shadow: 0 10px 18px rgba(95,70,207,.18);
+      }
+      .ms-appointment {
+        grid-template-columns: 48px minmax(0,1fr) 36px;
+        gap: 9px;
+        padding: 12px 10px 12px 12px;
+        border-radius: 18px;
+      }
+      .ms-date-tile { width: 48px; height: 56px; border-radius: 15px; }
+      .ms-date-tile strong { font-size: 1.35rem; }
+      .ms-arrow-link { width: 36px; height: 36px; }
+      .ms-rebook-card {
+        gap: 9px;
+        padding: 10px 11px;
+        border-color: rgba(124, 99, 223, .13);
+        border-radius: 16px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .72));
+        box-shadow: 0 7px 16px rgba(28,28,28,.035);
+      }
+      .ms-rebook-info { min-width: 0; gap: 1px; }
+      .ms-rebook-tag { font-size: .6rem; font-weight: 950; }
+      .ms-rebook-info strong,
+      .ms-rebook-info small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ms-rebook-info strong { font-size: .78rem; }
+      .ms-rebook-info small { font-size: .62rem; }
+      .ms-rebook-action { flex: 0 0 auto; min-height: 34px; padding: 0 11px; font-size: .66rem; font-weight: 900; }
+      .ms-offer-rail { grid-auto-columns: minmax(220px, 78vw); gap: 9px; margin-inline: -13px; padding: 1px 13px 6px; }
+      .ms-offer { min-height: 132px; gap: 6px; padding: 14px; border-radius: 18px; }
+      .ms-offer-value { padding: 4px 8px; font-size: .58rem; }
+      .ms-offer h3 { margin-top: 2px; font-size: .98rem; line-height: 1.08; }
+      .ms-offer p { font-size: .66rem; line-height: 1.28; }
+      .ms-offer-book { padding: 6px 10px; font-size: .64rem; font-weight: 900; }
+      .ms-offers-section .ms-empty-line {
+        display: grid;
+        grid-template-columns: minmax(0,1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 0;
+        padding: 11px 12px;
+        border-color: rgba(124, 99, 223, .12);
+        border-radius: 16px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .74));
+      }
+      .ms-offers-section .ms-empty-line span { font-size: .68rem; line-height: 1.25; }
+      .ms-offers-section .ms-empty-line a { min-height: 32px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 999px; background: var(--ms-accent-soft); font-size: .65rem; font-weight: 900; text-align: center; text-decoration: none; white-space: nowrap; }
     }
 
     @media (max-width: 380px) {
