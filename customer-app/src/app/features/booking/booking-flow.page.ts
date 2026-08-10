@@ -2163,6 +2163,7 @@ async reload() {
     } else if (this.step() < 1 || this.step() > 4) {
       this.step.set(1);
     }
+    this.syncBookingDraft();
     await this.reloadAvailability();
   }
 
@@ -2204,12 +2205,26 @@ async reload() {
     });
     if (this.activeItemIndex() >= this.bookingItems().length) this.activeItemIndex.set(Math.max(this.bookingItems().length - 1, 0));
     if (removing) this.reconcileInvalidSelections();
+    this.syncBookingDraft();
     void this.reloadAvailability();
   }
 
   private newItemFor(serviceId: string): BookingFlowItem {
     const staffId = this.canStaffBook(this.initialStaffId, serviceId) ? this.initialStaffId : null;
     return { serviceId, staffId, date: "", slotStartAt: "" };
+  }
+
+  /** Keep the shared Salon/Book booking state in sync with this flow's items. */
+  private syncBookingDraft() {
+    const slug = this.slug();
+    if (!slug) return;
+    const business = this.business();
+    this.marketplace.setBookingDraft({
+      businessSlug: slug,
+      businessId: business?.id || "",
+      serviceIds: this.bookingItems().map((item) => item.serviceId),
+      updatedAt: Date.now()
+    });
   }
 
   private canStaffBook(staffId: string, serviceId: string): boolean {
@@ -2623,6 +2638,7 @@ async reload() {
       this.activeHoldId.set(null);
     }
     this.clearPendingIntent();
+    this.marketplace.clearBookingDraft();
     const successUrl = this.marketplace.salonMode() ? this.marketplace.salonModeUrl("booking", "success") : "/booking/success";
     const successState = this.buildSuccessState();
     try { sessionStorage.setItem("aura_booking_success", JSON.stringify(successState)); } catch { /* session storage unavailable */ }

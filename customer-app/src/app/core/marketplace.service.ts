@@ -36,6 +36,14 @@ import { CustomerApiService } from "./customer-api.service";
 
 export type SalonModeContext = { tenantId: string; branchId: string; businessId?: string; businessName?: string };
 
+/** Shared in-progress booking state used by both the Salon (discovery) and Book (transaction) sections. */
+export interface CustomerBookingDraft {
+  businessSlug: string;
+  businessId?: string;
+  serviceIds: string[];
+  updatedAt: number;
+}
+
 @Injectable({ providedIn: "root" })
 export class MarketplaceService {
   private static readonly PUBLIC_BUSINESSES_CACHE_KEY = "aura_cached_public_businesses";
@@ -62,6 +70,8 @@ export class MarketplaceService {
   readonly favorites = signal<CustomerFavorite[]>([]);
   readonly savedSalons = signal<CustomerFavorite[]>([]);
   readonly selectedBusiness = signal<Business | null>(null);
+  /** Single shared booking state across Salon and Book sections (not persisted — session only). */
+  readonly bookingDraft = signal<CustomerBookingDraft | null>(null);
   readonly bookings = signal<Booking[]>([]);
   readonly selectedBooking = signal<Booking | null>(null);
   readonly latestBooking = signal<Booking | null>(null);
@@ -258,6 +268,14 @@ export class MarketplaceService {
     const selected = this.selectedBusiness();
     if (selected?.slug === slug || selected?.id === slug) return selected;
     return this.businesses().find((business) => business.slug === slug || business.id === slug) ?? null;
+  }
+
+  setBookingDraft(draft: CustomerBookingDraft | null): void {
+    this.bookingDraft.set(draft);
+  }
+
+  clearBookingDraft(): void {
+    this.bookingDraft.set(null);
   }
 
   async loadAvailability(slug: string, query: AvailabilityQuery): Promise<AvailabilityDay[]> {

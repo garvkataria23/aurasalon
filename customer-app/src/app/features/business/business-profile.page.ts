@@ -7,6 +7,7 @@ import {
   callOutline,
   bookmark,
   bookmarkOutline,
+  calendarOutline,
   cardOutline,
   checkmarkCircleOutline,
   chevronDownOutline,
@@ -224,13 +225,7 @@ import { Subscription } from "rxjs";
                         <div class="service-list">
                           @for (service of group.services; track service.id) {
                             <article
-                              class="salon-service-item service-card premium-card"
-                              [class.is-picked]="isServiceSelected(service.id)"
-                              [class.selected]="isServiceSelected(service.id)"
-                              role="button"
-                              tabindex="0"
-                              (click)="selectService(service.id)"
-                              (keydown.enter)="selectService(service.id)">
+                              class="salon-service-item service-card premium-card">
                               <div class="salon-service-copy">
                                 <span class="service-title-row">
                                   <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
@@ -254,15 +249,10 @@ import { Subscription } from "rxjs";
                                 }
                                 <button
                                   type="button"
-                                  class="salon-service-add"
-                                  [class.selected]="isServiceSelected(service.id)"
-                                  [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
-                                  (click)="$event.stopPropagation(); selectService(service.id)">
-                                  @if (isServiceSelected(service.id)) {
-                                    <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
-                                  } @else {
-                                    Add
-                                  }
+                                  class="salon-service-book"
+                                  [attr.aria-label]="'Book ' + service.name"
+                                  (click)="$event.stopPropagation(); bookService(service.id)">
+                                  <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon> Book
                                 </button>
                               </div>
                             </article>
@@ -517,29 +507,6 @@ import { Subscription } from "rxjs";
         </section>
       </main>
 
-      @if (selectedServices().length) {
-      <div class="booking-cta sticky-cta mobile-only salon-mode-flow">
-        <div class="bottom-action-card">
-          <div class="assign-footer-row">
-            <div class="booking-summary-metrics" aria-label="Selected services summary">
-              <span class="summary-row">
-                <small>Services</small>
-                <strong>{{ selectedServicesCountLabel() }}</strong>
-              </span>
-              <span class="summary-row">
-                <small>Duration</small>
-                <strong>{{ selectedServicesDurationLabel() }}</strong>
-              </span>
-              <span class="summary-row summary-total">
-                <small>Total</small>
-                <strong>{{ selectedServicesTotalLabel() }}</strong>
-              </span>
-            </div>
-            <ion-button class="primary-gradient" [routerLink]="businessBookLink(b.slug || b.id)" [queryParams]="bookingQueryParams()">Continue</ion-button>
-          </div>
-        </div>
-      </div>
-      }
       @if (activeCustomizationService(); as service) {
         <section class="service-popup-backdrop" role="dialog" aria-modal="true" aria-labelledby="service-popup-title" (click)="closeServicePopup()">
           <article class="service-popup-sheet" (click)="$event.stopPropagation()">
@@ -635,16 +602,30 @@ import { Subscription } from "rxjs";
           <span>Menu</span>
         </button>
       }
+
+      @if (pendingBookService(); as service) {
+        <div class="booking-confirm-backdrop" role="presentation" (click)="pendingBookService.set(null)">
+          <section class="booking-confirm-sheet" role="alertdialog" aria-modal="true" aria-labelledby="booking-confirm-title" (click)="$event.stopPropagation()">
+            <div class="booking-confirm-icon" aria-hidden="true"><ion-icon name="calendar-outline"></ion-icon></div>
+            <h2 id="booking-confirm-title">Start a new booking?</h2>
+            <p>Your current booking contains services from another salon. Start a new booking to add {{ service.name }}?</p>
+            <div class="booking-confirm-actions">
+              <button type="button" class="booking-confirm-cancel" (click)="pendingBookService.set(null)">Cancel</button>
+              <button type="button" class="booking-confirm-accept" (click)="confirmNewBooking(service.id)">Start New Booking</button>
+            </div>
+          </section>
+        </div>
+      }
     }
   `,
   styles: [`
     .profile-page {
-      padding-bottom: calc(100px + env(safe-area-inset-bottom));
+      padding-bottom: calc(28px + env(safe-area-inset-bottom));
     }
 
     .profile-page.salon-mode-profile {
       padding-top: calc(72px + env(safe-area-inset-top));
-      padding-bottom: calc(120px + env(safe-area-inset-bottom));
+      padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
 
     .profile-page.salon-mode-profile + .booking-cta.sticky-cta {
@@ -1849,6 +1830,147 @@ import { Subscription } from "rxjs";
       box-shadow: none;
     }
 
+    .salon-service-book {
+      min-width: 82px;
+      min-height: 36px;
+      margin-top: -16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 12px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--brand-600), var(--primary));
+      font-size: 0.85rem;
+      font-weight: 950;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+      visibility: visible;
+      opacity: 1;
+      z-index: 2;
+      transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+    }
+
+    .salon-service-book ion-icon {
+      font-size: 1rem;
+    }
+
+    .salon-service-book:hover {
+      filter: brightness(1.05);
+    }
+
+    .salon-service-book:active {
+      transform: scale(0.96);
+      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.24);
+    }
+
+    .booking-confirm-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: grid;
+      align-items: center;
+      justify-items: center;
+      padding: 20px;
+      background: radial-gradient(circle at 50% 26%, rgba(124, 99, 223, 0.2), transparent 34%), rgba(16, 18, 28, 0.5);
+      backdrop-filter: blur(12px) saturate(1.08);
+    }
+
+    .booking-confirm-sheet {
+      width: min(380px, 100%);
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      padding: 26px 20px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 26px;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(250, 248, 255, 0.98));
+      box-shadow: 0 30px 76px rgba(18, 16, 38, 0.28);
+      animation: booking-confirm-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .booking-confirm-icon {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--brand-600), var(--primary));
+      box-shadow: 0 10px 22px rgba(99, 102, 241, 0.3);
+      font-size: 1.5rem;
+    }
+
+    .booking-confirm-sheet h2 {
+      margin: 6px 0 0;
+      color: var(--text);
+      font-size: 1.3rem;
+      letter-spacing: -0.04em;
+    }
+
+    .booking-confirm-sheet p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .booking-confirm-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .booking-confirm-cancel,
+    .booking-confirm-accept {
+      min-height: 46px;
+      border-radius: 14px;
+      font: inherit;
+      font-weight: 950;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .booking-confirm-cancel {
+      border: 1px solid rgba(99, 102, 241, 0.24);
+      color: var(--primary-2);
+      background: var(--glass);
+    }
+
+    .booking-confirm-accept {
+      border: 0;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--brand-600), var(--primary));
+      box-shadow: 0 12px 26px rgba(99, 102, 241, 0.3);
+    }
+
+    .booking-confirm-cancel:active,
+    .booking-confirm-accept:active {
+      transform: scale(0.97);
+    }
+
+    @keyframes booking-confirm-in {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .booking-confirm-sheet {
+        animation: none;
+      }
+    }
+
     .show-more-btn {
       width: 100%;
       min-height: 46px;
@@ -2687,6 +2809,8 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   readonly selectedServiceIds = signal<string[]>(this.initialServiceIds());
   readonly expandedServiceId = signal<string>("");
   readonly activeCustomizationServiceId = signal<string>("");
+  /** Service awaiting the "start a new booking" confirmation because the current draft belongs to another salon. */
+  readonly pendingBookService = signal<ServiceItem | null>(null);
   readonly serviceNotes = signal<Record<string, string>>({});
   readonly serviceQuery = signal<string>("");
   readonly selectedCategory = signal<string>("");
@@ -2842,6 +2966,7 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       callOutline,
       bookmark,
       bookmarkOutline,
+      calendarOutline,
       cardOutline,
       checkmarkCircleOutline,
       chevronDownOutline,
@@ -2895,6 +3020,48 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
     }
     this.recordRecentlyViewedService(serviceId);
     this.closeServicePopup();
+  }
+
+  /** Salon service action: hand the service to the shared booking state and jump to the Book section (step 1). */
+  bookService(serviceId: string) {
+    const biz = this.business();
+    const service = biz?.services.find((item) => item.id === serviceId);
+    if (!biz || !service) return;
+    const slug = biz.slug || biz.id;
+    const draft = this.marketplace.bookingDraft();
+    if (draft && draft.businessSlug !== slug && draft.serviceIds.length > 0) {
+      this.pendingBookService.set(service);
+      return;
+    }
+    this.addToBookingDraftAndNavigate(slug, serviceId);
+  }
+
+  confirmNewBooking(serviceId: string) {
+    const biz = this.business();
+    if (!biz) return;
+    this.pendingBookService.set(null);
+    this.addToBookingDraftAndNavigate(biz.slug || biz.id, serviceId);
+  }
+
+  private addToBookingDraftAndNavigate(slug: string, serviceId: string) {
+    const draft = this.marketplace.bookingDraft();
+    let serviceIds: string[];
+    if (draft && draft.businessSlug === slug) {
+      serviceIds = draft.serviceIds.includes(serviceId) ? draft.serviceIds : [...draft.serviceIds, serviceId];
+    } else {
+      serviceIds = [serviceId];
+    }
+    const biz = this.business();
+    this.marketplace.setBookingDraft({
+      businessSlug: slug,
+      businessId: biz?.id || biz?.branchId || "",
+      serviceIds,
+      updatedAt: Date.now()
+    });
+    const query = serviceIds.length > 1
+      ? { serviceIds: serviceIds.join(","), step: "1" }
+      : { serviceId, step: "1" };
+    void this.router.navigate([this.businessBookLink(slug)], { queryParams: query });
   }
 
   private recordRecentlyViewedService(serviceId: string) {
@@ -3117,9 +3284,9 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
 
   bookingQueryParams(): { serviceIds?: string; serviceId?: string; step: number } {
     const ids = this.selectedServiceIds();
-    if (ids.length > 1) return { serviceIds: ids.join(","), step: 2 };
-    if (ids.length === 1) return { serviceId: ids[0], step: 2 };
-    return { step: 2 };
+    if (ids.length > 1) return { serviceIds: ids.join(","), step: 1 };
+    if (ids.length === 1) return { serviceId: ids[0], step: 1 };
+    return { step: 1 };
   }
 
   backHref(): string {
