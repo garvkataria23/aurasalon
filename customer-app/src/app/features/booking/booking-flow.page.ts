@@ -960,19 +960,19 @@ type BookingFlowItem = {
     .booking-cta { width: min(980px, calc(100% - 24px)); margin: 0 auto; }
     .booking-cta.sticky-cta { bottom: calc(8px + env(safe-area-inset-bottom)); }
       .booking-cta.sticky-cta.salon-mode-flow { bottom: calc(64px + env(safe-area-inset-bottom)); }
-    .booking-cta .bottom-action-card { min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; align-items: center; gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); overflow: hidden; }
-    .booking-cta.salon-mode-flow .bottom-action-card { width: min(100%, 360px); margin: 0 auto; min-height: 0; grid-template-rows: auto 1fr; padding: 6px 10px; overflow: visible; }
+    .booking-cta .bottom-action-card { min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr; align-items: center; gap: 5px; padding: 6px 7px calc(6px + env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid rgba(99, 102, 241, 0.16); border-radius: 999px; background: rgba(255, 255, 255, 0.96); box-shadow: 0 16px 34px rgba(28, 28, 28, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9); backdrop-filter: blur(16px); }
+    .booking-cta.salon-mode-flow .bottom-action-card { width: min(100%, 360px); margin: 0 auto; min-height: 0; grid-template-rows: auto 1fr; padding: 6px 7px; overflow: visible; }
     .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
     .assign-status { margin: 0; color: var(--muted); font-size: 0.84rem; font-weight: 850; letter-spacing: 0.02em; }
-    .booking-summary-metrics { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 2px; border: 0; border-radius: 14px; background: transparent; color: var(--text); text-align: left; }
-    .salon-mode-flow .booking-summary-metrics { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 0; text-align: left; }
+    .booking-summary-metrics { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: center; padding: 0 0 0 8px; border: 0; border-radius: 999px; background: transparent; color: var(--text); text-align: left; }
+    .salon-mode-flow .booking-summary-metrics { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding: 0 0 0 8px; text-align: left; }
     .booking-summary-metrics:hover, .booking-summary-metrics:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.35); outline-offset: 2px; }
     .summary-copy { min-width: 0; display: grid; gap: 1px; }
-    .summary-copy strong { overflow: hidden; color: var(--text); font-size: 0.82rem; font-weight: 950; line-height: 1.08; text-overflow: ellipsis; white-space: nowrap; }
-    .summary-copy small { overflow: hidden; color: var(--muted); font-size: 0.68rem; font-weight: 850; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
-    .summary-total { color: var(--primary); font-size: 0.86rem; font-weight: 950; line-height: 1; white-space: nowrap; }
-    .booking-cta .bottom-action-card ion-button { min-width: 106px; height: 40px; margin: 0; font-size: 0.78rem; }
-    .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 92px; min-height: 34px; height: 34px; font-size: 0.74rem; }
+    .summary-copy strong { overflow: hidden; color: var(--text); font-size: 0.8rem; font-weight: 950; line-height: 1.04; text-overflow: ellipsis; white-space: nowrap; }
+    .summary-copy small { overflow: hidden; color: var(--muted); font-size: 0.66rem; font-weight: 850; line-height: 1.08; text-overflow: ellipsis; white-space: nowrap; }
+    .summary-total { min-height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; border-radius: 999px; color: var(--primary); background: rgba(99, 102, 241, 0.1); font-size: 0.82rem; font-weight: 950; line-height: 1; white-space: nowrap; }
+    .booking-cta .bottom-action-card ion-button { min-width: 104px; height: 40px; margin: 0; --border-radius: 999px; font-size: 0.76rem; font-weight: 950; letter-spacing: 0.01em; }
+    .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 92px; min-height: 36px; height: 36px; font-size: 0.72rem; }
     .salon-mode-flow .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; justify-content: stretch; }
     .button-spinner { width: 16px; height: 16px; display: inline-block; margin-right: 8px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 999px; animation: button-spin 700ms linear infinite; vertical-align: -3px; }
     .booking-hero { display: grid; gap: 4px; align-items: center; padding: 16px; }
@@ -1133,18 +1133,18 @@ type BookingFlowItem = {
       }
 
       .booking-cta { width: min(100% - 16px, 980px); }
-      .booking-cta .bottom-action-card { min-height: var(--booking-footer-height); gap: 6px; padding: 12px; border-radius: 20px; }
-      .booking-cta.salon-mode-flow .bottom-action-card { width: 100%; margin: 0; min-height: 0; padding: 2px 10px; overflow: visible; }
+      .booking-cta .bottom-action-card { min-height: 0; gap: 5px; padding: 6px 7px; border-radius: 999px; }
+      .booking-cta.salon-mode-flow .bottom-action-card { width: 100%; margin: 0; min-height: 0; padding: 6px 7px; overflow: visible; }
       .assign-footer-row { gap: 8px; }
-      .booking-summary-metrics { gap: 7px; }
-      .summary-copy strong { font-size: 0.78rem; }
-      .summary-copy small { font-size: 0.64rem; }
-      .summary-total { font-size: 0.82rem; }
-      .booking-cta.salon-mode-flow .booking-summary-metrics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding: 0; text-align: left; }
+      .booking-summary-metrics { gap: 6px; padding-left: 7px; }
+      .summary-copy strong { font-size: 0.76rem; }
+      .summary-copy small { font-size: 0.62rem; }
+      .summary-total { min-height: 28px; padding-inline: 7px; font-size: 0.78rem; }
+      .booking-cta.salon-mode-flow .booking-summary-metrics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding-left: 7px; text-align: left; }
       .booking-cta.salon-mode-flow .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; justify-content: stretch; }
 
-      .booking-cta .bottom-action-card ion-button { min-width: 102px; height: 40px; }
-      .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 88px; min-height: 34px; height: 34px; font-size: 0.72rem; }
+      .booking-cta .bottom-action-card ion-button { min-width: 100px; height: 38px; }
+      .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 88px; min-height: 34px; height: 34px; font-size: 0.7rem; }
 
       .booking-intent-row, .resource-grid, .time-mode-row { grid-template-columns: 1fr; }
       .service-list { gap: 8px; }
