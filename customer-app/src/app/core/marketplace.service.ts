@@ -198,10 +198,23 @@ export class MarketplaceService {
       if (!raw) return null;
       const parsed = JSON.parse(raw) as { expiresAt?: number; value?: T };
       if (!parsed || typeof parsed.expiresAt !== "number" || parsed.value === undefined) return null;
-      if (Date.now() > parsed.expiresAt) {
-        localStorage.removeItem(key);
-        return null;
-      }
+      if (Date.now() > parsed.expiresAt) return null;
+      return parsed.value;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Reads the stored value ignoring TTL, used as an offline fallback when a
+   * revalidation request fails. Returns null when nothing is stored yet.
+   */
+  private readStaleData<T>(key: string): T | null {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { expiresAt?: number; value?: T };
+      if (!parsed || typeof parsed.expiresAt !== "number" || parsed.value === undefined) return null;
       return parsed.value;
     } catch {
       return null;
@@ -231,6 +244,14 @@ export class MarketplaceService {
         this.memCache.set(cacheKey, { expiresAt: Date.now() + ttlMs, value: data });
         this.writeStoredData(cacheKey, data, ttlMs);
         return data;
+      })
+      .catch((error) => {
+        const stale = this.readStaleData<T>(cacheKey);
+        if (stale !== null) {
+          this.memCache.set(cacheKey, { expiresAt: Date.now() + ttlMs, value: stale });
+          return stale;
+        }
+        throw error;
       })
       .finally(() => {
         this.inFlightResponses.delete(cacheKey);
@@ -265,6 +286,13 @@ export class MarketplaceService {
       if (cached !== null) {
         onData?.(cached);
         return cached;
+      }
+      if (this.offline()) {
+        const stale = this.readStaleData<T>(this.cacheKey(name, key));
+        if (stale !== null) {
+          onData?.(stale);
+          return stale;
+        }
       }
     }
     return this.run(fallback, async () => {

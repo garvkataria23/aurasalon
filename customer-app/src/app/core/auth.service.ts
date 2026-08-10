@@ -257,6 +257,13 @@ export class AuthService {
         this.customer.set({ ...cached, isLoggedIn: true });
         return this.customer() as CustomerProfile;
       }
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const stale = this.readStaleProfile();
+        if (stale) {
+          this.customer.set({ ...stale, isLoggedIn: true });
+          return this.customer() as CustomerProfile;
+        }
+      }
     }
     this.loading.set(true);
     this.error.set("");
@@ -266,6 +273,11 @@ export class AuthService {
       this.customer.set({ ...profile, isLoggedIn: true });
       return this.customer() as CustomerProfile;
     } catch (error) {
+      const stale = this.readStaleProfile();
+      if (stale) {
+        this.customer.set({ ...stale, isLoggedIn: true });
+        return this.customer() as CustomerProfile;
+      }
       const message = this.message(error, "Unable to load customer profile");
       this.error.set(message);
       throw error;
@@ -280,11 +292,20 @@ export class AuthService {
       if (!raw) return null;
       const parsed = JSON.parse(raw) as { at?: number; profile?: CustomerProfile };
       if (!parsed || typeof parsed.at !== "number" || !parsed.profile) return null;
-      if (Date.now() - parsed.at > PROFILE_CACHE_TTL_MS) {
-        localStorage.removeItem(PROFILE_CACHE_KEY);
-        return null;
-      }
+      if (Date.now() - parsed.at > PROFILE_CACHE_TTL_MS) return null;
       return parsed.profile;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Offline fallback: returns the stored profile ignoring TTL. */
+  private readStaleProfile(): CustomerProfile | null {
+    try {
+      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { profile?: CustomerProfile };
+      return parsed?.profile ?? null;
     } catch {
       return null;
     }
@@ -571,6 +592,13 @@ export class AuthService {
         this.devices.set(cached);
         return cached;
       }
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const stale = this.readStaleDevices();
+        if (stale) {
+          this.devices.set(stale);
+          return stale;
+        }
+      }
     }
     this.loading.set(true);
     this.error.set("");
@@ -580,6 +608,11 @@ export class AuthService {
       this.devices.set(rows);
       return rows;
     } catch (error) {
+      const stale = this.readStaleDevices();
+      if (stale) {
+        this.devices.set(stale);
+        return stale;
+      }
       this.error.set(this.message(error, "Unable to load active devices"));
       throw error;
     } finally {
@@ -593,11 +626,20 @@ export class AuthService {
       if (!raw) return null;
       const parsed = JSON.parse(raw) as { at?: number; devices?: CustomerDeviceSession[] };
       if (!parsed || typeof parsed.at !== "number" || !Array.isArray(parsed.devices)) return null;
-      if (Date.now() - parsed.at > DEVICES_CACHE_TTL_MS) {
-        localStorage.removeItem(DEVICES_CACHE_KEY);
-        return null;
-      }
+      if (Date.now() - parsed.at > DEVICES_CACHE_TTL_MS) return null;
       return parsed.devices;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Offline fallback: returns the stored devices ignoring TTL. */
+  private readStaleDevices(): CustomerDeviceSession[] | null {
+    try {
+      const raw = localStorage.getItem(DEVICES_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { devices?: CustomerDeviceSession[] };
+      return Array.isArray(parsed?.devices) ? parsed.devices : null;
     } catch {
       return null;
     }
