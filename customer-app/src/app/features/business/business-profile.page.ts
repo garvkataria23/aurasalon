@@ -647,7 +647,20 @@ import { Subscription } from "rxjs";
       padding-bottom: calc(120px + env(safe-area-inset-bottom));
     }
 
-    .profile-page.salon-mode-profile + .sticky-cta {
+    .profile-page.salon-mode-profile + .booking-cta.sticky-cta {
+      bottom: calc(64px + env(safe-area-inset-bottom));
+    }
+
+    .booking-cta {
+      width: min(980px, calc(100% - 24px));
+      margin: 0 auto;
+    }
+
+    .booking-cta.sticky-cta {
+      bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .booking-cta.sticky-cta.salon-mode-flow {
       bottom: calc(64px + env(safe-area-inset-bottom));
     }
 
@@ -2360,8 +2373,13 @@ import { Subscription } from "rxjs";
         bottom: calc(8px + env(safe-area-inset-bottom));
       }
 
-      .profile-page.salon-mode-profile + .sticky-cta {
-        bottom: calc(84px + env(safe-area-inset-bottom));
+      .profile-page.salon-mode-profile + .booking-cta.sticky-cta,
+      .booking-cta.sticky-cta.salon-mode-flow {
+        bottom: calc(64px + env(safe-area-inset-bottom));
+      }
+
+      .booking-cta {
+        width: min(100% - 16px, 980px);
       }
 
       .sticky-cta .bottom-action-card {
