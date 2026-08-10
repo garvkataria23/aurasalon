@@ -680,7 +680,7 @@ import { Subscription } from "rxjs";
     .summary-row small {
       overflow: hidden;
       color: var(--muted);
-      font-size: 0.74rem;
+      font-size: 0.7rem;
       font-weight: 950;
       line-height: 1.1;
       text-overflow: ellipsis;
@@ -2261,7 +2261,7 @@ import { Subscription } from "rxjs";
       }
 
       .summary-row small {
-        font-size: 0.74rem;
+        font-size: 0.7rem;
       }
 
       .summary-row strong {
