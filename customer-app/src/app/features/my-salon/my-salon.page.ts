@@ -749,7 +749,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-choice-badge.is-active { color: white; background: var(--ms-accent); }
 
     /* Salon Hero Card */
-    .ms-hero { position: relative; overflow: hidden; display: grid; gap: 18px; margin-top: 0; padding: 20px 16px; border: 1px solid var(--ms-line); border-radius: 22px; color: var(--ms-ink); background: var(--surface); box-shadow: 0 10px 28px rgba(28,28,28,.06); }
+    .ms-hero { position: relative; overflow: hidden; display: grid; gap: 14px; margin-top: 0; padding: 18px 16px 16px; border: 1px solid var(--ms-line); border-radius: 22px; color: var(--ms-ink); background: var(--surface); box-shadow: 0 10px 28px rgba(28,28,28,.06); }
     .ms-hero::after { display: none; }
     .ms-hero-main { position: relative; z-index: 1; display: grid; grid-template-columns: 62px minmax(0,1fr); align-items: center; gap: 14px; }
     .ms-salon-mark { width: 62px; height: 62px; overflow: hidden; border: 1px solid var(--ms-line); border-radius: 20px; box-shadow: inset 0 1px rgba(255,255,255,.25); }
@@ -767,10 +767,11 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-contact-item.ms-link:hover { color: var(--ms-accent); }
     .ms-contact-item ion-icon { flex: 0 0 16px; margin-top: 2px; color: var(--ms-accent); font-size: 17px; }
     .ms-star-icon { color: #f59e0b !important; }
-    .ms-hero-actions { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .ms-book-button, .ms-profile-button { min-height: 48px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: .86rem; font-weight: 780; text-decoration: none; transition: background-color var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion), transform var(--ms-motion); }
+    .ms-hero-actions { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .ms-book-button, .ms-profile-button { min-height: 44px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: .82rem; font-weight: 820; text-decoration: none; transition: background-color var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion), transform var(--ms-motion); }
     .ms-book-button { color: #fff; background: var(--ms-accent); box-shadow: 0 10px 22px rgba(95,70,207,.22); }
-    .ms-profile-button { border: 1px solid var(--ms-line); color: var(--ms-ink); background: var(--surface); }
+    .ms-profile-button { border: 1px solid rgba(124, 99, 223, .16); color: var(--ms-ink); background: linear-gradient(180deg, #fff, rgba(250, 248, 255, .86)); box-shadow: inset 0 1px rgba(255,255,255,.86), 0 8px 18px rgba(28,28,28,.04); }
+    .ms-profile-button ion-icon { width: 18px; height: 18px; display: grid; place-items: center; margin-right: -4px; color: var(--ms-accent); }
 
     /* Quick Shortcuts Bar */
     .ms-quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; padding: 10px 2px 12px; border-bottom: 1px solid var(--ms-line); overflow: visible; }
@@ -780,16 +781,16 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-quick-actions ion-icon { color: var(--ms-accent); font-size: 21px; }
 
     /* Relationship Snapshot Cards */
-    .ms-relationship { margin-top: 32px; }
+    .ms-relationship { margin-top: 28px; }
     .ms-relationship-label { padding: 6px 12px; border-radius: 999px; color: var(--ms-accent); background: var(--ms-accent-soft); font-size: .74rem; font-weight: 780; text-transform: capitalize; }
-    .ms-snapshot { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 2px; }
-    .ms-snapshot-item { min-width: 0; min-height: 92px; display: grid; align-content: space-between; gap: 4px; padding: 12px; border: 1px solid var(--ms-line); border-radius: 18px; color: inherit; background: var(--ms-ivory); text-decoration: none; transition: transform var(--ms-motion), box-shadow var(--ms-motion), border-color var(--ms-motion); }
-    .ms-snapshot-item:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.05); }
-    .ms-snap-top { display: flex; align-items: center; justify-content: space-between; color: var(--ms-muted); font-size: .66rem; font-weight: 750; letter-spacing: .01em; }
+    .ms-snapshot { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 0; }
+    .ms-snapshot-item { min-width: 0; min-height: 82px; display: grid; align-content: space-between; gap: 3px; padding: 10px 11px; border: 1px solid rgba(124, 99, 223, .12); border-radius: 17px; color: inherit; background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .72)); text-decoration: none; box-shadow: inset 0 1px rgba(255,255,255,.9), 0 6px 16px rgba(28,28,28,.035); transition: transform var(--ms-motion), box-shadow var(--ms-motion), border-color var(--ms-motion), background-color var(--ms-motion); }
+    .ms-snapshot-item:hover { transform: translateY(-2px); border-color: rgba(124, 99, 223, .28); box-shadow: 0 10px 24px rgba(95,70,207,.08); }
+    .ms-snap-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ms-muted); font-size: .62rem; font-weight: 820; letter-spacing: .005em; }
     .ms-snap-top span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ms-snap-top ion-icon { color: var(--ms-accent); font-size: 15px; }
-    .ms-snapshot-item strong { overflow: hidden; font-size: 1.06rem; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
-    .ms-snapshot-item small { color: var(--ms-muted); font-size: .66rem; line-height: 1.22; }
+    .ms-snap-top ion-icon { flex: 0 0 auto; width: 22px; height: 22px; padding: 4px; border-radius: 8px; color: var(--ms-accent); background: rgba(124, 99, 223, .08); font-size: 14px; }
+    .ms-snapshot-item strong { overflow: hidden; font-size: .98rem; letter-spacing: -.03em; line-height: 1.08; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-snapshot-item small { color: var(--ms-muted); font-size: .63rem; line-height: 1.16; }
     .ms-currency { color: var(--ms-accent); }
 
     /* Appointments & Rebooking */
