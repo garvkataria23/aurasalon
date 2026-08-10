@@ -214,26 +214,25 @@ import { Subscription } from "rxjs";
                 <div class="service-stack">
                   @for (service of paginatedServices(); track service.id) {
                     <article
-                      class="salon-service-item"
+                      class="salon-service-item service-card premium-card"
                       [class.is-picked]="isServiceSelected(service.id)"
+                      [class.selected]="isServiceSelected(service.id)"
                       role="button"
                       tabindex="0"
                       (click)="openServicePopup(service.id)"
                       (keydown.enter)="openServicePopup(service.id)">
                       <div class="salon-service-copy">
-                        @if (service.popular) {
-                          <span class="offer-pill">Popular</span>
-                        }
-                        <h3>{{ service.name }}</h3>
-                        <strong>{{ servicePriceLabel(service) }}</strong>
-                        @if (service.description) {
-                          <p class="service-description" [class.expanded]="expandedServiceId() === service.id">{{ service.description }}</p>
-                          @if (isLongDescription(service.description)) {
-                            <button type="button" class="service-more" (click)="$event.stopPropagation(); toggleDescription(service.id)">
-                              {{ expandedServiceId() === service.id ? "Less" : "More" }}
-                            </button>
-                          }
-                        }
+                        <span class="service-title-row">
+                          <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
+                          @if (service.popular) { <span class="offer-pill">Popular</span> }
+                          @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
+                        </span>
+                        <span class="service-price-row">
+                          <strong>{{ money(service.pricePaise) }}</strong>
+                          <span>{{ service.durationMinutes || 0 }} min</span>
+                        </span>
+                        <span class="service-desc">{{ serviceDescription(service) }}</span>
+                        <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
                       </div>
                       <div class="salon-service-action">
                         @if (serviceImage(service, $index)) {
@@ -1445,6 +1444,74 @@ import { Subscription } from "rxjs";
       overflow-wrap: anywhere;
     }
 
+    .service-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .service-name {
+      color: var(--text);
+      font-size: 0.98rem;
+      font-weight: 950;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+
+    .offer-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      font-size: 0.72rem;
+      font-weight: 950;
+    }
+
+    .offer-pill.extended {
+      color: #B45309;
+      background: #FEF3C7;
+    }
+
+    .service-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .service-price-row strong {
+      color: var(--primary);
+      font-size: 0.92rem;
+      font-weight: 950;
+    }
+
+    .service-price-row span {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 850;
+    }
+
+    .service-desc {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .service-eligibility {
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 850;
+    }
+
     .service-description {
       display: -webkit-box;
       margin: 0;
@@ -2530,6 +2597,27 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
 
   servicePriceLabel(service: ServiceItem): string {
     return service.durationMinutes > 0 ? `${this.money(service.pricePaise)} · ${service.durationMinutes} min` : this.money(service.pricePaise);
+  }
+
+  formatServiceName(name: string): string {
+    const trimmed = String(name || "").trim().replace(/[_]+/g, " ");
+    if (!trimmed) return "";
+    return trimmed.split(/\s+/).map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
+  }
+
+  serviceDescription(service: ServiceItem): string {
+    const description = String(service.description || "").trim();
+    if (description) return description;
+    return `${this.formatServiceName(service.category || "Salon")} service · ${service.durationMinutes || 0} min visit`;
+  }
+
+  eligibleStaffLabel(service: ServiceItem): string {
+    const count = this.staffForService(service).length;
+    return count > 0 ? `${count} professional${count === 1 ? "" : "s"} available` : "Any available professional";
+  }
+
+  private staffForService(service: ServiceItem): StaffMember[] {
+    return this.business()?.staff.filter((staff) => !staff.bookableServiceIds?.length || staff.bookableServiceIds.includes(service.id)) ?? [];
   }
 
   initials(name: string): string {
