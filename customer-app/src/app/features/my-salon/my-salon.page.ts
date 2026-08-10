@@ -366,7 +366,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
             </section>
 
             <!-- 7. STAFF MEMBERS & AVAILABILITY -->
-            <section class="ms-section" aria-labelledby="staff-title">
+            <section class="ms-section ms-team-section" aria-labelledby="staff-title">
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Our Professionals</span>
@@ -1179,6 +1179,46 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
         font-weight: 950;
         box-shadow: 0 7px 14px rgba(95,70,207,.18), inset 0 1px rgba(255,255,255,.22);
       }
+
+      .ms-team-section { gap: 10px; margin-top: 24px; }
+      .ms-team-section .ms-section-head > a {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(124, 99, 223, .14);
+        border-radius: 999px;
+        background: rgba(124, 99, 223, .07);
+        font-size: .65rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .ms-team-section .ms-staff-rail {
+        grid-auto-columns: 104px;
+        gap: 7px;
+        margin-inline: -13px;
+        padding: 1px 13px 7px;
+      }
+      .ms-team-section .ms-staff {
+        min-height: 116px;
+        gap: 3px;
+        padding: 9px 7px 8px;
+        border-color: rgba(124, 99, 223, .14);
+        border-radius: 16px;
+        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .76));
+        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 6px 16px rgba(28,28,28,.035);
+      }
+      .ms-team-section .ms-staff-avatar { width: 38px; height: 38px; border-radius: 13px; font-size: .68rem; }
+      .ms-team-section .ms-staff strong { font-size: .66rem; line-height: 1.08; -webkit-line-clamp: 2; }
+      .ms-team-section .ms-staff small { font-size: .52rem; line-height: 1.05; }
+      .ms-team-section .ms-staff-action {
+        max-width: 92px;
+        min-height: 22px;
+        padding: 0 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .5rem;
+        font-weight: 950;
+      }
     }
 
     @media (max-width: 380px) {
@@ -1197,6 +1237,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       .ms-gift-card, .ms-history-item, .ms-invoice-item { gap: 8px; }
       .ms-offer-rail { grid-auto-columns: minmax(236px, 86vw); }
       .ms-staff-rail { grid-auto-columns: 132px; }
+      .ms-team-section .ms-staff-rail { grid-auto-columns: 100px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
