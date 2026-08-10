@@ -2566,7 +2566,7 @@ import { Subscription } from "rxjs";
       transition: bottom 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms ease, box-shadow 160ms ease;
     }
     .category-floating-menu-trigger.has-services {
-      bottom: calc(148px + env(safe-area-inset-bottom));
+      bottom: calc(162px + env(safe-area-inset-bottom));
     }
     .category-floating-menu-trigger ion-icon {
       font-size: 0.82rem;
