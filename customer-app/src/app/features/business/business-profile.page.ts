@@ -324,16 +324,20 @@ import { Subscription } from "rxjs";
                 <div class="staff-grid">
                   @for (staff of b.staff; track staff.id) {
                     <article class="staff-card premium-card">
-                      @if (staff.image) {
-                        <img [src]="staff.image" [alt]="staff.name" />
-                      } @else {
-                        <span class="staff-avatar" [style.background]="staffGradientStyle(staff)" aria-hidden="true">{{ initials(staff.name) }}</span>
-                      }
-                      <strong>{{ staff.name }}</strong>
-                      <span>{{ staff.title }}</span>
-                      <small>{{ staff.rating }} · {{ staff.specialty }}</small>
-                      <em>{{ staff.nextAvailable }}</em>
-                      <ion-button size="small" fill="outline" class="secondary-button" [routerLink]="businessBookLink(b.slug)" [queryParams]="staffBookingParams(staff.id)">Book with {{ staff.name.split(' ')[0] }}</ion-button>
+                      <div class="staff-copy">
+                        <strong>{{ staff.name }}</strong>
+                        <span>{{ staff.title }}</span>
+                        <small>{{ staff.rating }} · {{ staff.specialty }}</small>
+                        <em>{{ staff.nextAvailable }}</em>
+                      </div>
+                      <div class="staff-action">
+                        @if (staff.image) {
+                          <img [src]="staff.image" [alt]="staff.name" />
+                        } @else {
+                          <span class="staff-avatar" [style.background]="staffGradientStyle(staff)" aria-hidden="true">{{ initials(staff.name) }}</span>
+                        }
+                        <ion-button size="small" fill="solid" class="staff-book-button" [routerLink]="businessBookLink(b.slug)" [queryParams]="staffBookingParams(staff.id)">Book with {{ staff.name.split(' ')[0] }}</ion-button>
+                      </div>
                     </article>
                   } @empty {
                     <section class="state-card premium-card"><h2>No staff profiles published yet</h2></section>
@@ -1992,44 +1996,119 @@ import { Subscription } from "rxjs";
       background: var(--primary-soft);
     }
 
-    .staff-card img,
-    .staff-avatar {
-      width: 74px;
-      height: 74px;
-      margin-bottom: 6px;
-      border-radius: 24px;
+    .staff-grid {
+      display: grid;
+      gap: 10px;
     }
 
-    .staff-card img {
+    .staff-card {
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      background: var(--surface);
+      box-shadow: 0 4px 14px rgba(28, 28, 28, 0.04);
+      text-align: left;
+    }
+
+    .staff-copy {
+      flex: 1 1 auto;
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      text-align: left;
+    }
+
+    .staff-copy strong {
+      color: var(--text);
+      font-size: 1.02rem;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      line-height: 1.18;
+      overflow-wrap: anywhere;
+    }
+
+    .staff-copy span,
+    .staff-copy small,
+    .staff-copy em {
+      display: block;
+      overflow: hidden;
+      color: var(--muted);
+      font-style: normal;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .staff-copy span,
+    .staff-copy small {
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .staff-copy em {
+      color: var(--primary-2);
+      font-size: 0.8rem;
+      font-weight: 900;
+    }
+
+    .staff-action {
+      flex: 0 0 100px;
+      width: 100px;
+      display: grid;
+      justify-items: center;
+      gap: 0;
+    }
+
+    .staff-card img,
+    .staff-avatar {
+      width: 100px;
+      height: 84px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
       object-fit: cover;
     }
 
     .staff-avatar {
-      display: grid;
-      place-items: center;
       color: #ffffff;
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 950;
       letter-spacing: -0.03em;
       background: linear-gradient(145deg, var(--brand-600), var(--brand-800));
     }
 
-    .staff-card span,
-    .staff-card small,
-    .staff-card em {
-      color: var(--muted);
-      font-style: normal;
-      line-height: 1.35;
+    .staff-book-button {
+      width: auto;
+      min-width: 96px;
+      height: 34px;
+      min-height: 34px;
+      margin-top: -16px;
+      --background: linear-gradient(135deg, var(--brand-600), var(--primary));
+      --background-activated: var(--primary);
+      --background-focused: var(--primary);
+      --background-hover: var(--primary);
+      --border-radius: 12px;
+      --box-shadow: 0 10px 20px rgba(99, 102, 241, 0.28);
+      --color: #ffffff;
+      --padding-start: 10px;
+      --padding-end: 10px;
+      font-size: 0.68rem;
+      font-weight: 950;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      z-index: 2;
     }
 
-    .staff-card em {
-      color: var(--primary-2);
-      font-weight: 900;
-    }
-
-    .staff-card ion-button {
-      margin-top: 6px;
-      min-height: 44px;
+    .staff-book-button::part(native) {
+      min-height: 34px;
+      padding-inline: 10px;
     }
 
     .review-card {
