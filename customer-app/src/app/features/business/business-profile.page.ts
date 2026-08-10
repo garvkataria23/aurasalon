@@ -691,7 +691,7 @@ import { Subscription } from "rxjs";
     .summary-row strong {
       overflow: hidden;
       color: var(--text);
-      font-size: 0.72rem;
+      font-size: 0.66rem;
       font-weight: 950;
       line-height: 1.15;
       text-overflow: ellipsis;
@@ -2265,7 +2265,7 @@ import { Subscription } from "rxjs";
       }
 
       .summary-row strong {
-        font-size: 0.72rem;
+        font-size: 0.66rem;
       }
 
       .sticky-cta .bottom-action-card ion-button {
