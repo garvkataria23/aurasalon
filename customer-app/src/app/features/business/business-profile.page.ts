@@ -330,7 +330,7 @@ import { Subscription } from "rxjs";
                       <span>{{ staff.title }}</span>
                       <small>{{ staff.rating }} · {{ staff.specialty }}</small>
                       <em>{{ staff.nextAvailable }}</em>
-                      <ion-button size="small" fill="outline" class="secondary-button" [routerLink]="businessBookLink(b.slug)">Book with {{ staff.name.split(' ')[0] }}</ion-button>
+                      <ion-button size="small" fill="outline" class="secondary-button" [routerLink]="businessBookLink(b.slug)" [queryParams]="staffBookingParams(staff.id)">Book with {{ staff.name.split(' ')[0] }}</ion-button>
                     </article>
                   } @empty {
                     <section class="state-card premium-card"><h2>No staff profiles published yet</h2></section>
@@ -2592,6 +2592,10 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
 
   setServiceNote(serviceId: string, note: string) {
     this.serviceNotes.update((notes) => ({ ...notes, [serviceId]: note }));
+  }
+
+  staffBookingParams(staffId: string): { staffId: string } {
+    return { staffId };
   }
 
   bookingQueryParams(): { serviceIds?: string; serviceId?: string; step: number } {

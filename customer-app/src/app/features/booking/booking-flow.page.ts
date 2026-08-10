@@ -1821,6 +1821,7 @@ export class BookingFlowPage implements OnInit, OnDestroy {
 
 readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (this.initialServiceIds().length ? 2 : 1)));
   private readonly initialSlotStartAt = this.route.snapshot.queryParamMap.get("slotStartAt") ?? "";
+  private readonly initialStaffId = this.route.snapshot.queryParamMap.get("staffId") ?? "";
   private readonly initialDate = this.initialBookingDate();
   private readonly initialEditableSlotStartAt = this.initialEditableSlot();
   private readonly currentAppointmentStartAt = this.initialSlotStartAt;
@@ -2199,11 +2200,23 @@ async reload() {
     const removing = this.bookingItems().some((item) => item.serviceId === serviceId);
     this.bookingItems.update((items) => {
       if (removing) return items.filter((item) => item.serviceId !== serviceId);
-      return [...items, { serviceId, staffId: null, date: "", slotStartAt: "" }];
+      return [...items, this.newItemFor(serviceId)];
     });
     if (this.activeItemIndex() >= this.bookingItems().length) this.activeItemIndex.set(Math.max(this.bookingItems().length - 1, 0));
     if (removing) this.reconcileInvalidSelections();
     void this.reloadAvailability();
+  }
+
+  private newItemFor(serviceId: string): BookingFlowItem {
+    const staffId = this.canStaffBook(this.initialStaffId, serviceId) ? this.initialStaffId : null;
+    return { serviceId, staffId, date: "", slotStartAt: "" };
+  }
+
+  private canStaffBook(staffId: string, serviceId: string): boolean {
+    if (!staffId) return false;
+    const staff = this.business()?.staff.find((s) => s.id === staffId);
+    if (!staff) return false;
+    return !staff.bookableServiceIds?.length || staff.bookableServiceIds.includes(serviceId);
   }
 
   private reconcileInvalidSelections(): void {
