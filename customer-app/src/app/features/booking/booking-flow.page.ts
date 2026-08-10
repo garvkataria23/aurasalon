@@ -2217,19 +2217,30 @@ async reload() {
 
   toggleService(serviceId: string) {
     const removing = this.bookingItems().some((item) => item.serviceId === serviceId);
+    const intentStaffId = this.currentIntentStaffId();
+    const shouldSkipStaffStep = !removing && !!intentStaffId && this.canStaffBook(intentStaffId, serviceId);
     this.bookingItems.update((items) => {
       if (removing) return items.filter((item) => item.serviceId !== serviceId);
       return [...items, this.newItemFor(serviceId)];
     });
     if (this.activeItemIndex() >= this.bookingItems().length) this.activeItemIndex.set(Math.max(this.bookingItems().length - 1, 0));
     if (removing) this.reconcileInvalidSelections();
+    if (shouldSkipStaffStep) {
+      this.activeItemIndex.set(Math.max(this.bookingItems().length - 1, 0));
+      this.step.set(3);
+    }
     this.syncBookingDraft();
     void this.reloadAvailability();
   }
 
   private newItemFor(serviceId: string): BookingFlowItem {
-    const staffId = this.canStaffBook(this.initialStaffId, serviceId) ? this.initialStaffId : null;
+    const staffIntentId = this.currentIntentStaffId();
+    const staffId = this.canStaffBook(staffIntentId, serviceId) ? staffIntentId : null;
     return { serviceId, staffId, date: "", slotStartAt: "" };
+  }
+
+  private currentIntentStaffId(): string {
+    return this.route.snapshot.queryParamMap.get("staffId") ?? "";
   }
 
   /** Keep the shared Salon/Book booking state in sync with this flow's items. */
