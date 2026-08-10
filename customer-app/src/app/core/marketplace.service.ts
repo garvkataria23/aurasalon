@@ -113,6 +113,12 @@ export class MarketplaceService {
     }
     this.hydrateBusinessesCache();
     this.initOfflineTracking();
+    this.listenForSessionChanges();
+  }
+
+  private listenForSessionChanges(): void {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+    window.addEventListener("aura-session-expired", () => this.clearAllCached());
   }
 
   private initOfflineTracking(): void {
@@ -181,7 +187,10 @@ export class MarketplaceService {
     try {
       const tid = localStorage.getItem("tenantId");
       const bid = localStorage.getItem("branchId");
-      return tid && bid ? { tid, bid } : null;
+      if (tid && bid) return { tid, bid };
+      const context = this.salonModeContext();
+      if (context?.tenantId && context.branchId) return { tid: context.tenantId, bid: context.branchId };
+      return null;
     } catch {
       return null;
     }
@@ -304,6 +313,10 @@ export class MarketplaceService {
 
   clearAllCached(): void {
     this.memCache.clear();
+    this.favoritesLoaded = false;
+    this.savedSalonsLoaded = false;
+    this.favorites.set([]);
+    this.savedSalons.set([]);
     try {
       Object.keys(localStorage)
         .filter((storedKey) => storedKey.startsWith(MarketplaceService.DATA_CACHE_PREFIX))
@@ -363,25 +376,27 @@ export class MarketplaceService {
 
   async loadPublicBusinesses(params: SearchBusinessesParams = {}, force = false): Promise<Business[]> {
     const key = this.businessListKey(params);
+    const isDefault = Object.keys(params).length === 0;
+    const requestId = ++this.businessesRequestCounter;
     return this.cachedLoad("public-businesses", key, MarketplaceService.PUBLIC_BUSINESSES_CACHE_TTL_MS, "Unable to load businesses", force, async () => {
-      const requestId = ++this.businessesRequestCounter;
       const rows = (await firstValueFrom(this.api.listPublicBusinesses(params))).map((business) => this.normalizeBusiness(business));
-      if (requestId !== this.businessesRequestCounter) return this.businesses();
       return rows;
     }, (rows) => {
+      if (requestId !== this.businessesRequestCounter) return;
       this.setBusinesses(rows);
-      if (Object.keys(params).length === 0) this.publicBusinessesLoadedAt = Date.now();
+      if (isDefault) this.publicBusinessesLoadedAt = Date.now();
     });
   }
 
   async searchBusinesses(params: SearchBusinessesParams = {}, force = false): Promise<Business[]> {
     const key = this.businessListKey(params);
+    const requestId = ++this.businessesRequestCounter;
     return this.cachedLoad("search", key, this.BUSINESS_CACHE_TTL_MS, "Search service is unavailable. Please try again.", force, async () => {
-      const requestId = ++this.businessesRequestCounter;
       const rows = (await firstValueFrom(this.api.searchPublicBusinesses(params))).map((business) => this.normalizeBusiness(business));
-      if (requestId !== this.businessesRequestCounter) return this.businesses();
-      this.setBusinesses(rows);
       return rows;
+    }, (rows) => {
+      if (requestId !== this.businessesRequestCounter) return;
+      this.setBusinesses(rows);
     });
   }
 
@@ -517,7 +532,9 @@ export class MarketplaceService {
   }
 
   async verifyOtp(phone: string, otp: string) {
-    return this.auth.verifyOtp(phone, otp);
+    const session = await this.auth.verifyOtp(phone, otp);
+    this.clearAllCached();
+    return session;
   }
 
   async logout() {
@@ -702,7 +719,7 @@ export class MarketplaceService {
     return this.run("Unable to buy membership", async () => {
       const result = await firstValueFrom(this.api.buyMembership(planId, branchId));
       this.mergeAccountList("memberships", result.membership);
-      this.clearCached("account-module", "memberships");
+      this.clearCached("account-module");
       return result.membership;
     });
   }
@@ -769,7 +786,7 @@ export class MarketplaceService {
     return this.run("Unable to purchase gift card", async () => {
       const giftCard = await firstValueFrom(this.api.purchaseGiftCard(payload));
       this.mergeAccountList("gift-cards", giftCard);
-      this.clearCached("account-module", "gift-cards");
+      this.clearCached("account-module");
       return giftCard;
     });
   }
@@ -777,9 +794,7 @@ export class MarketplaceService {
   async redeemGiftCard(payload: RedeemGiftCardPayload): Promise<RedeemGiftCardResponse> {
     return this.run("Unable to redeem gift card", async () => {
       const result = await firstValueFrom(this.api.redeemGiftCard(payload));
-      this.clearCached("account-module", "gift-cards");
-      this.clearCached("account-module", "invoices");
-      this.clearCached("account-module", "payments");
+      this.clearCached("account-module");
       return result;
     });
   }
