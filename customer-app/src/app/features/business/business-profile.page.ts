@@ -112,8 +112,8 @@ import { Subscription } from "rxjs";
                   <strong>{{ locationSummary() }}</strong>
                 </span>
                 <span class="hero-meta-item">
-                  <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-                  <strong>{{ bookingStatusLabel() }}</strong>
+                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                  <strong>{{ todayHoursLabel() }}</strong>
                 </span>
               </div>
 
@@ -2561,9 +2561,49 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
     return b.area || b.city || b.address || "Location";
   }
 
-  bookingStatusLabel(): string {
-    const modes = this.business()?.paymentModes ?? [];
-    return modes.includes("online") ? "Online booking" : "Call to book";
+  todayHoursLabel(): string {
+    const b = this.business();
+    if (!b) return "Hours today";
+    const today = this.todayBusinessHour();
+    if (today) {
+      if (!today.open) return today.note || "Closed today";
+      const open = this.timeOfDayLabel(today.opensAt);
+      const close = this.timeOfDayLabel(today.closesAt);
+      return open && close ? `${open}–${close}` : today.display || "Open today";
+    }
+    const open = this.timeOfDayLabel(b.openingTime);
+    const close = this.timeOfDayLabel(b.closingTime);
+    if (open && close) return `${open}–${close}`;
+    return b.hoursLabel || "Hours today";
+  }
+
+  private todayBusinessHour() {
+    const rows = this.business()?.businessHours ?? [];
+    if (!rows.length) return null;
+    const dayKeys = this.currentIstDayKeys();
+    return rows.find((row) => {
+      const day = String(row.day || "").trim().toLowerCase();
+      const label = String(row.label || "").trim().toLowerCase();
+      return dayKeys.includes(day) || dayKeys.includes(label);
+    }) ?? null;
+  }
+
+  private currentIstDayKeys(): string[] {
+    const now = new Date();
+    const long = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(now).toLowerCase();
+    const short = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Kolkata" }).format(now).toLowerCase();
+    const index = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].indexOf(short);
+    return [long, short, short.slice(0, 3), String(index), String(index + 1)].filter(Boolean);
+  }
+
+  private timeOfDayLabel(value?: string): string {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const match = raw.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return raw;
+    const date = new Date();
+    date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+    return new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", hour12: true }).format(date).replace(":00", "");
   }
 
   coverGradientStyle(): string {
