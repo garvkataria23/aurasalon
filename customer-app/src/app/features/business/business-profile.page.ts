@@ -506,16 +506,23 @@ import { Subscription } from "rxjs";
       @if (selectedServices().length) {
       <div class="sticky-cta mobile-only">
         <div class="bottom-action-card">
-          <div>
-            @if (selectedServices().length) {
-              <small class="selected-service-name">{{ selectedServices().length }} service{{ selectedServices().length === 1 ? "" : "s" }} selected</small>
-              <strong>{{ selectedServicesLabel() }}</strong>
-            } @else {
-              <small>From {{ money(b.startingPricePaise || 0) }}</small>
-              <strong>{{ b.nextAvailableSlot || "Check availability" }}</strong>
-            }
+          <div class="assign-footer-row">
+            <div class="booking-summary-metrics" aria-label="Selected services summary">
+              <span class="summary-row">
+                <small>Services</small>
+                <strong>{{ selectedServicesCountLabel() }}</strong>
+              </span>
+              <span class="summary-row">
+                <small>Duration</small>
+                <strong>{{ selectedServicesDurationLabel() }}</strong>
+              </span>
+              <span class="summary-row summary-total">
+                <small>Total</small>
+                <strong>{{ selectedServicesTotalLabel() }}</strong>
+              </span>
+            </div>
+            <ion-button class="primary-gradient" [routerLink]="businessBookLink(b.slug || b.id)" [queryParams]="bookingQueryParams()">Continue</ion-button>
           </div>
-          <ion-button class="primary-gradient" [routerLink]="businessBookLink(b.slug || b.id)" [queryParams]="bookingQueryParams()">Book now</ion-button>
         </div>
       </div>
       }
@@ -628,6 +635,77 @@ import { Subscription } from "rxjs";
 
     .profile-page.salon-mode-profile + .sticky-cta {
       bottom: calc(64px + env(safe-area-inset-bottom));
+    }
+
+    .sticky-cta .bottom-action-card {
+      width: fit-content;
+      margin: 0 auto;
+      min-height: 0;
+      display: grid;
+      align-items: center;
+      padding: 2px 12px;
+      overflow: visible;
+    }
+
+    .assign-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .booking-summary-metrics {
+      min-width: 0;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .summary-row {
+      flex: none;
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+      text-align: center;
+    }
+
+    .summary-row small {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 950;
+      line-height: 1.1;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .summary-row strong {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 0.55rem;
+      font-weight: 950;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .summary-row.summary-total strong {
+      color: var(--primary);
+    }
+
+    .sticky-cta .bottom-action-card ion-button {
+      min-width: 72px;
+      min-height: 24px;
+      height: 24px;
+      margin: 0;
+      font-size: 0.7rem;
     }
 
     .cover {
@@ -2621,6 +2699,21 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
     const total = services.reduce((sum, service) => sum + service.pricePaise, 0);
     const minutes = services.reduce((sum, service) => sum + service.durationMinutes, 0);
     return minutes > 0 ? `${this.money(total)} · ${minutes} min` : this.money(total);
+  }
+
+  selectedServicesCountLabel(): string {
+    const count = this.selectedServices().length;
+    return `${count} service${count === 1 ? "" : "s"}`;
+  }
+
+  selectedServicesDurationLabel(): string {
+    const minutes = this.selectedServices().reduce((sum, service) => sum + service.durationMinutes, 0);
+    return `${minutes || 0} min`;
+  }
+
+  selectedServicesTotalLabel(): string {
+    const total = this.selectedServices().reduce((sum, service) => sum + service.pricePaise, 0);
+    return this.money(total);
   }
 
   servicePriceLabel(service: ServiceItem): string {
