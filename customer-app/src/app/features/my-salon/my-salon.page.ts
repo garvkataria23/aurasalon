@@ -1005,6 +1005,58 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       }
     }
 
+    @media (max-width: 699px) {
+      .ms-hero {
+        gap: 11px;
+        padding: 13px;
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at 8% 8%, rgba(124, 99, 223, .12), transparent 34%),
+          linear-gradient(145deg, #ffffff 0%, rgba(250, 248, 255, .94) 100%);
+        box-shadow: 0 10px 24px rgba(28,28,28,.055);
+      }
+      .ms-hero-main { grid-template-columns: 48px minmax(0,1fr); gap: 11px; }
+      .ms-salon-mark { width: 48px; height: 48px; border-radius: 16px; font-size: .84rem; }
+      .ms-hero-copy { gap: 2px; }
+      .ms-hero .ms-kicker { font-size: .62rem; font-weight: 850; line-height: 1.1; }
+      .ms-hero h1 { font-size: clamp(1.35rem, 7vw, 1.58rem); line-height: .98; }
+      .ms-status-line { gap: 7px; margin-top: 1px; font-size: .66rem; line-height: 1.15; }
+      .ms-dot { width: 7px; height: 7px; box-shadow: 0 0 0 2px rgba(244,63,94,.18); }
+      .ms-status.is-open .ms-dot { box-shadow: 0 0 0 2px rgba(16,185,129,.22); }
+      .ms-hours-chip { font-size: .65rem; }
+      .ms-hours-chip ion-icon { font-size: .78rem; }
+      .ms-contact-list { display: none; }
+      .ms-hero-actions { gap: 0; }
+      .ms-profile-button {
+        min-height: 40px;
+        padding-inline: 14px;
+        border-color: rgba(124, 99, 223, .2);
+        font-size: .76rem;
+        font-weight: 900;
+        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 6px 14px rgba(95,70,207,.055);
+      }
+
+      .ms-relationship { gap: 10px; margin-top: 22px; }
+      .ms-section-head { align-items: flex-start; }
+      .ms-section-head > div { gap: 2px; }
+      .ms-section-head h2 { font-size: clamp(1.18rem, 5.4vw, 1.38rem); line-height: 1.02; }
+      .ms-section-head .ms-kicker { font-size: .62rem; font-weight: 900; }
+      .ms-relationship-label { min-height: 24px; padding: 5px 9px; font-size: .62rem; }
+      .ms-snapshot { gap: 7px; }
+      .ms-snapshot-item {
+        min-height: 74px;
+        gap: 2px;
+        padding: 9px 10px;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #ffffff, rgba(248, 246, 255, .78));
+        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 5px 14px rgba(28,28,28,.035);
+      }
+      .ms-snap-top { gap: 6px; font-size: .57rem; font-weight: 900; line-height: 1.05; }
+      .ms-snap-top ion-icon { width: 20px; height: 20px; padding: 4px; border-radius: 7px; font-size: 13px; }
+      .ms-snapshot-item strong { font-size: .9rem; line-height: 1.02; }
+      .ms-snapshot-item small { display: -webkit-box; overflow: hidden; font-size: .58rem; line-height: 1.18; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    }
+
     @media (max-width: 380px) {
       .ms-page { padding-inline: 12px; }
       .ms-cat-pills { margin-inline: -12px; padding-inline: 12px; }
