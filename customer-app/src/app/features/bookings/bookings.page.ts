@@ -789,14 +789,14 @@ export class BookingsPage implements OnDestroy, OnInit {
   ngOnInit() {
     this.tab.set(this.readSavedTab());
     this.ensureTab("upcoming");
-    this.ensureTab("past");
+    this.ensureTab("past", this.historyMode());
     this.ensureTab("cancelled");
     this.scheduleMidnightRefresh();
   }
 
   ionViewWillEnter() {
     this.tab.set(this.readSavedTab());
-    this.ensureTab(this.tab());
+    this.ensureTab(this.tab(), this.historyMode());
     window.setTimeout(() => this.restoreScrollPosition(), 80);
   }
 

@@ -287,7 +287,7 @@ export class MarketplaceService {
   }
 
   async loadBookings(status?: "upcoming" | "past" | "cancelled", force = false): Promise<Booking[]> {
-    const key = status ?? "all";
+    const key = this.bookingsCacheKey(status);
     const cached = this.bookingsCacheStore.get(key);
     if (!force && cached && cached.at > Date.now() - this.BOOKINGS_CACHE_TTL_MS) {
       return cached.rows;
@@ -298,6 +298,12 @@ export class MarketplaceService {
       this.bookings.set(rows);
       return rows;
     });
+  }
+
+  private bookingsCacheKey(status?: "upcoming" | "past" | "cancelled"): string {
+    const context = this.salonModeContext();
+    const prefix = context?.tenantId && context.branchId ? `${context.tenantId}:${context.branchId}` : "global";
+    return `${prefix}:${status ?? "all"}`;
   }
 
   async loadBooking(id: string): Promise<Booking> {
