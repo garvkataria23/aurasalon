@@ -9,6 +9,7 @@ import {
   bookmarkOutline,
   cardOutline,
   checkmarkCircleOutline,
+  chevronDownOutline,
   clipboardOutline,
   closeCircleOutline,
   heart,
@@ -212,50 +213,63 @@ import { Subscription } from "rxjs";
                 </div>
 
                 <div class="service-stack">
-                  @for (service of paginatedServices(); track service.id) {
-                    <article
-                      class="salon-service-item service-card premium-card"
-                      [class.is-picked]="isServiceSelected(service.id)"
-                      [class.selected]="isServiceSelected(service.id)"
-                      role="button"
-                      tabindex="0"
-                      (click)="openServicePopup(service.id)"
-                      (keydown.enter)="openServicePopup(service.id)">
-                      <div class="salon-service-copy">
-                        <span class="service-title-row">
-                          <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
-                          @if (service.popular) { <span class="offer-pill">Popular</span> }
-                          @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
-                        </span>
-                        <span class="service-price-row">
-                          <strong>{{ money(service.pricePaise) }}</strong>
-                          <span>{{ service.durationMinutes || 0 }} min</span>
-                        </span>
-                        <span class="service-desc">{{ serviceDescription(service) }}</span>
-                        <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
-                      </div>
-                      <div class="salon-service-action">
-                        @if (serviceImage(service, $index)) {
-                          <div class="salon-service-thumb" [style.background-image]="serviceImageBackground(service, $index)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
-                        } @else {
-                          <div class="salon-service-thumb salon-service-thumb--letter" role="img" [attr.aria-label]="service.name">
-                            <span aria-hidden="true">{{ serviceInitial(service.name) }}</span>
-                          </div>
-                        }
-                        <button
-                          type="button"
-                          class="salon-service-add"
-                          [class.selected]="isServiceSelected(service.id)"
-                          [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
-                          (click)="$event.stopPropagation(); openServicePopup(service.id)">
-                          @if (isServiceSelected(service.id)) {
-                            <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
-                          } @else {
-                            Add
+                  @for (group of serviceGroups(); track group.label) {
+                    <section class="service-group" [class.collapsed]="groupCollapsed(group.label)">
+                      <button type="button" class="group-header" (click)="toggleGroup(group.label)" [attr.aria-expanded]="!groupCollapsed(group.label)">
+                        <span class="group-title">{{ group.label }}</span>
+                        <span class="group-count">{{ group.services.length }}</span>
+                        <ion-icon name="chevron-down-outline" aria-hidden="true"></ion-icon>
+                      </button>
+                      @if (!groupCollapsed(group.label)) {
+                        <div class="service-list">
+                          @for (service of group.services; track service.id) {
+                            <article
+                              class="salon-service-item service-card premium-card"
+                              [class.is-picked]="isServiceSelected(service.id)"
+                              [class.selected]="isServiceSelected(service.id)"
+                              role="button"
+                              tabindex="0"
+                              (click)="selectService(service.id)"
+                              (keydown.enter)="selectService(service.id)">
+                              <div class="salon-service-copy">
+                                <span class="service-title-row">
+                                  <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
+                                  @if (service.popular) { <span class="offer-pill">Recommended</span> }
+                                  @if (service.durationMinutes >= 120) { <span class="offer-pill extended">Extended visit</span> }
+                                </span>
+                                <span class="service-price-row">
+                                  <strong>{{ money(service.pricePaise) }}</strong>
+                                  <span>{{ service.durationMinutes || 0 }} min</span>
+                                </span>
+                                <span class="service-desc">{{ serviceDescription(service) }}</span>
+                                <span class="service-eligibility">{{ eligibleStaffLabel(service) }}</span>
+                              </div>
+                              <div class="salon-service-action">
+                                @if (serviceImage(service, $index)) {
+                                  <div class="salon-service-thumb" [style.background-image]="serviceImageBackground(service, $index)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
+                                } @else {
+                                  <div class="salon-service-thumb salon-service-thumb--letter" role="img" [attr.aria-label]="service.name">
+                                    <span aria-hidden="true">{{ serviceInitial(service.name) }}</span>
+                                  </div>
+                                }
+                                <button
+                                  type="button"
+                                  class="salon-service-add"
+                                  [class.selected]="isServiceSelected(service.id)"
+                                  [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
+                                  (click)="$event.stopPropagation(); selectService(service.id)">
+                                  @if (isServiceSelected(service.id)) {
+                                    <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
+                                  } @else {
+                                    Add
+                                  }
+                                </button>
+                              </div>
+                            </article>
                           }
-                        </button>
-                      </div>
-                    </article>
+                        </div>
+                      }
+                    </section>
                   } @empty {
                     <section class="state-card premium-card service-empty-card">
                       <div class="empty-icon"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
@@ -266,9 +280,9 @@ import { Subscription } from "rxjs";
                   }
                 </div>
 
-                @if (paginatedServices().length < filteredServices().length) {
+                @if (visibleServices().length < filteredServices().length) {
                   <button type="button" class="show-more-btn" (click)="showMoreServices()">
-                    Show more services · {{ filteredServices().length - paginatedServices().length }} more
+                    Show more services · {{ filteredServices().length - visibleServices().length }} more
                   </button>
                 }
               </section>
@@ -874,6 +888,64 @@ import { Subscription } from "rxjs";
     .service-stack {
       min-width: 0;
       max-width: 100%;
+    }
+
+    .service-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .service-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .group-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 2px;
+      border: 0;
+      color: var(--text);
+      background: transparent;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .group-title {
+      font-size: 0.84rem;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .group-count {
+      min-width: 22px;
+      min-height: 22px;
+      display: grid;
+      place-items: center;
+      padding: 0 6px;
+      border-radius: 999px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      font-size: 0.80rem;
+      font-weight: 950;
+    }
+
+    .group-header ion-icon {
+      color: var(--muted);
+      font-size: 1rem;
+      transition: transform 180ms ease;
+    }
+
+    .service-group.collapsed .group-header ion-icon {
+      transform: rotate(-90deg);
+    }
+
+    .service-list {
+      display: grid;
+      gap: 10px;
     }
 
     .services-section {
@@ -2602,6 +2674,7 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   readonly selectedCategory = signal<string>("");
   readonly visibleServiceLimit = signal(12);
   readonly categoryMenuOpen = signal<boolean>(false);
+  readonly collapsedGroups = signal<Record<string, boolean>>({});
   readonly activeProfileTab = signal<"services" | "team" | "reviews" | "about">("services");
 
   toggleCategoryMenu(): void {
@@ -2693,6 +2766,25 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
     return services.slice(0, limit);
   });
 
+  readonly visibleServices = computed(() => this.paginatedServices());
+
+  readonly serviceGroups = computed(() => {
+    const groups = new Map<string, ServiceItem[]>();
+    for (const service of this.visibleServices()) {
+      const label = this.categoryLabel(service.category || "Other") || "Other";
+      groups.set(label, [...(groups.get(label) ?? []), service]);
+    }
+    return Array.from(groups.entries()).map(([label, services]) => ({ label, services }));
+  });
+
+  groupCollapsed(label: string): boolean {
+    return !!this.collapsedGroups()[label];
+  }
+
+  toggleGroup(label: string): void {
+    this.collapsedGroups.update((groups) => ({ ...groups, [label]: !groups[label] }));
+  }
+
   clearServiceFilters() {
     this.serviceQuery.set("");
     this.selectedCategory.set("");
@@ -2734,6 +2826,7 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       bookmarkOutline,
       cardOutline,
       checkmarkCircleOutline,
+      chevronDownOutline,
       clipboardOutline,
       closeCircleOutline,
       heart,
