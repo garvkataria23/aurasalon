@@ -488,9 +488,10 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                 <a [routerLink]="scopedLink('bookings')" [queryParams]="{ tab: 'past', view: 'history' }">Full History</a>
               </div>
 
-              @if (d.recentBookings.length) {
-                <div class="ms-history-list">
-                  @for (booking of d.recentBookings.slice(0, 3); track booking.id) {
+              @if (visitHistory(d); as visits) {
+                @if (visits.length) {
+                  <div class="ms-history-list">
+                    @for (booking of visits; track booking.id) {
                     <a [routerLink]="scopedLink('invoices')" [queryParams]="historyInvoiceParams(booking)" class="ms-history-item">
                       <span class="ms-history-date">{{ formatDate(booking.startAt) }}</span>
                       <div class="ms-history-copy">
@@ -502,8 +503,13 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                       }
                       <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
                     </a>
-                  }
-                </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="ms-empty-line">
+                    <span>Your visit history at this salon will appear here after your first appointment.</span>
+                  </div>
+                }
               } @else {
                 <div class="ms-empty-line">
                   <span>Your visit history at this salon will appear here after your first appointment.</span>
@@ -1240,6 +1246,12 @@ export class MySalonPage implements OnInit {
 
   historyInvoiceParams(booking: MySalonDashboard["recentBookings"][number]): { invoiceId: string } | null {
     return booking.invoiceId ? { invoiceId: booking.invoiceId } : null;
+  }
+
+  visitHistory(dashboard: MySalonDashboard): MySalonDashboard["recentBookings"] {
+    return dashboard.recentBookings
+      .filter((booking) => ["completed", "billed", "paid", "no_show", "no-show"].includes(String(booking.status || "").toLowerCase()))
+      .slice(0, 3);
   }
 
   salonBookLink(salon: MySalonDashboard["salon"]): string {
