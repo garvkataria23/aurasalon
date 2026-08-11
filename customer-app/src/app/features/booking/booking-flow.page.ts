@@ -2519,6 +2519,7 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   }
 
   private reloadedOnce = false;
+  private detailPopupOpenedForServiceId = "";
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
     addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, createOutline, documentTextOutline, flashOutline, listOutline, locationOutline, personOutline, ribbonOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
@@ -2582,12 +2583,9 @@ async reload() {
       this.step.set(1);
     }
     const detailServiceId = this.route.snapshot.queryParamMap.get("detailServiceId");
-    if (detailServiceId && this.serviceById(detailServiceId)) {
+    if (detailServiceId && detailServiceId !== this.detailPopupOpenedForServiceId && this.serviceById(detailServiceId)) {
       this.activeCustomizationServiceId.set(detailServiceId);
-      void this.router.navigate([], {
-        replaceUrl: true,
-        queryParams: { ...this.route.snapshot.queryParams, detailServiceId: undefined }
-      });
+      this.detailPopupOpenedForServiceId = detailServiceId;
     }
     this.syncBookingDraft();
     await this.reloadAvailability();
