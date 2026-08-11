@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, signal } from "@angular/core";
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
@@ -408,7 +408,7 @@ type BookingFlowItem = {
                   </button>
                 </div>
 
-                <div class="date-row seven-days-grid" (touchstart)="onDateRowTouchStart($event)" (touchend)="onDateRowTouchEnd($event)" (touchcancel)="onDateRowTouchEnd($event)" (pointerdown)="onDateRowPointerStart($event)" (pointerup)="onDateRowPointerEnd($event)" (pointercancel)="onDateRowPointerEnd($event)">
+                <div #dateRow class="date-row seven-days-grid" (scroll)="syncDateOffsetFromScroll($event)">
                   @if (marketplace.loading() && !availabilityDays().length) {
                     @for (item of [1, 2, 3, 4, 5, 6, 7]; track item) {
                       <div class="date-card skeleton-date" aria-hidden="true">
@@ -418,7 +418,7 @@ type BookingFlowItem = {
                       </div>
                     }
                   } @else {
-                    @for (date of visibleAvailabilityDays(); track date.date) {
+                    @for (date of availabilityDays(); track date.date) {
 <button
                         class="date-card"
                         [class.selected]="getActiveItemDate() === date.date"
@@ -1626,8 +1626,10 @@ type BookingFlowItem = {
     .month-nav-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: var(--surface); font-size: 1rem; cursor: pointer; }
     .month-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     
-    .date-row.seven-days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; overflow: visible; touch-action: pan-y; user-select: none; }
+    .date-row.seven-days-grid { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; touch-action: pan-x pan-y; user-select: none; -webkit-overflow-scrolling: touch; }
+    .date-row.seven-days-grid::-webkit-scrollbar { display: none; }
     .date-card { position: relative; display: grid; grid-template-rows: 8px 16px 16px 16px auto; gap: 0; justify-items: center; align-content: center; min-height: 74px; padding: 7px 3px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font-weight: 900; text-align: center; cursor: pointer; }
+    .date-row.seven-days-grid .date-card { flex: 0 0 calc((100% - 36px) / 7); scroll-snap-align: start; }
     .date-card strong { font-size: 0.82rem; line-height: 16px; }
     .date-card span { color: var(--muted); line-height: 16px; }
     .date-card .date-number { color: var(--text); font-size: 0.84rem; font-weight: 950; }
@@ -1770,7 +1772,8 @@ type BookingFlowItem = {
       .service-assign-body { padding: 2px 12px 12px; }
       .best-available-card { gap: 10px; padding: 12px; }
       .best-available-state { padding: 0 10px; font-size: 0.80rem; }
-      .date-row.seven-days-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; overflow: visible; }
+      .date-row.seven-days-grid { gap: 5px; overflow-x: auto; overflow-y: hidden; }
+      .date-row.seven-days-grid .date-card { flex-basis: calc((100% - 30px) / 7); }
       .date-row.seven-days-grid .date-card { min-height: 68px; padding: 6px 2px; border-radius: 12px; grid-template-rows: 8px 15px 15px 15px auto; }
       .date-row.seven-days-grid .date-card strong { font-size: 0.80rem; line-height: 15px; }
       .date-row.seven-days-grid .date-card span { line-height: 15px; }
@@ -2146,6 +2149,8 @@ type BookingFlowItem = {
   `]
 })
 export class BookingFlowPage implements OnInit, OnDestroy {
+  @ViewChild("dateRow") private dateRow?: ElementRef<HTMLElement>;
+
   readonly customerNote = signal("");
   readonly activeCustomizationServiceId = signal<string>("");
   readonly activeCustomizationService = computed(() => {
@@ -3387,46 +3392,40 @@ async reload() {
     return this.dateOffset() < Math.max(0, this.availabilityDays().length - 7);
   }
 
-  private dateRowTouchX = 0;
-  private dateRowTouchY = 0;
-  private dateRowPointerX = 0;
-  private dateRowPointerY = 0;
-  private lastDateRowSwipeAt = 0;
-
-  onDateRowTouchStart(event: TouchEvent) {
-    this.dateRowTouchX = event.touches[0]?.clientX ?? 0;
-    this.dateRowTouchY = event.touches[0]?.clientY ?? 0;
-  }
-
-  onDateRowTouchEnd(event: TouchEvent) {
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-    this.handleDateRowSwipe(this.dateRowTouchX, this.dateRowTouchY, touch.clientX, touch.clientY);
-  }
-
-  onDateRowPointerStart(event: PointerEvent) {
-    this.dateRowPointerX = event.clientX;
-    this.dateRowPointerY = event.clientY;
-  }
-
-  onDateRowPointerEnd(event: PointerEvent) {
-    this.handleDateRowSwipe(this.dateRowPointerX, this.dateRowPointerY, event.clientX, event.clientY);
-  }
-
-  private handleDateRowSwipe(startX: number, startY: number, endX: number, endY: number) {
-    const now = Date.now();
-    if (now - this.lastDateRowSwipeAt < 240) return;
-    const dx = endX - startX;
-    const dy = endY - startY;
-    if (Math.abs(dx) < 48 || Math.abs(dy) > Math.abs(dx)) return;
-    this.lastDateRowSwipeAt = now;
-    const steps = Math.min(7, Math.max(1, Math.round(Math.abs(dx) / 44)));
-    this.shiftDateWindow(dx < 0 ? steps : -steps);
-  }
-
   private shiftDateWindow(days: number) {
     const maxOffset = Math.max(0, this.availabilityDays().length - 7);
-    this.dateOffset.update((curr) => Math.min(maxOffset, Math.max(0, curr + days)));
+    const next = Math.min(maxOffset, Math.max(0, this.dateOffset() + days));
+    this.dateOffset.set(next);
+    this.scrollDateRowToOffset(next);
+  }
+
+  syncDateOffsetFromScroll(event: Event) {
+    const row = event.currentTarget as HTMLElement | null;
+    const next = this.dateOffsetFromScroll(row);
+    if (next !== null && next !== this.dateOffset()) this.dateOffset.set(next);
+  }
+
+  private scrollDateRowToOffset(index: number) {
+    queueMicrotask(() => {
+      const row = this.dateRow?.nativeElement ?? null;
+      const cardWidth = this.dateCardStep(row);
+      if (!row || !cardWidth) return;
+      row.scrollTo({ left: index * cardWidth, behavior: "smooth" });
+    });
+  }
+
+  private dateOffsetFromScroll(row: HTMLElement | null): number | null {
+    const cardWidth = this.dateCardStep(row);
+    if (!row || !cardWidth) return null;
+    const maxOffset = Math.max(0, this.availabilityDays().length - 7);
+    return Math.min(maxOffset, Math.max(0, Math.round(row.scrollLeft / cardWidth)));
+  }
+
+  private dateCardStep(row: HTMLElement | null): number {
+    const card = row?.querySelector<HTMLElement>(".date-card:not(.skeleton-date)");
+    if (!row || !card) return 0;
+    const gap = Number.parseFloat(getComputedStyle(row).columnGap || getComputedStyle(row).gap || "0") || 0;
+    return card.offsetWidth + gap;
   }
 
   selectNextAvailable() {
