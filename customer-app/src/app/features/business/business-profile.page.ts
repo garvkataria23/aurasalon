@@ -128,7 +128,7 @@ import { Subscription } from "rxjs";
                 <div class="primary-salon-strip">
                   @if (isPrimarySalon()) {
                     <div>
-                      <strong>Your primary salon</strong>
+                      <strong>Primary salon</strong>
                       <span>Get faster booking, personalised offers, memberships and salon rewards.</span>
                     </div>
                     <div class="primary-salon-actions">
@@ -139,7 +139,7 @@ import { Subscription } from "rxjs";
                     </div>
                   } @else {
                     <div>
-                      <strong>Make this your primary salon</strong>
+                      <strong>Set primary salon</strong>
                       <span>Get faster booking, personalised offers, memberships and salon rewards.</span>
                     </div>
                     <button type="button" class="primary-salon-action" (click)="setAsPrimary()">Set primary</button>
@@ -2664,14 +2664,14 @@ import { Subscription } from "rxjs";
 
       .primary-salon-action {
         min-height: 32px;
-        padding: 0 10px;
-        font-size: 0.76rem;
+        padding: 0 9px;
+        font-size: 0.74rem;
       }
 
       .primary-salon-link {
         min-height: 32px;
-        padding: 0 3px;
-        font-size: 0.76rem;
+        padding: 0 2px;
+        font-size: 0.74rem;
       }
 
       .page-section-nav {
