@@ -2167,6 +2167,7 @@ export class BookingFlowPage implements OnInit, OnDestroy {
   readonly continuousVisitMode = signal(true);
   readonly allowShortGap = signal(false);
   readonly dateOffset = signal(0);
+  private availabilityWindowStart = "";
   readonly collapsedSlotGroups = signal<Record<string, boolean>>({});
   readonly slotHoldSeconds = signal<number | null>(null);
   readonly slotExpiredWarning = signal<string>("");
@@ -3261,7 +3262,7 @@ async reload() {
     const item = this.activeItem();
     const service = this.activeService();
     if (!business || !service) return;
-    const queryDate = item?.date || this.bookingItems().find((row) => row.date)?.date || localDateKey();
+    const queryDate = this.availabilityWindowStart || (this.availabilityWindowStart = localDateKey());
     const baseQuery = {
       serviceId: service.id,
       staffId: item?.staffId || undefined,
