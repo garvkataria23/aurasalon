@@ -28,7 +28,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
             <button type="button" class="booking-back-btn" (click)="goBack()" aria-label="Back">
               <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
             </button>
-            <h1 class="page-title">{{ pageTitle() }}</h1>
+            <h1 class="page-title bookings-title">{{ pageTitle() }}</h1>
             <a class="support-link" [routerLink]="supportLink()" aria-label="Open booking support">
               <ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon>
               <span>Support</span>
@@ -176,24 +176,24 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       z-index: 20;
       display: grid;
       margin: 0 calc(var(--page-x, 0px) * -1) 18px;
-      padding: calc(8px + env(safe-area-inset-top)) var(--page-x, 0px) 10px;
+      padding: calc(8px + env(safe-area-inset-top)) var(--page-x, 0px) 8px;
       background: linear-gradient(180deg, rgba(255, 250, 246, 0.98), rgba(255, 250, 246, 0.94));
       backdrop-filter: blur(18px);
     }
 
     .bookings-top-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
       align-items: center;
       gap: 10px;
       min-height: 48px;
     }
 
-    .bookings-top-row .page-title {
+    .bookings-title {
       margin: 0;
-      flex: 1 1 auto;
       min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: visible;
+      line-height: 1.2;
       white-space: nowrap;
     }
 
