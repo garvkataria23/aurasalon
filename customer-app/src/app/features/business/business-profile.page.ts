@@ -949,7 +949,7 @@ import { Subscription } from "rxjs";
     }
 
     .services-section {
-      overflow: hidden;
+      overflow: visible;
     }
 
     .cover-back-button {
