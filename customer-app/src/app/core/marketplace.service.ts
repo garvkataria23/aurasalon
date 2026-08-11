@@ -762,10 +762,11 @@ export class MarketplaceService {
     return this.run("Unable to set primary salon", async () => {
       const { primarySalon } = await firstValueFrom(this.api.setPrimarySalon(tenantId, { branchId, businessId, businessName, reason: "manual" }));
       this.primarySalon.set(primarySalon);
-      this.syncSalonModeContext({ tenantId, branchId, businessId, businessName });
+      this.mySalonDashboard.set(null);
       this.shouldPromptPrimary.set(false);
       this.suggestedSalon.set(null);
       this.clearCached("my-salons");
+      this.clearCached("my-salon-dashboard");
       return primarySalon;
     });
   }
@@ -774,7 +775,17 @@ export class MarketplaceService {
     return this.run("Unable to remove primary salon", async () => {
       await firstValueFrom(this.api.removePrimarySalon());
       this.primarySalon.set(null);
+      this.mySalonDashboard.set(null);
+      this.salonModeContextStore.set(null);
+      this.shouldPromptPrimary.set(false);
+      this.suggestedSalon.set(null);
       this.clearCached("my-salons");
+      this.clearCached("my-salon-dashboard");
+      try {
+        localStorage.removeItem("aura_salon_mode_context");
+      } catch {
+        // storage unavailable — in-memory context already cleared
+      }
     });
   }
 
