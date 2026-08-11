@@ -3376,12 +3376,11 @@ async reload() {
   }
 
   prevDatePage() {
-    this.dateOffset.update((curr) => Math.max(0, curr - 7));
+    this.shiftDateWindow(-7);
   }
 
   nextDatePage() {
-    const maxOffset = Math.max(0, this.availabilityDays().length - 7);
-    this.dateOffset.update((curr) => Math.min(maxOffset, curr + 7));
+    this.shiftDateWindow(7);
   }
 
   canNextDatePage(): boolean {
@@ -3421,8 +3420,13 @@ async reload() {
     const dy = endY - startY;
     if (Math.abs(dx) < 48 || Math.abs(dy) > Math.abs(dx)) return;
     this.lastDateRowSwipeAt = now;
-    if (dx < 0) this.nextDatePage();
-    else this.prevDatePage();
+    const steps = Math.min(7, Math.max(1, Math.round(Math.abs(dx) / 44)));
+    this.shiftDateWindow(dx < 0 ? steps : -steps);
+  }
+
+  private shiftDateWindow(days: number) {
+    const maxOffset = Math.max(0, this.availabilityDays().length - 7);
+    this.dateOffset.update((curr) => Math.min(maxOffset, Math.max(0, curr + days)));
   }
 
   selectNextAvailable() {
