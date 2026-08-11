@@ -13,6 +13,9 @@ import {
   chevronDownOutline,
   clipboardOutline,
   closeCircleOutline,
+  closeOutline,
+  createOutline,
+  documentTextOutline,
   heart,
   heartOutline,
   locationOutline,
@@ -227,7 +230,9 @@ import { Subscription } from "rxjs";
                         <div class="service-list">
                           @for (service of group.services; track service.id) {
                             <article
-                              class="salon-service-item service-card premium-card">
+                              class="salon-service-item service-card premium-card"
+                              (click)="openServicePopup(service.id)"
+                              [attr.aria-label]="'View details for ' + formatServiceName(service.name)">
                               <div class="salon-service-copy">
                                 <span class="service-title-row">
                                   <strong class="service-name">{{ formatServiceName(service.name) }}</strong>
@@ -253,7 +258,7 @@ import { Subscription } from "rxjs";
                                   type="button"
                                   class="salon-service-book"
                                   [attr.aria-label]="'Book ' + service.name"
-                                  (click)="$event.stopPropagation(); bookService(service.id)">
+                                  (click)="$event.stopPropagation(); openServicePopup(service.id)">
                                   <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon> Book
                                 </button>
                               </div>
@@ -516,44 +521,83 @@ import { Subscription } from "rxjs";
       @if (activeCustomizationService(); as service) {
         <section class="service-popup-backdrop" role="dialog" aria-modal="true" aria-labelledby="service-popup-title" (click)="closeServicePopup()">
           <article class="service-popup-sheet" (click)="$event.stopPropagation()">
-            <button type="button" class="service-popup-close" aria-label="Close service customisation" (click)="closeServicePopup()">×</button>
-            <div class="service-popup-head">
-              <div>
-                <small>Customise service</small>
-                <h2 id="service-popup-title">{{ service.name }}</h2>
-                <strong>{{ servicePriceLabel(service) }}</strong>
-              </div>
+            <div class="service-popup-hero">
               @if (serviceImage(service, 0)) {
-                <div class="service-popup-thumb" [style.background-image]="serviceImageBackground(service, 0)" aria-hidden="true"></div>
+                <div class="service-popup-hero-img" [style.background-image]="serviceImageBackground(service, 0)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
               } @else {
-                <div class="service-popup-thumb service-popup-thumb--letter" aria-hidden="true"><span>{{ serviceInitial(service.name) }}</span></div>
+                <div class="service-popup-hero-img service-popup-hero-img--letter" role="img" [attr.aria-label]="service.name">
+                  <span aria-hidden="true">{{ serviceInitial(service.name) }}</span>
+                </div>
               }
+              <button type="button" class="service-popup-close" aria-label="Close service details" (click)="closeServicePopup()">
+                <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+              </button>
             </div>
-            @if (serviceAddOns(service).length) {
-              <div class="service-popup-section">
-                <h3>Add-on services</h3>
-                <div class="service-addon-list popup-list">
-                  @for (addon of serviceAddOns(service); track addon.id || addon.name) {
-                    <button type="button" class="service-addon-chip">
-                      <span>{{ addon.name }}</span>
-                      @if (addon.pricePaise) { <small>{{ money(addon.pricePaise) }}</small> }
-                    </button>
+
+            <div class="service-popup-body">
+              <div class="service-popup-head">
+                <div class="service-popup-badges">
+                  @if (service.popular) { <span class="service-popup-badge recommended"><ion-icon name="ribbon-outline" aria-hidden="true"></ion-icon> Recommended</span> }
+                  @if (service.category) { <span class="service-popup-badge">{{ categoryLabel(service.category) }}</span> }
+                </div>
+                <h2 id="service-popup-title">{{ formatServiceName(service.name) }}</h2>
+                <div class="service-popup-price-row">
+                  <strong class="service-popup-price">{{ money(service.pricePaise) }}</strong>
+                  @if (service.durationMinutes > 0) {
+                    <span class="service-popup-duration">
+                      <ion-icon name="time-outline" aria-hidden="true"></ion-icon> {{ service.durationMinutes }} min
+                    </span>
                   }
                 </div>
               </div>
-            }
-            <div class="service-popup-section">
-              <h3>Note for salon</h3>
-              <textarea
-                class="service-note-input"
-                rows="4"
-                [ngModel]="serviceNote(service.id)"
-                (ngModelChange)="setServiceNote(service.id, $event)"
-                placeholder="Add preference, concern, or instruction for this service..."></textarea>
+
+              @if (service.description.trim()) {
+                <div class="service-popup-section">
+                  <div class="service-popup-section-head">
+                    <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                    <strong>About this service</strong>
+                  </div>
+                  <p class="service-popup-desc">{{ service.description }}</p>
+                </div>
+              }
+
+              @if (serviceAddOns(service).length) {
+                <div class="service-popup-section">
+                  <div class="service-popup-section-head">
+                    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+                    <strong>Add-on services</strong>
+                  </div>
+                  <div class="service-addon-list popup-list">
+                    @for (addon of serviceAddOns(service); track addon.id || addon.name) {
+                      <button type="button" class="service-addon-chip">
+                        <span>{{ addon.name }}</span>
+                        @if (addon.pricePaise) { <small>{{ money(addon.pricePaise) }}</small> }
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="service-popup-section">
+                <div class="service-popup-section-head">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                  <strong>Note for salon</strong>
+                </div>
+                <textarea
+                  class="service-note-input"
+                  rows="3"
+                  [ngModel]="serviceNote(service.id)"
+                  (ngModelChange)="setServiceNote(service.id, $event)"
+                  placeholder="Anything the salon should know? (optional)"
+                  maxlength="500"></textarea>
+              </div>
             </div>
-            <button type="button" class="service-popup-add" (click)="confirmServiceAdd(service.id)">
-              {{ isServiceSelected(service.id) ? "Update added service" : "Add service" }}
-            </button>
+
+            <div class="service-popup-footer">
+              <button type="button" class="service-popup-add" (click)="confirmServiceAdd(service.id)">
+                {{ isServiceSelected(service.id) ? "Update added service" : "Add service" }}
+              </button>
+            </div>
           </article>
         </section>
       }
@@ -601,6 +645,7 @@ import { Subscription } from "rxjs";
           class="category-floating-menu-trigger"
           [class.has-services]="selectedServices().length > 0"
           [class.is-open]="categoryMenuOpen()"
+          [class.hidden]="activeCustomizationServiceId()"
           (click)="toggleCategoryMenu()"
           [attr.aria-expanded]="categoryMenuOpen()"
           aria-label="Toggle service category menu">
@@ -1465,15 +1510,15 @@ import { Subscription } from "rxjs";
     .service-note-input {
       width: 100%;
       resize: vertical;
-      min-height: 116px;
-      padding: 15px 14px;
+      min-height: 100px;
+      padding: 13px 13px;
       border: 1px solid rgba(124, 99, 223, 0.2);
-      border-radius: 17px;
+      border-radius: 15px;
       outline: none;
       color: var(--text);
       background: linear-gradient(180deg, #FFFFFF, rgba(248, 247, 255, 0.82));
       font: inherit;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       line-height: 1.35;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
       transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
@@ -1501,53 +1546,103 @@ import { Subscription } from "rxjs";
       backdrop-filter: blur(12px) saturate(1.08);
     }
 
-    .service-popup-sheet {
-      position: relative;
-      width: min(408px, 100%);
-      max-height: min(86vh, 720px);
+      .service-popup-sheet {
+        position: relative;
+        width: min(360px, 100%);
+        max-height: min(78vh, 560px);
       margin: 0;
       display: grid;
-      gap: 17px;
-      overflow: auto;
-      padding: 24px 18px 18px;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.78);
       border-radius: 28px;
       background:
         radial-gradient(circle at 88% 10%, rgba(238, 232, 255, 0.95), transparent 34%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.97));
       box-shadow: 0 30px 76px rgba(18, 16, 38, 0.28), 0 2px 0 rgba(255, 255, 255, 0.82) inset;
+      animation: service-popup-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+    }
+
+    @keyframes service-popup-in {
+      from { opacity: 0; transform: translateY(18px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .service-popup-hero {
+      position: relative;
+      height: clamp(140px, 26vh, 188px);
+      background: linear-gradient(145deg, rgba(239, 235, 255, 0.96), rgba(228, 220, 255, 0.88));
+    }
+
+    .service-popup-hero-img {
+      width: 100%;
+      height: 100%;
+      background-position: center;
+      background-size: cover;
+    }
+
+    .service-popup-hero-img--letter {
+      display: grid;
+      place-items: center;
+      color: var(--primary);
+      font-size: 3.4rem;
+      font-weight: 950;
+      letter-spacing: -0.04em;
     }
 
     .service-popup-close {
       position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 34px;
-      min-width: 34px;
-      height: 34px;
-      min-height: 34px;
+      top: 14px;
+      right: 14px;
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      min-height: 38px;
+      display: grid;
+      place-items: center;
       border: 0;
       border-radius: 999px;
-      color: rgba(25, 28, 40, 0.78);
-      background: rgba(255, 255, 255, 0.82);
-      font-size: 1.35rem;
-      line-height: 1;
+      color: rgba(25, 28, 40, 0.82);
+      background: rgba(255, 255, 255, 0.9);
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(25, 28, 40, 0.08);
+      box-shadow: 0 8px 20px rgba(25, 28, 40, 0.16);
+      backdrop-filter: blur(4px);
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .service-popup-close ion-icon {
+      font-size: 1.3rem;
+    }
+
+    .service-popup-close:active {
+      transform: scale(0.94);
+    }
+
+    .service-popup-body {
+      overflow: auto;
+      padding: 18px 18px 2px;
+      display: grid;
+      gap: 15px;
     }
 
     .service-popup-head {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 108px;
-      gap: 16px;
-      align-items: start;
-      padding: 36px 1px 2px;
+      gap: 6px;
+      padding: 2px 2px 0;
     }
 
-    .service-popup-head small {
+    .service-popup-badges {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .service-popup-badge {
       display: inline-flex;
-      width: fit-content;
-      padding: 5px 8px;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 9px;
       border: 1px solid rgba(124, 99, 223, 0.14);
       border-radius: 999px;
       color: rgba(67, 56, 128, 0.76);
@@ -1558,52 +1653,80 @@ import { Subscription } from "rxjs";
       letter-spacing: 0.1em;
     }
 
+    .service-popup-badge.recommended {
+      color: #9A5B00;
+      border-color: rgba(217, 119, 6, 0.24);
+      background: rgba(255, 247, 237, 0.9);
+    }
+
+    .service-popup-badge ion-icon {
+      font-size: 0.8rem;
+    }
+
     .service-popup-head h2 {
-      margin: 8px 0 7px;
+      margin: 2px 0 0;
       color: var(--text);
-      font-size: clamp(1.25rem, 6vw, 1.56rem);
-      line-height: 1.08;
+      font-size: clamp(1.24rem, 5.5vw, 1.46rem);
+      line-height: 1.1;
       letter-spacing: -0.045em;
     }
 
-    .service-popup-head strong {
+    .service-popup-price-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .service-popup-price {
+      color: #4F46E5;
+      font-size: 1.32rem;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+    }
+
+    .service-popup-duration {
       display: inline-flex;
       align-items: center;
-      width: fit-content;
-      padding: 5px 9px;
+      gap: 5px;
+      padding: 4px 10px;
       border-radius: 999px;
-      color: #4F46E5;
-      background: rgba(79, 70, 229, 0.1);
-      font-weight: 950;
-    }
-
-    .service-popup-thumb {
-      width: 108px;
-      height: 92px;
-      border-radius: 24px;
-      background-color: var(--primary-soft, #EEF2FF);
-      background-position: center;
-      background-size: cover;
-      box-shadow: 0 16px 34px rgba(75, 58, 168, 0.16), 0 1px 0 rgba(255, 255, 255, 0.72) inset;
-    }
-
-    .service-popup-thumb--letter {
-      display: grid;
-      place-items: center;
-      background: linear-gradient(145deg, rgba(239, 235, 255, 0.96), rgba(228, 220, 255, 0.88));
+      color: rgba(25, 28, 40, 0.78);
+      background: rgba(124, 99, 223, 0.09);
+      font-size: 0.82rem;
+      font-weight: 850;
     }
 
     .service-popup-section {
       display: grid;
-      gap: 9px;
+      gap: 7px;
     }
 
-    .service-popup-section h3 {
-      margin: 0;
+    .service-popup-section-head {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(25, 28, 40, 0.62);
+    }
+
+    .service-popup-section-head ion-icon {
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+
+    .service-popup-section-head strong {
       color: rgba(25, 28, 40, 0.9);
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       font-weight: 950;
       letter-spacing: -0.02em;
+    }
+
+    .service-popup-desc {
+      margin: 0;
+      color: rgba(25, 28, 40, 0.72);
+      font-size: 0.88rem;
+      line-height: 1.5;
     }
 
     .service-addon-list.popup-list {
@@ -1611,17 +1734,39 @@ import { Subscription } from "rxjs";
       overflow: visible;
     }
 
+    .service-popup-footer {
+      display: grid;
+      gap: 8px;
+      padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(250, 248, 255, 0.98) 38%);
+    }
+
     .service-popup-add {
-      min-height: 50px;
+      width: 100%;
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
       border: 0;
-      border-radius: 17px;
+      border-radius: 14px;
       color: #FFFFFF;
       background: linear-gradient(135deg, #6D5DF7, #4F46E5 58%, #4338CA);
-      font-size: 0.98rem;
+      font-family: inherit;
+      font-size: 0.85rem;
       font-weight: 950;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
       cursor: pointer;
       box-shadow: 0 15px 30px rgba(79, 70, 229, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.24);
       transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .service-popup-add small {
+      font-size: 0.72rem;
+      font-weight: 700;
+      opacity: 0.82;
+      letter-spacing: 0.02em;
     }
 
     .service-popup-add:active {
@@ -2551,6 +2696,32 @@ import { Subscription } from "rxjs";
         font-size: 1.5rem;
       }
 
+      .service-popup-backdrop {
+        align-items: end;
+        padding: 0 0 calc(60px + env(safe-area-inset-bottom));
+      }
+
+      .service-popup-sheet {
+        width: 100%;
+        max-height: 84vh;
+        border-radius: 24px 24px 0 0;
+        border-bottom: 0;
+        animation-name: service-popup-in-mobile;
+      }
+
+      @keyframes service-popup-in-mobile {
+        from { opacity: 0; transform: translateY(100%); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .service-popup-hero {
+        height: clamp(122px, 23vh, 162px);
+      }
+
+      .service-popup-footer {
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+      }
+
       .salon-service-add {
         min-width: 74px;
         min-height: 34px;
@@ -2774,6 +2945,9 @@ import { Subscription } from "rxjs";
     }
     .category-floating-menu-trigger.has-services {
       bottom: calc(162px + env(safe-area-inset-bottom));
+    }
+    .category-floating-menu-trigger.hidden {
+      display: none;
     }
     .category-floating-menu-trigger ion-icon {
       font-size: 0.82rem;
@@ -3057,6 +3231,9 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       chevronDownOutline,
       clipboardOutline,
       closeCircleOutline,
+      closeOutline,
+      createOutline,
+      documentTextOutline,
       heart,
       heartOutline,
       locationOutline,
@@ -3104,7 +3281,18 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       this.selectedServiceIds.update((ids) => [...ids, serviceId]);
     }
     this.recordRecentlyViewedService(serviceId);
+    const note = this.serviceNote(serviceId);
     this.closeServicePopup();
+    const biz = this.business();
+    const service = biz?.services.find((item) => item.id === serviceId);
+    if (!biz || !service) return;
+    const slug = biz.slug || biz.id;
+    const draft = this.marketplace.bookingDraft();
+    if (draft && draft.businessSlug !== slug && draft.serviceIds.length > 0) {
+      this.pendingBookService.set(service);
+      return;
+    }
+    this.addToBookingDraftAndNavigate(slug, serviceId, note);
   }
 
   /** Salon service action: hand the service to the shared booking state and jump to the Book section (step 1). */
@@ -3125,10 +3313,10 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
     const biz = this.business();
     if (!biz) return;
     this.pendingBookService.set(null);
-    this.addToBookingDraftAndNavigate(biz.slug || biz.id, serviceId);
+    this.addToBookingDraftAndNavigate(biz.slug || biz.id, serviceId, this.serviceNote(serviceId));
   }
 
-  private addToBookingDraftAndNavigate(slug: string, serviceId: string) {
+  private addToBookingDraftAndNavigate(slug: string, serviceId: string, note?: string) {
     const draft = this.marketplace.bookingDraft();
     let serviceIds: string[];
     if (draft && draft.businessSlug === slug) {
@@ -3143,9 +3331,12 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       serviceIds,
       updatedAt: Date.now()
     });
-    const query = serviceIds.length > 1
+    const query: Record<string, string> = serviceIds.length > 1
       ? { serviceIds: serviceIds.join(","), step: "1" }
       : { serviceId, step: "1" };
+    if (note?.trim()) {
+      query["note"] = note.trim();
+    }
     void this.router.navigate([this.businessBookLink(slug)], { queryParams: query });
   }
 

@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, computed, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
+import { alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, createOutline, documentTextOutline, flashOutline, listOutline, locationOutline, personOutline, ribbonOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { AvailabilityDay, AvailabilitySlot, Booking, ServiceItem, StaffMember, CustomerPackage, SlotHold, SlotHoldPayload } from "../../core/api.types";
 import { BookingProgressComponent, BookingProgressStepId } from "./booking-progress.component";
@@ -131,8 +131,8 @@ type BookingFlowItem = {
                             type="button"
                             class="salon-service-add"
                             [class.selected]="isServiceSelected(service.id)"
-                            [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
-                            (click)="$event.stopPropagation(); toggleService(service.id)">
+                            [attr.aria-label]="isServiceSelected(service.id) ? 'View added service' : 'View service details'"
+                            (click)="$event.stopPropagation(); openServicePopup(service.id)">
                             @if (isServiceSelected(service.id)) {
                               <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
                             } @else {
@@ -192,8 +192,8 @@ type BookingFlowItem = {
                               type="button"
                               class="salon-service-add"
                               [class.selected]="isServiceSelected(service.id)"
-                              [attr.aria-label]="isServiceSelected(service.id) ? 'Remove service' : 'Add service'"
-                              (click)="$event.stopPropagation(); toggleService(service.id)">
+                              [attr.aria-label]="isServiceSelected(service.id) ? 'View added service' : 'View service details'"
+                              (click)="$event.stopPropagation(); openServicePopup(service.id)">
                               @if (isServiceSelected(service.id)) {
                                 <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
                               } @else {
@@ -904,6 +904,94 @@ type BookingFlowItem = {
           }
         </main>
       }
+
+      @if (activeCustomizationService(); as service) {
+        <section class="service-popup-backdrop" role="dialog" aria-modal="true" aria-labelledby="service-popup-title" (click)="closeServicePopup()">
+          <article class="service-popup-sheet" (click)="$event.stopPropagation()">
+            <div class="service-popup-hero">
+              @if (serviceImage(service, 0)) {
+                <div class="service-popup-hero-img" [style.background-image]="serviceImageBackground(service, 0)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
+              } @else {
+                <div class="service-popup-hero-img service-popup-hero-img--letter" role="img" [attr.aria-label]="service.name">
+                  <span aria-hidden="true">{{ serviceInitial(service.name) }}</span>
+                </div>
+              }
+              <button type="button" class="service-popup-close" aria-label="Close service details" (click)="closeServicePopup()">
+                <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+
+            <div class="service-popup-body">
+              <div class="service-popup-head">
+                <div class="service-popup-badges">
+                  @if (service.popular) { <span class="service-popup-badge recommended"><ion-icon name="ribbon-outline" aria-hidden="true"></ion-icon> Recommended</span> }
+                  @if (service.category) { <span class="service-popup-badge">{{ categoryLabel(service.category) }}</span> }
+                </div>
+                <h2 id="service-popup-title">{{ formatServiceName(service.name) }}</h2>
+                <div class="service-popup-price-row">
+                  @if (getHappyHour(service); as hh) {
+                    <strong class="service-popup-price">{{ money(hh.finalPricePaise) }}</strong>
+                  } @else {
+                    <strong class="service-popup-price">{{ money(service.pricePaise) }}</strong>
+                  }
+                  @if (service.durationMinutes > 0) {
+                    <span class="service-popup-duration">
+                      <ion-icon name="time-outline" aria-hidden="true"></ion-icon> {{ service.durationMinutes }} min
+                    </span>
+                  }
+                </div>
+              </div>
+
+              @if (service.description.trim()) {
+                <div class="service-popup-section">
+                  <div class="service-popup-section-head">
+                    <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+                    <strong>About this service</strong>
+                  </div>
+                  <p class="service-popup-desc">{{ service.description }}</p>
+                </div>
+              }
+
+              @if (serviceAddOns(service).length) {
+                <div class="service-popup-section">
+                  <div class="service-popup-section-head">
+                    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+                    <strong>Add-on services</strong>
+                  </div>
+                  <div class="service-addon-list popup-list">
+                    @for (addon of serviceAddOns(service); track addon.id || addon.name) {
+                      <button type="button" class="service-addon-chip">
+                        <span>{{ addon.name }}</span>
+                        @if (addon.pricePaise) { <small>{{ money(addon.pricePaise) }}</small> }
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="service-popup-section">
+                <div class="service-popup-section-head">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                  <strong>Note for salon</strong>
+                </div>
+                <textarea
+                  class="service-note-input"
+                  rows="3"
+                  [value]="customerNote()"
+                  (input)="onCustomerNoteInput($event)"
+                  placeholder="Anything the salon should know? (optional)"
+                  maxlength="500"></textarea>
+              </div>
+            </div>
+
+            <div class="service-popup-footer">
+              <button type="button" class="service-popup-add" (click)="confirmServicePopup(service.id)">
+                {{ isServiceSelected(service.id) ? "Remove service" : "Add service" }}
+              </button>
+            </div>
+          </article>
+        </section>
+      }
     </ion-content>
 
     @if (categoryMenuOpen()) {
@@ -934,6 +1022,7 @@ type BookingFlowItem = {
         class="category-floating-menu-trigger"
         [class.has-services]="selectedServices().length > 0"
         [class.is-open]="categoryMenuOpen()"
+        [class.hidden]="activeCustomizationServiceId()"
         (click)="toggleCategoryMenu()"
         [attr.aria-expanded]="categoryMenuOpen()"
         aria-label="Toggle service category menu">
@@ -1671,10 +1760,330 @@ type BookingFlowItem = {
     }
     @keyframes booking-skeleton { from { background-position: 120% 0; } to { background-position: -120% 0; } }
     @keyframes button-spin { to { transform: rotate(360deg); } }
+
+    .category-floating-menu-trigger.hidden {
+      display: none;
+    }
+
+    .service-popup-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      align-items: center;
+      justify-items: center;
+      padding: 18px;
+      background: radial-gradient(circle at 50% 22%, rgba(124, 99, 223, 0.24), transparent 32%), rgba(16, 18, 28, 0.52);
+      backdrop-filter: blur(12px) saturate(1.08);
+    }
+
+    .service-popup-sheet {
+      position: relative;
+      width: min(360px, 100%);
+      max-height: min(78vh, 560px);
+      margin: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 88% 10%, rgba(238, 232, 255, 0.95), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.97));
+      box-shadow: 0 30px 76px rgba(18, 16, 38, 0.28), 0 2px 0 rgba(255, 255, 255, 0.82) inset;
+      animation: service-popup-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+    }
+
+    @keyframes service-popup-in {
+      from { opacity: 0; transform: translateY(18px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .service-popup-hero {
+      position: relative;
+      height: clamp(140px, 26vh, 188px);
+      background: linear-gradient(145deg, rgba(239, 235, 255, 0.96), rgba(228, 220, 255, 0.88));
+    }
+
+    .service-popup-hero-img {
+      width: 100%;
+      height: 100%;
+      background-position: center;
+      background-size: cover;
+    }
+
+    .service-popup-hero-img--letter {
+      display: grid;
+      place-items: center;
+      color: var(--primary);
+      font-size: 3.4rem;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .service-popup-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      min-height: 38px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 999px;
+      color: rgba(25, 28, 40, 0.82);
+      background: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(25, 28, 40, 0.16);
+      backdrop-filter: blur(4px);
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .service-popup-close ion-icon {
+      font-size: 1.3rem;
+    }
+
+    .service-popup-close:active {
+      transform: scale(0.94);
+    }
+
+    .service-popup-body {
+      overflow: auto;
+      padding: 18px 18px 2px;
+      display: grid;
+      gap: 15px;
+    }
+
+    .service-popup-head {
+      display: grid;
+      gap: 6px;
+      padding: 2px 2px 0;
+    }
+
+    .service-popup-badges {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .service-popup-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 9px;
+      border: 1px solid rgba(124, 99, 223, 0.14);
+      border-radius: 999px;
+      color: rgba(67, 56, 128, 0.76);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .service-popup-badge.recommended {
+      color: #9A5B00;
+      border-color: rgba(217, 119, 6, 0.24);
+      background: rgba(255, 247, 237, 0.9);
+    }
+
+    .service-popup-badge ion-icon {
+      font-size: 0.8rem;
+    }
+
+    .service-popup-head h2 {
+      margin: 2px 0 0;
+      color: var(--text);
+      font-size: clamp(1.24rem, 5.5vw, 1.46rem);
+      line-height: 1.1;
+      letter-spacing: -0.045em;
+    }
+
+    .service-popup-price-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .service-popup-price {
+      color: #4F46E5;
+      font-size: 1.32rem;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+    }
+
+    .service-popup-duration {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: rgba(25, 28, 40, 0.78);
+      background: rgba(124, 99, 223, 0.09);
+      font-size: 0.82rem;
+      font-weight: 850;
+    }
+
+    .service-popup-section {
+      display: grid;
+      gap: 9px;
+    }
+
+    .service-popup-section-head {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(25, 28, 40, 0.62);
+    }
+
+    .service-popup-section-head ion-icon {
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+
+    .service-popup-section-head strong {
+      color: rgba(25, 28, 40, 0.9);
+      font-size: 0.9rem;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+    }
+
+    .service-popup-desc {
+      margin: 0;
+      color: rgba(25, 28, 40, 0.72);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .service-addon-list.popup-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .service-addon-chip {
+      flex: 0 0 auto;
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 11px;
+      border: 1px solid rgba(99, 102, 241, 0.16);
+      border-radius: 999px;
+      color: var(--brand-800);
+      background: var(--surface);
+      font-size: 0.84rem;
+      font-weight: 850;
+    }
+
+    .service-addon-chip small {
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    .service-note-input {
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      min-height: 100px;
+      padding: 13px;
+      border: 1px solid rgba(124, 99, 223, 0.2);
+      border-radius: 15px;
+      outline: none;
+      color: var(--text);
+      background: linear-gradient(180deg, #FFFFFF, rgba(248, 247, 255, 0.82));
+      font: inherit;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .service-note-input::placeholder {
+      color: rgba(82, 101, 121, 0.62);
+    }
+
+    .service-note-input:focus {
+      border-color: rgba(92, 72, 217, 0.5);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    }
+
+    .service-popup-footer {
+      display: grid;
+      gap: 8px;
+      padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(250, 248, 255, 0.98) 38%);
+    }
+
+    .service-popup-add {
+      width: 100%;
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 14px;
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #6D5DF7, #4F46E5 58%, #4338CA);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 950;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 15px 30px rgba(79, 70, 229, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .service-popup-add:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 10px 22px rgba(79, 70, 229, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    @media (max-width: 599px) {
+      .service-popup-backdrop {
+        align-items: end;
+        padding: 0 0 calc(60px + env(safe-area-inset-bottom));
+      }
+
+      .service-popup-sheet {
+        width: 100%;
+        max-height: 84vh;
+        border-radius: 24px 24px 0 0;
+        border-bottom: 0;
+        animation-name: service-popup-in-mobile;
+      }
+
+      @keyframes service-popup-in-mobile {
+        from { opacity: 0; transform: translateY(100%); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .service-popup-hero {
+        height: clamp(122px, 23vh, 162px);
+      }
+
+      .service-popup-footer {
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+      }
+    }
   `]
 })
 export class BookingFlowPage implements OnInit, OnDestroy {
   readonly customerNote = signal("");
+  readonly activeCustomizationServiceId = signal<string>("");
+  readonly activeCustomizationService = computed(() => {
+    const serviceId = this.activeCustomizationServiceId();
+    if (!serviceId) return null;
+    return this.business()?.services.find((service) => service.id === serviceId) ?? null;
+  });
   readonly couponCode = signal("");
   readonly couponSuccessMsg = signal("");
   readonly benefitsApplied = signal(false);
@@ -2112,7 +2521,7 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
   private reloadedOnce = false;
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
-    addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, flashOutline, listOutline, locationOutline, personOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
+    addIcons({ alertCircleOutline, arrowBackOutline, calendarOutline, callOutline, chatbubbleOutline, checkmarkCircleOutline, checkmarkOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline, closeOutline, createOutline, documentTextOutline, flashOutline, listOutline, locationOutline, personOutline, ribbonOutline, searchOutline, sparklesOutline, storefrontOutline, timeOutline });
   }
 
   isSalonModeRoute(): boolean {
@@ -2164,6 +2573,8 @@ async reload() {
       this.marketplace.loadBookings("past").then((bookings) => this.pastBookings.set(bookings)).catch(() => this.pastBookings.set([]));
     }
     this.applyUrlIntentToBookingItems();
+    const urlNote = this.route.snapshot.queryParamMap.get("note");
+    if (urlNote) this.customerNote.set(urlNote);
     if (!this.isRescheduling()) this.restorePendingIntent();
     if (!this.route.snapshot.queryParamMap.has("step")) {
       this.step.set(this.bookingItems().length ? 2 : 1);
@@ -2271,6 +2682,37 @@ async reload() {
 
   isServiceSelected(serviceId: string): boolean {
     return this.bookingItems().some((item) => item.serviceId === serviceId);
+  }
+
+  openServicePopup(serviceId: string) {
+    this.activeCustomizationServiceId.set(serviceId);
+  }
+
+  closeServicePopup() {
+    this.activeCustomizationServiceId.set("");
+  }
+
+  confirmServicePopup(serviceId: string) {
+    this.toggleService(serviceId);
+    this.closeServicePopup();
+  }
+
+  serviceImageBackground(service: ServiceItem, index: number): string {
+    return `url('${this.serviceImage(service, index)}')`;
+  }
+
+  categoryLabel(category: string): string {
+    return String(category || "")
+      .trim()
+      .split(/[\s\-_]+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  serviceAddOns(service: ServiceItem): { id?: string; name: string; pricePaise?: number }[] {
+    const withAddOns = service as ServiceItem & { addOns?: { id?: string; name: string; pricePaise?: number }[]; addons?: { id?: string; name: string; pricePaise?: number }[] };
+    return withAddOns.addOns || withAddOns.addons || [];
   }
 
   setItemStaff(index: number, staffId: string | null) {
@@ -2639,6 +3081,7 @@ async reload() {
           staffId: item.staffId || undefined,
           startAt: item.slotStartAt,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          notes: this.customerNote().trim() || undefined,
           paymentMode: "pay_at_venue"
         });
         createdCount += 1;

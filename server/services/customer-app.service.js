@@ -27,18 +27,6 @@ function paiseFromRupees(value) {
   return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
 }
 
-function paiseValue(value) {
-  const amount = Number(value || 0);
-  return Number.isFinite(amount) ? Math.round(amount) : 0;
-}
-
-function moneyPaise(row = {}, paiseColumns = [], rupeeColumns = []) {
-  const paiseColumn = paiseColumns.find((column) => Number(row[column] || 0) > 0);
-  if (paiseColumn) return paiseValue(row[paiseColumn]);
-  const rupeeColumn = rupeeColumns.find((column) => Number(row[column] || 0) > 0);
-  return rupeeColumn ? paiseFromRupees(row[rupeeColumn]) : 0;
-}
-
 function rupeesFromPaise(value) {
   const amount = Number(value || 0);
   return Number.isFinite(amount) ? Math.round(amount) / 100 : 0;
@@ -123,8 +111,7 @@ ensureSchema();
 
 function appointmentSelectWhere(access, extra = "") {
   const tenantClause = tableHasColumn("appointments", "tenantId") ? "a.tenantId = @tenantId AND " : "";
-  const branchClause = access.branchId && tableHasColumn("appointments", "branchId") ? "a.branchId = @branchId AND " : "";
-  return `${tenantClause}${branchClause}a.clientId = @clientId${extra}`;
+  return `${tenantClause}a.clientId = @clientId${extra}`;
 }
 
 function serviceById(serviceId, businessSlug = "") {
@@ -203,7 +190,7 @@ function mapBooking(row = {}) {
 
 function bookings(access, status = "") {
   client(access);
-  const params = { tenantId: access.tenantId, branchId: access.branchId, clientId: access.userId };
+  const params = { tenantId: access.tenantId, clientId: access.userId };
   let statusSql = "";
   if (status === "cancelled") statusSql = " AND LOWER(COALESCE(a.status, '')) = 'cancelled'";
   if (status === "upcoming") statusSql = " AND LOWER(COALESCE(a.status, '')) NOT IN ('cancelled', 'completed', 'no_show')";
@@ -224,7 +211,7 @@ function bookingById(access, bookingId) {
     FROM appointments a
     WHERE ${appointmentSelectWhere(access, " AND a.id = @bookingId")}
     LIMIT 1
-  `).get({ tenantId: access.tenantId, branchId: access.branchId, clientId: access.userId, bookingId });
+  `).get({ tenantId: access.tenantId, clientId: access.userId, bookingId });
   if (!row) throw notFound("Booking not found");
   return row;
 }
@@ -569,33 +556,21 @@ function redeemGiftCard(access, payload = {}) {
 
 function invoices(access) {
   client(access);
-  const columns = columnsFor("invoices");
-  const clauses = [];
-  const params = { tenantId: access.tenantId, branchId: access.branchId, clientId: access.userId };
-  if (columns.includes("tenantId")) clauses.push("tenantId = @tenantId");
-  else if (columns.includes("tenant_id")) clauses.push("tenant_id = @tenantId");
-  if (access.branchId) {
-    if (columns.includes("branchId")) clauses.push("branchId = @branchId");
-    else if (columns.includes("branch_id")) clauses.push("branch_id = @branchId");
-  }
-  if (columns.includes("clientId")) clauses.push("clientId = @clientId");
-  else if (columns.includes("customer_id")) clauses.push("customer_id = @clientId");
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  const createdColumn = columns.includes("createdAt") ? "createdAt" : columns.includes("created_at") ? "created_at" : "id";
-  return db.prepare(`SELECT * FROM invoices ${where} ORDER BY datetime(${createdColumn}) DESC LIMIT 100`).all(params).map((item) => ({
+  const tenantColumn = tableHasColumn("invoices", "tenantId") ? "tenantId = @tenantId AND " : "";
+  return db.prepare(`SELECT * FROM invoices WHERE ${tenantColumn}clientId = @clientId ORDER BY datetime(createdAt) DESC LIMIT 100`).all({ tenantId: access.tenantId, clientId: access.userId }).map((item) => ({
     id: item.id,
     invoiceNumber: item.invoiceNumber || item.invoice_no || item.id,
-    saleId: item.saleId || item.sale_id || "",
+    saleId: item.saleId || "",
     branchId: item.branchId || item.branch_id || "",
     status: item.status || item.payment_status || "unpaid",
-    subtotalPaise: moneyPaise(item, ["subtotalPaise", "subtotal_paise"], ["subtotal"]),
-    discountPaise: moneyPaise(item, ["discountPaise", "discount_paise"], ["discount"]),
-    taxPaise: moneyPaise(item, ["taxPaise", "tax_paise", "gstAmountPaise", "gst_amount_paise"], ["gstAmount", "taxAmount", "tax_amount"]),
-    totalPaise: moneyPaise(item, ["totalPaise", "grandTotalPaise", "total_paise", "grand_total_paise"], ["total", "grandTotal", "grand_total"]),
-    paidPaise: moneyPaise(item, ["paidPaise", "paid_paise", "paidAmountPaise", "paid_amount_paise"], ["paid", "paid_amount"]),
-    balancePaise: moneyPaise(item, ["balancePaise", "balance_paise", "dueAmountPaise", "due_amount_paise"], ["balance", "due_amount"]),
-    dueDate: item.dueDate || item.due_date || "",
-    lineItems: json(item.lineItems || item.line_items, []),
+    subtotalPaise: paiseFromRupees(item.subtotal),
+    discountPaise: paiseFromRupees(item.discount),
+    taxPaise: paiseFromRupees(item.gstAmount || item.taxAmount),
+    totalPaise: paiseFromRupees(item.total || item.grand_total),
+    paidPaise: paiseFromRupees(item.paid || item.paid_amount),
+    balancePaise: paiseFromRupees(item.balance || item.due_amount),
+    dueDate: item.dueDate || "",
+    lineItems: json(item.lineItems, []),
     createdAt: item.createdAt || item.created_at || "",
     updatedAt: item.updatedAt || item.updated_at || ""
   }));
