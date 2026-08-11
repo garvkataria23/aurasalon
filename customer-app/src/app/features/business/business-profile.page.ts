@@ -882,6 +882,10 @@ import { Subscription } from "rxjs";
       --box-shadow: none;
     }
 
+    .cover-actions ion-button:nth-child(n + 2) {
+      display: none;
+    }
+
     .cover-copy {
       position: absolute;
       left: 20px;
@@ -2547,7 +2551,7 @@ import { Subscription } from "rxjs";
 
     @media (max-width: 599px) {
       .profile-page {
-        padding-bottom: calc(82px + env(safe-area-inset-bottom));
+        padding-bottom: calc(24px + env(safe-area-inset-bottom));
       }
 
       .cover {
@@ -2634,15 +2638,40 @@ import { Subscription } from "rxjs";
       }
 
       .primary-salon-strip {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 8px;
-        padding: 10px;
+        padding: 8px;
+        border-radius: 14px;
+      }
+
+      .primary-salon-strip span {
+        display: none;
+      }
+
+      .primary-salon-strip strong {
+        overflow: hidden;
+        font-size: 0.84rem;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .primary-salon-actions {
+        gap: 6px;
       }
 
       .primary-salon-action {
-        min-height: 38px;
-        padding: 0 14px;
-        font-size: 0.84rem;
+        min-height: 32px;
+        padding: 0 10px;
+        font-size: 0.76rem;
+      }
+
+      .primary-salon-link {
+        min-height: 32px;
+        padding: 0 3px;
+        font-size: 0.76rem;
       }
 
       .page-section-nav {
@@ -2671,24 +2700,34 @@ import { Subscription } from "rxjs";
       }
 
       .service-stack {
-        gap: 8px;
+        gap: 7px;
+      }
+
+      .service-search-box {
+        margin-bottom: 8px;
+      }
+
+      .service-search-input {
+        height: 42px;
+        border-radius: 13px;
+        font-size: 0.84rem;
       }
 
       .salon-service-item {
-        gap: 14px;
-        padding: 14px 16px;
-        border-radius: 20px;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 18px;
       }
 
       .salon-service-action {
-        flex: 0 0 100px;
-        width: 100px;
+        flex: 0 0 84px;
+        width: 84px;
       }
 
       .salon-service-thumb {
-        width: 100px;
-        height: 84px;
-        border-radius: 18px;
+        width: 84px;
+        height: 72px;
+        border-radius: 16px;
       }
 
       .salon-service-thumb--letter span,
@@ -2734,7 +2773,30 @@ import { Subscription } from "rxjs";
       }
 
       .salon-service-copy .service-name {
-        font-size: 1.02rem;
+        font-size: 0.95rem;
+      }
+
+      .service-price-row strong {
+        font-size: 0.86rem;
+      }
+
+      .service-price-row span,
+      .service-desc,
+      .service-eligibility {
+        font-size: 0.78rem;
+      }
+
+      .service-desc {
+        -webkit-line-clamp: 1;
+      }
+
+      .salon-service-book {
+        min-width: 72px;
+        min-height: 31px;
+        margin-top: -14px;
+        padding: 0 10px;
+        border-radius: 11px;
+        font-size: 0.76rem;
       }
 
       .salon-service-item ion-button {
