@@ -1269,7 +1269,9 @@ import { Subscription } from "rxjs";
     }
 
     .service-search-box {
-      position: relative;
+      position: sticky;
+      top: calc(8px + env(safe-area-inset-top) + 52px);
+      z-index: 20;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
