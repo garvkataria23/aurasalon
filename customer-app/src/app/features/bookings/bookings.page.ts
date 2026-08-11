@@ -1,8 +1,9 @@
 import { Component, OnDestroy, OnInit, ViewChild, computed, signal } from "@angular/core";
+import { Location } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { IonButton, IonContent, IonIcon, IonRefresher, IonRefresherContent, IonSegment, IonSegmentButton, ToastController } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { cardOutline, checkmarkCircleOutline, chevronForwardOutline, helpCircleOutline, locationOutline, repeatOutline, timeOutline } from "ionicons/icons";
+import { arrowBackOutline, cardOutline, checkmarkCircleOutline, chevronForwardOutline, helpCircleOutline, locationOutline, repeatOutline, timeOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { Booking } from "../../core/api.types";
 
@@ -23,14 +24,15 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       </ion-refresher>
       <main class="page bookings-page" [class.salon-mode-bookings]="salonModeRoute()">
         <section class="bookings-hero">
-          <div class="header-actions-row">
+          <div class="bookings-top-row">
+            <button type="button" class="booking-back-btn" (click)="goBack()" aria-label="Back">
+              <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+            </button>
+            <h1 class="page-title">{{ pageTitle() }}</h1>
             <a class="support-link" [routerLink]="supportLink()" aria-label="Open booking support">
               <ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon>
               <span>Support</span>
             </a>
-          </div>
-          <div class="content-title-row">
-                  <h1 class="page-title">{{ pageTitle() }}</h1>
           </div>
         </section>
 
@@ -173,28 +175,43 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       top: 0;
       z-index: 20;
       display: grid;
-      gap: 10px;
       margin: 0 calc(var(--page-x, 0px) * -1) 18px;
-      padding: calc(12px + env(safe-area-inset-top)) var(--page-x, 0px) 12px;
+      padding: calc(8px + env(safe-area-inset-top)) var(--page-x, 0px) 10px;
       background: linear-gradient(180deg, rgba(255, 250, 246, 0.98), rgba(255, 250, 246, 0.94));
       backdrop-filter: blur(18px);
     }
 
-    .header-actions-row {
-      display: flex;
-      justify-content: flex-end;
-      min-height: 44px;
-    }
-
-    .content-title-row {
+    .bookings-top-row {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-height: 48px;
     }
 
-    .content-title-row .page-title {
+    .bookings-top-row .page-title {
       margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+
+    .booking-back-btn {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 14px;
+      color: var(--text);
+      background: transparent;
+      font-size: 1.45rem;
+      cursor: pointer;
+    }
+
+    .booking-back-btn:active { transform: scale(0.96); }
 
     .support-link {
       margin-left: auto;
@@ -782,8 +799,13 @@ export class BookingsPage implements OnDestroy, OnInit {
   readonly emptyActionLabel = computed(() => this.tab() === "upcoming" ? "Find a place" : "Book a visit");
   private midnightRefreshId: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly toasts: ToastController, private readonly route: ActivatedRoute) {
-    addIcons({ cardOutline, checkmarkCircleOutline, chevronForwardOutline, helpCircleOutline, locationOutline, repeatOutline, timeOutline });
+  constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly toasts: ToastController, private readonly route: ActivatedRoute, private readonly location: Location) {
+    addIcons({ arrowBackOutline, cardOutline, checkmarkCircleOutline, chevronForwardOutline, helpCircleOutline, locationOutline, repeatOutline, timeOutline });
+  }
+
+  goBack() {
+    if (window.history.length > 1) this.location.back();
+    else void this.router.navigateByUrl("/tabs/home");
   }
 
   ngOnInit() {
