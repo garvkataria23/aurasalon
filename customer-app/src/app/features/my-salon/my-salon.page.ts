@@ -24,6 +24,7 @@ import {
   receiptOutline,
   refreshOutline,
   ribbonOutline,
+  searchOutline,
   shieldCheckmarkOutline,
   sparklesOutline,
   starOutline,
@@ -336,10 +337,15 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
               <div class="ms-section-head">
                 <div>
                   <span class="ms-kicker">Salon Menu</span>
-                  <h2 id="services-title">Top Recommended</h2>
+                  <h2 id="services-title">{{ serviceQuery().trim() ? 'Search results' : 'Top Recommended' }}</h2>
                 </div>
                 <a [routerLink]="salonProfileLink(d.salon)">Full Menu</a>
               </div>
+
+              <label class="ms-service-search">
+                <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+                <input type="search" [value]="serviceQuery()" (input)="onServiceSearch($event)" placeholder="Search salon services" aria-label="Search salon services" />
+              </label>
 
               @if (topRecommendedServices().length) {
                 <div class="ms-service-list">
@@ -359,7 +365,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                 </div>
               } @else {
                 <div class="ms-empty-line">
-                  <span>No services available for this category.</span>
+                  <span>{{ serviceQuery().trim() ? 'No services match your search.' : 'No services available for this category.' }}</span>
                   <a [routerLink]="salonProfileLink(d.salon)">View Profile</a>
                 </div>
               }
@@ -809,6 +815,10 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-cat-pills .ms-cat-pill:active { transform: scale(.98); }
     .ms-cat-pills .ms-cat-pill.active { border-color: transparent; color: #fff; background: var(--ms-accent); box-shadow: 0 8px 18px rgba(95,70,207,.28); }
     .ms-service-list { display: grid; gap: 8px; border-top: 1px solid var(--ms-line); }
+    .ms-service-search { position: sticky; top: calc(64px + env(safe-area-inset-top)); z-index: 15; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border: 1px solid var(--ms-line); border-radius: 16px; background: var(--surface); box-shadow: 0 6px 18px rgba(28,28,28,.05); }
+    .ms-service-search ion-icon { flex: 0 0 auto; color: var(--ms-muted); font-size: 18px; }
+    .ms-service-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--ms-ink); font: inherit; font-size: .86rem; }
+    .ms-service-search input::placeholder { color: var(--ms-muted); }
     .ms-service { min-height: 68px; display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--ms-line); color: inherit; }
     .ms-service-index { color: var(--ms-accent); font-size: .72rem; font-weight: 800; }
     .ms-service-copy { min-width: 0; display: grid; gap: 3px; }
@@ -1344,6 +1354,7 @@ export class MySalonPage implements OnInit {
   readonly selectingSalon = signal(false);
   readonly salonPickerOpen = signal(false);
   readonly activeCategory = signal<string>("All");
+  readonly serviceQuery = signal("");
 
   readonly salonChoices = computed(() => {
     const choices = new Map<string, CustomerSalonRelationship>();
@@ -1385,15 +1396,22 @@ export class MySalonPage implements OnInit {
 
   readonly filteredServices = computed(() => {
     const cat = this.activeCategory();
-    const services = this.dash()?.services || [];
-    if (cat === "All") return services;
-    return services.filter((s) => s.category === cat);
+    const query = this.serviceQuery().trim().toLowerCase();
+    let services = this.dash()?.services || [];
+    if (cat !== "All") services = services.filter((s) => s.category === cat);
+    if (query) {
+      services = services.filter((s) =>
+        s.name.toLowerCase().includes(query)
+        || (s.category || "").toLowerCase().includes(query));
+    }
+    return services;
   });
 
   readonly topRecommendedServices = computed(() => {
-    const services = this.dash()?.services || [];
-    // Return top 5 services (lower price first for affordability, then by name)
-    return [...services].sort((a, b) => a.pricePaise - b.pricePaise || a.name.localeCompare(b.name)).slice(0, 5);
+    const services = this.filteredServices();
+    const searching = !!this.serviceQuery().trim();
+    const sorted = [...services].sort((a, b) => a.pricePaise - b.pricePaise || a.name.localeCompare(b.name));
+    return searching ? sorted : sorted.slice(0, 5);
   });
 
   constructor(
@@ -1424,6 +1442,7 @@ export class MySalonPage implements OnInit {
       receiptOutline,
       refreshOutline,
       ribbonOutline,
+      searchOutline,
       shieldCheckmarkOutline,
       sparklesOutline,
       starOutline,
@@ -1507,6 +1526,10 @@ export class MySalonPage implements OnInit {
 
   setCategory(cat: string): void {
     this.activeCategory.set(cat);
+  }
+
+  onServiceSearch(event: Event): void {
+    this.serviceQuery.set(String((event.target as HTMLInputElement).value));
   }
 
   async selectSalon(salon: CustomerSalonRelationship): Promise<void> {
