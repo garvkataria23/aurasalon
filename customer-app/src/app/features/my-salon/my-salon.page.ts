@@ -217,7 +217,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                 <!-- Salon Credit -->
                 <a [routerLink]="scopedLink('wallet')" class="ms-snapshot-item">
                   <div class="ms-snap-top">
-                    <span>{{ d.salon.name }} credit</span>
+                    <span>{{ shortSalonName(d.salon.name) }} credit</span>
                     <ion-icon name="wallet-outline" aria-hidden="true"></ion-icon>
                   </div>
                   <strong class="ms-currency">{{ d.wallet ? formatMoney(d.wallet.balancePaise) : '—' }}</strong>
@@ -1611,6 +1611,11 @@ export class MySalonPage implements OnInit {
   salonInitials(name: string): string {
     const words = String(name || "Salon").trim().split(/\s+/).filter(Boolean);
     return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "S";
+  }
+
+  shortSalonName(name: string): string {
+    const words = String(name || "Salon").trim().split(/\s+/).filter(Boolean);
+    return words.slice(0, 2).join(" ") || "Salon";
   }
 
   staffInitials(name: string): string {
