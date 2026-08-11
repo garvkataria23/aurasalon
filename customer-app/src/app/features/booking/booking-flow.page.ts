@@ -17,6 +17,13 @@ function localDateKey(value: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+function addDaysLocal(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const value = new Date(year, (month || 1) - 1, day || 1);
+  value.setDate(value.getDate() + days);
+  return localDateKey(value);
+}
+
 type PendingBookingIntent = {
   slug: string;
   items?: BookingFlowItem[];
@@ -3244,12 +3251,26 @@ async reload() {
     const service = this.activeService();
     if (!business || !service) return;
     const queryDate = item?.date || this.bookingItems().find((row) => row.date)?.date || localDateKey();
-    const days = await this.marketplace.loadAvailability(business.slug, {
+    const baseQuery = {
       serviceId: service.id,
       staffId: item?.staffId || undefined,
-      date: queryDate,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+    const firstChunk = await this.marketplace.loadAvailability(business.slug, {
+      ...baseQuery,
+      date: queryDate
     }).catch(() => []);
+    let days = firstChunk;
+    if (firstChunk.length <= 7) {
+      const nextChunks = await Promise.all(Array.from({ length: 8 }, (_value, index) => this.marketplace.loadAvailability(business.slug, {
+        ...baseQuery,
+        date: addDaysLocal(queryDate, (index + 1) * 7)
+      }).catch(() => [])));
+      const byDate = new Map<string, AvailabilityDay>();
+      for (const day of [...firstChunk, ...nextChunks.flat()]) byDate.set(day.date, day);
+      days = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+      this.marketplace.availability.set(days);
+    }
     const firstSelectableDay = days.find((day) => !this.isPastDate(day.date)) ?? days[0];
     if (firstSelectableDay?.date) {
       const activeIdx = this.activeItemIndex();
@@ -3323,11 +3344,6 @@ async reload() {
   currentMonthLabel(): string {
     const days = this.availabilityDays();
     if (!days.length) return "Select Date";
-    const activeDateStr = this.activeItem()?.date;
-    if (activeDateStr) {
-      const dt = new Date(activeDateStr);
-      if (Number.isFinite(dt.getTime())) return dt.toLocaleDateString([], { month: "long", year: "numeric" });
-    }
     const visible = this.visibleAvailabilityDays();
     const anchor = visible.find((day) => !this.isPastDate(day.date)) ?? visible[0] ?? days[0];
     if (!anchor) return "Select Date";
