@@ -167,7 +167,7 @@ ion-content::part(scroll)::-webkit-scrollbar {
 }
 
 ion-router-outlet > .ion-page {
-  animation: aura-page-in var(--motion-slow) both;
+  animation: none;
 }
 
 @media (min-width: 1180px) {
@@ -210,7 +210,7 @@ ion-tab-bar {
   border-radius: 999px;
   box-shadow: 0 24px 54px rgba(28, 28, 28, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(24px);
-  animation: aura-tabbar-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: none;
 }
 
 ion-tab-button {
@@ -282,7 +282,7 @@ ion-tab-button ion-label {
 .app-container,
 .page,
 .page-narrow {
-  animation: aura-content-rise var(--motion-slow) both;
+  animation: none;
 }
 
 @media (min-width: 1024px) {
@@ -329,7 +329,7 @@ ion-tab-button ion-label {
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: 0 8px 24px rgba(28, 28, 28, 0.05);
-  animation: aura-card-in var(--motion-slow) both;
+  animation: none;
   transform-origin: center top;
   transform-style: preserve-3d;
   perspective: 1200px;
@@ -346,7 +346,7 @@ ion-tab-button ion-label {
   background: var(--surface);
   box-shadow: 0 8px 24px rgba(28, 28, 28, 0.05);
   backdrop-filter: none;
-  animation: aura-card-in var(--motion-slow) both;
+  animation: none;
   transform-style: preserve-3d;
   perspective: 1200px;
   transition:
@@ -464,7 +464,7 @@ ion-tab-button ion-label {
   font-size: 0.76rem;
   font-weight: 900;
   line-height: 1;
-  animation: aura-chip-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: none;
 }
 
 .rating-pill {
@@ -549,7 +549,7 @@ ion-tab-button ion-label {
 .pill-row,
 ion-list,
 .bottom-action-card {
-  animation: aura-fade-up 440ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: none;
 }
 
 .image-fill {
@@ -1294,11 +1294,7 @@ textarea::placeholder {
   transform: translate3d(0, 0, 0);
   transform-style: flat;
   backface-visibility: hidden;
-  animation-name: aura-card-in;
-  animation-duration: var(--motion-slow);
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  animation-fill-mode: both;
-  animation-iteration-count: 1;
+  animation: none;
 }
 
 .premium-card:nth-of-type(2),
@@ -1444,9 +1440,7 @@ ion-button:active,
 
 .menu.premium-card,
 .settings-menu.premium-card {
-  animation-name: aura-card-in;
-  animation-duration: var(--motion-slow);
-  animation-iteration-count: 1;
+  animation: none;
   overflow: hidden;
   transform: none;
 }

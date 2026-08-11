@@ -1,5 +1,5 @@
 import { bootstrapApplication } from "@angular/platform-browser";
-import { RouteReuseStrategy, provideRouter } from "@angular/router";
+import { RouteReuseStrategy, provideRouter, withPreloading, PreloadAllModules } from "@angular/router";
 import { provideHttpClient, withInterceptors } from "@angular/common/http";
 import { provideIonicAngular } from "@ionic/angular/standalone";
 import { AppComponent } from "./app/app.component";
@@ -10,9 +10,9 @@ import { TabRouteReuseStrategy } from "./app/core/tab-route-reuse.strategy";
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideIonicAngular(),
+    provideIonicAngular({ animated: false }),
     provideHttpClient(withInterceptors([csrfInterceptor, authInterceptor])),
-    provideRouter(routes),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
     { provide: RouteReuseStrategy, useClass: TabRouteReuseStrategy }
   ]
 }).catch((error) => console.error(error));
