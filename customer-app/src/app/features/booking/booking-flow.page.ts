@@ -239,7 +239,7 @@ type BookingFlowItem = {
                 }
               </div>
 
-              @if (assignmentMode() === 'auto') {
+              @if (assignmentMode() === 'auto' && bookingItems().length > 1) {
                 <button type="button" class="best-available-card premium-card" [class.selected]="allAutoAssigned()" (click)="assignAnyStaffToAll()">
                   <span class="any-avatar"><ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon></span>
                   <span class="best-available-copy">
@@ -256,8 +256,8 @@ type BookingFlowItem = {
               <div class="service-assign-list" aria-label="Services and professionals">
                 @for (item of bookingItems(); track item.serviceId; let itemIndex = $index) {
                   @if (serviceById(item.serviceId); as service) {
-                    <section class="service-assign-card premium-card" [class.open]="activeItemIndex() === itemIndex">
-                      <button type="button" class="service-assign-head" [attr.aria-expanded]="activeItemIndex() === itemIndex" (click)="setActiveItem(itemIndex)">
+                    <section class="service-assign-card premium-card" [class.open]="serviceAssignExpanded(itemIndex, item)">
+                      <button type="button" class="service-assign-head" [attr.aria-expanded]="serviceAssignExpanded(itemIndex, item)" (click)="setActiveItem(itemIndex)">
                         <span class="service-assign-index">{{ itemIndex + 1 }}</span>
                         <span class="service-assign-copy">
                           <strong>{{ formatServiceName(service.name) }}</strong>
@@ -271,7 +271,7 @@ type BookingFlowItem = {
                         </span>
                       </button>
 
-                      @if (activeItemIndex() === itemIndex) {
+                      @if (serviceAssignExpanded(itemIndex, item)) {
                         <div class="service-assign-body">
                           @if (pendingStaffChange()?.index === itemIndex) {
                             <div class="slot-reset-warning" role="alert">
@@ -303,11 +303,11 @@ type BookingFlowItem = {
                               <p class="gender-note">No preference may produce earlier availability.</p>
                             }
 
-                            <button type="button" class="staff-choice premium-card" [class.selected]="item.staffId === null" (click)="pickStaff(itemIndex, null)">
+                            <button type="button" class="staff-choice staff-choice-auto premium-card" [class.selected]="item.staffId === null" (click)="pickStaff(itemIndex, null)">
                               <span class="any-avatar"><ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon></span>
                               <span class="staff-copy">
                                 <strong>Best available</strong>
-                                <small class="staff-role">We'll assign a qualified professional · earliest appointment</small>
+                                <small class="staff-role">Earliest qualified professional</small>
                               </span>
                               <em>{{ item.staffId === null ? "Assigned" : "Select" }}</em>
                             </button>
@@ -1125,6 +1125,11 @@ type BookingFlowItem = {
     .staff-choice span, .staff-choice em { display: block; color: var(--muted); font-style: normal; line-height: 1.25; }
     .staff-choice em { min-width: 68px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.84rem; font-weight: 900; text-align: center; }
     .staff-choice.selected em { color: #FFFFFF; background: var(--primary); }
+    .staff-choice-auto { min-height: 54px; gap: 9px; padding: 8px 10px; }
+    .staff-choice-auto .any-avatar { width: 38px; height: 38px; border-radius: 14px; font-size: 1rem; }
+    .staff-choice-auto strong { font-size: 0.9rem; }
+    .staff-choice-auto .staff-role { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; }
+    .staff-choice-auto em { min-width: 64px; min-height: 32px; padding: 0 10px; font-size: 0.78rem; }
     .check-slots-button { justify-self: end; min-height: 40px; padding: 0 13px; border: 1px solid rgba(99, 102, 241, 0.32); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.8rem; font-weight: 900; white-space: nowrap; }
     .check-slots-button:hover, .check-slots-button:focus-visible { background: var(--gold-soft); }
     .multi-service-stack { display: grid; gap: 14px; }
@@ -1512,12 +1517,12 @@ type BookingFlowItem = {
     .drawer-item-copy small { color: var(--muted); font-size: 0.84rem; font-weight: 800; }
     .drawer-remove { min-height: 40px; padding: 0 12px; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 999px; color: #EF4444; background: var(--surface); font-size: 0.84rem; font-weight: 950; }
     .drawer-empty { padding: 18px; color: var(--muted); text-align: center; }
-    .assign-mode-card { display: grid; gap: 10px; padding: 14px; }
+    .assign-mode-card { display: grid; gap: 8px; padding: 12px; }
     .assign-mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: var(--surface-soft); }
-    .assign-mode-toggle button { min-height: 42px; border: 0; border-radius: 11px; color: var(--muted); background: transparent; font-size: 0.86rem; font-weight: 950; }
+    .assign-mode-toggle button { min-height: 38px; border: 0; border-radius: 11px; color: var(--muted); background: transparent; font-size: 0.82rem; font-weight: 950; }
     .assign-mode-toggle button.active { color: #FFFFFF; background: var(--primary); box-shadow: 0 6px 14px rgba(99, 102, 241, 0.25); }
     .assign-mode-toggle button:hover, .assign-mode-toggle button:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
-    .assign-mode-help { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
+    .assign-mode-help { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
     .best-available-card { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; border-color: rgba(99, 102, 241, 0.35); background: var(--primary-soft); color: var(--text); text-align: left; }
     .best-available-card.selected { border-color: transparent; background: var(--primary); box-shadow: 0 14px 30px rgba(99, 102, 241, 0.28); }
     .best-available-copy { min-width: 0; display: grid; gap: 3px; }
@@ -1528,22 +1533,22 @@ type BookingFlowItem = {
     .best-available-state { min-height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.84rem; font-weight: 950; white-space: nowrap; }
     .best-available-card.selected .best-available-state { color: var(--primary); }
     .recommend-tag { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: var(--surface-soft); font-size: 0.74rem; font-weight: 950; letter-spacing: 0.05em; text-transform: uppercase; vertical-align: 2px; }
-    .service-assign-list { display: grid; gap: 10px; }
+    .service-assign-list { display: grid; gap: 8px; }
     .service-assign-card { display: grid; gap: 0; padding: 0; overflow: hidden; }
-    .service-assign-head { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; }
+    .service-assign-head { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; }
     .service-assign-head:hover, .service-assign-head:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: -2px; }
-    .service-assign-index { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.82rem; font-weight: 950; }
+    .service-assign-index { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.78rem; font-weight: 950; }
     .service-assign-copy { min-width: 0; display: grid; gap: 2px; }
-    .service-assign-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; }
-    .service-assign-copy small { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; font-size: 0.84rem; font-weight: 800; }
+    .service-assign-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.92rem; }
+    .service-assign-copy small { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; font-weight: 800; }
     .service-assign-state { display: flex; align-items: center; gap: 8px; }
     .service-assign-state > ion-icon { color: var(--muted); transition: transform 180ms ease; }
     .service-assign-card.open .service-assign-state > ion-icon { transform: rotate(180deg); }
-    .assign-badge { min-height: 24px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 950; white-space: nowrap; }
+    .assign-badge { min-height: 22px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.76rem; font-weight: 950; white-space: nowrap; }
     .assign-badge.auto { color: var(--primary); background: var(--primary-soft); }
     .assign-badge.manual { color: #059669; background: #D1FAE5; }
     .assign-badge.pending { color: #B45309; background: #FEF3C7; }
-    .service-assign-body { display: grid; gap: 10px; padding: 2px 14px 14px; }
+    .service-assign-body { display: grid; gap: 8px; padding: 0 12px 12px; }
     .booking-page.editing .service-panel { gap: 8px; }
     .booking-page.editing .section-heading { margin-bottom: 0; }
     .booking-page.editing .service-search { min-height: 40px; border-radius: 13px; }
@@ -2835,6 +2840,10 @@ async reload() {
   allAutoAssigned(): boolean {
     const items = this.bookingItems();
     return items.length > 0 && items.every((item) => item.staffId === null);
+  }
+
+  serviceAssignExpanded(index: number, item: BookingFlowItem): boolean {
+    return this.activeItemIndex() === index && (this.assignmentMode() !== "auto" || item.staffId !== null || this.pendingStaffChange()?.index === index);
   }
 
   assigneeLabel(item: BookingFlowItem): string {
