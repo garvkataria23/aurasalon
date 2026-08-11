@@ -905,9 +905,10 @@ type BookingFlowItem = {
         </main>
       }
 
-      @if (activeCustomizationService(); as service) {
+      @if (activeCustomizationServiceId()) {
         <section class="service-popup-backdrop" role="dialog" aria-modal="true" aria-labelledby="service-popup-title" (click)="closeServicePopup()">
           <article class="service-popup-sheet" (click)="$event.stopPropagation()">
+            @if (activeCustomizationService(); as service) {
             <div class="service-popup-hero">
               @if (serviceImage(service, 0)) {
                 <div class="service-popup-hero-img" [style.background-image]="serviceImageBackground(service, 0)" role="img" [attr.aria-label]="service.name + ' service image'"></div>
@@ -989,6 +990,17 @@ type BookingFlowItem = {
                 {{ isServiceSelected(service.id) ? "Remove service" : "Add service" }}
               </button>
             </div>
+            } @else {
+            <div class="service-popup-hero service-popup-hero--loading" aria-hidden="true"></div>
+            <div class="service-popup-body">
+              <div class="service-popup-skel">
+                <span class="service-skel-chip"></span>
+                <span class="service-skel-line title"></span>
+                <span class="service-skel-line"></span>
+                <span class="service-skel-line short"></span>
+              </div>
+            </div>
+            }
           </article>
         </section>
       }
@@ -1821,6 +1833,46 @@ type BookingFlowItem = {
       letter-spacing: -0.04em;
     }
 
+    .service-popup-hero--loading {
+      display: grid;
+      place-items: center;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(255, 255, 255, 0) 100%), linear-gradient(145deg, rgba(239, 235, 255, 0.96), rgba(228, 220, 255, 0.88));
+      background-size: 200% 100%, 100% 100%;
+      animation: booking-skeleton 1.4s linear infinite;
+    }
+
+    .service-popup-skel {
+      display: grid;
+      gap: 11px;
+      padding: 6px 2px 18px;
+    }
+
+    .service-skel-chip {
+      width: 92px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(226, 232, 255, 0.9) 25%, rgba(245, 246, 255, 0.95) 50%, rgba(226, 232, 255, 0.9) 75%);
+      background-size: 200% 100%;
+      animation: booking-skeleton 1.4s linear infinite;
+    }
+
+    .service-skel-line {
+      height: 12px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(226, 232, 255, 0.9) 25%, rgba(245, 246, 255, 0.95) 50%, rgba(226, 232, 255, 0.9) 75%);
+      background-size: 200% 100%;
+      animation: booking-skeleton 1.4s linear infinite;
+    }
+
+    .service-skel-line.title {
+      height: 20px;
+      width: 62%;
+    }
+
+    .service-skel-line.short {
+      width: 42%;
+    }
+
     .service-popup-close {
       position: absolute;
       top: 14px;
@@ -2560,6 +2612,11 @@ async reload() {
     // Refresh the slug from the CURRENT url — on a reused (cached) page the
     // constructor-time slug would otherwise be stale.
     this.slug.set(this.route.snapshot.paramMap.get("slug"));
+    const detailServiceId = this.route.snapshot.queryParamMap.get("detailServiceId");
+    if (detailServiceId && detailServiceId !== this.detailPopupOpenedForServiceId) {
+      this.activeCustomizationServiceId.set(detailServiceId);
+      this.detailPopupOpenedForServiceId = detailServiceId;
+    }
     const slug = await this.resolveBusinessSlug();
     if (!slug) return;
     this.slug.set(slug);
@@ -2582,10 +2639,8 @@ async reload() {
     } else if (this.step() < 1 || this.step() > 4) {
       this.step.set(1);
     }
-    const detailServiceId = this.route.snapshot.queryParamMap.get("detailServiceId");
-    if (detailServiceId && detailServiceId !== this.detailPopupOpenedForServiceId && this.serviceById(detailServiceId)) {
-      this.activeCustomizationServiceId.set(detailServiceId);
-      this.detailPopupOpenedForServiceId = detailServiceId;
+    if (detailServiceId && this.activeCustomizationServiceId() === detailServiceId && !this.serviceById(detailServiceId)) {
+      this.activeCustomizationServiceId.set("");
     }
     this.syncBookingDraft();
     await this.reloadAvailability();
