@@ -3055,8 +3055,7 @@ async reload() {
 
   serviceImage(service: ServiceItem, index: number): string {
     const withImage = service as ServiceItem & { image?: string; imageUrl?: string; photoUrl?: string; thumbnailUrl?: string };
-    const business = this.business();
-    return withImage.image || withImage.imageUrl || withImage.photoUrl || withImage.thumbnailUrl || business?.galleryImages?.[index % Math.max(business.galleryImages.length, 1)] || business?.coverImage || "assets/icons/icon.svg";
+    return withImage.image || withImage.imageUrl || withImage.photoUrl || withImage.thumbnailUrl || "";
   }
 
   /** Builds the full multi-service context passed to the confirmation screen via router state. */
