@@ -10,11 +10,13 @@ export interface ReusableTabPage {
 }
 
 /**
- * Keeps read-only bottom-tab pages mounted so tab switching feels instant:
- * returning to a tab re-attaches the same component instance + its DOM, so
- * there is no remount, no refetch and no skeleton flash. Only data that the
- * user is viewing is cached; transactional/form routes fall back to the
- * default destroy-and-recreate behaviour so Ionic lifecycle hooks still fire.
+ * Angular RouteReuseStrategy cannot detach/attach pages when the outlet is an
+ * Ionic <ion-router-outlet> (it throws "incompatible reuse strategy"), so this
+ * strategy never detaches. Page caching is left to Ionic's native
+ * StackController, which keeps visited pages alive and reuses their component
+ * instance when returning to them. This strategy only guards route reuse so
+ * that a route whose parameters changed (e.g. a different primary salon) is
+ * recreated instead of reused.
  */
 export class TabRouteReuseStrategy extends BaseRouteReuseStrategy {
   /** Full paths of the read-only tab / hub pages that stay mounted. */
@@ -54,8 +56,11 @@ export class TabRouteReuseStrategy extends BaseRouteReuseStrategy {
     return true;
   }
 
-  override shouldDetach(route: ActivatedRouteSnapshot): boolean {
-    return this.reusableKey(route) !== null;
+  override shouldDetach(_route: ActivatedRouteSnapshot): boolean {
+    // Ionic's IonRouterOutlet does not implement Angular's detach/attach
+    // contract (it throws "incompatible reuse strategy"), so we must never
+    // detach here. Ionic caches pages natively via its StackController.
+    return false;
   }
 
   override store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle): void {

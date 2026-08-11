@@ -352,7 +352,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                       </div>
                       <div class="ms-service-right">
                         <span class="ms-service-price">{{ formatMoney(service.pricePaise) }}</span>
-                        <a class="ms-service-book-btn" [routerLink]="salonBookLink(d.salon)">Book</a>
+                        <a class="ms-service-book-btn" [routerLink]="salonBookLink(d.salon)" [queryParams]="{ serviceId: service.id, step: '1' }">Book</a>
                       </div>
                     </div>
                   }
