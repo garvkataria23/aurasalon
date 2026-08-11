@@ -2581,6 +2581,14 @@ async reload() {
     } else if (this.step() < 1 || this.step() > 4) {
       this.step.set(1);
     }
+    const detailServiceId = this.route.snapshot.queryParamMap.get("detailServiceId");
+    if (detailServiceId && this.serviceById(detailServiceId)) {
+      this.activeCustomizationServiceId.set(detailServiceId);
+      void this.router.navigate([], {
+        replaceUrl: true,
+        queryParams: { ...this.route.snapshot.queryParams, detailServiceId: undefined }
+      });
+    }
     this.syncBookingDraft();
     await this.reloadAvailability();
   }
