@@ -2841,6 +2841,7 @@ async reload() {
     if (this.isRescheduling()) {
       this.flowWarning.set("Date changed. Please choose a new time slot before saving changes.");
     }
+    this.scrollDateRowToDate(date);
     void this.reloadAvailability();
   }
 
@@ -3414,6 +3415,15 @@ async reload() {
     });
   }
 
+  private scrollDateRowToDate(date: string) {
+    const index = this.availabilityDays().findIndex((day) => day.date === date);
+    if (index < 0) return;
+    const maxOffset = Math.max(0, this.availabilityDays().length - 7);
+    const next = Math.min(maxOffset, Math.max(0, index));
+    this.dateOffset.set(next);
+    this.scrollDateRowToOffset(next);
+  }
+
   private dateOffsetFromScroll(row: HTMLElement | null): number | null {
     const cardWidth = this.dateCardStep(row);
     if (!row || !cardWidth) return null;
@@ -3432,6 +3442,7 @@ async reload() {
     const match = this.findSelectableSlot(this.availabilityDays());
     if (match) {
       this.setDate(match.day.date);
+      this.scrollDateRowToDate(match.day.date);
       void this.selectActiveSlot(match.slot);
       return;
     }
@@ -3440,6 +3451,7 @@ async reload() {
 
   selectThisWeek() {
     this.dateOffset.set(0);
+    this.scrollDateRowToOffset(0);
     const week = this.availabilityDays().slice(0, 7);
     const match = this.findSelectableSlot(week);
     if (match) {
