@@ -401,7 +401,7 @@ type BookingFlowItem = {
                   </button>
                 </div>
 
-                <div class="date-row seven-days-grid">
+                <div class="date-row seven-days-grid" (touchstart)="onDateRowTouchStart($event)" (touchend)="onDateRowTouchEnd($event)" (touchcancel)="onDateRowTouchEnd($event)">
                   @if (marketplace.loading() && !availabilityDays().length) {
                     @for (item of [1, 2, 3, 4, 5, 6, 7]; track item) {
                       <div class="date-card skeleton-date" aria-hidden="true">
@@ -3322,8 +3322,16 @@ async reload() {
 
   currentMonthLabel(): string {
     const days = this.availabilityDays();
-    const activeDateStr = this.activeItem()?.date || days.find((day) => !this.isPastDate(day.date))?.date || days[0]?.date || localDateKey();
-    const dt = new Date(activeDateStr);
+    if (!days.length) return "Select Date";
+    const activeDateStr = this.activeItem()?.date;
+    if (activeDateStr) {
+      const dt = new Date(activeDateStr);
+      if (Number.isFinite(dt.getTime())) return dt.toLocaleDateString([], { month: "long", year: "numeric" });
+    }
+    const visible = this.visibleAvailabilityDays();
+    const anchor = visible.find((day) => !this.isPastDate(day.date)) ?? visible[0] ?? days[0];
+    if (!anchor) return "Select Date";
+    const dt = new Date(anchor.date);
     if (!Number.isFinite(dt.getTime())) return "Select Date";
     return dt.toLocaleDateString([], { month: "long", year: "numeric" });
   }
@@ -3339,6 +3347,24 @@ async reload() {
 
   canNextDatePage(): boolean {
     return this.dateOffset() < Math.max(0, this.availabilityDays().length - 7);
+  }
+
+  private dateRowTouchX = 0;
+  private dateRowTouchY = 0;
+
+  onDateRowTouchStart(event: TouchEvent) {
+    this.dateRowTouchX = event.touches[0]?.clientX ?? 0;
+    this.dateRowTouchY = event.touches[0]?.clientY ?? 0;
+  }
+
+  onDateRowTouchEnd(event: TouchEvent) {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - this.dateRowTouchX;
+    const dy = touch.clientY - this.dateRowTouchY;
+    if (Math.abs(dx) < 48 || Math.abs(dy) > Math.abs(dx)) return;
+    if (dx < 0) this.nextDatePage();
+    else this.prevDatePage();
   }
 
   selectNextAvailable() {

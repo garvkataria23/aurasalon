@@ -611,7 +611,7 @@ export const customerMarketplaceService = {
       .filter((person) => !query.staffId || person.id === query.staffId);
     if (!staff.length) return [];
     const startDate = String(query.date || new Date().toISOString().slice(0, 10)).slice(0, 10);
-    const dates = Array.from({ length: 7 }, (_value, index) => addDays(startDate, index));
+    const dates = Array.from({ length: 63 }, (_value, index) => addDays(startDate, index));
     const rangeStart = new Date(`${dates[0]}T00:00:00${IST_OFFSET}`).toISOString();
     const rangeEnd = new Date(`${addDays(dates[dates.length - 1], 1)}T00:00:00${IST_OFFSET}`).toISOString();
     const appointments = appointmentRows(business.tenantId, business.branchId, rangeStart, rangeEnd);
