@@ -132,17 +132,17 @@ import { Subscription } from "rxjs";
                       <span>Get faster booking, personalised offers, memberships and salon rewards.</span>
                     </div>
                     <div class="primary-salon-actions">
-                      <a class="primary-salon-action secondary" [routerLink]="mySalonHref()">
+                      <button type="button" class="primary-salon-action secondary" (click)="confirmPrimaryAction('open')">
                         <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon> Open My Salon
-                      </a>
-                      <button type="button" class="primary-salon-link" (click)="removeAsPrimary()">Change</button>
+                      </button>
+                      <button type="button" class="primary-salon-link" (click)="confirmPrimaryAction('remove')">Remove</button>
                     </div>
                   } @else {
                     <div>
                       <strong>Set primary salon</strong>
                       <span>Get faster booking, personalised offers, memberships and salon rewards.</span>
                     </div>
-                    <button type="button" class="primary-salon-action" (click)="setAsPrimary()">Set primary</button>
+                    <button type="button" class="primary-salon-action" (click)="confirmPrimaryAction('set')">Set primary</button>
                   }
                 </div>
               }
@@ -663,6 +663,34 @@ import { Subscription } from "rxjs";
             <div class="booking-confirm-actions">
               <button type="button" class="booking-confirm-cancel" (click)="pendingBookService.set(null)">Cancel</button>
               <button type="button" class="booking-confirm-accept" (click)="confirmNewBooking(service.id)">Start New Booking</button>
+            </div>
+          </section>
+        </div>
+      }
+
+      @if (primaryConfirm(); as confirm) {
+        <div class="booking-confirm-backdrop" role="presentation" (click)="primaryConfirm.set(null)">
+          <section class="booking-confirm-sheet" role="alertdialog" aria-modal="true" aria-labelledby="primary-confirm-title" (click)="$event.stopPropagation()">
+            <div class="booking-confirm-icon" aria-hidden="true">
+              @if (confirm.kind === "remove") {
+                <ion-icon name="close-circle-outline"></ion-icon>
+              } @else {
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+              }
+            </div>
+            @if (confirm.kind === "open") {
+              <h2 id="primary-confirm-title">Open My Salon?</h2>
+              <p>Are you sure you want to open My Salon for {{ b.businessName }}?</p>
+            } @else if (confirm.kind === "remove") {
+              <h2 id="primary-confirm-title">Remove primary salon?</h2>
+              <p>Are you sure you want to remove {{ b.businessName }} as your primary salon?</p>
+            } @else {
+              <h2 id="primary-confirm-title">Set primary salon?</h2>
+              <p>Are you sure you want to set {{ b.businessName }} as your primary salon?</p>
+            }
+            <div class="booking-confirm-actions">
+              <button type="button" class="booking-confirm-cancel" (click)="primaryConfirm.set(null)">No</button>
+              <button type="button" class="booking-confirm-accept" [class.danger]="confirm.kind === 'remove'" (click)="confirmPrimaryYes()">Yes</button>
             </div>
           </section>
         </div>
@@ -2107,6 +2135,11 @@ import { Subscription } from "rxjs";
       box-shadow: 0 12px 26px rgba(99, 102, 241, 0.3);
     }
 
+    .booking-confirm-accept.danger {
+      background: linear-gradient(135deg, #e43d5c, #c22749);
+      box-shadow: 0 12px 26px rgba(226, 58, 94, 0.3);
+    }
+
     .booking-confirm-cancel:active,
     .booking-confirm-accept:active {
       transform: scale(0.97);
@@ -3132,7 +3165,24 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   readonly activeCustomizationServiceId = signal<string>("");
   /** Service awaiting the "start a new booking" confirmation because the current draft belongs to another salon. */
   readonly pendingBookService = signal<ServiceItem | null>(null);
-  readonly serviceNotes = signal<Record<string, string>>({});
+  readonly primaryConfirm = signal<{ kind: "open" | "set" | "remove" } | null>(null);
+
+  confirmPrimaryAction(kind: "open" | "set" | "remove") {
+    this.primaryConfirm.set({ kind });
+  }
+
+  async confirmPrimaryYes() {
+    const confirm = this.primaryConfirm();
+    if (!confirm) return;
+    this.primaryConfirm.set(null);
+    if (confirm.kind === "open") {
+      void this.router.navigateByUrl(this.mySalonHref());
+    } else if (confirm.kind === "set") {
+      await this.setAsPrimary();
+    } else if (confirm.kind === "remove") {
+      await this.removeAsPrimary();
+    }
+  }  readonly serviceNotes = signal<Record<string, string>>({});
   readonly serviceQuery = signal<string>("");
   readonly selectedCategory = signal<string>("");
   readonly visibleServiceLimit = signal(12);
