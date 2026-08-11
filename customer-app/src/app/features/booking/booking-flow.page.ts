@@ -408,7 +408,7 @@ type BookingFlowItem = {
                   </button>
                 </div>
 
-                <div class="date-row seven-days-grid" (touchstart)="onDateRowTouchStart($event)" (touchend)="onDateRowTouchEnd($event)" (touchcancel)="onDateRowTouchEnd($event)">
+                <div class="date-row seven-days-grid" (touchstart)="onDateRowTouchStart($event)" (touchend)="onDateRowTouchEnd($event)" (touchcancel)="onDateRowTouchEnd($event)" (pointerdown)="onDateRowPointerStart($event)" (pointerup)="onDateRowPointerEnd($event)" (pointercancel)="onDateRowPointerEnd($event)">
                   @if (marketplace.loading() && !availabilityDays().length) {
                     @for (item of [1, 2, 3, 4, 5, 6, 7]; track item) {
                       <div class="date-card skeleton-date" aria-hidden="true">
@@ -430,7 +430,8 @@ type BookingFlowItem = {
                         (click)="setDate(date.date)">
                         <span class="date-dot" [class]="dateAvailabilityClass(date)"></span>
                         <strong>{{ date.dayLabel }}</strong>
-                        <span>{{ date.label }}</span>
+                        <span class="date-number">{{ dateDayNumber(date.date) }}</span>
+                        <span class="date-month">{{ dateMonthShort(date.date) }}</span>
                         @if (isCurrentAppointmentDate(date.date)) { <small class="current-badge">Current</small> }
                         <small class="status-text">{{ dateAvailabilityLabel(date) }}</small>
                       </button>
@@ -1625,12 +1626,14 @@ type BookingFlowItem = {
     .month-nav-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: var(--surface); font-size: 1rem; cursor: pointer; }
     .month-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     
-    .date-row.seven-days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; overflow: visible; }
-    .date-card { position: relative; display: grid; gap: 2px; justify-items: center; align-content: center; min-height: 74px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font-weight: 900; text-align: center; cursor: pointer; }
-    .date-card strong { font-size: 0.84rem; line-height: 1.1; }
-    .date-card span { font-size: 0.80rem; color: var(--muted); line-height: 1.1; }
+    .date-row.seven-days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; overflow: visible; touch-action: pan-y; user-select: none; }
+    .date-card { position: relative; display: grid; grid-template-rows: 8px 16px 16px 16px auto; gap: 0; justify-items: center; align-content: center; min-height: 74px; padding: 7px 3px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font-weight: 900; text-align: center; cursor: pointer; }
+    .date-card strong { font-size: 0.82rem; line-height: 16px; }
+    .date-card span { color: var(--muted); line-height: 16px; }
+    .date-card .date-number { color: var(--text); font-size: 0.84rem; font-weight: 950; }
+    .date-card .date-month { font-size: 0.78rem; font-weight: 900; }
     .date-card .status-text { font-size: 0.74rem; color: var(--muted); font-weight: 800; white-space: nowrap; }
-    .date-dot { width: 7px; height: 7px; border-radius: 999px; display: block; margin-bottom: 2px; }
+    .date-dot { width: 7px; height: 7px; border-radius: 999px; display: block; margin-bottom: 0; }
     .date-dot.many { background: #10B981; }
     .date-dot.partial { background: #F59E0B; }
     .date-dot.full { background: #EF4444; }
@@ -1768,9 +1771,11 @@ type BookingFlowItem = {
       .best-available-card { gap: 10px; padding: 12px; }
       .best-available-state { padding: 0 10px; font-size: 0.80rem; }
       .date-row.seven-days-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; overflow: visible; }
-      .date-row.seven-days-grid .date-card { min-height: 68px; padding: 6px 2px; gap: 2px; border-radius: 12px; }
-      .date-row.seven-days-grid .date-card strong { font-size: 0.82rem; }
-      .date-row.seven-days-grid .date-card span { font-size: 0.78rem; }
+      .date-row.seven-days-grid .date-card { min-height: 68px; padding: 6px 2px; border-radius: 12px; grid-template-rows: 8px 15px 15px 15px auto; }
+      .date-row.seven-days-grid .date-card strong { font-size: 0.80rem; line-height: 15px; }
+      .date-row.seven-days-grid .date-card span { line-height: 15px; }
+      .date-row.seven-days-grid .date-card .date-number { font-size: 0.82rem; }
+      .date-row.seven-days-grid .date-card .date-month { font-size: 0.76rem; }
       .date-row.seven-days-grid .date-card .status-text { display: none; }
       .timeline-step { grid-template-columns: 1fr; gap: 4px; }
     }
@@ -3352,6 +3357,24 @@ async reload() {
     return dt.toLocaleDateString([], { month: "long", year: "numeric" });
   }
 
+  dateDayNumber(date: string): string {
+    const parsed = this.dateFromKey(date);
+    return parsed ? String(parsed.getDate()) : date.split("-")[2] || "";
+  }
+
+  dateMonthShort(date: string): string {
+    const parsed = this.dateFromKey(date);
+    if (!parsed) return "";
+    return parsed.toLocaleDateString("en-IN", { month: "short" }).replace(/^Sept$/i, "Sep");
+  }
+
+  private dateFromKey(date: string): Date | null {
+    const [year, month, day] = date.split("-").map(Number);
+    if (!year || !month || !day) return null;
+    const parsed = new Date(year, month - 1, day);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+
   prevDatePage() {
     this.dateOffset.update((curr) => Math.max(0, curr - 7));
   }
@@ -3367,6 +3390,9 @@ async reload() {
 
   private dateRowTouchX = 0;
   private dateRowTouchY = 0;
+  private dateRowPointerX = 0;
+  private dateRowPointerY = 0;
+  private lastDateRowSwipeAt = 0;
 
   onDateRowTouchStart(event: TouchEvent) {
     this.dateRowTouchX = event.touches[0]?.clientX ?? 0;
@@ -3376,9 +3402,25 @@ async reload() {
   onDateRowTouchEnd(event: TouchEvent) {
     const touch = event.changedTouches[0];
     if (!touch) return;
-    const dx = touch.clientX - this.dateRowTouchX;
-    const dy = touch.clientY - this.dateRowTouchY;
+    this.handleDateRowSwipe(this.dateRowTouchX, this.dateRowTouchY, touch.clientX, touch.clientY);
+  }
+
+  onDateRowPointerStart(event: PointerEvent) {
+    this.dateRowPointerX = event.clientX;
+    this.dateRowPointerY = event.clientY;
+  }
+
+  onDateRowPointerEnd(event: PointerEvent) {
+    this.handleDateRowSwipe(this.dateRowPointerX, this.dateRowPointerY, event.clientX, event.clientY);
+  }
+
+  private handleDateRowSwipe(startX: number, startY: number, endX: number, endY: number) {
+    const now = Date.now();
+    if (now - this.lastDateRowSwipeAt < 240) return;
+    const dx = endX - startX;
+    const dy = endY - startY;
     if (Math.abs(dx) < 48 || Math.abs(dy) > Math.abs(dx)) return;
+    this.lastDateRowSwipeAt = now;
     if (dx < 0) this.nextDatePage();
     else this.prevDatePage();
   }
