@@ -359,18 +359,19 @@ private readSalonModeContext(): SalonModeContext | null {
   }
 
   clearCached(name: string, key?: string): void {
-    const prefix = key ? this.cacheKey(name, key) : `${MarketplaceService.DATA_CACHE_PREFIX}${name}:`;
     try {
       if (key) {
-        this.memCache.delete(prefix);
-        localStorage.removeItem(prefix);
+        const exact = this.cacheKey(name, key);
+        this.memCache.delete(exact);
+        localStorage.removeItem(exact);
         return;
       }
+      const marker = `:${name}:`;
       for (const cacheKey of this.memCache.keys()) {
-        if (cacheKey.startsWith(prefix)) this.memCache.delete(cacheKey);
+        if (cacheKey.includes(marker)) this.memCache.delete(cacheKey);
       }
       Object.keys(localStorage)
-        .filter((storedKey) => storedKey.startsWith(prefix))
+        .filter((storedKey) => storedKey.startsWith(MarketplaceService.DATA_CACHE_PREFIX) && storedKey.includes(marker))
         .forEach((storedKey) => localStorage.removeItem(storedKey));
     } catch {
       // storage unavailable — memory cache still cleared above.

@@ -1541,6 +1541,7 @@ export class MySalonPage implements OnInit {
     this.loadError.set("");
     try {
       await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName);
+      this.marketplace.enterSalonMode({ tenantId: salon.tenantId, branchId: salon.branchId, businessId: salon.businessId, businessName: salon.businessName });
       this.dash.set(null);
       this.salonPickerOpen.set(false);
       this.activeCategory.set("All");

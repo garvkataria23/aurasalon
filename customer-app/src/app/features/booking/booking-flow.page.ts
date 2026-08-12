@@ -739,6 +739,7 @@ type BookingFlowItem = {
                       <button type="button" class="btn-apply-coupon" (click)="applyCoupon()">Apply</button>
                     </div>
                     @if (couponSuccessMsg()) { <p class="coupon-msg success">{{ couponSuccessMsg() }}</p> }
+                    @if (couponErrorMsg()) { <p class="coupon-msg error">{{ couponErrorMsg() }}</p> }
                   </div>
                 </section>
 
@@ -805,8 +806,8 @@ type BookingFlowItem = {
             @if (currentBookingStep() < 4) {
               <ion-button class="primary-gradient" [disabled]="!canContinue() || !!slotExpiredWarning()" (click)="next()">Continue</ion-button>
             } @else {
-              <ion-button class="primary-gradient" [disabled]="!canConfirm() || marketplace.loading()" (click)="confirmBooking()">
-                  @if (marketplace.loading()) { <span class="button-spinner" aria-hidden="true"></span> }
+              <ion-button class="primary-gradient" [disabled]="!canConfirm() || marketplace.loading() || bookingSubmitting()" (click)="confirmBooking()">
+                  @if (marketplace.loading() || bookingSubmitting()) { <span class="button-spinner" aria-hidden="true"></span> }
                   <span>{{ isRescheduling() ? "Confirm changes" : (marketplace.isAuthenticated() ? "Confirm booking" : "Sign in to book") }}</span>
               </ion-button>
             }
@@ -1741,7 +1742,7 @@ type BookingFlowItem = {
     .coupon-input { flex: 1; min-width: 0; padding: 0 12px; min-height: 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 0.84rem; text-transform: uppercase; }
     .btn-apply-coupon { min-height: 40px; padding: 0 14px; border: 0; border-radius: 12px; color: #FFFFFF; background: var(--primary); font-size: 0.8rem; font-weight: 950; cursor: pointer; }
     .coupon-msg.success { margin: 0; color: #059669; font-size: 0.84rem; font-weight: 900; }
-    
+    .coupon-msg.error { margin: 0; color: #dc2626; font-size: 0.84rem; font-weight: 700; }
     .policy-section { display: grid; gap: 8px; }
     .policy-item { display: flex; align-items: flex-start; gap: 10px; font-size: 0.84rem; color: var(--muted); }
     .policy-item ion-icon { color: var(--primary); font-size: 1.1rem; flex: 0 0 auto; margin-top: 2px; }
@@ -2160,8 +2161,10 @@ export class BookingFlowPage implements OnInit, OnDestroy {
   });
   readonly couponCode = signal("");
   readonly couponSuccessMsg = signal("");
+  readonly couponErrorMsg = signal("");
   readonly benefitsApplied = signal(false);
   readonly discountPaise = signal(0);
+  readonly bookingSubmitting = signal(false);
   readonly showPolicyModal = signal(false);
 
   readonly continuousVisitMode = signal(true);
@@ -2621,6 +2624,17 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
     else this.reload();
   }
 
+  ionViewWillLeave() {
+    if (this.holdTimerInterval) {
+      clearInterval(this.holdTimerInterval);
+      this.holdTimerInterval = null;
+    }
+    if (this.activeHoldId()) {
+      this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+      this.activeHoldId.set(null);
+    }
+  }
+
   ngOnDestroy() {
     if (this.holdTimerInterval) {
       clearInterval(this.holdTimerInterval);
@@ -3039,23 +3053,15 @@ async reload() {
   applyCoupon() {
     const code = this.couponCode().trim().toUpperCase();
     if (!code) return;
-    if (code === "AURA10" || code === "WELCOME" || code === "SAVE50") {
-      this.discountPaise.set(5000);
-      this.couponSuccessMsg.set(`Offer '${code}' applied! You saved ₹50.`);
-    } else {
-      this.discountPaise.set(2000);
-      this.couponSuccessMsg.set(`Promo code '${code}' applied! You saved ₹20.`);
-    }
+    this.couponSuccessMsg.set("");
+    this.couponErrorMsg.set(`Promo code '${code}' isn't available for online bookings yet.`);
   }
 
   toggleApplyBenefits() {
     const current = this.benefitsApplied();
     this.benefitsApplied.set(!current);
-    if (!current) {
-      this.discountPaise.update((d) => d + 3000);
-    } else {
-      this.discountPaise.update((d) => Math.max(0, d - 3000));
-    }
+    this.couponSuccessMsg.set("");
+    this.couponErrorMsg.set("Membership and package benefits aren't available for online bookings yet.");
   }
 
   finalPayableAmount(): number {
@@ -3131,6 +3137,9 @@ async reload() {
   }
 
   async confirmBooking() {
+    if (this.bookingSubmitting()) return;
+    this.bookingSubmitting.set(true);
+    try {
     const business = this.business();
     const items = this.bookingItems();
     if (!business || !items.length || !this.canConfirm()) return;
@@ -3192,6 +3201,9 @@ async reload() {
     const successState = this.buildSuccessState();
     try { sessionStorage.setItem("aura_booking_success", JSON.stringify(successState)); } catch { /* session storage unavailable */ }
     this.router.navigateByUrl(successUrl, { state: successState });
+    } finally {
+      this.bookingSubmitting.set(false);
+    }
   }
 
   backHref(): string {
@@ -3568,14 +3580,16 @@ formatHoldTimer(seconds: number): string {
     const items = this.bookingItems();
     if (!business || !items.length) return;
 
-    const firstItem = items[0];
-    const serviceIds = items.map((i) => i.serviceId);
-    const staffId = firstItem.staffId || undefined;
-    const startAt = firstItem.slotStartAt;
-    const durationMinutes = items.reduce((acc, item) => {
-      const service = this.serviceById(item.serviceId);
-      return acc + (service?.durationMinutes || 20);
-    }, 0) + items.length * 5;
+    const continuous = this.continuousVisitMode();
+    const targetItem = continuous ? items[0] : (items[this.activeItemIndex()] ?? items[0]);
+    if (!targetItem?.slotStartAt) return;
+
+    const serviceIds = continuous ? items.map((i) => i.serviceId) : [targetItem.serviceId];
+    const staffId = targetItem.staffId || undefined;
+    const startAt = targetItem.slotStartAt;
+    const durationMinutes = continuous
+      ? Math.max(15, Math.ceil((new Date(items[items.length - 1].slotStartAt).getTime() + (this.serviceById(items[items.length - 1].serviceId)?.durationMinutes || 20) * 60000 - new Date(items[0].slotStartAt).getTime()) / 60000))
+      : Math.max(15, this.serviceById(targetItem.serviceId)?.durationMinutes || 20);
 
     try {
       const hold = await this.marketplace.createSlotHold({
@@ -3632,12 +3646,15 @@ async selectActiveSlot(slot: AvailabilitySlot) {
     if (this.continuousVisitMode()) {
       let currentMs = new Date(slot.startAt).getTime();
       const gapBuffer = this.allowShortGap() ? 15 * 60000 : 5 * 60000;
+      const gridAnchorMs = new Date(`${slot.startAt.slice(0, 10)}T10:00:00+05:30`).getTime();
+      const stepMs = 30 * 60000;
+      const snapToGrid = (ms: number): number => gridAnchorMs + Math.max(0, Math.ceil((ms - gridAnchorMs) / stepMs) * stepMs);
 
       this.bookingItems.update((items) => items.map((item) => {
         const service = this.serviceById(item.serviceId);
         const durationMs = (service?.durationMinutes || 20) * 60000;
         const itemStartIso = new Date(currentMs).toISOString();
-        currentMs += durationMs + gapBuffer;
+        currentMs = snapToGrid(currentMs + durationMs + gapBuffer);
         return {
           ...item,
           date: selectedDate,
