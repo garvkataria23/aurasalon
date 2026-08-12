@@ -351,8 +351,9 @@ export class MySalonCardComponent {
   }
 
   suggestionCopy(salon: CustomerSalonRelationship): string {
-    if (salon.relationshipType === "booked") {
-      return "You've booked this salon. Set it as primary for quick booking, wallet and rewards access.";
+    const type = String(salon.relationshipType || "").toLowerCase();
+    if (type === "regular" || type === "loyal") {
+      return "You're a regular here. Set as primary for quick booking, wallet and rewards access.";
     }
     const visits = Math.max(1, Number(salon.visitCount || 0));
     return `You've visited ${visits} ${visits === 1 ? "time" : "times"}. Set as primary for quick access.`;

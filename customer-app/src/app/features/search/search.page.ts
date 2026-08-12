@@ -171,7 +171,7 @@ interface QuickFilterChip {
               <header class="sheet-header">
                 <div>
                   <strong>Filters</strong>
-                  <span>{{ activeFilterCount() }} selected</span>
+                  <span>{{ draftFilterCount() }} selected</span>
                 </div>
                 <button type="button" (click)="clearDraftFilters()">Clear all</button>
                 <button type="button" class="sheet-close" (click)="closeSheets()" aria-label="Close filters">×</button>
@@ -3067,9 +3067,23 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   });
   readonly flatFilterOptions = computed(() => this.filterSections().flatMap((section) => section.options));
   readonly activeFilterCount = computed(() => {
-    let count = this.activeFilters().length + (this.minPrice() || this.maxPrice() ? 1 : 0) + (this.draftRadiusKm() !== 25 ? 1 : 0) + (this.hasRatingFilter() ? 1 : 0) + (this.hasInstantBookingFilter() ? 1 : 0) + (this.hasGenderFilter() ? 1 : 0);
+    let count = this.activeFilters().length + (this.minPrice() || this.maxPrice() ? 1 : 0) + (this.radiusKm() !== 25 ? 1 : 0) + (this.hasRatingFilter() ? 1 : 0) + (this.hasInstantBookingFilter() ? 1 : 0) + (this.hasGenderFilter() ? 1 : 0);
     if (this.hasDateFilter() || this.hasTimeFilter() || this.hasAvailabilityFilter()) count += 1;
     if (this.hasPriceRangeFilter()) count += 2;
+    if (this.hasLocationSelectorFilter()) count += 1;
+    return count;
+  });
+  readonly draftFilterCount = computed(() => {
+    const filters = this.draftFilters();
+    const minPrice = this.draftMinPrice();
+    const maxPrice = this.draftMaxPrice();
+    const hasRating = filters.some((key) => key === "rating4" || key === "rating4.5");
+    const hasInstant = filters.includes("instant-booking");
+    const hasGender = filters.some((key) => key === "female" || key === "male");
+    const hasTimeOrAvailability = filters.some((key) => key === "today" || key === "morning" || key === "afternoon" || key === "evening" || key === "open");
+    let count = filters.length + (minPrice || maxPrice ? 1 : 0) + (this.draftRadiusKm() !== 25 ? 1 : 0) + (hasRating ? 1 : 0) + (hasInstant ? 1 : 0) + (hasGender ? 1 : 0);
+    if (hasTimeOrAvailability) count += 1;
+    if (minPrice || maxPrice) count += 2;
     if (this.hasLocationSelectorFilter()) count += 1;
     return count;
   });

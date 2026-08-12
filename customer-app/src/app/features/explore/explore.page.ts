@@ -104,7 +104,8 @@ import { Business } from "../../core/api.types";
         }
         @if (newOpenings().length) {
           <section class="explore-section salon-group"><div class="explore-section-head"><div><span>Joined in the last 90 days</span><h2>New &amp; noteworthy</h2></div><a routerLink="/search" [queryParams]="{ sort: 'recommended' }">See all</a></div><div class="salon-previews">@for (biz of newOpenings(); track biz.id) { <aura-business-card variant="discovery" [business]="biz" [userLocation]="currentLocation()"></aura-business-card> }</div></section>
-        } @else if (premium().length) {
+        }
+        @if (premium().length) {
           <section class="explore-section salon-group"><div class="explore-section-head"><div><span>Higher prices with ratings of 4.2+</span><h2>Premium edit</h2></div><a routerLink="/search" [queryParams]="{ filter: 'premium', sort: 'rating' }">See all</a></div><div class="salon-previews">@for (biz of premium(); track biz.id) { <aura-business-card variant="discovery" [business]="biz" [userLocation]="currentLocation()"></aura-business-card> }</div></section>
         }
 

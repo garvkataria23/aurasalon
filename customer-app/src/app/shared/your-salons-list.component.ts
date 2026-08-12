@@ -353,7 +353,9 @@ export class YourSalonsListComponent {
 
   formatTimeAgo(iso: string): string {
     if (!iso) return "";
-    const diff = Date.now() - new Date(iso).getTime();
+    const time = new Date(iso).getTime();
+    if (!Number.isFinite(time)) return "";
+    const diff = Date.now() - time;
     const days = Math.floor(diff / 86400000);
     if (days === 0) return "today";
     if (days === 1) return "yesterday";

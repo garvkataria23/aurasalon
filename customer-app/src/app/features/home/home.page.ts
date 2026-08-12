@@ -2598,25 +2598,25 @@ export class HomePage implements OnInit {
   openDiscoverPanel(panel: "filter" | "sort") {
     const intent = this.searchIntent(this.query().trim());
     return this.router.navigate(["/search"], {
-      queryParams: {
+      queryParams: this.searchQueryParams({
         q: intent.query || undefined,
         mode: intent.mode,
         panel
-      }
+      })
     });
   }
 
   openMapSearch() {
     const intent = this.searchIntent(this.query().trim());
     return this.router.navigate(["/search"], {
-      queryParams: {
+      queryParams: this.searchQueryParams({
         q: intent.query || undefined,
         mode: "locations",
         filter: "nearest",
         sort: "distance",
         nearMe: true,
         map: true
-      }
+      })
     });
   }
 
@@ -2637,7 +2637,7 @@ export class HomePage implements OnInit {
 
   openDiscoverService(item: DiscoverServiceCard) {
     void this.router.navigate(["/business", item.business.slug, "book"], {
-      queryParams: { serviceId: item.serviceId }
+      queryParams: this.searchQueryParams({ serviceId: item.serviceId || undefined })
     });
   }
 
@@ -2664,11 +2664,11 @@ export class HomePage implements OnInit {
 
   openOpenNowSearch() {
     void this.router.navigate(["/search"], {
-      queryParams: {
+      queryParams: this.searchQueryParams({
         filter: "open",
         nearMe: this.currentLocation() ? true : undefined,
         sort: this.currentLocation() ? "distance" : undefined
-      }
+      })
     });
   }
 
@@ -2682,7 +2682,7 @@ export class HomePage implements OnInit {
 
   bookAgain(item: HomeVisitedBusiness) {
     void this.router.navigate(["/business", item.business.slug, "book"], {
-      queryParams: { serviceId: item.serviceId || undefined }
+      queryParams: this.searchQueryParams({ serviceId: item.serviceId || undefined })
     });
   }
 
@@ -3071,15 +3071,13 @@ export class HomePage implements OnInit {
     return null;
   }
 
-  private modeForSuggestion(suggestion: HomeSearchSuggestion): "salons" | "services" | "staff" | "locations" {
-    if (suggestion.type === "Service") return "services";
+  private modeForSuggestion(suggestion: HomeSearchSuggestion): "salons" | "services" | "staff" | "locations" {    if (suggestion.type === "Service") return "services";
     if (suggestion.type === "Staff") return "staff";
     if (suggestion.type === "Location") return "locations";
     return "salons";
   }
 
-  private searchIntent(value: string): { query: string; mode: "salons" | "services" | "staff" | "locations"; nearMe: boolean } {
-    const lower = value.toLowerCase();
+  private searchIntent(value: string): { query: string; mode: "salons" | "services" | "staff" | "locations"; nearMe: boolean } {    const lower = value.toLowerCase();
     const nearMe = /\b(near me|nearby|around me|current location)\b/.test(lower);
     const locationMode = /\b(location|area|city|near this location)\b/.test(lower);
     const staffMode = /\b(staff|artist|professional|barber|stylist)\b/.test(lower);
@@ -3096,16 +3094,20 @@ export class HomePage implements OnInit {
     };
   }
 
+  private searchQueryParams(params: Record<string, string | number | boolean | null | undefined>): Record<string, string | number | boolean> {
+    return Object.fromEntries(Object.entries(params).filter((entry): entry is [string, string | number | boolean] => entry[1] !== undefined && entry[1] !== null));
+  }
+
   private openDiscover(query: string, mode: "salons" | "services" | "staff" | "locations", nearMe = false) {
     this.recordRecentSearch(query, mode);
     return this.router.navigate(["/search"], {
-      queryParams: {
+      queryParams: this.searchQueryParams({
         q: query || undefined,
         mode,
         filter: nearMe ? "nearest" : undefined,
         sort: nearMe ? "distance" : undefined,
         nearMe: nearMe ? true : undefined
-      }
+      })
     });
   }
 

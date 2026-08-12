@@ -1,4 +1,4 @@
-import { Component, computed, OnDestroy, OnInit, signal } from "@angular/core";
+import { Component, computed, effect, OnDestroy, OnInit, signal } from "@angular/core";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { filter, Subscription } from "rxjs";
 import { IonIcon, IonRouterOutlet } from "@ionic/angular/standalone";
@@ -143,6 +143,12 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   }
 
   ngOnInit(): void {
+    effect(() => {
+      const context = this.marketplace.salonModeContext();
+      if (context?.tenantId && context.branchId) {
+        this.marketplace.clearCached("my-salon-dashboard");
+      }
+    });
     if (!this.marketplace.mySalonDashboard()?.salon?.slug) {
       void this.marketplace.loadMySalonDashboard().catch(() => undefined);
     }

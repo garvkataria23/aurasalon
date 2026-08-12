@@ -3,6 +3,7 @@ import { authenticateJwt } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { customerAppService } from "../services/customer-app.service.js";
 import { customerNotificationService } from "../services/customer-notification.service.js";
+import { slotReservationService } from "../services/slot-reservation.service.js";
 
 export const customerAppRouter = Router();
 
@@ -30,6 +31,36 @@ customerAppRouter.post("/customer/bookings/:id/reschedule", asyncHandler((req, r
 
 customerAppRouter.post("/customer/bookings/:id/waitlist", asyncHandler((req, res) => {
   res.status(201).json(customerAppService.waitlist(req.access, req.params.id, req.body || {}));
+}));
+
+customerAppRouter.post("/customer/slot-holds", asyncHandler((req, res) => {
+  const body = req.body || {};
+  const durationMinutes = Number(body.durationMinutes || 60);
+  const result = slotReservationService.createHold({
+    branchId: body.branchId,
+    startTime: body.startAt,
+    endTime: new Date(new Date(body.startAt).getTime() + durationMinutes * 60000).toISOString(),
+    staffId: body.staffId || "",
+    serviceIds: body.serviceIds || [],
+    customerId: req.access.userId
+  }, req.access);
+  const hold = result.hold || {};
+  res.status(201).json({
+    holdId: result.holdId,
+    serviceIds: typeof hold.serviceIdsJson === "string" ? JSON.parse(hold.serviceIdsJson || "[]") : (hold.serviceIds || []),
+    staffId: hold.staffId || null,
+    branchId: hold.branchId,
+    startAt: hold.startTime,
+    endAt: hold.endTime,
+    expiresAt: result.reservedUntil,
+    status: hold.status,
+    createdAt: hold.createdAt || new Date().toISOString()
+  });
+}));
+
+customerAppRouter.delete("/customer/slot-holds/:holdId", asyncHandler((req, res) => {
+  slotReservationService.releaseHold(req.params.holdId, req.access);
+  res.json({ ok: true });
 }));
 
 customerAppRouter.post("/customer/bookings/:id/review", asyncHandler((req, res) => {

@@ -132,18 +132,24 @@ export class MarketplaceService {
     window.addEventListener("offline", () => apply(false));
   }
 
-  enterSalonMode(context?: SalonModeContext | null): void {
+enterSalonMode(context?: SalonModeContext | null): void {
     this.salonModeStore.set(true);
     if (context?.tenantId && context.branchId) {
       const previous = this.salonModeContextStore();
       if (previous?.tenantId !== context.tenantId || previous?.branchId !== context.branchId) this.accountModule.set(null);
       this.salonModeContextStore.set(context);
-    }
-    try {
-      localStorage.setItem("aura_salon_mode", "1");
-      if (context?.tenantId && context.branchId) localStorage.setItem("aura_salon_mode_context", JSON.stringify(context));
-    } catch {
-      // storage unavailable — mode stays active for this session
+      try {
+        localStorage.setItem("aura_salon_mode", "1");
+        localStorage.setItem("aura_salon_mode_context", JSON.stringify(context));
+      } catch {
+      }
+    } else {
+      // No valid context provided - clear any stale context
+      this.salonModeContextStore.set(null);
+      try {
+        localStorage.removeItem("aura_salon_mode_context");
+      } catch {
+      }
     }
   }
 
@@ -176,11 +182,11 @@ export class MarketplaceService {
     return `/my-salon/${encodeURIComponent(tenantId)}/${encodeURIComponent(branchId)}${tail ? `/${tail}` : ""}`;
   }
 
-  private readSalonModeContext(): SalonModeContext | null {
+private readSalonModeContext(): SalonModeContext | null {
     const raw = localStorage.getItem("aura_salon_mode_context");
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SalonModeContext>;
-    return parsed.tenantId && parsed.branchId ? { ...parsed, tenantId: parsed.tenantId, branchId: parsed.branchId } : null;
+    return parsed.tenantId && parsed.branchId ? { tenantId: parsed.tenantId, branchId: parsed.branchId, businessId: parsed.businessId, businessName: parsed.businessName } : null;
   }
 
   private get cacheAuth(): { tid: string; bid: string } | null {
@@ -197,7 +203,8 @@ export class MarketplaceService {
   }
 
   private cacheKey(name: string, key: string): string {
-    const a = this.cacheAuth ?? { tid: "anon", bid: "anon" };
+    const a = this.cacheAuth;
+    if (!a) return `${MarketplaceService.DATA_CACHE_PREFIX}global:${name}:${key}`;
     return `${MarketplaceService.DATA_CACHE_PREFIX}${a.tid}:${a.bid}:${name}:${key}`;
   }
 
@@ -337,6 +344,7 @@ export class MarketplaceService {
 
   clearAllCached(): void {
     this.memCache.clear();
+    this.inFlightResponses.clear();
     this.favoritesLoaded = false;
     this.savedSalonsLoaded = false;
     this.favorites.set([]);
@@ -776,6 +784,7 @@ export class MarketplaceService {
       await firstValueFrom(this.api.removePrimarySalon());
       this.primarySalon.set(null);
       this.mySalonDashboard.set(null);
+      this.salonModeStore.set(false);
       this.salonModeContextStore.set(null);
       this.shouldPromptPrimary.set(false);
       this.suggestedSalon.set(null);
@@ -783,8 +792,8 @@ export class MarketplaceService {
       this.clearCached("my-salon-dashboard");
       try {
         localStorage.removeItem("aura_salon_mode_context");
+        localStorage.removeItem("aura_salon_mode");
       } catch {
-        // storage unavailable — in-memory context already cleared
       }
     });
   }

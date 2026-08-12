@@ -1224,9 +1224,13 @@ export class BusinessCardComponent implements OnInit {
   }
 
   nextAvailabilityLabel(): string {
-    const next = String(this.business.nextAvailableSlot || "").trim();
-    if (next) return next;
-    return this.isOpenNow() ? "Available today" : "Check availability";
+    const slot = this.timestamp(this.business.nextAvailableSlot);
+    if (slot !== null && slot > this.now) {
+      return `Available today · ${this.timeLabel(slot)}`;
+    }
+    if (this.isOpenNow()) return "Available today";
+    const openAt = this.nextOpeningTimestamp();
+    return openAt !== null && openAt > this.now ? `Opens ${this.timeLabel(openAt)}` : "Check availability";
   }
 
   private realStartingPricePaise(): number {

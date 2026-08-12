@@ -900,11 +900,13 @@ export class TabsPage implements OnInit {
     addIcons({ compassOutline, homeOutline, searchOutline, sparklesOutline, calendarOutline, chevronBackOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline, cloudOfflineOutline });
   }
 
-  ngOnInit(): void {
+ngOnInit(): void {
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(() => {
       this.currentUrl.set(this.router.url);
       if (this.supportSubflowActive()) this.closeMenu();
       if (!this.marketplace.salonMode() || this.normalizeSwipeRoute(this.router.url) !== "/tabs/home") return;
+      const primary = this.marketplace.primarySalon();
+      if (!primary) return; // wait for primarySalon to load before redirecting
       void this.router.navigateByUrl(this.mySalonHref(), { replaceUrl: true });
     });
   }
@@ -969,9 +971,12 @@ export class TabsPage implements OnInit {
     return this.normalizeSwipeRoute(url) === "/tabs/support" && /(?:[?&])mode=booking(?:&|$)/.test(url) && /(?:[?&])bookingId=/.test(url);
   }
 
-  bottomNavVisible(): boolean {
-    if (this.salonModeActive() || this.supportSubflowActive()) return false;
+bottomNavVisible(): boolean {
+    if (this.supportSubflowActive()) return false;
     const route = this.normalizeSwipeRoute(this.currentUrl());
+    // Always show bottom nav on /tabs/my-salon (has Exit button in salon-mode-header)
+    if (route === "/tabs/my-salon") return true;
+    if (this.salonModeActive()) return false;
     return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/home" || route === "/tabs/profile";
   }
 

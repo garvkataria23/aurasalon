@@ -315,6 +315,7 @@ function staffMember(person, serviceIds = []) {
     rating: Number(performance.rating || 0),
     specialty: assigned.length ? assigned.join(", ") : person.role || "",
     image: person.image || "",
+    gender: person.gender || "",
     nextAvailable: "",
     bookableServiceIds: assigned.length ? assigned : serviceIds
   };
@@ -332,9 +333,12 @@ function businessReview(review) {
   };
 }
 
-function mapBusiness(row, { includeDetails = false } = {}) {
+function mapBusiness(row, { includeDetails = false, lat = null, lng = null } = {}) {
   const services = serviceRows(row.tenantId, row.branchId).map((service) => serviceItem(service, row.branchId));
-  const staff = includeDetails ? staffRows(row.tenantId, row.branchId).map((person) => staffMember(person, services.map((service) => service.id))) : [];
+  const staffRowsForBusiness = staffRows(row.tenantId, row.branchId);
+  const staff = includeDetails
+    ? staffRowsForBusiness.map((person) => staffMember(person, services.map((service) => service.id)))
+    : staffRowsForBusiness.slice(0, 6).map((person) => staffMember(person, []));
   const reviews = reviewRows(row.tenantId, row.branchId);
   const categories = unique(services.map((service) => service.category));
   const theme = parseJson(row.themeConfig, {});
@@ -356,6 +360,16 @@ function mapBusiness(row, { includeDetails = false } = {}) {
   const address = profile.address || row.address || city || "";
   const description = profile.about_us || seo.description || theme.description || `${businessName} accepts online bookings in ${city || "your city"}.`;
   const coverImage = publicMediaUrl(socialLinks.coverImage || socialLinks.coverImageUrl || theme.coverImage || seo.image || profile.logo_url);
+  const latitude = profile.latitude || row.latitude;
+  const longitude = profile.longitude || row.longitude;
+  const distanceKm = (lat !== null && lng !== null && latitude !== undefined && longitude !== undefined)
+    ? haversineKm(lat, lng, latitude, longitude)
+    : null;
+  const now = new Date();
+  const currentHoursInfo = currentHours(businessHours, timezone);
+  const nextOpenAt = currentHoursInfo?.opensAt ? new Date(now.toDateString() + " " + currentHoursInfo.opensAt + " " + timezone).toISOString() : null;
+  const nextCloseAt = currentHoursInfo?.closesAt ? new Date(now.toDateString() + " " + currentHoursInfo.closesAt + " " + timezone).toISOString() : null;
+  const nextAvailableSlot = currentHoursInfo?.opensAt ? new Date(now.toDateString() + " " + currentHoursInfo.opensAt + " " + timezone).toISOString() : "";
   return {
     id: row.branchId,
     slug: businessSlug(row),
@@ -383,11 +397,13 @@ function mapBusiness(row, { includeDetails = false } = {}) {
     createdAt: row.createdAt,
     isOpen: publishBusinessHours ? isOpenNow(businessHours, timezone, row.onlineBookingEnabled) : Number(row.onlineBookingEnabled ?? 1) === 1,
     hoursLabel: publishBusinessHours ? hoursLabel(businessHours, timezone) || theme.hoursLabel || "Online booking available" : "",
-    openingTime: currentHours(businessHours, timezone)?.opensAt || theme.openingTime || DEFAULT_OPEN,
-    closingTime: currentHours(businessHours, timezone)?.closesAt || theme.closingTime || DEFAULT_CLOSE,
+    openingTime: currentHoursInfo?.opensAt || theme.openingTime || DEFAULT_OPEN,
+    closingTime: currentHoursInfo?.closesAt || theme.closingTime || DEFAULT_CLOSE,
     timezone,
     businessHours: publishBusinessHours ? businessHoursRows(businessHours) : [],
-    nextAvailableSlot: "",
+    nextAvailableSlot,
+    nextOpenAt,
+    nextCloseAt,
     hasOffer: false,
     coverGradient: theme.coverGradient || "linear-gradient(135deg, #12211d, #3f7b68)",
     coverImage,
@@ -402,12 +418,27 @@ function mapBusiness(row, { includeDetails = false } = {}) {
       "Bookings are subject to branch confirmation and staff availability.",
       "Cancellation and payment rules follow the selected branch policy."
     ],
-    paymentModes: ["pay_at_venue", "online"]
+    paymentModes: ["pay_at_venue", "online"],
+    latitude,
+    longitude,
+    distanceKm
   };
 }
 
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const toRad = (deg) => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100;
+}
+
 function filterAndSortBusinesses(rows, params = {}) {
-  let businesses = rows.map((row) => mapBusiness(row));
+  const lat = params.lat ? Number(params.lat) : null;
+  const lng = params.lng ? Number(params.lng) : null;
+  const radiusKm = params.radiusKm ? Number(params.radiusKm) : null;
+  let businesses = rows.map((row) => mapBusiness(row, { lat, lng }));
   if (params.category) {
     const category = String(params.category).toLowerCase();
     businesses = businesses.filter((business) => business.categories.some((item) => item.toLowerCase() === category || slugify(item) === category));
@@ -421,6 +452,12 @@ function filterAndSortBusinesses(rows, params = {}) {
   if (String(params.availableToday) === "true") {
     businesses = businesses.filter((business) => business.services.length > 0);
   }
+  if (params.staffGender && hasColumn("staff", "gender")) {
+    const gender = String(params.staffGender).toLowerCase();
+    businesses = businesses.filter((business) =>
+      staffRows(business.tenantId, business.branchId).some((person) => String(person.gender || "").toLowerCase() === gender)
+    );
+  }
   if (params.minPricePaise) {
     const min = Number(params.minPricePaise || 0);
     businesses = businesses.filter((business) => business.startingPricePaise >= min);
@@ -429,10 +466,31 @@ function filterAndSortBusinesses(rows, params = {}) {
     const max = Number(params.maxPricePaise || 0);
     businesses = businesses.filter((business) => business.startingPricePaise <= max);
   }
-  if (params.sort === "rating" || String(params.topRated) === "true") {
+  if (radiusKm !== null && lat !== null && lng !== null) {
+    businesses = businesses.filter((business) => business.distanceKm !== null && business.distanceKm <= radiusKm);
+  }
+  const sort = params.sort;
+  if (sort === "distance" || sort === "recommended") {
+    businesses.sort((a, b) => {
+      if (a.distanceKm === null && b.distanceKm === null) return a.businessName.localeCompare(b.businessName);
+      if (a.distanceKm === null) return 1;
+      if (b.distanceKm === null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+  } else if (sort === "rating" || String(params.topRated) === "true") {
     businesses.sort((a, b) => b.ratingAverage - a.ratingAverage || b.ratingCount - a.ratingCount || a.businessName.localeCompare(b.businessName));
-  } else if (params.sort === "price") {
+  } else if (sort === "price") {
     businesses.sort((a, b) => a.startingPricePaise - b.startingPricePaise || a.businessName.localeCompare(b.businessName));
+  } else if (sort === "price_desc") {
+    businesses.sort((a, b) => b.startingPricePaise - a.startingPricePaise || a.businessName.localeCompare(b.businessName));
+  } else if (sort === "earliest") {
+    businesses.sort((a, b) => {
+      const ta = a.nextOpenAt ? new Date(a.nextOpenAt).getTime() : Infinity;
+      const tb = b.nextOpenAt ? new Date(b.nextOpenAt).getTime() : Infinity;
+      return ta - tb || a.businessName.localeCompare(b.businessName);
+    });
+  } else if (sort === "reviews") {
+    businesses.sort((a, b) => b.ratingCount - a.ratingCount || b.ratingAverage - a.ratingAverage || a.businessName.localeCompare(b.businessName));
   }
   const limit = Math.max(1, Math.min(Number(params.limit || 48), 100));
   return businesses.slice(0, limit);
