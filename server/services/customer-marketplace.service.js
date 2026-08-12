@@ -128,6 +128,24 @@ function currentMinutes(timezone = DEFAULT_TIMEZONE) {
   return hour * 60 + minute;
 }
 
+function todayDateKey(timezone = DEFAULT_TIMEZONE) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezone
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : new Date().toISOString().slice(0, 10);
+}
+
+function slotIsoOrNull(date, time) {
+  const minutes = timeToMinutes(time);
+  return minutes === null ? null : new Date(slotIso(date, minutes)).toISOString();
+}
+
 function currentHours(hours = {}, timezone = DEFAULT_TIMEZONE) {
   const rows = businessHoursRows(hours);
   return rows.find((row) => row.day === todayKey(timezone)) || rows[0];
@@ -365,11 +383,11 @@ function mapBusiness(row, { includeDetails = false, lat = null, lng = null } = {
   const distanceKm = (lat !== null && lng !== null && latitude !== undefined && longitude !== undefined)
     ? haversineKm(lat, lng, latitude, longitude)
     : null;
-  const now = new Date();
   const currentHoursInfo = currentHours(businessHours, timezone);
-  const nextOpenAt = currentHoursInfo?.opensAt ? new Date(now.toDateString() + " " + currentHoursInfo.opensAt + " " + timezone).toISOString() : null;
-  const nextCloseAt = currentHoursInfo?.closesAt ? new Date(now.toDateString() + " " + currentHoursInfo.closesAt + " " + timezone).toISOString() : null;
-  const nextAvailableSlot = currentHoursInfo?.opensAt ? new Date(now.toDateString() + " " + currentHoursInfo.opensAt + " " + timezone).toISOString() : "";
+  const today = todayDateKey(timezone);
+  const nextOpenAt = currentHoursInfo?.opensAt ? slotIsoOrNull(today, currentHoursInfo.opensAt) : null;
+  const nextCloseAt = currentHoursInfo?.closesAt ? slotIsoOrNull(today, currentHoursInfo.closesAt) : null;
+  const nextAvailableSlot = nextOpenAt || "";
   return {
     id: row.branchId,
     slug: businessSlug(row),

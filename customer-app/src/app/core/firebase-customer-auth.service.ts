@@ -219,7 +219,7 @@ export class FirebaseCustomerAuthService {
     if (apiMessage.includes("reCAPTCHA has already been rendered") || (error instanceof Error && error.message.includes("reCAPTCHA has already been rendered"))) return "reCAPTCHA was reset. Hard refresh this page, then tap Send OTP again.";
     if (apiMessage.includes("Firebase project is not configured")) return "Google sign-in reached Firebase, but the AuraSalon API is missing FIREBASE_PROJECT_ID=aurashineclient.";
     if (apiMessage && apiMessage !== "Error") return this.firebaseServerMessage(apiMessage, fallback);
-    if ((apiMessage === "Error" || (error instanceof Error && error.message === "Error")) && fallback.toLowerCase().includes("otp")) return this.localPhoneAuthMessage(fallback);
+    if ((apiMessage === "Error" || (error instanceof Error && error.message === "Error")) && fallback.toLowerCase().includes("otp")) return this.localPhoneAuthMessage();
     if (error instanceof Error && error.message.includes("Firebase project is not configured")) return "Google sign-in reached Firebase, but the AuraSalon API is missing FIREBASE_PROJECT_ID=aurashineclient.";
     if (error instanceof Error && (error.message.startsWith("Http failure response") || error.message.includes("Unknown Error"))) return error.message || fallback;
     if (error instanceof Error && error.message.startsWith("Firebase:")) return this.firebaseMessage(error, fallback);
@@ -309,7 +309,7 @@ export class FirebaseCustomerAuthService {
   private currentHostname(): string {
     return typeof window === "undefined" ? "this domain" : window.location.hostname || "this domain";
   }
-  private localPhoneAuthMessage(fallback: string): string {
+  private localPhoneAuthMessage(): string {
     if (typeof window !== "undefined" && ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname)) {
       return "Firebase real SMS OTP cannot be sent from localhost. Use an HTTPS authorized domain for real phone auth.";
     }
@@ -324,7 +324,7 @@ export class FirebaseCustomerAuthService {
   private firebaseServerMessage(message: string, fallback: string): string {
     const normalized = message.trim();
     const upper = normalized.toUpperCase();
-    if (!normalized || upper === "ERROR") return this.localPhoneAuthMessage(fallback);
+    if (!normalized || upper === "ERROR") return this.localPhoneAuthMessage();
     if (upper.includes("BILLING_NOT_ENABLED") || upper.includes("BILLING")) return "Firebase billing is not enabled for Phone Auth SMS. Upgrade the project to Blaze and try again.";
     if (upper.includes("OPERATION_NOT_ALLOWED") || upper.includes("PHONE_PROVIDER_DISABLED")) return "Firebase Phone provider is disabled. Enable Authentication > Sign-in method > Phone.";
     if (upper.includes("TOO_MANY_ATTEMPTS") || upper.includes("QUOTA") || upper.includes("RATE_LIMIT")) return "Too many OTP attempts or SMS quota exceeded. Please wait before trying again.";

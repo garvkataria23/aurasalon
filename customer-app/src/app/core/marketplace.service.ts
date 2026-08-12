@@ -19,13 +19,9 @@ import {
   CustomerProfile,
   CustomerSalonRelationship,
   CustomerSalonsResponse,
-  CustomerWaitlistEntry,
-  JoinWaitlistPayload,
   MySalonDashboard,
   PublicOffersResponse,
   PurchaseGiftCardPayload,
-  RedeemGiftCardPayload,
-  RedeemGiftCardResponse,
   RescheduleBookingPayload,
   SearchBusinessesParams,
   SlotHold,
@@ -96,7 +92,6 @@ export class MarketplaceService {
   private favoritesLoaded = false;
   private savedSalonsLoaded = false;
   private businessesRequestCounter = 0;
-  private publicBusinessesLoadedAt = 0;
   private readonly BUSINESS_CACHE_TTL_MS = 60_000;
   private readonly BOOKINGS_CACHE_TTL_MS = 30_000;
   private static readonly MEM_CACHE_CAP = 200;
@@ -413,7 +408,6 @@ private readSalonModeContext(): SalonModeContext | null {
       const rows = parsed.rows.map((business) => this.normalizeBusiness(business));
       if (!rows.length) return;
       this.businesses.set(rows);
-      this.publicBusinessesLoadedAt = parsed.at;
     } catch {
       // localStorage can be unavailable or corrupted.
     }
@@ -437,7 +431,6 @@ private readSalonModeContext(): SalonModeContext | null {
     }, (rows) => {
       if (requestId !== this.businessesRequestCounter) return;
       this.setBusinesses(rows);
-      if (isDefault) this.publicBusinessesLoadedAt = Date.now();
     });
   }
 
@@ -904,7 +897,7 @@ private readSalonModeContext(): SalonModeContext | null {
     return context?.tenantId && context.branchId ? `${context.tenantId}:${context.branchId}:${slug}` : slug;
   }
 
-  private mergeAccountList(slug: "memberships" | "gift-cards" | "invoices", item: CustomerMembership | CustomerGiftCard | CustomerInvoice) {
+  private mergeAccountList(_slug: "memberships" | "gift-cards" | "invoices", item: CustomerMembership | CustomerGiftCard | CustomerInvoice) {
     this.accountModule.update((current) => {
       if (!Array.isArray(current)) return current;
       const next = [item, ...current.filter((row) => {
