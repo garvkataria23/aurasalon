@@ -1,6 +1,6 @@
-import { Component, HostListener, OnInit, signal } from "@angular/core";
+import { Component, HostListener, OnDestroy, signal } from "@angular/core";
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from "@angular/router";
-import { filter } from "rxjs";
+import { filter, Subscription } from "rxjs";
 import { IonButton, IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { calendarOutline, chevronBackOutline, chevronForwardOutline, closeOutline, cloudOfflineOutline, compassOutline, fingerPrintOutline, giftOutline, homeOutline, locationOutline, lockClosedOutline, logInOutline, logOutOutline, menuOutline, notificationsOutline, personCircleOutline, personOutline, pricetagOutline, ribbonOutline, searchOutline, settingsOutline, sparklesOutline } from "ionicons/icons";
@@ -886,7 +886,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
   `]
 })
-export class TabsPage implements OnInit {
+export class TabsPage implements OnDestroy {
   readonly locationLabel = signal(this.readLocationLabel());
   readonly menuOpen = signal(false);
   readonly currentUrl = signal(this.router.url);
@@ -895,13 +895,11 @@ export class TabsPage implements OnInit {
   private swipeStartY = 0;
   private swipeStartRoute = "";
   private swipeTracking = false;
+  private readonly routeSubscription: Subscription;
 
   constructor(readonly auth: AuthService, private readonly router: Router, readonly marketplace: MarketplaceService) {
     addIcons({ compassOutline, homeOutline, searchOutline, sparklesOutline, calendarOutline, chevronBackOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline, cloudOfflineOutline });
-  }
-
-ngOnInit(): void {
-    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(() => {
+    this.routeSubscription = this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(() => {
       this.currentUrl.set(this.router.url);
       if (this.supportSubflowActive()) this.closeMenu();
       if (!this.marketplace.salonMode() || this.normalizeSwipeRoute(this.router.url) !== "/tabs/home") return;
@@ -910,6 +908,11 @@ ngOnInit(): void {
       void this.router.navigateByUrl(this.mySalonHref(), { replaceUrl: true });
     });
   }
+
+  ngOnDestroy(): void {
+    this.routeSubscription.unsubscribe();
+  }
+
 
   @HostListener("window:storage")
   @HostListener("window:focus")

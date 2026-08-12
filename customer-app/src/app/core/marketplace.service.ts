@@ -358,7 +358,7 @@ private readSalonModeContext(): SalonModeContext | null {
     }
   }
 
-  private clearCached(name: string, key?: string): void {
+  clearCached(name: string, key?: string): void {
     const prefix = key ? this.cacheKey(name, key) : `${MarketplaceService.DATA_CACHE_PREFIX}${name}:`;
     try {
       if (key) {
