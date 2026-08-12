@@ -375,7 +375,8 @@ export function createApp() {
       const allowedOrigins = [
         ...env.allowedOrigins,
         "https://aurashinesalonwellness.in",
-        "https://www.aurashinesalonwellness.in"
+        "https://www.aurashinesalonwellness.in",
+        "https://aurashinecustomer.aurashinesalonwellness.in"
       ];
       const isLocalhost = /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) || /^http:\/\/localhost:\d+$/.test(origin);
       if (allowedOrigins.includes(origin) || isLocalhost) {
