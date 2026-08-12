@@ -1722,14 +1722,14 @@ interface ConsultationChatMessage {
       .home-page { scroll-padding-top: 0; }
       .home-toolbar { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 0; }
       .aura-shine-brand { display: inline-flex; width: 40px; height: 24px; align-self: center; justify-self: center; margin-top: 0; }
-      .location-copy { width: fit-content; min-height: 24px; justify-self: start; text-align: left; }
+      .location-copy { width: fit-content; min-height: 30px; justify-self: start; text-align: left; }
       .location-copy > span { display: none; }
-      .location-row { flex-wrap: nowrap; justify-content: flex-start; min-height: 24px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+      .location-row { flex-wrap: nowrap; justify-content: flex-start; min-height: 30px; padding: 0; border: 0; border-radius: 0; background: transparent; }
       .home-page .home-toolbar { height: 28px; min-height: 0; box-sizing: border-box; padding-block: 0; }
-      .home-page .location-row strong { flex: 0 1 auto; overflow: hidden; font-size: 0.76rem; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
-      .home-page .location-row ion-icon { flex: 0 0 auto; font-size: 0.76rem; }
-      .home-page .location-chevron { margin-left: 2px; }
-      .home-page .hero { margin-top: 8px; }
+      .home-page .location-row strong { flex: 0 1 auto; overflow: hidden; font-size: 0.88rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+      .home-page .location-row ion-icon { flex: 0 0 auto; font-size: 0.9rem; }
+      .home-page .location-chevron { margin-left: 4px; }
+      .home-page .hero { margin-top: 10px; }
       .home-page .search-panel {
         position: relative;
         top: auto;
