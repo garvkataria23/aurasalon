@@ -501,7 +501,7 @@ private readSalonModeContext(): SalonModeContext | null {
 
   async loadBookings(status?: "upcoming" | "past" | "cancelled", force = false): Promise<Booking[]> {
     const key = this.bookingsCacheKey(status);
-    return this.cachedLoad("bookings", key, this.BOOKINGS_CACHE_TTL_MS, "Unable to load bookings", force, () => firstValueFrom(this.api.listBookings(status)), (rows) => {
+    return this.cachedLoad("bookings", key, this.BOOKINGS_CACHE_TTL_MS, "Unable to load bookings", force, () => firstValueFrom(this.api.listBookings(status, this.accountScope())), (rows) => {
       this.bookings.set(rows);
     });
   }
@@ -881,15 +881,21 @@ private readSalonModeContext(): SalonModeContext | null {
   }
 
   private accountModuleRequest(slug: string): Promise<CustomerAccountModule> {
-    if (slug === "rewards") return firstValueFrom(this.api.getRewards());
-    if (slug === "wallet") return firstValueFrom(this.api.getWallet());
-    if (slug === "memberships") return firstValueFrom(this.api.listMemberships());
-    if (slug === "packages") return firstValueFrom(this.api.listPackages());
-    if (slug === "gift-cards") return firstValueFrom(this.api.listGiftCards());
-    if (slug === "payments") return firstValueFrom(this.api.listPayments());
-    if (slug === "notifications") return firstValueFrom(this.api.listNotifications());
-    if (slug === "invoices") return firstValueFrom(this.api.listInvoices());
+    const scope = this.accountScope();
+    if (slug === "rewards") return firstValueFrom(this.api.getRewards(scope));
+    if (slug === "wallet") return firstValueFrom(this.api.getWallet(scope));
+    if (slug === "memberships") return firstValueFrom(this.api.listMemberships(scope));
+    if (slug === "packages") return firstValueFrom(this.api.listPackages(scope));
+    if (slug === "gift-cards") return firstValueFrom(this.api.listGiftCards(scope));
+    if (slug === "payments") return firstValueFrom(this.api.listPayments(scope));
+    if (slug === "notifications") return firstValueFrom(this.api.listNotifications(scope));
+    if (slug === "invoices") return firstValueFrom(this.api.listInvoices(scope));
     return Promise.resolve([]);
+  }
+
+  private accountScope(): { tenantId?: string; branchId?: string } {
+    const context = this.salonModeContext();
+    return context?.tenantId && context.branchId ? { tenantId: context.tenantId, branchId: context.branchId } : {};
   }
 
   private accountModuleCacheKey(slug: string): string {

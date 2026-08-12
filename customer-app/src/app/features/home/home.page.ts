@@ -1729,7 +1729,7 @@ interface ConsultationChatMessage {
       .home-page .location-row strong { flex: 0 1 auto; overflow: hidden; font-size: 0.88rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
       .home-page .location-row ion-icon { flex: 0 0 auto; font-size: 0.9rem; }
       .home-page .location-chevron { margin-left: 4px; }
-      .home-page .hero { margin-top: 10px; }
+      .home-page .hero { margin-top: 6px; }
       .home-page .search-panel {
         position: relative;
         top: auto;

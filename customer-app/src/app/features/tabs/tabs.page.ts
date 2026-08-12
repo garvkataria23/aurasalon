@@ -162,19 +162,19 @@ import { MarketplaceService } from "../../core/marketplace.service";
     <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
       @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="home" href="/tabs/home">
+        <ion-tab-button tab="home" href="/tabs/home" (click)="handleBottomNav($event, '/tabs/home')">
           <ion-icon name="home-outline"></ion-icon>
           <ion-label>Home</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="my-salon" href="/tabs/my-salon">
+        <ion-tab-button tab="my-salon" href="/tabs/my-salon" (click)="handleBottomNav($event, mySalonHref())">
           <ion-icon name="sparkles-outline"></ion-icon>
           <ion-label>My Salon</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="search" href="/tabs/search">
+        <ion-tab-button tab="search" href="/tabs/search" (click)="handleBottomNav($event, '/tabs/search')">
           <ion-icon name="compass-outline"></ion-icon>
           <ion-label>Explore</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="profile" href="/tabs/profile">
+        <ion-tab-button tab="profile" href="/tabs/profile" (click)="handleBottomNav($event, '/tabs/profile')">
           <ion-icon name="person-outline"></ion-icon>
           <ion-label>Profile</ion-label>
         </ion-tab-button>
@@ -992,6 +992,32 @@ bottomNavVisible(): boolean {
     void this.router.navigateByUrl(this.mySalonHref());
   }
 
+  handleBottomNav(event: Event, targetUrl: string): void {
+    const current = this.normalizeSwipeRoute(this.router.url);
+    const target = this.normalizeSwipeRoute(targetUrl);
+    const inMySalonSection = current === "/tabs/my-salon" || current.startsWith("/my-salon/");
+    const leavingMySalon = inMySalonSection && target !== "/tabs/my-salon" && !target.startsWith("/my-salon/");
+    if (leavingMySalon && !this.confirmLeaveSalonMode()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (leavingMySalon) this.marketplace.exitSalonMode();
+    const enteringMySalon = target === "/tabs/my-salon" || target.startsWith("/my-salon/");
+    if (!enteringMySalon) return;
+    if (!this.marketplace.salonMode() && !this.confirmEnterSalonMode()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (!this.marketplace.salonMode()) {
+      const primary = this.marketplace.primarySalon();
+      this.marketplace.enterSalonMode(primary ? { tenantId: primary.tenantId, branchId: primary.branchId, businessId: primary.businessId, businessName: primary.businessName } : null);
+    }
+    event.preventDefault();
+    void this.router.navigateByUrl(this.mySalonHref());
+  }
+
   mySalonHref(): string {
     const context = this.marketplace.salonModeContext();
     const primary = this.marketplace.primarySalon();
@@ -1001,9 +1027,18 @@ bottomNavVisible(): boolean {
   }
 
   exitSalonMode() {
+    if (!this.confirmLeaveSalonMode()) return;
     this.marketplace.exitSalonMode();
     this.closeMenu();
     void this.router.navigateByUrl("/tabs/home");
+  }
+
+  private confirmLeaveSalonMode(): boolean {
+    return typeof window === "undefined" || window.confirm("Exit My Salon mode and go back to the customer app?");
+  }
+
+  private confirmEnterSalonMode(): boolean {
+    return typeof window === "undefined" || window.confirm("Open My Salon mode?");
   }
 
   unlock() {

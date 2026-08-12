@@ -3,7 +3,7 @@ import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { AlertController, IonButton, IonCheckbox, IonContent, IonIcon, IonInput, IonItem, IonList } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { briefcaseOutline, calendarOutline, chatbubblesOutline, chevronForwardOutline, colorPaletteOutline, createOutline, giftOutline, heartCircleOutline, heartOutline, helpCircleOutline, lockClosedOutline, logOutOutline, mailOutline, notificationsOutline, peopleOutline, personOutline, phonePortraitOutline, ribbonOutline, saveOutline, searchOutline, shareSocialOutline, shieldCheckmarkOutline, sparklesOutline, ticketOutline, trashOutline, walletOutline } from "ionicons/icons";
+import { briefcaseOutline, calendarOutline, chatbubblesOutline, chevronForwardOutline, colorPaletteOutline, createOutline, giftOutline, heartCircleOutline, heartOutline, helpCircleOutline, lockClosedOutline, logOutOutline, mailOutline, notificationsOutline, peopleOutline, personOutline, phonePortraitOutline, ribbonOutline, saveOutline, searchOutline, shareSocialOutline, shieldCheckmarkOutline, sparklesOutline, storefrontOutline, ticketOutline, trashOutline, walletOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { YourSalonsListComponent } from "../../shared/your-salons-list.component";
 import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalonRelationship } from "../../core/api.types";
@@ -15,31 +15,27 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
     <ion-content>
       <main class="page-narrow profile-page">
         @if (marketplace.isAuthenticated()) {
-          <section class="profile-card premium-card">
-            <div class="avatar">
+          <section class="profile-mini-card premium-card">
+            <div class="profile-mini-avatar">
               @if (profilePhotoUrl(); as photoUrl) {
                 <img [src]="photoUrl" alt="" />
               } @else {
                 <span>{{ profileName().charAt(0) }}</span>
               }
             </div>
-            <div class="profile-identity">
+            <div class="profile-mini-main">
               <h1>{{ profileName() || "Your profile" }}</h1>
-              <div class="profile-contact-list" aria-label="Profile contact details">
-                <button type="button" (click)="showContactDetail('Email', marketplace.customer()?.email || 'No email saved')">
+              <div class="profile-mini-row" aria-label="Profile email and edit profile">
+                <button type="button" class="profile-mini-email" (click)="showProfileContactDetails()">
                   <ion-icon name="mail-outline" aria-hidden="true"></ion-icon>
                   <span>{{ marketplace.customer()?.email || "No email saved" }}</span>
                 </button>
-                <button type="button" (click)="showContactDetail('Phone', marketplace.customer()?.phone || 'No phone saved')">
-                  <ion-icon name="phone-portrait-outline" aria-hidden="true"></ion-icon>
-                  <span>{{ marketplace.customer()?.phone || "No phone saved" }}</span>
+                <button type="button" class="profile-mini-edit" [routerLink]="profileRoute('profile/edit')" aria-label="Edit profile">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                  <span>Edit</span>
                 </button>
               </div>
             </div>
-            <button type="button" class="edit-profile-button" [routerLink]="profileRoute('profile/edit')" aria-label="Edit profile">
-              <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
-              <span>Edit profile</span>
-            </button>
           </section>
         } @else {
           <section class="profile-card premium-card">
@@ -101,15 +97,23 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
             </section>
           }
 
-          <aura-your-salons-list
-            [salons]="marketplace.mySalons()"
-            [primarySalon]="marketplace.primarySalon()"
-            [hasBookings]="hasBookings()"
-            [bookingCount]="marketplace.bookings().length"
-            [favouriteCount]="favouriteCount()"
-            (setAsPrimary)="onSetPrimarySalon($event)"
-            (removePrimary)="onRemovePrimarySalon()">
-          </aura-your-salons-list>
+          @if (mySalonsMode()) {
+            <section class="profile-subpage-head premium-card">
+              <div>
+                <span>Profile</span>
+                <h2>My Salon</h2>
+              </div>
+            </section>
+            <aura-your-salons-list
+              [salons]="marketplace.mySalons()"
+              [primarySalon]="marketplace.primarySalon()"
+              [hasBookings]="hasBookings()"
+              [bookingCount]="marketplace.bookings().length"
+              [favouriteCount]="favouriteCount()"
+              (setAsPrimary)="onSetPrimarySalon($event)"
+              (removePrimary)="onRemovePrimarySalon()">
+            </aura-your-salons-list>
+          }
 
           @if (editMode()) {
           <section class="profile-editor premium-card">
@@ -242,6 +246,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
           }
         }
 
+        @if (!mySalonsMode()) {
         <nav class="menu premium-card" aria-label="Profile menu">
           @for (group of menuGroups; track group.label) {
             <div class="menu-group">
@@ -258,6 +263,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
             </div>
           }
         </nav>
+        }
 
         @if (marketplace.isAuthenticated()) {
           <ion-button expand="block" fill="outline" class="secondary-button logout-button" (click)="logout()">
@@ -276,13 +282,79 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
 
+    .profile-mini-card {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 7px;
+      min-height: 46px;
+      padding: 5px 7px;
+      border-radius: 14px;
+    }
+    .profile-mini-avatar {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 10px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
+      font-size: 0.72rem;
+      font-weight: 950;
+    }
+    .profile-mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-mini-main { min-width: 0; display: grid; gap: 0; align-self: start; padding-top: 1px; }
+    .profile-mini-main h1 { margin: 0 0 -3px; overflow: hidden; color: var(--text); font-size: 0.78rem; line-height: 1; letter-spacing: -0.04em; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-mini-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; min-width: 0; }
+    .profile-mini-email {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 12px minmax(0, 1fr);
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+      border: 0;
+      color: var(--muted);
+      background: transparent;
+      font: inherit;
+      font-size: 0.56rem;
+      font-weight: 750;
+      text-align: left;
+    }
+    .profile-mini-email ion-icon { color: var(--primary); font-size: 0.66rem; }
+    .profile-mini-email span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-mini-edit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 21px;
+      padding: 0 7px;
+      border: 1px solid rgba(99, 102, 241, 0.22);
+      border-radius: 999px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.16);
+      font: inherit;
+      font-size: 0.56rem;
+      font-weight: 900;
+    }
+    .profile-mini-edit ion-icon { font-size: 0.66rem; }
+    .profile-mini-email:focus-visible, .profile-mini-edit:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+    .profile-subpage-head { padding: 14px; }
+    .profile-subpage-head span { color: var(--muted); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+    .profile-subpage-head h2 { margin: 2px 0 0; color: var(--text); font-size: 1.2rem; line-height: 1.1; letter-spacing: -0.04em; }
+
     .profile-card {
       position: relative;
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr);
       gap: 12px;
-      align-items: start;
-      padding: 14px;
+      align-items: center;
+      padding: 12px;
     }
 
     .edit-profile-button {
@@ -291,22 +363,22 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       align-items: center;
       justify-content: center;
       min-width: 0;
-      min-height: 36px;
-      padding: 0 12px;
+      min-height: 28px;
+      padding: 0 10px;
       border: 1px solid rgba(99, 102, 241, 0.24);
       border-radius: 999px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
       box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
       font: inherit;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
       font-weight: 850;
       cursor: pointer;
     }
 
     .edit-profile-button ion-icon {
       color: #ffffff;
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
 
     .edit-profile-button:hover,
@@ -317,27 +389,28 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
     }
 
     .avatar {
-      width: 64px;
-      height: 64px;
+      width: 52px;
+      height: 52px;
       display: grid;
       place-items: center;
       overflow: hidden;
-      border-radius: 22px;
+      border-radius: 18px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2), var(--accent));
       box-shadow: 0 16px 34px rgba(99, 102, 241, 0.2);
-      font-size: 1.45rem;
+      font-size: 1.15rem;
       font-weight: 900;
     }
 
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .avatar span { display: block; line-height: 1; }
 
-    .profile-identity { min-width: 0; display: grid; gap: 6px; padding-top: 0; }
+    .profile-identity { min-width: 0; display: grid; gap: 5px; padding-top: 0; }
 
-    .profile-contact-list { display: grid; gap: 4px; min-width: 0; }
-    .profile-contact-list button {
+    .profile-contact-row { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; }
+    .profile-email-button {
       width: 100%;
+      flex: 1 1 auto;
       min-width: 0;
       display: grid;
       grid-template-columns: 18px minmax(0, 1fr);
@@ -354,9 +427,11 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       text-align: left;
       cursor: pointer;
     }
-    .profile-contact-list ion-icon { color: var(--primary); font-size: 0.95rem; }
-    .profile-contact-list span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .profile-contact-list button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+    .profile-email-button ion-icon { color: var(--primary); font-size: 0.9rem; }
+    .profile-email-button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-email-button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+    .profile-card .profile-contact-list button:nth-child(n+2) { display: none; }
+    .profile-card button:has(ion-icon[name="phone-portrait-outline"]) { display: none; }
 
     h1 {
       margin: 0;
@@ -665,6 +740,20 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
         border-radius: 16px;
       }
 
+      .profile-mini-card {
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 9px;
+        min-height: 66px;
+        padding: 8px 10px;
+        border-radius: 16px;
+      }
+      .profile-mini-avatar { width: 42px; height: 42px; border-radius: 14px; font-size: 0.95rem; }
+      .profile-mini-main { gap: 0; padding-top: 3px; }
+      .profile-mini-main h1 { font-size: 0.92rem; }
+      .profile-mini-row { gap: 6px; }
+      .profile-mini-email { font-size: 0.68rem; }
+      .profile-mini-edit { min-height: 27px; padding: 0 10px; font-size: 0.68rem; }
+
       .avatar {
         width: 42px;
         height: 42px;
@@ -673,23 +762,21 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       }
 
       h1 {
-        font-size: 1.08rem;
+        font-size: 0.98rem;
         line-height: 1.05;
       }
 
-      .profile-contact-list button {
+      .profile-email-button {
         min-height: 24px;
         font-size: 0.72rem;
       }
 
-      .profile-contact-list ion-icon { font-size: 0.82rem; }
+      .profile-email-button ion-icon { font-size: 0.82rem; }
 
       .edit-profile-button {
-        grid-column: 1 / -1;
-        justify-self: start;
+        flex: 0 0 auto;
         min-height: 28px;
         padding: 0 9px;
-        margin-left: 51px;
       }
 
       .edit-profile-button span {
@@ -806,6 +893,7 @@ export class ProfilePage implements OnInit {
       label: "Activity",
       items: [
         { label: "My bookings", icon: "calendar-outline", route: "bookings" },
+        { label: "My Salon", icon: "storefront-outline", route: "my-salons" },
         { label: "Favourites", icon: "heart-outline", route: "wishlist" }
       ]
     },
@@ -844,6 +932,7 @@ export class ProfilePage implements OnInit {
     }
   ] as const;
   readonly editMode = () => this.route.snapshot.routeConfig?.path === "profile/edit";
+  readonly mySalonsMode = () => this.route.snapshot.routeConfig?.path === "my-salons";
   profileForm = { name: "", email: "", phone: "" };
   notifications: CustomerNotificationPreferences = {
     bookingReminders: true,
@@ -860,7 +949,7 @@ export class ProfilePage implements OnInit {
   passwordNotice = "";
 
   constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly route: ActivatedRoute, private readonly alerts: AlertController) {
-    addIcons({ briefcaseOutline, calendarOutline, chatbubblesOutline, chevronForwardOutline, colorPaletteOutline, createOutline, giftOutline, heartCircleOutline, heartOutline, helpCircleOutline, lockClosedOutline, logOutOutline, mailOutline, notificationsOutline, peopleOutline, personOutline, phonePortraitOutline, ribbonOutline, saveOutline, searchOutline, shareSocialOutline, shieldCheckmarkOutline, sparklesOutline, ticketOutline, trashOutline, walletOutline });
+    addIcons({ briefcaseOutline, calendarOutline, chatbubblesOutline, chevronForwardOutline, colorPaletteOutline, createOutline, giftOutline, heartCircleOutline, heartOutline, helpCircleOutline, lockClosedOutline, logOutOutline, mailOutline, notificationsOutline, peopleOutline, personOutline, phonePortraitOutline, ribbonOutline, saveOutline, searchOutline, shareSocialOutline, shieldCheckmarkOutline, sparklesOutline, storefrontOutline, ticketOutline, trashOutline, walletOutline });
   }
 
   async ngOnInit() {
@@ -910,6 +999,15 @@ export class ProfilePage implements OnInit {
       buttons: ["OK"]
     });
     await alert.present();
+  }
+
+  async showProfileContactDetails(): Promise<void> {
+    const customer = this.marketplace.customer();
+    const lines = [
+      `Email: ${customer?.email || "No email saved"}`,
+      `Phone: ${customer?.phone || "No phone saved"}`
+    ];
+    await this.showContactDetail("Contact details", lines.join("\n"));
   }
 
   upcomingCount(): number {

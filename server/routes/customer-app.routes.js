@@ -10,7 +10,7 @@ export const customerAppRouter = Router();
 customerAppRouter.use("/customer", authenticateJwt());
 
 customerAppRouter.get("/customer/bookings", asyncHandler((req, res) => {
-  res.json(customerAppService.bookings(req.access, req.query.status || ""));
+  res.json(customerAppService.bookings(req.access, req.query.status || "", req.query || {}));
 }));
 
 customerAppRouter.post("/customer/bookings", asyncHandler((req, res) => {
@@ -94,15 +94,15 @@ customerAppRouter.delete("/customer/saved-salons/:businessId", asyncHandler((req
 }));
 
 customerAppRouter.get("/customer/rewards", asyncHandler((req, res) => {
-  res.json(customerAppService.rewards(req.access));
+  res.json(customerAppService.rewards(req.access, req.query || {}));
 }));
 
 customerAppRouter.get("/customer/wallet", asyncHandler((req, res) => {
-  res.json(customerAppService.wallet(req.access));
+  res.json(customerAppService.wallet(req.access, req.query || {}));
 }));
 
 customerAppRouter.get("/customer/memberships", asyncHandler((req, res) => {
-  res.json(customerAppService.memberships(req.access));
+  res.json(customerAppService.memberships(req.access, req.query || {}));
 }));
 
 customerAppRouter.post("/customer/memberships", asyncHandler((req, res) => {
@@ -110,11 +110,11 @@ customerAppRouter.post("/customer/memberships", asyncHandler((req, res) => {
 }));
 
 customerAppRouter.get("/customer/packages", asyncHandler((req, res) => {
-  res.json(customerAppService.packages(req.access));
+  res.json(customerAppService.packages(req.access, req.query || {}));
 }));
 
 customerAppRouter.get("/customer/gift-cards", asyncHandler((req, res) => {
-  res.json(customerAppService.giftCards(req.access));
+  res.json(customerAppService.giftCards(req.access, req.query || {}));
 }));
 
 customerAppRouter.post("/customer/gift-cards", asyncHandler((req, res) => {
@@ -126,7 +126,7 @@ customerAppRouter.post("/customer/gift-cards/redeem", asyncHandler((req, res) =>
 }));
 
 customerAppRouter.get("/customer/invoices", asyncHandler((req, res) => {
-  res.json(customerAppService.invoices(req.access));
+  res.json(customerAppService.invoices(req.access, req.query || {}));
 }));
 
 customerAppRouter.post("/customer/invoices/:invoiceId/payment-link", asyncHandler((req, res) => {
@@ -134,7 +134,7 @@ customerAppRouter.post("/customer/invoices/:invoiceId/payment-link", asyncHandle
 }));
 
 customerAppRouter.get("/customer/payments", asyncHandler((req, res) => {
-  res.json(customerAppService.payments(req.access));
+  res.json(customerAppService.payments(req.access, req.query || {}));
 }));
 
 customerAppRouter.get("/customer/notifications", asyncHandler((req, res) => {

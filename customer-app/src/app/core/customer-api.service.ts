@@ -236,8 +236,8 @@ export class CustomerApiService {
     );
   }
 
-  listBookings(status?: "upcoming" | "past" | "cancelled"): Observable<Booking[]> {
-    return this.http.get<ApiResponse<Booking[] | ApiList<Booking>>>(`${this.baseUrl}/customer/bookings`, { params: this.toParams({ status }) }).pipe(
+  listBookings(status?: "upcoming" | "past" | "cancelled", scope: { tenantId?: string; branchId?: string } = {}): Observable<Booking[]> {
+    return this.http.get<ApiResponse<Booking[] | ApiList<Booking>>>(`${this.baseUrl}/customer/bookings`, { params: this.toParams({ status, ...scope }) }).pipe(
       map((response) => this.unwrapList<Booking>(response).map((booking) => this.normalizeBooking(booking)))
     );
   }
@@ -368,20 +368,20 @@ joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Observable<C
     );
   }
 
-  getRewards(): Observable<CustomerRewardSummary> {
-    return this.http.get<ApiResponse<CustomerRewardSummary>>(`${this.baseUrl}/customer/rewards`).pipe(
+  getRewards(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerRewardSummary> {
+    return this.http.get<ApiResponse<CustomerRewardSummary>>(`${this.baseUrl}/customer/rewards`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrap<CustomerRewardSummary>(response))
     );
   }
 
-  getWallet(): Observable<CustomerWallet> {
-    return this.http.get<ApiResponse<CustomerWallet>>(`${this.baseUrl}/customer/wallet`).pipe(
+  getWallet(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerWallet> {
+    return this.http.get<ApiResponse<CustomerWallet>>(`${this.baseUrl}/customer/wallet`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrap<CustomerWallet>(response))
     );
   }
 
-  listMemberships(): Observable<CustomerMembership[]> {
-    return this.http.get<ApiResponse<CustomerMembership[] | ApiList<CustomerMembership>>>(`${this.baseUrl}/customer/memberships`).pipe(
+  listMemberships(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerMembership[]> {
+    return this.http.get<ApiResponse<CustomerMembership[] | ApiList<CustomerMembership>>>(`${this.baseUrl}/customer/memberships`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrapList<CustomerMembership>(response))
     );
   }
@@ -392,14 +392,14 @@ joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Observable<C
     );
   }
 
-  listPackages(): Observable<CustomerPackage[]> {
-    return this.http.get<ApiResponse<CustomerPackage[] | ApiList<CustomerPackage>>>(`${this.baseUrl}/customer/packages`).pipe(
+  listPackages(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerPackage[]> {
+    return this.http.get<ApiResponse<CustomerPackage[] | ApiList<CustomerPackage>>>(`${this.baseUrl}/customer/packages`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrapList<CustomerPackage>(response))
     );
   }
 
-  listGiftCards(): Observable<CustomerGiftCard[]> {
-    return this.http.get<ApiResponse<CustomerGiftCard[] | ApiList<CustomerGiftCard>>>(`${this.baseUrl}/customer/gift-cards`).pipe(
+  listGiftCards(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerGiftCard[]> {
+    return this.http.get<ApiResponse<CustomerGiftCard[] | ApiList<CustomerGiftCard>>>(`${this.baseUrl}/customer/gift-cards`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrapList<CustomerGiftCard>(response))
     );
   }
@@ -416,8 +416,8 @@ joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Observable<C
     );
   }
 
-  listInvoices(): Observable<CustomerInvoice[]> {
-    return this.http.get<ApiResponse<CustomerInvoice[] | ApiList<CustomerInvoice>>>(`${this.baseUrl}/customer/invoices`).pipe(
+  listInvoices(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerInvoice[]> {
+    return this.http.get<ApiResponse<CustomerInvoice[] | ApiList<CustomerInvoice>>>(`${this.baseUrl}/customer/invoices`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrapList<CustomerInvoice>(response))
     );
   }
@@ -428,14 +428,14 @@ joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Observable<C
     );
   }
 
-  listPayments(): Observable<CustomerPayment[]> {
-    return this.http.get<ApiResponse<CustomerPayment[] | ApiList<CustomerPayment>>>(`${this.baseUrl}/customer/payments`).pipe(
+  listPayments(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerPayment[]> {
+    return this.http.get<ApiResponse<CustomerPayment[] | ApiList<CustomerPayment>>>(`${this.baseUrl}/customer/payments`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrapList<CustomerPayment>(response))
     );
   }
 
-  listNotifications(): Observable<CustomerNotification[]> {
-    return this.http.get<ApiResponse<CustomerNotification[] | ApiList<CustomerNotification>>>(`${this.baseUrl}/customer/notifications`).pipe(
+  listNotifications(scope: { tenantId?: string; branchId?: string } = {}): Observable<CustomerNotification[]> {
+    return this.http.get<ApiResponse<CustomerNotification[] | ApiList<CustomerNotification>>>(`${this.baseUrl}/customer/notifications`, { params: this.toParams(scope) }).pipe(
       map((response) => this.unwrapList<CustomerNotification>(response))
     );
   }

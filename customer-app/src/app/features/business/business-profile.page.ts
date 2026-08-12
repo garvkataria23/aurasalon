@@ -124,7 +124,7 @@ import { Subscription } from "rxjs";
                 </span>
               </div>
 
-              @if (isAuthenticated() && !marketplace.salonMode()) {
+              @if (isAuthenticated() && (!marketplace.salonMode() || isPrimarySalon())) {
                 <div class="primary-salon-strip">
                   @if (isPrimarySalon()) {
                     <div>
@@ -132,9 +132,11 @@ import { Subscription } from "rxjs";
                       <span>Get faster booking, personalised offers, memberships and salon rewards.</span>
                     </div>
                     <div class="primary-salon-actions">
-                      <button type="button" class="primary-salon-action secondary" (click)="confirmPrimaryAction('open')">
-                        <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon> Open My Salon
-                      </button>
+                      @if (!marketplace.salonMode()) {
+                        <button type="button" class="primary-salon-action secondary" (click)="confirmPrimaryAction('open')">
+                          <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon> Open My Salon
+                        </button>
+                      }
                       <button type="button" class="primary-salon-link" (click)="confirmPrimaryAction('remove')">Remove</button>
                     </div>
                   } @else {

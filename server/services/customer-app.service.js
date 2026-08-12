@@ -114,6 +114,18 @@ function appointmentSelectWhere(access, extra = "") {
   return `${tenantClause}a.clientId = @clientId${extra}`;
 }
 
+function customerScope(access, query = {}) {
+  return {
+    tenantId: String(query.tenantId || access.tenantId || ""),
+    branchId: String(query.branchId || "")
+  };
+}
+
+function scopedBranchClause(table, alias, scope) {
+  const prefix = alias ? `${alias}.` : "";
+  return scope.branchId && tableHasColumn(table, "branchId") ? ` AND ${prefix}branchId = @branchId` : "";
+}
+
 function serviceById(serviceId, businessSlug = "") {
   if (!serviceId) return null;
   if (businessSlug) {
@@ -188,13 +200,15 @@ function mapBooking(row = {}) {
   };
 }
 
-function bookings(access, status = "") {
+function bookings(access, status = "", query = {}) {
   client(access);
-  const params = { tenantId: access.tenantId, clientId: access.userId };
+  const scope = customerScope(access, query);
+  const params = { tenantId: scope.tenantId, branchId: scope.branchId, clientId: access.userId };
   let statusSql = "";
   if (status === "cancelled") statusSql = " AND LOWER(COALESCE(a.status, '')) = 'cancelled'";
   if (status === "upcoming") statusSql = " AND LOWER(COALESCE(a.status, '')) NOT IN ('cancelled', 'completed', 'no_show')";
   if (status === "past") statusSql = " AND (LOWER(COALESCE(a.status, '')) IN ('completed', 'no_show') OR datetime(a.startAt) < datetime('now'))";
+  statusSql += scopedBranchClause("appointments", "a", scope);
   return db.prepare(`
     SELECT a.*
     FROM appointments a
@@ -424,22 +438,26 @@ function removeSavedSalon(access, businessId) {
   db.prepare(`DELETE FROM customerSavedSalons WHERE tenantId = @tenantId AND customerId = @customerId AND businessId = @businessId`).run({ tenantId: access.tenantId, customerId: access.userId, businessId });
 }
 
-function rewards(access) {
+function rewards(access, query = {}) {
   const row = client(access);
+  const scope = customerScope(access, query);
   return {
-    loyaltyPoints: Number(row.loyaltyPoints || 0),
-    tier: Number(row.loyaltyPoints || 0) >= 1000 ? "Gold" : Number(row.loyaltyPoints || 0) >= 500 ? "Silver" : "Classic",
+    loyaltyPoints: scope.branchId ? 0 : Number(row.loyaltyPoints || 0),
+    tier: !scope.branchId && Number(row.loyaltyPoints || 0) >= 1000 ? "Gold" : !scope.branchId && Number(row.loyaltyPoints || 0) >= 500 ? "Silver" : "Classic",
     history: []
   };
 }
 
-function wallet(access) {
+function wallet(access, query = {}) {
   const row = client(access);
-  const transactions = tableExists("wallet_transactions")
-    ? db.prepare(`SELECT * FROM wallet_transactions WHERE tenantId = @tenantId AND clientId = @clientId ORDER BY datetime(createdAt) DESC LIMIT 50`).all({ tenantId: access.tenantId, clientId: access.userId })
+  const scope = customerScope(access, query);
+  const canScopeBranch = !scope.branchId || tableHasColumn("wallet_transactions", "branchId");
+  const branchClause = scopedBranchClause("wallet_transactions", "", scope);
+  const transactions = tableExists("wallet_transactions") && canScopeBranch
+    ? db.prepare(`SELECT * FROM wallet_transactions WHERE tenantId = @tenantId AND clientId = @clientId${branchClause} ORDER BY datetime(createdAt) DESC LIMIT 50`).all({ tenantId: scope.tenantId, branchId: scope.branchId, clientId: access.userId })
     : [];
   return {
-    balancePaise: paiseFromRupees(row.walletBalance || 0),
+    balancePaise: scope.branchId ? transactions.reduce((sum, item) => sum + paiseFromRupees(item.amount), 0) : paiseFromRupees(row.walletBalance || 0),
     transactions: transactions.map((item) => ({
       id: item.id,
       type: item.type,
@@ -454,9 +472,13 @@ function wallet(access) {
   };
 }
 
-function memberships(access) {
+function memberships(access, query = {}) {
   client(access);
-  return db.prepare(`SELECT * FROM memberships WHERE clientId = @clientId ORDER BY datetime(createdAt) DESC`).all({ clientId: access.userId }).map((item) => ({
+  const scope = customerScope(access, query);
+  const tenantClause = tableHasColumn("memberships", "tenantId") ? "tenantId = @tenantId AND " : "";
+  if (scope.branchId && !tableHasColumn("memberships", "branchId")) return [];
+  const branchClause = scope.branchId && tableHasColumn("memberships", "branchId") ? " AND branchId = @branchId" : "";
+  return db.prepare(`SELECT * FROM memberships WHERE ${tenantClause}clientId = @clientId${branchClause} ORDER BY datetime(createdAt) DESC`).all({ tenantId: scope.tenantId, branchId: scope.branchId, clientId: access.userId }).map((item) => ({
     id: item.id,
     planName: item.planName,
     pricePaise: paiseFromRupees(item.price),
@@ -496,10 +518,13 @@ function buyMembership(access, planId, branchId = "") {
   return { membership: memberships(access).find((item) => item.id === created.id), paymentRequired: plan.pricePaise > 0, amountPaise: plan.pricePaise };
 }
 
-function packages(access) {
+function packages(access, query = {}) {
   client(access);
   if (!tableExists("packages")) return [];
-  return db.prepare(`SELECT * FROM packages WHERE tenantId = @tenantId AND status = 'active' ORDER BY datetime(createdAt) DESC LIMIT 50`).all({ tenantId: access.tenantId }).map((item) => ({
+  const scope = customerScope(access, query);
+  if (scope.branchId && !tableHasColumn("packages", "branchId")) return [];
+  const branchClause = scope.branchId && tableHasColumn("packages", "branchId") ? " AND branchId = @branchId" : "";
+  return db.prepare(`SELECT * FROM packages WHERE tenantId = @tenantId${branchClause} AND status = 'active' ORDER BY datetime(createdAt) DESC LIMIT 50`).all({ tenantId: scope.tenantId, branchId: scope.branchId }).map((item) => ({
     id: item.id,
     name: item.name,
     pricePaise: paiseFromRupees(item.price),
@@ -510,9 +535,13 @@ function packages(access) {
   }));
 }
 
-function giftCards(access) {
+function giftCards(access, query = {}) {
   client(access);
-  return db.prepare(`SELECT * FROM gift_cards WHERE clientId = @clientId ORDER BY datetime(createdAt) DESC`).all({ clientId: access.userId }).map((item) => ({
+  const scope = customerScope(access, query);
+  const tenantClause = tableHasColumn("gift_cards", "tenantId") ? "tenantId = @tenantId AND " : "";
+  if (scope.branchId && !tableHasColumn("gift_cards", "branchId")) return [];
+  const branchClause = scope.branchId && tableHasColumn("gift_cards", "branchId") ? " AND branchId = @branchId" : "";
+  return db.prepare(`SELECT * FROM gift_cards WHERE ${tenantClause}clientId = @clientId${branchClause} ORDER BY datetime(createdAt) DESC`).all({ tenantId: scope.tenantId, branchId: scope.branchId, clientId: access.userId }).map((item) => ({
     id: item.id,
     code: item.code,
     initialValuePaise: paiseFromRupees(item.initialValue),
@@ -554,10 +583,13 @@ function redeemGiftCard(access, payload = {}) {
   return { giftCardId: card.id, invoiceId: payload.invoiceId || "", amountPaise, balanceAfterPaise: balancePaise - amountPaise };
 }
 
-function invoices(access) {
+function invoices(access, query = {}) {
   client(access);
+  const scope = customerScope(access, query);
   const tenantColumn = tableHasColumn("invoices", "tenantId") ? "tenantId = @tenantId AND " : "";
-  return db.prepare(`SELECT * FROM invoices WHERE ${tenantColumn}clientId = @clientId ORDER BY datetime(createdAt) DESC LIMIT 100`).all({ tenantId: access.tenantId, clientId: access.userId }).map((item) => ({
+  if (scope.branchId && !tableHasColumn("invoices", "branchId")) return [];
+  const branchClause = scope.branchId && tableHasColumn("invoices", "branchId") ? " AND branchId = @branchId" : "";
+  return db.prepare(`SELECT * FROM invoices WHERE ${tenantColumn}clientId = @clientId${branchClause} ORDER BY datetime(createdAt) DESC LIMIT 100`).all({ tenantId: scope.tenantId, branchId: scope.branchId, clientId: access.userId }).map((item) => ({
     id: item.id,
     invoiceNumber: item.invoiceNumber || item.invoice_no || item.id,
     saleId: item.saleId || "",
@@ -576,16 +608,21 @@ function invoices(access) {
   }));
 }
 
-function payments(access) {
+function payments(access, query = {}) {
   client(access);
+  const scope = customerScope(access, query);
+  const invoiceTenantClause = tableHasColumn("invoices", "tenantId") ? " AND i.tenantId = @tenantId" : "";
+  if (scope.branchId && !tableHasColumn("invoices", "branchId")) return [];
+  const invoiceBranchClause = scope.branchId && tableHasColumn("invoices", "branchId") ? " AND i.branchId = @branchId" : "";
   return db.prepare(`
     SELECT p.*, i.invoiceNumber
     FROM payments p
     JOIN invoices i ON i.id = p.invoiceId
     WHERE i.clientId = @clientId
+      ${invoiceTenantClause}${invoiceBranchClause}
     ORDER BY datetime(p.createdAt) DESC
     LIMIT 100
-  `).all({ clientId: access.userId }).map((item) => ({
+  `).all({ tenantId: scope.tenantId, branchId: scope.branchId, clientId: access.userId }).map((item) => ({
     id: item.id,
     invoiceId: item.invoiceId,
     invoiceNumber: item.invoiceNumber || "",

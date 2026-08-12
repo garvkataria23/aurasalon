@@ -220,23 +220,25 @@ function hoursLabel(hours = {}, timezone = DEFAULT_TIMEZONE) {
 
 // ─── Wallet ───────────────────────────────────────────────────────
 
-function walletForClient(tenantId, clientId) {
+function walletForClient(tenantId, branchId, clientId) {
   const row = db
     .prepare(
       `SELECT walletBalance FROM clients WHERE tenantId = @tenantId AND id = @clientId LIMIT 1`
     )
     .get({ tenantId, clientId });
 
-  const transactions = tableExists("wallet_transactions")
+  const canScopeBranch = !branchId || hasColumn("wallet_transactions", "branchId");
+  const branchClause = branchId && canScopeBranch ? " AND branchId = @branchId" : "";
+  const transactions = tableExists("wallet_transactions") && canScopeBranch
     ? db
         .prepare(
-          `SELECT * FROM wallet_transactions WHERE tenantId = @tenantId AND clientId = @clientId ORDER BY datetime(createdAt) DESC LIMIT 10`
+          `SELECT * FROM wallet_transactions WHERE tenantId = @tenantId AND clientId = @clientId${branchClause} ORDER BY datetime(createdAt) DESC LIMIT 10`
         )
-        .all({ tenantId, clientId })
+        .all({ tenantId, branchId, clientId })
     : [];
 
   return {
-    balancePaise: paiseFromRupees(row?.walletBalance || 0),
+    balancePaise: branchId ? transactions.reduce((sum, item) => sum + paiseFromRupees(item.amount), 0) : paiseFromRupees(row?.walletBalance || 0),
     transactions: transactions.map((item) => ({
       id: item.id,
       type: item.type,
@@ -250,7 +252,8 @@ function walletForClient(tenantId, clientId) {
 
 // ─── Loyalty ──────────────────────────────────────────────────────
 
-function loyaltyForClient(tenantId, clientId) {
+function loyaltyForClient(tenantId, branchId, clientId) {
+  if (branchId) return { points: 0, tier: "Classic" };
   const row = db
     .prepare(
       `SELECT loyaltyPoints FROM clients WHERE tenantId = @tenantId AND id = @clientId LIMIT 1`
@@ -267,12 +270,16 @@ function loyaltyForClient(tenantId, clientId) {
 
 // ─── Membership ───────────────────────────────────────────────────
 
-function membershipForClient(clientId, tenantId) {
+function membershipForClient(clientId, tenantId, branchId) {
   if (!tableExists("memberships")) return null;
   const clauses = ["clientId = @clientId", "status = 'active'"];
-  const params = { clientId, tenantId };
+  const params = { clientId, tenantId, branchId };
   if (hasColumn("memberships", "tenantId")) {
     clauses.push("(tenantId = @tenantId OR COALESCE(tenantId, '') = '')");
+  }
+  if (branchId) {
+    if (!hasColumn("memberships", "branchId")) return null;
+    clauses.push("branchId = @branchId");
   }
   const row = db
     .prepare(
@@ -294,15 +301,19 @@ function membershipForClient(clientId, tenantId) {
 
 // ─── Gift Cards ──────────────────────────────────────────────────
 
-function giftCardsForClient(tenantId, clientId) {
+function giftCardsForClient(tenantId, branchId, clientId) {
   if (!tableExists("gift_cards")) return [];
   const clauses = [];
-  const params = { tenantId, clientId };
+  const params = { tenantId, branchId, clientId };
   if (hasColumn("gift_cards", "tenantId")) {
     clauses.push("(tenantId = @tenantId OR tenant_id = @tenantId)");
   }
   if (hasColumn("gift_cards", "clientId")) {
     clauses.push("(clientId = @clientId OR customer_id = @clientId)");
+  }
+  if (branchId) {
+    if (!hasColumn("gift_cards", "branchId")) return [];
+    clauses.push("branchId = @branchId");
   }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const rows = db
@@ -320,15 +331,19 @@ function giftCardsForClient(tenantId, clientId) {
 
 // ─── Invoices ────────────────────────────────────────────────────
 
-function invoicesForClient(tenantId, clientId) {
+function invoicesForClient(tenantId, branchId, clientId) {
   if (!tableExists("invoices")) return [];
   const clauses = [];
-  const params = { tenantId, clientId };
+  const params = { tenantId, branchId, clientId };
   if (hasColumn("invoices", "tenantId")) {
     clauses.push("(tenantId = @tenantId OR tenant_id = @tenantId)");
   }
   if (hasColumn("invoices", "clientId")) {
     clauses.push("(clientId = @clientId OR customer_id = @clientId)");
+  }
+  if (branchId) {
+    if (!hasColumn("invoices", "branchId")) return [];
+    clauses.push("branchId = @branchId");
   }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const rows = db
@@ -346,12 +361,27 @@ function invoicesForClient(tenantId, clientId) {
 
 // ─── Notifications ───────────────────────────────────────────────
 
-function notificationsForClient(tenantId, clientId) {
+function notificationsForClient(tenantId, branchId, clientId) {
+  if (tableExists("customerInboxNotifications")) {
+    return db.prepare(`SELECT * FROM customerInboxNotifications WHERE tenantId = @tenantId AND branchId = @branchId AND customerId = @clientId AND archivedAt = '' ORDER BY datetime(scheduledAt) DESC, datetime(createdAt) DESC LIMIT 5`)
+      .all({ tenantId, branchId, clientId })
+      .map((n) => ({
+        id: n.id,
+        title: n.title || "Salon Update",
+        message: n.body || "",
+        createdAt: n.createdAt || "",
+        readAt: n.readAt || null,
+      }));
+  }
   if (!tableExists("notifications")) return [];
   const clauses = ["(clientId = @clientId OR COALESCE(clientId, '') = '')"];
-  const params = { tenantId, clientId };
+  const params = { tenantId, branchId, clientId };
   if (hasColumn("notifications", "tenantId")) {
     clauses.push("(tenantId = @tenantId OR COALESCE(tenantId, '') = '')");
+  }
+  if (branchId) {
+    if (!hasColumn("notifications", "branchId")) return [];
+    clauses.push("branchId = @branchId");
   }
   const rows = db
     .prepare(`SELECT * FROM notifications WHERE ${clauses.join(" AND ")} ORDER BY datetime(createdAt) DESC LIMIT 5`)
@@ -368,13 +398,15 @@ function notificationsForClient(tenantId, clientId) {
 
 // ─── Packages ─────────────────────────────────────────────────────
 
-function packagesForTenant(tenantId) {
+function packagesForTenant(tenantId, branchId) {
   if (!tableExists("packages")) return [];
+  if (branchId && !hasColumn("packages", "branchId")) return [];
+  const branchClause = branchId ? " AND branchId = @branchId" : "";
   return db
     .prepare(
-      `SELECT * FROM packages WHERE tenantId = @tenantId AND status = 'active' ORDER BY datetime(createdAt) DESC LIMIT 5`
+      `SELECT * FROM packages WHERE tenantId = @tenantId${branchClause} AND status = 'active' ORDER BY datetime(createdAt) DESC LIMIT 5`
     )
-    .all({ tenantId })
+    .all({ tenantId, branchId })
     .map((item) => ({
       id: item.id,
       name: item.name,
@@ -388,15 +420,16 @@ function packagesForTenant(tenantId) {
 
 // ─── Recent Bookings ──────────────────────────────────────────────
 
-function recentBookings(access, tenantId) {
+function recentBookings(access, tenantId, branchId) {
   const whereTenant = tableHasColumn("appointments", "tenantId")
     ? "tenantId = @tenantId AND"
     : "";
+  const whereBranch = branchId && tableHasColumn("appointments", "branchId") ? " AND branchId = @branchId" : "";
   const rows = db
     .prepare(
-      `SELECT * FROM appointments WHERE ${whereTenant} clientId = @clientId ORDER BY datetime(startAt) DESC LIMIT 5`
+      `SELECT * FROM appointments WHERE ${whereTenant} clientId = @clientId${whereBranch} ORDER BY datetime(startAt) DESC LIMIT 5`
     )
-    .all({ tenantId, clientId: access.userId });
+    .all({ tenantId, branchId, clientId: access.userId });
 
   return rows.map((row) => ({
     id: row.id,
@@ -534,22 +567,22 @@ export function getMySalonDashboard(access, context = {}) {
     .get({ tenantId, clientId: access.userId });
 
   const wallet = clientRow
-    ? walletForClient(tenantId, access.userId)
+    ? walletForClient(tenantId, branchId, access.userId)
     : { balancePaise: 0, transactions: [] };
   const loyalty = clientRow
-    ? loyaltyForClient(tenantId, access.userId)
+    ? loyaltyForClient(tenantId, branchId, access.userId)
     : { points: 0, tier: "Classic" };
   const membership = clientRow
-    ? membershipForClient(access.userId, tenantId)
+    ? membershipForClient(access.userId, tenantId, branchId)
     : null;
-  const packages = packagesForTenant(tenantId);
-  const bookings = recentBookings(access, tenantId);
+  const packages = packagesForTenant(tenantId, branchId);
+  const bookings = recentBookings(access, tenantId, branchId);
   const services = salonServices(tenantId, branchId);
   const staff = salonStaff(tenantId, branchId);
   const offers = activeOffers(tenantId, branchId);
-  const giftCards = giftCardsForClient(tenantId, access.userId);
-  const invoices = invoicesForClient(tenantId, access.userId);
-  const notifications = notificationsForClient(tenantId, access.userId);
+  const giftCards = giftCardsForClient(tenantId, branchId, access.userId);
+  const invoices = invoicesForClient(tenantId, branchId, access.userId);
+  const notifications = notificationsForClient(tenantId, branchId, access.userId);
 
   return {
     hasPrimarySalon: true,

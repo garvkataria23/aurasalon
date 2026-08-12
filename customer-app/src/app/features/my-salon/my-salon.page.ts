@@ -6,11 +6,8 @@ import {
   calendarOutline,
   callOutline,
   chevronForwardOutline,
-  documentTextOutline,
   giftOutline,
-  helpCircleOutline,
   locationOutline,
-  notificationsOutline,
   peopleOutline,
   receiptOutline,
   refreshOutline,
@@ -32,6 +29,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
   template: `
     <ion-content class="ms-content">
       <main class="ms-page">
+        @if (!dash()?.salon) {
         <div class="ms-mode-tools" aria-label="My Salon page controls">
           @if (salonChoices().length > 1 || !dash()?.hasPrimarySalon) {
             <button
@@ -47,6 +45,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
             <span class="ms-mode-tools-spacer" aria-hidden="true"></span>
           }
         </div>
+        }
 
         <!-- ─── SALON PICKER DRAWER / MODAL ─── -->
         @if (salonPickerOpen()) {
@@ -177,6 +176,20 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                   Explore Salon & Services
                   <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
                 </a>
+              </div>
+
+              <div class="ms-hero-management" aria-label="My Salon management">
+                @if (salonChoices().length > 1 || !d.hasPrimarySalon) {
+                  <button
+                    type="button"
+                    class="ms-switch-button"
+                    (click)="toggleSalonPicker()"
+                    [attr.aria-expanded]="salonPickerOpen()"
+                    aria-controls="salon-picker">
+                    <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon>
+                    <span>Switch Salon ({{ salonChoices().length }})</span>
+                  </button>
+                }
               </div>
             </section>
 
@@ -330,11 +343,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                 </div>
                 <a [routerLink]="salonProfileLink(d.salon)">Full Menu</a>
               </div>
-
-              <label class="ms-service-search">
-                <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
-                <input type="search" [value]="serviceQuery()" (input)="onServiceSearch($event)" placeholder="Search salon services" aria-label="Search salon services" />
-              </label>
 
               @if (topRecommendedServices().length) {
                 <div class="ms-service-list">
@@ -541,53 +549,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
               </section>
             }
 
-            <!-- 12. SALON NOTIFICATIONS & ANNOUNCEMENTS -->
-            @if (d.notifications && d.notifications.length) {
-              <section class="ms-section" aria-labelledby="notif-title">
-                <div class="ms-section-head">
-                  <div>
-                    <span class="ms-kicker">Direct Updates</span>
-                    <h2 id="notif-title">Salon Notifications</h2>
-                  </div>
-                  <a [routerLink]="scopedLink('notifications')">All Notifications</a>
-                </div>
-
-                <div class="ms-notif-list">
-                  @for (n of d.notifications; track n.id) {
-                    <div class="ms-notif-item">
-                      <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon>
-                      <div>
-                        <strong>{{ n.title || 'Salon Announcement' }}</strong>
-                        <p>{{ n.message }}</p>
-                        <small>{{ formatDate(n.createdAt) }}</small>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </section>
-            }
-
-            <!-- 13. POLICIES & SUPPORT HUB -->
-            <section class="ms-section ms-more" aria-labelledby="more-title">
-              <div class="ms-section-head">
-                <div>
-                  <span class="ms-kicker">Help & Policies</span>
-                  <h2 id="more-title">Salon Support & Policies</h2>
-                </div>
-              </div>
-
-              <div class="ms-more-grid">
-                <a [routerLink]="scopedLink('support')">
-                  <ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon>
-                  <span><strong>Customer Support</strong><small>Get help with bookings or billing</small></span>
-                </a>
-                <a [routerLink]="salonProfileLink(d.salon)">
-                  <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
-                  <span><strong>Booking Policies</strong><small>Cancellation & venue terms</small></span>
-                </a>
-              </div>
-            </section>
-
           } @else {
             <!-- ONBOARDING STATE: NO PRIMARY SALON SELECTED -->
             <section class="ms-state ms-onboarding-state">
@@ -598,6 +559,10 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                 Select a salon you have visited or booked with. Your membership, wallet, loyalty points, package credits, Happy Hours offers and history will automatically load for that salon.
               </p>
               @if (salonChoices().length) {
+                <div class="ms-onboarding-copy">
+                  <strong>Choose from your past salons</strong>
+                  <small>You can switch again later if you have multiple salons.</small>
+                </div>
                 <div class="ms-choice-list">
                   @for (salon of salonChoices(); track salon.tenantId + ':' + salon.branchId) {
                     <button type="button" class="ms-choice" (click)="selectSalon(salon)" [disabled]="selectingSalon()">
@@ -606,12 +571,23 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                         <strong>{{ salon.businessName }}</strong>
                         <small>{{ salonVisitLabel(salon) }}</small>
                       </span>
-                      <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+                      <span class="ms-choice-badge">Set My Salon</span>
                     </button>
                   }
                 </div>
+                <div class="ms-onboarding-actions">
+                  <button type="button" class="ms-outline-button" (click)="openSalonSearch()">Find New Salon</button>
+                  <button type="button" class="ms-outline-button" (click)="exitSalonMode()">Exit My Salon</button>
+                </div>
               } @else {
-                <ion-button class="ms-primary-button" (click)="exitSalonMode()">Exit My Salon</ion-button>
+                <div class="ms-onboarding-copy">
+                  <strong>No past salons found</strong>
+                  <small>Find a salon, open its profile, and set it as My Salon.</small>
+                </div>
+                <div class="ms-onboarding-actions">
+                  <ion-button class="ms-primary-button" (click)="openSalonSearch()">Find New Salon</ion-button>
+                  <button type="button" class="ms-outline-button" (click)="exitSalonMode()">Exit My Salon</button>
+                </div>
               }
             </section>
           }
@@ -653,7 +629,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       width: min(100%, 1120px);
       min-height: 100%;
       margin: 0 auto;
-      padding: calc(16px + env(safe-area-inset-top)) 16px calc(88px + var(--safe-bottom));
+      padding: calc(58px + env(safe-area-inset-top)) 16px calc(88px + var(--safe-bottom));
       color: var(--ms-ink);
       overflow-x: clip;
     }
@@ -667,7 +643,10 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       position: relative;
       z-index: 15;
       display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
       justify-content: flex-end;
+      align-items: center;
       min-height: 44px;
       margin-bottom: 12px;
     }
@@ -684,9 +663,16 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       justify-content: center;
       cursor: pointer;
     }
-    .ms-switch-button { gap: 6px; padding: 0 14px; font: inherit; font-size: .78rem; font-weight: 750; transition: background-color var(--ms-motion), border-color var(--ms-motion), transform var(--ms-motion); }
+    .ms-switch-button { gap: 6px; max-width: 100%; padding: 0 12px; font: inherit; font-size: .74rem; font-weight: 750; white-space: nowrap; transition: background-color var(--ms-motion), border-color var(--ms-motion), transform var(--ms-motion); }
     .ms-switch-button:active { transform: scale(.98); }
     .ms-switch-button ion-icon { font-size: 17px; color: var(--ms-accent); }
+    .ms-remove-primary-button { color: var(--ms-rose); border-color: color-mix(in srgb, var(--ms-rose) 28%, var(--ms-line)); }
+    .ms-remove-primary-button ion-icon { color: var(--ms-rose); }
+    @media (max-width: 420px) {
+      .ms-mode-tools { justify-content: center; }
+      .ms-mode-tools .ms-switch-button { flex: 1 1 calc(50% - 4px); min-width: 0; }
+      .ms-mode-tools-spacer { display: none; }
+    }
     .ms-mode-tools-spacer { width: 44px; min-height: 44px; }
     .ms-kicker { color: var(--ms-accent); font-size: .72rem; font-weight: 800; letter-spacing: .01em; }
     .ms-section { display: grid; gap: 14px; margin-top: 36px; }
@@ -737,6 +723,8 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-profile-button { min-height: 44px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: .82rem; font-weight: 820; text-decoration: none; transition: background-color var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion), transform var(--ms-motion); }
     .ms-profile-button { border: 1px solid rgba(124, 99, 223, .16); color: var(--ms-ink); background: linear-gradient(180deg, #fff, rgba(250, 248, 255, .86)); box-shadow: inset 0 1px rgba(255,255,255,.86), 0 8px 18px rgba(28,28,28,.04); }
     .ms-profile-button ion-icon { width: 18px; height: 18px; display: grid; place-items: center; margin-right: -4px; color: var(--ms-accent); }
+    .ms-hero-management { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .ms-hero-management .ms-switch-button { flex: 1 1 150px; min-width: 0; }
 
     /* Relationship Snapshot Cards */
     .ms-relationship { margin-top: 28px; }
@@ -846,7 +834,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-gift-status { padding: 4px 8px; border-radius: 999px; background: var(--ms-accent-soft); color: var(--ms-accent); font-size: .72rem; font-weight: 800; letter-spacing: .01em; }
 
     /* History & Invoices */
-    .ms-history-list, .ms-invoice-list, .ms-notif-list { display: grid; gap: 6px; border-top: 1px solid var(--ms-line); }
+    .ms-history-list, .ms-invoice-list { display: grid; gap: 6px; border-top: 1px solid var(--ms-line); }
     .ms-history-item, .ms-invoice-item { min-height: 66px; display: grid; grid-template-columns: 50px minmax(0,1fr) auto 18px; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--ms-line); color: inherit; text-decoration: none; }
     .ms-history-date { color: var(--ms-muted); font-size: .7rem; font-weight: 740; }
     .ms-history-copy, .ms-invoice-copy { min-width: 0; display: grid; gap: 3px; }
@@ -857,30 +845,19 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-invoice-right { display: grid; justify-items: end; gap: 2px; }
     .ms-inv-status { color: var(--ms-emerald); font-size: .72rem; font-weight: 800; letter-spacing: .01em; }
 
-    /* Notifications */
-    .ms-notif-item { display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--ms-line); }
-    .ms-notif-item ion-icon { color: var(--ms-accent); font-size: 20px; margin-top: 2px; }
-    .ms-notif-item strong { display: block; font-size: .84rem; }
-    .ms-notif-item p { margin: 2px 0 4px; color: var(--ms-muted); font-size: .76rem; line-height: 1.35; }
-    .ms-notif-item small { color: var(--ms-muted); font-size: .66rem; }
-
-    /* More & Support Grid */
-    .ms-more { margin-bottom: 24px; }
-    .ms-more-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
-    .ms-more-grid a { min-height: 88px; display: grid; align-content: space-between; gap: 6px; padding: 12px; border: 1px solid var(--ms-line); border-radius: 18px; color: inherit; background: var(--ms-ivory); text-decoration: none; transition: transform var(--ms-motion), border-color var(--ms-motion), box-shadow var(--ms-motion); }
-    .ms-more-grid a:hover { transform: translateY(-2px); }
-    .ms-more-grid ion-icon { color: var(--ms-accent); font-size: 18px; }
-    .ms-more-grid strong { display: block; font-size: .76rem; }
-    .ms-more-grid small { color: var(--ms-muted); font-size: .62rem; line-height: 1.22; }
-
-
     /* States & Skeletons */
     .ms-state { min-height: 60vh; display: grid; place-items: center; align-content: center; gap: 12px; padding: 40px 16px; text-align: center; }
     .ms-state-icon { width: 64px; height: 64px; display: grid; place-items: center; margin-bottom: 4px; border-radius: 22px; color: var(--ms-accent); background: var(--ms-accent-soft); font-size: 26px; }
     .ms-state h1 { margin: 0; font-size: 1.75rem; letter-spacing: -.04em; }
     .ms-state p { max-width: 480px; margin: 0; color: var(--ms-muted); font-size: .86rem; line-height: 1.55; }
     .ms-state .ms-choice-list { max-width: 480px; margin-top: 14px; text-align: left; }
+    .ms-onboarding-copy { display: grid; gap: 3px; width: min(100%, 480px); margin-top: 10px; text-align: left; }
+    .ms-onboarding-copy strong { color: var(--ms-ink); font-size: .86rem; }
+    .ms-onboarding-copy small { color: var(--ms-muted); font-size: .72rem; line-height: 1.35; }
     .ms-primary-button { min-height: 48px; margin-top: 10px; --background: var(--ms-accent); --background-hover: var(--ms-accent); --border-radius: 999px; --box-shadow: none; }
+    .ms-onboarding-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; }
+    .ms-onboarding-actions .ms-primary-button { margin-top: 0; }
+    .ms-outline-button { min-height: 48px; padding: 0 20px; border: 1px solid color-mix(in srgb, var(--ms-accent) 38%, var(--ms-line)); border-radius: 999px; color: var(--ms-accent); background: var(--ms-ivory); font: inherit; font-weight: 900; cursor: pointer; }
     .ms-loading { display: grid; gap: 14px; padding-top: 16px; }
     @keyframes ms-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
 
@@ -889,7 +866,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     .ms-skeleton-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
     .ms-skeleton-wide { min-height: 150px; }
 
-    .ms-picker, .ms-hero, .ms-snapshot-item, .ms-appointment, .ms-empty-panel, .ms-rebook-card, .ms-offer, .ms-empty-line, .ms-staff, .ms-benefit, .ms-wallet-card, .ms-gift-card, .ms-more-grid a {
+    .ms-picker, .ms-hero, .ms-snapshot-item, .ms-appointment, .ms-empty-panel, .ms-rebook-card, .ms-offer, .ms-empty-line, .ms-staff, .ms-benefit, .ms-wallet-card, .ms-gift-card {
       border-width: 1px;
       border-style: solid;
       border-radius: var(--ms-radius-card);
@@ -934,25 +911,25 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       line-height: 1.12;
       letter-spacing: -0.02em;
     }
-    .ms-picker-note, .ms-contact-item, .ms-appointment p, .ms-empty-panel p, .ms-offer p, .ms-state p, .ms-more-grid small, .ms-notif-item p {
+    .ms-picker-note, .ms-contact-item, .ms-appointment p, .ms-empty-panel p, .ms-offer p, .ms-state p {
       font-size: var(--ms-type-body);
       line-height: var(--ms-lh-body);
     }
-    .ms-choice-copy small, .ms-snapshot-item small, .ms-rebook-info small, .ms-offer-footer small, .ms-service-copy small, .ms-staff small, .ms-benefit > small, .ms-gift-card small, .ms-history-copy small, .ms-invoice-copy small, .ms-notif-item small {
+    .ms-choice-copy small, .ms-snapshot-item small, .ms-rebook-info small, .ms-offer-footer small, .ms-service-copy small, .ms-staff small, .ms-benefit > small, .ms-gift-card small, .ms-history-copy small, .ms-invoice-copy small {
       font-size: var(--ms-type-small);
       line-height: 1.35;
     }
-    .ms-service-copy strong, .ms-history-copy strong, .ms-invoice-copy strong, .ms-notif-item strong, .ms-more-grid strong, .ms-staff strong, .ms-choice-copy strong, .ms-gift-card strong {
+    .ms-service-copy strong, .ms-history-copy strong, .ms-invoice-copy strong, .ms-staff strong, .ms-choice-copy strong, .ms-gift-card strong {
       font-size: var(--ms-type-title);
       line-height: 1.2;
       letter-spacing: -0.01em;
     }
-    .ms-profile-button:active, .ms-rebook-action:active, .ms-offer-book:active, .ms-service-book-btn:active, .ms-primary-button:active, .ms-arrow-link:active, .ms-more-grid a:active, .ms-staff:active, .ms-snapshot-item:active {
+    .ms-profile-button:active, .ms-rebook-action:active, .ms-offer-book:active, .ms-service-book-btn:active, .ms-primary-button:active, .ms-arrow-link:active, .ms-staff:active, .ms-snapshot-item:active {
       transform: scale(.99);
     }
 
     @media (hover: none) {
-      .ms-snapshot-item:hover, .ms-staff:hover, .ms-more-grid a:hover {
+      .ms-snapshot-item:hover, .ms-staff:hover {
         transform: none;
         box-shadow: var(--ms-elevation-soft);
       }
@@ -1240,34 +1217,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
         line-height: 1.25;
       }
 
-      .ms-more { gap: 10px; margin-top: 24px; margin-bottom: 14px; }
-      .ms-more-grid { gap: 7px; }
-      .ms-more-grid a {
-        min-height: 72px;
-        gap: 5px;
-        padding: 10px;
-        border-color: rgba(124, 99, 223, .13);
-        border-radius: 16px;
-        background: linear-gradient(145deg, #fff, rgba(250, 248, 255, .76));
-        box-shadow: inset 0 1px rgba(255,255,255,.9), 0 6px 16px rgba(28,28,28,.035);
-      }
-      .ms-more-grid ion-icon {
-        width: 22px;
-        height: 22px;
-        padding: 4px;
-        border-radius: 8px;
-        background: rgba(124, 99, 223, .08);
-        font-size: 14px;
-      }
-      .ms-more-grid strong { font-size: .7rem; line-height: 1.08; }
-      .ms-more-grid small {
-        display: -webkit-box;
-        overflow: hidden;
-        font-size: .58rem;
-        line-height: 1.18;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-      }
     }
 
     @media (max-width: 380px) {
@@ -1309,10 +1258,9 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       .ms-offer-rail { grid-auto-columns: minmax(280px, 38%); margin-inline: 0; padding-inline: 0; }
       .ms-staff-rail { margin-inline: 0; padding-inline: 0; }
       .ms-benefit-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .ms-more-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
     }
     @media (min-width: 1024px) {
-      .ms-page { padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+      .ms-page { padding-top: calc(58px + env(safe-area-inset-top)); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
       .ms-service-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 32px; }
     }
   `]
@@ -1388,11 +1336,8 @@ export class MySalonPage implements OnInit {
       calendarOutline,
       callOutline,
       chevronForwardOutline,
-      documentTextOutline,
       giftOutline,
-      helpCircleOutline,
       locationOutline,
-      notificationsOutline,
       peopleOutline,
       receiptOutline,
       refreshOutline,
@@ -1411,9 +1356,18 @@ export class MySalonPage implements OnInit {
       void this.router.navigate(["/login"]);
       return;
     }
+    if (!this.marketplace.salonMode() && typeof window !== "undefined" && !window.confirm("Open My Salon mode?")) {
+      void this.router.navigateByUrl("/tabs/home");
+      return;
+    }
     this.syncRouteSalonContext();
     this.marketplace.enterSalonMode(this.currentSalonContext());
-    void this.loadDashboard();
+    void this.loadDashboard(true).then(() => {
+      const current = this.router.url.split(/[?#]/)[0].replace(/\/+$/, "");
+      if (current === "/tabs/my-salon" && this.currentSalonContext().tenantId && this.currentSalonContext().branchId) {
+        void this.router.navigateByUrl(this.scopedUrl(), { replaceUrl: true });
+      }
+    });
   }
 
   /**
@@ -1421,10 +1375,10 @@ export class MySalonPage implements OnInit {
    * content stays visible while the dashboard refreshes in the background.
    */
   onTabReenter(): void {
-    if (this.auth.isAuthenticated()) void this.loadDashboard();
+    if (this.auth.isAuthenticated()) void this.loadDashboard(true);
   }
 
-  async loadDashboard(): Promise<void> {
+  async loadDashboard(force = false): Promise<void> {
     this.loadError.set("");
     // Only show the full-page skeleton when nothing has ever been rendered;
     // a re-fetch must never blank out already-visible content.
@@ -1433,10 +1387,10 @@ export class MySalonPage implements OnInit {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         await Promise.all([
-          this.marketplace.loadMySalons().catch(() => undefined),
+          this.marketplace.loadMySalons(force).catch(() => undefined),
           this.marketplace.loadBookings().catch(() => undefined)
         ]);
-        const dashboard = await this.marketplace.loadMySalonDashboard();
+        const dashboard = await this.marketplace.loadMySalonDashboard(force);
         this.dash.set(dashboard);
         if (!dashboard) this.loadError.set("This salon space is currently unavailable.");
         if (this.dash()?.salon) this.marketplace.enterSalonMode(this.currentSalonContext());
@@ -1469,8 +1423,18 @@ export class MySalonPage implements OnInit {
   }
 
   exitSalonMode(): void {
+    if (!this.confirmLeaveSalonMode()) return;
     this.marketplace.exitSalonMode();
     void this.router.navigateByUrl("/tabs/home");
+  }
+
+  openSalonSearch(): void {
+    this.marketplace.exitSalonMode();
+    void this.router.navigateByUrl("/tabs/search");
+  }
+
+  private confirmLeaveSalonMode(): boolean {
+    return typeof window === "undefined" || window.confirm("Exit My Salon mode and go back to the customer app?");
   }
 
   toggleSalonPicker(): void {
@@ -1492,7 +1456,7 @@ export class MySalonPage implements OnInit {
       await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName);
       this.marketplace.enterSalonMode({ tenantId: salon.tenantId, branchId: salon.branchId, businessId: salon.businessId, businessName: salon.businessName });
       this.salonPickerOpen.set(false);
-      await this.loadDashboard();
+      await this.loadDashboard(true);
       await this.router.navigateByUrl(this.scopedUrl());
     } catch {
       this.loadError.set(this.marketplace.error() || "Could not switch salon. Please try again.");
