@@ -99,6 +99,7 @@ export class MarketplaceService {
   private publicBusinessesLoadedAt = 0;
   private readonly BUSINESS_CACHE_TTL_MS = 60_000;
   private readonly BOOKINGS_CACHE_TTL_MS = 30_000;
+  private static readonly MEM_CACHE_CAP = 200;
   private readonly memCache = new Map<string, { expiresAt: number; value: unknown }>();
   private readonly inFlightResponses = new Map<string, Promise<unknown>>();
   private static readonly DATA_CACHE_PREFIX = "auraCustomerDataCache:";
@@ -257,6 +258,7 @@ private readSalonModeContext(): SalonModeContext | null {
     if (inFlight) return inFlight as Promise<T>;
     const p = fetcher()
       .then((data) => {
+        this.pruneMemCache();
         this.memCache.set(cacheKey, { expiresAt: Date.now() + ttlMs, value: data });
         this.writeStoredData(cacheKey, data, ttlMs);
         return data;
@@ -264,7 +266,8 @@ private readSalonModeContext(): SalonModeContext | null {
       .catch((error) => {
         const stale = this.readStaleData<T>(cacheKey);
         if (stale !== null) {
-          this.memCache.set(cacheKey, { expiresAt: Date.now() + ttlMs, value: stale });
+          // Do NOT write stale back with fresh TTL — that poisons the cache.
+          // Return stale once; next call will re-attempt fetch.
           return stale;
         }
         throw error;
@@ -274,6 +277,20 @@ private readSalonModeContext(): SalonModeContext | null {
       });
     this.inFlightResponses.set(cacheKey, p);
     return p;
+  }
+
+  private pruneMemCache(): void {
+    while (this.memCache.size >= MarketplaceService.MEM_CACHE_CAP) {
+      let oldestKey: string | undefined;
+      let oldestExpiry = Infinity;
+      for (const [cacheKey, entry] of this.memCache) {
+        if (entry.expiresAt < oldestExpiry) {
+          oldestExpiry = entry.expiresAt;
+          oldestKey = cacheKey;
+        }
+      }
+      if (oldestKey) this.memCache.delete(oldestKey);
+    }
   }
 
   private peekCached<T>(name: string, key: string): T | null {
@@ -369,6 +386,9 @@ private readSalonModeContext(): SalonModeContext | null {
       const marker = `:${name}:`;
       for (const cacheKey of this.memCache.keys()) {
         if (cacheKey.includes(marker)) this.memCache.delete(cacheKey);
+      }
+      for (const cacheKey of this.inFlightResponses.keys()) {
+        if (cacheKey.includes(marker)) this.inFlightResponses.delete(cacheKey);
       }
       Object.keys(localStorage)
         .filter((storedKey) => storedKey.startsWith(MarketplaceService.DATA_CACHE_PREFIX) && storedKey.includes(marker))
@@ -554,20 +574,6 @@ private readSalonModeContext(): SalonModeContext | null {
 
   async releaseSlotHold(holdId: string): Promise<void> {
     await firstValueFrom(this.api.releaseSlotHold(holdId));
-  }
-
-  async joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Promise<CustomerWaitlistEntry> {
-    return this.run("Unable to join waitlist", () => firstValueFrom(this.api.joinBookingWaitlist(id, payload)));
-  }
-
-  async login(phone: string, channel: "sms" | "whatsapp" = "sms") {
-    return this.auth.requestOtp(phone, channel);
-  }
-
-  async verifyOtp(phone: string, otp: string) {
-    const session = await this.auth.verifyOtp(phone, otp);
-    this.clearAllCached();
-    return session;
   }
 
   async logout() {
@@ -799,26 +805,11 @@ private readSalonModeContext(): SalonModeContext | null {
     });
   }
 
-  async recordSalonVisit(tenantId: string, branchId: string, businessId: string, businessName: string): Promise<void> {
-    return this.run("Unable to record salon visit", async () => {
-      const response = await firstValueFrom(this.api.recordSalonVisit(tenantId, { branchId, businessId, businessName }));
-      if (response.shouldPromptPrimary) {
-        this.shouldPromptPrimary.set(true);
-        this.suggestedSalon.set(response.suggestedSalon as CustomerSalonRelationship | null);
-      }
-      this.clearCached("my-salons");
-    });
-  }
-
   async loadSalonOffers(tenantId: string, branchId: string, force = false): Promise<PublicOffersResponse | null> {
     const key = `${tenantId}:${branchId}`;
     return this.cachedLoad("salon-offers", key, this.BOOKINGS_CACHE_TTL_MS, "Unable to load salon offers", force, () => firstValueFrom(this.api.getPublicOffers(tenantId, branchId)), (response) => {
       this.salonOffers.set(response);
     });
-  }
-
-  hasPrimarySalon(): boolean {
-    return this.primarySalon() !== null;
   }
 
   async loadMySalonDashboard(force = false): Promise<MySalonDashboard | null> {
@@ -833,14 +824,6 @@ private readSalonModeContext(): SalonModeContext | null {
       this.mergeAccountList("gift-cards", giftCard);
       this.clearCached("account-module");
       return giftCard;
-    });
-  }
-
-  async redeemGiftCard(payload: RedeemGiftCardPayload): Promise<RedeemGiftCardResponse> {
-    return this.run("Unable to redeem gift card", async () => {
-      const result = await firstValueFrom(this.api.redeemGiftCard(payload));
-      this.clearCached("account-module");
-      return result;
     });
   }
 

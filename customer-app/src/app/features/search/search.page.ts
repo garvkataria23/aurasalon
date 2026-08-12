@@ -3702,7 +3702,10 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private installKeyboardWatcher(): void {
-    if (typeof window === "undefined" || !window.visualViewport) return;
+    if (typeof window === "undefined" || !window.visualViewport) {
+      return;
+    }
+    if (this.visualViewportListener) return;
     const viewport = window.visualViewport;
     this.visualViewportListener = () => {
       this.keyboardOpen.set(window.innerHeight - viewport.height > 140);
@@ -3719,7 +3722,9 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
       else window.setTimeout(() => this.keyboardOpen.set(false), 120);
       return;
     }
-    if (typeof window === "undefined" || !window.visualViewport) this.keyboardOpen.set(true);
+    if (focused && typeof window !== "undefined" && !window.visualViewport) {
+      // Desktop fallback — no virtual keyboard, no layout shift needed.
+    }
   }
 
   reset() {

@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Subscription } from "rxjs";
 import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, sparklesOutline, storefrontOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
+import { addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, chatbubblesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, informationCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, sparklesOutline, storefrontOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
 import { Booking, Business } from "../../core/api.types";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-header.component";
@@ -872,7 +872,7 @@ export class BookingDetailPage implements OnInit, OnDestroy {
   readonly canCancelBooking = computed(() => this.isActive() && !this.cancellationCutoffExpired());
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService) {
-    addIcons({ addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, sparklesOutline, storefrontOutline, swapHorizontalOutline, timeOutline });
+    addIcons({ addOutline, alertCircleOutline, calendarOutline, callOutline, cardOutline, chatbubbleEllipsesOutline, chatbubblesOutline, checkmarkCircleOutline, checkmarkOutline, chevronForwardOutline, closeCircleOutline, copyOutline, downloadOutline, giftOutline, helpCircleOutline, informationCircleOutline, locationOutline, navigateOutline, personOutline, repeatOutline, settingsOutline, shareSocialOutline, sparklesOutline, storefrontOutline, swapHorizontalOutline, timeOutline });
   }
 
   ngOnInit() {

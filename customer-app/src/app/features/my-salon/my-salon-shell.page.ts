@@ -143,12 +143,6 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   }
 
   ngOnInit(): void {
-    effect(() => {
-      const context = this.marketplace.salonModeContext();
-      if (context?.tenantId && context.branchId) {
-        this.marketplace.clearCached("my-salon-dashboard");
-      }
-    });
     if (!this.marketplace.mySalonDashboard()?.salon?.slug) {
       void this.marketplace.loadMySalonDashboard().catch(() => undefined);
     }
@@ -170,8 +164,11 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   back(): void {
     const currentPath = this.router.url.split(/[?#]/)[0].replace(/\/+$/, "");
     const homePath = this.homeHref().replace(/\/+$/, "");
-    if (!currentPath || currentPath === homePath) return;
-    window.history.length > 1 ? window.history.back() : void this.router.navigateByUrl(this.homeHref());
+    if (currentPath === homePath || currentPath.startsWith(homePath)) {
+      void this.router.navigateByUrl(homePath);
+      return;
+    }
+    window.history.length > 1 ? window.history.back() : void this.router.navigateByUrl("/tabs/home");
   }
 
   exit(): void {

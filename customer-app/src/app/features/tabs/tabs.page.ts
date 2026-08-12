@@ -3,7 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from "@angular/ro
 import { filter, Subscription } from "rxjs";
 import { IonButton, IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { calendarOutline, chevronBackOutline, chevronForwardOutline, closeOutline, cloudOfflineOutline, compassOutline, fingerPrintOutline, giftOutline, homeOutline, locationOutline, lockClosedOutline, logInOutline, logOutOutline, menuOutline, notificationsOutline, personCircleOutline, personOutline, pricetagOutline, ribbonOutline, searchOutline, settingsOutline, sparklesOutline } from "ionicons/icons";
+import { calendarOutline, chevronBackOutline, chevronForwardOutline, closeOutline, cloudOfflineOutline, compassOutline, exitOutline, fingerPrintOutline, giftOutline, homeOutline, locationOutline, lockClosedOutline, logInOutline, logOutOutline, menuOutline, notificationsOutline, personCircleOutline, personOutline, pricetagOutline, ribbonOutline, searchOutline, settingsOutline, sparklesOutline } from "ionicons/icons";
 import { AuthService } from "../../core/auth.service";
 import { MarketplaceService } from "../../core/marketplace.service";
 
@@ -898,7 +898,7 @@ export class TabsPage implements OnDestroy {
   private readonly routeSubscription: Subscription;
 
   constructor(readonly auth: AuthService, private readonly router: Router, readonly marketplace: MarketplaceService) {
-    addIcons({ compassOutline, homeOutline, searchOutline, sparklesOutline, calendarOutline, chevronBackOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline, cloudOfflineOutline });
+    addIcons({ compassOutline, homeOutline, searchOutline, sparklesOutline, calendarOutline, chevronBackOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline, cloudOfflineOutline, exitOutline });
     this.routeSubscription = this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(() => {
       this.currentUrl.set(this.router.url);
       if (this.supportSubflowActive()) this.closeMenu();

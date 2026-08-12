@@ -49,7 +49,6 @@ interface SuccessState {
   startIso?: string;
   endIso?: string;
   dueLabel?: string;
-  paymentMode?: string;
 }
 
 @Component({

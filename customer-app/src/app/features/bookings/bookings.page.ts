@@ -10,7 +10,6 @@ import { Booking } from "../../core/api.types";
 type BookingTab = "upcoming" | "past" | "cancelled";
 type BookingGroup = { key: string; label: string; countLabel: string; items: Booking[] };
 type PaymentTone = "paid" | "pending" | "refunded" | "default";
-type EffectiveBookingStatus = Booking["status"] | "no_show";
 type BookingWithClientBucket = Booking & { __auraTab?: BookingTab };
 type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden"; reason?: string };
 
@@ -1013,7 +1012,7 @@ export class BookingsPage implements OnDestroy, OnInit {
     return `${minutes} min`;
   }
 
-  statusLabel(status: EffectiveBookingStatus): string {
+  statusLabel(status: Booking["status"]): string {
     switch (status) {
       case "pending": return "Pending";
       case "confirmed": return "Confirmed";
@@ -1142,15 +1141,9 @@ export class BookingsPage implements OnDestroy, OnInit {
     return `${count} ${count === 1 ? "appointment" : "appointments"}`;
   }
 
-  private isTodayBooking(booking: Booking): boolean {
-    const date = this.appointmentStartDate(booking);
-    if (date && Number.isFinite(date.getTime())) return this.istDateKey(date) === this.istTodayKey();
-    return String(booking.displayStartAt || "").toLowerCase().includes("today");
-  }
-
-  effectiveStatus(booking: Booking): EffectiveBookingStatus {
+  effectiveStatus(booking: Booking): Booking["status"] {
     const bucket = (booking as BookingWithClientBucket).__auraTab;
-    const rawStatus = String(booking.status || "") as EffectiveBookingStatus;
+    const rawStatus = String(booking.status || "");
     if (rawStatus === "cancelled" || rawStatus === "completed" || rawStatus === "no_show") return rawStatus;
     if (bucket === "past") return rawStatus === "pending" ? "no_show" : "completed";
     if (!this.hasAppointmentEnded(booking)) return booking.status;

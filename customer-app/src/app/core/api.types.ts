@@ -562,12 +562,6 @@ export interface CustomerMembershipPlan {
   benefitRules: Record<string, unknown>;
 }
 
-export interface BuyMembershipResponse {
-  membership: CustomerMembership;
-  paymentRequired: boolean;
-  amountPaise: number;
-}
-
 export interface CustomerPackage {
   id: string;
   name: string;

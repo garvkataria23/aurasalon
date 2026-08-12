@@ -1425,10 +1425,6 @@ export class LoginPage implements OnInit, OnDestroy {
     return normalized.length <= this.namePartMaxLength && /^\p{L}{2,}$/u.test(normalized);
   }
 
-  private fullPhoneIfEntered(): string {
-    return this.phone.replace(/\D/g, "") ? this.fullPhone() : "";
-  }
-
   private phoneDigits(value: unknown): string {
     return String(value || "").replace(/\D/g, "").slice(0, 10);
   }
@@ -1530,13 +1526,6 @@ export class LoginPage implements OnInit, OnDestroy {
       .catch((error) => {
         this.notice = error instanceof Error ? error.message : "Unable to complete profile. Please try again.";
       });
-  }
-
-  continueAfterVerifiedTap(event: Event) {
-    event.preventDefault();
-    event.stopPropagation();
-    void this.saveProfileBestEffort();
-    this.navigateToApp();
   }
 
   async forceOpenApp() {
