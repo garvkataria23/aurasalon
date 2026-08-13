@@ -162,21 +162,21 @@ import { MarketplaceService } from "../../core/marketplace.service";
     <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
       @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="home" href="/tabs/home" (click)="handleBottomNav($event, '/tabs/home')">
-          <ion-icon name="home-outline"></ion-icon>
-          <ion-label>Home</ion-label>
-        </ion-tab-button>
         <ion-tab-button tab="my-salon" href="/tabs/my-salon" (click)="handleBottomNav($event, mySalonHref())">
           <ion-icon name="sparkles-outline"></ion-icon>
           <ion-label>My Salon</ion-label>
+        </ion-tab-button>
+        <ion-tab-button tab="home" href="/tabs/home" (click)="handleBottomNav($event, '/tabs/home')">
+          <ion-icon name="home-outline"></ion-icon>
+          <ion-label>Home</ion-label>
         </ion-tab-button>
         <ion-tab-button tab="search" href="/tabs/search" (click)="handleBottomNav($event, '/tabs/search')">
           <ion-icon name="compass-outline"></ion-icon>
           <ion-label>Explore</ion-label>
         </ion-tab-button>
-        <ion-tab-button tab="profile" href="/tabs/profile" (click)="handleBottomNav($event, '/tabs/profile')">
-          <ion-icon name="person-outline"></ion-icon>
-          <ion-label>Profile</ion-label>
+        <ion-tab-button tab="bookings" href="/tabs/bookings" (click)="handleBottomNav($event, '/tabs/bookings')">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <ion-label>Bookings</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
       }
@@ -890,7 +890,7 @@ export class TabsPage implements OnDestroy {
   readonly locationLabel = signal(this.readLocationLabel());
   readonly menuOpen = signal(false);
   readonly currentUrl = signal(this.router.url);
-  private readonly mobileSwipeRoutes = ["/tabs/search", "/tabs/my-salon", "/tabs/home", "/tabs/profile"];
+  private readonly mobileSwipeRoutes = ["/tabs/my-salon", "/tabs/home", "/tabs/search", "/tabs/bookings"];
   private swipeStartX = 0;
   private swipeStartY = 0;
   private swipeStartRoute = "";
@@ -980,7 +980,7 @@ bottomNavVisible(): boolean {
     // Always show bottom nav on /tabs/my-salon (has Exit button in salon-mode-header)
     if (route === "/tabs/my-salon") return true;
     if (this.salonModeActive()) return false;
-    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/home" || route === "/tabs/profile";
+    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/home" || route === "/tabs/bookings" || route === "/tabs/profile";
   }
 
   onSalonDashboard(): boolean {
