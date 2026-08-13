@@ -135,7 +135,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private enforceSalonBoundary(url: string) {
     if (!this.marketplace.salonMode() || this.redirectingToSalon) return;
     const path = url.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
-    if (path.startsWith("/my-salon/") || path === "/login") return;
+    if (path.startsWith("/my-salon/") || path === "/login" || path === "/tabs/my-salons") return;
     this.redirectingToSalon = true;
     setTimeout(() => {
       void this.router.navigateByUrl(this.marketplace.salonModeUrl(), { replaceUrl: true }).finally(() => {
