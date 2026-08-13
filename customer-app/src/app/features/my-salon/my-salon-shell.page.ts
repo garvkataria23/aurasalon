@@ -269,6 +269,7 @@ export class MySalonShellPage implements OnDestroy, OnInit {
 
   ngOnInit(): void {
     void this.marketplace.loadMySalons().catch(() => undefined);
+    void this.marketplace.loadPublicBusinesses().catch(() => undefined);
     if (!this.marketplace.mySalonDashboard()?.salon?.slug) {
       void this.marketplace.loadMySalonDashboard().catch(() => undefined);
     }
@@ -314,13 +315,21 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   }
 
   bookHref(): string {
-    const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
+    const slug = this.publicBusinessSlug();
     return slug ? this.navHref("business", slug, "book") : this.navHref();
   }
 
   salonHref(): string {
-    const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
+    const slug = this.publicBusinessSlug();
     return slug ? this.navHref("business", slug) : this.navHref();
+  }
+
+  private publicBusinessSlug(): string {
+    const dashboardSlug = this.marketplace.mySalonDashboard()?.salon?.slug || "";
+    const context = this.marketplace.salonModeContext();
+    const match = this.marketplace.businesses().find((business) =>
+      business.tenantId === context?.tenantId && business.branchId === context?.branchId);
+    return match?.slug || dashboardSlug;
   }
 
   /** Hidden only on booking detail/chat flows that bring their own full-screen controls. */

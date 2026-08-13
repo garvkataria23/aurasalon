@@ -2689,10 +2689,14 @@ async reload() {
 
   private async mySalonBusinessSlug(): Promise<string> {
     if (!this.marketplace.salonMode()) return "";
-    const existing = this.marketplace.mySalonDashboard()?.salon?.slug || "";
+    await this.marketplace.loadPublicBusinesses().catch(() => []);
+    const context = this.marketplace.salonModeContext();
+    const business = this.marketplace.businesses().find((row) => row.tenantId === context?.tenantId && row.branchId === context?.branchId);
+    const existing = business?.slug || this.marketplace.mySalonDashboard()?.salon?.slug || "";
     if (existing) return existing;
     const dashboard = await this.marketplace.loadMySalonDashboard().catch(() => null);
-    return dashboard?.salon?.slug || "";
+    const fallback = this.marketplace.businesses().find((row) => row.tenantId === context?.tenantId && row.branchId === context?.branchId);
+    return fallback?.slug || dashboard?.salon?.slug || "";
   }
 
   next() {
