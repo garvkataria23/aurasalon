@@ -1013,6 +1013,7 @@ export class ProfilePage implements OnInit {
   }
 
   profileRoute(path: string): string {
+    if (path === "my-salons") return "/tabs/my-salons";
     if (!this.marketplace.salonMode()) return path === "notifications" || path === "settings" || path === "help" ? `/${path}` : `/tabs/${path}`;
     return this.marketplace.salonModeUrl(...path.split("/"));
   }
