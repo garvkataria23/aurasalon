@@ -162,7 +162,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
       @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="my-salon" href="/tabs/my-salon" (click)="handleBottomNav($event, mySalonHref())">
+        <ion-tab-button tab="my-salon" href="/tabs/my-salon" (click)="handleBottomNav($event, '/tabs/my-salon')">
           <ion-icon name="sparkles-outline"></ion-icon>
           <ion-label>My Salon</ion-label>
         </ion-tab-button>
@@ -980,7 +980,7 @@ bottomNavVisible(): boolean {
     // Always show bottom nav on /tabs/my-salon (has Exit button in salon-mode-header)
     if (route === "/tabs/my-salon") return true;
     if (this.salonModeActive()) return false;
-    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/home" || route === "/tabs/bookings" || route === "/tabs/profile";
+    return route === "/tabs/search" || route === "/tabs/my-salon" || route === "/tabs/my-salons" || route === "/tabs/home" || route === "/tabs/bookings" || route === "/tabs/profile";
   }
 
   onSalonDashboard(): boolean {
@@ -995,6 +995,13 @@ bottomNavVisible(): boolean {
   async handleBottomNav(event: Event, targetUrl: string): Promise<void> {
     const current = this.normalizeSwipeRoute(this.router.url);
     const target = this.normalizeSwipeRoute(targetUrl);
+    if (target === "/tabs/my-salons") {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this.marketplace.salonMode()) this.marketplace.exitSalonMode();
+      void this.router.navigateByUrl("/tabs/my-salons");
+      return;
+    }
     const inMySalonSection = current === "/tabs/my-salon" || current.startsWith("/my-salon/");
     const leavingMySalon = inMySalonSection && target !== "/tabs/my-salon" && !target.startsWith("/my-salon/");
     if (leavingMySalon) {

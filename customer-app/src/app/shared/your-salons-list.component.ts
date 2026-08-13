@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { IonButton, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { checkmarkOutline, starOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
+import { checkmarkOutline, starOutline, storefrontOutline, swapHorizontalOutline, timeOutline } from "ionicons/icons";
 import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.types";
 
 @Component({
@@ -12,33 +12,35 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
   template: `
     <section class="salons-section" aria-label="Your salons">
       <div class="salons-header">
-        <h3>Your salons</h3>
-        @if (salons.length > 0) {
-          <span class="count">{{ salons.length }} visited or chosen</span>
+        <h3>My Salons</h3>
+        @if (visibleSalons().length > 0) {
+          <span class="count">{{ visibleSalons().length }} saved</span>
         }
       </div>
 
-      @if (salons.length === 0) {
+      @if (visibleSalons().length === 0) {
         <div class="empty-state">
+          <div class="empty-icon" aria-hidden="true"><ion-icon name="storefront-outline"></ion-icon></div>
+          <strong>No salons added yet</strong>
           @if (hasBookings) {
-            <p>Your salons shows visited salons or the salon you choose as primary. Booked salons appear here after a visit or when you choose one.</p>
+            <p>You have bookings, but no salon is added to My Salon yet. Add a salon to manage primary mode, rewards and visits from one place.</p>
             <div class="empty-state-facts" aria-label="Salon account summary">
               <span>{{ bookingCount }} booked</span>
               <span>{{ favouriteCount }} favourite{{ favouriteCount === 1 ? '' : 's' }}</span>
               <span>0 visited</span>
             </div>
             <div class="empty-actions">
-              <a class="empty-link" routerLink="/tabs/my-salon">Choose My Salon</a>
+              <button type="button" class="empty-link" (click)="addPrevious.emit()">Add previous salon</button>
               <a class="empty-link secondary" routerLink="/tabs/search">Explore salons</a>
             </div>
           } @else {
-            <p>You haven't visited or chosen a salon yet. Favourites and booked salons are tracked separately.</p>
-            <ion-button class="primary-gradient" routerLink="/tabs/search">Explore salons</ion-button>
+            <p>Choose a salon to set primary mode, track visits, and quickly open salon-specific bookings and rewards.</p>
+            <ion-button class="primary-gradient" routerLink="/tabs/search">Add a salon</ion-button>
           }
         </div>
       } @else {
         <ul class="salon-list" role="list">
-          @for (salon of salons; track salon.id) {
+          @for (salon of visibleSalons(); track salon.tenantId + ':' + salon.branchId) {
             <li
               class="salon-row"
               [class.is-primary]="primarySalon?.tenantId === salon.tenantId && primarySalon?.branchId === salon.branchId"
@@ -67,13 +69,16 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
                 </div>
               </div>
               <div class="salon-actions">
+                @if (isPrimary(salon)) {
+                  <a class="enter-salon-btn" [routerLink]="salonModeLink(salon)">Enter</a>
+                }
                 @if (!isPrimary(salon)) {
                   <button
                     type="button"
                     class="set-primary-btn"
                     [attr.aria-label]="'Set ' + salon.businessName + ' as primary salon'"
                     (click)="setAsPrimary.emit(salon)">
-                    <ion-icon name="star-outline"></ion-icon>
+                    Set primary
                   </button>
                 }
                 @if (isPrimary(salon)) {
@@ -81,8 +86,8 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
                     type="button"
                     class="remove-primary-btn"
                     [attr.aria-label]="'Remove ' + salon.businessName + ' as primary salon'"
-                    (click)="removePrimary.emit()">
-                    <ion-icon name="swap-horizontal-outline"></ion-icon>
+                    (click)="removePrimary.emit(salon)">
+                    Remove salon
                   </button>
                 }
               </div>
@@ -123,9 +128,28 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
 
     .empty-state {
       display: grid;
-      gap: 7px;
-      padding: 2px 0;
+      justify-items: center;
+      gap: 10px;
+      padding: 14px 4px;
       text-align: center;
+    }
+
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 14px 28px rgba(99, 102, 241, 0.18);
+      font-size: 1.35rem;
+    }
+
+    .empty-state strong {
+      color: var(--text);
+      font-size: 1.05rem;
+      line-height: 1.15;
     }
 
     .empty-state-facts,
@@ -161,9 +185,11 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       border-radius: 999px;
       color: var(--primary);
       background: var(--surface);
+      font: inherit;
       font-size: 0.8rem;
       font-weight: 900;
       text-decoration: none;
+      cursor: pointer;
     }
 
     .empty-link.secondary {
@@ -186,7 +212,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
 
     .salon-row {
       display: grid;
-      grid-template-columns: 40px minmax(0, 1fr) auto;
+      grid-template-columns: 40px minmax(0, 1fr);
       gap: 10px;
       align-items: center;
       padding: 10px 8px;
@@ -290,32 +316,56 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     }
 
     .salon-actions {
-      display: flex;
-      gap: 4px;
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .salon-actions > :only-child {
+      grid-column: 1 / -1;
     }
 
     .set-primary-btn,
-    .remove-primary-btn {
-      width: 44px;
-      height: 44px;
+    .remove-primary-btn,
+    .enter-salon-btn {
+      min-height: 38px;
+      padding: 0 12px;
       border-radius: 12px;
       border: 1px solid rgba(99, 102, 241, 0.2);
       background: var(--glass);
       color: var(--text);
-      display: grid;
+      display: inline-flex;
+      align-items: center;
       place-items: center;
+      justify-content: center;
+      font: inherit;
+      font-size: 0.76rem;
+      font-weight: 950;
+      text-decoration: none;
       cursor: pointer;
       transition: transform 140ms ease;
     }
 
+    .enter-salon-btn,
+    .set-primary-btn {
+      color: #ffffff;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 10px 22px rgba(99, 102, 241, 0.18);
+    }
+
     .remove-primary-btn {
-      color: var(--primary);
-      border-color: rgba(99, 102, 241, 0.34);
+      color: #b91c1c;
+      border-color: rgba(185, 28, 28, 0.18);
+      background: rgba(255, 241, 242, 0.88);
     }
 
     @media (hover: hover) and (pointer: fine) {
       .set-primary-btn:hover,
-      .remove-primary-btn:hover {
+      .remove-primary-btn:hover,
+      .enter-salon-btn:hover {
         transform: scale(1.08);
       }
     }
@@ -324,19 +374,47 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
 export class YourSalonsListComponent {
   @Input() salons: CustomerSalonRelationship[] = [];
   @Input() primarySalon: CustomerPrimarySalon | null = null;
+  @Input() primarySalons: CustomerPrimarySalon[] = [];
   @Input() hasBookings = false;
   @Input() bookingCount = 0;
   @Input() favouriteCount = 0;
   @Output() setAsPrimary = new EventEmitter<CustomerSalonRelationship>();
-  @Output() removePrimary = new EventEmitter<void>();
+  @Output() removePrimary = new EventEmitter<CustomerSalonRelationship>();
+  @Output() addPrevious = new EventEmitter<void>();
 
   constructor() {
-    addIcons({ checkmarkOutline, starOutline, swapHorizontalOutline, timeOutline });
+    addIcons({ checkmarkOutline, starOutline, storefrontOutline, swapHorizontalOutline, timeOutline });
+  }
+
+  salonModeLink(salon: CustomerSalonRelationship): string {
+    return `/my-salon/${encodeURIComponent(salon.tenantId)}/${encodeURIComponent(salon.branchId)}`;
+  }
+
+  visibleSalons(): CustomerSalonRelationship[] {
+    const rows = [...this.salons];
+    for (const primary of this.primarySalons) {
+      if (rows.some((salon) => salon.tenantId === primary.tenantId && salon.branchId === primary.branchId)) continue;
+      rows.push({
+        id: primary.id || `${primary.tenantId}:${primary.branchId}`,
+        customerId: primary.customerId || "",
+        tenantId: primary.tenantId,
+        branchId: primary.branchId,
+        businessId: primary.businessId,
+        businessName: primary.businessName,
+        relationshipType: "primary",
+        visitCount: 0,
+        lastVisitAt: "",
+        isFavorite: 0,
+        createdAt: primary.setAt || "",
+        updatedAt: primary.setAt || ""
+      });
+    }
+    return rows;
   }
 
   isPrimary(salon: CustomerSalonRelationship): boolean {
-    const primary = this.primarySalon;
-    return !!primary && primary.tenantId === salon.tenantId && primary.branchId === salon.branchId;
+    return this.primarySalons.some((primary) => primary.tenantId === salon.tenantId && primary.branchId === salon.branchId)
+      || (!!this.primarySalon && this.primarySalon.tenantId === salon.tenantId && this.primarySalon.branchId === salon.branchId);
   }
 
   salonInitials(name: string): string {

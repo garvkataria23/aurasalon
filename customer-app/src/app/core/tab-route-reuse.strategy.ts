@@ -23,6 +23,7 @@ export class TabRouteReuseStrategy extends BaseRouteReuseStrategy {
   private static readonly TAB_PATHS = new Set([
     "/tabs/home",
     "/tabs/my-salon",
+    "/tabs/my-salons",
     "/tabs/search",
     "/tabs/profile",
     "/tabs/offers",

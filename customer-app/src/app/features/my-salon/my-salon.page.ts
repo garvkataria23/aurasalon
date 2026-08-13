@@ -1,5 +1,6 @@
-import { Component, OnInit, computed, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, computed, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { Subscription } from "rxjs";
 import { AlertController, IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import {
@@ -1186,13 +1187,14 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
     }
   `]
 })
-export class MySalonPage implements OnInit {
+export class MySalonPage implements OnInit, OnDestroy {
   readonly dash = signal<MySalonDashboard | null>(null);
   readonly loading = signal(this.marketplace.mySalonDashboard() === null);
   readonly loadError = signal("");
   readonly selectingSalon = signal(false);
   readonly salonPickerOpen = signal(false);
   readonly serviceQuery = signal("");
+  private routeParamSub?: Subscription;
 
   readonly salonChoices = computed(() => {
     const choices = new Map<string, CustomerSalonRelationship>();
@@ -1289,6 +1291,14 @@ export class MySalonPage implements OnInit {
         void this.router.navigateByUrl(this.scopedUrl(), { replaceUrl: true });
       }
     });
+    this.routeParamSub = (this.route.parent?.paramMap || this.route.paramMap).subscribe(() => {
+      this.syncRouteSalonContext();
+      void this.loadDashboard(true);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.routeParamSub?.unsubscribe();
   }
 
   /**
@@ -1418,6 +1428,8 @@ export class MySalonPage implements OnInit {
   }
 
   isSelectedSalon(salon: CustomerSalonRelationship): boolean {
+    const context = this.marketplace.salonModeContext();
+    if (context?.tenantId && context.branchId) return context.tenantId === salon.tenantId && context.branchId === salon.branchId;
     const primary = this.marketplace.primarySalon();
     return primary?.tenantId === salon.tenantId && primary.branchId === salon.branchId;
   }
@@ -1455,8 +1467,9 @@ export class MySalonPage implements OnInit {
     const salon = this.dash()?.salon;
     const primary = this.marketplace.primarySalon();
     const stored = this.marketplace.salonModeContext();
-    const tenantId = salon?.tenantId || primary?.tenantId || this.route.snapshot.paramMap.get("tenantId") || stored?.tenantId || "";
-    const branchId = salon?.branchId || primary?.branchId || this.route.snapshot.paramMap.get("branchId") || stored?.branchId || "";
+    const routeParams = this.route.parent?.snapshot.paramMap || this.route.snapshot.paramMap;
+    const tenantId = routeParams.get("tenantId") || stored?.tenantId || salon?.tenantId || primary?.tenantId || "";
+    const branchId = routeParams.get("branchId") || stored?.branchId || salon?.branchId || primary?.branchId || "";
     return {
       tenantId,
       branchId,
@@ -1466,8 +1479,9 @@ export class MySalonPage implements OnInit {
   }
 
   private syncRouteSalonContext(): void {
-    const tenantId = this.route.snapshot.paramMap.get("tenantId");
-    const branchId = this.route.snapshot.paramMap.get("branchId");
+    const routeParams = this.route.parent?.snapshot.paramMap || this.route.snapshot.paramMap;
+    const tenantId = routeParams.get("tenantId");
+    const branchId = routeParams.get("branchId");
     if (!tenantId || !branchId) return;
     this.marketplace.syncSalonModeContext({ tenantId, branchId });
   }

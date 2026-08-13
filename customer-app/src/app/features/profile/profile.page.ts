@@ -66,11 +66,12 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
             <aura-your-salons-list
               [salons]="marketplace.mySalons()"
               [primarySalon]="marketplace.primarySalon()"
+              [primarySalons]="marketplace.primarySalons()"
               [hasBookings]="hasBookings()"
               [bookingCount]="marketplace.bookings().length"
               [favouriteCount]="favouriteCount()"
               (setAsPrimary)="onSetPrimarySalon($event)"
-              (removePrimary)="onRemovePrimarySalon()">
+              (removePrimary)="onRemovePrimarySalon($event)">
             </aura-your-salons-list>
           }
 
@@ -834,7 +835,7 @@ export class ProfilePage implements OnInit {
       label: "Activity",
       items: [
         { label: "My bookings", icon: "calendar-outline", route: "bookings" },
-        { label: "My Salon", icon: "storefront-outline", route: "my-salons" },
+        { label: "My Salons", icon: "storefront-outline", route: "my-salons" },
         { label: "Favourites", icon: "heart-outline", route: "wishlist" }
       ]
     },
@@ -1178,9 +1179,9 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  async onRemovePrimarySalon() {
+  async onRemovePrimarySalon(salon?: CustomerSalonRelationship) {
     try {
-      const primary = this.marketplace.primarySalon();
+      const primary = salon || this.marketplace.primarySalon();
       await this.marketplace.removePrimarySalon(primary?.tenantId, primary?.branchId);
     } catch {
       // error is handled by marketplace service

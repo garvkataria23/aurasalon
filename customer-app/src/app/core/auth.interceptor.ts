@@ -55,6 +55,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               return next(withCustomerHeaders(req, session.accessToken, true));
             }),
             catchError((refreshError: unknown) => {
+              if (isSalonDashboardRequest(req.url)) {
+                return throwError(() => new Error("Could not open selected salon. Please choose another salon or try again."));
+              }
               if (isPermanentAuthFailure(refreshError)) {
                 expireCustomerSession();
                 void router.navigateByUrl("/login");
@@ -135,6 +138,10 @@ function isPermanentRefreshFailure(error: unknown): boolean {
 
 function isPermanentAuthFailure(error: unknown): boolean {
   return isPermanentRefreshFailure(error) || (error instanceof HttpErrorResponse && [401, 403].includes(error.status));
+}
+
+function isSalonDashboardRequest(url: string): boolean {
+  return /\/customer\/my-salon\//.test(url);
 }
 
 function refreshUrlFor(requestUrl: string): string {

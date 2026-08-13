@@ -40,6 +40,7 @@ export const routes: Routes = [
       },
       {
         path: "my-salon",
+        canActivate: [customerAuthGuard],
         loadComponent: () => import("./features/my-salon/my-salon.page").then((m) => m.MySalonPage)
       },
       {
@@ -252,6 +253,11 @@ export const routes: Routes = [
         path: "profile",
         canActivate: [customerAuthGuard],
         loadComponent: () => import("./features/profile/profile.page").then((m) => m.ProfilePage)
+      },
+      {
+        path: "my-salons",
+        canActivate: [customerAuthGuard],
+        loadComponent: () => import("./features/profile/my-salons.page").then((m) => m.MySalonsPage)
       },
       {
         path: "profile/edit",

@@ -134,7 +134,11 @@ enterSalonMode(context?: SalonModeContext | null): void {
     this.salonModeStore.set(true);
     if (context?.tenantId && context.branchId) {
       const previous = this.salonModeContextStore();
-      if (previous?.tenantId !== context.tenantId || previous?.branchId !== context.branchId) this.accountModule.set(null);
+      if (previous?.tenantId !== context.tenantId || previous?.branchId !== context.branchId) {
+        this.accountModule.set(null);
+        this.mySalonDashboard.set(null);
+        this.clearCached("my-salon-dashboard");
+      }
       this.salonModeContextStore.set(context);
       try {
         localStorage.setItem("aura_salon_mode", "1");
@@ -170,8 +174,8 @@ enterSalonMode(context?: SalonModeContext | null): void {
   salonModeUrl(...segments: Array<string | number | null | undefined>): string {
     const context = this.salonModeContext();
     const primary = this.primarySalon();
-    const tenantId = primary?.tenantId || context?.tenantId;
-    const branchId = primary?.branchId || context?.branchId;
+    const tenantId = context?.tenantId || primary?.tenantId;
+    const branchId = context?.branchId || primary?.branchId;
     if (!tenantId || !branchId) return "/tabs/my-salon";
     const tail = segments
       .filter((segment): segment is string | number => segment !== null && segment !== undefined && String(segment).length > 0)
@@ -813,6 +817,24 @@ private readSalonModeContext(): SalonModeContext | null {
       } else {
         this.primarySalons.set([primarySalon]);
       }
+      this.mySalons.update((list) => {
+        const existing = list.find((salon) => salon.tenantId === primarySalon.tenantId && salon.branchId === primarySalon.branchId);
+        const merged = {
+          id: existing?.id || primarySalon.id || `${primarySalon.tenantId}:${primarySalon.branchId}`,
+          customerId: existing?.customerId || primarySalon.customerId || "",
+          tenantId: primarySalon.tenantId,
+          branchId: primarySalon.branchId,
+          businessId: primarySalon.businessId,
+          businessName: primarySalon.businessName,
+          relationshipType: existing?.relationshipType || "primary",
+          visitCount: existing?.visitCount || 0,
+          lastVisitAt: existing?.lastVisitAt || "",
+          isFavorite: existing?.isFavorite || 0,
+          createdAt: existing?.createdAt || primarySalon.setAt || "",
+          updatedAt: primarySalon.setAt || existing?.updatedAt || ""
+        };
+        return [...list.filter((salon) => !(salon.tenantId === primarySalon.tenantId && salon.branchId === primarySalon.branchId)), merged];
+      });
       this.mySalonDashboard.set(null);
       this.shouldPromptPrimary.set(false);
       this.suggestedSalon.set(null);

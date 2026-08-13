@@ -251,7 +251,7 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
   `]
 })
 export class MySalonShellPage implements OnDestroy, OnInit {
-  readonly salonLabel = computed(() => this.marketplace.mySalonDashboard()?.salon?.name || this.marketplace.primarySalon()?.businessName || this.marketplace.salonModeContext()?.businessName || "Selected salon");
+  readonly salonLabel = computed(() => this.marketplace.mySalonDashboard()?.salon?.name || this.marketplace.salonModeContext()?.businessName || this.marketplace.primarySalon()?.businessName || "Selected salon");
   readonly salonLogo = computed(() => this.marketplace.mySalonDashboard()?.salon?.logoImage || "");
   readonly salonInitials = computed(() => this.initials(this.salonLabel()));
   readonly menuOpen = signal(false);
@@ -357,7 +357,24 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   }
 
   salonChoices() {
-    const rows = this.marketplace.mySalons();
+    const rows = [...this.marketplace.mySalons()];
+    for (const primary of this.marketplace.primarySalons()) {
+      if (rows.some((salon) => salon.tenantId === primary.tenantId && salon.branchId === primary.branchId)) continue;
+      rows.push({
+        id: primary.id || `${primary.tenantId}:${primary.branchId}`,
+        customerId: primary.customerId || "",
+        tenantId: primary.tenantId,
+        branchId: primary.branchId,
+        businessId: primary.businessId,
+        businessName: primary.businessName,
+        relationshipType: "primary",
+        visitCount: 0,
+        lastVisitAt: "",
+        isFavorite: 0,
+        createdAt: primary.setAt || "",
+        updatedAt: primary.setAt || ""
+      });
+    }
     if (rows.length) return rows;
     const context = this.marketplace.salonModeContext();
     return context?.tenantId && context.branchId

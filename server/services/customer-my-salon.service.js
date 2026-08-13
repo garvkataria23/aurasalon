@@ -23,6 +23,7 @@ import { db, tableHasColumn, columnsFor } from "../db.js";
 import { unauthorized } from "../utils/app-error.js";
 import {
   getPrimarySalon,
+  getPrimarySalons,
   getAllRelationships,
 } from "./customer-salon-relationship.service.js";
 
@@ -45,7 +46,10 @@ function requestedSalon(access, context = {}) {
     (row) => row.tenantId === tenantId && row.branchId === branchId
   );
   const primary = getPrimarySalon(access.userId);
-  const salon = relationship || (primary?.tenantId === tenantId && primary.branchId === branchId ? primary : null);
+  const multiPrimary = getPrimarySalons(access.userId).find(
+    (row) => row.tenantId === tenantId && row.branchId === branchId
+  );
+  const salon = relationship || multiPrimary || (primary?.tenantId === tenantId && primary.branchId === branchId ? primary : null);
   if (!salon) throw unauthorized("Customer does not have access to this salon context");
   return {
     tenantId: salon.tenantId,
