@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from "@angular/core";
 import { firstValueFrom } from "rxjs";
+import { AlertController } from "@ionic/angular/standalone";
 import {
   AvailabilityDay,
   AvailabilityQuery,
@@ -81,6 +82,7 @@ export class MarketplaceService {
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
   readonly mySalons = signal<CustomerSalonRelationship[]>([]);
   readonly primarySalon = signal<CustomerPrimarySalon | null>(null);
+  readonly primarySalons = signal<CustomerPrimarySalon[]>([]);
   readonly shouldPromptPrimary = signal(false);
   readonly suggestedSalon = signal<CustomerSalonRelationship | null>(null);
   readonly salonOffers = signal<PublicOffersResponse | null>(null);
@@ -99,7 +101,7 @@ export class MarketplaceService {
   private readonly inFlightResponses = new Map<string, Promise<unknown>>();
   private static readonly DATA_CACHE_PREFIX = "auraCustomerDataCache:";
 
-  constructor(private readonly api: CustomerApiService, private readonly auth: AuthService) {
+  constructor(private readonly api: CustomerApiService, private readonly auth: AuthService, private readonly alerts: AlertController) {
     try {
       this.salonModeStore.set(localStorage.getItem("aura_salon_mode") === "1");
       this.salonModeContextStore.set(this.readSalonModeContext());
@@ -761,15 +763,56 @@ private readSalonModeContext(): SalonModeContext | null {
     return this.cachedLoad("my-salons", "all", this.BUSINESS_CACHE_TTL_MS, "Unable to load your salons", force, () => firstValueFrom(this.api.getMySalons()), (response) => {
       this.mySalons.set(response.salons || []);
       this.primarySalon.set(response.primarySalon);
+      this.primarySalons.set(response.primarySalons || (response.primarySalon ? [response.primarySalon] : []));
       this.shouldPromptPrimary.set(response.shouldPromptPrimary);
       this.suggestedSalon.set(response.suggestedSalon);
     });
   }
 
-  async setPrimarySalon(tenantId: string, branchId: string, businessId: string, businessName: string): Promise<CustomerPrimarySalon> {
+  isPrimarySalon(tenantId: string, branchId: string): boolean {
+    return this.primarySalons().some((p) => p.tenantId === tenantId && p.branchId === branchId);
+  }
+
+  /**
+   * Resolve how to set a salon as primary. If another primary already exists
+   * (and the target is not already primary), ask the user: Remove Existing / Add One More.
+   * Returns null when cancelled.
+   */
+  async choosePrimaryMode(target: { tenantId: string; branchId: string; businessName: string }): Promise<"replace" | "add" | null> {
+    if (this.isPrimarySalon(target.tenantId, target.branchId)) return "replace";
+    const primary = this.primarySalon();
+    if (!primary) return "replace";
+    const alert = await this.alerts.create({
+      header: "Primary salon already set",
+      message: `${primary.businessName || "Your current salon"} is already your primary salon. Remove it and set ${target.businessName}, or keep it and add ${target.businessName} as one more primary?`,
+      cssClass: "aura-alert",
+      buttons: [
+        { text: "Remove Existing", role: "replace" },
+        { text: "Add One More", role: "add" }
+      ]
+    });
+    await alert.present();
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "aura-alert-close";
+    closeBtn.setAttribute("aria-label", "Close");
+    closeBtn.innerHTML = "&#10005;";
+    closeBtn.addEventListener("click", () => alert.dismiss());
+    alert.querySelector(".alert-wrapper")?.appendChild(closeBtn);
+    const result = await alert.onDidDismiss();
+    if (result.role === "add") return "add";
+    if (result.role === "replace") return "replace";
+    return null;
+  }
+
+  async setPrimarySalon(tenantId: string, branchId: string, businessId: string, businessName: string, mode: "replace" | "add" = "replace"): Promise<CustomerPrimarySalon> {
     return this.run("Unable to set primary salon", async () => {
-      const { primarySalon } = await firstValueFrom(this.api.setPrimarySalon(tenantId, { branchId, businessId, businessName, reason: "manual" }));
+      const { primarySalon } = await firstValueFrom(this.api.setPrimarySalon(tenantId, { branchId, businessId, businessName, reason: "manual", mode }));
       this.primarySalon.set(primarySalon);
+      if (mode === "add") {
+        this.primarySalons.update((list) => [...list.filter((p) => !(p.tenantId === primarySalon.tenantId && p.branchId === primarySalon.branchId)), primarySalon]);
+      } else {
+        this.primarySalons.set([primarySalon]);
+      }
       this.mySalonDashboard.set(null);
       this.shouldPromptPrimary.set(false);
       this.suggestedSalon.set(null);
@@ -779,10 +822,19 @@ private readSalonModeContext(): SalonModeContext | null {
     });
   }
 
-  async removePrimarySalon(): Promise<void> {
+  async removePrimarySalon(tenantId?: string, branchId?: string): Promise<void> {
     return this.run("Unable to remove primary salon", async () => {
-      await firstValueFrom(this.api.removePrimarySalon());
-      this.primarySalon.set(null);
+      await firstValueFrom(this.api.removePrimarySalon(tenantId, branchId));
+      if (tenantId) {
+        this.primarySalons.update((list) => list.filter((p) => !(p.tenantId === tenantId && (!branchId || p.branchId === branchId))));
+        const current = this.primarySalon();
+        if (current && current.tenantId === tenantId && (!branchId || current.branchId === branchId)) {
+          this.primarySalon.set(this.primarySalons()[0] || null);
+        }
+      } else {
+        this.primarySalon.set(null);
+        this.primarySalons.set([]);
+      }
       this.mySalonDashboard.set(null);
       this.salonModeStore.set(false);
       this.salonModeContextStore.set(null);

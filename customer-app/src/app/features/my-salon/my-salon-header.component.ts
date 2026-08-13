@@ -89,6 +89,7 @@ import { chevronBackOutline, chevronDownOutline, closeOutline, exitOutline, menu
       color: #fff;
       border: 0;
       background: transparent;
+      cursor: pointer;
       text-decoration: none;
       text-align: left;
     }

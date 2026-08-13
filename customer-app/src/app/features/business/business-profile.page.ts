@@ -3170,6 +3170,14 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
   readonly primaryConfirm = signal<{ kind: "open" | "set" | "remove" } | null>(null);
 
   confirmPrimaryAction(kind: "open" | "set" | "remove") {
+    if (kind === "set") {
+      const biz = this.business();
+      const primary = this.marketplace.primarySalon();
+      if (primary && biz && (primary.tenantId !== biz.tenantId || primary.branchId !== biz.branchId)) {
+        void this.setAsPrimary();
+        return;
+      }
+    }
     this.primaryConfirm.set({ kind });
   }
 
@@ -3799,7 +3807,9 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
       return;
     }
     try {
-      await this.marketplace.setPrimarySalon(biz.tenantId, biz.branchId, biz.id, biz.businessName);
+      const mode = await this.marketplace.choosePrimaryMode({ tenantId: biz.tenantId, branchId: biz.branchId, businessName: biz.businessName });
+      if (!mode) return;
+      await this.marketplace.setPrimarySalon(biz.tenantId, biz.branchId, biz.id, biz.businessName, mode);
       await this.feedback.success("Primary salon updated");
     } catch {
       await this.feedback.error(this.marketplace.error() || "Could not set primary salon. Please try again.");
@@ -3808,7 +3818,8 @@ export class BusinessProfilePage implements OnInit, OnDestroy {
 
   async removeAsPrimary() {
     try {
-      await this.marketplace.removePrimarySalon();
+      const biz = this.business();
+      await this.marketplace.removePrimarySalon(biz?.tenantId, biz?.branchId);
       await this.feedback.success("Primary salon removed");
     } catch {
       await this.feedback.error(this.marketplace.error() || "Could not update primary salon. Please try again.");

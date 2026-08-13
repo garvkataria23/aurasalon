@@ -240,6 +240,90 @@ ion-tab-button ion-label {
   line-height: 1;
 }
 
+ion-alert.aura-alert {
+  --backdrop-opacity: 0.46;
+}
+
+ion-alert.aura-alert .alert-wrapper {
+  position: relative;
+  width: min(330px, calc(100vw - 34px));
+  border: 1px solid rgba(225, 214, 251, 0.92);
+  border-radius: 28px;
+  background: radial-gradient(circle at 18% 0%, rgba(124, 99, 223, 0.22), transparent 38%), linear-gradient(180deg, #fff, #fbf8ff);
+  box-shadow: 0 28px 70px rgba(28, 28, 28, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+ion-alert.aura-alert .aura-alert-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #ffeaea;
+  color: #c61010;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+ion-alert.aura-alert .alert-head {
+  padding: 30px 62px 8px 24px;
+}
+
+ion-alert.aura-alert .alert-title {
+  color: #24145f;
+  font-size: 1.1rem;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+}
+
+ion-alert.aura-alert .alert-message {
+  padding: 0 24px 20px;
+  color: #5f5874;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+ion-alert.aura-alert .alert-button-group {
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 24px 24px;
+}
+
+ion-alert.aura-alert .alert-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+ion-alert.aura-alert .alert-button-role-cancel {
+  color: #6b607f;
+  background: rgba(225, 214, 251, 0.5);
+}
+
+ion-alert.aura-alert .alert-button-role-confirm,
+ion-alert.aura-alert .alert-button-role-replace,
+ion-alert.aura-alert .alert-button-role-add {
+  color: #fff;
+  background: linear-gradient(135deg, #7c63df, #4f36c8);
+  box-shadow: 0 12px 24px rgba(79, 54, 200, 0.28);
+}
+
 .app-container,
 .page {
   width: min(calc(100% - (var(--page-gutter) * 2)), var(--container-desktop));

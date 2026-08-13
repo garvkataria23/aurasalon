@@ -688,6 +688,7 @@ export interface CustomerPrimarySalon {
 export interface CustomerSalonsResponse {
   salons: CustomerSalonRelationship[];
   primarySalon: CustomerPrimarySalon | null;
+  primarySalons: CustomerPrimarySalon[];
   shouldPromptPrimary: boolean;
   suggestedSalon: CustomerSalonRelationship | null;
 }

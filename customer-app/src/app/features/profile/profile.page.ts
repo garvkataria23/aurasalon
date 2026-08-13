@@ -15,27 +15,15 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
     <ion-content>
       <main class="page-narrow profile-page">
         @if (marketplace.isAuthenticated()) {
-          <section class="profile-mini-card premium-card">
-            <div class="profile-mini-avatar">
-              @if (profilePhotoUrl(); as photoUrl) {
-                <img [src]="photoUrl" alt="" />
-              } @else {
-                <span>{{ profileName().charAt(0) }}</span>
-              }
-            </div>
-            <div class="profile-mini-main">
-              <h1>{{ profileName() || "Your profile" }}</h1>
-              <div class="profile-mini-row" aria-label="Profile email and edit profile">
-                <button type="button" class="profile-mini-email" (click)="showProfileContactDetails()">
-                  <ion-icon name="mail-outline" aria-hidden="true"></ion-icon>
-                  <span>{{ marketplace.customer()?.email || "No email saved" }}</span>
-                </button>
-                <button type="button" class="profile-mini-edit" [routerLink]="profileRoute('profile/edit')" aria-label="Edit profile">
-                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
-                  <span>Edit</span>
-                </button>
+          <section class="profile-header-card premium-card" aria-label="Profile">
+            <span>Profile</span>
+            <a class="profile-header-link" [routerLink]="profileRoute('profile/edit')" aria-label="Edit profile">
+              <div>
+                <strong>Account settings</strong>
+                <small>Personal info, notifications, password</small>
               </div>
-            </div>
+              <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+            </a>
           </section>
         } @else {
           <section class="profile-card premium-card">
@@ -55,35 +43,6 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
         }
 
         @if (marketplace.customer(); as customer) {
-          <section class="pass-card">
-            <div>
-              <span>{{ customer.membershipLabel || "Customer account" }}</span>
-              <h2>{{ summaryHeading(customer) }}</h2>
-              <p>{{ summaryLine(customer) }}</p>
-            </div>
-            <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
-          </section>
-
-          <section class="account-grid" aria-label="Account summary">
-            @if (favouriteCount() > 0) {
-              <a class="summary-card premium-card" [routerLink]="profileRoute('wishlist')">
-                <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-                <strong>{{ favouriteCount() }} favour{{ favouriteCount() === 1 ? "ite" : "ites" }}</strong>
-                <span>Salons you saved</span>
-              </a>
-            }
-            <a class="summary-card premium-card" [routerLink]="profileRoute('bookings')">
-              <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
-              <strong>{{ pastBookingCount() }} past</strong>
-              <span>Completed and past visits</span>
-            </a>
-            <a class="summary-card premium-card" [routerLink]="profileRoute('rewards')">
-              <ion-icon name="ribbon-outline" aria-hidden="true"></ion-icon>
-              <strong>{{ customer.membershipLabel || "Starter" }}</strong>
-              <span>{{ loyaltyProgressLine(customer) }}</span>
-            </a>
-          </section>
-
           @if (!marketplace.loading() && isNewUser()) {
             <section class="discover-card premium-card">
               <div>
@@ -282,67 +241,49 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
 
-    .profile-mini-card {
+    .profile-header-card {
       display: grid;
-      grid-template-columns: 30px minmax(0, 1fr);
-      align-items: center;
-      gap: 7px;
-      min-height: 46px;
-      padding: 5px 7px;
-      border-radius: 14px;
+      gap: 10px;
+      padding: 16px 18px;
+      border-radius: 18px;
     }
-    .profile-mini-avatar {
-      width: 30px;
-      height: 30px;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      border-radius: 10px;
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
+    .profile-header-card > span {
+      color: var(--muted);
       font-size: 0.72rem;
       font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
-    .profile-mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .profile-mini-main { min-width: 0; display: grid; gap: 0; align-self: start; padding-top: 1px; }
-    .profile-mini-main h1 { margin: 0 0 -3px; overflow: hidden; color: var(--text); font-size: 0.78rem; line-height: 1; letter-spacing: -0.04em; text-overflow: ellipsis; white-space: nowrap; }
-    .profile-mini-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; min-width: 0; }
-    .profile-mini-email {
+    .profile-header-link {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .profile-header-link > div {
       min-width: 0;
       display: grid;
-      grid-template-columns: 12px minmax(0, 1fr);
-      align-items: center;
-      gap: 4px;
-      padding: 0;
-      border: 0;
+      gap: 2px;
+    }
+    .profile-header-link strong {
+      min-width: 0;
+      font-size: 1rem;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .profile-header-link small {
       color: var(--muted);
-      background: transparent;
-      font: inherit;
-      font-size: 0.56rem;
-      font-weight: 750;
-      text-align: left;
+      font-size: 0.74rem;
+      font-weight: 700;
+      line-height: 1.3;
     }
-    .profile-mini-email ion-icon { color: var(--primary); font-size: 0.66rem; }
-    .profile-mini-email span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .profile-mini-edit {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      min-height: 21px;
-      padding: 0 7px;
-      border: 1px solid rgba(99, 102, 241, 0.22);
-      border-radius: 999px;
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.16);
-      font: inherit;
-      font-size: 0.56rem;
-      font-weight: 900;
+    .profile-header-link ion-icon {
+      color: rgba(55, 55, 67, 0.5);
+      font-size: 1.22rem;
     }
-    .profile-mini-edit ion-icon { font-size: 0.66rem; }
-    .profile-mini-email:focus-visible, .profile-mini-edit:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    .profile-header-link:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
     .profile-subpage-head { padding: 14px; }
     .profile-subpage-head span { color: var(--muted); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
@@ -749,9 +690,9 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       }
       .profile-mini-avatar { width: 42px; height: 42px; border-radius: 14px; font-size: 0.95rem; }
       .profile-mini-main { gap: 0; padding-top: 3px; }
-      .profile-mini-main h1 { font-size: 0.92rem; }
+      .profile-mini-main h1 { font-size: 1rem; }
       .profile-mini-row { gap: 6px; }
-      .profile-mini-email { font-size: 0.68rem; }
+      .profile-mini-email { font-size: 0.74rem; }
       .profile-mini-edit { min-height: 27px; padding: 0 10px; font-size: 0.68rem; }
 
       .avatar {
@@ -1229,7 +1170,9 @@ export class ProfilePage implements OnInit {
 
   async onSetPrimarySalon(salon: CustomerSalonRelationship) {
     try {
-      await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName);
+      const mode = await this.marketplace.choosePrimaryMode(salon);
+      if (!mode) return;
+      await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName, mode);
     } catch {
       // error is handled by marketplace service
     }
@@ -1237,7 +1180,8 @@ export class ProfilePage implements OnInit {
 
   async onRemovePrimarySalon() {
     try {
-      await this.marketplace.removePrimarySalon();
+      const primary = this.marketplace.primarySalon();
+      await this.marketplace.removePrimarySalon(primary?.tenantId, primary?.branchId);
     } catch {
       // error is handled by marketplace service
     }

@@ -471,14 +471,18 @@ joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Observable<C
     );
   }
 
-  setPrimarySalon(tenantId: string, payload: { branchId: string; businessId: string; businessName: string; reason: string }): Observable<{ primarySalon: CustomerPrimarySalon }> {
+  setPrimarySalon(tenantId: string, payload: { branchId: string; businessId: string; businessName: string; reason: string; mode?: "replace" | "add" }): Observable<{ primarySalon: CustomerPrimarySalon }> {
     return this.http.post<ApiResponse<{ primarySalon: CustomerPrimarySalon }>>(`${this.baseUrl}/customer/salons/${encodeURIComponent(tenantId)}/primary`, payload).pipe(
       map((response) => this.unwrap<{ primarySalon: CustomerPrimarySalon }>(response))
     );
   }
 
-  removePrimarySalon(): Observable<{ ok: boolean }> {
-    return this.http.delete<ApiResponse<{ ok: boolean }>>(`${this.baseUrl}/customer/salons/primary`).pipe(
+  removePrimarySalon(tenantId?: string, branchId?: string): Observable<{ ok: boolean }> {
+    const params = new URLSearchParams();
+    if (tenantId) params.set("tenantId", tenantId);
+    if (branchId) params.set("branchId", branchId);
+    const query = params.toString();
+    return this.http.delete<ApiResponse<{ ok: boolean }>>(`${this.baseUrl}/customer/salons/primary${query ? `?${query}` : ""}`).pipe(
       map((response) => this.unwrap<{ ok: boolean }>(response))
     );
   }

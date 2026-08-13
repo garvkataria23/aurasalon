@@ -1,9 +1,9 @@
 import { Component, computed, effect, OnDestroy, OnInit, signal } from "@angular/core";
 import { NavigationEnd, Router, RouterLink } from "@angular/router";
 import { filter, Subscription } from "rxjs";
-import { IonIcon, IonRouterOutlet } from "@ionic/angular/standalone";
+import { AlertController, IonIcon, IonRouterOutlet } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { checkmarkCircleOutline, closeCircleOutline, compassOutline, exitOutline, giftOutline, helpCircleOutline, homeOutline, notificationsOutline, personOutline, receiptOutline, ribbonOutline, starOutline, swapHorizontalOutline, timeOutline, walletOutline } from "ionicons/icons";
+import { calendarOutline, checkmarkCircleOutline, closeCircleOutline, compassOutline, exitOutline, giftOutline, helpCircleOutline, homeOutline, notificationsOutline, personOutline, receiptOutline, ribbonOutline, starOutline, storefrontOutline, timeOutline, walletOutline } from "ionicons/icons";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { MySalonHeaderComponent } from "./my-salon-header.component";
 
@@ -59,7 +59,6 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
             </div>
           </div>
           <nav class="salon-menu-list" aria-label="Selected salon shortcuts">
-            <button type="button" class="salon-menu-switch" (click)="openSalonSwitchFromMenu()"><ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon><span><strong>Switch Salon</strong><small>Choose another salon</small></span></button>
             <a [routerLink]="navHref('bookings')" (click)="closeMenu()"><ion-icon name="time-outline" aria-hidden="true"></ion-icon><span><strong>Bookings</strong><small>Upcoming and past appointments</small></span></a>
             <a [routerLink]="navHref('wallet')" (click)="closeMenu()"><ion-icon name="wallet-outline" aria-hidden="true"></ion-icon><span><strong>Wallet</strong><small>Salon credit and transactions</small></span></a>
             <a [routerLink]="navHref('rewards')" (click)="closeMenu()"><ion-icon name="star-outline" aria-hidden="true"></ion-icon><span><strong>Rewards</strong><small>Loyalty points and benefits</small></span></a>
@@ -75,18 +74,32 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
           </nav>
         </aside>
       }
-      <nav class="my-salon-bottom-nav" aria-label="Salon mode navigation">
-        <a [href]="navHref('')" [class.active]="isSalonNavActive('overview')" (click)="handleSalonNav($event, navHref(''))"><ion-icon name="home-outline" aria-hidden="true"></ion-icon><span>Overview</span></a>
-        <a [href]="navHref('bookings')" [class.active]="isSalonNavActive('bookings')" (click)="handleSalonNav($event, navHref('bookings'))"><ion-icon name="time-outline" aria-hidden="true"></ion-icon><span>Bookings</span></a>
-        <a [href]="navHref('wallet')" [class.active]="isSalonNavActive('wallet')" (click)="handleSalonNav($event, navHref('wallet'))"><ion-icon name="wallet-outline" aria-hidden="true"></ion-icon><span>Wallet</span></a>
-        <a [href]="navHref('rewards')" [class.active]="isSalonNavActive('rewards')" (click)="handleSalonNav($event, navHref('rewards'))"><ion-icon name="star-outline" aria-hidden="true"></ion-icon><span>Rewards</span></a>
-      </nav>
+      @if (contextNavVisible()) {
+        <nav class="my-salon-context-nav" aria-label="My Salon navigation">
+          <a [routerLink]="navHref('')" class="context-nav-item" [class.active]="navOverviewActive()" aria-label="My Salon overview">
+            <ion-icon name="home-outline" aria-hidden="true"></ion-icon>
+            <span>Overview</span>
+          </a>
+          <a [routerLink]="bookHref()" class="context-nav-item" [class.active]="navBookActive()" aria-label="Book a service at this salon">
+            <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+            <span>Book</span>
+          </a>
+          <a [routerLink]="navHref('rewards')" class="context-nav-item" [class.active]="navBenefitsActive()" aria-label="View salon benefits">
+            <ion-icon name="gift-outline" aria-hidden="true"></ion-icon>
+            <span>Benefits</span>
+          </a>
+          <a [routerLink]="salonHref()" class="context-nav-item" [class.active]="navSalonActive()" aria-label="View salon details">
+            <ion-icon name="storefront-outline" aria-hidden="true"></ion-icon>
+            <span>Salon</span>
+          </a>
+        </nav>
+      }
     </section>
   `,
   styles: [`
     :host { display: block; min-height: 100%; }
     .my-salon-shell { min-height: 100%; --ms-shell-accent: #7c63df; --ms-shell-accent-soft: #e1d6fb; }
-    .my-salon-shell-outlet { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+    .my-salon-shell-outlet { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
     :host ::ng-deep ion-back-button,
     :host ::ng-deep .content-back-button,
     :host ::ng-deep .cover-back-button {
@@ -101,7 +114,8 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
       background: rgba(12, 10, 22, 0.38);
       backdrop-filter: blur(6px);
     }
-    .my-salon-bottom-nav {
+    /* Contextual bottom navigation — compact, matches marketplace tab bar */
+    .my-salon-context-nav {
       position: fixed;
       z-index: 900;
       left: 50%;
@@ -110,7 +124,7 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 4px;
-      padding: 5px 6px;
+      padding: 4px 6px;
       border: 1px solid rgba(225, 214, 251, 0.72);
       border-radius: 18px;
       background: var(--glass);
@@ -118,10 +132,43 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
       backdrop-filter: blur(18px);
       box-sizing: border-box;
       transform: translateX(-50%);
+      contain: layout paint;
     }
-    .my-salon-bottom-nav a { min-height: 42px; display: grid; justify-items: center; align-content: center; gap: 2px; border-radius: 12px; color: var(--muted); font-size: 0.72rem; font-weight: 850; text-decoration: none; }
-    .my-salon-bottom-nav ion-icon { font-size: 1.05rem; }
-    .my-salon-bottom-nav a.active { color: var(--ms-shell-accent); background: rgba(124, 99, 223, 0.1); }
+    .context-nav-item {
+      min-height: 44px;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 2px;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 850;
+      text-decoration: none;
+      touch-action: manipulation;
+      transition: color var(--motion-fast), background-color var(--motion-fast);
+    }
+    .context-nav-item ion-icon {
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 1.12rem;
+      transition: background-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+    }
+    .context-nav-item.active {
+      color: var(--ms-shell-accent);
+    }
+    .context-nav-item.active ion-icon {
+      color: #ffffff;
+      background: var(--ms-shell-accent);
+      box-shadow: 0 6px 14px rgba(95, 70, 207, 0.22);
+    }
+    .context-nav-item:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--ms-shell-accent) 72%, white);
+      outline-offset: 2px;
+    }
+    .context-nav-item:active {
+      transform: scale(0.98);
+    }
     .salon-menu-sheet {
       position: fixed;
       z-index: 1100;
@@ -141,18 +188,18 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
       position: fixed;
       z-index: 1100;
       top: calc(66px + env(safe-area-inset-top));
-      left: 50%;
-      width: min(520px, calc(100% - 32px));
+      left: max(12px, calc((100vw - 640px) / 2 + 12px));
+      width: min(360px, calc(100% - 24px));
       max-height: min(420px, calc(100dvh - 100px));
       display: grid;
-      gap: 8px;
+      gap: 6px;
       overflow: auto;
-      padding: 12px;
+      padding: 8px;
       border: 1px solid rgba(225, 214, 251, 0.78);
-      border-radius: 22px;
-      background: rgba(255,255,255,0.96);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,247,255,0.96));
       box-shadow: 0 28px 70px rgba(38, 23, 89, 0.24);
-      transform: translateX(-50%);
+      animation: salonMenuIn 240ms ease-out both;
     }
     .salon-switch-kicker { margin: 0 4px 2px; color: var(--muted); font-size: 0.66rem; font-weight: 950; text-transform: uppercase; letter-spacing: 0.08em; }
     .salon-switch-item { display: grid; grid-template-columns: 30px minmax(0, 1fr) 18px; align-items: center; gap: 10px; min-height: 44px; padding: 7px 9px; border: 1px solid rgba(225, 214, 251, 0.72); border-radius: 16px; color: var(--text); background: rgba(250,247,255,0.72); text-align: left; }
@@ -177,6 +224,9 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
     .salon-menu-list a:active, .salon-menu-exit:active, .salon-menu-remove:active, .salon-menu-switch:active, .salon-switch-item:active { transform: scale(0.985); }
     @keyframes salonMenuIn { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @media (hover: hover) and (pointer: fine) {
+      .context-nav-item:hover {
+        color: var(--text);
+      }
       .salon-menu-list a:hover, .salon-menu-exit:hover, .salon-menu-remove:hover, .salon-menu-switch:hover, .salon-switch-item:hover {
         border-color: rgba(124, 99, 223, 0.36);
         box-shadow: 0 14px 28px rgba(95, 70, 207, 0.12);
@@ -184,6 +234,10 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
       }
     }
     @media (prefers-reduced-motion: reduce) {
+      .context-nav-item,
+      .context-nav-item ion-icon {
+        transition: none;
+      }
       .salon-menu-list a,
       .salon-menu-exit,
       .salon-menu-remove,
@@ -192,6 +246,7 @@ import { MySalonHeaderComponent } from "./my-salon-header.component";
         transition: none;
       }
       .salon-menu-sheet { animation: none; }
+      .salon-switch-sheet { animation: none; }
     }
   `]
 })
@@ -204,12 +259,12 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   private readonly currentPath = signal("");
   private navigationSubscription?: Subscription;
 
-  constructor(readonly marketplace: MarketplaceService, private readonly router: Router) {
+  constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly alerts: AlertController) {
     this.navigationSubscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => this.currentPath.set(event.urlAfterRedirects.split(/[?#]/)[0]));
     this.currentPath.set(this.router.url.split(/[?#]/)[0]);
-    addIcons({ checkmarkCircleOutline, closeCircleOutline, compassOutline, exitOutline, giftOutline, helpCircleOutline, homeOutline, notificationsOutline, personOutline, receiptOutline, ribbonOutline, starOutline, swapHorizontalOutline, timeOutline, walletOutline });
+    addIcons({ calendarOutline, checkmarkCircleOutline, closeCircleOutline, compassOutline, exitOutline, giftOutline, helpCircleOutline, homeOutline, notificationsOutline, personOutline, receiptOutline, ribbonOutline, starOutline, storefrontOutline, timeOutline, walletOutline });
   }
 
   ngOnInit(): void {
@@ -232,19 +287,19 @@ export class MySalonShellPage implements OnDestroy, OnInit {
     void this.router.navigateByUrl(this.homeHref());
   }
 
-  back(): void {
+  async back(): Promise<void> {
     const currentPath = this.router.url.split(/[?#]/)[0].replace(/\/+$/, "");
     const homePath = this.homeHref().replace(/\/+$/, "");
     if (currentPath === homePath || currentPath.startsWith(homePath)) {
       void this.router.navigateByUrl(homePath);
       return;
     }
-    if (!this.confirmLeaveSalonMode()) return;
+    if (!(await this.confirmLeaveSalonMode())) return;
     window.history.length > 1 ? window.history.back() : void this.router.navigateByUrl("/tabs/home");
   }
 
-  exit(): void {
-    if (!this.confirmLeaveSalonMode()) return;
+  async exit(): Promise<void> {
+    if (!(await this.confirmLeaveSalonMode())) return;
     this.marketplace.exitSalonMode();
     void this.router.navigateByUrl("/tabs/home");
   }
@@ -258,17 +313,33 @@ export class MySalonShellPage implements OnDestroy, OnInit {
     this.menuOpen.set(false);
   }
 
-  handleSalonNav(event: Event, targetUrl: string): void {
-    event.preventDefault();
-    void this.router.navigateByUrl(targetUrl);
+  bookHref(): string {
+    const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
+    return slug ? this.navHref("business", slug, "book") : this.navHref();
   }
 
-  isSalonNavActive(item: "overview" | "bookings" | "wallet" | "rewards"): boolean {
-    const path = this.currentPath().replace(/\/+$/, "");
-    const base = this.homeHref().replace(/\/+$/, "");
-    if (item === "overview") return path === base || path === `${base}/home`;
-    return path === `${base}/${item}`;
+  salonHref(): string {
+    const slug = this.marketplace.mySalonDashboard()?.salon?.slug;
+    return slug ? this.navHref("business", slug) : this.navHref();
   }
+
+  /** Hidden only on booking detail/chat flows that bring their own full-screen controls. */
+  readonly contextNavVisible = computed(() => {
+    const path = this.currentPath();
+    if (!path.startsWith("/my-salon/")) return false;
+    return !/(\/booking\/(?:summary|success)|\/bookings\/[^/]+(?:\/chat)?)$/.test(path);
+  });
+
+  readonly navOverviewActive = computed(() => {
+    const path = this.currentPath();
+    return path === this.marketplace.salonModeUrl() || path === `${this.marketplace.salonModeUrl()}/home`;
+  });
+
+  readonly navBookActive = computed(() => /\/business\/[^/]+\/book$/.test(this.currentPath()));
+
+  readonly navBenefitsActive = computed(() => /(?:\/rewards|\/wallet|\/memberships?|\/packages|\/gift-cards|\/loyalty)$/.test(this.currentPath()));
+
+  readonly navSalonActive = computed(() => /\/business\/[^/]+$/.test(this.currentPath()));
 
   toggleSalonSwitch(): void {
     if (!this.salonSwitchOpen()) void this.marketplace.loadMySalons(true).catch(() => undefined);
@@ -300,23 +371,52 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   }
 
   async selectSalon(salon: { tenantId: string; branchId: string; businessId: string; businessName: string }): Promise<void> {
-    await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName);
+    const isPrimary = this.marketplace.isPrimarySalon(salon.tenantId, salon.branchId);
+    if (!isPrimary) {
+      const mode = await this.resolvePrimaryMode(salon);
+      if (!mode) return;
+      await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName, mode);
+    }
     this.marketplace.enterSalonMode({ tenantId: salon.tenantId, branchId: salon.branchId, businessId: salon.businessId, businessName: salon.businessName });
     this.salonSwitchOpen.set(false);
     await this.marketplace.loadMySalonDashboard(true).catch(() => undefined);
     void this.router.navigateByUrl(this.marketplace.salonModeUrl());
   }
 
+  private async resolvePrimaryMode(salon: { tenantId: string; branchId: string; businessName: string }): Promise<"replace" | "add" | null> {
+    return this.marketplace.choosePrimaryMode(salon);
+  }
+
   async removePrimarySalon(): Promise<void> {
-    const confirmed = typeof window === "undefined" || window.confirm("Remove this salon as your primary salon?");
+    const confirmed = await this.confirmRemovePrimary();
     if (!confirmed) return;
-    await this.marketplace.removePrimarySalon();
+    const context = this.marketplace.salonModeContext();
+    await this.marketplace.removePrimarySalon(context?.tenantId, context?.branchId);
     this.marketplace.exitSalonMode();
     void this.router.navigateByUrl("/tabs/home");
   }
 
-  private confirmLeaveSalonMode(): boolean {
-    return typeof window === "undefined" || window.confirm("Exit My Salon mode and go back to the customer app?");
+  private confirmLeaveSalonMode(): Promise<boolean> {
+    return this.confirmSalonMode("Exit My Salon mode?", "Go back to the customer app?", "Exit");
+  }
+
+  private confirmRemovePrimary(): Promise<boolean> {
+    return this.confirmSalonMode("Remove Primary Salon?", "This salon will no longer be your primary salon. You can switch back anytime.", "Remove");
+  }
+
+  private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
+    const alert = await this.alerts.create({
+      header,
+      message,
+      cssClass: "aura-alert",
+      buttons: [
+        { text: "Cancel", role: "cancel" },
+        { text: confirmText, role: "confirm" }
+      ]
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === "confirm";
   }
 
   navHref(...segments: string[]): string {

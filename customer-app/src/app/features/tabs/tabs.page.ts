@@ -1,7 +1,7 @@
 import { Component, HostListener, OnDestroy, signal } from "@angular/core";
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from "@angular/router";
 import { filter, Subscription } from "rxjs";
-import { IonButton, IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from "@ionic/angular/standalone";
+import { AlertController, IonButton, IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { calendarOutline, chevronBackOutline, chevronForwardOutline, closeOutline, cloudOfflineOutline, compassOutline, exitOutline, fingerPrintOutline, giftOutline, homeOutline, locationOutline, lockClosedOutline, logInOutline, logOutOutline, menuOutline, notificationsOutline, personCircleOutline, personOutline, pricetagOutline, ribbonOutline, searchOutline, settingsOutline, sparklesOutline } from "ionicons/icons";
 import { AuthService } from "../../core/auth.service";
@@ -897,7 +897,7 @@ export class TabsPage implements OnDestroy {
   private swipeTracking = false;
   private readonly routeSubscription: Subscription;
 
-  constructor(readonly auth: AuthService, private readonly router: Router, readonly marketplace: MarketplaceService) {
+  constructor(readonly auth: AuthService, private readonly router: Router, readonly marketplace: MarketplaceService, private readonly alerts: AlertController) {
     addIcons({ compassOutline, homeOutline, searchOutline, sparklesOutline, calendarOutline, chevronBackOutline, ribbonOutline, personOutline, locationOutline, notificationsOutline, personCircleOutline, fingerPrintOutline, lockClosedOutline, pricetagOutline, menuOutline, closeOutline, logOutOutline, logInOutline, settingsOutline, giftOutline, chevronForwardOutline, cloudOfflineOutline, exitOutline });
     this.routeSubscription = this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(() => {
       this.currentUrl.set(this.router.url);
@@ -992,29 +992,28 @@ bottomNavVisible(): boolean {
     void this.router.navigateByUrl(this.mySalonHref());
   }
 
-  handleBottomNav(event: Event, targetUrl: string): void {
+  async handleBottomNav(event: Event, targetUrl: string): Promise<void> {
     const current = this.normalizeSwipeRoute(this.router.url);
     const target = this.normalizeSwipeRoute(targetUrl);
     const inMySalonSection = current === "/tabs/my-salon" || current.startsWith("/my-salon/");
     const leavingMySalon = inMySalonSection && target !== "/tabs/my-salon" && !target.startsWith("/my-salon/");
-    if (leavingMySalon && !this.confirmLeaveSalonMode()) {
+    if (leavingMySalon) {
       event.preventDefault();
       event.stopPropagation();
+      if (!(await this.confirmLeaveSalonMode())) return;
+      this.marketplace.exitSalonMode();
+      void this.router.navigateByUrl(targetUrl);
       return;
     }
-    if (leavingMySalon) this.marketplace.exitSalonMode();
     const enteringMySalon = target === "/tabs/my-salon" || target.startsWith("/my-salon/");
     if (!enteringMySalon) return;
-    if (!this.marketplace.salonMode() && !this.confirmEnterSalonMode()) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.marketplace.salonMode() && !(await this.confirmEnterSalonMode())) return;
     if (!this.marketplace.salonMode()) {
       const primary = this.marketplace.primarySalon();
       this.marketplace.enterSalonMode(primary ? { tenantId: primary.tenantId, branchId: primary.branchId, businessId: primary.businessId, businessName: primary.businessName } : null);
     }
-    event.preventDefault();
     void this.router.navigateByUrl(this.mySalonHref());
   }
 
@@ -1026,19 +1025,34 @@ bottomNavVisible(): boolean {
     return tenantId && branchId ? `/my-salon/${encodeURIComponent(tenantId)}/${encodeURIComponent(branchId)}` : "/tabs/my-salon";
   }
 
-  exitSalonMode() {
-    if (!this.confirmLeaveSalonMode()) return;
+  async exitSalonMode(): Promise<void> {
+    if (!(await this.confirmLeaveSalonMode())) return;
     this.marketplace.exitSalonMode();
     this.closeMenu();
     void this.router.navigateByUrl("/tabs/home");
   }
 
-  private confirmLeaveSalonMode(): boolean {
-    return typeof window === "undefined" || window.confirm("Exit My Salon mode and go back to the customer app?");
+  private confirmLeaveSalonMode(): Promise<boolean> {
+    return this.confirmSalonMode("Exit My Salon mode?", "Go back to the customer app?", "Exit");
   }
 
-  private confirmEnterSalonMode(): boolean {
-    return typeof window === "undefined" || window.confirm("Open My Salon mode?");
+  private confirmEnterSalonMode(): Promise<boolean> {
+    return this.confirmSalonMode("Open My Salon Mode", "Your salon dashboard, rewards, wallet, memberships and bookings will open in a focused mini-app experience.", "Enter Mode");
+  }
+
+  private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
+    const alert = await this.alerts.create({
+      header,
+      message,
+      cssClass: "aura-alert",
+      buttons: [
+        { text: "Cancel", role: "cancel" },
+        { text: confirmText, role: "confirm" }
+      ]
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === "confirm";
   }
 
   unlock() {

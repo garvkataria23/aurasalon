@@ -7,6 +7,7 @@ import {
   incrementVisitCount,
   getAllRelationships,
   getPrimarySalon,
+  getPrimarySalons,
   setPrimarySalon,
   removePrimarySalon,
   shouldPromptPrimarySalon,
@@ -26,11 +27,13 @@ customerSalonRouter.get("/customer/salons", asyncHandler((req, res) => {
 
   const relationships = getAllRelationships(customerId);
   const primary = getPrimarySalon(customerId);
+  const primarySalons = getPrimarySalons(customerId);
   const promptCheck = shouldPromptPrimarySalon(customerId);
 
   res.json({
     salons: relationships,
     primarySalon: primary || null,
+    primarySalons,
     shouldPromptPrimary: promptCheck.prompt,
     suggestedSalon: promptCheck.suggestedSalon || null,
   });
@@ -42,7 +45,7 @@ customerSalonRouter.post("/customer/salons/:tenantId/primary", asyncHandler((req
   if (!customerId) return res.status(401).json({ error: "Customer ID required" });
 
   const { tenantId } = req.params;
-  const { branchId, businessId, businessName, reason } = req.body || {};
+  const { branchId, businessId, businessName, reason, mode } = req.body || {};
 
   const result = setPrimarySalon({
     customerId,
@@ -51,6 +54,7 @@ customerSalonRouter.post("/customer/salons/:tenantId/primary", asyncHandler((req
     businessId: businessId || "",
     businessName: businessName || "",
     reason: reason || "manual",
+    mode: mode === "add" ? "add" : "replace",
   });
 
   res.json({ primarySalon: result });
@@ -61,8 +65,9 @@ customerSalonRouter.delete("/customer/salons/primary", asyncHandler((req, res) =
   const customerId = req.access?.userId || req.access?.uid || req.access?.customerId || "";
   if (!customerId) return res.status(401).json({ error: "Customer ID required" });
 
-  const tenantId = req.access?.tenantId || null;
-  const result = removePrimarySalon(customerId, tenantId);
+  const tenantId = req.query?.tenantId || req.access?.tenantId || null;
+  const branchId = req.query?.branchId || null;
+  const result = removePrimarySalon(customerId, tenantId, branchId);
   res.json(result);
 }));
 

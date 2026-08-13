@@ -1,30 +1,27 @@
 import { Component, OnInit, ViewChild } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { IonBackButton, IonButton, IonButtons, IonCheckbox, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonList, IonToolbar } from "@ionic/angular/standalone";
+import { IonButton, IonCheckbox, IonContent, IonIcon, IonInput, IonItem, IonList } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { chevronForwardOutline, lockClosedOutline, mailOutline, notificationsOutline, personOutline, phonePortraitOutline, saveOutline, shieldCheckmarkOutline, trashOutline } from "ionicons/icons";
+import { chevronBackOutline, chevronForwardOutline, lockClosedOutline, mailOutline, notificationsOutline, personOutline, phonePortraitOutline, saveOutline, shieldCheckmarkOutline, trashOutline } from "ionicons/icons";
 import { CustomerNotificationPreferences } from "../../core/api.types";
 import { MarketplaceService } from "../../core/marketplace.service";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink, IonBackButton, IonButton, IonButtons, IonCheckbox, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonList, IonToolbar],
+  imports: [FormsModule, RouterLink, IonButton, IonCheckbox, IonContent, IonIcon, IonInput, IonItem, IonList],
   template: `
-    <ion-header class="ion-no-border">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button [defaultHref]="backHref()"></ion-back-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content>
       <main class="page-narrow edit-profile-page">
         <section class="hero-card premium-card">
-          <div>
-            <h1>{{ pageTitle() }}</h1>
-            <p class="muted">{{ pageSubtitle() }}</p>
+          <div class="hero-title-row">
+            <a class="hero-back" [routerLink]="backHref()" aria-label="Back">
+              <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
+            </a>
+            <div>
+              <h1>{{ pageTitle() }}</h1>
+              <p class="muted">{{ pageSubtitle() }}</p>
+            </div>
           </div>
           @if (section() === "personal" || section() === "notifications") {
           <ion-button class="primary-gradient" (click)="saveProfile()" [disabled]="marketplace.loading()">
@@ -45,22 +42,22 @@ import { MarketplaceService } from "../../core/marketplace.service";
           <section class="settings-menu premium-card">
             <a [routerLink]="editRoute('personal')">
               <span class="section-icon"><ion-icon name="person-outline"></ion-icon></span>
-            <span><strong>Personal information</strong></span>
+              <span><strong>Personal information</strong><small>Name, email and mobile number</small></span>
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </a>
             <a [routerLink]="editRoute('notifications')">
               <span class="section-icon"><ion-icon name="notifications-outline"></ion-icon></span>
-              <span><strong>Notifications</strong></span>
+              <span><strong>Notifications</strong><small>Booking reminders and offers</small></span>
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </a>
             <a [routerLink]="editRoute('password')">
               <span class="section-icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
-              <span><strong>Change password</strong></span>
+              <span><strong>Change password</strong><small>Update your login password</small></span>
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </a>
             <a [routerLink]="editRoute('delete')" class="danger-link">
               <span class="section-icon danger"><ion-icon name="trash-outline"></ion-icon></span>
-              <span><strong>Delete account</strong></span>
+              <span><strong>Delete account</strong><small>Permanently remove this account</small></span>
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </a>
           </section>
@@ -258,15 +255,17 @@ import { MarketplaceService } from "../../core/marketplace.service";
   styles: [`
     .edit-profile-page {
       display: grid;
-      gap: 16px;
+      gap: 14px;
+      padding-top: calc(18px + env(safe-area-inset-top));
       padding-bottom: 112px;
     }
 
     .hero-card,
     .editor-card {
       display: grid;
-      gap: 16px;
-      padding: 20px;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 22px;
       animation-name: aura-card-in;
       animation-duration: var(--motion-slow);
       animation-iteration-count: 1;
@@ -278,6 +277,32 @@ import { MarketplaceService } from "../../core/marketplace.service";
     .hero-card {
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
+      min-height: 112px;
+      background: radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.16), transparent 38%), linear-gradient(135deg, #ffffff, #fbf9ff);
+    }
+
+    .hero-title-row {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hero-back {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: var(--text);
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: inset 0 0 0 1px rgba(225, 214, 251, 0.72);
+    }
+
+    .hero-back ion-icon {
+      font-size: 1.32rem;
+      --ionicon-stroke-width: 42px;
     }
 
     .edit-profile-page .hero-card,
@@ -322,7 +347,16 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
 
     h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
+      font-size: clamp(1.72rem, 7vw, 2.25rem);
+      line-height: 0.96;
+    }
+
+    .hero-card .muted {
+      margin: 10px 0 0;
+      color: #5f5874;
+      font-size: 0.86rem;
+      font-weight: 650;
+      line-height: 1.35;
     }
 
     h2 {
@@ -337,16 +371,20 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
     .settings-menu {
       overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid rgba(225, 214, 251, 0.82);
+      background: linear-gradient(180deg, #ffffff, #fbf9ff);
+      box-shadow: 0 18px 44px rgba(28, 28, 28, 0.08);
     }
 
     .settings-menu a {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 14px;
+      gap: 13px;
       align-items: center;
-      min-height: 78px;
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--border);
+      min-height: 76px;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(225, 214, 251, 0.64);
       color: var(--text);
       text-decoration: none;
     }
@@ -363,17 +401,20 @@ import { MarketplaceService } from "../../core/marketplace.service";
     .settings-menu strong {
       font-size: 1rem;
       font-weight: 900;
+      letter-spacing: -0.02em;
     }
 
     .settings-menu small {
-      margin-top: 4px;
+      margin-top: 5px;
       color: var(--muted);
-      font-weight: 800;
+      font-size: 0.74rem;
+      font-weight: 650;
       line-height: 1.35;
     }
 
     .settings-menu > a > ion-icon {
-      color: var(--muted);
+      color: rgba(55, 55, 67, 0.5);
+      font-size: 1.16rem;
     }
 
     .settings-menu .danger-link strong {
@@ -386,15 +427,27 @@ import { MarketplaceService } from "../../core/marketplace.service";
       height: 46px;
       display: grid;
       place-items: center;
-      border-radius: 16px;
+      border-radius: 15px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      font-size: 1.2rem;
-      box-shadow: 0 14px 28px rgba(99, 102, 241, 0.18);
+      font-size: 1.26rem;
+      box-shadow: 0 14px 26px rgba(99, 102, 241, 0.18);
+    }
+
+    .section-icon ion-icon {
+      color: #ffffff;
+      opacity: 1;
+      --ionicon-stroke-width: 46px;
+      filter: drop-shadow(0 1px 2px rgba(33, 19, 91, 0.22));
     }
 
     .section-icon.danger {
       background: linear-gradient(135deg, #EF4444, #B91C1C);
+    }
+
+    .section-icon.danger ion-icon {
+      color: #ffffff;
+      filter: drop-shadow(0 1px 2px rgba(124, 10, 10, 0.24));
     }
 
     ion-list {
@@ -600,7 +653,7 @@ export class ProfileEditPage implements OnInit {
   passwordNotice = "";
 
   constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly route: ActivatedRoute) {
-    addIcons({ chevronForwardOutline, lockClosedOutline, mailOutline, notificationsOutline, personOutline, phonePortraitOutline, saveOutline, shieldCheckmarkOutline, trashOutline });
+    addIcons({ chevronBackOutline, chevronForwardOutline, lockClosedOutline, mailOutline, notificationsOutline, personOutline, phonePortraitOutline, saveOutline, shieldCheckmarkOutline, trashOutline });
   }
 
   async ngOnInit() {

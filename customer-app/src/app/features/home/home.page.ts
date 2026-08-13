@@ -85,13 +85,18 @@ interface ConsultationChatMessage {
   template: `
     <ion-content>
       <main class="page home-page">
-        <button type="button" class="location-copy location-trigger inline-location" [disabled]="locating()" (click)="openLocationChooser()" aria-label="Choose location">
-          <span>{{ hasSelectedLocation() ? "Location" : "Choose location" }}</span>
-          <div class="location-row">
-            <strong><ion-icon name="location-outline"></ion-icon> {{ areaLabel() }}</strong>
-            <ion-icon class="location-chevron" name="chevron-forward-outline"></ion-icon>
-          </div>
-        </button>
+        <div class="home-topbar">
+          <button type="button" class="location-copy location-trigger inline-location" [disabled]="locating()" (click)="openLocationChooser()" aria-label="Choose location">
+            <span>{{ hasSelectedLocation() ? "Location" : "Choose location" }}</span>
+            <div class="location-row">
+              <strong><ion-icon name="location-outline"></ion-icon> {{ areaLabel() }}</strong>
+              <ion-icon class="location-chevron" name="chevron-forward-outline"></ion-icon>
+            </div>
+          </button>
+          <a class="home-profile-shortcut" routerLink="/tabs/profile" aria-label="Open profile">
+            <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
+          </a>
+        </div>
         <section class="hero dashboard-hero">
           <div class="hero-copy">
             <span class="eyebrow">Your day, beautifully planned</span>
@@ -161,14 +166,6 @@ interface ConsultationChatMessage {
               (setPrimary)="onSetPrimarySalon($event)">
             </aura-my-salon-card>
           </section>
-        }
-
-        @if (!searchActive()) {
-          <nav class="account-shortcuts" aria-label="Balance and benefits">
-            <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span></a>
-            <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span></a>
-            <a routerLink="/tabs/rewards"><ion-icon name="pricetag-outline"></ion-icon><span>Rewards</span><strong>{{ marketplace.customer()?.loyaltyPoints ?? 0 }} pts</strong></a>
-          </nav>
         }
 
         <!-- Book Again faster (shown when authenticated with visit history) -->
@@ -244,6 +241,9 @@ interface ConsultationChatMessage {
             <nav class="customer-quick-actions" aria-label="Quick actions">
               <a routerLink="/tabs/bookings"><ion-icon name="calendar-outline"></ion-icon><span>Bookings</span><small>Manage visits</small></a>
               <a routerLink="/tabs/offers"><ion-icon name="pricetag-outline"></ion-icon><span>Offers</span><small>Browse live deals</small></a>
+              <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span><small>Balance and payments</small></a>
+              <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span><small>Plans and benefits</small></a>
+              <a routerLink="/tabs/rewards"><ion-icon name="pricetag-outline"></ion-icon><span>Rewards</span><small>{{ marketplace.customer()?.loyaltyPoints ?? 0 }} pts available</small></a>
             </nav>
           </section>
         }
@@ -277,6 +277,41 @@ interface ConsultationChatMessage {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+    }
+
+    .home-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+      margin: 0 -24px -4px -16px;
+    }
+
+    .home-topbar .inline-location {
+      min-width: 0;
+      flex: 1 1 auto;
+      margin: 0;
+    }
+
+    .home-profile-shortcut {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(99, 102, 241, 0.18);
+      border-radius: 50%;
+      color: var(--primary);
+      background: rgba(255, 255, 255, 0.82);
+      text-decoration: none;
+      box-shadow: 0 10px 22px rgba(99, 102, 241, 0.1);
+      margin-left: auto;
+    }
+
+    .home-profile-shortcut ion-icon {
+      font-size: 1.55rem;
+      --ionicon-stroke-width: 38px;
     }
 
     .location-copy span {
@@ -1735,7 +1770,7 @@ interface ConsultationChatMessage {
         top: auto;
         z-index: 2;
         display: block;
-        margin: 0;
+        margin: 0 -9px;
         padding: 0;
         border-radius: 12px;
         box-shadow: 0 6px 16px rgba(28, 28, 28, 0.06);
@@ -2550,7 +2585,9 @@ export class HomePage implements OnInit {
 
   async onSetPrimarySalon(salon: CustomerSalonRelationship) {
     try {
-      await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName);
+      const mode = await this.marketplace.choosePrimaryMode(salon);
+      if (!mode) return;
+      await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName, mode);
     } catch {
       // error is handled by marketplace service
     }

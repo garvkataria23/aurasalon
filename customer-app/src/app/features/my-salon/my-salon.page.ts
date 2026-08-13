@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
+import { AlertController, IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import {
   calendarOutline,
@@ -15,7 +15,6 @@ import {
   searchOutline,
   sparklesOutline,
   starOutline,
-  swapHorizontalOutline,
   timeOutline,
   walletOutline
 } from "ionicons/icons";
@@ -29,71 +28,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
   template: `
     <ion-content class="ms-content">
       <main class="ms-page">
-        @if (!dash()?.salon) {
-        <div class="ms-mode-tools" aria-label="My Salon page controls">
-          @if (salonChoices().length > 1 || !dash()?.hasPrimarySalon) {
-            <button
-              type="button"
-              class="ms-switch-button"
-              (click)="toggleSalonPicker()"
-              [attr.aria-expanded]="salonPickerOpen()"
-              aria-controls="salon-picker">
-              <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon>
-              <span>Switch Salon ({{ salonChoices().length }})</span>
-            </button>
-          } @else {
-            <span class="ms-mode-tools-spacer" aria-hidden="true"></span>
-          }
-        </div>
-        }
-
-        <!-- ─── SALON PICKER DRAWER / MODAL ─── -->
-        @if (salonPickerOpen()) {
-          <section id="salon-picker" class="ms-picker" aria-labelledby="salon-picker-title">
-            <div class="ms-picker-head">
-              <div>
-                <span class="ms-kicker">Multi-Salon Switcher</span>
-                <h2 id="salon-picker-title">Select your active salon</h2>
-              </div>
-              <span class="ms-picker-count">{{ salonChoices().length }} connected</span>
-            </div>
-            <p class="ms-picker-note">
-              Switching loads that salon's credit balance, loyalty points, active membership, package credits, Happy Hours offers and visit history for that specific salon.
-            </p>
-
-            @if (salonChoices().length) {
-              <div class="ms-choice-list">
-                @for (salon of salonChoices(); track salon.tenantId + ':' + salon.branchId) {
-                  <button
-                    type="button"
-                    class="ms-choice"
-                    [class.selected]="isSelectedSalon(salon)"
-                    (click)="selectSalon(salon)"
-                    [disabled]="selectingSalon()"
-                    [attr.aria-pressed]="isSelectedSalon(salon)">
-                    <span class="ms-choice-avatar" aria-hidden="true">{{ salonInitials(salon.businessName) }}</span>
-                    <span class="ms-choice-copy">
-                      <strong>{{ salon.businessName }}</strong>
-                      <small>
-                        {{ salonVisitLabel(salon) }}
-                        @if (salon.lastVisitAt) { <span> · Last {{ formatDate(salon.lastVisitAt) }}</span> }
-                      </small>
-                    </span>
-                    <span class="ms-choice-badge" [class.is-active]="isSelectedSalon(salon)">
-                      {{ isSelectedSalon(salon) ? 'Active Salon' : 'Switch' }}
-                    </span>
-                  </button>
-                }
-              </div>
-            } @else {
-              <div class="ms-inline-empty">
-                <p>You haven't visited or booked at another salon yet.</p>
-                <button type="button" class="ms-text-action" (click)="exitSalonMode()">Exit My Salon</button>
-              </div>
-            }
-          </section>
-        }
-
         <!-- ─── LOADING STATE ─── -->
         @if (loading()) {
           <section class="ms-loading" aria-label="Loading salon dashboard" aria-live="polite" aria-busy="true">
@@ -178,19 +112,6 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
                 </a>
               </div>
 
-              <div class="ms-hero-management" aria-label="My Salon management">
-                @if (salonChoices().length > 1 || !d.hasPrimarySalon) {
-                  <button
-                    type="button"
-                    class="ms-switch-button"
-                    (click)="toggleSalonPicker()"
-                    [attr.aria-expanded]="salonPickerOpen()"
-                    aria-controls="salon-picker">
-                    <ion-icon name="swap-horizontal-outline" aria-hidden="true"></ion-icon>
-                    <span>Switch Salon ({{ salonChoices().length }})</span>
-                  </button>
-                }
-              </div>
             </section>
 
             <!-- 2. RELATIONSHIP & ACCOUNT SNAPSHOT (4 METRICS) -->
@@ -1330,7 +1251,8 @@ export class MySalonPage implements OnInit {
     readonly marketplace: MarketplaceService,
     private readonly auth: AuthService,
     private readonly router: Router,
-    private readonly route: ActivatedRoute
+    private readonly route: ActivatedRoute,
+    private readonly alerts: AlertController
   ) {
     addIcons({
       calendarOutline,
@@ -1345,18 +1267,17 @@ export class MySalonPage implements OnInit {
       searchOutline,
       sparklesOutline,
       starOutline,
-      swapHorizontalOutline,
       timeOutline,
       walletOutline
     });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (!this.auth.isAuthenticated()) {
       void this.router.navigate(["/login"]);
       return;
     }
-    if (!this.marketplace.salonMode() && typeof window !== "undefined" && !window.confirm("Open My Salon mode?")) {
+    if (!this.marketplace.salonMode() && !(await this.confirmEnterSalonMode())) {
       void this.router.navigateByUrl("/tabs/home");
       return;
     }
@@ -1422,8 +1343,8 @@ export class MySalonPage implements OnInit {
     return /session expired|sign in|unauthorized|reconnect to your session/i.test(message);
   }
 
-  exitSalonMode(): void {
-    if (!this.confirmLeaveSalonMode()) return;
+  async exitSalonMode(): Promise<void> {
+    if (!(await this.confirmLeaveSalonMode())) return;
     this.marketplace.exitSalonMode();
     void this.router.navigateByUrl("/tabs/home");
   }
@@ -1433,8 +1354,27 @@ export class MySalonPage implements OnInit {
     void this.router.navigateByUrl("/tabs/search");
   }
 
-  private confirmLeaveSalonMode(): boolean {
-    return typeof window === "undefined" || window.confirm("Exit My Salon mode and go back to the customer app?");
+  private confirmLeaveSalonMode(): Promise<boolean> {
+    return this.confirmSalonMode("Exit My Salon mode?", "Go back to the customer app?", "Exit");
+  }
+
+  private confirmEnterSalonMode(): Promise<boolean> {
+    return this.confirmSalonMode("Open My Salon Mode", "Your salon dashboard, rewards, wallet, memberships and bookings will open in a focused mini-app experience.", "Enter Mode");
+  }
+
+  private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
+    const alert = await this.alerts.create({
+      header,
+      message,
+      cssClass: "aura-alert",
+      buttons: [
+        { text: "Cancel", role: "cancel" },
+        { text: confirmText, role: "confirm" }
+      ]
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === "confirm";
   }
 
   toggleSalonPicker(): void {
@@ -1453,7 +1393,14 @@ export class MySalonPage implements OnInit {
     this.selectingSalon.set(true);
     this.loadError.set("");
     try {
-      await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName);
+      if (!this.marketplace.isPrimarySalon(salon.tenantId, salon.branchId)) {
+        const mode = await this.resolvePrimaryMode(salon);
+        if (!mode) {
+          this.salonPickerOpen.set(false);
+          return;
+        }
+        await this.marketplace.setPrimarySalon(salon.tenantId, salon.branchId, salon.businessId, salon.businessName, mode);
+      }
       this.marketplace.enterSalonMode({ tenantId: salon.tenantId, branchId: salon.branchId, businessId: salon.businessId, businessName: salon.businessName });
       this.salonPickerOpen.set(false);
       await this.loadDashboard(true);
@@ -1464,6 +1411,10 @@ export class MySalonPage implements OnInit {
     } finally {
       this.selectingSalon.set(false);
     }
+  }
+
+  private async resolvePrimaryMode(salon: { tenantId: string; branchId: string; businessName: string }): Promise<"replace" | "add" | null> {
+    return this.marketplace.choosePrimaryMode(salon);
   }
 
   isSelectedSalon(salon: CustomerSalonRelationship): boolean {
