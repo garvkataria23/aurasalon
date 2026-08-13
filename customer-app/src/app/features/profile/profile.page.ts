@@ -213,7 +213,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
               <h2 class="menu-group-title">{{ group.label }}</h2>
               @for (item of group.items; track item.route) {
                 @if (showMenuItem(item.route)) {
-                  <a [routerLink]="profileRoute(item.route)">
+                  <a [routerLink]="profileRoute(item.route)" (click)="handleMenuClick($event, item.route)">
                     <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
                     <span>{{ item.label }}</span>
                     <ion-icon class="menu-chevron" name="chevron-forward-outline" aria-hidden="true"></ion-icon>
@@ -1016,6 +1016,14 @@ export class ProfilePage implements OnInit {
     if (path === "my-salons") return "/tabs/my-salons";
     if (!this.marketplace.salonMode()) return path === "notifications" || path === "settings" || path === "help" ? `/${path}` : `/tabs/${path}`;
     return this.marketplace.salonModeUrl(...path.split("/"));
+  }
+
+  handleMenuClick(event: Event, path: string): void {
+    if (path !== "my-salons") return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.marketplace.salonMode()) this.marketplace.exitSalonMode();
+    void this.router.navigateByUrl("/tabs/my-salons");
   }
 
   showMenuItem(route: string): boolean {
