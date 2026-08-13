@@ -136,7 +136,7 @@ function resolveSalonProfile(tenantId, branchId) {
     branchId: row.branchId,
     name: row.branchName || row.tenantName || "Salon",
     businessName: row.tenantName || row.branchName || "Salon",
-    slug: slugify(`${row.branchName || row.branchId}-${row.branchId}`),
+    slug: row.branchSlug || slugify(`${row.branchName || row.branchId}-${row.branchId}`),
     address: row.address || "",
     city: row.city || "",
     phone: row.phone || "",
