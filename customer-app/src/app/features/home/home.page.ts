@@ -306,6 +306,7 @@ interface ConsultationChatMessage {
       text-decoration: none;
       box-shadow: 0 10px 22px rgba(124, 99, 223, 0.1);
       margin-left: auto;
+      margin-right: 12px;
     }
 
     .home-profile-shortcut ion-icon {
