@@ -1022,17 +1022,7 @@ interface ConsultationChatMessage {
       text-overflow: ellipsis;
     }
 
-    .customer-quick-actions small {
-      color: var(--muted);
-      font-size: 0.66rem;
-      font-weight: 800;
-      line-height: 1.1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
+    .customer-quick-actions small { display: none; }
 
     .customer-quick-actions.primary-salon-actions a {
       border-color: rgba(15, 118, 110, 0.2);
@@ -2288,14 +2278,7 @@ interface ConsultationChatMessage {
         font-size: 0.7rem;
         line-height: 1.1;
       }
-      .home-page .lower-actions .customer-quick-actions small {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        font-size: 0.6rem;
-        line-height: 1.05;
-      }
+      .home-page .lower-actions .customer-quick-actions small { display: none; }
 
     }
 
