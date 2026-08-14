@@ -20,7 +20,7 @@
     "backup:db": "node scripts/backup-database.mjs",
     "smoke:staff-mobile": "node scripts/smoke-staff-mobile.mjs",
     "prebuild": "node -e \"const{execSync:c}=require('child_process');try{c('chmod -R 755 src',{stdio:'inherit'})}catch(e){}\"",
-    "build": "npm run build:client",
+    "build": "npm run build:client && node scripts/deploy-customer-host.mjs",
     "build:client": "npx ng build",
     "build:staff": "npm --prefix staff-app run build",
     "start": "node server/index.js",
