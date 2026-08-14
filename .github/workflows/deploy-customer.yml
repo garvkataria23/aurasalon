@@ -1,0 +1,107 @@
+name: Deploy Customer App
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: customer-app/package-lock.json
+
+      - name: Install customer-app deps
+        run: |
+          cd customer-app
+          npm ci --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build customer-app
+        run: |
+          cd customer-app
+          npm run build
+
+      - name: Create deploy bundle
+        run: |
+          cd customer-app
+          mkdir -p deploy-bundle/tabs
+          cp -r www/browser/* deploy-bundle/
+          # .htaccess for SPA fallback
+          cat > deploy-bundle/.htaccess << 'EOF'
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ index.html [L]
+</IfModule>
+EOF
+          # tabs/*/index.html copies for deep-link resilience
+          for tab in home my-salon my-salons bookings search profile; do
+            mkdir -p deploy-bundle/tabs/$tab
+            cp deploy-bundle/index.html deploy-bundle/tabs/$tab/index.html
+          done
+
+      - name: Deploy to Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+        run: |
+          set -e
+          # Create tarball
+          cd customer-app/deploy-bundle
+          tar -czf ../../aura-customer-latest.tgz .
+          cd ../..
+
+          # Upload
+          sshpass -p "$SSH_PASS" scp -P "$SSH_PORT" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            aura-customer-latest.tgz "$SSH_USER@$SSH_HOST:~/aura-customer-latest.tgz"
+
+          # Extract on server (to hbuilds/current/public_html/aurashinecustomer)
+          sshpass -p "$SSH_PASS" ssh -p "$SSH_PORT" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            "$SSH_USER@$SSH_HOST" << 'ENDSSH'
+            set -e
+            T=/home/u840940482/domains/aurashinesalonwellness.in/hbuilds/current/public_html/aurashinecustomer
+            umask 022
+            rm -rf "$T"/*
+            mkdir -p "$T"
+            tar -xzf ~/aura-customer-latest.tgz -C "$T"
+            find "$T" -type d -exec chmod 755 {} \;
+            find "$T" -type f -exec chmod 644 {} \;
+            echo "Deployed to $T"
+          ENDSSH
+
+      - name: Verify live
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+        run: |
+          sleep 5
+          sshpass -p "$SSH_PASS" ssh -p "$SSH_PORT" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            "$SSH_USER@$SSH_HOST" << 'ENDSSH'
+            curl -s -o /dev/null -w "sub-root: %{http_code}\n" https://aurashinecustomer.aurashinesalonwellness.in/
+            curl -s https://aurashinecustomer.aurashinesalonwellness.in/ | grep -o "main-[A-Z0-9]*\.js" | head -1
+            curl -s -o /dev/null -w "sub-deep: %{http_code}\n" https://aurashinecustomer.aurashinesalonwellness.in/tabs/bookings/
+          ENDSSH
