@@ -996,40 +996,42 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions a {
       display: grid;
-      gap: 4px;
+      gap: 3px;
       min-width: 0;
-      padding: 10px 8px;
+      padding: 8px 6px;
       border: 1px solid rgba(124, 99, 223, 0.2);
-      border-radius: 16px;
+      border-radius: 14px;
       color: var(--text);
       background: linear-gradient(145deg, #ffffff, var(--primary-soft));
-      box-shadow: 0 12px 28px rgba(28, 28, 28, 0.08);
+      box-shadow: 0 10px 24px rgba(28, 28, 28, 0.07);
       text-decoration: none;
     }
 
     .customer-quick-actions ion-icon {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       color: var(--primary);
     }
 
     .customer-quick-actions span {
       color: var(--text);
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 950;
-      white-space: nowrap;
+      line-height: 1.1;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .customer-quick-actions small {
       color: var(--muted);
-      font-size: 0.72rem;
+      font-size: 0.66rem;
       font-weight: 800;
-      line-height: 1.15;
-      white-space: nowrap;
+      line-height: 1.1;
       overflow: hidden;
       text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
 
     .customer-quick-actions.primary-salon-actions a {
@@ -2268,31 +2270,31 @@ interface ConsultationChatMessage {
       .home-page .lower-actions .customer-quick-actions a {
         grid-template-columns: 20px minmax(0, 1fr);
         align-items: center;
-        gap: 3px 8px;
+        gap: 3px 6px;
         min-width: 0;
-        min-height: 56px;
-        padding: 6px 8px;
-        border-radius: 12px;
+        min-height: 52px;
+        padding: 5px 6px;
+        border-radius: 10px;
       }
       .home-page .lower-actions .customer-quick-actions ion-icon {
         grid-row: 1;
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
       }
       .home-page .lower-actions .customer-quick-actions span {
         min-width: 0;
         overflow: hidden;
-        font-size: 0.76rem;
-        line-height: 1.1;
         text-overflow: ellipsis;
+        font-size: 0.7rem;
+        line-height: 1.1;
       }
       .home-page .lower-actions .customer-quick-actions small {
-        display: block;
-        font-size: 0.64rem;
-        line-height: 1.1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        font-size: 0.6rem;
+        line-height: 1.05;
       }
 
     }
