@@ -985,8 +985,11 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 10px;
+      width: 100%;
+      justify-self: stretch;
+      justify-items: stretch;
       padding: 2px 2px 8px;
     }
 
@@ -997,6 +1000,8 @@ interface ConsultationChatMessage {
     .customer-quick-actions a {
       display: grid;
       gap: 3px;
+      width: 100%;
+      box-sizing: border-box;
       min-width: 0;
       padding: 8px 6px;
       border: 1px solid rgba(124, 99, 223, 0.2);
@@ -2078,7 +2083,7 @@ interface ConsultationChatMessage {
     .favourites-heading { align-items: center; justify-content: space-between; }
     .favourites-heading a { min-height: auto; }
     .section-title { margin-top: 3px; }
-    .lower-actions { display: grid; gap: 12px; margin-top: 16px; opacity: 0.9; }
+    .lower-actions { display: grid; gap: 12px; width: 100%; justify-self: stretch; margin-top: 16px; opacity: 0.9; }
     .lower-actions .customer-quick-actions { display: grid; }
 
     button:focus-visible,
@@ -2248,13 +2253,19 @@ interface ConsultationChatMessage {
 
       .home-page .lower-actions {
         gap: 8px;
+        width: calc(100vw - 40px);
+        max-width: none;
+        justify-self: stretch;
         margin-top: 8px;
       }
       .home-page .lower-actions .section-kicker { font-size: 0.74rem; }
       .home-page .lower-actions .section-title { font-size: 1rem; }
       .home-page .lower-actions .customer-quick-actions {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 7px;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 4px;
+        width: 100%;
+        justify-self: stretch;
+        justify-items: stretch;
         overflow: visible;
         padding: 0;
       }
@@ -2263,24 +2274,24 @@ interface ConsultationChatMessage {
         justify-items: center;
         align-items: center;
         text-align: center;
-        gap: 4px;
+        gap: 3px;
         min-width: 0;
-        min-height: 50px;
-        padding: 6px 4px;
-        border-radius: 10px;
+        min-height: 46px;
+        padding: 5px 1px;
+        border-radius: 8px;
       }
       .home-page .lower-actions .customer-quick-actions ion-icon {
-        width: 16px;
-        height: 16px;
+        width: 13px;
+        height: 13px;
       }
       .home-page .lower-actions .customer-quick-actions span {
         min-width: 0;
         max-width: 100%;
-        overflow: visible;
+        overflow: hidden;
         text-overflow: clip;
         white-space: nowrap;
-        font-size: clamp(0.58rem, 2.25vw, 0.66rem);
-        letter-spacing: -0.04em;
+        font-size: clamp(0.4rem, 1.55vw, 0.48rem);
+        letter-spacing: -0.09em;
         line-height: 1;
       }
       .home-page .lower-actions .customer-quick-actions small { display: none; }
