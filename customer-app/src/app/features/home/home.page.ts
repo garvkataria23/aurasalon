@@ -28,7 +28,9 @@ import {
   swapVerticalOutline,
   timeOutline,
   waterOutline,
-  walletOutline
+  walletOutline,
+  giftOutline,
+  layersOutline
 } from "ionicons/icons";
 import { BusinessCardComponent } from "../../shared/business-card.component";
 import { MySalonCardComponent } from "../../shared/my-salon-card.component";
@@ -243,6 +245,8 @@ interface ConsultationChatMessage {
               <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span><small>Balance and payments</small></a>
               <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span><small>Plans and benefits</small></a>
               <a routerLink="/tabs/rewards"><ion-icon name="pricetag-outline"></ion-icon><span>Rewards</span><small>{{ marketplace.customer()?.loyaltyPoints ?? 0 }} pts available</small></a>
+              <a routerLink="/tabs/gift-cards"><ion-icon name="gift-outline"></ion-icon><span>Gift Cards</span><small>Send a treat</small></a>
+              <a routerLink="/tabs/packages"><ion-icon name="layers-outline"></ion-icon><span>Packages</span><small>Bundle & save</small></a>
             </nav>
           </section>
         }
@@ -2542,7 +2546,9 @@ export class HomePage implements OnInit {
       swapVerticalOutline,
       timeOutline,
       waterOutline,
-      walletOutline
+      walletOutline,
+      giftOutline,
+      layersOutline
     });
   }
 
