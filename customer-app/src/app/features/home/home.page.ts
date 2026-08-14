@@ -239,7 +239,6 @@ interface ConsultationChatMessage {
           <section class="lower-actions">
             <div class="section-heading quiet-home-heading"><div><span class="section-kicker">More to do</span><h2 class="section-title">Quick actions</h2></div></div>
             <nav class="customer-quick-actions" aria-label="Quick actions">
-              <a routerLink="/tabs/bookings"><ion-icon name="calendar-outline"></ion-icon><span>Bookings</span><small>Manage visits</small></a>
               <a routerLink="/tabs/offers"><ion-icon name="pricetag-outline"></ion-icon><span>Offers</span><small>Browse live deals</small></a>
               <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span><small>Balance and payments</small></a>
               <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span><small>Plans and benefits</small></a>
@@ -655,10 +654,10 @@ interface ConsultationChatMessage {
 
     .consultation-error {
       margin: 0;
-      border: 1px solid rgba(239, 68, 68, 0.22);
+      border: 1px solid rgba(244, 63, 94, 0.22);
       border-radius: 14px;
       padding: 9px 11px;
-      color: #B42318;
+      color: #F43F5E;
       background: rgba(255, 241, 240, 0.9);
       font-size: 0.84rem;
       font-weight: 800;
@@ -1141,7 +1140,7 @@ interface ConsultationChatMessage {
       display: grid;
       place-items: center;
       color: #7C63DF;
-      background: linear-gradient(145deg, #E1D6FB, #E1D6FB 42%, #C7D2FE 100%);
+      background: linear-gradient(145deg, #E1D6FB, #E1D6FB 42%, #DCCEF8 100%);
       font-size: 1.2rem;
       font-weight: 1000;
       letter-spacing: -0.04em;
@@ -1261,7 +1260,7 @@ interface ConsultationChatMessage {
       display: grid;
       place-items: center;
       border-radius: 14px;
-      color: #4b1238;
+      color: #5B47C9;
       background: rgba(255, 255, 255, 0.9);
     }
 
@@ -1306,7 +1305,7 @@ interface ConsultationChatMessage {
       display: grid;
       place-items: center;
       border-radius: 14px;
-      color: #4b1238;
+      color: #5B47C9;
       background: rgba(75, 18, 56, 0.1);
     }
 
@@ -1369,7 +1368,7 @@ interface ConsultationChatMessage {
     .discover-service-icon {
       display: grid;
       place-items: center;
-      color: #4b1238;
+      color: #5B47C9;
       background: rgba(75, 18, 56, 0.08);
     }
 
@@ -1440,7 +1439,7 @@ interface ConsultationChatMessage {
     }
 
     .state-card.error p {
-      color: #EF4444;
+      color: #F43F5E;
     }
 
     .skeleton-grid {
@@ -2045,7 +2044,7 @@ interface ConsultationChatMessage {
       display: grid;
       place-items: center;
       color: #8A74E6;
-      background: linear-gradient(145deg, #E1D6FB, #E1D6FB 45%, #C7D2FE);
+      background: linear-gradient(145deg, #E1D6FB, #E1D6FB 45%, #DCCEF8);
       font-size: 1rem;
       font-weight: 950;
     }
