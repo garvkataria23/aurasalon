@@ -162,10 +162,6 @@ import { MarketplaceService } from "../../core/marketplace.service";
     <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
       @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="my-salon" href="/tabs/my-salon" (ionTabButtonClick)="onSalonTabSelect($event)" (click)="handleBottomNav($event, '/tabs/my-salon')">
-          <ion-icon name="sparkles-outline"></ion-icon>
-          <ion-label>My Salon</ion-label>
-        </ion-tab-button>
         <ion-tab-button tab="home" href="/tabs/home" (click)="handleBottomNav($event, '/tabs/home')">
           <ion-icon name="home-outline"></ion-icon>
           <ion-label>Home</ion-label>
@@ -177,6 +173,12 @@ import { MarketplaceService } from "../../core/marketplace.service";
         <ion-tab-button tab="bookings" href="/tabs/bookings" (click)="handleBottomNav($event, '/tabs/bookings')">
           <ion-icon name="calendar-outline"></ion-icon>
           <ion-label>Bookings</ion-label>
+        </ion-tab-button>
+        <ion-tab-button class="salon-toggle-tab" tab="my-salon" href="/tabs/my-salon" (ionTabButtonClick)="onSalonTabSelect($event)" (click)="handleSalonToggleClick($event)" (pointerdown)="startSalonToggle($event)" (pointerup)="finishSalonToggle($event)" (pointercancel)="cancelSalonToggle()">
+          <span class="salon-toggle-track" aria-hidden="true">
+            <span class="salon-toggle-knob"><ion-icon name="sparkles-outline"></ion-icon></span>
+          </span>
+          <ion-label>My Salon</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
       }
@@ -392,6 +394,50 @@ import { MarketplaceService } from "../../core/marketplace.service";
       color: #ffffff;
       background: var(--primary);
       box-shadow: 0 4px 10px rgba(124, 99, 223, 0.18);
+    }
+
+    .salon-toggle-tab {
+      --padding-start: 2px;
+      --padding-end: 2px;
+    }
+
+    .salon-toggle-track {
+      width: 48px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      padding: 2px;
+      border: 1px solid rgba(124, 99, 223, 0.22);
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(240,235,252,0.96));
+      box-shadow: inset 0 1px 2px rgba(124,99,223,0.1), 0 4px 10px rgba(124,99,223,0.1);
+    }
+
+    .salon-toggle-knob {
+      width: 14px;
+      height: 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #ffffff;
+      background: linear-gradient(135deg, #8a74e6, #6b4fe6);
+      box-shadow: 0 3px 8px rgba(124,99,223,0.28);
+      transform: translateX(0);
+      transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+    }
+
+    .salon-toggle-knob ion-icon {
+      padding: 0;
+      font-size: 0.62rem;
+      color: inherit;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .salon-toggle-tab:active .salon-toggle-knob,
+    .salon-toggle-tab.tab-selected .salon-toggle-knob {
+      transform: translateX(28px);
+      box-shadow: 0 4px 10px rgba(124,99,223,0.34);
     }
 
     @media (max-width: 1023px) {
@@ -890,11 +936,14 @@ export class TabsPage implements OnDestroy {
   readonly locationLabel = signal(this.readLocationLabel());
   readonly menuOpen = signal(false);
   readonly currentUrl = signal(this.router.url);
-  private readonly mobileSwipeRoutes = ["/tabs/my-salon", "/tabs/home", "/tabs/search", "/tabs/bookings"];
+  private readonly mobileSwipeRoutes = ["/tabs/home", "/tabs/search", "/tabs/bookings", "/tabs/my-salon"];
   private swipeStartX = 0;
   private swipeStartY = 0;
   private swipeStartRoute = "";
   private swipeTracking = false;
+  private salonToggleStartX = 0;
+  private salonToggleStartY = 0;
+  private suppressSalonToggleClick = false;
   private readonly routeSubscription: Subscription;
 
   constructor(readonly auth: AuthService, private readonly router: Router, readonly marketplace: MarketplaceService, private readonly alerts: AlertController) {
@@ -1022,6 +1071,35 @@ bottomNavVisible(): boolean {
       this.marketplace.enterSalonMode(primary ? { tenantId: primary.tenantId, branchId: primary.branchId, businessId: primary.businessId, businessName: primary.businessName } : null);
     }
     void this.router.navigateByUrl(this.mySalonHref());
+  }
+
+  async handleSalonToggleClick(event: Event): Promise<void> {
+    if (this.suppressSalonToggleClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.suppressSalonToggleClick = false;
+      return;
+    }
+    await this.handleBottomNav(event, "/tabs/my-salon");
+  }
+
+  startSalonToggle(event: PointerEvent): void {
+    this.salonToggleStartX = event.clientX;
+    this.salonToggleStartY = event.clientY;
+  }
+
+  async finishSalonToggle(event: PointerEvent): Promise<void> {
+    const deltaX = event.clientX - this.salonToggleStartX;
+    const deltaY = Math.abs(event.clientY - this.salonToggleStartY);
+    if (deltaX < 22 || deltaY > 18) return;
+    this.suppressSalonToggleClick = true;
+    event.preventDefault();
+    event.stopPropagation();
+    await this.handleBottomNav(event, "/tabs/my-salon");
+  }
+
+  cancelSalonToggle(): void {
+    this.suppressSalonToggleClick = false;
   }
 
   mySalonHref(): string {

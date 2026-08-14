@@ -95,12 +95,14 @@ interface ConsultationChatMessage {
               <ion-icon class="location-chevron" name="chevron-forward-outline"></ion-icon>
             </div>
           </button>
-          <a class="home-ask-aura-shortcut" routerLink="/tabs/consultation" aria-label="Ask Aura">
-            <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
-          </a>
-          <a class="home-profile-shortcut" routerLink="/tabs/profile" aria-label="Open profile">
-            <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
-          </a>
+          <div class="home-top-actions" aria-label="Quick profile actions">
+            <a class="home-ask-aura-shortcut" routerLink="/tabs/consultation" aria-label="Ask Aura">
+              <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+            </a>
+            <a class="home-profile-shortcut" routerLink="/tabs/profile" aria-label="Open profile">
+              <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
+            </a>
+          </div>
         </div>
         <section class="hero dashboard-hero">
           <div class="hero-copy">
@@ -299,34 +301,77 @@ interface ConsultationChatMessage {
       margin: 0;
     }
 
+    .home-top-actions {
+      display: inline-grid;
+      grid-template-columns: repeat(2, 38px);
+      gap: 4px;
+      align-items: center;
+      flex: 0 0 auto;
+      margin-left: auto;
+      margin-right: 12px;
+      padding: 5px;
+      border: 1px solid rgba(124, 99, 223, 0.2);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 12px 26px rgba(124, 99, 223, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    }
+
     .home-ask-aura-shortcut,
     .home-profile-shortcut {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       display: grid;
       place-items: center;
-      flex: 0 0 auto;
+      position: relative;
+      overflow: hidden;
       border: 1px solid rgba(124, 99, 223, 0.18);
       border-radius: 50%;
       color: var(--primary);
-      background: rgba(255, 255, 255, 0.82);
+      background: #ffffff;
       text-decoration: none;
-      box-shadow: 0 10px 22px rgba(124, 99, 223, 0.1);
+      box-shadow: 0 12px 26px rgba(124, 99, 223, 0.16), inset 0 1px 0 rgba(255,255,255,0.96);
+      isolation: isolate;
+    }
+
+    .home-ask-aura-shortcut::before,
+    .home-profile-shortcut::before {
+      position: absolute;
+      inset: 4px;
+      z-index: -1;
+      content: "";
+      border-radius: inherit;
     }
 
     .home-ask-aura-shortcut {
-      margin-left: auto;
+      color: #7c4dff;
+      background: linear-gradient(145deg, #ffffff 0%, #f7f2ff 52%, #eadfff 100%);
+    }
+
+    .home-ask-aura-shortcut::before {
+      background:
+        radial-gradient(circle at 28% 26%, rgba(255,255,255,0.96) 0 15%, transparent 16%),
+        radial-gradient(circle at 72% 70%, rgba(124, 99, 223, 0.16), transparent 42%);
     }
 
     .home-profile-shortcut {
-      margin-right: 12px;
+      color: #6b4fe6;
+      background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 52%, #e8e2ff 100%);
+    }
+
+    .home-profile-shortcut::before {
+      background:
+        radial-gradient(circle at 50% 36%, rgba(124, 99, 223, 0.18) 0 18%, transparent 19%),
+        radial-gradient(circle at 50% 78%, rgba(124, 99, 223, 0.2) 0 26%, transparent 27%);
     }
 
     .home-ask-aura-shortcut ion-icon,
     .home-profile-shortcut ion-icon {
-      font-size: 1.55rem;
-      --ionicon-stroke-width: 38px;
+      font-size: 1.34rem;
+      filter: drop-shadow(0 2px 4px rgba(124, 99, 223, 0.22));
+      --ionicon-stroke-width: 46px;
     }
+
+    .home-profile-shortcut ion-icon { font-size: 1.42rem; }
 
     .location-copy span {
       display: block;
