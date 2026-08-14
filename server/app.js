@@ -337,25 +337,6 @@ export function createApp() {
 
   const clientDist = resolveClientDist();
 
-  const CUSTOMER_APP_DIST = "/home/u840940482/domains/aurashinesalonwellness.in/nodejs/public_html/aurashinecustomer";
-  const customerAppStatic = express.static(CUSTOMER_APP_DIST);
-  app.use((req, res, next) => {
-    const host = req.get("host") || "";
-    if (host.startsWith("aurashinecustomer.aurashinesalonwellness.in")) {
-      customerAppStatic(req, res, (err) => {
-        if (err || res.headersSent) {
-          res.sendFile(join(CUSTOMER_APP_DIST, "index.html"), { dotfiles: "allow" }, (sendErr) => {
-            if (sendErr) next(sendErr);
-          });
-        } else {
-          next();
-        }
-      });
-      return;
-    }
-    next();
-  });
-
   if (clientDist) {
     app.use(express.static(clientDist));
     app.get(/^(?!\/api).*/, (_req, res) => {
@@ -375,8 +356,7 @@ export function createApp() {
       const allowedOrigins = [
         ...env.allowedOrigins,
         "https://aurashinesalonwellness.in",
-        "https://www.aurashinesalonwellness.in",
-        "https://aurashinecustomer.aurashinesalonwellness.in"
+        "https://www.aurashinesalonwellness.in"
       ];
       const isLocalhost = /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) || /^http:\/\/localhost:\d+$/.test(origin);
       if (allowedOrigins.includes(origin) || isLocalhost) {

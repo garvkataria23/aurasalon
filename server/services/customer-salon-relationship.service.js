@@ -11,33 +11,7 @@ export function ensureCustomerSalonRelationshipSchema() {
     'utf8'
   );
   db.exec(sql);
-  ensureMultiPrimarySalons();
   console.log('[MIGRATION] customerSalonRelationship + customerPrimarySalons tables ready');
-}
-
-function ensureMultiPrimarySalons() {
-  const indexes = db.prepare(`PRAGMA index_list('customerPrimarySalons')`).all();
-  const hasUniqueCustomer = indexes.some((i) => i.unique === 1 && i.origin === 'u');
-  if (!hasUniqueCustomer) return;
-  db.exec(`
-    BEGIN;
-    CREATE TABLE customerPrimarySalons_new (
-      id TEXT PRIMARY KEY,
-      customerId TEXT NOT NULL,
-      tenantId TEXT NOT NULL,
-      branchId TEXT NOT NULL,
-      businessId TEXT NOT NULL DEFAULT '',
-      businessName TEXT NOT NULL DEFAULT '',
-      reason TEXT NOT NULL DEFAULT 'manual',
-      setAt TEXT NOT NULL
-    );
-    INSERT INTO customerPrimarySalons_new (id, customerId, tenantId, branchId, businessId, businessName, reason, setAt)
-      SELECT id, customerId, tenantId, branchId, businessId, businessName, reason, setAt FROM customerPrimarySalons;
-    DROP TABLE customerPrimarySalons;
-    ALTER TABLE customerPrimarySalons_new RENAME TO customerPrimarySalons;
-    CREATE INDEX IF NOT EXISTS idx_cps_customer ON customerPrimarySalons(customerId);
-    COMMIT;
-  `);
 }
 
 // ─── Relationship CRUD ───────────────────────────────────────────────
@@ -117,24 +91,14 @@ export function getRelationshipsByTenant(customerId, tenantId) {
 // ─── Primary Salon ───────────────────────────────────────────────────
 
 /**
- * Get customer's most recently set primary salon across all tenants.
- * Design: multiple primary salons per customer (marketplace-wide, multi-primary).
- * Returns the latest for single-primary consumers.
+ * Get customer's primary salon across all tenants.
+ * Design: one primary salon per customer (marketplace-wide).
  * Intentionally cross-tenant.
  */
 export function getPrimarySalon(customerId) {
   return db.prepare(`
-    SELECT * FROM customerPrimarySalons WHERE customerId = @customerId ORDER BY setAt DESC LIMIT 1
+    SELECT * FROM customerPrimarySalons WHERE customerId = @customerId
   `).get({ customerId });
-}
-
-/**
- * Get all of a customer's primary salons across all tenants (multi-primary).
- */
-export function getPrimarySalons(customerId) {
-  return db.prepare(`
-    SELECT * FROM customerPrimarySalons WHERE customerId = @customerId ORDER BY setAt DESC
-  `).all({ customerId });
 }
 
 /**
@@ -146,45 +110,36 @@ export function getPrimarySalonByTenant(customerId, tenantId) {
   `).get({ customerId, tenantId });
 }
 
-export function setPrimarySalon({ customerId, tenantId, branchId, businessId, businessName, reason, mode = 'replace' }) {
+export function setPrimarySalon({ customerId, tenantId, branchId, businessId, businessName, reason }) {
+  const id = `cps_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const now = new Date().toISOString();
-  const payload = { customerId, tenantId, branchId: branchId || '', businessId: businessId || '', businessName: businessName || '', reason: reason || 'manual', now };
+  const payload = { id, customerId, tenantId, branchId: branchId || '', businessId: businessId || '', businessName: businessName || '', reason: reason || 'manual', now };
 
-  if (mode === 'add') {
-    const rel = db.prepare(`
-      SELECT * FROM customerPrimarySalons
-      WHERE customerId = @customerId AND tenantId = @tenantId AND branchId = @branchId
-    `).get(payload);
-    if (rel) {
-      db.prepare(`
-        UPDATE customerPrimarySalons
-        SET businessId = @businessId, businessName = @businessName, reason = @reason, setAt = @now
-        WHERE id = @id
-      `).run({ ...payload, id: rel.id });
-      return db.prepare(`SELECT * FROM customerPrimarySalons WHERE id = @id`).get({ id: rel.id });
-    }
-    const id = `cps_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const existing = getPrimarySalon(customerId);
+  if (existing) {
     db.prepare(`
-      INSERT INTO customerPrimarySalons (id, customerId, tenantId, branchId, businessId, businessName, reason, setAt)
-      VALUES (@id, @customerId, @tenantId, @branchId, @businessId, @businessName, @reason, @now)
-    `).run({ ...payload, id });
-    return db.prepare(`SELECT * FROM customerPrimarySalons WHERE id = @id`).get({ id });
+      UPDATE customerPrimarySalons
+      SET tenantId = @tenantId,
+          branchId = @branchId,
+          businessId = @businessId,
+          businessName = @businessName,
+          reason = @reason,
+          setAt = @now
+      WHERE customerId = @customerId
+    `).run(payload);
+    return getPrimarySalon(customerId);
   }
 
-  const id = `cps_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  db.prepare(`DELETE FROM customerPrimarySalons WHERE customerId = @customerId`).run({ customerId });
   db.prepare(`
     INSERT INTO customerPrimarySalons (id, customerId, tenantId, branchId, businessId, businessName, reason, setAt)
     VALUES (@id, @customerId, @tenantId, @branchId, @businessId, @businessName, @reason, @now)
-  `).run({ ...payload, id });
+  `).run(payload);
 
   return db.prepare(`SELECT * FROM customerPrimarySalons WHERE id = @id`).get({ id });
 }
 
-export function removePrimarySalon(customerId, tenantId, branchId) {
-  if (tenantId && branchId) {
-    db.prepare(`DELETE FROM customerPrimarySalons WHERE customerId = @customerId AND tenantId = @tenantId AND branchId = @branchId`).run({ customerId, tenantId, branchId });
-  } else if (tenantId) {
+export function removePrimarySalon(customerId, tenantId) {
+  if (tenantId) {
     db.prepare(`DELETE FROM customerPrimarySalons WHERE customerId = @customerId AND tenantId = @tenantId`).run({ customerId, tenantId });
   } else {
     // Fallback: remove all primary salons for this customer (profile-level action)
@@ -222,7 +177,6 @@ export const customerSalonRelationshipService = {
   getAllRelationships,
   getRelationshipsByTenant,
   getPrimarySalon,
-  getPrimarySalons,
   getPrimarySalonByTenant,
   setPrimarySalon,
   removePrimarySalon,

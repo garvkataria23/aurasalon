@@ -257,14 +257,11 @@ export const customerNotificationService = {
   list(access, query = {}) {
     assertCustomer(access);
     const limit = Math.min(Math.max(Number(query.limit || 100), 1), 200);
-    const tenantId = String(query.tenantId || access.tenantId || "");
-    const branchId = String(query.branchId || "");
-    const branchClause = branchId ? " AND branchId = @branchId" : "";
     return db.prepare(`SELECT * FROM customerInboxNotifications
-      WHERE tenantId = @tenantId AND customerId = @customerId${branchClause} AND archivedAt = ''
+      WHERE tenantId = @tenantId AND customerId = @customerId AND archivedAt = ''
         AND datetime(scheduledAt) <= datetime(@currentTime)
       ORDER BY datetime(scheduledAt) DESC, datetime(createdAt) DESC LIMIT @limit`)
-      .all({ tenantId, branchId, customerId: access.userId, currentTime: now(), limit }).map(notificationRow);
+      .all({ tenantId: access.tenantId, customerId: access.userId, currentTime: now(), limit }).map(notificationRow);
   },
 
   markRead(access, notificationId, status = "read") {
