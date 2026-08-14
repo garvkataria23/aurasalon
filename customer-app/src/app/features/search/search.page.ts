@@ -97,7 +97,7 @@ interface QuickFilterChip {
             <div class="search-command-input-wrap">
               <ion-icon class="search-command-leading-icon" name="search-outline"></ion-icon>
               <input class="search-command-input" type="search" [placeholder]="placeholder()" [value]="query()" (focus)="setKeyboardFocus(true)" (blur)="setKeyboardFocus(false)" (input)="setQuery($any($event.target).value || '')" aria-label="Search salons" />
-              @if (suggestions().length) {
+              @if (suggestions().length && !suggestionsDismissed()) {
                 <div class="suggestion-panel" role="listbox" aria-label="Search suggestions">
                   @for (suggestion of suggestions(); track suggestion.key) {
                     <button type="button" role="option" (click)="applySuggestion(suggestion)">
@@ -596,7 +596,7 @@ interface QuickFilterChip {
     }
 
     .search-control-button.active {
-      color: #4b1238;
+      color: #5B47C9;
       border-color: rgba(75, 18, 56, 0.28);
       background: rgba(75, 18, 56, 0.1);
     }
@@ -1377,7 +1377,7 @@ interface QuickFilterChip {
     }
 
     .map-state.warning strong {
-      color: #EF4444;
+      color: #F43F5E;
     }
 
     .map-state.compact {
@@ -1602,7 +1602,7 @@ interface QuickFilterChip {
       }
 
       .premium-chip-row button.selected {
-        color: #4b1238;
+        color: #5B47C9;
         border-color: rgba(75, 18, 56, 0.24);
         background: rgba(75, 18, 56, 0.12);
       }
@@ -1674,7 +1674,7 @@ interface QuickFilterChip {
       }
 
       .premium-map-switch.active {
-        color: #4b1238;
+        color: #5B47C9;
         border-color: rgba(75, 18, 56, 0.28);
         background: rgba(75, 18, 56, 0.12);
       }
@@ -3349,6 +3349,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
   private searchSequence = 0;
   readonly keyboardOpen = signal(false);
   readonly inputFocused = signal(false);
+  readonly suggestionsDismissed = signal(false);
   readonly mapCenter = signal<{ lat: number; lng: number }>(this.defaultCenter);
   readonly placeholder = computed(() => {
     if (this.mode() === "services") return "Search services";
@@ -3748,6 +3749,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
 
   setQuery(value: string) {
     this.query.set(value);
+    this.suggestionsDismissed.set(false);
     this.scheduleSearch();
   }
 
@@ -3944,6 +3946,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
 
   applySuggestion(suggestion: SearchSuggestion) {
     this.query.set(suggestion.query);
+    this.suggestionsDismissed.set(true);
     if (!suggestion.business) {
       this.selectedBusiness.set(null);
       void this.executeSearch();
