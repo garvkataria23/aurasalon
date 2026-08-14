@@ -504,7 +504,7 @@ interface QuickFilterChip {
 
     .search-command-bar:focus-within {
       border-color: var(--focus);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14), 0 8px 22px rgba(28, 28, 28, 0.08);
+      box-shadow: 0 0 0 3px rgba(124, 99, 223, 0.14), 0 8px 22px rgba(28, 28, 28, 0.08);
     }
 
     .search-command-row {
@@ -769,12 +769,12 @@ interface QuickFilterChip {
     .location-select-row ion-select {
       min-height: 46px;
       padding: 0 12px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(124, 99, 223, 0.16);
       border-radius: 999px;
       color: var(--text);
       background: var(--glass);
       font-weight: 900;
-      box-shadow: 0 8px 18px rgba(99, 102, 241, 0.06);
+      box-shadow: 0 8px 18px rgba(124, 99, 223, 0.06);
     }
 
     .selected-area-row {
@@ -784,7 +784,7 @@ interface QuickFilterChip {
       gap: 10px;
       min-height: 44px;
       padding: 12px 14px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(124, 99, 223, 0.16);
       border-radius: 22px;
       color: var(--text);
       background: rgba(231, 240, 248, 0.78);
@@ -860,7 +860,7 @@ interface QuickFilterChip {
       display: grid;
       gap: 6px;
       padding: 8px;
-      border: 1px solid rgba(99, 102, 241, 0.14);
+      border: 1px solid rgba(124, 99, 223, 0.14);
       border-radius: 20px;
       background: var(--surface);
       box-shadow: 0 12px 30px rgba(17, 24, 39, 0.1);
@@ -883,7 +883,7 @@ interface QuickFilterChip {
 
     .suggestion-panel button:hover,
     .suggestion-panel button:focus-visible {
-      background: rgba(99, 102, 241, 0.08);
+      background: rgba(124, 99, 223, 0.08);
     }
 
     .suggestion-panel strong,
@@ -1123,8 +1123,8 @@ interface QuickFilterChip {
       --color: var(--muted);
       --color-checked: var(--primary);
       --background-checked: var(--primary-soft);
-      --background-hover: rgba(99, 102, 241, 0.06);
-      --background-focused: rgba(99, 102, 241, 0.1);
+      --background-hover: rgba(124, 99, 223, 0.06);
+      --background-focused: rgba(124, 99, 223, 0.1);
       font-size: 0.76rem;
       font-weight: 900;
     }
@@ -1169,7 +1169,7 @@ interface QuickFilterChip {
       margin: 0;
       max-height: calc(100vh - 32px);
       border-radius: 28px;
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.98));
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(240, 235, 252, 0.98));
       box-shadow: 0 30px 90px rgba(28, 28, 28, 0.24);
     }
 
@@ -1240,7 +1240,7 @@ interface QuickFilterChip {
 
     .live-map.picking {
       cursor: crosshair;
-      outline: 3px solid rgba(99, 102, 241, 0.4);
+      outline: 3px solid rgba(124, 99, 223, 0.4);
       outline-offset: -3px;
     }
 
@@ -1269,7 +1269,7 @@ interface QuickFilterChip {
       border: 3px solid #ffffff;
       border-radius: 999px;
       transform: translate(-50%, -50%);
-      box-shadow: 0 14px 24px rgba(99, 102, 241, 0.26);
+      box-shadow: 0 14px 24px rgba(124, 99, 223, 0.26);
     }
 
     .venue-pin {
@@ -1290,9 +1290,9 @@ interface QuickFilterChip {
       width: 38px;
       height: 38px;
       background: var(--brand-900);
-      outline: 4px solid rgba(99, 102, 241, 0.3);
+      outline: 4px solid rgba(124, 99, 223, 0.3);
       outline-offset: 2px;
-      box-shadow: 0 18px 32px rgba(99, 102, 241, 0.3);
+      box-shadow: 0 18px 32px rgba(124, 99, 223, 0.3);
     }
 
     .live-map .venue-pin,
@@ -1506,7 +1506,7 @@ interface QuickFilterChip {
       gap: 7px;
       min-height: 44px;
       padding: 0 14px;
-      border: 1px solid rgba(99, 102, 241, 0.28);
+      border: 1px solid rgba(124, 99, 223, 0.28);
       border-radius: 999px;
       color: var(--primary);
       background: var(--primary-soft);
@@ -1658,7 +1658,7 @@ interface QuickFilterChip {
         flex: 0 0 auto;
         min-height: 32px;
         padding: 0 9px;
-        border: 1px solid rgba(99, 102, 241, 0.18);
+        border: 1px solid rgba(124, 99, 223, 0.18);
         border-radius: 999px;
         background: var(--primary-soft);
         color: var(--primary);
@@ -1725,7 +1725,7 @@ interface QuickFilterChip {
         display: block;
         margin-bottom: 14px;
         padding: 0 8px;
-        border: 1px solid rgba(99, 102, 241, 0.12);
+        border: 1px solid rgba(124, 99, 223, 0.12);
         border-radius: 16px;
         background: var(--surface);
         box-shadow: 0 8px 22px rgba(28, 28, 28, 0.08);
@@ -1896,14 +1896,14 @@ interface QuickFilterChip {
     }
 
     .map-toggle-button {
-      border-color: rgba(99, 102, 241, 0.18);
+      border-color: rgba(124, 99, 223, 0.18);
       color: var(--primary);
     }
 
     .header-change-button {
       min-height: 36px;
       padding: 0 14px;
-      border: 1px solid rgba(99, 102, 241, 0.28);
+      border: 1px solid rgba(124, 99, 223, 0.28);
       border-radius: 999px;
       color: var(--primary);
       background: var(--glass);
@@ -1963,7 +1963,7 @@ interface QuickFilterChip {
     }
 
     .fresha-filter-row button.active:not(.filter-icon-button) {
-      border-color: rgba(99, 102, 241, 0.5);
+      border-color: rgba(124, 99, 223, 0.5);
       color: var(--primary);
       background: linear-gradient(135deg, rgba(231, 240, 248, 0.96), rgba(255, 255, 255, 0.92));
     }
@@ -2044,7 +2044,7 @@ interface QuickFilterChip {
       flex: 0 0 auto;
       min-height: 32px;
       padding: 0 12px;
-      border: 1px solid rgba(99, 102, 241, 0.35);
+      border: 1px solid rgba(124, 99, 223, 0.35);
       border-radius: 999px;
       color: var(--primary);
       background: var(--glass);
@@ -2079,7 +2079,7 @@ interface QuickFilterChip {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
       max-height: min(82vh, 760px);
-      border: 1px solid rgba(99, 102, 241, 0.32);
+      border: 1px solid rgba(124, 99, 223, 0.32);
       border-radius: 28px 28px 0 0;
       background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(231, 240, 248, 0.98));
       box-shadow: 0 -24px 70px rgba(28, 28, 28, 0.2);
@@ -2114,7 +2114,7 @@ interface QuickFilterChip {
 
     .sheet-header {
       top: 0;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.18);
+      border-bottom: 1px solid rgba(124, 99, 223, 0.18);
     }
 
     .sheet-header div {
@@ -2138,7 +2138,7 @@ interface QuickFilterChip {
     .sheet-header button {
       min-height: 44px;
       padding: 0 14px;
-      border: 1px solid rgba(99, 102, 241, 0.28);
+      border: 1px solid rgba(124, 99, 223, 0.28);
       border-radius: 999px;
       color: var(--primary);
       background: var(--glass);
@@ -2184,7 +2184,7 @@ interface QuickFilterChip {
       gap: 4px;
       min-height: 72px;
       padding: 12px 14px;
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(124, 99, 223, 0.2);
       border-radius: 18px;
       color: var(--text);
       background: var(--glass);
@@ -2275,7 +2275,7 @@ interface QuickFilterChip {
       width: 100%;
       min-height: 44px;
       padding: 0 12px 0 28px;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       border-radius: 14px;
       background: var(--surface);
       color: var(--text);
@@ -2285,7 +2285,7 @@ interface QuickFilterChip {
 
     .sheet-footer {
       bottom: 0;
-      border-top: 1px solid rgba(99, 102, 241, 0.18);
+      border-top: 1px solid rgba(124, 99, 223, 0.18);
       padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
 
@@ -2306,7 +2306,7 @@ interface QuickFilterChip {
       align-items: center;
       gap: 10px;
       padding: 12px 14px;
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(124, 99, 223, 0.18);
       border-radius: 16px;
       color: var(--primary);
       background: var(--primary-soft);
@@ -2325,7 +2325,7 @@ interface QuickFilterChip {
 
     .option-grid button.needs-location.selected {
       opacity: 1;
-      border-color: rgba(99, 102, 241, 0.4);
+      border-color: rgba(124, 99, 223, 0.4);
       background: linear-gradient(135deg, rgba(231, 240, 248, 0.96), rgba(203, 213, 225, 0.76));
       color: var(--brand-800);
     }
@@ -2355,7 +2355,7 @@ interface QuickFilterChip {
       place-items: center;
       width: 44px;
       height: 44px;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       border-radius: 999px;
       color: var(--text);
       background: var(--glass);
@@ -2422,7 +2422,7 @@ interface QuickFilterChip {
       display: grid;
       gap: 12px;
       padding: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.32);
+      border: 1px solid rgba(124, 99, 223, 0.32);
       border-radius: 24px;
       background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(231, 240, 248, 0.94));
       box-shadow: 0 18px 42px rgba(28, 28, 28, 0.12);
@@ -2565,7 +2565,7 @@ interface QuickFilterChip {
     }
 
     .filter-icon-button.active {
-      border-color: rgba(99, 102, 241, 0.5);
+      border-color: rgba(124, 99, 223, 0.5);
       color: var(--primary);
       background: linear-gradient(135deg, rgba(231, 240, 248, 0.96), rgba(255, 255, 255, 0.92));
     }

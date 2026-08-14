@@ -272,7 +272,7 @@ type ChatMessage = CustomerBookingChatMessage & { deliveryState?: DeliveryState 
     .message-row.customer { align-self: flex-end; justify-items: end; }
     .message-row.system { max-width: min(92%, 680px); align-self: center; }
     .message-bubble { min-width: 74px; padding: 12px 14px 9px; border: 1px solid var(--border); border-radius: 16px 16px 16px 4px; background: var(--surface); box-shadow: 0 3px 12px rgba(28, 28, 28, 0.05); }
-    .customer .message-bubble { color: #FFFFFF; border-color: var(--primary); border-radius: 16px 16px 4px 16px; background: var(--primary); box-shadow: 0 6px 18px rgba(99, 102, 241, 0.2); }
+    .customer .message-bubble { color: #FFFFFF; border-color: var(--primary); border-radius: 16px 16px 4px 16px; background: var(--primary); box-shadow: 0 6px 18px rgba(124, 99, 223, 0.2); }
     .system .message-bubble { padding: 8px 14px; border: 0; border-radius: 999px; color: var(--muted); background: var(--surface-elevated); box-shadow: none; text-align: center; }
     .sender { display: block; margin-bottom: 3px; color: var(--muted); font-size: 0.76rem; font-weight: 850; letter-spacing: 0.025em; }
     .customer .sender { color: rgba(255, 255, 255, 0.82); }
@@ -333,7 +333,7 @@ type ChatMessage = CustomerBookingChatMessage & { deliveryState?: DeliveryState 
     .composer-field { position: relative; min-width: 0; }
     textarea { width: 100%; max-height: 128px; min-height: 48px; display: block; resize: none; overflow-y: auto; padding: 12px 48px 12px 14px; border: 1px solid var(--border); border-radius: 16px; outline: 0; color: var(--text); background: var(--surface-soft); font: inherit; font-size: 0.9rem; line-height: 1.45; }
     textarea::placeholder { color: var(--muted); opacity: 1; }
-    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124, 99, 223, 0.15); }
     textarea:disabled { color: var(--muted); background: var(--surface-soft); }
     .character-count { position: absolute; right: 11px; bottom: 7px; color: var(--muted); font-size: 0.74rem; font-weight: 750; }
     .character-count.at-limit { color: #B42318; }
@@ -348,7 +348,7 @@ type ChatMessage = CustomerBookingChatMessage & { deliveryState?: DeliveryState 
       color: #FFFFFF;
       background: var(--primary);
       font-size: 1.25rem;
-      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.26);
+      box-shadow: 0 6px 16px rgba(124, 99, 223, 0.26);
       transition: background 180ms ease-out, transform 180ms ease-out;
     }
     .send-button:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }

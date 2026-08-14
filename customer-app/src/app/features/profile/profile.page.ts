@@ -307,11 +307,11 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       min-width: 0;
       min-height: 28px;
       padding: 0 10px;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       border-radius: 999px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 12px 24px rgba(124, 99, 223, 0.18);
       font: inherit;
       font-size: 0.72rem;
       font-weight: 850;
@@ -327,7 +327,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
     .edit-profile-button:focus-visible {
       outline: none;
       transform: translateY(-1px);
-      box-shadow: 0 14px 28px rgba(99, 102, 241, 0.22);
+      box-shadow: 0 14px 28px rgba(124, 99, 223, 0.22);
     }
 
     .avatar {
@@ -339,7 +339,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       border-radius: 18px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2), var(--accent));
-      box-shadow: 0 16px 34px rgba(99, 102, 241, 0.2);
+      box-shadow: 0 16px 34px rgba(124, 99, 223, 0.2);
       font-size: 1.15rem;
       font-weight: 900;
     }
@@ -397,7 +397,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
         linear-gradient(135deg, var(--brand-600) 0%, var(--primary) 48%, var(--brand-900) 100%);
       box-shadow:
         0 18px 38px rgba(28, 28, 28, 0.18),
-        0 8px 18px rgba(99, 102, 241, 0.2),
+        0 8px 18px rgba(124, 99, 223, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.58);
       transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease;
     }
@@ -433,7 +433,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
         transform: translateY(-3px);
         box-shadow:
           0 22px 46px rgba(28, 28, 28, 0.2),
-          0 12px 24px rgba(99, 102, 241, 0.24),
+          0 12px 24px rgba(124, 99, 223, 0.24),
           inset 0 1px 0 rgba(255, 255, 255, 0.68);
       }
     }
@@ -557,7 +557,7 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       display: grid;
       gap: 10px;
       padding: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(124, 99, 223, 0.18);
       border-radius: 18px;
       background: var(--primary-soft);
     }

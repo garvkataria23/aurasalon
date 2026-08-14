@@ -242,7 +242,7 @@ interface HelpItem {
 
     .search-field:focus-within {
       border-color: var(--focus);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16), 0 8px 22px rgba(28, 28, 28, 0.08);
+      box-shadow: 0 0 0 3px rgba(124, 99, 223, 0.16), 0 8px 22px rgba(28, 28, 28, 0.08);
     }
 
     .search-field ion-icon {

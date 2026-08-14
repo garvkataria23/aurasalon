@@ -50,10 +50,10 @@ const BOOKING_PROGRESS_STEPS: BookingProgressStep[] = [
     :host { display: block; position: sticky; top: 0; z-index: 20; }
     .booking-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 10px 0 8px; background: var(--app-bg); }
     .booking-progress-step { min-width: 0; min-height: 56px; display: grid; justify-items: center; align-content: center; gap: 6px; padding: 8px 6px; border: 1px solid var(--border); border-radius: 16px; color: var(--muted); background: var(--surface); font: inherit; font-weight: 900; text-align: center; }
-    .booking-progress-step.completed { color: var(--primary); border-color: rgba(99, 102, 241, 0.34); background: var(--primary-soft); }
+    .booking-progress-step.completed { color: var(--primary); border-color: rgba(124, 99, 223, 0.34); background: var(--primary-soft); }
     .booking-progress-step.completed .progress-marker { background: var(--primary); }
     .booking-progress-step.completed .progress-marker ion-icon { color: #FFFFFF; }
-    .booking-progress-step.current { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18); }
+    .booking-progress-step.current { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 12px 24px rgba(124, 99, 223, 0.18); }
     .booking-progress-step.current .progress-marker { background: rgba(255, 255, 255, 0.22); }
     .booking-progress-step.inactive { cursor: default; opacity: 1; background: var(--surface); }
     .booking-progress-step.inactive .progress-marker { color: var(--muted); background: rgba(102, 112, 133, 0.14); border: 1px solid rgba(102, 112, 133, 0.3); }

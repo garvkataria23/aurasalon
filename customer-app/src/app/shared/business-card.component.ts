@@ -112,13 +112,13 @@ import { MarketplaceService } from "../core/marketplace.service";
     }
 
     .business-card:focus-visible {
-      outline: 3px solid rgba(99, 102, 241, 0.4);
+      outline: 3px solid rgba(124, 99, 223, 0.4);
       outline-offset: 3px;
     }
 
     .business-card.highlighted {
-      border-color: rgba(99, 102, 241, 0.62);
-      box-shadow: 0 24px 54px rgba(28, 28, 28, 0.16), 0 0 36px rgba(99, 102, 241, 0.14);
+      border-color: rgba(124, 99, 223, 0.62);
+      box-shadow: 0 24px 54px rgba(28, 28, 28, 0.16), 0 0 36px rgba(124, 99, 223, 0.14);
     }
 
     .cover {
@@ -166,7 +166,7 @@ import { MarketplaceService } from "../core/marketplace.service";
     }
 
     .business-card.variant-discovery {
-      border-color: rgba(99, 102, 241, 0.2);
+      border-color: rgba(124, 99, 223, 0.2);
       box-shadow: 0 12px 28px rgba(28, 28, 28, 0.085);
     }
 
@@ -225,7 +225,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       height: 44px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       border-radius: 999px;
       color: var(--text);
       background: var(--glass);
@@ -235,7 +235,7 @@ import { MarketplaceService } from "../core/marketplace.service";
 
     .favorite.saved {
       color: #FFFFFF;
-      border-color: rgba(99, 102, 241, 0.42);
+      border-color: rgba(124, 99, 223, 0.42);
       background: linear-gradient(135deg, var(--brand-600), var(--primary));
     }
 
@@ -449,7 +449,7 @@ import { MarketplaceService } from "../core/marketplace.service";
     @media (hover: hover) and (pointer: fine) {
       .business-card:hover {
         transform: translateY(-4px);
-        border-color: rgba(99, 102, 241, 0.34);
+        border-color: rgba(124, 99, 223, 0.34);
         box-shadow: var(--shadow-card);
       }
     }

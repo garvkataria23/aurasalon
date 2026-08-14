@@ -262,13 +262,13 @@ import { CustomerDeviceSession, CustomerNotificationPreferences } from "../../co
       transition: border-color var(--motion-fast), background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
     }
     .theme-option ion-icon { font-size: 1.35rem; }
-    .theme-option:hover { border-color: rgba(99, 102, 241, 0.4); }
+    .theme-option:hover { border-color: rgba(124, 99, 223, 0.4); }
     .theme-option:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
     .theme-option.active {
       color: #FFFFFF;
       border-color: var(--primary);
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 10px 22px rgba(99, 102, 241, 0.22);
+      box-shadow: 0 10px 22px rgba(124, 99, 223, 0.22);
     }
     .theme-hint {
       margin: 0;
@@ -290,7 +290,7 @@ import { CustomerDeviceSession, CustomerNotificationPreferences } from "../../co
       line-height: 1.45;
     }
     .empty-state { color: var(--muted); background: var(--surface-soft); }
-    .notice-text { color: var(--primary); background: var(--primary-soft); border: 1px solid rgba(99, 102, 241, 0.22); }
+    .notice-text { color: var(--primary); background: var(--primary-soft); border: 1px solid rgba(124, 99, 223, 0.22); }
     .error-text { color: #EF4444; background: var(--error-soft); border: 1px solid rgba(225, 29, 72, 0.16); }
     .settings-card .empty-state { margin: 14px 18px 0; }
     strong, span { display: block; }

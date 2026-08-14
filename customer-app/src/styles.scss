@@ -83,7 +83,7 @@ canvas {
 }
 
 *::-webkit-scrollbar-corner {
-  background: rgba(246, 249, 252, 0.94);
+  background: rgba(240, 235, 252, 0.94);
 }
 
 a {
@@ -176,9 +176,9 @@ ion-router-outlet > .ion-page {
     position: fixed;
     inset: 98px max(22px, calc((100vw - 1504px) / 2)) 22px;
     z-index: -1;
-    border: 1px solid rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(124, 99, 223, 0.1);
     border-radius: 38px;
-    background: linear-gradient(180deg, rgba(246, 249, 252, 0.48), rgba(255, 255, 255, 0.2));
+    background: linear-gradient(180deg, rgba(240, 235, 252, 0.48), rgba(255, 255, 255, 0.2));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
     pointer-events: none;
   }
@@ -217,10 +217,10 @@ ion-tab-button {
   --background: transparent;
   --background-focused: var(--primary-soft);
   --background-focused-opacity: 1;
-  --background-hover: rgba(99, 102, 241, 0.08);
+  --background-hover: rgba(124, 99, 223, 0.08);
   --color: var(--muted);
   --color-selected: var(--primary);
-  --ripple-color: rgba(99, 102, 241, 0.14);
+  --ripple-color: rgba(124, 99, 223, 0.14);
   font-weight: 800;
   transition: color var(--motion-fast), transform var(--motion-fast), opacity var(--motion-fast);
 }
@@ -231,7 +231,7 @@ ion-tab-button.tab-selected ion-icon {
   border-radius: 999px;
   color: #FFFFFF;
   background: linear-gradient(135deg, var(--brand-600), var(--brand-700) 48%, var(--brand-800));
-  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 20px rgba(124, 99, 223, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.82);
   animation: aura-tab-pop 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both, aura-gold-ring 2.8s ease-in-out infinite 420ms;
 }
 
@@ -448,7 +448,7 @@ ion-alert.aura-alert .alert-button-role-add {
   --background-activated: var(--primary-active);
   --color: #FFFFFF;
   --color-activated: #FFFFFF;
-  --box-shadow: 0 10px 22px rgba(99, 102, 241, 0.22);
+  --box-shadow: 0 10px 22px rgba(124, 99, 223, 0.22);
   --border-radius: 999px;
   --min-height: 44px;
   font-weight: 900;
@@ -555,7 +555,7 @@ ion-alert.aura-alert .alert-button-role-add {
 
 .rating-pill {
   color: var(--primary-2);
-  border-color: rgba(99, 102, 241, 0.28);
+  border-color: rgba(124, 99, 223, 0.28);
   background: var(--glass);
   box-shadow: none;
   backdrop-filter: none;
@@ -563,7 +563,7 @@ ion-alert.aura-alert .alert-button-role-add {
 
 .status-pill {
   color: var(--primary-2);
-  border-color: rgba(99, 102, 241, 0.24);
+  border-color: rgba(124, 99, 223, 0.24);
   background: var(--primary-soft);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -603,7 +603,7 @@ ion-alert.aura-alert .alert-button-role-add {
   justify-content: space-between;
   gap: 14px;
   padding: 12px;
-  border: 1px solid rgba(99, 102, 241, 0.24);
+  border: 1px solid rgba(124, 99, 223, 0.24);
   border-radius: 20px;
   background: #FFFFFF;
   box-shadow: 0 12px 34px rgba(28, 28, 28, 0.12);
@@ -786,8 +786,8 @@ ion-button::part(native)::after {
   .favorite:hover,
   .check-slots-button:hover {
     transform: translateY(-3px);
-    border-color: rgba(99, 102, 241, 0.38);
-    box-shadow: 0 18px 42px rgba(28, 28, 28, 0.12), 0 0 24px rgba(99, 102, 241, 0.1);
+    border-color: rgba(124, 99, 223, 0.38);
+    box-shadow: 0 18px 42px rgba(28, 28, 28, 0.12), 0 0 24px rgba(124, 99, 223, 0.1);
     filter: saturate(1.08) brightness(1.03);
   }
 
@@ -809,7 +809,7 @@ ion-button::part(native)::after {
   }
 
   ion-button:hover::part(native) {
-    box-shadow: 0 18px 42px rgba(99, 102, 241, 0.22);
+    box-shadow: 0 18px 42px rgba(124, 99, 223, 0.22);
   }
 
   ion-button:hover ion-icon,
@@ -822,8 +822,8 @@ ion-button::part(native)::after {
   .premium-card:hover,
   .glass-card:hover {
     transform: translateY(-3px);
-    border-color: rgba(99, 102, 241, 0.34);
-    box-shadow: 0 24px 58px rgba(28, 28, 28, 0.14), 0 0 34px rgba(99, 102, 241, 0.08);
+    border-color: rgba(124, 99, 223, 0.34);
+    box-shadow: 0 24px 58px rgba(28, 28, 28, 0.14), 0 0 34px rgba(124, 99, 223, 0.08);
   }
 
   .premium-card:hover .image-fill,
@@ -847,7 +847,7 @@ ion-button::part(native)::after {
 
   .bottom-action-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 28px 64px rgba(28, 28, 28, 0.18), 0 0 34px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 28px 64px rgba(28, 28, 28, 0.18), 0 0 34px rgba(124, 99, 223, 0.1);
   }
 }
 
@@ -976,37 +976,37 @@ ion-button::part(native)::after {
 
 @keyframes aura-gold-ring {
   0% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.28);
+    box-shadow: 0 0 0 0 rgba(124, 99, 223, 0.28);
   }
   72% {
-    box-shadow: 0 0 0 12px rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 12px rgba(124, 99, 223, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 0 rgba(124, 99, 223, 0);
   }
 }
 
 @keyframes aura-selected-glow {
   0%,
   100% {
-    box-shadow: 0 16px 34px rgba(99, 102, 241, 0.18);
+    box-shadow: 0 16px 34px rgba(124, 99, 223, 0.18);
     filter: saturate(1) brightness(1);
   }
   50% {
-    box-shadow: 0 18px 40px rgba(99, 102, 241, 0.28), 0 0 26px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 18px 40px rgba(124, 99, 223, 0.28), 0 0 26px rgba(124, 99, 223, 0.1);
     filter: saturate(1.12) brightness(1.04);
   }
 }
 
 @keyframes aura-focus-spark {
   0% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.38);
+    box-shadow: 0 0 0 0 rgba(124, 99, 223, 0.38);
   }
   55% {
-    box-shadow: 0 0 0 7px rgba(99, 102, 241, 0.12), 0 16px 34px rgba(28, 28, 28, 0.12);
+    box-shadow: 0 0 0 7px rgba(124, 99, 223, 0.12), 0 16px 34px rgba(28, 28, 28, 0.12);
   }
   100% {
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 16px 34px rgba(28, 28, 28, 0.12);
+    box-shadow: 0 0 0 3px rgba(124, 99, 223, 0.18), 0 16px 34px rgba(28, 28, 28, 0.12);
   }
 }
 
@@ -1143,8 +1143,8 @@ ion-segment-button {
   --color-checked: var(--primary);
   --indicator-color: var(--primary);
   --background-checked: var(--primary-soft);
-  --background-hover: rgba(99, 102, 241, 0.08);
-  --background-focused: rgba(99, 102, 241, 0.1);
+  --background-hover: rgba(124, 99, 223, 0.08);
+  --background-focused: rgba(124, 99, 223, 0.1);
 }
 
 input,
@@ -1171,7 +1171,7 @@ select,
   color: var(--text);
   border-color: var(--border);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 252, 0.94)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(240, 235, 252, 0.94)),
     var(--surface);
   box-shadow: var(--shadow-soft);
 }
@@ -1184,9 +1184,9 @@ select,
 }
 
 .notice-text {
-  border-color: rgba(99, 102, 241, 0.26);
+  border-color: rgba(124, 99, 223, 0.26);
   color: var(--focus);
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(124, 99, 223, 0.1);
 }
 
 .bottom-action-card ion-button::part(native),
@@ -1226,7 +1226,7 @@ select,
   border-color: var(--border);
   color: var(--text);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.96) 48%, rgba(231, 240, 248, 0.82));
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(240, 235, 252, 0.96) 48%, rgba(231, 240, 248, 0.82));
   box-shadow: var(--shadow-soft);
 }
 
@@ -1237,7 +1237,7 @@ select,
 .booking-card *,
 .profile-card *,
 .empty * {
-  border-color: rgba(99, 102, 241, 0.16);
+  border-color: rgba(124, 99, 223, 0.16);
 }
 
 .section-title,
@@ -1304,7 +1304,7 @@ label,
   color: #FFFFFF;
   border-color: transparent;
   background: var(--primary);
-  box-shadow: 0 16px 34px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 16px 34px rgba(124, 99, 223, 0.2);
   animation: aura-selected-glow 3.2s ease-in-out infinite;
 }
 
@@ -1312,16 +1312,16 @@ label,
 .service-choice.selected,
 .staff-choice.selected {
   color: var(--text);
-  border-color: rgba(99, 102, 241, 0.42);
+  border-color: rgba(124, 99, 223, 0.42);
   background: var(--primary-soft);
-  box-shadow: 0 16px 34px rgba(99, 102, 241, 0.14);
+  box-shadow: 0 16px 34px rgba(124, 99, 223, 0.14);
 }
 
 .status-pill,
 .rating-pill,
 .offer-pill,
 .countdown-pill {
-  border: 1px solid rgba(99, 102, 241, 0.24);
+  border: 1px solid rgba(124, 99, 223, 0.24);
 }
 
 .offer-pill {
@@ -1431,10 +1431,10 @@ textarea::placeholder {
   .modal-card:hover,
   .bottom-action-card:hover {
     transform: translate3d(0, -3px, 0) scale(1.002);
-    border-color: rgba(99, 102, 241, 0.4);
+    border-color: rgba(124, 99, 223, 0.4);
     box-shadow:
       0 34px 74px rgba(28, 28, 28, 0.18),
-      0 14px 30px rgba(99, 102, 241, 0.12),
+      0 14px 30px rgba(124, 99, 223, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.78);
     filter: saturate(1.06) brightness(1.025);
     animation-play-state: paused;
@@ -1477,7 +1477,7 @@ textarea::placeholder {
     transform: translate3d(0, -2px, 0) scale(1.003);
     box-shadow:
       0 20px 42px rgba(28, 28, 28, 0.14),
-      0 8px 18px rgba(99, 102, 241, 0.1);
+      0 8px 18px rgba(124, 99, 223, 0.1);
   }
 }
 
@@ -1558,13 +1558,13 @@ ion-button:active,
     position: relative;
     z-index: 2;
     transform: none;
-    border-color: rgba(99, 102, 241, 0.28);
+    border-color: rgba(124, 99, 223, 0.28);
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(231, 240, 248, 0.9));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.82),
-      inset 0 -1px 0 rgba(99, 102, 241, 0.18),
-      inset 10px 0 18px rgba(99, 102, 241, 0.1),
+      inset 0 -1px 0 rgba(124, 99, 223, 0.18),
+      inset 10px 0 18px rgba(124, 99, 223, 0.1),
       inset -10px 0 18px rgba(28, 28, 28, 0.04);
   }
 
@@ -1804,7 +1804,7 @@ ion-button:active,
 
 :root[data-theme="dark"] {
   --customer-bg-premium:
-    radial-gradient(circle at 92% 2%, rgba(99, 102, 241, 0.2), transparent 32%),
+    radial-gradient(circle at 92% 2%, rgba(124, 99, 223, 0.2), transparent 32%),
     radial-gradient(circle at 8% 36%, rgba(244, 114, 182, 0.1), transparent 34%),
     linear-gradient(180deg, #121212 0%, #161618 54%, #1C1C1E 100%);
   --customer-glass: rgba(28, 28, 30, 0.85);
@@ -1813,7 +1813,7 @@ ion-button:active,
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     --customer-bg-premium:
-      radial-gradient(circle at 92% 2%, rgba(99, 102, 241, 0.2), transparent 32%),
+      radial-gradient(circle at 92% 2%, rgba(124, 99, 223, 0.2), transparent 32%),
       radial-gradient(circle at 8% 36%, rgba(244, 114, 182, 0.1), transparent 34%),
       linear-gradient(180deg, #121212 0%, #161618 54%, #1C1C1E 100%);
     --customer-glass: rgba(28, 28, 30, 0.85);
@@ -1870,14 +1870,14 @@ ion-tab-bar::before {
 ion-tab-button {
   --color: var(--customer-muted);
   --color-selected: var(--customer-primary);
-  --background-hover: rgba(99, 102, 241, 0.08);
+  --background-hover: rgba(124, 99, 223, 0.08);
   --background-focused: var(--primary-soft);
 }
 
 ion-tab-button.tab-selected ion-icon {
   color: #FFFFFF;
   background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
-  box-shadow: 0 10px 22px rgba(99, 102, 241, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 22px rgba(124, 99, 223, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.82);
 }
 
 .page,
@@ -1953,7 +1953,7 @@ small {
   border-radius: 18px;
   color: var(--customer-text);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.96)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(240, 235, 252, 0.96)),
     var(--customer-surface);
   box-shadow: var(--customer-shadow-soft);
 }
@@ -1975,7 +1975,7 @@ ion-button.primary-gradient {
   --background-hover: var(--primary-hover);
   --background-activated: var(--primary-active);
   --color: #FFFFFF;
-  --box-shadow: 0 14px 30px rgba(99, 102, 241, 0.24);
+  --box-shadow: 0 14px 30px rgba(124, 99, 223, 0.24);
 }
 
 .secondary-button,
@@ -2018,23 +2018,23 @@ ion-button.secondary-button {
 .slot.selected {
   color: #fff;
   background: var(--primary);
-  box-shadow: 0 14px 30px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 14px 30px rgba(124, 99, 223, 0.2);
 }
 
 .date-card.selected,
 .service-choice.selected,
 .staff-choice.selected {
   color: var(--text);
-  border-color: rgba(99, 102, 241, 0.42);
+  border-color: rgba(124, 99, 223, 0.42);
   background: var(--primary-soft);
-  box-shadow: 0 14px 30px rgba(99, 102, 241, 0.14);
+  box-shadow: 0 14px 30px rgba(124, 99, 223, 0.14);
 }
 
 .status-pill,
 .rating-pill,
 .offer-pill,
 .countdown-pill {
-  border-color: rgba(99, 102, 241, 0.18);
+  border-color: rgba(124, 99, 223, 0.18);
   background: var(--primary-soft);
   color: var(--customer-primary);
 }
@@ -2135,7 +2135,7 @@ ion-segment-button {
 
   ion-toolbar {
     --min-height: 58px;
-    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    border-bottom: 1px solid rgba(124, 99, 223, 0.1);
   }
 
   ion-searchbar {
@@ -2425,7 +2425,7 @@ ion-segment-button {
   .search-card,
   .offer-card {
     position: relative;
-    border: 1px solid rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(124, 99, 223, 0.1);
     background: #FFFFFF;
   }
 
@@ -2435,7 +2435,7 @@ ion-segment-button {
     position: absolute;
     inset: auto 12px 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent);
+    background: linear-gradient(90deg, transparent, rgba(124, 99, 223, 0.4), transparent);
     pointer-events: none;
   }
 
@@ -2535,7 +2535,7 @@ ion-segment-button {
     min-height: 28px;
     margin: 0 0 6px;
     padding: 0 11px;
-    border: 1px solid rgba(99, 102, 241, 0.24);
+    border: 1px solid rgba(124, 99, 223, 0.24);
     border-radius: 999px;
     color: var(--primary);
     background: var(--primary-soft);
@@ -2950,7 +2950,7 @@ ion-segment-button {
   padding: 0 24px 20px;
   gap: 20px;
   background: var(--app-bg);
-  background-image: radial-gradient(circle at 52% 20%, rgba(99, 102, 241, 0.1), transparent 42%);
+  background-image: radial-gradient(circle at 52% 20%, rgba(124, 99, 223, 0.1), transparent 42%);
 }
 
 .premium-topbar {
@@ -3156,7 +3156,7 @@ ion-segment-button {
 
 .premium-discovery-top .sticky-search.fresha-search-card:focus-within {
   border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14), 0 12px 28px rgba(28, 28, 28, 0.12);
+  box-shadow: 0 0 0 3px rgba(124, 99, 223, 0.14), 0 12px 28px rgba(28, 28, 28, 0.12);
 }
 
 .premium-discovery-top .search-input-wrap {

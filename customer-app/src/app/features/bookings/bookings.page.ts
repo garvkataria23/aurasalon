@@ -239,7 +239,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
 
     .support-link:hover {
       color: var(--primary);
-      border-color: rgba(99, 102, 241, 0.35);
+      border-color: rgba(124, 99, 223, 0.35);
       background: var(--primary-soft);
     }
 
@@ -288,7 +288,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       margin: -10px 2px 12px;
       overflow: hidden;
       border-radius: 999px;
-      background: rgba(99, 102, 241, 0.14);
+      background: rgba(124, 99, 223, 0.14);
     }
 
     .refresh-strip span {
@@ -411,7 +411,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       padding: 2px 8px;
       border-radius: 999px;
       color: var(--primary);
-      background: var(--primary-soft, rgba(99, 102, 241, 0.1));
+      background: var(--primary-soft, rgba(124, 99, 223, 0.1));
       font-size: 0.74rem;
       font-weight: 900;
       letter-spacing: 0.02em;
@@ -560,13 +560,13 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       color: #ffffff;
       border-color: transparent;
       background: var(--primary);
-      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.22);
+      box-shadow: 0 6px 14px rgba(124, 99, 223, 0.22);
     }
 
     .card-action.rebook {
       color: var(--primary);
-      border-color: rgba(99, 102, 241, 0.22);
-      background: var(--primary-soft, rgba(99, 102, 241, 0.08));
+      border-color: rgba(124, 99, 223, 0.22);
+      background: var(--primary-soft, rgba(124, 99, 223, 0.08));
     }
 
     .card-action:focus-visible {

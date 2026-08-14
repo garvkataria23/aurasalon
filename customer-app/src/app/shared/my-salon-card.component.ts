@@ -134,7 +134,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       background: var(--glass);
       color: var(--text);
       display: grid;
@@ -154,7 +154,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       justify-content: center;
       gap: 6px;
       padding: 10px 12px;
-      border: 1px solid rgba(99, 102, 241, 0.22);
+      border: 1px solid rgba(124, 99, 223, 0.22);
       border-radius: 14px;
       color: var(--text);
       background: var(--glass);
@@ -173,7 +173,7 @@ import { MarketplaceService } from "../core/marketplace.service";
     @media (hover: hover) and (pointer: fine) {
       .action-pill:hover {
         transform: translateY(-2px);
-        border-color: rgba(99, 102, 241, 0.42);
+        border-color: rgba(124, 99, 223, 0.42);
       }
     }
 
@@ -215,7 +215,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       .my-salon-card {
         gap: 8px;
         padding: 11px;
-        border-color: rgba(99, 102, 241, 0.16);
+        border-color: rgba(124, 99, 223, 0.16);
         border-radius: 18px;
         background: linear-gradient(135deg, #ffffff, #f8fbff);
         box-shadow: 0 10px 24px rgba(28, 28, 28, 0.07);

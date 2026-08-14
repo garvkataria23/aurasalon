@@ -339,7 +339,7 @@ import { Business } from "../../core/api.types";
       gap: 12px;
       min-height: 64px;
       padding: 10px 14px;
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(124, 99, 223, 0.2);
       border-radius: 18px;
       color: var(--text);
       background: linear-gradient(135deg, var(--primary-soft), var(--surface));
@@ -424,7 +424,7 @@ import { Business } from "../../core/api.types";
       gap: 12px;
       min-height: 82px;
       padding: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.22);
+      border: 1px solid rgba(124, 99, 223, 0.22);
       border-radius: 20px;
       color: var(--text);
       background: var(--surface);
@@ -548,7 +548,7 @@ import { Business } from "../../core/api.types";
     .professional-list > a > ion-icon { color: var(--primary); }
 
     .explore-loading { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .skeleton-card { height: 260px; border-radius: 16px; background: linear-gradient(90deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0.14), rgba(99, 102, 241, 0.06)); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .skeleton-card { height: 260px; border-radius: 16px; background: linear-gradient(90deg, rgba(124, 99, 223, 0.06), rgba(124, 99, 223, 0.14), rgba(124, 99, 223, 0.06)); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
     .explore-state { display: grid; justify-items: start; gap: 8px; padding: 22px; border: 1px solid var(--border); border-radius: 22px; background: var(--surface); }
     .explore-state h2, .explore-state p { margin: 0; }
     .explore-state h2 { color: var(--text); font-size: 1.2rem; }
@@ -563,15 +563,15 @@ import { Business } from "../../core/api.types";
 
     @media (hover: hover) and (pointer: fine) {
       .location-line:hover { background: var(--surface-soft); }
-      .explore-search-bar:hover { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 12px 28px rgba(28, 28, 28, 0.09); }
-      .chip:hover { border-color: rgba(99, 102, 241, 0.4); background: var(--primary-soft); }
+      .explore-search-bar:hover { border-color: rgba(124, 99, 223, 0.4); box-shadow: 0 12px 28px rgba(28, 28, 28, 0.09); }
+      .chip:hover { border-color: rgba(124, 99, 223, 0.4); background: var(--primary-soft); }
       .chip.active:hover { border-color: var(--primary); background: var(--primary); }
-      .category-card:hover { border-color: rgba(99, 102, 241, 0.4); }
-      .open-banner:hover { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 14px 30px rgba(28, 28, 28, 0.09); }
-      .concierge-card:hover { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 16px 34px rgba(28, 28, 28, 0.11); }
+      .category-card:hover { border-color: rgba(124, 99, 223, 0.4); }
+      .open-banner:hover { border-color: rgba(124, 99, 223, 0.4); box-shadow: 0 14px 30px rgba(28, 28, 28, 0.09); }
+      .concierge-card:hover { border-color: rgba(124, 99, 223, 0.4); box-shadow: 0 16px 34px rgba(28, 28, 28, 0.11); }
     }
 
-    a:focus-visible, button:focus-visible { outline: 3px solid rgba(99, 102, 241, 0.42); outline-offset: 3px; }
+    a:focus-visible, button:focus-visible { outline: 3px solid rgba(124, 99, 223, 0.42); outline-offset: 3px; }
 
     @media (max-width: 349px) {
       .explore-categories { grid-template-columns: repeat(3, minmax(0, 1fr)); }

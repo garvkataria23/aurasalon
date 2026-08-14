@@ -104,7 +104,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: 20px;
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.96));
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(240, 235, 252, 0.96));
     }
 
     .salons-header {
@@ -142,7 +142,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       border-radius: 18px;
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 14px 28px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 14px 28px rgba(124, 99, 223, 0.18);
       font-size: 1.35rem;
     }
 
@@ -221,13 +221,13 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     }
 
     .salon-row.is-primary {
-      background: rgba(99, 102, 241, 0.08);
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      background: rgba(124, 99, 223, 0.08);
+      border: 1px solid rgba(124, 99, 223, 0.18);
     }
 
     @media (hover: hover) and (pointer: fine) {
       .salon-row:hover {
-        background: rgba(99, 102, 241, 0.06);
+        background: rgba(124, 99, 223, 0.06);
       }
     }
 
@@ -295,7 +295,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       padding: 1px 7px;
       border-radius: 999px;
       color: var(--muted);
-      background: rgba(99, 102, 241, 0.08);
+      background: rgba(124, 99, 223, 0.08);
       font-size: 0.72rem;
       font-weight: 800;
     }
@@ -306,7 +306,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
     }
 
     .meta-pill.relationship[data-type="loyal"] {
-      color: #6366F1;
+      color: #8A74E6;
       background: rgba(15, 118, 110, 0.1);
     }
 
@@ -333,7 +333,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       min-height: 38px;
       padding: 0 12px;
       border-radius: 12px;
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(124, 99, 223, 0.2);
       background: var(--glass);
       color: var(--text);
       display: inline-flex;
@@ -353,7 +353,7 @@ import { CustomerPrimarySalon, CustomerSalonRelationship } from "../core/api.typ
       color: #ffffff;
       border-color: transparent;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 10px 22px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 10px 22px rgba(124, 99, 223, 0.18);
     }
 
     .remove-primary-btn {

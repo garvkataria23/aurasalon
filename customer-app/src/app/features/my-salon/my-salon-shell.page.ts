@@ -431,6 +431,10 @@ export class MySalonShellPage implements OnDestroy, OnInit {
   }
 
   private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
+    // If a previous confirm dialog is still animating out, its ghost overlay
+    // swallows the first tap on the new dialog (classic Ionic double-tap).
+    const top = await this.alerts.getTop();
+    if (top) await top.dismiss().catch(() => undefined);
     const alert = await this.alerts.create({
       header,
       message,

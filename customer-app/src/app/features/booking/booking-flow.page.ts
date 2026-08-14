@@ -1076,7 +1076,7 @@ type BookingFlowItem = {
     .assign-status { margin: 0; color: var(--muted); font-size: 0.84rem; font-weight: 850; letter-spacing: 0.02em; }
     .booking-summary-metrics { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 0 0 0 4px; border: 0; border-radius: 16px; background: transparent; color: var(--text); text-align: left; }
     .salon-mode-flow .booking-summary-metrics { flex: 1 1 auto; display: flex; align-items: center; gap: 7px; padding: 0 0 0 4px; text-align: left; }
-    .booking-summary-metrics:hover, .booking-summary-metrics:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.35); outline-offset: 2px; }
+    .booking-summary-metrics:hover, .booking-summary-metrics:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.35); outline-offset: 2px; }
     .summary-copy { min-width: 0; display: flex; align-items: center; gap: 30px; }
     .summary-copy::after { content: ''; width: 5px; height: 5px; flex: 0 0 auto; order: 1; border-radius: 999px; background: rgba(79, 70, 229, 0.45); }
     .summary-copy strong { overflow: hidden; color: #020617; font-size: 1rem; font-weight: 950; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
@@ -1088,7 +1088,7 @@ type BookingFlowItem = {
     .button-spinner { width: 16px; height: 16px; display: inline-block; margin-right: 8px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 999px; animation: button-spin 700ms linear infinite; vertical-align: -3px; }
     .booking-hero { display: grid; gap: 4px; align-items: center; padding: 16px; }
     .booking-hero .page-title { font-size: clamp(1.45rem, 4vw, 2.7rem); }
-    .edit-context-card { display: grid; gap: 4px; padding: 12px 16px; border-color: rgba(99, 102, 241, 0.24); background: var(--primary-soft); }
+    .edit-context-card { display: grid; gap: 4px; padding: 12px 16px; border-color: rgba(124, 99, 223, 0.24); background: var(--primary-soft); }
     .edit-context-card span { color: var(--primary); font-size: 0.84rem; font-weight: 900; }
     .edit-context-card strong, .edit-context-card small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .edit-context-card strong { color: var(--text); font-size: 0.96rem; }
@@ -1102,7 +1102,7 @@ type BookingFlowItem = {
     .booking-intent-row ion-icon { grid-row: span 2; font-size: 1.25rem; }
     .booking-intent-row small, .resource-grid small { color: inherit; opacity: 0.72; line-height: 1.35; }
     .readiness-note, .addon-panel, .resource-panel { display: grid; gap: 8px; padding: 16px; margin-bottom: 14px; }
-    .readiness-note { border-color: rgba(99, 102, 241, 0.22); background: var(--primary-soft); }
+    .readiness-note { border-color: rgba(124, 99, 223, 0.22); background: var(--primary-soft); }
     .readiness-note strong, .readiness-note span, .addon-panel small, .resource-panel small { line-height: 1.45; }
     .readiness-note span, .addon-panel small, .resource-panel small { color: var(--muted); }
     .addon-panel h3, .resource-panel h3 { margin: 0; letter-spacing: 0; }
@@ -1119,15 +1119,15 @@ type BookingFlowItem = {
     .service-choice { grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-height: 76px; gap: 12px; padding: 12px; transition: none; }
     .service-choice-copy { min-width: 0; display: grid; gap: 4px; }
     .service-choice-side { display: grid; justify-items: end; gap: 8px; color: inherit; }
-    .choice-action { min-width: 72px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid rgba(99, 102, 241, 0.24); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.8rem; font-weight: 950; }
+    .choice-action { min-width: 72px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid rgba(124, 99, 223, 0.24); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.8rem; font-weight: 950; }
     .service-choice.selected .choice-action { color: #FFFFFF; border-color: transparent; background: var(--primary); }
-    .service-choice.selected, .staff-choice.selected { border-color: rgba(99, 102, 241, 0.48); background: var(--primary-soft); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.12); }
+    .service-choice.selected, .staff-choice.selected { border-color: rgba(124, 99, 223, 0.48); background: var(--primary-soft); box-shadow: 0 12px 24px rgba(124, 99, 223, 0.12); }
     .service-choice h3 { margin: 0 0 4px; font-size: 1.06rem; letter-spacing: -0.035em; line-height: 1.15; }
     .service-choice p { display: -webkit-box; margin: 0; overflow: hidden; color: var(--muted); font-size: 0.82rem; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
     .service-choice-copy span { color: var(--muted); font-size: 0.84rem; font-weight: 800; }
     .service-choice strong { color: var(--primary); font-size: 0.92rem; }
     .staff-choice { position: relative; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 76px; gap: 10px; padding: 12px 14px; transition: none; }
-    .staff-choice.selected { outline: 2px solid rgba(99, 102, 241, 0.28); outline-offset: 2px; }
+    .staff-choice.selected { outline: 2px solid rgba(124, 99, 223, 0.28); outline-offset: 2px; }
     .staff-choice img, .any-avatar { width: 54px; height: 54px; border-radius: 18px; object-fit: cover; }
     .any-avatar { display: grid; place-items: center; color: #FFFFFF; background: var(--primary); font-size: 1.35rem; }
     .staff-choice strong { display: block; line-height: 1.15; }
@@ -1139,7 +1139,7 @@ type BookingFlowItem = {
     .staff-choice-auto strong { font-size: 0.9rem; }
     .staff-choice-auto .staff-role { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; }
     .staff-choice-auto em { min-width: 64px; min-height: 32px; padding: 0 10px; font-size: 0.78rem; }
-    .check-slots-button { justify-self: end; min-height: 40px; padding: 0 13px; border: 1px solid rgba(99, 102, 241, 0.32); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.8rem; font-weight: 900; white-space: nowrap; }
+    .check-slots-button { justify-self: end; min-height: 40px; padding: 0 13px; border: 1px solid rgba(124, 99, 223, 0.32); border-radius: 999px; color: var(--primary); background: var(--surface); font-size: 0.8rem; font-weight: 900; white-space: nowrap; }
     .check-slots-button:hover, .check-slots-button:focus-visible { background: var(--gold-soft); }
     .multi-service-stack { display: grid; gap: 14px; }
     .service-schedule-card { display: grid; gap: 12px; padding: 16px; }
@@ -1147,7 +1147,7 @@ type BookingFlowItem = {
     .service-schedule-head h3 { margin: 0 0 3px; font-size: 1rem; letter-spacing: -0.025em; }
     .service-schedule-head small { color: var(--muted); font-weight: 850; }
     .service-schedule-head > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; color: #FFFFFF; background: var(--primary); font-weight: 950; }
-    .schedule-context-card { position: sticky; top: 78px; z-index: 16; display: grid; gap: 4px; align-items: center; margin-bottom: 12px; padding: 12px 14px; border-color: rgba(99, 102, 241, 0.24); background: var(--glass); backdrop-filter: blur(14px); }
+    .schedule-context-card { position: sticky; top: 78px; z-index: 16; display: grid; gap: 4px; align-items: center; margin-bottom: 12px; padding: 12px 14px; border-color: rgba(124, 99, 223, 0.24); background: var(--glass); backdrop-filter: blur(14px); }
     .schedule-context-count span { color: var(--primary); font-size: 0.84rem; font-weight: 900; line-height: 1.2; }
     .schedule-context-copy { min-width: 0; display: grid; gap: 3px; }
     .schedule-context-copy strong, .schedule-context-copy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1157,7 +1157,7 @@ type BookingFlowItem = {
     .scheduled-services-card > span { color: var(--muted); font-size: 0.78rem; font-weight: 950; letter-spacing: 0.08em; text-transform: uppercase; }
     .scheduled-services-card > div { display: grid; gap: 7px; }
     .scheduled-services-card button { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-height: 48px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 14px; color: var(--text); background: var(--surface); text-align: left; }
-    .scheduled-services-card button.active { border-color: rgba(99, 102, 241, 0.4); background: var(--primary-soft); }
+    .scheduled-services-card button.active { border-color: rgba(124, 99, 223, 0.4); background: var(--primary-soft); }
     .scheduled-services-card strong, .scheduled-services-card small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .scheduled-services-card strong { font-size: 0.82rem; }
     .scheduled-services-card small { color: var(--muted); font-size: 0.82rem; font-weight: 800; }
@@ -1169,9 +1169,9 @@ type BookingFlowItem = {
     .booking-item-tabs button > span { grid-row: span 2; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-weight: 950; }
     .booking-item-tabs button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .booking-item-tabs button small { color: var(--muted); font-weight: 800; }
-    .booking-item-tabs button.active { border-color: rgba(99, 102, 241, 0.44); background: var(--primary-soft); }
+    .booking-item-tabs button.active { border-color: rgba(124, 99, 223, 0.44); background: var(--primary-soft); }
     .booking-item-tabs button.done > span { color: #059669; background: #D1FAE5; }
-    .selected-staff-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border-color: rgba(99, 102, 241, 0.28); background: var(--primary-soft); }
+    .selected-staff-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border-color: rgba(124, 99, 223, 0.28); background: var(--primary-soft); }
     .selected-staff-card span, .selected-staff-card small { display: block; color: var(--muted); line-height: 1.35; }
     .selected-staff-card span { font-size: 0.84rem; font-weight: 900; letter-spacing: 0; }
     .selected-staff-card strong { display: block; margin-top: 3px; color: var(--text); font-size: 1.02rem; font-weight: 900; }
@@ -1181,14 +1181,14 @@ type BookingFlowItem = {
     .date-row::-webkit-scrollbar { display: none; }
     .date-card, .slot { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--text); font-weight: 900; }
     .date-card { position: relative; display: grid; gap: 4px; justify-items: center; min-height: 78px; padding: 12px 10px 10px; overflow: hidden; scroll-snap-align: start; }
-    .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 10px 24px rgba(99, 102, 241, 0.16); }
+    .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 10px 24px rgba(124, 99, 223, 0.16); }
     .date-card.selected span { color: rgba(255,255,255,.82); }
-    .date-card.current:not(.selected) { border-color: rgba(99, 102, 241, 0.42); background: var(--primary-soft); }
+    .date-card.current:not(.selected) { border-color: rgba(124, 99, 223, 0.42); background: var(--primary-soft); }
     .date-card:disabled { color: var(--muted); border-color: var(--border); background: var(--surface-soft); opacity: .58; box-shadow: none; }
     .date-card strong { line-height: 1.05; }
     .date-card span { color: var(--muted); font-size: 0.84rem; line-height: 1.05; }
     .date-card em { display: none; }
-    .current-badge, .slot small { display: inline-flex; align-items: center; justify-content: center; min-height: 18px; padding: 0 7px; border-radius: 999px; color: var(--primary); background: rgba(99, 102, 241, 0.12); font-size: 0.68rem; font-weight: 950; line-height: 1; }
+    .current-badge, .slot small { display: inline-flex; align-items: center; justify-content: center; min-height: 18px; padding: 0 7px; border-radius: 999px; color: var(--primary); background: rgba(124, 99, 223, 0.12); font-size: 0.68rem; font-weight: 950; line-height: 1; }
     .date-card.selected .current-badge { color: #FFFFFF; background: rgba(255, 255, 255, 0.22); }
     .skeleton-line { display: block; width: 100%; height: 12px; border-radius: 999px; background: linear-gradient(90deg, rgba(232, 232, 232, 0.92), rgba(244, 244, 242, 0.98), rgba(232, 232, 232, 0.92)); background-size: 220% 100%; animation: booking-skeleton 1.15s ease-in-out infinite; }
     .skeleton-line.title { width: min(260px, 75%); height: 28px; border-radius: 12px; }
@@ -1208,10 +1208,10 @@ type BookingFlowItem = {
     .skeleton-slot-group { min-height: 158px; }
     .slot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .slot { min-height: 46px; display: inline-flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 7px 8px; border-color: var(--border); color: var(--text); background: var(--surface); font-size: 0.9rem; line-height: 1; transition: none; }
-    .slot:not(:disabled):not(.selected):hover, .slot:not(:disabled):not(.selected):focus-visible { border-color: rgba(99, 102, 241, 0.42); }
+    .slot:not(:disabled):not(.selected):hover, .slot:not(:disabled):not(.selected):focus-visible { border-color: rgba(124, 99, 223, 0.42); }
     .slot.skeleton-slot { min-height: 45px; border-color: transparent; background: linear-gradient(90deg, rgba(232, 232, 232, 0.92), rgba(244, 244, 242, 0.98), rgba(232, 232, 232, 0.92)); background-size: 220% 100%; animation: booking-skeleton 1.15s ease-in-out infinite; pointer-events: none; }
-    .slot.selected { position: relative; color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 14px 28px rgba(99, 102, 241, 0.22); text-decoration: none; opacity: 1; }
-    .slot.current:not(.selected) { border-color: rgba(99, 102, 241, 0.42); background: var(--primary-soft); }
+    .slot.selected { position: relative; color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 14px 28px rgba(124, 99, 223, 0.22); text-decoration: none; opacity: 1; }
+    .slot.current:not(.selected) { border-color: rgba(124, 99, 223, 0.42); background: var(--primary-soft); }
     .slot.selected small { color: #FFFFFF; background: rgba(255, 255, 255, 0.22); }
     .slot.selected::after { content: none; }
     .slot:disabled:not(.selected) { color: rgba(71, 85, 105, 0.8); border-color: rgba(148, 163, 184, 0.6); border-style: dashed; background: var(--surface-soft); text-decoration: line-through; text-decoration-thickness: 1.5px; text-decoration-color: rgba(148, 163, 184, 0.65); box-shadow: none; cursor: not-allowed; }
@@ -1225,7 +1225,7 @@ type BookingFlowItem = {
     .review-summary-strip span { min-width: 0; display: grid; gap: 3px; padding: 11px 10px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
     .review-summary-strip small { color: var(--muted); font-size: 0.76rem; font-weight: 950; letter-spacing: 0.08em; text-transform: uppercase; }
     .review-summary-strip strong { overflow: hidden; color: var(--text); font-size: 0.92rem; font-weight: 950; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
-    .review-summary-strip .review-total { border-color: rgba(99, 102, 241, 0.34); background: var(--primary-soft); }
+    .review-summary-strip .review-total { border-color: rgba(124, 99, 223, 0.34); background: var(--primary-soft); }
     .review-summary-strip .review-total strong { color: var(--primary); font-size: 1.08rem; }
     dl { display: grid; gap: 2px; margin: 0; }
     dl div { display: flex; justify-content: space-between; gap: 18px; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -1304,8 +1304,8 @@ type BookingFlowItem = {
       .slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     .multi-staff-quick-bar { margin-bottom: 12px; }
-    .quick-staff-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid rgba(99, 102, 241, 0.28); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.84rem; font-weight: 900; }
-    .multi-service-progress-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid rgba(99, 102, 241, 0.24); border-radius: 18px; color: var(--text); background: var(--primary-soft); }
+    .quick-staff-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid rgba(124, 99, 223, 0.28); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.84rem; font-weight: 900; }
+    .multi-service-progress-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin-bottom: 12px; border: 1px solid rgba(124, 99, 223, 0.24); border-radius: 18px; color: var(--text); background: var(--primary-soft); }
     .multi-service-progress-banner p { margin: 0; font-size: 0.88rem; }
     .multi-service-progress-banner small { opacity: 0.88; font-weight: 850; font-size: 0.84rem; }
     .confirm-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto !important; align-items: start !important; gap: 8px !important; }
@@ -1321,7 +1321,7 @@ type BookingFlowItem = {
     .recovery-action { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: var(--surface); font-size: 0.9rem; font-weight: 900; }
     .recovery-action ion-icon { font-size: 1.05rem; }
     .recovery-action-primary { color: #FFFFFF; border-color: transparent; background: var(--primary); }
-    .recovery-action:hover, .recovery-action:focus-visible, .recovery-back:hover, .recovery-back:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
+    .recovery-action:hover, .recovery-action:focus-visible, .recovery-back:hover, .recovery-back:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); outline-offset: 2px; }
     .recovery-branches { width: 100%; display: grid; gap: 8px; text-align: left; }
     .recovery-branches h2 { margin: 6px 0 0; color: var(--muted); font-size: 0.82rem; font-weight: 950; letter-spacing: 0.08em; text-transform: uppercase; }
     .recovery-branch { min-height: 56px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 16px; color: var(--text); background: var(--surface); text-align: left; }
@@ -1338,7 +1338,7 @@ type BookingFlowItem = {
 .service-panel { display: grid; gap: 12px; }
     .recommendations-section { display: grid; gap: 8px; }
     .recommendations-list { display: grid; gap: 8px; }
-    .recommendations-section .service-card.recommended { border-color: rgba(99,102,241,.4); background: linear-gradient(145deg, rgba(99,102,241,.06), rgba(246,249,252,.96)); }
+    .recommendations-section .service-card.recommended { border-color: rgba(124,99,223,.4); background: linear-gradient(145deg, rgba(124,99,223,.06), rgba(246,249,252,.96)); }
     .recommended-pill { border-color: transparent; color: #fff; background: var(--primary); }
     .service-search { position: sticky; top: 78px; z-index: 15; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
     .service-search ion-icon { color: var(--muted); font-size: 1.1rem; }
@@ -1351,7 +1351,7 @@ type BookingFlowItem = {
     .category-chip.active { color: #FFFFFF; border-color: transparent; background: var(--primary); }
     .salon-mode-flow .service-search { top: calc(150px + env(safe-area-inset-top)); z-index: 18; }
     .salon-mode-flow .category-menu-shell { position: sticky; top: calc(204px + env(safe-area-inset-top)); z-index: 17; display: flex; align-items: center; gap: 8px; padding: 6px 0 8px; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.94)); backdrop-filter: blur(12px); }
-    .salon-mode-flow .category-menu-trigger { flex: 0 0 auto; min-height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border: 0; border-radius: 999px; color: #fff; background: var(--primary); box-shadow: 0 8px 18px rgba(99,102,241,.24); font-size: .84rem; font-weight: 950; }
+    .salon-mode-flow .category-menu-trigger { flex: 0 0 auto; min-height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; border: 0; border-radius: 999px; color: #fff; background: var(--primary); box-shadow: 0 8px 18px rgba(124,99,223,.24); font-size: .84rem; font-weight: 950; }
     .salon-mode-flow .category-menu-trigger ion-icon { font-size: 1rem; }
     .category-floating-menu-trigger {
       position: fixed;
@@ -1398,7 +1398,7 @@ type BookingFlowItem = {
     .category-menu-list::-webkit-scrollbar { width: 1px; height: 3px; background: transparent; }
     .category-menu-list::-webkit-scrollbar-thumb { background: rgba(15,23,42,.1); border-radius: 3px; }
     .category-menu-list button { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 10px; border: 1px solid transparent; border-radius: 14px; color: var(--text); background: transparent; font: inherit; font-weight: 800; font-size: .82rem; text-align: left; }
-    .category-menu-list button.active { border-color: rgba(99,102,241,.28); background: var(--primary-soft); color: var(--primary); }
+    .category-menu-list button.active { border-color: rgba(124,99,223,.28); background: var(--primary-soft); color: var(--primary); }
     .category-menu-list button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .category-menu-list small { flex: 0 0 auto; min-width: 26px; min-height: 22px; display: inline-grid; place-items: center; padding: 0 7px; border-radius: 999px; color: var(--primary); background: #fff; font-size: .7rem; font-weight: 950; }
     .service-group { display: grid; gap: 8px; scroll-margin-top: calc(215px + env(safe-area-inset-top)); }
@@ -1425,9 +1425,9 @@ type BookingFlowItem = {
       text-align: left;
     }
     .salon-service-item.is-picked, .salon-service-item.selected {
-      border-color: rgba(99, 102, 241, 0.5);
+      border-color: rgba(124, 99, 223, 0.5);
       background: linear-gradient(145deg, rgba(240, 244, 255, 0.98), #FFFFFF 54%);
-      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.1);
+      box-shadow: 0 12px 24px rgba(124, 99, 223, 0.1);
     }
     .salon-service-copy {
       flex: 1 1 auto;
@@ -1461,7 +1461,7 @@ type BookingFlowItem = {
       height: 84px;
       display: block;
       border-radius: 18px;
-      background-color: var(--primary-soft, #EEF2FF);
+      background-color: var(--primary-soft, #E1D6FB);
       background-position: center;
       background-size: cover;
       background-repeat: no-repeat;
@@ -1488,7 +1488,7 @@ type BookingFlowItem = {
       justify-content: center;
       gap: 4px;
       padding: 0 14px;
-      border: 1px solid rgba(99, 102, 241, 0.22);
+      border: 1px solid rgba(124, 99, 223, 0.22);
       border-radius: 12px;
       color: #5f46cf;
       background: #FFFFFF;
@@ -1505,7 +1505,7 @@ type BookingFlowItem = {
       background: #D1FAE5;
       box-shadow: none;
     }
-    .salon-service-add:hover, .salon-service-add:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
+    .salon-service-add:hover, .salon-service-add:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); outline-offset: 2px; }
     .service-details { display: grid; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
     .service-details p { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
     .service-details dl { display: grid; gap: 2px; margin: 0; }
@@ -1529,11 +1529,11 @@ type BookingFlowItem = {
     .assign-mode-card { display: grid; gap: 8px; padding: 12px; }
     .assign-mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: var(--surface-soft); }
     .assign-mode-toggle button { min-height: 38px; border: 0; border-radius: 11px; color: var(--muted); background: transparent; font-size: 0.82rem; font-weight: 950; }
-    .assign-mode-toggle button.active { color: #FFFFFF; background: var(--primary); box-shadow: 0 6px 14px rgba(99, 102, 241, 0.25); }
-    .assign-mode-toggle button:hover, .assign-mode-toggle button:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
+    .assign-mode-toggle button.active { color: #FFFFFF; background: var(--primary); box-shadow: 0 6px 14px rgba(124, 99, 223, 0.25); }
+    .assign-mode-toggle button:hover, .assign-mode-toggle button:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); outline-offset: 2px; }
     .assign-mode-help { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
-    .best-available-card { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; border-color: rgba(99, 102, 241, 0.35); background: var(--primary-soft); color: var(--text); text-align: left; }
-    .best-available-card.selected { border-color: transparent; background: var(--primary); box-shadow: 0 14px 30px rgba(99, 102, 241, 0.28); }
+    .best-available-card { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; border-color: rgba(124, 99, 223, 0.35); background: var(--primary-soft); color: var(--text); text-align: left; }
+    .best-available-card.selected { border-color: transparent; background: var(--primary); box-shadow: 0 14px 30px rgba(124, 99, 223, 0.28); }
     .best-available-copy { min-width: 0; display: grid; gap: 3px; }
     .best-available-copy strong { font-size: 0.95rem; }
     .best-available-copy small { color: var(--muted); font-size: 0.84rem; line-height: 1.35; }
@@ -1545,7 +1545,7 @@ type BookingFlowItem = {
     .service-assign-list { display: grid; gap: 8px; }
     .service-assign-card { display: grid; gap: 0; padding: 0; overflow: hidden; }
     .service-assign-head { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 0; color: var(--text); background: transparent; font: inherit; text-align: left; }
-    .service-assign-head:hover, .service-assign-head:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: -2px; }
+    .service-assign-head:hover, .service-assign-head:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); outline-offset: -2px; }
     .service-assign-index { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.78rem; font-weight: 950; }
     .service-assign-copy { min-width: 0; display: grid; gap: 2px; }
     .service-assign-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.92rem; }
@@ -1593,7 +1593,7 @@ type BookingFlowItem = {
     .staff-meta ion-icon { font-size: 0.85rem; }
     .staff-extras { display: grid; gap: 6px; justify-items: end; }
     .surcharge-chip { padding: 3px 8px; border-radius: 999px; color: #B45309; background: #FEF3C7; font-size: 0.7rem; font-weight: 950; white-space: nowrap; }
-    .staff-choice.selected { border-color: transparent; background: var(--primary); box-shadow: 0 12px 24px rgba(99, 102, 241, 0.22); }
+    .staff-choice.selected { border-color: transparent; background: var(--primary); box-shadow: 0 12px 24px rgba(124, 99, 223, 0.22); }
     .staff-choice.selected strong { color: #FFFFFF; }
     .staff-choice.selected .staff-copy { color: #FFFFFF; }
     .staff-choice.selected .staff-copy small { color: rgba(255, 255, 255, 0.82); }
@@ -1604,7 +1604,7 @@ type BookingFlowItem = {
     .gender-filter::-webkit-scrollbar { display: none; }
     .gender-chip { flex: 0 0 auto; min-height: 36px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: var(--surface); font-size: 0.8rem; font-weight: 900; }
     .gender-chip.active { color: #FFFFFF; border-color: transparent; background: var(--primary); }
-    .gender-chip:hover, .gender-chip:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); outline-offset: 2px; }
+    .gender-chip:hover, .gender-chip:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); outline-offset: 2px; }
     .gender-note { margin: -4px 0 0; color: var(--muted); font-size: 0.80rem; line-height: 1.35; }
     .slot-reset-warning { display: grid; gap: 10px; padding: 12px; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; background: #FFFBEB; }
     .slot-reset-warning p { margin: 0; color: #92400E; font-size: 0.8rem; font-weight: 850; line-height: 1.4; }
@@ -1613,7 +1613,7 @@ type BookingFlowItem = {
     .warning-confirm { min-height: 40px; padding: 0 14px; border: 0; border-radius: 999px; color: #FFFFFF; background: var(--primary); font-size: 0.8rem; font-weight: 950; }
     /* Date & Time Selection — Enhanced 7-day grid, month selector, visit timeline */
     .date-time-panel { display: grid; gap: 14px; }
-    .visit-summary-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-color: rgba(99, 102, 241, 0.3); background: var(--primary-soft); }
+    .visit-summary-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-color: rgba(124, 99, 223, 0.3); background: var(--primary-soft); }
     .visit-summary-info { display: flex; align-items: center; gap: 10px; }
     .visit-summary-info ion-icon { color: var(--primary); font-size: 1.3rem; }
     .visit-summary-info strong { display: block; color: var(--text); font-size: 0.95rem; font-weight: 950; }
@@ -1640,7 +1640,7 @@ type BookingFlowItem = {
     .date-dot.many { background: #10B981; }
     .date-dot.partial { background: #F59E0B; }
     .date-dot.full { background: #EF4444; }
-    .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.28); }
+    .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 8px 20px rgba(124, 99, 223, 0.28); }
     .date-card.selected span, .date-card.selected .status-text { color: rgba(255, 255, 255, 0.88); }
     .date-card.selected .date-dot { background: #FFFFFF; }
     .date-card:disabled { color: var(--muted); border-color: var(--border); background: var(--surface-soft); cursor: not-allowed; opacity: 0.58; box-shadow: none; }
@@ -1650,11 +1650,11 @@ type BookingFlowItem = {
     .availability-legend .date-dot { margin: 0; }
     
     .shortcuts-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-    .shortcut-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.84rem; font-weight: 900; cursor: pointer; }
+    .shortcut-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid rgba(124, 99, 223, 0.25); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.84rem; font-weight: 900; cursor: pointer; }
     .shortcut-chip.waitlist-chip { color: #B45309; border-color: rgba(245, 158, 11, 0.4); background: #FEF3C7; }
     .shortcut-chip ion-icon { font-size: 0.95rem; }
     
-    .visit-timeline-card { display: grid; gap: 12px; padding: 14px; border-color: rgba(99, 102, 241, 0.35); background: var(--surface); }
+    .visit-timeline-card { display: grid; gap: 12px; padding: 14px; border-color: rgba(124, 99, 223, 0.35); background: var(--surface); }
     .timeline-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     .timeline-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.76rem; font-weight: 950; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
     .timeline-header strong { display: block; color: var(--text); font-size: 1.05rem; }
@@ -1704,7 +1704,7 @@ type BookingFlowItem = {
     .review-section-header { display: flex; align-items: center; justify-content: space-between; }
     .review-section-header h3 { margin: 0; font-size: 0.92rem; font-weight: 950; color: var(--text); }
     .btn-text-edit { padding: 4px 10px; border: 0; border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-size: 0.84rem; font-weight: 950; cursor: pointer; }
-    .btn-text-edit:hover, .btn-text-edit:focus-visible { outline: 2px solid rgba(99, 102, 241, 0.4); }
+    .btn-text-edit:hover, .btn-text-edit:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); }
     
     .review-services-list { display: grid; gap: 8px; }
     .review-service-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
@@ -1718,7 +1718,7 @@ type BookingFlowItem = {
     .review-staff-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 12px; background: var(--surface-soft); font-size: 0.8rem; color: var(--text); }
     .review-staff-chip ion-icon { color: var(--primary); font-size: 0.9rem; }
     
-    .validated-timeline-box { display: grid; gap: 8px; padding: 12px; border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 16px; background: var(--primary-soft); }
+    .validated-timeline-box { display: grid; gap: 8px; padding: 12px; border: 1px solid rgba(124, 99, 223, 0.3); border-radius: 16px; background: var(--primary-soft); }
     .reschedule-compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .reschedule-compare-grid span { min-width: 0; display: grid; gap: 3px; padding: 10px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); }
     .reschedule-compare-grid small { color: var(--muted); font-size: 0.72rem; font-weight: 950; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -1984,7 +1984,7 @@ type BookingFlowItem = {
     }
 
     .service-popup-price {
-      color: #4F46E5;
+      color: #7C63DF;
       font-size: 1.32rem;
       font-weight: 950;
       letter-spacing: -0.02em;
@@ -2046,7 +2046,7 @@ type BookingFlowItem = {
       align-items: center;
       gap: 6px;
       padding: 0 11px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(124, 99, 223, 0.16);
       border-radius: 999px;
       color: var(--brand-800);
       background: var(--surface);
@@ -2084,7 +2084,7 @@ type BookingFlowItem = {
     .service-note-input:focus {
       border-color: rgba(92, 72, 217, 0.5);
       background: #FFFFFF;
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      box-shadow: 0 0 0 4px rgba(124, 99, 223, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.95);
     }
 
     .service-popup-footer {
@@ -2104,7 +2104,7 @@ type BookingFlowItem = {
       border: 0;
       border-radius: 14px;
       color: #FFFFFF;
-      background: linear-gradient(135deg, #6D5DF7, #4F46E5 58%, #4338CA);
+      background: linear-gradient(135deg, #6D5DF7, #7C63DF 58%, #5B47C9);
       font-family: inherit;
       font-size: 0.85rem;
       font-weight: 950;

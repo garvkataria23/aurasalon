@@ -522,7 +522,7 @@ import { CustomerSalonRelationship, MySalonDashboard } from "../../core/api.type
       --ms-ink: var(--text, #1C1C1C);
       --ms-muted: var(--muted, #696969);
       --ms-ivory: var(--surface, #FFFFFF);
-      --ms-line: var(--border, #E8E8E8);
+      --ms-line: var(--border, #E9E3F7);
       --ms-emerald: #10b981;
       --ms-rose: #f43f5e;
       --ms-accent: #7c63df;
@@ -1373,6 +1373,13 @@ export class MySalonPage implements OnInit, OnDestroy {
   }
 
   private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
+    // If the tab bar already opened the enter-mode confirm, reuse that
+    // decision instead of stacking a second alert that needs another tap.
+    const top = await this.alerts.getTop();
+    if (top) {
+      const existingResult = await top.onDidDismiss();
+      return existingResult.role === "confirm";
+    }
     const alert = await this.alerts.create({
       header,
       message,

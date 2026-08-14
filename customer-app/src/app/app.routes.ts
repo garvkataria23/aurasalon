@@ -154,6 +154,11 @@ export const routes: Routes = [
         loadComponent: () => import("./features/profile/profile.page").then((m) => m.ProfilePage)
       },
       {
+        path: "my-salons",
+        canActivate: [customerAuthGuard],
+        loadComponent: () => import("./features/profile/my-salons.page").then((m) => m.MySalonsPage)
+      },
+      {
         path: "profile/edit",
         canActivate: [customerAuthGuard],
         loadComponent: () => import("./features/profile/profile-edit.page").then((m) => m.ProfileEditPage)

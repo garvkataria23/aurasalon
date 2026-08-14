@@ -87,7 +87,7 @@ import { YourSalonsListComponent } from "../../shared/your-salons-list.component
       gap: 12px;
       padding: 18px;
       border-radius: 24px;
-      background: radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.16), transparent 38%), linear-gradient(135deg, #ffffff, #fbf9ff);
+      background: radial-gradient(circle at 10% 0%, rgba(124, 99, 223, 0.16), transparent 38%), linear-gradient(135deg, #ffffff, #fbf9ff);
     }
 
     .my-salons-head a {

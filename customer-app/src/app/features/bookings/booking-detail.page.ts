@@ -469,7 +469,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
     .primary-action.reschedule {
       color: #FFFFFF;
       background: var(--primary);
-      box-shadow: 0 8px 18px rgba(99, 102, 241, 0.24);
+      box-shadow: 0 8px 18px rgba(124, 99, 223, 0.24);
     }
     .primary-action.contact, .primary-action.outline {
       color: var(--primary);
@@ -567,7 +567,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
     .book-again-copy h2 { margin: 0; font-size: 1rem; letter-spacing: -0.02em; }
     .book-again-copy p { margin: 3px 0 0; color: var(--muted); font-size: 0.82rem; line-height: 1.45; }
     .book-again-section ion-button { min-height: 44px; margin: 0; text-transform: none; }
-    .review-action { width: 100%; min-height: 50px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid rgba(99, 102, 241, 0.24); border-radius: 18px; color: var(--text); background: var(--surface); font-family: inherit; font-size: 0.9rem; font-weight: 900; text-align: left; }
+    .review-action { width: 100%; min-height: 50px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid rgba(124, 99, 223, 0.24); border-radius: 18px; color: var(--text); background: var(--surface); font-family: inherit; font-size: 0.9rem; font-weight: 900; text-align: left; }
     .review-action > ion-icon:first-child { color: var(--primary); font-size: 1.2rem; }
 
     .help-salon {
@@ -606,7 +606,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
       cursor: pointer;
     }
     .option-row:hover { background: var(--primary-soft); }
-    .option-row:active { background: rgba(99, 102, 241, 0.12); transform: scale(0.99); }
+    .option-row:active { background: rgba(124, 99, 223, 0.12); transform: scale(0.99); }
     .option-row:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .option-row > ion-icon:first-child { color: var(--primary); font-size: 1.05rem; }
     .help-salon .option-row { grid-template-columns: 28px minmax(0, 1fr) auto; }
@@ -736,7 +736,7 @@ import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-head
       font-weight: 850;
       cursor: pointer;
     }
-    .reschedule-offer:hover { background: rgba(99, 102, 241, 0.16); }
+    .reschedule-offer:hover { background: rgba(124, 99, 223, 0.16); }
     .reschedule-offer:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .cancel-success { display: grid; gap: 10px; justify-items: center; padding: 8px 0 4px; text-align: center; }
     .cancel-success .success-icon { font-size: 2.5rem; color: #059669; }

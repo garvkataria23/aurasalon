@@ -163,7 +163,7 @@ interface SuccessState {
       place-items: center;
       padding: 18px;
       background:
-        radial-gradient(circle at 50% 16%, rgba(99, 102, 241, 0.12), transparent 34%),
+        radial-gradient(circle at 50% 16%, rgba(124, 99, 223, 0.12), transparent 34%),
         transparent;
     }
 
@@ -429,7 +429,7 @@ interface SuccessState {
       --color: var(--primary);
       --color-activated: var(--brand-900);
       --background-hover: var(--primary-soft);
-      --background-activated: rgba(99, 102, 241, 0.16);
+      --background-activated: rgba(124, 99, 223, 0.16);
       margin-top: 8px;
       font-weight: 900;
       letter-spacing: 0;

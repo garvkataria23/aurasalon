@@ -304,8 +304,8 @@ import { MarketplaceService } from "../../core/marketplace.service";
       justify-content: space-between;
       gap: 12px;
       padding: 10px 12px 8px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.92));
-      border-bottom: 1px solid rgba(99, 102, 241, 0.14);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 235, 252, 0.92));
+      border-bottom: 1px solid rgba(124, 99, 223, 0.14);
       backdrop-filter: blur(18px);
     }
 
@@ -362,7 +362,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
     ion-tab-bar {
       --background: var(--glass);
-      --border: 1px solid rgba(99, 102, 241, 0.16);
+      --border: 1px solid rgba(124, 99, 223, 0.16);
       height: calc(40px + env(safe-area-inset-bottom));
       min-height: calc(40px + env(safe-area-inset-bottom));
       padding: 2px 6px calc(2px + env(safe-area-inset-bottom));
@@ -373,7 +373,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     ion-tab-button {
       --color: var(--muted);
       --color-selected: var(--primary);
-      --ripple-color: rgba(99, 102, 241, 0.18);
+      --ripple-color: rgba(124, 99, 223, 0.18);
       min-width: 0;
       min-height: 34px;
       border-radius: 9px;
@@ -391,7 +391,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     ion-tab-button.tab-selected ion-icon {
       color: #ffffff;
       background: var(--primary);
-      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 4px 10px rgba(124, 99, 223, 0.18);
     }
 
     @media (max-width: 1023px) {
@@ -487,7 +487,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       align-content: start;
       gap: 14px;
       padding: 16px;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       border-radius: 28px;
       overflow: auto;
       background: var(--glass-strong);
@@ -520,7 +520,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       gap: 6px;
       min-height: 38px;
       padding: 0 12px;
-      border: 1px solid rgba(99, 102, 241, 0.24);
+      border: 1px solid rgba(124, 99, 223, 0.24);
       border-radius: 999px;
       color: var(--primary-2);
       background: var(--glass);
@@ -544,7 +544,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       display: grid;
       gap: 3px;
       padding: 12px;
-      border: 1px solid rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(124, 99, 223, 0.16);
       border-radius: 16px;
       background: var(--glass);
     }
@@ -567,7 +567,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       gap: 12px;
       justify-content: space-between;
       padding: 12px;
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(124, 99, 223, 0.2);
       border-radius: 18px;
       background: var(--glass);
       box-shadow: 0 10px 24px rgba(28, 28, 28, 0.08);
@@ -612,7 +612,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       gap: 8px;
       min-height: 52px;
       padding: 0 12px;
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(124, 99, 223, 0.18);
       border-radius: 18px;
       color: var(--text);
       background: var(--glass);
@@ -622,14 +622,14 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
     .mobile-menu-list {
       display: grid;
-      border-top: 1px solid rgba(99, 102, 241, 0.16);
+      border-top: 1px solid rgba(124, 99, 223, 0.16);
     }
 
     .mobile-menu-list a {
       justify-content: space-between;
       gap: 10px;
       min-height: 48px;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+      border-bottom: 1px solid rgba(124, 99, 223, 0.12);
       color: var(--text);
       text-decoration: none;
       font-weight: 850;
@@ -747,7 +747,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
         width: 44px;
         height: 44px;
         border-radius: 15px;
-        box-shadow: 0 10px 24px rgba(99, 102, 241, 0.13);
+        box-shadow: 0 10px 24px rgba(124, 99, 223, 0.13);
         transition: transform var(--motion-medium), box-shadow var(--motion-medium);
       }
 
@@ -773,7 +773,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
         padding: 6px;
         border: 1px solid var(--border);
         border-radius: 999px;
-        background: rgba(246, 249, 252, 0.78);
+        background: rgba(240, 235, 252, 0.78);
       }
 
       .nav-links a {
@@ -795,7 +795,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       .nav-links a.active {
         color: #FFFFFF;
         background: linear-gradient(135deg, var(--brand-600), var(--primary));
-        box-shadow: 0 12px 26px rgba(99, 102, 241, 0.18);
+        box-shadow: 0 12px 26px rgba(124, 99, 223, 0.18);
       }
 
       .nav-actions {
@@ -841,7 +841,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
       .location-chip:hover,
       .icon-link:hover {
-        border-color: rgba(99, 102, 241, 0.32);
+        border-color: rgba(124, 99, 223, 0.32);
         color: var(--primary);
         background: var(--surface);
         transform: translateY(-2px);
@@ -1048,6 +1048,10 @@ bottomNavVisible(): boolean {
   }
 
   private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
+    // If a previous confirm dialog is still animating out, its ghost overlay
+    // swallows the first tap on the new dialog (classic Ionic double-tap).
+    const top = await this.alerts.getTop();
+    if (top) await top.dismiss().catch(() => undefined);
     const alert = await this.alerts.create({
       header,
       message,

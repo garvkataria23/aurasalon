@@ -87,9 +87,9 @@ import { AuthService } from "../../core/auth.service";
     }
 
     .otp-preview input:focus {
-      border-color: rgba(99, 102, 241, 0.48);
+      border-color: rgba(124, 99, 223, 0.48);
       background: var(--surface);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 0 0 4px rgba(124, 99, 223, 0.18);
     }
 
     .error-text {

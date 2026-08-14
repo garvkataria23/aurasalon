@@ -2155,7 +2155,7 @@ const hubConfigs: Record<string, HubConfig> = {
       color: #FFFFFF;
       border-color: transparent;
       background: linear-gradient(135deg, var(--brand-600), var(--primary) 58%, var(--brand-800));
-      box-shadow: 0 18px 44px rgba(99, 102, 241, 0.24);
+      box-shadow: 0 18px 44px rgba(124, 99, 223, 0.24);
     }
 
     .hub-tile ion-icon {
@@ -2248,7 +2248,7 @@ const hubConfigs: Record<string, HubConfig> = {
     .demo-chip {
       width: fit-content;
       padding: 4px 9px;
-      border: 1px solid rgba(99, 102, 241, 0.32);
+      border: 1px solid rgba(124, 99, 223, 0.32);
       border-radius: 999px;
       color: #8A5B08;
       background: rgba(246, 217, 148, 0.34);
@@ -3142,7 +3142,7 @@ const hubConfigs: Record<string, HubConfig> = {
     .skeleton-block,
     .skeleton-line,
     .skeleton-circle {
-      background: #EBEBEC;
+      background: #EAE3F8;
       animation: wallet-skeleton 1.4s ease-in-out infinite;
     }
 
@@ -3341,7 +3341,7 @@ const hubConfigs: Record<string, HubConfig> = {
     .support-booking-card > div { padding: 12px 14px 9px; }
     .support-booking-card h2 { margin: 7px 0 2px; color: #FFFFFF; font-size: 1.08rem; letter-spacing: -0.03em; overflow-wrap: anywhere; }
     .support-booking-card p { margin: 0; color: rgba(255, 255, 255, 0.78); font-size: 0.84rem; overflow-wrap: anywhere; }
-    .support-booking-card dl { display: grid; margin: 0; background: rgba(99, 102, 241, 0.36); }
+    .support-booking-card dl { display: grid; margin: 0; background: rgba(124, 99, 223, 0.36); }
     .support-booking-card dl div { min-width: 0; padding: 9px 14px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
     .support-booking-card dt { color: rgba(255, 255, 255, 0.74); font-size: 0.76rem; font-weight: 800; }
     .support-booking-card dd { margin: 2px 0 0; color: #FFFFFF; font-size: 0.84rem; font-weight: 750; overflow-wrap: anywhere; }
@@ -3358,7 +3358,7 @@ const hubConfigs: Record<string, HubConfig> = {
       gap: 8px;
       margin: -2px 0 0;
       padding: 10px 12px;
-      border: 1px solid rgba(99, 102, 241, 0.28);
+      border: 1px solid rgba(124, 99, 223, 0.28);
       border-radius: 12px;
       color: var(--brand-800);
       background: var(--primary-soft);

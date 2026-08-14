@@ -295,7 +295,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       place-content: center;
       justify-items: center;
       gap: 4px;
-      color: #4F46E5;
+      color: #7C63DF;
       background: linear-gradient(145deg, #e8f5fa, #c8e9f3 52%, #a8dbe9);
     }
 
@@ -463,7 +463,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     .card-action.primary {
       color: #fff;
       background: var(--primary);
-      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.14);
+      box-shadow: 0 4px 10px rgba(124, 99, 223, 0.14);
     }
 
     .state-card {

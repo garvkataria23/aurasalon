@@ -278,7 +278,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
       min-height: 112px;
-      background: radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.16), transparent 38%), linear-gradient(135deg, #ffffff, #fbf9ff);
+      background: radial-gradient(circle at 10% 0%, rgba(124, 99, 223, 0.16), transparent 38%), linear-gradient(135deg, #ffffff, #fbf9ff);
     }
 
     .hero-title-row {
@@ -431,7 +431,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       color: #ffffff;
       background: linear-gradient(135deg, var(--primary), var(--primary-2));
       font-size: 1.26rem;
-      box-shadow: 0 14px 26px rgba(99, 102, 241, 0.18);
+      box-shadow: 0 14px 26px rgba(124, 99, 223, 0.18);
     }
 
     .section-icon ion-icon {
@@ -483,7 +483,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       display: grid;
       gap: 10px;
       padding: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(124, 99, 223, 0.18);
       border-radius: 18px;
       background: var(--primary-soft);
     }
@@ -523,7 +523,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     .notice-text {
       color: var(--primary);
       background: var(--aura-gold-soft);
-      border: 1px solid rgba(99, 102, 241, 0.18);
+      border: 1px solid rgba(124, 99, 223, 0.18);
     }
 
     .error-text {
@@ -556,7 +556,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
     .delete-input-row {
       min-height: 72px;
-      border: 1px solid rgba(99, 102, 241, 0.26);
+      border: 1px solid rgba(124, 99, 223, 0.26);
       border-radius: 18px;
       background:
         linear-gradient(145deg, var(--glass-strong), var(--surface-soft));
@@ -601,10 +601,10 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
 
     .delete-input-row:focus-within {
-      border-color: rgba(99, 102, 241, 0.58);
+      border-color: rgba(124, 99, 223, 0.58);
       box-shadow:
         0 14px 30px rgba(28, 28, 28, 0.1),
-        0 0 0 4px rgba(99, 102, 241, 0.18),
+        0 0 0 4px rgba(124, 99, 223, 0.18),
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
     }
 
