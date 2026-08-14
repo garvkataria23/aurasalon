@@ -95,6 +95,9 @@ interface ConsultationChatMessage {
               <ion-icon class="location-chevron" name="chevron-forward-outline"></ion-icon>
             </div>
           </button>
+          <a class="home-ask-aura-shortcut" routerLink="/tabs/consultation" aria-label="Ask Aura">
+            <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+          </a>
           <a class="home-profile-shortcut" routerLink="/tabs/profile" aria-label="Open profile">
             <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
           </a>
@@ -243,7 +246,6 @@ interface ConsultationChatMessage {
             <nav class="customer-quick-actions" aria-label="Quick actions">
               <a routerLink="/tabs/offers"><ion-icon name="pricetag-outline"></ion-icon><span>Offers</span><small>Browse live deals</small></a>
               <a routerLink="/tabs/wallet"><ion-icon name="wallet-outline"></ion-icon><span>Wallet</span><small>Balance and payments</small></a>
-              <a routerLink="/tabs/memberships"><ion-icon name="ribbon-outline"></ion-icon><span>Membership</span><small>Plans and benefits</small></a>
               <a routerLink="/tabs/rewards"><ion-icon name="pricetag-outline"></ion-icon><span>Rewards</span><small>{{ marketplace.customer()?.loyaltyPoints ?? 0 }} pts available</small></a>
               <a routerLink="/tabs/gift-cards"><ion-icon name="gift-outline"></ion-icon><span>Gift Cards</span><small>Send a treat</small></a>
               <a routerLink="/tabs/packages"><ion-icon name="layers-outline"></ion-icon><span>Packages</span><small>Bundle & save</small></a>
@@ -297,6 +299,7 @@ interface ConsultationChatMessage {
       margin: 0;
     }
 
+    .home-ask-aura-shortcut,
     .home-profile-shortcut {
       width: 40px;
       height: 40px;
@@ -309,10 +312,17 @@ interface ConsultationChatMessage {
       background: rgba(255, 255, 255, 0.82);
       text-decoration: none;
       box-shadow: 0 10px 22px rgba(124, 99, 223, 0.1);
+    }
+
+    .home-ask-aura-shortcut {
       margin-left: auto;
+    }
+
+    .home-profile-shortcut {
       margin-right: 12px;
     }
 
+    .home-ask-aura-shortcut ion-icon,
     .home-profile-shortcut ion-icon {
       font-size: 1.55rem;
       --ionicon-stroke-width: 38px;
@@ -985,7 +995,7 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       width: 100%;
       justify-self: stretch;
@@ -2253,46 +2263,50 @@ interface ConsultationChatMessage {
 
       .home-page .lower-actions {
         gap: 8px;
-        width: calc(100vw - 40px);
+        width: 100%;
         max-width: none;
         justify-self: stretch;
+        justify-items: start;
         margin-top: 8px;
       }
       .home-page .lower-actions .section-kicker { font-size: 0.74rem; }
       .home-page .lower-actions .section-title { font-size: 1rem; }
       .home-page .lower-actions .customer-quick-actions {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 4px;
-        width: 100%;
-        justify-self: stretch;
-        justify-items: stretch;
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 6px;
+        width: calc(100vw - 40px) !important;
+        max-width: calc(100vw - 40px) !important;
+        box-sizing: border-box;
+        justify-self: start !important;
+        justify-items: stretch !important;
+        margin-right: calc((100vw - 100%) * -1);
         overflow: visible;
         padding: 0;
       }
       .home-page .lower-actions .customer-quick-actions a {
         grid-template-columns: 1fr;
         justify-items: center;
-        align-items: center;
+        align-content: center;
         text-align: center;
-        gap: 3px;
+        gap: 5px;
         min-width: 0;
-        min-height: 46px;
-        padding: 5px 1px;
-        border-radius: 8px;
+        min-height: 58px;
+        padding: 7px 3px 6px;
+        border-radius: 11px;
       }
       .home-page .lower-actions .customer-quick-actions ion-icon {
-        width: 13px;
-        height: 13px;
+        width: 17px;
+        height: 17px;
       }
       .home-page .lower-actions .customer-quick-actions span {
         min-width: 0;
         max-width: 100%;
-        overflow: hidden;
-        text-overflow: clip;
-        white-space: nowrap;
-        font-size: clamp(0.4rem, 1.55vw, 0.48rem);
-        letter-spacing: -0.09em;
-        line-height: 1;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        font-size: clamp(0.56rem, 2vw, 0.66rem);
+        letter-spacing: -0.045em;
+        line-height: 1.05;
       }
       .home-page .lower-actions .customer-quick-actions small { display: none; }
 
