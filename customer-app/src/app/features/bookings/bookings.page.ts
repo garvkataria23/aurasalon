@@ -24,9 +24,11 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       <main class="page bookings-page" [class.salon-mode-bookings]="salonModeRoute()">
         <section class="bookings-hero">
           <div class="bookings-top-row">
-            <button type="button" class="booking-back-btn" (click)="goBack()" aria-label="Back">
-              <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
-            </button>
+            @if (salonModeRoute() || historyMode()) {
+              <button type="button" class="booking-back-btn" (click)="goBack()" aria-label="Back">
+                <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+              </button>
+            }
             <h1 class="page-title bookings-title">{{ pageTitle() }}</h1>
             <a class="support-link" [routerLink]="supportLink()" aria-label="Open booking support">
               <ion-icon name="help-circle-outline" aria-hidden="true"></ion-icon>
@@ -474,7 +476,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
 
     .meta-line.tone-paid { color: #047857; }
     .meta-line.tone-pending { color: #B45309; }
-    .meta-line.tone-refunded { color: #1D4ED8; }
+    .meta-line.tone-refunded { color: #7C63DF; }
 
     .booking-footer {
       display: flex;
@@ -501,7 +503,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
 
     .status-pill.status-pending {
       color: #92600A;
-      border-color: rgba(217, 119, 6, 0.35);
+      border-color: rgba(245, 158, 11, 0.35);
       background: rgba(251, 191, 36, 0.14);
     }
 
@@ -512,15 +514,15 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
     }
 
     .status-pill.status-completed {
-      color: #1D4ED8;
-      border-color: rgba(59, 130, 246, 0.36);
-      background: rgba(59, 130, 246, 0.12);
+      color: #7C63DF;
+      border-color: rgba(124, 99, 223, 0.36);
+      background: rgba(124, 99, 223, 0.12);
     }
 
     .status-pill.status-cancelled {
       color: #991B1B;
       border-color: rgba(153, 27, 27, 0.28);
-      background: rgba(239, 68, 68, 0.1);
+      background: rgba(244, 63, 94, 0.1);
     }
 
     .status-pill.status-no_show {
@@ -633,7 +635,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
     .cancel-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .cancel-actions button { min-height: 48px; border-radius: 999px; font-family: inherit; font-size: 0.9rem; font-weight: 900; }
     .cancel-actions .neutral-action { border: 1px solid var(--border); color: var(--text); background: var(--surface); }
-    .cancel-actions .destructive-action { border: 1px solid #B42318; color: #FFFFFF; background: #B42318; }
+    .cancel-actions .destructive-action { border: 1px solid #F43F5E; color: #FFFFFF; background: #F43F5E; }
 
     @media (hover: hover) and (pointer: fine) {
       .booking-card:hover {
