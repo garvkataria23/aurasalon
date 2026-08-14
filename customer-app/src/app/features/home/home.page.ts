@@ -985,11 +985,9 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions {
       display: grid;
-      grid-template-columns: repeat(4, minmax(124px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      overflow-x: auto;
       padding: 2px 2px 8px;
-      scrollbar-width: none;
     }
 
     .customer-quick-actions::-webkit-scrollbar {
