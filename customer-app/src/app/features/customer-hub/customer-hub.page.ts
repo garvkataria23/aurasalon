@@ -2369,7 +2369,7 @@ const hubConfigs: Record<string, HubConfig> = {
 
     .content-back-button {
       position: absolute;
-      left: -44px;
+      left: -60px;
       top: -21px;
       width: 38px;
       height: 38px;
