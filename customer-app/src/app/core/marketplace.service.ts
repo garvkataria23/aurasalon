@@ -91,6 +91,7 @@ export class MarketplaceService {
   readonly salonMode = this.salonModeStore.asReadonly();
   private readonly salonModeContextStore = signal<SalonModeContext | null>(null);
   readonly salonModeContext = this.salonModeContextStore.asReadonly();
+  private pendingSalonEntryConfirm: Promise<boolean> | null = null;
   private favoritesLoaded = false;
   private savedSalonsLoaded = false;
   private businessesRequestCounter = 0;
@@ -164,6 +165,34 @@ enterSalonMode(context?: SalonModeContext | null): void {
       // storage unavailable — mode already off for this session
     }
     this.salonModeContextStore.set(null);
+  }
+
+  /**
+   * Single shared confirmation for entering My Salon mode. Both the tab bar
+   * (tabs.page) and the /tabs/my-salon page call this, so a quick tab switch
+   * never stacks two dialogs or re-prompts after a navigation flash.
+   */
+  confirmSalonModeEntry(): Promise<boolean> {
+    if (this.pendingSalonEntryConfirm) return this.pendingSalonEntryConfirm;
+    const run = (async () => {
+      const top = await this.alerts.getTop();
+      if (top) await top.dismiss().catch(() => undefined);
+      const alert = await this.alerts.create({
+        header: "Open My Salon Mode",
+        message: "Your salon dashboard, rewards, wallet, memberships and bookings will open in a focused mini-app experience.",
+        cssClass: "aura-alert",
+        buttons: [
+          { text: "Cancel", role: "cancel" },
+          { text: "Enter Mode", role: "confirm" }
+        ]
+      });
+      await alert.present();
+      const result = await alert.onDidDismiss();
+      return result.role === "confirm";
+    })();
+    this.pendingSalonEntryConfirm = run;
+    void run.finally(() => { this.pendingSalonEntryConfirm = null; });
+    return run;
   }
 
   syncSalonModeContext(context: SalonModeContext): void {

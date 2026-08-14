@@ -162,7 +162,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     <ion-tabs [class.salon-mode-active]="salonModeActive()" [class.offline-active]="marketplace.offline()" [class.with-bottom-nav]="bottomNavVisible()">
       @if (bottomNavVisible()) {
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="my-salon" href="/tabs/my-salon" (click)="handleBottomNav($event, '/tabs/my-salon')">
+        <ion-tab-button tab="my-salon" href="/tabs/my-salon" (ionTabButtonClick)="onSalonTabSelect($event)" (click)="handleBottomNav($event, '/tabs/my-salon')">
           <ion-icon name="sparkles-outline"></ion-icon>
           <ion-label>My Salon</ion-label>
         </ion-tab-button>
@@ -247,7 +247,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      color: #5f46cf;
+      color: #7C63DF;
       background: #f4f0ff;
       font-size: 0.84rem;
       font-weight: 800;
@@ -264,7 +264,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       padding: 0;
       border: 1px solid rgba(244, 63, 94, 0.24);
       border-radius: 999px;
-      color: #e11d48;
+      color: #F43F5E;
       background: rgba(255, 255, 255, 0.82);
       font-size: 0.84rem;
       font-weight: 950;
@@ -691,7 +691,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
       padding: 12px 14px;
       border: 1px solid rgba(225, 29, 72, 0.16);
       border-radius: 16px;
-      color: #EF4444;
+      color: #F43F5E;
       background: var(--error-soft);
     }
 
@@ -1016,7 +1016,7 @@ bottomNavVisible(): boolean {
     if (!enteringMySalon) return;
     event.preventDefault();
     event.stopPropagation();
-    if (!this.marketplace.salonMode() && !(await this.confirmEnterSalonMode())) return;
+    if (!this.marketplace.salonMode() && !(await this.marketplace.confirmSalonModeEntry())) return;
     if (!this.marketplace.salonMode()) {
       const primary = this.marketplace.primarySalon();
       this.marketplace.enterSalonMode(primary ? { tenantId: primary.tenantId, branchId: primary.branchId, businessId: primary.businessId, businessName: primary.businessName } : null);
@@ -1032,6 +1032,11 @@ bottomNavVisible(): boolean {
     return tenantId && branchId ? `/my-salon/${encodeURIComponent(tenantId)}/${encodeURIComponent(branchId)}` : "/tabs/my-salon";
   }
 
+  onSalonTabSelect(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   async exitSalonMode(): Promise<void> {
     if (!(await this.confirmLeaveSalonMode())) return;
     this.marketplace.exitSalonMode();
@@ -1041,10 +1046,6 @@ bottomNavVisible(): boolean {
 
   private confirmLeaveSalonMode(): Promise<boolean> {
     return this.confirmSalonMode("Exit My Salon mode?", "Go back to the customer app?", "Exit");
-  }
-
-  private confirmEnterSalonMode(): Promise<boolean> {
-    return this.confirmSalonMode("Open My Salon Mode", "Your salon dashboard, rewards, wallet, memberships and bookings will open in a focused mini-app experience.", "Enter Mode");
   }
 
   private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {

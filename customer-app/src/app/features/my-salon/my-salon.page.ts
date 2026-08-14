@@ -1279,7 +1279,7 @@ export class MySalonPage implements OnInit, OnDestroy {
       void this.router.navigate(["/login"]);
       return;
     }
-    if (!this.marketplace.salonMode() && !(await this.confirmEnterSalonMode())) {
+    if (!this.marketplace.salonMode() && !(await this.marketplace.confirmSalonModeEntry())) {
       void this.router.navigateByUrl("/tabs/home");
       return;
     }
@@ -1368,18 +1368,11 @@ export class MySalonPage implements OnInit, OnDestroy {
     return this.confirmSalonMode("Exit My Salon mode?", "Go back to the customer app?", "Exit");
   }
 
-  private confirmEnterSalonMode(): Promise<boolean> {
-    return this.confirmSalonMode("Open My Salon Mode", "Your salon dashboard, rewards, wallet, memberships and bookings will open in a focused mini-app experience.", "Enter Mode");
-  }
-
   private async confirmSalonMode(header: string, message: string, confirmText: string): Promise<boolean> {
-    // If the tab bar already opened the enter-mode confirm, reuse that
-    // decision instead of stacking a second alert that needs another tap.
+    // If a previous confirm dialog is still animating out, its ghost overlay
+    // swallows the first tap on the new dialog (classic Ionic double-tap).
     const top = await this.alerts.getTop();
-    if (top) {
-      const existingResult = await top.onDidDismiss();
-      return existingResult.role === "confirm";
-    }
+    if (top) await top.dismiss().catch(() => undefined);
     const alert = await this.alerts.create({
       header,
       message,
