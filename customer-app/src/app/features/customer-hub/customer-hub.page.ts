@@ -1,10 +1,11 @@
 import { Component, HostListener, OnInit, computed, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { AlertController, IonBackButton, IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
+import { AlertController, IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { firstValueFrom } from "rxjs";
 import {
+  arrowBackOutline,
   arrowUndoOutline,
   briefcaseOutline,
   calendarOutline,
@@ -168,7 +169,7 @@ const hubConfigs: Record<string, HubConfig> = {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink, IonBackButton, IonButton, IonContent, IonIcon],
+  imports: [FormsModule, RouterLink, IonButton, IonContent, IonIcon],
   template: `
     <ion-content>
       <main class="page hub-page" [class.salon-mode-hub]="salonModeRoute()" [class.wallet-hub-page]="walletMode() || rewardsMode() || membershipsMode() || packagesMode() || paymentsMode() || familyMode() || referralsMode() || giftCardsMode() || corporateMode() || goalsMode() || slug() === 'support'">
@@ -306,7 +307,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura wallet</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="wallet-title">Wallet</h1>
                 </div>
                 <p class="wallet-intro">Your credits, refunds and wallet activity in one place.</p>
@@ -472,7 +473,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura invoices</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="invoices-title">Invoices</h1>
                 </div>
                 <p class="wallet-intro">Track due payments, past invoices and your payment history.</p>
@@ -636,7 +637,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura payments</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="payments-title">Payments</h1>
                 </div>
                 <p class="wallet-intro">Every payment across your bookings and invoices, in one secure place.</p>
@@ -788,7 +789,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura rewards</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="rewards-title">Rewards</h1>
                 </div>
                 <p class="wallet-intro">Points, tier and booking rewards from your activity.</p>
@@ -934,7 +935,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura memberships</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="memberships-title">Memberships</h1>
                 </div>
                 <p class="wallet-intro">Active plans, benefits and available memberships.</p>
@@ -1147,7 +1148,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow family-eyebrow">Family booking</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="family-title">Family profiles</h1>
                 </div>
                 <p class="wallet-intro">Profiles, preferences and shared bookings for your family.</p>
@@ -1235,7 +1236,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Refer & earn</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="referrals-title">Referrals</h1>
                 </div>
                 <p class="wallet-intro">Invite friends and earn rewards when they book.</p>
@@ -1349,7 +1350,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Gift cards</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="giftcards-title">Gift cards</h1>
                 </div>
                 <p class="wallet-intro">Purchase, redeem and track your gift card balances.</p>
@@ -1485,7 +1486,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Corporate benefits</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="corporate-title">Corporate</h1>
                 </div>
                 <p class="wallet-intro">Workplace benefits, packages and reimbursements.</p>
@@ -1543,7 +1544,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Beauty goals</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="goals-title">Goals</h1>
                 </div>
                 <p class="wallet-intro">Track your treatment plans, routines and progress.</p>
@@ -1631,7 +1632,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura packages</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="packages-title">Packages</h1>
                 </div>
                 <p class="wallet-intro">Sessions, balances and package redemptions.</p>
@@ -1783,7 +1784,7 @@ const hubConfigs: Record<string, HubConfig> = {
               <div>
                 <p class="wallet-eyebrow">Aura support</p>
                 <div class="wallet-title-row">
-                  <ion-back-button class="content-back-button" [defaultHref]="hubBackHref()" text=""></ion-back-button>
+                  <button type="button" class="content-back-button" (click)="goBack()" aria-label="Back"><ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon></button>
                   <h1 id="support-title">Help & support</h1>
                 </div>
                 <p class="wallet-intro">Your support tickets and help resources.</p>
@@ -2373,14 +2374,20 @@ const hubConfigs: Record<string, HubConfig> = {
       width: 38px;
       height: 38px;
       min-width: 38px;
-      --color: var(--brand-950);
-      --icon-font-size: 25px;
-      --background: transparent;
-      --border-radius: 12px;
-      --padding-start: 0;
-      --padding-end: 0;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 12px;
+      padding: 0;
+      color: var(--brand-950);
+      background: transparent;
+      font-size: 25px;
+      line-height: 1;
+      cursor: pointer;
       filter: drop-shadow(0.45px 0 0 var(--brand-950));
     }
+
+    .content-back-button:active { transform: scale(0.94); }
 
     .wallet-heading .wallet-intro {
       max-width: 580px;
@@ -3115,8 +3122,8 @@ const hubConfigs: Record<string, HubConfig> = {
     }
 
     .wallet-error .wallet-state-icon {
-      color: #B42318;
-      background: #FEECE9;
+      color: #F43F5E;
+      background: #FDE8F0;
     }
 
     .wallet-loading {
@@ -3246,16 +3253,16 @@ const hubConfigs: Record<string, HubConfig> = {
     }
 
     .invoice-due-label {
-      color: #B42318;
+      color: #F43F5E;
     }
 
     .text-danger {
-      color: #B42318;
+      color: #F43F5E;
     }
 
     .invoice-due .transaction-icon {
-      color: #B42318;
-      background: #FEECE9;
+      color: #F43F5E;
+      background: #FDE8F0;
     }
 
     .booking-support {
@@ -3283,7 +3290,7 @@ const hubConfigs: Record<string, HubConfig> = {
       position: static;
       left: auto;
       top: auto;
-      --color: #FFFFFF;
+      color: #FFFFFF;
       filter: none;
     }
     .support-back-button {
@@ -3349,8 +3356,8 @@ const hubConfigs: Record<string, HubConfig> = {
     .support-booking-card .status-pill { text-transform: capitalize; }
     .support-booking-card .status-pill.status-pending { color: #92600A; background: rgba(251, 191, 36, 0.14); }
     .support-booking-card .status-pill.status-confirmed { color: #047857; background: rgba(16, 185, 129, 0.13); }
-    .support-booking-card .status-pill.status-completed { color: #1D4ED8; background: rgba(59, 130, 246, 0.12); }
-    .support-booking-card .status-pill.status-cancelled { color: #B91C1C; background: rgba(239, 68, 68, 0.11); }
+    .support-booking-card .status-pill.status-completed { color: #7C63DF; background: rgba(124, 99, 223, 0.12); }
+    .support-booking-card .status-pill.status-cancelled { color: #B91C1C; background: rgba(244, 63, 94, 0.11); }
     .support-form { display: grid; gap: 15px; }
     .support-context-note {
       display: flex;
@@ -3404,7 +3411,7 @@ const hubConfigs: Record<string, HubConfig> = {
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), var(--surface) 34%);
       backdrop-filter: blur(10px);
     }
-    .form-error { margin: -3px 0 0; color: #B42318; font-size: 0.84rem; font-weight: 750; line-height: 1.4; }
+    .form-error { margin: -3px 0 0; color: #F43F5E; font-size: 0.84rem; font-weight: 750; line-height: 1.4; }
     .support-live { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
     @media (max-width: 599px) {
@@ -3715,6 +3722,11 @@ export class CustomerHubPage implements OnInit {
   readonly invoicesMode = computed(() => this.slug() === "invoices");
   readonly paymentsMode = computed(() => this.slug() === "payments");
   readonly hubBackHref = computed(() => (this.marketplace.salonMode() ? this.marketplace.salonModeUrl() : "/tabs/profile"));
+
+  goBack(): void {
+    if (window.history.length > 1) window.history.back();
+    else void this.router.navigateByUrl(this.hubBackHref());
+  }
   readonly rewardsMode = computed(() => this.slug() === "rewards");
   readonly membershipsMode = computed(() => this.slug() === "memberships");
   readonly packagesMode = computed(() => this.slug() === "packages");
@@ -3864,6 +3876,7 @@ export class CustomerHubPage implements OnInit {
 
   constructor(private readonly route: ActivatedRoute, private readonly router: Router, readonly marketplace: MarketplaceService, private readonly alerts: AlertController, private readonly api: CustomerApiService) {
     addIcons({
+      arrowBackOutline,
       arrowUndoOutline,
       briefcaseOutline,
       calendarOutline,
