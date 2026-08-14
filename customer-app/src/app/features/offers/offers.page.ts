@@ -2,12 +2,14 @@ import { Component, OnInit, computed } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { IonButton, IonContent } from "@ionic/angular/standalone";
 import { BusinessCardComponent } from "../../shared/business-card.component";
+import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-header.component";
 import { MarketplaceService } from "../../core/marketplace.service";
 
 @Component({
   standalone: true,
-  imports: [RouterLink, IonButton, IonContent, BusinessCardComponent],
+  imports: [RouterLink, IonButton, IonContent, BusinessCardComponent, CustomerMobileHeaderComponent],
   template: `
+    <aura-customer-mobile-header title="Offers" backHref="/tabs/home" />
     <ion-content>
       <main class="page offers-page">
         <section class="hero-offer">
@@ -91,7 +93,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
 
     .state-card.error p {
-      color: #EF4444;
+      color: #F43F5E;
     }
 
     @media (max-width: 599px) {
