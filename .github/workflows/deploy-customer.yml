@@ -32,27 +32,30 @@ jobs:
           cd customer-app
           npm run build
 
-      - name: Create deploy bundle
-        run: |
+          
+       - name: Create deploy bundle
+         run: |
           cd customer-app
           mkdir -p deploy-bundle/tabs
           cp -r www/browser/* deploy-bundle/
           # .htaccess for SPA fallback
           cat > deploy-bundle/.htaccess << 'EOF'
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-  RewriteRule ^ index.html [L]
-</IfModule>
-EOF
+          <IfModule mod_rewrite.c>
+          RewriteEngine On
+          RewriteBase /
+          RewriteCond %{REQUEST_FILENAME} -f [OR]
+          RewriteCond %{REQUEST_FILENAME} -d
+          RewriteRule ^ - [L]
+          RewriteRule ^ index.html [L]
+          </IfModule>
+          EOF
+
           # tabs/*/index.html copies for deep-link resilience
           for tab in home my-salon my-salons bookings search profile; do
             mkdir -p deploy-bundle/tabs/$tab
             cp deploy-bundle/index.html deploy-bundle/tabs/$tab/index.html
           done
+      
 
       - name: Deploy to Hostinger
         env:
