@@ -1015,11 +1015,12 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions span {
       color: var(--text);
-      font-size: 0.95rem;
+      font-size: 0.28rem;
       font-weight: 950;
       line-height: 1.1;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .customer-quick-actions small { display: none; }
@@ -2253,30 +2254,34 @@ interface ConsultationChatMessage {
       .home-page .lower-actions .section-title { font-size: 1rem; }
       .home-page .lower-actions .customer-quick-actions {
         grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
+        gap: 7px;
         overflow: visible;
         padding: 0;
       }
       .home-page .lower-actions .customer-quick-actions a {
-        grid-template-columns: 20px minmax(0, 1fr);
+        grid-template-columns: 1fr;
+        justify-items: center;
         align-items: center;
-        gap: 3px 6px;
+        text-align: center;
+        gap: 4px;
         min-width: 0;
-        min-height: 52px;
-        padding: 5px 6px;
+        min-height: 50px;
+        padding: 6px 4px;
         border-radius: 10px;
       }
       .home-page .lower-actions .customer-quick-actions ion-icon {
-        grid-row: 1;
         width: 16px;
         height: 16px;
       }
       .home-page .lower-actions .customer-quick-actions span {
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-size: 0.7rem;
-        line-height: 1.1;
+        max-width: 100%;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: nowrap;
+        font-size: clamp(0.58rem, 2.25vw, 0.66rem);
+        letter-spacing: -0.04em;
+        line-height: 1;
       }
       .home-page .lower-actions .customer-quick-actions small { display: none; }
 
