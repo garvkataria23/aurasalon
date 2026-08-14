@@ -997,10 +997,10 @@ interface ConsultationChatMessage {
     .customer-quick-actions a {
       display: grid;
       gap: 4px;
-      min-width: 124px;
-      padding: 13px 12px;
+      min-width: 0;
+      padding: 10px 8px;
       border: 1px solid rgba(124, 99, 223, 0.2);
-      border-radius: 18px;
+      border-radius: 16px;
       color: var(--text);
       background: linear-gradient(145deg, #ffffff, var(--primary-soft));
       box-shadow: 0 12px 28px rgba(28, 28, 28, 0.08);
@@ -1008,23 +1008,28 @@ interface ConsultationChatMessage {
     }
 
     .customer-quick-actions ion-icon {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       color: var(--primary);
     }
 
     .customer-quick-actions span {
       color: var(--text);
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 950;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .customer-quick-actions small {
       color: var(--muted);
-      font-size: 0.80rem;
+      font-size: 0.72rem;
       font-weight: 800;
-      line-height: 1.2;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .customer-quick-actions.primary-salon-actions a {
@@ -2255,7 +2260,7 @@ interface ConsultationChatMessage {
       .home-page .lower-actions .section-kicker { font-size: 0.74rem; }
       .home-page .lower-actions .section-title { font-size: 1rem; }
       .home-page .lower-actions .customer-quick-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
         overflow: visible;
         padding: 0;
@@ -2265,23 +2270,30 @@ interface ConsultationChatMessage {
         align-items: center;
         gap: 3px 8px;
         min-width: 0;
-        min-height: 62px;
-        padding: 8px 10px;
-        border-radius: 14px;
+        min-height: 56px;
+        padding: 6px 8px;
+        border-radius: 12px;
       }
       .home-page .lower-actions .customer-quick-actions ion-icon {
         grid-row: 1;
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
       }
       .home-page .lower-actions .customer-quick-actions span {
         min-width: 0;
         overflow: hidden;
-        font-size: 0.82rem;
+        font-size: 0.76rem;
         line-height: 1.1;
         text-overflow: ellipsis;
       }
-      .home-page .lower-actions .customer-quick-actions small { display: none; }
+      .home-page .lower-actions .customer-quick-actions small {
+        display: block;
+        font-size: 0.64rem;
+        line-height: 1.1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
     }
 
