@@ -183,11 +183,21 @@ button, a { touch-action: manipulation; }
 ::-webkit-scrollbar-thumb:hover { background: var(--aura-muted); }
 
 /* ===== TYPOGRAPHY ===== */
-h1, h2, h3, h4, h5, h6 {
+:where(h1, h2, h3, h4, h5, h6) {
   color: var(--aura-heading);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.15;
+}
+
+/* Ensure headings inside dark surfaces/containers inherit white color */
+.text-white h1, .text-white h2, .text-white h3, .text-white h4, .text-white h5, .text-white h6,
+.bg-aura-dark h1, .bg-aura-dark h2, .bg-aura-dark h3, .bg-aura-dark h4, .bg-aura-dark h5, .bg-aura-dark h6,
+.bg-aura-dark-elevated h1, .bg-aura-dark-elevated h2, .bg-aura-dark-elevated h3, .bg-aura-dark-elevated h4, .bg-aura-dark-elevated h5, .bg-aura-dark-elevated h6,
+[class*="bg-zinc-900"] h1, [class*="bg-zinc-900"] h2, [class*="bg-zinc-900"] h3, [class*="bg-zinc-900"] h4, [class*="bg-zinc-900"] h5, [class*="bg-zinc-900"] h6,
+[class*="bg-gray-900"] h1, [class*="bg-gray-900"] h2, [class*="bg-gray-900"] h3, [class*="bg-gray-900"] h4, [class*="bg-gray-900"] h5, [class*="bg-gray-900"] h6,
+[class*="bg-black"] h1, [class*="bg-black"] h2, [class*="bg-black"] h3, [class*="bg-black"] h4, [class*="bg-black"] h5, [class*="bg-black"] h6 {
+  color: #ffffff;
 }
 
 /* ===== SECTION STYLES ===== */
