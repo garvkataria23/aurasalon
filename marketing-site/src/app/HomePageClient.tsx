@@ -15,6 +15,7 @@ import { MultiBranchShowcase } from "@/components/landing/MultiBranchShowcase";
 import { HardwareShowcase } from "@/components/landing/HardwareShowcase";
 import { Stats } from "@/components/landing/Stats";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { IndustriesAndIntegrations } from "@/components/landing/IndustriesAndIntegrations";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { PricingPreview } from "@/components/landing/PricingPreview";
 import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
@@ -38,6 +39,7 @@ export default function HomePageClient() {
       <HardwareShowcase />
       <Stats />
       <HowItWorks />
+      <IndustriesAndIntegrations />
       <Testimonials />
       <PricingPreview />
       <InteractiveFAQ />
