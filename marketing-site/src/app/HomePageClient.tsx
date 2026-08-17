@@ -5,6 +5,7 @@ import { TrustStrip } from "@/components/landing/TrustStrip";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { ProductFeatures } from "@/components/landing/ProductFeatures";
 import { AdvancedFeatures } from "@/components/landing/AdvancedFeatures";
+import { AnalyticsAndPlatform } from "@/components/landing/AnalyticsAndPlatform";
 import { POSSandbox } from "@/components/landing/POSSandbox";
 import { WhatsAppSimulator } from "@/components/landing/WhatsAppSimulator";
 import { CompetitorMatrix } from "@/components/landing/CompetitorMatrix";
@@ -27,6 +28,7 @@ export default function HomePageClient() {
       <ProblemSection />
       <ProductFeatures />
       <AdvancedFeatures />
+      <AnalyticsAndPlatform />
       <POSSandbox />
       <WhatsAppSimulator />
       <CompetitorMatrix />
