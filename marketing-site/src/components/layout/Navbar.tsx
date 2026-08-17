@@ -148,7 +148,7 @@ function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
 
 /* ── Main Navbar ── */
 export function Navbar() {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, bilingual, setBilingual, t } = useLanguage();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -238,6 +238,21 @@ export function Navbar() {
                 </button>
               ))}
             </div>
+            {language !== "en" && (
+              <button
+                type="button"
+                onClick={() => setBilingual(!bilingual)}
+                aria-label={bilingual ? "Show Hindi only" : "Show English and Hindi"}
+                className={cn(
+                  "h-8 rounded-md px-2 text-[10px] font-semibold transition-colors border",
+                  bilingual
+                    ? "border-[var(--aura-purple)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
+                    : "border-[var(--aura-border)] text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
+                )}
+              >
+                {bilingual ? "EN+HI" : "HI"}
+              </button>
+            )}
 
             <Link
               href={CTA_LINKS.login}

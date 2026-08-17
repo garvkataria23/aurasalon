@@ -69,6 +69,8 @@ const messages: Record<Language, Record<string, string>> = {
 type LanguageContextValue = {
   language: Language;
   setLanguage: (language: Language) => void;
+  bilingual: boolean;
+  setBilingual: (v: boolean) => void;
   businessType: BusinessType;
   setBusinessType: (businessType: BusinessType) => void;
   t: (key: string, fallback?: string) => string;
@@ -77,11 +79,14 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
+  const [bilingual, setBilingualState] = useState(true);
   const [businessType, setBusinessTypeState] = useState<BusinessType>("salon");
 
   useEffect(() => {
     const saved = window.localStorage.getItem("aura.marketing.language");
     if (saved === "en" || saved === "hi") setLanguageState(saved);
+    const savedBilingual = window.localStorage.getItem("aura.marketing.bilingual");
+    if (savedBilingual !== null) setBilingualState(savedBilingual === "true");
     const savedBusinessType = window.localStorage.getItem("aura.marketing.businessType");
     if (savedBusinessType === "salon" || savedBusinessType === "spa" || savedBusinessType === "nail" || savedBusinessType === "bridal" || savedBusinessType === "multi") {
       setBusinessTypeState(savedBusinessType);
@@ -96,12 +101,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLanguageState(next);
     window.localStorage.setItem("aura.marketing.language", next);
   }, []);
+  const setBilingual = useCallback((v: boolean) => {
+    setBilingualState(v);
+    window.localStorage.setItem("aura.marketing.bilingual", String(v));
+  }, []);
   const setBusinessType = useCallback((next: BusinessType) => {
     setBusinessTypeState(next);
     window.localStorage.setItem("aura.marketing.businessType", next);
   }, []);
-  const t = useCallback((key: string, fallback?: string) => messages[language][key] ?? messages.en[key] ?? fallback ?? key, [language]);
-  const value = useMemo(() => ({ language, setLanguage, businessType, setBusinessType, t }), [language, setLanguage, businessType, setBusinessType, t]);
+  const t = useCallback((key: string, fallback?: string) => {
+    const enText = messages.en[key] ?? fallback ?? key;
+    if (language === "en") return enText;
+    const hiText = messages[language][key] ?? enText;
+    if (bilingual) return `${enText} / ${hiText}`;
+    return hiText;
+  }, [language, bilingual]);
+  const value = useMemo(() => ({ language, setLanguage, bilingual, setBilingual, businessType, setBusinessType, t }), [language, setLanguage, bilingual, setBilingual, businessType, setBusinessType, t]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }

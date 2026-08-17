@@ -20,7 +20,7 @@ function isRouteActive(pathname: string, href: string) {
 }
 
 export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileMenuProps) {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, bilingual, setBilingual, t } = useLanguage();
   const panelRef = useRef<HTMLDivElement>(null);
   const firstFocusable = useRef<HTMLAnchorElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -120,6 +120,21 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
                   {opt === "en" ? "EN" : "हिं"}
                 </button>
               ))}
+              {language !== "en" && (
+                <button
+                  type="button"
+                  onClick={() => setBilingual(!bilingual)}
+                  aria-label={bilingual ? "Show Hindi only" : "Show English and Hindi"}
+                  className={cn(
+                    "grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-[10px] font-semibold transition-colors border ml-1",
+                    bilingual
+                      ? "border-[var(--aura-purple)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
+                      : "border-[var(--aura-border)] text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
+                  )}
+                >
+                  {bilingual ? "EN+HI" : "HI"}
+                </button>
+              )}
             </div>
           </div>
 
