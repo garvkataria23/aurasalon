@@ -72,7 +72,7 @@ export default function DemoPage() {
             <p className="text-aura-text-secondary mb-6">
                {t("demo.doneBody").replace("{email}", form.email).replace("{time}", form.time).replace("{date}", form.date)}
             </p>
-            <a href="/" className="text-sm font-semibold text-neon-violet hover:underline">
+            <a href="/" className="text-sm font-semibold text-aura-primary hover:underline">
                ← {t("common.backHome")}
             </a>
           </div>
@@ -87,7 +87,7 @@ export default function DemoPage() {
         <GridBackground className="opacity-30" />
         <Container className="relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-neon-violet/10 text-neon-violet mb-6">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-aura-primary/10 text-aura-primary mb-6">
               <Calendar className="w-3 h-3" />
                {t("demo.badge")}
             </span>
@@ -111,12 +111,12 @@ export default function DemoPage() {
                      <label htmlFor="demo-name" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.name")} *</label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 w-4 h-4 text-aura-text-muted" />
-                       <input id="demo-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all" placeholder="Priya Sharma" />
+                       <input id="demo-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="Priya Sharma" />
                     </div>
                   </div>
                   <div>
                      <label htmlFor="demo-email" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.email")} *</label>
-                     <input id="demo-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all" placeholder="priya@salon.com" />
+                     <input id="demo-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="priya@salon.com" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -124,20 +124,20 @@ export default function DemoPage() {
                      <label htmlFor="demo-phone" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.phone")} *</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 w-4 h-4 text-aura-text-muted" />
-                       <input id="demo-phone" type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all" placeholder="+91 98765 43210" />
+                       <input id="demo-phone" type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="+91 98765 43210" />
                     </div>
                   </div>
                   <div>
                      <label htmlFor="demo-salon" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.salon")} *</label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-3 w-4 h-4 text-aura-text-muted" />
-                       <input id="demo-salon" type="text" required value={form.salon} onChange={(e) => setForm({ ...form, salon: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all" placeholder="Glow Studio" />
+                       <input id="demo-salon" type="text" required value={form.salon} onChange={(e) => setForm({ ...form, salon: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="Glow Studio" />
                     </div>
                   </div>
                 </div>
                 <div>
                    <label htmlFor="demo-size" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.size")}</label>
-                   <select id="demo-size" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all">
+                   <select id="demo-size" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all">
                      <option value="1-2">1-2 {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
                      <option value="3-5">3-5 {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
                      <option value="6-10">6-10 {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
@@ -147,18 +147,18 @@ export default function DemoPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                      <label htmlFor="demo-date" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.date")} *</label>
-                     <input id="demo-date" type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all" />
+                     <input id="demo-date" type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" />
                   </div>
                   <div>
                      <label htmlFor="demo-time" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.time")} *</label>
-                     <select id="demo-time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all">
+                     <select id="demo-time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} required className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all">
                         <option value="">{t("demo.selectTime")}</option>
                        {TIME_SLOTS.map((t) => <option key={t} value={t}>{t} IST</option>)}
                      </select>
                      <p className="mt-2 text-xs leading-5 text-aura-text-muted">{t("demo.timePreference")}</p>
                    </div>
                 </div>
-                <button type="submit" disabled={status === "sending"} className="inline-flex min-h-12 items-center gap-2 rounded-full bg-aura-burgundy px-8 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-aura-burgundy-strong disabled:cursor-wait disabled:opacity-60">
+                <button type="submit" disabled={status === "sending"} className="inline-flex min-h-12 items-center gap-2 rounded-full bg-aura-primary px-8 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-aura-primary-dark disabled:cursor-wait disabled:opacity-60">
                    {status === "sending" ? t("demo.sending") : t("demo.book")}
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -179,7 +179,7 @@ export default function DemoPage() {
                 </ul>
                 <div className="mt-8 p-4 rounded-xl bg-white border border-aura-border">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-neon-violet" />
+                    <Clock className="w-4 h-4 text-aura-primary" />
                      <span className="text-sm font-semibold text-aura-text">{t("demo.quick")}</span>
                   </div>
                   <p className="text-xs text-aura-text-secondary">

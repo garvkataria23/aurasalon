@@ -12,6 +12,7 @@ import { CTA_LINKS } from "@/lib/constants";
 import type { FeaturePageData } from "@/lib/types";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FEATURE_MESSAGES_HI } from "@/lib/translations";
+import { breadcrumbJsonLd } from "@/lib/seo";
 
 const CAPABILITY_ICONS = [
   Calendar, CreditCard, Users, Package, Megaphone,
@@ -30,14 +31,24 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
   const capabilities = translated?.capabilities ?? data.capabilities;
   const interpolate = (text: string) => text.replace("{name}", title);
 
+  const breadcrumbs = breadcrumbJsonLd([
+    { name: "Home", url: "/" },
+    { name: "Features", url: "/features" },
+    { name: title, url: `/features/${data.translationKey}` },
+  ]);
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
       <section className="relative pt-28 pb-20 md:pt-40 md:pb-28 bg-aura-bg overflow-hidden">
         <GridBackground className="opacity-30" />
 
         <Container className="relative z-10">
           <div className="max-w-5xl">
-            <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-aura-burgundy mb-6 before:h-px before:w-6 before:bg-aura-amber">
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-aura-primary mb-6 before:h-px before:w-6 before:bg-aura-primary-light">
               {t("feature.spotlight")}
             </span>
             <h1 className="max-w-4xl font-display text-[clamp(3rem,7vw,6.8rem)] font-normal tracking-[-.05em] text-aura-text leading-[.94] text-balance">
@@ -59,7 +70,7 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
                   key={stat.label}
                   className="px-4 py-5 text-center"
                 >
-                  <div className="font-display text-3xl md:text-4xl text-aura-burgundy">{stat.value}</div>
+                  <div className="font-display text-3xl md:text-4xl text-aura-primary">{stat.value}</div>
                   <div className="text-sm text-aura-text-muted mt-1">{translated?.stats[i] ?? stat.label}</div>
                 </div>
               ))}
@@ -68,7 +79,7 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
         </section>
       )}
 
-      <section className="py-20 md:py-28 bg-aura-cream">
+      <section className="py-20 md:py-28 bg-white">
         <Container>
           <SectionHeading
             badge={t("feature.capabilities")}
@@ -81,10 +92,10 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
               return (
                 <div
                   key={cap.title}
-                  className="group border-b border-r border-aura-border bg-aura-cream p-6 sm:p-8 lg:p-10 transition-colors duration-300 hover:bg-aura-bg"
+                  className="group border-b border-r border-aura-border bg-white p-6 sm:p-8 lg:p-10 transition-colors duration-300 hover:bg-aura-bg"
                 >
-                  <div className="w-10 h-10 rounded-full bg-aura-rose-soft flex items-center justify-center mb-8 group-hover:scale-105 transition-transform duration-300">
-                    <Icon className="w-5 h-5 text-aura-burgundy" />
+                  <div className="w-10 h-10 rounded-full bg-aura-primary-soft flex items-center justify-center mb-8 group-hover:scale-105 transition-transform duration-300">
+                    <Icon className="w-5 h-5 text-aura-primary" />
                   </div>
                   <h3 className="text-lg font-bold text-aura-text mb-2">{cap.title}</h3>
                   <p className="text-sm text-aura-text-secondary leading-relaxed">{cap.description}</p>

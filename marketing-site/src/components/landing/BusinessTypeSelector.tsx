@@ -10,7 +10,7 @@ export function BusinessTypeSelector() {
 
   return (
     <label className="inline-flex max-w-full items-center gap-2 rounded-full border border-aura-border bg-white/55 px-3 py-2 text-xs text-aura-text-secondary">
-      <Building2 className="h-3.5 w-3.5 shrink-0 text-aura-burgundy" aria-hidden="true" />
+      <Building2 className="h-3.5 w-3.5 shrink-0 text-aura-primary" aria-hidden="true" />
       <span className="hidden sm:inline">{t("business.label")}</span>
       <select
         value={businessType}

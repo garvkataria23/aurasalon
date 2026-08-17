@@ -13,8 +13,8 @@ export function Badge({ children, variant = "default", className }: BadgeProps) 
     <span
       className={cn(
         "inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full",
-        variant === "default" && "bg-neon-violet/10 text-neon-violet",
-        variant === "gradient" && "bg-gradient-to-r from-neon-violet to-aura-rose text-white",
+        variant === "default" && "bg-aura-primary/10 text-aura-primary",
+        variant === "gradient" && "bg-gradient-to-r from-aura-primary to-aura-primary-light text-white",
         variant === "outline" && "border border-aura-border text-aura-text-secondary",
         className
       )}

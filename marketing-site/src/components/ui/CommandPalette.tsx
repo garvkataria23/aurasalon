@@ -168,7 +168,7 @@ export function CommandPalette() {
                     key={opt}
                     type="button"
                     onClick={() => setLanguage(opt)}
-                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors ${language === opt ? "bg-aura-burgundy text-white" : "text-aura-text-muted hover:bg-aura-surface-muted"}`}
+                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors ${language === opt ? "bg-aura-primary text-white" : "text-aura-text-muted hover:bg-aura-surface-muted"}`}
                     aria-label={`Switch to ${opt === "en" ? "English" : "Hindi"}`}
                   >
                     {opt === "en" ? "EN" : "हिं"}
@@ -201,9 +201,9 @@ export function CommandPalette() {
                         aria-selected={selectedIndex === globalIndex}
                         onClick={() => navigate(item.href)}
                         onMouseEnter={() => setSelectedIndex(globalIndex)}
-                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${selectedIndex === globalIndex ? "bg-aura-rose-soft text-aura-burgundy" : "text-aura-text-secondary hover:bg-aura-surface-muted"}`}
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${selectedIndex === globalIndex ? "bg-aura-primary-soft text-aura-primary" : "text-aura-text-secondary hover:bg-aura-surface-muted"}`}
                       >
-                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${selectedIndex === globalIndex ? "bg-aura-burgundy text-white" : "bg-aura-surface-muted text-aura-text-muted"}`}>
+                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${selectedIndex === globalIndex ? "bg-aura-primary text-white" : "bg-aura-surface-muted text-aura-text-muted"}`}>
                           <Icon className="h-4 w-4" aria-hidden="true" />
                         </span>
                         <span className="flex-1 min-w-0">

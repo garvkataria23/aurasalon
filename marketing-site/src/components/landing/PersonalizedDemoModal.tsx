@@ -37,13 +37,13 @@ export function PersonalizedDemoModal() {
                 placeholder="Enter your Salon Name (e.g. Jawed Habib Bandra)"
                 value={salonName}
                 onChange={(e) => setSalonName(e.target.value)}
-                className="w-full rounded-2xl border border-aura-border bg-aura-surface-muted pl-11 pr-4 py-3 text-sm text-aura-text outline-none focus:border-aura-burgundy focus:ring-2 focus:ring-aura-rose-soft"
+                className="w-full rounded-2xl border border-aura-border bg-aura-surface-muted pl-11 pr-4 py-3 text-sm text-aura-text outline-none focus:border-aura-primary focus:ring-2 focus:ring-aura-primary-soft"
               />
             </div>
             <select
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="rounded-2xl border border-aura-border bg-aura-surface-muted px-4 py-3 text-sm text-aura-text outline-none focus:border-aura-burgundy"
+              className="rounded-2xl border border-aura-border bg-aura-surface-muted px-4 py-3 text-sm text-aura-text outline-none focus:border-aura-primary"
             >
               <option value="Mumbai">Mumbai</option>
               <option value="Bengaluru">Bengaluru</option>
@@ -53,7 +53,7 @@ export function PersonalizedDemoModal() {
             </select>
             <button
               type="submit"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-aura-burgundy px-6 text-sm font-bold text-white shadow-md hover:bg-aura-burgundy-strong transition-colors"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-aura-primary px-6 text-sm font-bold text-white shadow-md hover:bg-aura-primary-dark transition-colors"
             >
               <span>Preview Demo</span>
               <ArrowRight className="h-4 w-4" />
@@ -61,27 +61,27 @@ export function PersonalizedDemoModal() {
           </form>
 
           {previewActive && (
-            <div className="mt-8 rounded-2xl border border-aura-border bg-aura-dark p-6 text-white animate-in fade-in duration-300">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="mt-8 rounded-2xl border border-aura-border bg-aura-surface-muted p-6 text-aura-text animate-in fade-in duration-300">
+              <div className="flex items-center justify-between border-b border-aura-border pb-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-aura-copper">Personalized Salon Terminal</span>
-                  <h4 className="text-xl font-display font-bold text-white">{salonName} • {city}</h4>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-aura-primary">Personalized Salon Terminal</span>
+                  <h4 className="text-xl font-display font-bold text-aura-text">{salonName} • {city}</h4>
                 </div>
                 <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Aura OS Ready
                 </span>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
-                <div className="rounded-xl bg-white/10 p-3">
-                  <p className="text-white/60 text-[10px]">Today's Target</p>
-                  <p className="text-lg font-bold text-white mt-1">₹45,000</p>
+                <div className="rounded-xl bg-aura-surface p-3">
+                  <p className="text-aura-text-secondary text-[10px]">Today's Target</p>
+                  <p className="text-lg font-bold text-aura-text mt-1">₹45,000</p>
                 </div>
-                <div className="rounded-xl bg-white/10 p-3">
-                  <p className="text-white/60 text-[10px]">WhatsApp Booking Link</p>
-                  <p className="text-xs font-bold text-aura-copper mt-1.5 truncate">aura.app/{salonName.toLowerCase().replace(/\s+/g, '')}</p>
+                <div className="rounded-xl bg-aura-surface p-3">
+                  <p className="text-aura-text-secondary text-[10px]">WhatsApp Booking Link</p>
+                  <p className="text-xs font-bold text-aura-primary mt-1.5 truncate">aura.app/{salonName.toLowerCase().replace(/\s+/g, '')}</p>
                 </div>
-                <div className="rounded-xl bg-white/10 p-3">
-                  <p className="text-white/60 text-[10px]">GST Status</p>
+                <div className="rounded-xl bg-aura-surface p-3">
+                  <p className="text-aura-text-secondary text-[10px]">GST Status</p>
                   <p className="text-xs font-bold text-emerald-400 mt-1.5">18% Enabled ✓</p>
                 </div>
               </div>

@@ -23,24 +23,24 @@ export function InstantQuotationModal() {
   };
 
   return (
-    <section className="bg-aura-dark py-20 text-white md:py-28 overflow-hidden">
+    <section className="bg-aura-bg py-20 text-aura-text md:py-28 overflow-hidden">
       <Container>
         <SectionHeading
           badge="Transparent Pricing Calculator"
           title="Instant Plan & Quotation Generator"
           subtitle="Configure your salon seats and branches below to receive a custom zero-hidden-fee instant price estimate."
           align="center"
-          className="[&_h2]:text-white [&_p]:text-white/60 [&>span]:text-aura-copper"
+          className="[&_h2]:text-aura-text [&_p]:text-aura-text-muted [&>span]:text-aura-primary"
         />
 
-        <div className="mt-10 mx-auto max-w-4xl rounded-3xl border border-white/15 bg-aura-bg p-6 md:p-8 text-aura-text shadow-2xl">
+        <div className="mt-10 mx-auto max-w-4xl rounded-3xl border border-aura-border bg-white p-6 md:p-8 text-aura-text shadow-2xl">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Configuration Inputs */}
             <div className="space-y-6">
               <div>
                 <label className="flex items-center justify-between text-xs font-bold text-aura-text mb-2">
-                  <span className="flex items-center gap-1.5"><Building className="h-4 w-4 text-aura-burgundy" /> Number of Salon Outlets</span>
-                  <span className="text-aura-burgundy text-sm">{branches} {branches === 1 ? "Branch" : "Branches"}</span>
+                  <span className="flex items-center gap-1.5"><Building className="h-4 w-4 text-aura-primary" /> Number of Salon Outlets</span>
+                  <span className="text-aura-primary text-sm">{branches} {branches === 1 ? "Branch" : "Branches"}</span>
                 </label>
                 <input
                   type="range"
@@ -48,14 +48,14 @@ export function InstantQuotationModal() {
                   max="10"
                   value={branches}
                   onChange={(e) => { setBranches(Number(e.target.value)); soundEngine.playClick(); }}
-                  className="w-full h-2 rounded-lg bg-aura-border appearance-none cursor-pointer accent-aura-burgundy"
+                  className="w-full h-2 rounded-lg bg-aura-border appearance-none cursor-pointer accent-aura-primary"
                 />
               </div>
 
               <div>
                 <label className="flex items-center justify-between text-xs font-bold text-aura-text mb-2">
-                  <span className="flex items-center gap-1.5"><Users className="h-4 w-4 text-aura-burgundy" /> Styling Chairs / Stations</span>
-                  <span className="text-aura-burgundy text-sm">{chairs} Chairs</span>
+                  <span className="flex items-center gap-1.5"><Users className="h-4 w-4 text-aura-primary" /> Styling Chairs / Stations</span>
+                  <span className="text-aura-primary text-sm">{chairs} Chairs</span>
                 </label>
                 <input
                   type="range"
@@ -63,7 +63,7 @@ export function InstantQuotationModal() {
                   max="40"
                   value={chairs}
                   onChange={(e) => { setChairs(Number(e.target.value)); soundEngine.playClick(); }}
-                  className="w-full h-2 rounded-lg bg-aura-border appearance-none cursor-pointer accent-aura-burgundy"
+                  className="w-full h-2 rounded-lg bg-aura-border appearance-none cursor-pointer accent-aura-primary"
                 />
               </div>
 
@@ -74,35 +74,35 @@ export function InstantQuotationModal() {
                       type="checkbox"
                       checked={whatsappAddon}
                       onChange={(e) => { setWhatsappAddon(e.target.checked); soundEngine.playClick(); }}
-                      className="rounded border-aura-border text-aura-burgundy focus:ring-aura-burgundy"
+                      className="rounded border-aura-border text-aura-primary focus:ring-aura-primary"
                     />
                     <div>
                       <p className="text-xs font-bold text-aura-text">WhatsApp Unlimited AI Booking Bot</p>
                       <p className="text-[10px] text-aura-text-secondary">Auto confirmations, reminders & marketing</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-aura-burgundy">+₹499/mo</span>
+                  <span className="text-xs font-bold text-aura-primary">+₹499/mo</span>
                 </label>
               </div>
             </div>
 
             {/* Calculated Plan Output */}
-            <div className="rounded-2xl bg-aura-dark-elevated p-6 text-white space-y-4 shadow-xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Custom Plan Estimate</span>
+            <div className="rounded-2xl bg-aura-surface-muted p-6 text-aura-text space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-aura-border pb-3">
+                <span className="text-xs font-bold text-aura-text-muted uppercase tracking-wider">Custom Plan Estimate</span>
                 <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">Save 20% Annual</span>
               </div>
 
               <div>
-                <p className="text-xs text-white/60">Estimated Monthly Subscription</p>
+                <p className="text-xs text-aura-text-secondary">Estimated Monthly Subscription</p>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="font-display text-4xl font-bold text-white">₹{Math.round(baseMonthly).toLocaleString('en-IN')}</span>
-                  <span className="text-xs text-white/50">/ month + GST</span>
+                  <span className="font-display text-4xl font-bold text-aura-text">₹{Math.round(baseMonthly).toLocaleString('en-IN')}</span>
+                  <span className="text-xs text-aura-text-muted">/ month + GST</span>
                 </div>
-                <p className="mt-1 text-[11px] text-aura-copper font-medium">Billed Annually at ₹{Math.round(annualTotal).toLocaleString('en-IN')}/yr</p>
+                <p className="mt-1 text-[11px] text-aura-primary font-medium">Billed Annually at ₹{Math.round(annualTotal).toLocaleString('en-IN')}/yr</p>
               </div>
 
-              <ul className="space-y-2 border-t border-white/10 pt-4 text-xs text-white/80">
+              <ul className="space-y-2 border-t border-aura-border pt-4 text-xs text-aura-text-secondary">
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Unlimited GST Bills & Receipts</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Full POS + Customer App + Staff Mobile Sync</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Free Data Migration & Staff Onboarding Training</li>
@@ -111,7 +111,7 @@ export function InstantQuotationModal() {
               <button
                 type="button"
                 onClick={handleShareQuote}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-aura-cta-cream py-3 text-xs font-bold text-aura-burgundy shadow-lg transition-transform hover:scale-[1.02] active:scale-98"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-white py-3 text-xs font-bold text-aura-primary shadow-lg transition-transform hover:scale-[1.02] active:scale-98"
               >
                 <Share2 className="h-4 w-4" />
                 <span>Share Quote via WhatsApp</span>

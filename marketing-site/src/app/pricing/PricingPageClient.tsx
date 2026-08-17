@@ -103,7 +103,7 @@ export default function PricingPage() {
                 }`}
               >
                 {tier.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[#7c5cbf] to-aura-rose text-white text-xs font-bold">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[#7c5cbf] to-aura-primary-light text-white text-xs font-bold">
                      {language === "hi" ? "Growth प्लान" : "Growth plan"}
                   </div>
                 )}

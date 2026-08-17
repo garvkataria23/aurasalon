@@ -35,7 +35,7 @@ function FloatingInput({
         id={id}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`peer w-full px-4 pt-6 pb-2 rounded-xl border bg-white text-sm text-aura-text placeholder-transparent focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all ${
+        className={`peer w-full px-4 pt-6 pb-2 rounded-xl border bg-white text-sm text-aura-text placeholder-transparent focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all ${
           error ? "border-danger/50 focus:ring-danger/30" : "border-aura-border"
         }`}
       />
@@ -43,7 +43,7 @@ function FloatingInput({
         filled || error
           ? "top-2 text-[11px] font-medium"
           : "top-3.5 text-sm text-aura-text-muted"
-      } ${error ? "text-danger" : "text-aura-text-secondary peer-focus:text-neon-violet"}`}>
+      } ${error ? "text-danger" : "text-aura-text-secondary peer-focus:text-aura-primary"}`}>
         {label} {required && <span className="text-danger">*</span>}
       </label>
       {error && (
@@ -80,13 +80,13 @@ function FloatingTextarea({
         id={id}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder-transparent focus:outline-none focus:ring-2 focus:ring-neon-violet/30 focus:border-neon-violet/50 transition-all resize-none"
+        className="peer w-full px-4 pt-6 pb-2 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder-transparent focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all resize-none"
       />
        <label htmlFor={id} className={`absolute left-4 transition-all duration-200 pointer-events-none ${
         filled
           ? "top-2 text-[11px] font-medium text-aura-text-secondary"
           : "top-3.5 text-sm text-aura-text-muted"
-      } peer-focus:text-neon-violet`}>
+      } peer-focus:text-aura-primary`}>
         {label} {required && <span className="text-danger">*</span>}
       </label>
       {remaining !== null && (
@@ -181,7 +181,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setStatus("idle")}
-                    className="mt-6 text-sm font-semibold text-neon-violet hover:underline"
+                    className="mt-6 text-sm font-semibold text-aura-primary hover:underline"
                   >
                      {t("contact.another")}
                   </button>
@@ -201,7 +201,7 @@ export default function ContactPage() {
                   <button
                     type="submit"
                     disabled={status === "sending"}
-                    className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-neon-violet via-aura-rose to-aura-amber shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-aura-primary via-aura-primary-light to-aura-primary-light shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {status === "sending" ? (
                       <>
@@ -229,7 +229,7 @@ export default function ContactPage() {
                  ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-aura-border bg-aura-bg-warm p-6 hover:shadow-md hover:border-aura-border-strong transition-all duration-300">
                     <div className="flex items-start gap-3">
-                      <item.icon className="w-5 h-5 text-neon-violet mt-0.5" />
+                      <item.icon className="w-5 h-5 text-aura-primary mt-0.5" />
                       <div>
                         <div className="text-sm font-semibold text-aura-text">{item.label}</div>
                         <div className="text-sm text-aura-text-secondary whitespace-pre-line">{item.value}</div>
@@ -241,9 +241,9 @@ export default function ContactPage() {
                 <div className="rounded-2xl border border-aura-border bg-white p-6">
                    <h3 className="text-sm font-bold text-aura-text mb-3">{t("contact.quick")}</h3>
                   <ul className="space-y-2">
-                     <li><a href={CTA_LINKS.demo} className="text-sm text-neon-violet hover:underline">{t("contact.schedule")}</a></li>
-                     <li><a href="/features" className="text-sm text-neon-violet hover:underline">{t("contact.viewFeatures")}</a></li>
-                     <li><a href="/pricing" className="text-sm text-neon-violet hover:underline">{t("contact.viewPricing")}</a></li>
+                     <li><a href={CTA_LINKS.demo} className="text-sm text-aura-primary hover:underline">{t("contact.schedule")}</a></li>
+                     <li><a href="/features" className="text-sm text-aura-primary hover:underline">{t("contact.viewFeatures")}</a></li>
+                     <li><a href="/pricing" className="text-sm text-aura-primary hover:underline">{t("contact.viewPricing")}</a></li>
                   </ul>
                 </div>
               </div>

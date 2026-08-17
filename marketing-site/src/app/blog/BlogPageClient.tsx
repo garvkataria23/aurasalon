@@ -45,7 +45,7 @@ export default function BlogPage() {
                  aria-pressed={activeCategory === cat}
                 className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-300 ${
                   activeCategory === cat
-                    ? "bg-neon-violet text-white shadow-md"
+                    ? "bg-aura-primary text-white shadow-md"
                     : "bg-aura-bg-warm text-aura-text-secondary hover:bg-aura-border/50"
                 }`}
               >
@@ -66,7 +66,7 @@ export default function BlogPage() {
                     <div className={`glow-card h-full rounded-2xl border border-aura-border bg-white overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-transparent hover:-translate-y-1 ${
                       i === 0 && activeCategory === "All" ? "md:col-span-2 lg:col-span-2" : ""
                     }`}>
-                      <div className={`bg-gradient-to-br from-neon-violet/10 via-aura-rose/10 to-aura-amber/10 flex items-center justify-center ${
+                      <div className={`bg-gradient-to-br from-aura-primary/10 via-aura-primary-light/10 to-aura-primary-light/10 flex items-center justify-center ${
                         i === 0 && activeCategory === "All" ? "h-48" : "h-40"
                       }`}>
                         <span className={`font-bold gradient-text opacity-30 ${
@@ -75,7 +75,7 @@ export default function BlogPage() {
                       </div>
                       <div className="p-6">
                         <div className="flex items-center gap-3 mb-3">
-                          <span className="text-xs font-semibold text-neon-violet bg-neon-violet/10 px-2.5 py-0.5 rounded-full">
+                          <span className="text-xs font-semibold text-aura-primary bg-aura-primary/10 px-2.5 py-0.5 rounded-full">
                              {translated?.category ?? post.category}
                           </span>
                           <span className="flex items-center gap-1 text-xs text-aura-text-muted">
@@ -83,12 +83,12 @@ export default function BlogPage() {
                              {translated?.readTime ?? post.readTime}
                           </span>
                           {i === 0 && activeCategory === "All" && (
-                            <span className="text-xs font-semibold text-aura-amber bg-aura-amber/10 px-2.5 py-0.5 rounded-full">
+                            <span className="text-xs font-semibold text-aura-primary-light bg-aura-primary-light/10 px-2.5 py-0.5 rounded-full">
                                {t("blog.featured")}
                             </span>
                           )}
                         </div>
-                        <h3 className={`font-bold text-aura-text mb-2 group-hover:text-neon-violet transition-colors leading-snug ${
+                        <h3 className={`font-bold text-aura-text mb-2 group-hover:text-aura-primary transition-colors leading-snug ${
                           i === 0 && activeCategory === "All" ? "text-lg" : "text-base"
                         }`}>
                            {translated?.title ?? post.title}
@@ -96,7 +96,7 @@ export default function BlogPage() {
                         <p className="text-sm text-aura-text-secondary leading-relaxed line-clamp-2">
                            {translated?.excerpt ?? post.excerpt}
                         </p>
-                        <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-neon-violet opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-aura-primary opacity-0 group-hover:opacity-100 transition-opacity">
                            {t("blog.read")} <ArrowRight className="w-3.5 h-3.5" />
                         </div>
                       </div>

@@ -45,7 +45,7 @@ export function CookieConsent() {
       <div className="mx-auto max-w-2xl rounded-2xl border border-aura-border bg-white/95 backdrop-blur-xl shadow-[var(--aura-shadow-xl)] p-5 sm:p-6 pointer-events-auto">
         <div className="flex items-start gap-4">
           <div className="hidden sm:flex shrink-0 h-10 w-10 items-center justify-center rounded-xl bg-aura-surface-muted">
-            <Cookie className="h-5 w-5 text-aura-burgundy" />
+            <Cookie className="h-5 w-5 text-aura-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-aura-text mb-1">
@@ -60,7 +60,7 @@ export function CookieConsent() {
               <button
                 type="button"
                 onClick={accept}
-                className="rounded-lg bg-aura-burgundy px-4 py-2 text-xs font-medium text-white transition-all hover:bg-aura-burgundy-strong hover:shadow-md"
+                className="rounded-lg bg-aura-primary px-4 py-2 text-xs font-medium text-white transition-all hover:bg-aura-primary-dark hover:shadow-md"
               >
                 {language === "hi" ? "स्वीकार करें" : "Accept"}
               </button>

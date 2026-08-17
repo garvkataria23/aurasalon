@@ -17,7 +17,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-aura-burgundy text-white shadow-md hover:bg-aura-burgundy-strong hover:shadow-lg active:scale-[0.98] focus-visible:ring-aura-burgundy/40",
+    "bg-aura-primary text-white shadow-md hover:bg-aura-primary-dark hover:shadow-lg active:scale-[0.98] focus-visible:ring-aura-primary/40",
   secondary:
     "bg-aura-text text-white hover:bg-aura-text/90 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-aura-text/30",
   ghost:

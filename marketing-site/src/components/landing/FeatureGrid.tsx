@@ -129,7 +129,7 @@ export function FeatureGrid() {
         <div className="mt-12 text-center">
           <Link
             href="/features"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-aura-burgundy hover:text-aura-burgundy-strong transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-aura-primary hover:text-aura-primary-dark transition-colors"
           >
             {t("features.all")} →
           </Link>

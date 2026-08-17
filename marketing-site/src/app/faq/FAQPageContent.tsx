@@ -59,7 +59,7 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
       <section className="pt-28 pb-20 md:pt-36">
         <Container size="narrow">
           <div className="mb-12">
-            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-aura-burgundy mb-4">FAQ</p>
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-aura-primary mb-4">FAQ</p>
             <h1 className="text-3xl md:text-4xl font-bold text-aura-text leading-tight mb-4">
               {language === "hi" ? "अक्सर पूछे जाने वाले सवाल" : "Frequently asked questions"}
             </h1>
@@ -77,7 +77,7 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={language === "hi" ? "सवाल खोजें..." : "Search questions..."}
-              className="w-full rounded-xl border border-aura-border bg-white pl-10 pr-4 py-3 text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:border-aura-burgundy focus:ring-2 focus:ring-aura-burgundy/10 transition-all"
+              className="w-full rounded-xl border border-aura-border bg-white pl-10 pr-4 py-3 text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:border-aura-primary focus:ring-2 focus:ring-aura-primary/10 transition-all"
               aria-label={language === "hi" ? "सवाल खोजें" : "Search questions"}
             />
           </div>
@@ -91,7 +91,7 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
               return (
                 <div
                   key={i}
-                  className="rounded-xl border border-aura-border bg-white overflow-hidden transition-colors hover:border-aura-rose"
+                  className="rounded-xl border border-aura-border bg-white overflow-hidden transition-colors hover:border-aura-primary-light"
                 >
                   <button
                     type="button"
@@ -135,7 +135,7 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
             </p>
             <a
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-xl bg-aura-burgundy px-6 py-3 text-sm font-medium text-white transition-all hover:bg-aura-burgundy-strong hover:shadow-lg"
+              className="inline-flex items-center gap-2 rounded-xl bg-aura-primary px-6 py-3 text-sm font-medium text-white transition-all hover:bg-aura-primary-dark hover:shadow-lg"
             >
               {language === "hi" ? "हमसे संपर्क करें" : "Contact us"}
             </a>

@@ -12,14 +12,14 @@ export default function TermsPage() {
     <>
       <section className="pt-28 pb-12 md:pt-36 md:pb-16 bg-[#f5f0e8]">
         <Container>
-          <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-aura-burgundy mb-6 hover:underline">&larr; Back to Aura</Link>
+          <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-aura-primary mb-6 hover:underline">&larr; Back to Aura</Link>
           <h1 className="font-display text-4xl md:text-5xl tracking-tight text-aura-text">Terms of Service</h1>
           <p className="mt-3 text-sm text-aura-text-muted">Last updated: July 2026</p>
         </Container>
       </section>
       <section className="pb-20 bg-white">
         <Container size="narrow">
-          <article className="prose prose-aura max-w-none text-aura-text-secondary prose-headings:text-aura-text prose-h2:text-2xl prose-h2:font-display prose-h3:text-lg prose-a:text-aura-burgundy prose-strong:text-aura-text">
+          <article className="prose prose-aura max-w-none text-aura-text-secondary prose-headings:text-aura-text prose-h2:text-2xl prose-h2:font-display prose-h3:text-lg prose-a:text-aura-primary prose-strong:text-aura-text">
             <h2>1. Agreement</h2>
             <p>By using Aura, you agree to these terms. If you are using Aura on behalf of a salon or business, you represent that you have the authority to bind that entity to these terms.</p>
 

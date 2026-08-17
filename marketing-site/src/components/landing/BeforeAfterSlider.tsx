@@ -20,9 +20,9 @@ export function BeforeAfterSlider() {
         {/* Interactive Comparison Card */}
         <div className="mt-10 mx-auto max-w-5xl rounded-3xl border border-aura-border bg-white shadow-2xl overflow-hidden">
           {/* Slider Control Header */}
-          <div className="bg-aura-dark p-4 text-white flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-aura-surface-muted p-4 text-aura-text flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-aura-copper" />
+              <Sparkles className="h-4 w-4 text-aura-primary" />
               <span className="text-xs font-bold uppercase tracking-wider">Drag to Compare Operating Models</span>
             </div>
             <div className="flex items-center gap-3 w-full max-w-xs">
@@ -33,7 +33,7 @@ export function BeforeAfterSlider() {
                 max="100"
                 value={sliderPos}
                 onChange={(e) => setSliderPos(Number(e.target.value))}
-                className="w-full h-2 rounded-lg bg-white/20 appearance-none cursor-pointer accent-aura-copper"
+                className="w-full h-2 rounded-lg bg-aura-border appearance-none cursor-pointer accent-aura-primary"
               />
               <span className="text-[10px] font-bold text-emerald-400">Aura OS (100%)</span>
             </div>

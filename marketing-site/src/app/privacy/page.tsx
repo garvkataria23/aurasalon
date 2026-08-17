@@ -12,14 +12,14 @@ export default function PrivacyPage() {
     <>
       <section className="pt-28 pb-12 md:pt-36 md:pb-16 bg-[#f5f0e8]">
         <Container>
-          <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-aura-burgundy mb-6 hover:underline">&larr; Back to Aura</Link>
+          <Link href="/" className="inline-flex items-center gap-1 text-xs font-semibold text-aura-primary mb-6 hover:underline">&larr; Back to Aura</Link>
           <h1 className="font-display text-4xl md:text-5xl tracking-tight text-aura-text">Privacy Policy</h1>
           <p className="mt-3 text-sm text-aura-text-muted">Last updated: July 2026</p>
         </Container>
       </section>
       <section className="pb-20 bg-white">
         <Container size="narrow">
-          <article className="prose prose-aura max-w-none text-aura-text-secondary prose-headings:text-aura-text prose-h2:text-2xl prose-h2:font-display prose-h3:text-lg prose-a:text-aura-burgundy prose-strong:text-aura-text">
+          <article className="prose prose-aura max-w-none text-aura-text-secondary prose-headings:text-aura-text prose-h2:text-2xl prose-h2:font-display prose-h3:text-lg prose-a:text-aura-primary prose-strong:text-aura-text">
             <h2>1. Who we are</h2>
             <p>Aura is a salon management platform built for Indian salons. We provide appointment scheduling, point-of-sale billing, customer relationship management, staff management, inventory tracking, finance tools and branch-aware operations through a web and mobile interface.</p>
             <p>When this policy mentions &ldquo;Aura,&rdquo; &quot;we,&quot; or &quot;us,&quot; it refers to the team operating the Aura platform.</p>

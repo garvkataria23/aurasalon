@@ -7,7 +7,7 @@ import { Container } from "@/components/ui/Container";
 const COLORS = [
   { from: "from-emerald-500/15", to: "to-emerald-400/10", text: "text-emerald-600", border: "hover:border-emerald-400/30" },
   { from: "from-blue-500/15", to: "to-blue-400/10", text: "text-blue-600", border: "hover:border-blue-400/30" },
-  { from: "from-neon-violet/15", to: "to-aura-rose/10", text: "text-neon-violet", border: "hover:border-neon-violet/30" },
+  { from: "from-aura-primary/15", to: "to-aura-primary-light/10", text: "text-aura-primary", border: "hover:border-aura-primary/30" },
   { from: "from-amber-500/15", to: "to-amber-400/10", text: "text-amber-600", border: "hover:border-amber-400/30" },
   { from: "from-rose-500/15", to: "to-rose-400/10", text: "text-rose-600", border: "hover:border-rose-400/30" },
   { from: "from-slate-500/15", to: "to-slate-400/10", text: "text-slate-600", border: "hover:border-slate-400/30" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Target, Users, Lightbulb, ArrowRight, Sparkles } from "lucide-react";
+import { Heart, Target, Users, Lightbulb, ArrowRight, Sparkles, Check } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -11,17 +11,17 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { ABOUT_TIMELINE_HI, ABOUT_VALUES_HI } from "@/lib/translations";
 
 const values = [
-  { icon: Heart, title: "Salon-First", description: "Every feature is designed for real salon operations, not generic business needs." },
-  { icon: Target, title: "Simplicity", description: "Powerful doesn't mean complicated. We obsess over making complex things simple." },
-  { icon: Users, title: "Indian Market", description: "Built for India — GST, UPI, WhatsApp, Indian payroll compliance, IST timezone." },
-  { icon: Lightbulb, title: "AI-Powered", description: "Smart automation that learns from your data and gets better every day." },
+  { icon: Heart, title: "Salon-First", description: "Every feature is designed for real salon operations — from walk-in chaos during festival season to the end-of-day cash reconciliation. We don't build for generic businesses; we build for the salon floor." },
+  { icon: Target, title: "Simplicity", description: "Powerful doesn't mean complicated. We obsess over making complex things simple — a billing desk shouldn't need a training manual. If a new hire can't figure it out in 10 minutes, we redesign." },
+  { icon: Users, title: "Indian Market", description: "Built for India from day one — GST invoicing, UPI payments, WhatsApp workflows, Indian payroll compliance (PF/ESI/TDS), IST timezone, and regional language support. No 'India add-on' — it's the foundation." },
+  { icon: Lightbulb, title: "AI-Powered", description: "Smart automation that learns from your salon data — slot suggestions based on staff availability, reorder guidance from usage patterns, and campaign timing from client behaviour. It gets better every day." },
 ];
 
 const timeline = [
-  { year: "01", title: "Connected core", description: "Appointments, client CRM, POS and stock share operational context." },
-  { year: "02", title: "Intelligent operations", description: "Staff, marketing, inventory and finance workflows add focused automation." },
-  { year: "03", title: "Multi-location foundation", description: "Tenant isolation and branch-aware access support authorised operations." },
-  { year: "04", title: "Evidence-led rollout", description: "Real product media and customer proof will be published only with approval." },
+  { year: "01", title: "Connected core", description: "Appointments, client CRM, POS and stock share operational context. No more double entry or lost records between front desk and back office." },
+  { year: "02", title: "Intelligent operations", description: "Staff OS, marketing workflows, inventory brain and finance engine add focused automation — handling the repetitive work so your team can focus on clients." },
+  { year: "03", title: "Multi-location foundation", description: "Tenant isolation and branch-aware access support authorised operations across cities. One dashboard for owners managing multiple salons." },
+  { year: "04", title: "Evidence-led rollout", description: "Real product media and customer proof will be published only with approval. We'd rather show you the actual system than make promises." },
 ];
 
 export default function AboutPage() {
@@ -42,7 +42,8 @@ export default function AboutPage() {
               <span className="gradient-text">{t("about.titleB")}</span>
             </h1>
             <p className="mt-6 text-lg text-aura-text-secondary max-w-2xl mx-auto leading-relaxed">
-               {t("about.body")}
+               {t("about.body")}{" "}
+               Aura was built because Indian salons deserve better than spreadsheets, fragmented apps, and end-of-month surprises. We obsess over the details that matter to salon owners — from the way a front desk handles a walk-in during peak hours, to the way a branch manager reviews daily collections at 9 PM.
             </p>
           </div>
         </Container>
@@ -69,6 +70,50 @@ export default function AboutPage() {
                   </div>
                    <h3 className="text-lg font-bold text-aura-text mb-2">{language === "hi" ? ABOUT_VALUES_HI[valueIndex].title : value.title}</h3>
                    <p className="text-sm text-aura-text-secondary leading-relaxed">{language === "hi" ? ABOUT_VALUES_HI[valueIndex].description : value.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="py-20 md:py-28 bg-[#faf9fc]">
+        <Container>
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-2xl md:text-3xl font-bold text-aura-text mb-4">What makes Aura different</h2>
+              <p className="text-lg text-aura-text-secondary leading-relaxed max-w-2xl mx-auto">
+                We didn&apos;t start with a generic SaaS template and add salon features. We started on the salon floor — watching how front desk teams juggle walk-ins and bookings, how owners chase daily closing numbers on WhatsApp, and how staff commissions get argued over every month.
+              </p>
+            </div>
+
+            <div className="space-y-8">
+              {[
+                {
+                  title: "One system, not five stitched together",
+                  body: "Most salons use separate tools for booking, billing, staff and WhatsApp. Data lives in silos, nothing talks to each other, and the owner spends Sunday reconciling spreadsheets. Aura connects all of it — when a client books, the inventory updates, the staff schedule adjusts, and the invoice is ready at checkout.",
+                },
+                {
+                  title: "Built for how Indian salons actually work",
+                  body: "GST billing with HSN/SAC codes, UPI + card + cash split payments, WhatsApp confirmations, Indian payroll with PF/ESI/TDS, and multi-branch operations across Indian cities. This isn't a Western product with an India skin — it was designed ground-up for the Indian salon market.",
+                },
+                {
+                  title: "Owner-first, not customer-first",
+                  body: "We focus on the salon owner's daily reality: cash drawer reconciliation, staff attendance disputes, inventory shrinkage, and client retention. The customer booking portal is important, but the real value is in the back-office clarity that helps owners make better decisions.",
+                },
+                {
+                  title: "Evidence over promises",
+                  body: "We don't publish fake metrics or unverified claims. Every customer story on this site is published only with explicit approval. We'd rather show you the actual product in a demo than make grand promises that don't match the experience.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex gap-6 items-start">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#7c5cbf] to-aura-rose flex items-center justify-center text-white text-xs font-bold mt-1">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-aura-text mb-2">{item.title}</h3>
+                    <p className="text-sm text-aura-text-secondary leading-relaxed">{item.body}</p>
+                  </div>
                 </div>
               ))}
             </div>
