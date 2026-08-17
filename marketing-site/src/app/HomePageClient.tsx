@@ -18,6 +18,8 @@ import { HowItWorks } from "@/components/landing/HowItWorks";
 import { IndustriesAndIntegrations } from "@/components/landing/IndustriesAndIntegrations";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { PricingPreview } from "@/components/landing/PricingPreview";
+import { ComparisonSection } from "@/components/landing/ComparisonSection";
+import { SecuritySection } from "@/components/landing/SecuritySection";
 import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
 import { CTASection } from "@/components/landing/CTASection";
 
@@ -42,6 +44,8 @@ export default function HomePageClient() {
       <IndustriesAndIntegrations />
       <Testimonials />
       <PricingPreview />
+      <ComparisonSection />
+      <SecuritySection />
       <InteractiveFAQ />
       <CTASection />
     </main>

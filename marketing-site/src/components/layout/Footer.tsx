@@ -1,102 +1,137 @@
 "use client";
 
 import Link from "next/link";
-import { FOOTER_LINKS, CTA_LINKS } from "@/lib/constants";
-import { useLanguage } from "@/components/providers/LanguageProvider";
+import { ArrowRight } from "lucide-react";
+import { CTA_LINKS } from "@/lib/constants";
+import { Container } from "@/components/ui/Container";
 
-const footerSections = [
-  { title: "Product", links: FOOTER_LINKS.product },
-  { title: "Company", links: FOOTER_LINKS.company },
-  { title: "Resources", links: FOOTER_LINKS.resources },
-  { title: "Legal", links: FOOTER_LINKS.legal },
+const FOOTER_SECTIONS = [
+  {
+    title: "Product",
+    links: [
+      { label: "Appointments", href: "/features/appointments" },
+      { label: "POS & Billing", href: "/features/billing" },
+      { label: "Client CRM", href: "/features/client-crm" },
+      { label: "Staff & Shifts", href: "/features/staff-management" },
+      { label: "Inventory", href: "/features/inventory" },
+      { label: "Memberships & Loyalty", href: "/features" },
+      { label: "Marketing AI", href: "/features/marketing-ai" },
+      { label: "Finance & Analytics", href: "/features/finance" },
+    ],
+  },
+  {
+    title: "Solutions",
+    links: [
+      { label: "Hair Salons", href: "/platform" },
+      { label: "Luxury Spas", href: "/workflows" },
+      { label: "Nail Studios", href: "/owner-crm" },
+      { label: "Beauty Clinics", href: "/customer-app" },
+      { label: "Multi-Location Chains", href: "/platform" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About Us", href: "/about" },
+      { label: "Contact Sales", href: "/contact" },
+      { label: "Customers", href: "/customers" },
+      { label: "Book a Demo", href: "/demo" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Industry Blog", href: "/blog" },
+      { label: "Help Centre & FAQ", href: "/faq" },
+      { label: "Growth Guides", href: "/blog" },
+      { label: "Support Desk", href: "/contact" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Cookie Policy", href: "/cookies" },
+    ],
+  },
 ];
 
-const footerLabelKeys: Record<string, string> = {
-  Platform: "nav.platform", "Owner CRM": "nav.owner-crm", "Customer App": "nav.customer-app", "Staff App": "nav.staff-app", Workflows: "nav.workflows",
-  Features: "footer.features", Pricing: "footer.pricing", Customers: "footer.customers", Demo: "footer.demo", Integrations: "footer.integrations",
-  "About Us": "footer.aboutUs", Blog: "footer.blog", Contact: "footer.contact", Careers: "footer.careers", Documentation: "footer.documentation",
-  "Help Center": "footer.help", "Status Page": "footer.status", "API Reference": "footer.api", FAQ: "footer.faq", "Privacy Policy": "footer.privacy",
-  "Terms of Service": "footer.terms", "Cookie Policy": "footer.cookies",
-};
-
 export function Footer() {
-  const { t } = useLanguage();
-
   return (
-    <footer className="relative bg-aura-dark text-white/70 overflow-hidden">
-      {/* Subtle mesh gradient background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-aura-burgundy/5 blur-[150px]" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-aura-rose/4 blur-[120px]" />
-      </div>
+    <footer className="border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] text-[var(--aura-body)]">
+      <Container>
+        {/* Main Footer Links Grid */}
+        <div className="py-16 md:py-20">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-6 lg:gap-10">
+            {/* Brand Column */}
+            <div className="col-span-2 md:col-span-2">
+              <Link href="/" className="flex items-center gap-2.5 group">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--aura-purple)] font-bold text-white text-sm">
+                  A
+                </span>
+                <span className="text-lg font-bold tracking-tight text-[var(--aura-heading)]">Aura</span>
+              </Link>
+              <p className="mt-4 text-xs sm:text-sm leading-relaxed text-[var(--aura-body)] max-w-sm">
+                Everything your salon needs to grow. The connected operating system for modern salons, spas, and aesthetic clinics across India.
+              </p>
 
-      {/* CTA Banner */}
-      <div className="relative border-b border-white/10">
-        <div className="mx-auto max-w-[82rem] px-4 sm:px-6 lg:px-10 py-16 md:py-20 text-left">
-          <div>
-            <h2 className="max-w-4xl font-display text-[clamp(2.7rem,6vw,5.6rem)] font-normal tracking-[-.035em] text-white mb-5 leading-[1.04]">
-              {t("footer.title")}
-            </h2>
-            <p className="text-base md:text-lg text-white/60 mb-8 max-w-2xl">
-              {t("footer.body")}
-            </p>
-            <Link href={CTA_LINKS.trial} className="inline-flex min-h-12 items-center rounded-full bg-aura-cta-cream px-7 text-sm font-semibold text-aura-burgundy shadow-lg transition-colors duration-300 hover:bg-white">{t("nav.trial")}</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Grid */}
-      <div className="relative mx-auto max-w-[82rem] px-4 sm:px-6 lg:px-10 py-14 md:py-16">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12">
-          {/* Brand Column */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2.5 mb-4 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-aura-burgundy text-white font-display italic text-lg group-hover:scale-105 transition-transform duration-300">
-                A
+              <div className="mt-6 flex items-center gap-3">
+                <Link
+                  href={CTA_LINKS.demo}
+                  className="inline-flex items-center gap-1.5 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-[var(--aura-purple-hover)]"
+                >
+                  <span>Book a Demo</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+                <Link
+                  href={CTA_LINKS.login}
+                  className="rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--aura-heading)] hover:bg-[var(--aura-lavender)]"
+                >
+                  Log in
+                </Link>
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">Aura</span>
-            </Link>
-            <p className="text-sm text-white/50 leading-relaxed mb-6">
-              {t("footer.about")}
-            </p>
-            <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[.12em] text-white/45"><span>{t("nav.owner-crm")}</span><span>·</span><span>{t("nav.customer-app")}</span><span>·</span><span>{t("nav.staff-app")}</span></div>
-            <p className="mt-6 max-w-xs text-xs leading-5 text-white/40">{t("footer.contactNote", "Support channels, hours and response commitments are confirmed in each proposal.")}</p>
-          </div>
-
-          {/* Link Columns */}
-          {footerSections.map((section) => (
-            <div key={section.title}>
-              <h3 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">
-                {t(`footer.${section.title.toLowerCase()}`)}
-              </h3>
-              <ul className="space-y-3">
-                {section.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      {t(footerLabelKeys[link.label] ?? link.label)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
             </div>
-          ))}
+
+            {/* Navigation Columns */}
+            {FOOTER_SECTIONS.map((section) => (
+              <div key={section.title} className="col-span-1">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)] mb-4">
+                  {section.title}
+                </h3>
+                <ul className="space-y-2.5">
+                  {section.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-xs text-[var(--aura-body)] transition-colors hover:text-[var(--aura-purple)]"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/45">
-            &copy; {new Date().getFullYear()} Aura Salon CRM/POS. {t("footer.rights")}
-          </p>
+        <div className="border-t border-[var(--aura-border)] py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--aura-muted)]">
+          <p>&copy; {new Date().getFullYear()} Aura Salon Software. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-sm text-white/45 hover:text-white/70 transition-colors">{t("footer.privacy")}</Link>
-            <Link href="/terms" className="text-sm text-white/45 hover:text-white/70 transition-colors">{t("footer.terms")}</Link>
-            <Link href="/cookies" className="text-sm text-white/45 hover:text-white/70 transition-colors">{t("footer.cookies")}</Link>
+            <Link href="/privacy" className="hover:text-[var(--aura-heading)] transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--aura-heading)] transition-colors">
+              Terms
+            </Link>
+            <Link href="/cookies" className="hover:text-[var(--aura-heading)] transition-colors">
+              Cookies
+            </Link>
           </div>
         </div>
-      </div>
+      </Container>
     </footer>
   );
 }
