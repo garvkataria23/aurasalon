@@ -8,9 +8,7 @@ import { AdvancedFeatures } from "@/components/landing/AdvancedFeatures";
 import { AnalyticsAndPlatform } from "@/components/landing/AnalyticsAndPlatform";
 import { POSSandbox } from "@/components/landing/POSSandbox";
 import { WhatsAppSimulator } from "@/components/landing/WhatsAppSimulator";
-import { CompetitorMatrix } from "@/components/landing/CompetitorMatrix";
 import { ROICalculator } from "@/components/landing/ROICalculator";
-import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { MultiBranchShowcase } from "@/components/landing/MultiBranchShowcase";
 import { HardwareShowcase } from "@/components/landing/HardwareShowcase";
 import { Stats } from "@/components/landing/Stats";
@@ -34,9 +32,7 @@ export default function HomePageClient() {
       <AnalyticsAndPlatform />
       <POSSandbox />
       <WhatsAppSimulator />
-      <CompetitorMatrix />
       <ROICalculator />
-      <FeatureGrid />
       <MultiBranchShowcase />
       <HardwareShowcase />
       <Stats />

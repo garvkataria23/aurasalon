@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MessageSquare, Send, CheckCheck, Sparkles, Calendar, Clock, User, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 
 type Message = {
   id: string;
@@ -24,7 +23,7 @@ export function WhatsAppSimulator() {
     {
       id: "1",
       sender: "user",
-      text: "Hi Aura AI! Need to book a Hair Spa & Cut for tomorrow evening.",
+      text: "Hi Aura! Need to book a Hair Spa & Cut for tomorrow evening.",
       time: "04:15 PM",
     },
     {
@@ -40,26 +39,24 @@ export function WhatsAppSimulator() {
 
   const handleOptionClick = (option: string) => {
     const timeStr = option.replace("Book ", "");
-    
-    // Add user response message
+
     const userMsg: Message = {
       id: String(Date.now()),
       sender: "user",
       text: option,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    // Add bot confirmation card message
     const botMsg: Message = {
       id: String(Date.now() + 1),
       sender: "bot",
       text: `Awesome! Your booking is confirmed. We've reserved Senior Stylist Ananya for you. 🎟️`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       card: {
         service: "Signature Hair Spa + Haircut",
         stylist: "Ananya K. (Senior Stylist)",
         slot: `Tomorrow at ${timeStr}`,
-        price: "₹2,450 (GST Included)",
+        price: "₹2,800 (Pay at salon)",
       },
     };
 
@@ -67,13 +64,13 @@ export function WhatsAppSimulator() {
     setBookingConfirmed(true);
   };
 
-  const resetDemo = () => {
+  const handleReset = () => {
     setBookingConfirmed(false);
     setMessages([
       {
         id: "1",
         sender: "user",
-        text: "Hi Aura AI! Need to book a Hair Spa & Cut for tomorrow evening.",
+        text: "Hi Aura! Need to book a Hair Spa & Cut for tomorrow evening.",
         time: "04:15 PM",
       },
       {
@@ -87,38 +84,42 @@ export function WhatsAppSimulator() {
   };
 
   return (
-    <section className="bg-aura-surface py-20 md:py-28 overflow-hidden">
+    <section className="bg-white py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
       <Container>
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           {/* Left Description */}
           <div>
-            <SectionHeading
-              badge="Automated Booking"
-              title="24/7 WhatsApp AI Booking Concierge"
-              subtitle="Let your clients book, reschedule, and pay via WhatsApp in under 30 seconds — without a single manual call or missed lead."
-              align="left"
-            />
-            <div className="mt-8 space-y-4">
-              <div className="flex items-start gap-3 rounded-2xl border border-aura-border bg-white p-4 shadow-sm">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white">
-                  <MessageSquare className="h-5 w-5" />
+            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+              Automated Messaging
+            </span>
+            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
+              24/7 WhatsApp AI Booking Concierge
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)]">
+              Let your clients book, reschedule, and receive GST receipts via WhatsApp automatically — without a single manual phone call or missed lead.
+            </p>
+
+            <div className="mt-8 space-y-3">
+              <div className="flex items-start gap-3 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4 shadow-xs">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
+                  <MessageSquare className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-aura-text">Instant Multi-Lingual AI Assistant</h4>
-                  <p className="mt-1 text-xs leading-5 text-aura-text-secondary">
-                    Responds in English, Hindi, and regional languages instantly. Reads live slot schedules directly from your POS.
+                  <h4 className="text-xs font-bold text-[var(--aura-heading)]">Real-Time Slot Availability</h4>
+                  <p className="mt-0.5 text-xs text-[var(--aura-body)]">
+                    Directly reads available calendar slots from your appointment calendar and lets clients pick their stylist.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 rounded-2xl border border-aura-border bg-white p-4 shadow-sm">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-aura-burgundy text-white">
-                  <ShieldCheck className="h-5 w-5" />
+              <div className="flex items-start gap-3 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4 shadow-xs">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-aura-text">Zero No-Show Guarantee</h4>
-                  <p className="mt-1 text-xs leading-5 text-aura-text-secondary">
-                    Auto-sends WhatsApp reminders 2 hours before the slot with 1-click confirmation or quick reschedule buttons.
+                  <h4 className="text-xs font-bold text-[var(--aura-heading)]">Automated Visit Reminders</h4>
+                  <p className="mt-0.5 text-xs text-[var(--aura-body)]">
+                    Auto-sends WhatsApp reminders with 1-tap confirmation or reschedule buttons to virtually eliminate no-shows.
                   </p>
                 </div>
               </div>
@@ -127,30 +128,30 @@ export function WhatsAppSimulator() {
 
           {/* Right Simulated WhatsApp Phone Window */}
           <div className="mx-auto w-full max-w-md">
-            <div className="overflow-hidden rounded-[2.5rem] border-4 border-gray-900 bg-emerald-950/20 shadow-2xl">
+            <div className="overflow-hidden rounded-[2rem] border-4 border-gray-900 bg-white shadow-[var(--aura-shadow-xl)]">
               {/* WhatsApp Header */}
               <div className="flex items-center gap-3 bg-[#075e54] p-4 text-white">
                 <div className="relative">
-                  <div className="grid h-10 w-10 place-items-center rounded-full bg-emerald-700 text-sm font-bold">
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-700 text-xs font-bold">
                     A
                   </div>
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#075e54] bg-emerald-400" />
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#075e54] bg-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold leading-tight">Aura Salon AI Concierge ✓</h3>
-                  <p className="text-[10px] text-emerald-200">Official WhatsApp Business • Online</p>
+                  <h3 className="text-xs font-bold leading-tight">Aura Salon AI Concierge</h3>
+                  <p className="text-[10px] text-emerald-200">Official WhatsApp Business &bull; Online</p>
                 </div>
               </div>
 
               {/* WhatsApp Chat Body */}
-              <div className="h-[380px] overflow-y-auto bg-[#e5ddd5] p-4 space-y-3">
+              <div className="h-[360px] overflow-y-auto bg-[#e5ddd5] p-4 space-y-3">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3 text-xs leading-5 shadow-sm ${
+                      className={`max-w-[88%] rounded-2xl p-3 text-xs leading-relaxed shadow-xs ${
                         msg.sender === "user"
                           ? "rounded-tr-none bg-[#dcf8c6] text-gray-900"
                           : "rounded-tl-none bg-white text-gray-900"
@@ -158,15 +159,15 @@ export function WhatsAppSimulator() {
                     >
                       <p>{msg.text}</p>
 
-                      {/* Interactive Option Pills */}
+                      {/* Options interactive buttons */}
                       {msg.options && !bookingConfirmed && (
-                        <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-gray-100">
+                        <div className="mt-3 flex flex-col gap-1.5 border-t border-gray-100 pt-2">
                           {msg.options.map((opt) => (
                             <button
                               key={opt}
                               type="button"
                               onClick={() => handleOptionClick(opt)}
-                              className="rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:scale-105 active:scale-95 shadow-sm"
+                              className="rounded-xl border border-[var(--aura-purple)]/40 bg-[var(--aura-lavender)]/50 px-3 py-2 text-center text-xs font-bold text-[var(--aura-purple)] transition-colors hover:bg-[var(--aura-purple)] hover:text-white"
                             >
                               {opt}
                             </button>
@@ -174,50 +175,40 @@ export function WhatsAppSimulator() {
                         </div>
                       )}
 
-                      {/* Confirmed Ticket Card */}
+                      {/* Booking confirmation card */}
                       {msg.card && (
-                        <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 space-y-1.5 text-[11px]">
-                          <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span>Booking Confirmed Pass</span>
-                          </div>
-                          <p><strong className="text-gray-700">Service:</strong> {msg.card.service}</p>
-                          <p><strong className="text-gray-700">Stylist:</strong> {msg.card.stylist}</p>
-                          <p><strong className="text-gray-700">Time:</strong> {msg.card.slot}</p>
-                          <div className="flex justify-between border-t border-emerald-200 pt-1.5 font-bold text-emerald-900">
-                            <span>Amount Paid:</span>
-                            <span>{msg.card.price}</span>
-                          </div>
+                        <div className="mt-2.5 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 space-y-1 text-[11px] text-emerald-950">
+                          <p className="font-bold text-emerald-900 text-xs">{msg.card.service}</p>
+                          <p className="flex items-center gap-1"><User className="h-3 w-3" /> {msg.card.stylist}</p>
+                          <p className="flex items-center gap-1"><Clock className="h-3 w-3" /> {msg.card.slot}</p>
+                          <p className="font-bold text-emerald-800 pt-1">{msg.card.price}</p>
                         </div>
                       )}
 
-                      <span className="mt-1 block text-right text-[9px] text-gray-400">
-                        {msg.time} <CheckCheck className="inline h-3 w-3 text-sky-500" />
-                      </span>
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[9px] text-gray-500">
+                        <span>{msg.time}</span>
+                        <CheckCheck className="h-3 w-3 text-sky-500" />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Chat Input Bar */}
-              <div className="flex items-center gap-2 bg-[#f0f0f0] p-3 border-t border-gray-200">
+              <div className="flex items-center gap-2 border-t border-gray-200 bg-gray-100 px-4 py-2.5">
                 <input
                   type="text"
-                  readOnly
-                  placeholder={bookingConfirmed ? "Demo completed!" : "Tap an option above..."}
-                  className="flex-1 rounded-full bg-white px-4 py-2 text-xs text-gray-600 outline-none"
+                  disabled
+                  placeholder="Simulated WhatsApp Interface"
+                  className="flex-1 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-500 outline-none"
                 />
-                {bookingConfirmed ? (
+                {bookingConfirmed && (
                   <button
                     type="button"
-                    onClick={resetDemo}
-                    className="rounded-full bg-aura-burgundy px-3 py-2 text-[10px] font-bold text-white shadow-sm"
+                    onClick={handleReset}
+                    className="rounded-full bg-[var(--aura-purple)] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[var(--aura-purple-hover)]"
                   >
-                    Reset Demo
-                  </button>
-                ) : (
-                  <button type="button" className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white">
-                    <Send className="h-4 w-4" />
+                    Reset Chat
                   </button>
                 )}
               </div>

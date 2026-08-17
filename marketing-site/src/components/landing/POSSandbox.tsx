@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Receipt, Plus, Trash2, CheckCircle2, ShieldCheck, Printer, ArrowRight, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 
 type ServiceItem = {
   id: string;
@@ -40,53 +39,56 @@ export function POSSandbox() {
   const total = subtotal + gstAmount;
 
   return (
-    <section className="bg-aura-dark py-20 text-white md:py-28 overflow-hidden">
+    <section className="bg-[var(--aura-off-white)] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
       <Container>
         <div className="grid gap-12 lg:grid-cols-[.45fr_.55fr] lg:items-center">
           {/* Left Info */}
           <div>
-            <SectionHeading
-              badge="Express POS Terminal"
-              title="Checkout & Billing in Under 10 Seconds"
-              subtitle="Designed for fast-moving front desks. Print GST invoices, track staff attribution, and connect inventory records without an unsupported latency promise."
-              align="left"
-              className="[&_h2]:text-white [&_p]:text-white/60 [&>span]:text-aura-copper"
-            />
+            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+              Interactive POS Sandbox
+            </span>
+            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
+              Test express billing live right now.
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)]">
+              Designed for fast-moving front desks. Add services, toggle GST calculation, and simulate instant digital receipt generation.
+            </p>
+
             <div className="mt-8 space-y-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center gap-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-aura-burgundy text-white font-bold text-xs">
+              <div className="rounded-xl border border-[var(--aura-border)] bg-white p-4 flex items-center gap-3 shadow-xs">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)] font-bold text-xs">
                   ⚡
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Instant WhatsApp + Print Receipt</h4>
-                  <p className="text-[11px] text-white/50">Auto-sends digital bills to client WhatsApp while printing thermal paper receipts.</p>
+                  <h4 className="text-xs font-bold text-[var(--aura-heading)]">Instant WhatsApp + Print Receipt</h4>
+                  <p className="text-[11px] text-[var(--aura-body)]">Auto-sends digital bills to client WhatsApp while printing thermal paper receipts.</p>
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center gap-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white font-bold text-xs">
+              <div className="rounded-xl border border-[var(--aura-border)] bg-white p-4 flex items-center gap-3 shadow-xs">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs">
                   ₹
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Split Payments & Dual QR Code</h4>
-                  <p className="text-[11px] text-white/50">Accept Cash, UPI, Credit Cards, and Loyalty Points in a single bill transaction.</p>
+                  <h4 className="text-xs font-bold text-[var(--aura-heading)]">Split Payments &amp; Dual QR Code</h4>
+                  <p className="text-[11px] text-[var(--aura-body)]">Accept Cash, UPI, Credit Cards, and Loyalty Points in a single bill transaction.</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Right Live Clickable POS Sandbox UI */}
-          <div className="overflow-hidden rounded-3xl border border-white/15 bg-aura-bg text-aura-text shadow-2xl p-5 md:p-6">
-            <div className="flex items-center justify-between border-b border-aura-border pb-4">
+          <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] p-5 md:p-6">
+            <div className="flex items-center justify-between border-b border-[var(--aura-border)] pb-4">
               <div className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-aura-burgundy" />
-                <span className="font-display text-lg font-bold">Express POS Terminal</span>
+                <Receipt className="h-5 w-5 text-[var(--aura-purple)]" />
+                <span className="text-base font-bold text-[var(--aura-heading)]">Express Front Desk Terminal</span>
               </div>
-              <label className="flex items-center gap-2 text-xs font-semibold text-aura-text-secondary cursor-pointer">
+              <label className="flex items-center gap-2 text-xs font-semibold text-[var(--aura-heading)] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={gstEnabled}
                   onChange={(e) => setGstEnabled(e.target.checked)}
-                  className="rounded border-aura-border text-aura-burgundy focus:ring-aura-burgundy"
+                  className="rounded border-[var(--aura-border)] text-[var(--aura-purple)] focus:ring-[var(--aura-purple)]"
                 />
                 <span>GST (18%)</span>
               </label>
@@ -95,20 +97,20 @@ export function POSSandbox() {
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               {/* Service Catalog Picker */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-aura-text-muted mb-2">Tap to Add Service</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--aura-muted)] mb-2">Tap to Add Service</p>
                 <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                   {AVAILABLE_SERVICES.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-between rounded-xl border border-aura-border bg-white p-3 text-left transition-transform hover:scale-[1.02] active:scale-98 shadow-sm"
+                      className="w-full flex items-center justify-between rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3 text-left transition-all hover:border-[var(--aura-purple)] hover:bg-white shadow-xs"
                     >
                       <div>
-                        <p className="text-xs font-bold text-aura-text">{item.name}</p>
-                        <p className="text-[10px] text-aura-text-secondary">{item.category}</p>
+                        <p className="text-xs font-bold text-[var(--aura-heading)]">{item.name}</p>
+                        <p className="text-[10px] text-[var(--aura-muted)]">{item.category}</p>
                       </div>
-                      <span className="text-xs font-bold text-aura-burgundy flex items-center gap-1">
+                      <span className="text-xs font-bold text-[var(--aura-purple)] flex items-center gap-1">
                         +₹{item.price}
                       </span>
                     </button>
@@ -117,61 +119,63 @@ export function POSSandbox() {
               </div>
 
               {/* Cart & Billing Summary */}
-              <div className="flex flex-col justify-between rounded-2xl bg-white border border-aura-border p-4 shadow-sm">
+              <div className="flex flex-col justify-between rounded-xl bg-[var(--aura-off-white)] border border-[var(--aura-border)] p-4 shadow-xs">
                 <div>
-                  <div className="flex items-center justify-between pb-2 border-b border-aura-border">
-                    <span className="text-xs font-bold text-aura-text">Current Invoice</span>
-                    <span className="text-[10px] text-aura-text-muted">{cart.length} Services</span>
+                  <div className="flex items-center justify-between border-b border-[var(--aura-border)] pb-2 mb-3">
+                    <span className="text-xs font-bold text-[var(--aura-heading)]">Customer Bill</span>
+                    <span className="text-[10px] text-[var(--aura-muted)]">{cart.length} items</span>
                   </div>
 
-                  <div className="mt-3 space-y-2 max-h-[140px] overflow-y-auto">
-                    {cart.length === 0 ? (
-                      <p className="text-center py-6 text-xs text-aura-text-muted">Tap a service on the left to add to bill.</p>
-                    ) : (
-                      cart.map((item, idx) => (
-                        <div key={`${item.id}-${idx}`} className="flex items-center justify-between text-xs">
-                          <span className="truncate pr-2 font-medium text-aura-text">{item.name}</span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-bold text-aura-text">₹{item.price}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(idx)}
-                              className="text-red-400 hover:text-red-600"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                  <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                    {cart.map((item, idx) => (
+                      <div key={`${item.id}-${idx}`} className="flex items-center justify-between text-xs">
+                        <span className="truncate pr-2 text-[var(--aura-heading)] font-medium">{item.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-bold text-[var(--aura-heading)]">₹{item.price}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeItem(idx)}
+                            className="text-red-500 hover:text-red-700"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
-                      ))
-                    )}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Calculation Totals */}
-                <div className="pt-3 border-t border-aura-border space-y-1.5 text-xs">
-                  <div className="flex justify-between text-aura-text-secondary">
+                <div className="mt-4 pt-3 border-t border-[var(--aura-border)] space-y-1.5 text-xs">
+                  <div className="flex justify-between text-[var(--aura-body)]">
                     <span>Subtotal</span>
-                    <span>₹{subtotal}</span>
+                    <span className="font-semibold text-[var(--aura-heading)]">₹{subtotal.toLocaleString("en-IN")}</span>
                   </div>
                   {gstEnabled && (
-                    <div className="flex justify-between text-aura-text-secondary">
+                    <div className="flex justify-between text-[var(--aura-body)]">
                       <span>GST (18%)</span>
-                      <span>+₹{gstAmount}</span>
+                      <span className="font-semibold text-[var(--aura-heading)]">₹{gstAmount.toLocaleString("en-IN")}</span>
                     </div>
                   )}
-                  <div className="flex justify-between font-bold text-sm text-aura-burgundy pt-1 border-t border-aura-border">
-                    <span>Total Payable</span>
-                    <span>₹{total}</span>
+                  <div className="flex justify-between text-sm font-bold text-[var(--aura-heading)] pt-1 border-t border-[var(--aura-border)]">
+                    <span>Total</span>
+                    <span className="text-[var(--aura-purple)]">₹{total.toLocaleString("en-IN")}</span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setPrinted(true)}
-                    className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-aura-burgundy py-2.5 text-xs font-bold text-white shadow-md hover:bg-aura-burgundy-strong transition-colors"
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-[var(--aura-purple-hover)]"
                   >
-                    <Printer className="h-4 w-4" />
-                    <span>{printed ? "Receipt Generated ✓" : "Generate & Print Invoice"}</span>
+                    <Printer className="h-3.5 w-3.5" />
+                    <span>{printed ? "Invoice Generated & WhatsApp Sent!" : "Complete Bill (Generate & Print)"}</span>
                   </button>
+
+                  {printed && (
+                    <p className="text-[10px] text-emerald-700 font-semibold text-center flex items-center justify-center gap-1 mt-1">
+                      <CheckCircle2 className="h-3 w-3" /> Digital invoice sent to client WhatsApp
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

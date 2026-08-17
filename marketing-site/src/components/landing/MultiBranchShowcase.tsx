@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, TrendingUp, Users, Package, ArrowUpRight, CheckCircle } from "lucide-react";
+import { Building2, TrendingUp, Users, Package, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 
 type BranchData = {
   id: string;
@@ -26,81 +25,93 @@ export function MultiBranchShowcase() {
   const [selectedBranch, setSelectedBranch] = useState<BranchData>(BRANCHES[0]);
 
   return (
-    <section className="bg-aura-surface py-20 md:py-28 overflow-hidden">
+    <section className="bg-[var(--aura-off-white)] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
       <Container>
-        <SectionHeading
-          badge="Enterprise Chain Management"
-          title="Manage 1 or 50+ Salon Branches from One Screen"
-          subtitle="Real-time multi-location sales aggregation, staff transfer, cross-branch booking, and centralized inventory control."
-        />
+        <div className="mx-auto max-w-3xl text-center mb-10">
+          <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+            Multi-Location Scale
+          </span>
+          <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
+            Manage 1 or 50+ salon branches from one screen.
+          </h2>
+          <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
+            Real-time multi-location sales aggregation, staff transfer, cross-branch booking, and centralized inventory control.
+          </p>
+        </div>
 
         {/* Branch Pills Switcher */}
-        <div className="mt-8 flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
           {BRANCHES.map((branch) => (
             <button
               key={branch.id}
               type="button"
               onClick={() => setSelectedBranch(branch)}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition-all ${
                 selectedBranch.id === branch.id
-                  ? "bg-aura-burgundy text-white shadow-md scale-105"
-                  : "border border-aura-border bg-white text-aura-text hover:bg-aura-surface-muted"
+                  ? "bg-[var(--aura-purple)] text-white shadow-xs"
+                  : "border border-[var(--aura-border)] bg-white text-[var(--aura-heading)] hover:bg-[var(--aura-lavender)]"
               }`}
             >
-              <Building2 className="h-4 w-4" />
+              <Building2 className="h-3.5 w-3.5" />
               <span>{branch.name} ({branch.city})</span>
             </button>
           ))}
         </div>
 
         {/* Interactive Stats Dashboard Card */}
-        <div className="mt-10 mx-auto max-w-4xl rounded-3xl border border-aura-border bg-white p-6 md:p-8 shadow-xl">
-          <div className="flex flex-wrap items-center justify-between border-b border-aura-border pb-4 gap-3">
+        <div className="mx-auto max-w-4xl rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-6 md:p-8 shadow-[var(--aura-shadow-lg)]">
+          <div className="flex flex-wrap items-center justify-between border-b border-[var(--aura-border)] pb-4 gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-aura-burgundy">Active Branch View</span>
-              <h3 className="text-xl font-display font-bold text-aura-text">{selectedBranch.name}</h3>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--aura-purple)]">Active Branch View</span>
+              <h3 className="text-xl font-bold text-[var(--aura-heading)]">{selectedBranch.name}</h3>
+              <p className="text-xs text-[var(--aura-muted)]">{selectedBranch.city} &bull; Live Telemetry</p>
             </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 flex items-center gap-1">
-              <CheckCircle className="h-3.5 w-3.5" /> Synchronized IST
-            </span>
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live Connected
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl bg-aura-surface-muted p-4 border border-aura-border">
-              <div className="flex items-center justify-between text-aura-text-secondary">
-                <span className="text-xs font-semibold">Today's Revenue</span>
+          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+              <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
+                <span className="text-xs font-medium">Today's Sales</span>
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
               </div>
-              <p className="mt-2 text-2xl font-display font-bold text-aura-text">{selectedBranch.todayRevenue}</p>
-              <p className="mt-1 text-[10px] text-emerald-600 font-bold">+18.4% vs last week</p>
+              <p className="text-lg font-bold text-[var(--aura-heading)]">{selectedBranch.todayRevenue}</p>
             </div>
 
-            <div className="rounded-2xl bg-aura-surface-muted p-4 border border-aura-border">
-              <div className="flex items-center justify-between text-aura-text-secondary">
-                <span className="text-xs font-semibold">Appointments</span>
-                <Users className="h-4 w-4 text-aura-burgundy" />
+            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+              <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
+                <span className="text-xs font-medium">Appointments</span>
+                <Users className="h-4 w-4 text-[var(--aura-purple)]" />
               </div>
-              <p className="mt-2 text-2xl font-display font-bold text-aura-text">{selectedBranch.appointments} Bookings</p>
-              <p className="mt-1 text-[10px] text-aura-text-secondary font-bold">100% Digital Checked-in</p>
+              <p className="text-lg font-bold text-[var(--aura-heading)]">{selectedBranch.appointments} bookings</p>
             </div>
 
-            <div className="rounded-2xl bg-aura-surface-muted p-4 border border-aura-border">
-              <div className="flex items-center justify-between text-aura-text-secondary">
-                <span className="text-xs font-semibold">Active Staff</span>
-                <Users className="h-4 w-4 text-blue-600" />
+            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+              <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
+                <span className="text-xs font-medium">Staff on Floor</span>
+                <Users className="h-4 w-4 text-amber-600" />
               </div>
-              <p className="mt-2 text-2xl font-display font-bold text-aura-text">{selectedBranch.activeStaff} Stylists</p>
-              <p className="mt-1 text-[10px] text-blue-600 font-bold">Mobile Attendance Synced</p>
+              <p className="text-lg font-bold text-[var(--aura-heading)]">{selectedBranch.activeStaff} stylists</p>
             </div>
 
-            <div className="rounded-2xl bg-aura-surface-muted p-4 border border-aura-border">
-              <div className="flex items-center justify-between text-aura-text-secondary">
-                <span className="text-xs font-semibold">Inventory Recipes</span>
-                <Package className="h-4 w-4 text-purple-600" />
+            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+              <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
+                <span className="text-xs font-medium">Stock Status</span>
+                <Package className="h-4 w-4 text-emerald-600" />
               </div>
-              <p className="mt-2 text-sm font-bold text-aura-text">{selectedBranch.stockStatus}</p>
-              <p className="mt-1 text-[10px] text-purple-600 font-bold">WMA Costing Enabled</p>
+              <p className="text-xs font-bold text-[var(--aura-heading)] truncate">{selectedBranch.stockStatus}</p>
             </div>
+          </div>
+
+          <div className="mt-6 border-t border-[var(--aura-border)] pt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--aura-muted)]">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-[var(--aura-purple)]" />
+              Cross-branch customer history syncs automatically in real-time
+            </span>
+            <span className="font-semibold text-[var(--aura-purple)]">Consolidated P&amp;L Enabled</span>
           </div>
         </div>
       </Container>
