@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ArrowUpRight, ChevronRight, Languages } from "lucide-react";
+import { ArrowRight, ChevronRight, Languages } from "lucide-react";
 import type { NavLink } from "@/lib/types";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ interface MobileMenuProps {
   open: boolean;
   onClose: () => void;
   links: NavLink[];
-  ctaLinks: { login: string; trial: string };
+  ctaLinks: { login: string; trial: string; demo: string };
   pathname: string;
 }
 
@@ -25,7 +25,7 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
   const firstFocusable = useRef<HTMLAnchorElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
-  // Focus trap
+  /* Focus trap */
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {
       onClose();
@@ -55,17 +55,17 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
   }, [onClose]);
 
   useEffect(() => {
-    let focusTimer: ReturnType<typeof setTimeout> | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (open) {
       previousFocus.current = document.activeElement as HTMLElement;
-      focusTimer = setTimeout(() => firstFocusable.current?.focus(), 0);
+      timer = setTimeout(() => firstFocusable.current?.focus(), 0);
       document.addEventListener("keydown", handleKeyDown);
     } else {
       document.removeEventListener("keydown", handleKeyDown);
       previousFocus.current?.focus();
     }
     return () => {
-      if (focusTimer) clearTimeout(focusTimer);
+      if (timer) clearTimeout(timer);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, handleKeyDown]);
@@ -75,74 +75,99 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
   return (
     <div
       id="mobile-navigation"
-      className="fixed inset-0 z-[9996] xl:hidden"
+      className="fixed inset-0 z-[9996] lg:hidden"
       role="dialog"
       aria-modal="true"
-      aria-label={t("nav.primary")}
+      aria-label="Navigation menu"
     >
       {/* Backdrop */}
-       <div className="absolute inset-0 bg-aura-dark/45 backdrop-blur-[3px]" onClick={onClose} aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      {/* Menu Panel */}
+      {/* Panel */}
       <div
         ref={panelRef}
-        className="absolute bottom-0 right-0 top-0 w-full max-w-[30rem] border-l border-aura-border bg-aura-surface shadow-2xl"
+        className="absolute bottom-0 right-0 top-0 w-full max-w-[24rem] bg-white shadow-[var(--aura-shadow-xl)] border-l border-[var(--aura-border)]"
       >
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-7" style={{ paddingTop: "calc(5.25rem + env(safe-area-inset-top))" }}>
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-aura-border pb-5">
-            <p className="font-display text-2xl leading-none text-aura-text">Aura <em className="text-aura-burgundy">Salon OS</em></p>
-            <div className="flex shrink-0 items-center rounded-full border border-aura-border bg-aura-surface-muted p-1" role="group" aria-label={t("nav.language")}>
-              <Languages className="ml-2 mr-1 h-4 w-4 text-aura-text-muted" aria-hidden="true" />
-              {(["en", "hi"] as const).map((option) => (
-                <button key={option} type="button" onClick={() => setLanguage(option)} aria-pressed={language === option} className={cn("grid h-11 min-w-12 place-items-center rounded-full px-2 text-xs font-bold transition-colors", language === option ? "bg-aura-burgundy text-white" : "text-aura-text-muted hover:bg-white hover:text-aura-text")}>
-                  {option === "en" ? "EN" : "हिं"}
+        <div
+          className="flex h-full flex-col overflow-y-auto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          style={{ paddingTop: "calc(5rem + env(safe-area-inset-top))" }}
+        >
+          {/* Brand + Language */}
+          <div className="mb-6 flex items-center justify-between border-b border-[var(--aura-border)] pb-5">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--aura-purple)] text-white text-xs font-semibold">A</span>
+              <span className="text-base font-semibold text-[var(--aura-heading)]">Aura</span>
+            </div>
+            <div className="flex items-center rounded-lg border border-[var(--aura-border)] p-0.5" role="group" aria-label="Language">
+              <Languages className="ml-1.5 mr-1 h-3.5 w-3.5 text-[var(--aura-muted)]" aria-hidden="true" />
+              {(["en", "hi"] as const).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setLanguage(opt)}
+                  aria-pressed={language === opt}
+                  className={cn(
+                    "grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-xs font-semibold transition-colors",
+                    language === opt
+                      ? "bg-[var(--aura-purple)] text-white"
+                      : "text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
+                  )}
+                >
+                  {opt === "en" ? "EN" : "हिं"}
                 </button>
               ))}
             </div>
           </div>
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-1" aria-label={t("nav.primary")}>
-            {links.map((link) => {
+
+          {/* Nav Links */}
+          <nav className="flex flex-col gap-0.5" aria-label="Navigation">
+            {links.map((link, i) => {
               const active = isRouteActive(pathname, link.href);
               return (
-                <div key={link.href}>
-                  <Link
-                    ref={firstFocusable}
-                    href={link.href}
-                    onClick={onClose}
-                    aria-current={active ? "page" : undefined}
-                    className={cn("flex min-h-14 items-center justify-between gap-4 rounded-xl px-3 py-3 font-display text-[clamp(1.25rem,6vw,1.65rem)] leading-tight transition-colors", active ? "bg-aura-rose-soft text-aura-burgundy" : "text-aura-text hover:bg-aura-surface-muted hover:text-aura-burgundy")}
-                  >
-                    <span>{t(`nav.${link.href === "/features" ? "features" : link.href.slice(1)}`)}</span>
-                    <ChevronRight className={cn("h-4 w-4 shrink-0", active ? "text-aura-burgundy" : "text-aura-text-muted")} aria-hidden="true" />
-                  </Link>
-                </div>
+                <Link
+                  key={link.href}
+                  ref={i === 0 ? firstFocusable : undefined}
+                  href={link.href}
+                  onClick={onClose}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center justify-between rounded-xl px-3 py-3 text-[15px] font-medium transition-colors",
+                    active
+                      ? "bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
+                      : "text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)]"
+                  )}
+                >
+                  <span>{link.label}</span>
+                  <ChevronRight
+                    className={cn("h-4 w-4 shrink-0", active ? "text-[var(--aura-purple)]" : "text-[var(--aura-muted)]")}
+                    aria-hidden="true"
+                  />
+                </Link>
               );
             })}
           </nav>
 
-          {/* Divider */}
-          <div className="my-6 h-px bg-aura-border" />
-
           {/* CTA Buttons */}
-          <div className="mt-auto flex flex-col gap-3 pt-2">
-            <div>
-              <a
-                href={ctaLinks.login}
-                className="flex min-h-12 w-full items-center justify-center rounded-xl border border-aura-border px-5 py-3 text-sm font-semibold text-aura-text transition-colors hover:bg-aura-bg-warm focus-visible:outline-2 focus-visible:outline-neon-violet focus-visible:outline-offset-2"
-              >
-                {t("nav.login")}
-              </a>
-            </div>
-            <div>
-              <a
-                href={ctaLinks.trial}
-                className="flex min-h-12 w-full items-center justify-center rounded-full bg-aura-burgundy px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-aura-burgundy-strong focus-visible:outline-2 focus-visible:outline-neon-violet focus-visible:outline-offset-2"
-              >
-                {t("nav.trial")}
-                <ArrowUpRight className="ml-1 h-4 w-4" aria-hidden="true" />
-              </a>
-            </div>
+          <div className="mt-auto flex flex-col gap-2.5 pt-6 border-t border-[var(--aura-border)] mt-6">
+            <Link
+              href={ctaLinks.login}
+              onClick={onClose}
+              className="flex h-11 w-full items-center justify-center rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] text-sm font-medium text-[var(--aura-heading)] transition-colors hover:bg-[var(--aura-off-white)]"
+            >
+              Log in
+            </Link>
+            <Link
+              href={ctaLinks.demo}
+              onClick={onClose}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] text-sm font-semibold text-white transition-colors hover:bg-[var(--aura-purple-hover)]"
+            >
+              Book a Demo
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </div>

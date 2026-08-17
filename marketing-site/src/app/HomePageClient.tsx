@@ -1,7 +1,8 @@
 "use client";
 
 import { Hero } from "@/components/landing/Hero";
-import { LogoCloud } from "@/components/landing/LogoCloud";
+import { TrustStrip } from "@/components/landing/TrustStrip";
+import { ProblemSection } from "@/components/landing/ProblemSection";
 import { POSSandbox } from "@/components/landing/POSSandbox";
 import { WhatsAppSimulator } from "@/components/landing/WhatsAppSimulator";
 import { CompetitorMatrix } from "@/components/landing/CompetitorMatrix";
@@ -20,7 +21,8 @@ export default function HomePageClient() {
   return (
     <main className="min-h-screen">
       <Hero />
-      <LogoCloud />
+      <TrustStrip />
+      <ProblemSection />
       <POSSandbox />
       <WhatsAppSimulator />
       <CompetitorMatrix />

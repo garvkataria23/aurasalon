@@ -1,22 +1,152 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ArrowUpRight, Languages } from "lucide-react";
-import { NAV_LINKS, CTA_LINKS } from "@/lib/constants";
+import { Menu, X, ChevronDown, ArrowRight, Languages } from "lucide-react";
+import { CTA_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { MobileMenu } from "./MobileMenu";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+
+/* ── Navigation Structure ──
+   Maps old destinations into the new IA:
+   Products → Owner CRM, Customer App, Staff App
+   Solutions → Platform, Workflows
+   Features → /features
+   Pricing → /pricing
+   Resources → Blog, FAQ, Contact
+*/
+
+type DropdownItem = { label: string; href: string; description?: string };
+
+type NavItem = {
+  label: string;
+  href?: string;
+  children?: DropdownItem[];
+};
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    label: "Products",
+    children: [
+      { label: "Owner CRM", href: "/owner-crm", description: "GST billing, client CRM, inventory & finance" },
+      { label: "Customer App", href: "/customer-app", description: "Pay-at-salon booking & visit history" },
+      { label: "Staff App", href: "/staff-app", description: "Attendance, shifts & commission tracking" },
+    ],
+  },
+  {
+    label: "Solutions",
+    children: [
+      { label: "Platform Overview", href: "/platform", description: "See the connected operating system" },
+      { label: "Workflows", href: "/workflows", description: "Booking to billing to owner insight" },
+    ],
+  },
+  { label: "Features", href: "/features" },
+  { label: "Pricing", href: "/pricing" },
+  {
+    label: "Resources",
+    children: [
+      { label: "Blog", href: "/blog", description: "Guides & industry insights" },
+      { label: "FAQ", href: "/faq", description: "Common questions answered" },
+      { label: "Contact", href: "/contact", description: "Get in touch with our team" },
+    ],
+  },
+];
+
+/* Flat list of all hrefs for mobile menu */
+const ALL_NAV_LINKS = NAV_ITEMS.flatMap((item) =>
+  item.children ? item.children.map((c) => ({ label: c.label, href: c.href })) : [{ label: item.label, href: item.href! }]
+);
 
 function isRouteActive(pathname: string, href: string) {
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
 
-function navKey(href: string) {
-  return `nav.${href === "/features" ? "features" : href.slice(1)}`;
+function isGroupActive(pathname: string, children?: DropdownItem[]) {
+  if (!children) return false;
+  return children.some((c) => isRouteActive(pathname, c.href));
 }
 
+/* ── Dropdown Component ── */
+function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
+
+  const enter = () => { if (timeout.current) clearTimeout(timeout.current); setOpen(true); };
+  const leave = () => { timeout.current = setTimeout(() => setOpen(false), 150); };
+
+  /* Close on route change */
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  /* Close on outside click */
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const active = isGroupActive(pathname, item.children);
+
+  return (
+    <div ref={ref} className="relative" onMouseEnter={enter} onMouseLeave={leave}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className={cn(
+          "flex items-center gap-1 px-3 py-2 text-[13.5px] font-medium transition-colors rounded-lg",
+          active ? "text-[var(--aura-purple)]" : "text-[var(--aura-body)] hover:text-[var(--aura-heading)]"
+        )}
+      >
+        {item.label}
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")} aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 top-full z-50 pt-2"
+          onMouseEnter={enter}
+          onMouseLeave={leave}
+        >
+          <div className="w-[280px] rounded-[14px] border border-[var(--aura-border)] bg-white p-2 shadow-[var(--aura-shadow-lg)]">
+            {item.children!.map((child) => {
+              const childActive = isRouteActive(pathname, child.href);
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={childActive ? "page" : undefined}
+                  className={cn(
+                    "flex flex-col gap-0.5 rounded-[10px] px-3 py-2.5 transition-colors",
+                    childActive
+                      ? "bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
+                      : "hover:bg-[var(--aura-off-white)]"
+                  )}
+                >
+                  <span className={cn("text-sm font-medium", childActive ? "text-[var(--aura-purple)]" : "text-[var(--aura-heading)]")}>
+                    {child.label}
+                  </span>
+                  {child.description && (
+                    <span className="text-xs text-[var(--aura-muted)] leading-relaxed">{child.description}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main Navbar ── */
 export function Navbar() {
   const { language, setLanguage, t } = useLanguage();
   const pathname = usePathname();
@@ -24,117 +154,130 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const updateSurface = () => setScrolled(window.scrollY > 12);
-    updateSurface();
-    window.addEventListener("scroll", updateSurface, { passive: true });
-    return () => window.removeEventListener("scroll", updateSurface);
+    const update = () => setScrolled(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
   useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 1280px)");
-    const closeAtDesktop = (event: MediaQueryListEvent) => {
-      if (event.matches) setMobileOpen(false);
-    };
-    desktop.addEventListener("change", closeAtDesktop);
-    return () => desktop.removeEventListener("change", closeAtDesktop);
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => { if (e.matches) setMobileOpen(false); };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   return (
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-[9997] border-b pt-[env(safe-area-inset-top)] transition-[background-color,border-color,box-shadow] duration-300",
-          scrolled || mobileOpen
-            ? "border-white/10 bg-aura-dark/95 shadow-[0_10px_35px_rgba(6,22,52,0.2)] backdrop-blur-xl"
-            : "border-white/10 bg-aura-dark/90 backdrop-blur-md"
+          "fixed inset-x-0 top-0 z-[9997] transition-all duration-300",
+          scrolled
+            ? "bg-white/85 backdrop-blur-xl border-b border-[var(--aura-border)] shadow-[var(--aura-shadow-xs)]"
+            : "bg-white border-b border-transparent"
         )}
       >
-        <nav className="mx-auto max-w-[90rem] px-3 sm:px-6 xl:px-8 2xl:px-10" aria-label={t("nav.primary")}>
-          <div className="flex h-16 items-center justify-between gap-3 sm:h-[4.5rem]">
-            {/* Logo */}
-            <Link href="/" className="group flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl" aria-label={t("nav.home")}>
-              <span className="grid h-10 w-10 place-items-center rounded-[.85rem] bg-aura-cta-cream font-display text-xl italic text-aura-burgundy shadow-[0_6px_18px_rgba(0,0,0,.2)] transition-transform duration-300 group-hover:scale-[1.03]" aria-hidden="true">A</span>
-              <span className="leading-none">
-                <span className="block font-display text-[1.35rem] tracking-[-.035em] text-white">Aura</span>
-                <span className="mt-1 hidden text-[8px] font-bold uppercase tracking-[.2em] text-white/55 md:block">Salon OS</span>
-              </span>
+        <nav className="mx-auto flex h-16 max-w-[82rem] items-center justify-between px-4 sm:px-6 lg:px-10" aria-label="Primary navigation">
+          {/* Logo */}
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 group" aria-label="Aura — Home">
+            <span
+              className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--aura-purple)] font-semibold text-white text-sm transition-transform duration-200 group-hover:scale-105"
+              aria-hidden="true"
+            >
+              A
+            </span>
+            <span className="text-lg font-semibold tracking-tight text-[var(--aura-heading)]">Aura</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden items-center gap-0.5 lg:flex">
+            {NAV_ITEMS.map((item) =>
+              item.children ? (
+                <NavDropdown key={item.label} item={item} pathname={pathname} />
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href!}
+                  aria-current={isRouteActive(pathname, item.href!) ? "page" : undefined}
+                  className={cn(
+                    "px-3 py-2 text-[13.5px] font-medium transition-colors rounded-lg",
+                    isRouteActive(pathname, item.href!)
+                      ? "text-[var(--aura-purple)]"
+                      : "text-[var(--aura-body)] hover:text-[var(--aura-heading)]"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
+          </div>
+
+          {/* Desktop Right */}
+          <div className="hidden shrink-0 items-center gap-3 lg:flex">
+            {/* Language toggle */}
+            <div className="flex items-center gap-1 rounded-lg border border-[var(--aura-border)] p-0.5" role="group" aria-label="Language">
+              {(["en", "hi"] as const).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setLanguage(opt)}
+                  aria-pressed={language === opt}
+                  className={cn(
+                    "grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-xs font-semibold transition-colors",
+                    language === opt
+                      ? "bg-[var(--aura-purple)] text-white"
+                      : "text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
+                  )}
+                >
+                  {opt === "en" ? "EN" : "हिं"}
+                </button>
+              ))}
+            </div>
+
+            <Link
+              href={CTA_LINKS.login}
+              className="px-3 py-2 text-sm font-medium text-[var(--aura-body)] transition-colors hover:text-[var(--aura-heading)]"
+            >
+              Log in
             </Link>
 
-            {/* Desktop Nav */}
-            <div className="hidden items-center gap-0.5 rounded-full border border-aura-border/75 bg-white/55 p-1 shadow-sm xl:flex">
-              {NAV_LINKS.map((link) => {
-                const active = isRouteActive(pathname, link.href);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "relative flex min-h-11 items-center rounded-full px-3.5 text-[13px] font-semibold transition-colors",
-                      active ? "text-aura-burgundy" : "text-aura-text-secondary hover:bg-aura-bg-warm/70 hover:text-aura-text"
-                    )}
-                  >
-                    {active && (
-                      <span
-                        className="absolute inset-0 rounded-full border border-aura-border bg-aura-surface shadow-sm"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <span className="relative z-10 whitespace-nowrap">{t(navKey(link.href))}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            <Link
+              href={CTA_LINKS.demo}
+              className="inline-flex items-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-200 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)]"
+            >
+              Book a Demo
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          </div>
 
-            {/* Desktop CTA */}
-            <div className="hidden shrink-0 items-center gap-2 xl:flex">
-              <div className="flex items-center rounded-full border border-aura-border/80 bg-white/55 p-1" role="group" aria-label={t("nav.language")}>
-                <Languages className="ml-2 mr-1 h-4 w-4 text-aura-text-muted" aria-hidden="true" />
-                {(["en", "hi"] as const).map((option) => (
-                  <button key={option} type="button" onClick={() => setLanguage(option)} aria-pressed={language === option} className={cn("grid h-11 min-w-11 place-items-center rounded-full px-2 text-xs font-bold transition-colors", language === option ? "bg-aura-burgundy text-white shadow-sm" : "text-aura-text-muted hover:bg-aura-bg-warm hover:text-aura-text")}>
-                    {option === "en" ? "EN" : "हिं"}
-                  </button>
-                ))}
-              </div>
-              <Link
-                href={CTA_LINKS.login}
-                className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                {t("nav.login")}
-              </Link>
-              <Link
-                href={CTA_LINKS.trial}
-                className="group inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full bg-aura-cta-cream px-5 text-sm font-semibold text-aura-burgundy shadow-[0_8px_20px_rgba(0,0,0,.2)] transition-[background-color,box-shadow] duration-300 hover:bg-white hover:shadow-[0_10px_25px_rgba(0,0,0,.25)]"
-              >
-                {t("nav.trial")}
-                <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
-              </Link>
-            </div>
-
-            <div className="ml-auto flex shrink-0 items-center gap-2 xl:hidden">
-              <Link href={CTA_LINKS.trial} className="hidden min-h-11 items-center whitespace-nowrap rounded-full bg-aura-cta-cream px-4 text-sm font-semibold text-aura-burgundy shadow-sm sm:inline-flex">
-                {t("nav.trial")}
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileOpen((open) => !open)}
-                className={cn("relative z-50 grid h-11 w-11 place-items-center rounded-[.85rem] border transition-colors", mobileOpen ? "border-white/20 bg-white text-aura-burgundy" : "border-white/20 bg-white/10 text-white hover:bg-white/20")}
-                aria-label={mobileOpen ? t("nav.close") : t("nav.open")}
-                aria-expanded={mobileOpen}
-                aria-controls="mobile-navigation"
-              >
-                {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
-              </button>
-            </div>
+          {/* Mobile hamburger */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <Link
+              href={CTA_LINKS.demo}
+              className="hidden sm:inline-flex items-center rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm"
+            >
+              Book a Demo
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileOpen((v) => !v)}
+              className={cn(
+                "grid h-10 w-10 place-items-center rounded-lg border transition-colors",
+                mobileOpen
+                  ? "border-[var(--aura-border)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
+                  : "border-[var(--aura-border)] text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)]"
+              )}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
+            >
+              {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+            </button>
           </div>
         </nav>
       </header>
@@ -142,7 +285,7 @@ export function Navbar() {
       <MobileMenu
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        links={NAV_LINKS}
+        links={ALL_NAV_LINKS}
         ctaLinks={CTA_LINKS}
         pathname={pathname}
       />
