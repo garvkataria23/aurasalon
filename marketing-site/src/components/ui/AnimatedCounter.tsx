@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useInView } from "motion/react";
 import { cn } from "@/lib/utils";
 
 interface AnimatedCounterProps {
@@ -21,7 +20,6 @@ export function AnimatedCounter({
 }: AnimatedCounterProps) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
   const hasAnimated = useRef(false);
   const rafId = useRef<number>(0);
 
@@ -31,7 +29,6 @@ export function AnimatedCounter({
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.round(eased * value));
-
       if (progress < 1) {
         rafId.current = requestAnimationFrame((t) => animate(startTime, t));
       }
@@ -40,12 +37,21 @@ export function AnimatedCounter({
   );
 
   useEffect(() => {
-    if (!inView || hasAnimated.current) return;
-    hasAnimated.current = true;
-    const startTime = performance.now();
-    rafId.current = requestAnimationFrame((t) => animate(startTime, t));
-    return () => cancelAnimationFrame(rafId.current);
-  }, [inView, animate]);
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          const startTime = performance.now();
+          rafId.current = requestAnimationFrame((t) => animate(startTime, t));
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => { observer.disconnect(); cancelAnimationFrame(rafId.current); };
+  }, [animate]);
 
   const displayValue =
     value >= 1000 && !suffix.includes("Cr") && !suffix.includes("L")
@@ -54,9 +60,7 @@ export function AnimatedCounter({
 
   return (
     <span ref={ref} className={cn("tabular-nums", className)}>
-      {prefix}
-      {displayValue}
-      {suffix}
+      {prefix}{displayValue}{suffix}
     </span>
   );
 }

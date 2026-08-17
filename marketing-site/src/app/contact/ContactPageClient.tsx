@@ -2,11 +2,9 @@
 
 import { useId, useState } from "react";
 import { Send, CheckCircle, FileCheck2, MessageSquareText, AlertCircle } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { GridBackground } from "@/components/ui/GridBackground";
-import { fadeInUp } from "@/lib/animations";
 import { CTA_LINKS } from "@/lib/constants";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -48,20 +46,15 @@ function FloatingInput({
       } ${error ? "text-danger" : "text-aura-text-secondary peer-focus:text-neon-violet"}`}>
         {label} {required && <span className="text-danger">*</span>}
       </label>
-      <AnimatePresence>
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            id={`${id}-error`}
-            className="flex items-center gap-1 text-xs text-danger mt-1"
-          >
-            <AlertCircle className="w-3 h-3" />
-            {error}
-          </motion.p>
-        )}
-      </AnimatePresence>
+      {error && (
+        <p
+          id={`${id}-error`}
+          className="flex items-center gap-1 text-xs text-danger mt-1"
+        >
+          <AlertCircle className="w-3 h-3" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -175,17 +168,9 @@ export default function ContactPage() {
       <section className="pb-20 md:pb-28 bg-white">
         <Container>
           <div className="grid md:grid-cols-5 gap-12 max-w-5xl mx-auto">
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="md:col-span-3"
-            >
+            <div className="md:col-span-3">
               {status === "sent" ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div
                    className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-12 text-center"
                    role="status"
                 >
@@ -200,7 +185,7 @@ export default function ContactPage() {
                   >
                      {t("contact.another")}
                   </button>
-                </motion.div>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-busy={status === "sending"} aria-describedby={status === "error" ? "contact-submit-error" : undefined}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -234,16 +219,9 @@ export default function ContactPage() {
                   )}
                 </form>
               )}
-            </motion.div>
+            </div>
 
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="md:col-span-2"
-            >
+            <div className="md:col-span-2">
               <div className="space-y-6">
                  {[
                     { icon: MessageSquareText, label: language === "hi" ? "संपर्क चैनल" : "Contact channel", value: language === "hi" ? "Approved public phone या messaging channel configure होने तक इस form का उपयोग करें।" : "Use this form until an approved public phone or messaging channel is configured." },
@@ -269,7 +247,7 @@ export default function ContactPage() {
                   </ul>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </Container>
       </section>

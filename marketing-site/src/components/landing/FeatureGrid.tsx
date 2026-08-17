@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import { motion, useInView, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import {
   Calendar, CreditCard, Users, UserCheck, Package, Megaphone, TrendingUp, ShieldCheck,
@@ -9,7 +8,6 @@ import {
 import { FEATURES } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { staggerContainer } from "@/lib/animations";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FEATURE_OVERVIEW_HI } from "@/lib/translations";
 
@@ -28,12 +26,11 @@ function TiltCard({ feature, index }: { feature: typeof FEATURES[number]; index:
   const { language } = useLanguage();
   const translated = language === "hi" ? FEATURE_OVERVIEW_HI[index] : undefined;
   const cardRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useReducedMotion();
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 50 });
   const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!cardRef.current || reducedMotion) return;
+    if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
@@ -43,7 +40,7 @@ function TiltCard({ feature, index }: { feature: typeof FEATURES[number]; index:
       glowX: x * 100,
       glowY: y * 100,
     });
-  }, [reducedMotion]);
+  }, []);
 
   const handleMouseLeave = useCallback(() => {
     setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 50 });
@@ -54,7 +51,7 @@ function TiltCard({ feature, index }: { feature: typeof FEATURES[number]; index:
 
   return (
     <Link href={feature.href} className="block h-full">
-      <motion.div
+      <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
@@ -63,10 +60,6 @@ function TiltCard({ feature, index }: { feature: typeof FEATURES[number]; index:
           transform: `perspective(800px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg)`,
           transformStyle: "preserve-3d",
         }}
-        initial={{ opacity: 0, y: 40, scale: 0.95 }}
-        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
         className="relative rounded-2xl border border-aura-border bg-aura-surface p-6 sm:p-7 h-full min-h-64 transition-shadow duration-300 cursor-pointer"
         data-cursor-hover
       >
@@ -108,7 +101,7 @@ function TiltCard({ feature, index }: { feature: typeof FEATURES[number]; index:
             {translated?.description ?? feature.description}
           </p>
         </div>
-      </motion.div>
+      </div>
     </Link>
   );
 }
@@ -116,7 +109,6 @@ function TiltCard({ feature, index }: { feature: typeof FEATURES[number]; index:
 export function FeatureGrid() {
   const { t } = useLanguage();
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
     <section ref={ref} className="py-24 md:py-32 bg-aura-bg section-divider">
@@ -128,16 +120,11 @@ export function FeatureGrid() {
           align="left"
         />
 
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-          className="feature-editorial-grid mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4"
-        >
+        <div className="feature-editorial-grid mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
           {FEATURES.map((feature, index) => (
             <TiltCard key={feature.title} feature={feature} index={index} />
           ))}
-        </motion.div>
+        </div>
 
         <div className="mt-12 text-center">
           <Link

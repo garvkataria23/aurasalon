@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
 import { Calendar, Clock, User, Building2, CheckCircle, ArrowRight, Phone } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { GridBackground } from "@/components/ui/GridBackground";
@@ -65,11 +64,7 @@ export default function DemoPage() {
     return (
       <section className="min-h-[80vh] flex items-center justify-center bg-aura-bg">
         <Container>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center max-w-md mx-auto"
-          >
+          <div className="text-center max-w-md mx-auto">
             <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-emerald-500" />
             </div>
@@ -80,7 +75,7 @@ export default function DemoPage() {
             <a href="/" className="text-sm font-semibold text-neon-violet hover:underline">
                ← {t("common.backHome")}
             </a>
-          </motion.div>
+          </div>
         </Container>
       </section>
     );
@@ -91,12 +86,7 @@ export default function DemoPage() {
       <section className="relative pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-aura-bg to-white overflow-hidden">
         <GridBackground className="opacity-30" />
         <Container className="relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="max-w-3xl mx-auto text-center"
-          >
+          <div className="max-w-3xl mx-auto text-center">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-neon-violet/10 text-neon-violet mb-6">
               <Calendar className="w-3 h-3" />
                {t("demo.badge")}
@@ -107,20 +97,14 @@ export default function DemoPage() {
             <p className="mt-5 text-lg text-aura-text-secondary max-w-xl mx-auto">
                {t("demo.body")}
             </p>
-          </motion.div>
+          </div>
         </Container>
       </section>
 
       <section className="pb-20 md:pb-28 bg-white">
         <Container>
           <div className="grid md:grid-cols-5 gap-12 max-w-5xl mx-auto">
-            {/* Form */}
-            <motion.div
-              initial={{ opacity: 0, y: 32 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="md:col-span-3"
-            >
+            <div className="md:col-span-3">
               <form onSubmit={handleSubmit} className="space-y-5" aria-busy={status === "sending"} aria-describedby={errorMessage ? "demo-submit-error" : undefined}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
@@ -180,15 +164,9 @@ export default function DemoPage() {
                 </button>
                 {errorMessage && <p id="demo-submit-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-6 text-red-700">{errorMessage}</p>}
               </form>
-            </motion.div>
+            </div>
 
-            {/* Benefits */}
-            <motion.div
-              initial={{ opacity: 0, y: 32 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="md:col-span-2"
-            >
+            <div className="md:col-span-2">
               <div className="rounded-2xl border border-aura-border bg-aura-bg p-8">
                  <h3 className="text-lg font-bold text-aura-text mb-4">{t("demo.expect")}</h3>
                 <ul className="space-y-4">
@@ -209,7 +187,7 @@ export default function DemoPage() {
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </Container>
       </section>

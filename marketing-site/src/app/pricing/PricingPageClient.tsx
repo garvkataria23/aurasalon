@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useInView } from "motion/react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Check, X, ArrowRight } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
@@ -10,7 +9,6 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { GridBackground } from "@/components/ui/GridBackground";
-import { staggerContainer, staggerChild } from "@/lib/animations";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { PRICING_COMPARISON_HI, PRICING_FAQ_HI, PRICING_FEATURES_HI } from "@/lib/translations";
 import { PlanAdvisor } from "@/components/pricing/PlanAdvisor";
@@ -58,13 +56,11 @@ export default function PricingPage() {
     return value;
   };
   const [annual, setAnnual] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
     <>
       {/* Hero */}
-      <section className="relative pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-aura-bg to-white overflow-hidden">
+      <section className="relative pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-[#faf9fc] to-white overflow-hidden">
         <GridBackground className="opacity-30" />
         <Container className="relative z-10">
           <SectionHeading
@@ -76,7 +72,7 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Toggle + Cards */}
-      <section ref={ref} className="pb-20 md:pb-28 bg-white">
+      <section className="pb-20 md:pb-28 bg-white">
         <Container>
           {/* Toggle */}
           <div className="flex items-center justify-center gap-3 mb-12">
@@ -85,7 +81,7 @@ export default function PricingPage() {
                onClick={() => setAnnual(!annual)}
                role="switch"
                aria-checked={annual}
-              className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${annual ? "bg-neon-violet" : "bg-aura-border-strong"}`}
+              className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${annual ? "bg-[#7c5cbf]" : "bg-aura-border-strong"}`}
                aria-label={t("pricing.toggle")}
             >
               <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${annual ? "translate-x-7" : "translate-x-0.5"}`} />
@@ -96,24 +92,18 @@ export default function PricingPage() {
           </div>
 
           {/* Cards */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate={inView ? "visible" : "hidden"}
-            className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto"
-          >
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {PRICING_PLANS.map((tier, tierIndex) => (
-              <motion.div
+              <div
                 key={tier.name}
-                variants={staggerChild}
                 className={`relative rounded-2xl border p-6 lg:p-8 transition-all duration-300 ${
                   tier.highlighted
-                    ? "border-neon-violet/30 bg-white shadow-xl shadow-neon-violet/10 md:scale-[1.03]"
+                    ? "border-[#7c5cbf]/30 bg-white shadow-xl shadow-[#7c5cbf]/10 md:scale-[1.03]"
                     : "border-aura-border bg-white hover:shadow-lg hover:border-aura-border-strong"
                 }`}
               >
                 {tier.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-neon-violet to-aura-rose text-white text-xs font-bold">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-[#7c5cbf] to-aura-rose text-white text-xs font-bold">
                      {language === "hi" ? "Growth प्लान" : "Growth plan"}
                   </div>
                 )}
@@ -154,16 +144,16 @@ export default function PricingPage() {
                     {tier.highlighted && <ArrowRight className="w-4 h-4 ml-1" />}
                   </Button>
                 </a>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </Container>
       </section>
 
       <PlanAdvisor />
 
       {/* Comparison Table */}
-      <section className="py-20 md:py-28 bg-aura-bg">
+      <section className="py-20 md:py-28 bg-[#faf9fc]">
         <Container>
           <SectionHeading
             badge={t("pricing.compare")}
@@ -176,7 +166,7 @@ export default function PricingPage() {
                 <tr className="border-b border-aura-border">
                   <th className="text-left py-4 px-4 text-sm font-semibold text-aura-text w-1/3">{t("pricing.feature")}</th>
                   <th className="text-center py-4 px-4 text-sm font-semibold text-aura-text">Starter</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-neon-violet bg-neon-violet/5 rounded-t-xl">Growth</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-[#7c5cbf] bg-[#7c5cbf]/5 rounded-t-xl">Growth</th>
                   <th className="text-center py-4 px-4 text-sm font-semibold text-aura-text">Enterprise</th>
                 </tr>
               </thead>
@@ -185,7 +175,7 @@ export default function PricingPage() {
                   <tr key={feat.name} className={`border-b border-aura-border/50 ${i % 2 === 0 ? "bg-white/50" : ""}`}>
                     <td className="py-3 px-4 text-sm text-aura-text-secondary">{language === "hi" ? PRICING_COMPARISON_HI[i] : feat.name}</td>
                      <td className="py-3 px-4 text-center"><FeatureValue value={localizeValue(feat.starter)} /></td>
-                     <td className="py-3 px-4 text-center bg-neon-violet/[0.02]"><FeatureValue value={localizeValue(feat.growth)} /></td>
+                     <td className="py-3 px-4 text-center bg-[#7c5cbf]/[0.02]"><FeatureValue value={localizeValue(feat.growth)} /></td>
                      <td className="py-3 px-4 text-center"><FeatureValue value={localizeValue(feat.enterprise)} /></td>
                   </tr>
                 ))}

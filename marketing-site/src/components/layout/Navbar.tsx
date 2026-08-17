@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useReducedMotion } from "motion/react";
 import { Menu, X, ArrowUpRight, Languages } from "lucide-react";
 import { NAV_LINKS, CTA_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,6 @@ function navKey(href: string) {
 export function Navbar() {
   const { language, setLanguage, t } = useLanguage();
   const pathname = usePathname();
-  const reducedMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -86,10 +84,8 @@ export function Navbar() {
                     )}
                   >
                     {active && (
-                      <motion.span
-                        layoutId="desktop-nav-active"
+                      <span
                         className="absolute inset-0 rounded-full border border-aura-border bg-aura-surface shadow-sm"
-                        transition={reducedMotion ? { duration: 0 } : { duration: 0.35, ease: "easeOut" }}
                         aria-hidden="true"
                       />
                     )}

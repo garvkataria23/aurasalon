@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { Plus, Minus, Search } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { GridBackground } from "@/components/ui/GridBackground";
@@ -59,12 +58,7 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
       <GridBackground />
       <section className="pt-28 pb-20 md:pt-36">
         <Container size="narrow">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-12"
-          >
+          <div className="mb-12">
             <p className="text-[10px] font-bold uppercase tracking-[.14em] text-aura-burgundy mb-4">FAQ</p>
             <h1 className="text-3xl md:text-4xl font-bold text-aura-text leading-tight mb-4">
               {language === "hi" ? "अक्सर पूछे जाने वाले सवाल" : "Frequently asked questions"}
@@ -74,15 +68,9 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
                 ? "Aura के बारे में सबसे ज़्यादा पूछे जाने वाले सवालों के जवाब।"
                 : "Quick answers about Aura — features, pricing, setup and security."}
             </p>
-          </motion.div>
+          </div>
 
-          {/* Search */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="relative mb-8"
-          >
+          <div className="relative mb-8">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-aura-text-muted" />
             <input
               type="text"
@@ -92,15 +80,9 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
               className="w-full rounded-xl border border-aura-border bg-white pl-10 pr-4 py-3 text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:border-aura-burgundy focus:ring-2 focus:ring-aura-burgundy/10 transition-all"
               aria-label={language === "hi" ? "सवाल खोजें" : "Search questions"}
             />
-          </motion.div>
+          </div>
 
-          {/* FAQ items */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="space-y-2"
-          >
+          <div className="space-y-2">
             {filtered.map((item, i) => {
               const isOpen = openIndex === i;
               const question = language === "hi" ? (FAQ_ITEMS_HI[item.q] || item.q) : item.q;
@@ -124,24 +106,18 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
                       {isOpen ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                     </span>
                   </button>
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        id={`faq-panel-${i}`}
-                        role="region"
-                        aria-labelledby={`faq-trigger-${i}`}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-5 pb-4 text-sm text-aura-text-secondary leading-relaxed">
-                          {answer}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {isOpen && (
+                    <div
+                      id={`faq-panel-${i}`}
+                      role="region"
+                      aria-labelledby={`faq-trigger-${i}`}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-4 text-sm text-aura-text-secondary leading-relaxed">
+                        {answer}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -151,15 +127,9 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
                 {language === "hi" ? "कोई सवाल नहीं मिला" : "No matching questions found"}
               </div>
             )}
-          </motion.div>
+          </div>
 
-          {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-16 text-center"
-          >
+          <div className="mt-16 text-center">
             <p className="text-sm text-aura-text-secondary mb-4">
               {language === "hi" ? "अभी भी सवाल हैं?" : "Still have questions?"}
             </p>
@@ -169,7 +139,7 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
             >
               {language === "hi" ? "हमसे संपर्क करें" : "Contact us"}
             </a>
-          </motion.div>
+          </div>
         </Container>
       </section>
     </>

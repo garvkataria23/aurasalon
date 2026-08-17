@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -14,13 +14,6 @@ import { SITE_URL } from "@/lib/site";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["500", "600"],
   display: "swap",
 });
 
@@ -96,7 +89,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-IN" className={`${inter.variable} ${cormorant.variable} h-full`} suppressHydrationWarning>
+    <html lang="en-IN" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
         {jsonLdScripts.map((ld, i) => (
           <script
@@ -106,8 +99,7 @@ export default function RootLayout({
           />
         ))}
       </head>
-      <body className="min-h-full flex flex-col font-sans antialiased grain-overlay">
-        {/* Skip to content */}
+      <body className="min-h-full flex flex-col font-sans antialiased">
         <a href="#main-content" className="skip-link">Skip to content / मुख्य सामग्री</a>
         <LanguageProvider>
         <SmoothScrollProvider>

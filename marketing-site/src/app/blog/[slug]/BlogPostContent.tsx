@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useSpring } from "motion/react";
 import { ArrowLeft, Clock, ChevronRight, Share2, Link2, Check } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
@@ -253,16 +252,9 @@ interface BlogPostContentProps {
 }
 
 function ReadingProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
-
   return (
-    <motion.div
+    <div
       className="fixed top-0 left-0 right-0 h-[2px] z-50 origin-left"
-      style={{
-        scaleX,
-        background: "linear-gradient(90deg, var(--color-aura-burgundy), var(--color-aura-copper))",
-      }}
       aria-hidden="true"
     />
   );
@@ -408,13 +400,11 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
   const translated = language === "hi" ? BLOG_META_HI[slug] : undefined;
   const content = language === "hi" ? BLOG_CONTENT_HI[slug] || translated?.excerpt || post.excerpt : BLOG_CONTENT[slug] || post.excerpt;
 
-  // Render content: split by double newlines, detect headings and bold
   const renderContent = (text: string) => {
     const blocks = text.split("\n\n").filter((b) => b.trim());
     return blocks.map((block, i) => {
       const trimmed = block.trim();
 
-      // Heading
       if (trimmed.startsWith("## ")) {
         const headingText = trimmed.replace("## ", "");
         const headingId = headingText.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -429,7 +419,6 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
         return <h3 key={i} className="mt-8 mb-3 text-lg font-bold text-aura-text">{trimmed.replace("### ", "")}</h3>;
       }
 
-      // List items (lines starting with -)
       if (trimmed.startsWith("- ")) {
         const items = trimmed.split("\n").filter((l) => l.startsWith("- "));
         return (
@@ -441,7 +430,6 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
         );
       }
 
-      // Normal paragraph
       return (
         <p key={i} className="text-base text-aura-text-secondary leading-relaxed mb-4">
           {renderInline(trimmed)}
@@ -450,7 +438,6 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
     });
   };
 
-  // Render inline formatting: **bold**
   const renderInline = (text: string) => {
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
@@ -471,7 +458,6 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
 
   return (
     <>
-      {/* Reading progress */}
       <ReadingProgress />
 
       <section className="pt-28 pb-8 md:pt-36 bg-gradient-to-b from-aura-bg to-white">
@@ -481,12 +467,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
              {t("common.backBlog")}
           </Link>
 
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-3xl"
-          >
+          <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
                <Badge>{translated?.category ?? post.category}</Badge>
               <span className="flex items-center gap-1 text-xs text-aura-text-muted">
@@ -503,14 +484,13 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
             <p className="mt-4 text-base text-aura-text-secondary leading-relaxed max-w-2xl">
               {post.excerpt}
             </p>
-          </motion.div>
+          </div>
         </Container>
       </section>
 
       <section className="pb-20 md:pb-28 bg-white">
         <Container size="wide">
           <div className="mx-auto flex max-w-5xl gap-12">
-            {/* Table of contents - sidebar */}
             {toc.length > 0 && (
               <aside className="hidden lg:block w-56 shrink-0 pt-2">
                 <div className="sticky top-28">
@@ -536,21 +516,12 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
               </aside>
             )}
 
-            {/* Article body */}
-            <motion.article
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="min-w-0 max-w-3xl prose-aura"
-            >
+            <article className="min-w-0 max-w-3xl prose-aura">
               {renderContent(content)}
-            </motion.article>
+            </article>
           </div>
 
-          {/* Share bar */}
           <ShareBar title={post.title} excerpt={post.excerpt} />
-
-          {/* Related posts */}
           <RelatedPosts currentSlug={post.slug} currentCategory={post.category} />
         </Container>
       </section>

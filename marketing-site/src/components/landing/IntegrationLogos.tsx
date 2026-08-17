@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useInView } from "motion/react";
 import { INTEGRATIONS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 
@@ -16,33 +15,22 @@ const COLORS = [
 
 export function IntegrationLogos() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
 
   const doubled = [...INTEGRATIONS, ...INTEGRATIONS];
 
   return (
     <section ref={ref} className="py-16 md:py-24 bg-white border-t border-aura-border overflow-hidden">
       <Container>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-          className="text-center text-sm font-medium text-aura-text-muted mb-12 uppercase tracking-wider"
-        >
+        <p className="text-center text-sm font-medium text-aura-text-muted mb-12 uppercase tracking-wider">
           Integrates with your favorite tools
-        </motion.p>
+        </p>
       </Container>
 
       {/* Row 1 — scrolls left */}
       <div className="relative group">
         <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex w-max animate-marquee group-hover:[animation-play-state:paused]"
-        >
+        <div className="flex w-max animate-marquee group-hover:[animation-play-state:paused]">
           {doubled.map((item, i) => {
             const color = COLORS[i % COLORS.length];
             return (
@@ -60,19 +48,14 @@ export function IntegrationLogos() {
               </div>
             );
           })}
-        </motion.div>
+        </div>
       </div>
 
       {/* Row 2 — scrolls right (reverse direction) */}
       <div className="relative group mt-3">
         <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-aura-bg to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-aura-bg to-transparent z-10 pointer-events-none" />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex w-max animate-marquee-reverse group-hover:[animation-play-state:paused]"
-        >
+        <div className="flex w-max animate-marquee-reverse group-hover:[animation-play-state:paused]">
           {doubled.map((item, i) => {
             const color = COLORS[(i + 3) % COLORS.length];
             return (
@@ -90,18 +73,13 @@ export function IntegrationLogos() {
               </div>
             );
           })}
-        </motion.div>
+        </div>
       </div>
 
       {/* Caption */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={inView ? { opacity: 1 } : {}}
-        transition={{ delay: 0.4 }}
-        className="text-center text-sm text-aura-text-muted mt-10"
-      >
+      <p className="text-center text-sm text-aura-text-muted mt-10">
         And many more integrations coming soon
-      </motion.p>
+      </p>
     </section>
   );
 }

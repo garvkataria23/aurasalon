@@ -1,33 +1,17 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView, useScroll, useTransform } from "motion/react";
 import { HOW_IT_WORKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 function StepCard({ step, index, total }: { step: typeof HOW_IT_WORKS[number]; index: number; total: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay: index * 0.12, ease: [0.16, 1, 0.3, 1] }}
-      className="relative text-center group"
-    >
+    <div className="relative text-center group">
       {/* Step Number — glowing orb */}
       <div className="relative inline-flex items-center justify-center mb-8">
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={inView ? { scale: 1, opacity: 1 } : {}}
-          transition={{ duration: 0.5, delay: index * 0.12 + 0.1, type: "spring", stiffness: 200 }}
-          className="relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-violet to-aura-rose text-white text-2xl font-bold flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300"
-        >
+        <div className="relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-violet to-aura-rose text-white text-2xl font-bold flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
           {step.step}
-        </motion.div>
+        </div>
 
         {/* Glow ring behind number */}
         <div className="absolute inset-0 -m-2 rounded-2xl bg-gradient-to-br from-neon-violet/20 to-aura-rose/20 opacity-0 group-hover:opacity-100 blur-lg transition-opacity duration-500" />
@@ -41,24 +25,16 @@ function StepCard({ step, index, total }: { step: typeof HOW_IT_WORKS[number]; i
       {/* Connector line */}
       {index < total - 1 && (
         <div className="hidden md:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px">
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={inView ? { scaleX: 1 } : {}}
-            transition={{ duration: 0.6, delay: index * 0.12 + 0.3, ease: "easeOut" }}
-            className="h-full bg-gradient-to-r from-neon-violet/40 via-aura-rose/30 to-transparent origin-left"
-          />
+          <div className="h-full bg-gradient-to-r from-neon-violet/40 via-aura-rose/30 to-transparent" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
 export function HowItWorks() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
   return (
-    <section ref={ref} className="py-20 md:py-28 bg-aura-bg">
+    <section className="py-20 md:py-28 bg-aura-bg">
       <Container>
         <SectionHeading
           badge="How It Works"

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import HomePageClient from "./HomePageClient";
-import { breadcrumbJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, organizationJsonLd, websiteJsonLd, softwareAppJsonLd } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -30,6 +30,9 @@ export default function HomePage() {
   ]);
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <HomePageClient />
     </>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
 import { CheckCircle } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -24,14 +23,10 @@ export function Newsletter() {
         {t("newsletter.body")}
       </p>
       {submitted ? (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 text-sm text-emerald-400"
-        >
+        <div className="flex items-center gap-2 text-sm text-emerald-400 animate-in fade-in slide-in-from-bottom-2 fill-mode-both">
           <CheckCircle className="w-4 h-4" />
           {t("newsletter.done")}
-        </motion.div>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
