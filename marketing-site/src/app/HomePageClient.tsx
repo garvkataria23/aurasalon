@@ -3,6 +3,7 @@
 import { Hero } from "@/components/landing/Hero";
 import { TrustStrip } from "@/components/landing/TrustStrip";
 import { ProblemSection } from "@/components/landing/ProblemSection";
+import { ProductFeatures } from "@/components/landing/ProductFeatures";
 import { POSSandbox } from "@/components/landing/POSSandbox";
 import { WhatsAppSimulator } from "@/components/landing/WhatsAppSimulator";
 import { CompetitorMatrix } from "@/components/landing/CompetitorMatrix";
@@ -23,6 +24,7 @@ export default function HomePageClient() {
       <Hero />
       <TrustStrip />
       <ProblemSection />
+      <ProductFeatures />
       <POSSandbox />
       <WhatsAppSimulator />
       <CompetitorMatrix />
