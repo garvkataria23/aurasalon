@@ -45,7 +45,7 @@ export default function FeaturesPage() {
               return (
                 <div key={feature.title}>
                   <Link href={feature.href} className="block group">
-                    <div className="glow-card h-full rounded-2xl border border-aura-border bg-white p-8 transition-all duration-300 hover:shadow-xl hover:border-transparent hover:-translate-y-1">
+                    <div className="h-full rounded-2xl border border-aura-border bg-white p-8 transition-all duration-300 hover:shadow-xl hover:border-transparent hover:-translate-y-1">
                       <div
                         className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110"
                         style={{ backgroundColor: `${feature.color}12` }}

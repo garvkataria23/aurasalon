@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, ChevronRight, Share2, Link2, Check } from "lucide-rea
 import { BLOG_POSTS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
+import { Newsletter } from "@/components/layout/Newsletter";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { BLOG_CONTENT_HI, BLOG_META_HI } from "@/lib/translations";
 
@@ -325,7 +326,7 @@ function ShareBar({ title, excerpt }: { title: string; excerpt: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Share on ${link.name}`}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-aura-border bg-white text-aura-text-muted transition-all hover:border-aura-burgundy hover:text-aura-burgundy hover:shadow-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-aura-border bg-white text-aura-text-muted transition-all hover:border-aura-primary hover:text-aura-primary hover:shadow-sm"
               >
                 <Icon className="h-4 w-4" />
               </a>
@@ -335,7 +336,7 @@ function ShareBar({ title, excerpt }: { title: string; excerpt: string }) {
             type="button"
             onClick={copyLink}
             aria-label={copied ? "Link copied" : "Copy link"}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-aura-border bg-white text-aura-text-muted transition-all hover:border-aura-burgundy hover:text-aura-burgundy hover:shadow-sm"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-aura-border bg-white text-aura-text-muted transition-all hover:border-aura-primary hover:text-aura-primary hover:shadow-sm"
           >
             {copied ? <Check className="h-4 w-4 text-aura-success" /> : <Link2 className="h-4 w-4" />}
           </button>
@@ -365,16 +366,16 @@ function RelatedPosts({ currentSlug, currentCategory }: { currentSlug: string; c
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
-            className="group block rounded-xl border border-aura-border bg-white p-5 transition-all hover:shadow-[var(--aura-shadow-md)] hover:border-aura-rose"
+            className="group block rounded-xl border border-aura-border bg-white p-5 transition-all hover:shadow-[var(--aura-shadow-md)] hover:border-aura-primary-light"
           >
             <Badge className="mb-3 text-[10px]">{post.category}</Badge>
-            <h3 className="text-sm font-semibold text-aura-text leading-snug mb-2 line-clamp-2 group-hover:text-aura-burgundy transition-colors">
+            <h3 className="text-sm font-semibold text-aura-text leading-snug mb-2 line-clamp-2 group-hover:text-aura-primary transition-colors">
               {post.title}
             </h3>
             <p className="text-xs text-aura-text-muted line-clamp-2">
               {post.excerpt}
             </p>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-aura-burgundy opacity-0 transition-all group-hover:opacity-100">
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-aura-primary opacity-0 transition-all group-hover:opacity-100">
               {language === "hi" ? "पढ़ें" : "Read more"} <ChevronRight className="h-3 w-3" />
             </span>
           </Link>
@@ -392,7 +393,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
     return (
       <Container className="pt-40 pb-20 text-center">
          <h1 className="text-2xl font-bold text-aura-text">{t("blog.postMissing")}</h1>
-         <Link href="/blog" className="text-neon-violet mt-4 inline-block">← {t("common.backBlog")}</Link>
+         <Link href="/blog" className="text-aura-primary mt-4 inline-block">← {t("common.backBlog")}</Link>
       </Container>
     );
   }
@@ -503,7 +504,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
                         <li key={item.id}>
                           <a
                             href={`#${item.id}`}
-                            className="group flex items-center gap-1.5 py-1.5 text-xs text-aura-text-muted transition-colors hover:text-aura-burgundy"
+                            className="group flex items-center gap-1.5 py-1.5 text-xs text-aura-text-muted transition-colors hover:text-aura-primary"
                           >
                             <ChevronRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
                             <span className="line-clamp-2">{item.label}</span>
@@ -522,6 +523,9 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
           </div>
 
           <ShareBar title={post.title} excerpt={post.excerpt} />
+          <div className="mt-8">
+            <Newsletter />
+          </div>
           <RelatedPosts currentSlug={post.slug} currentCategory={post.category} />
         </Container>
       </section>

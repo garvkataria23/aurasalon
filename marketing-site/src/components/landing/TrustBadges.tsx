@@ -20,10 +20,10 @@ export function TrustBadges() {
           {BADGES.map((badge) => (
             <div
               key={badge.label}
-              className="flex min-h-24 items-center gap-3 bg-[#fffdf9] p-4 sm:p-5 transition-opacity duration-300"
+              className="flex min-h-24 items-center gap-3 bg-white p-4 sm:p-5 transition-opacity duration-300"
             >
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-aura-bg">
-                <badge.icon className="w-4 h-4 text-aura-burgundy" />
+                <badge.icon className="w-4 h-4 text-aura-primary" />
               </div>
               <div>
                 <div className="text-sm font-semibold text-aura-text">{t(badge.label)}</div>

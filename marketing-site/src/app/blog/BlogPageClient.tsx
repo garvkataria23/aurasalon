@@ -63,7 +63,7 @@ export default function BlogPage() {
                return (
                <article key={post.slug}>
                   <Link href={`/blog/${post.slug}`} className="block group">
-                    <div className={`glow-card h-full rounded-2xl border border-aura-border bg-white overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-transparent hover:-translate-y-1 ${
+                    <div className={`h-full rounded-2xl border border-aura-border bg-white overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-transparent hover:-translate-y-1 ${
                       i === 0 && activeCategory === "All" ? "md:col-span-2 lg:col-span-2" : ""
                     }`}>
                       <div className={`bg-gradient-to-br from-aura-primary/10 via-aura-primary-light/10 to-aura-primary-light/10 flex items-center justify-center ${

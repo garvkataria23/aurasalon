@@ -91,6 +91,7 @@ export default function RootLayout({
   return (
     <html lang="en-IN" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
+        <script defer data-domain="aurasalon.in" src="https://plausible.io/js/script.js" />
         {jsonLdScripts.map((ld, i) => (
           <script
             key={i}

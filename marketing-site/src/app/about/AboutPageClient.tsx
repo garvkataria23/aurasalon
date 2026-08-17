@@ -33,7 +33,7 @@ export default function AboutPage() {
         <div className="absolute top-20 right-1/4 w-72 h-72 rounded-full bg-[#7c5cbf]/8 blur-[100px]" />
         <Container className="relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-[#7c5cbf]/10 text-[#7c5cbf] mb-6">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-aura-primary/10 text-aura-primary mb-6">
               <Sparkles className="w-3 h-3" />
                {t("about.story")}
             </span>
@@ -63,10 +63,10 @@ export default function AboutPage() {
                {values.map((value, valueIndex) => (
                 <div
                   key={value.title}
-                  className="glow-card rounded-2xl border border-aura-border bg-white p-8 transition-all duration-300 hover:shadow-lg hover:border-transparent"
+                  className="rounded-2xl border border-aura-border bg-white p-8 transition-all duration-300 hover:shadow-lg hover:border-transparent"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7c5cbf]/15 to-aura-rose/15 flex items-center justify-center mb-4">
-                    <value.icon className="w-6 h-6 text-[#7c5cbf]" />
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-aura-primary/15 to-aura-primary-light/15 flex items-center justify-center mb-4">
+                    <value.icon className="w-6 h-6 text-aura-primary" />
                   </div>
                    <h3 className="text-lg font-bold text-aura-text mb-2">{language === "hi" ? ABOUT_VALUES_HI[valueIndex].title : value.title}</h3>
                    <p className="text-sm text-aura-text-secondary leading-relaxed">{language === "hi" ? ABOUT_VALUES_HI[valueIndex].description : value.description}</p>
@@ -107,7 +107,7 @@ export default function AboutPage() {
                 },
               ].map((item) => (
                 <div key={item.title} className="flex gap-6 items-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#7c5cbf] to-aura-rose flex items-center justify-center text-white text-xs font-bold mt-1">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-aura-primary to-aura-primary-light flex items-center justify-center text-white text-xs font-bold mt-1">
                     <Check className="w-4 h-4" />
                   </div>
                   <div>
@@ -121,7 +121,7 @@ export default function AboutPage() {
         </Container>
       </section>
 
-      <section className="py-20 bg-deep-navy overflow-hidden">
+      <section className="py-20 bg-aura-surface-muted overflow-hidden">
         <Container>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto text-center">
             {[
@@ -131,8 +131,8 @@ export default function AboutPage() {
               { value: "IST · Realtime", label: t("about.foundation3") },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="text-lg md:text-xl font-bold text-white">{stat.value}</div>
-                <div className="text-sm text-white/50 mt-1">{stat.label}</div>
+                <div className="text-lg md:text-xl font-bold text-aura-text">{stat.value}</div>
+                <div className="text-sm text-aura-text-muted mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -144,7 +144,7 @@ export default function AboutPage() {
            <SectionHeading badge={t("about.timeline")} title={t("about.journey")} subtitle={t("about.journeyBody")} />
           <div className="mt-16 max-w-3xl mx-auto relative">
             {/* Line */}
-            <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#7c5cbf]/40 via-aura-rose/30 to-transparent" />
+            <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-aura-primary/40 via-aura-primary-light/30 to-transparent" />
 
             <div className="space-y-12">
                {timeline.map((item, i) => (
@@ -152,7 +152,7 @@ export default function AboutPage() {
                    key={`${item.year}-${item.title}`}
                    className="flex gap-6"
                 >
-                  <div className="relative z-10 flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#7c5cbf] to-aura-rose flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                  <div className="relative z-10 flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-aura-primary to-aura-primary-light flex items-center justify-center text-white text-xs font-bold shadow-lg">
                     {item.year}
                   </div>
                   <div className="pt-2">

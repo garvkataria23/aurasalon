@@ -356,6 +356,22 @@ button, a { touch-action: manipulation; }
   transform: translateY(0);
 }
 
+/* Tailwind animate-in utilities (inline fallback) */
+@keyframes animateIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-in { animation: animateIn 0.3s ease-out both; }
+.animate-in.fade-in { animation-name: animateIn; }
+.animate-in.zoom-in { animation-name: zoomIn; }
+.animate-in.slide-in-from-bottom-2 { --tw-translate-y: 8px; animation: animateIn 0.3s ease-out both; }
+.animate-in.slide-in-from-bottom-5 { --tw-translate-y: 20px; animation: animateIn 0.4s ease-out both; }
+.fill-mode-both { animation-fill-mode: both; }
+
 /* Legacy gradient vars used by some components */
 :root {
   --gradient-hero: linear-gradient(135deg, #18181B 0%, #2D2640 50%, #3D2B6B 100%);
