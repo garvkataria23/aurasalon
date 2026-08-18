@@ -1,15 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Check } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
+import { useEffect, useRef, useState } from "react";
+
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
+}
 
 export function CTASection() {
+  const { ref, visible } = useReveal();
+
   return (
     <section className="py-20 md:py-28 bg-white overflow-hidden border-t border-[var(--aura-border)]">
       <Container>
-        <div className="relative overflow-hidden rounded-[2rem] border border-[var(--aura-border)] bg-[var(--aura-lavender)] p-8 sm:p-12 md:p-16 lg:p-20 shadow-[var(--aura-shadow-lg)]">
+        <div
+          ref={ref}
+          className={`reveal relative overflow-hidden rounded-[2rem] border border-[var(--aura-border)] bg-[var(--aura-lavender)] p-8 sm:p-12 md:p-16 lg:p-20 shadow-[var(--aura-shadow-lg)] transition-all duration-700 ease-out ${
+            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
           {/* Subtle decorative background glow */}
           <div
             className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[var(--aura-purple)]/10 blur-3xl pointer-events-none"
@@ -22,20 +51,15 @@ export function CTASection() {
 
           <div className="relative z-10 mx-auto max-w-3xl text-center">
             {/* Badge */}
-            <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-[var(--aura-border)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--aura-purple)] shadow-xs">
+            <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-[var(--aura-border)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--aura-purple)] shadow-sm">
               <Sparkles className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
-              Start Your Digital Transformation
+              Get Started Today
             </div>
 
             {/* Headline */}
             <h2 className="text-[clamp(2.25rem,5.5vw,4.25rem)] font-bold leading-[1.08] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-              See what running your salon with Aura feels like.
+              Ready to transform how you run your salon?
             </h2>
-
-            {/* Supporting copy */}
-            <p className="mt-5 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
-              Book a personalised demo and see how Aura can simplify your day-to-day operations.
-            </p>
 
             {/* Buttons */}
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -48,19 +72,26 @@ export function CTASection() {
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] bg-white px-8 text-sm font-semibold text-[var(--aura-heading)] transition-all duration-200 hover:border-[var(--aura-purple)] hover:text-[var(--aura-purple)] hover:bg-[var(--aura-purple-soft)]"
+                className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] bg-white px-8 text-sm font-semibold text-[var(--aura-heading)] transition-all duration-200 hover:border-[var(--aura-purple)] hover:text-[var(--aura-purple)] hover:bg-white/80"
               >
                 Contact Us
               </Link>
             </div>
 
-            {/* Sub-meta reassurance */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-[var(--aura-muted)]">
-              <span>Personalised 1-on-1 walkthrough</span>
-              <span aria-hidden="true">&bull;</span>
-              <span>Full data migration support</span>
-              <span aria-hidden="true">&bull;</span>
-              <span>Quick 15-minute setup</span>
+            {/* Feature Pills */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs font-medium text-[var(--aura-body)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-[var(--aura-border)] px-3 py-1.5 backdrop-blur-sm shadow-sm">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                Free 15-min demo
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-[var(--aura-border)] px-3 py-1.5 backdrop-blur-sm shadow-sm">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                Full data migration
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-[var(--aura-border)] px-3 py-1.5 backdrop-blur-sm shadow-sm">
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                No credit card needed
+              </span>
             </div>
           </div>
         </div>

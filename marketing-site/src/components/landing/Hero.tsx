@@ -2,31 +2,29 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, TrendingUp } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { CTA_LINKS } from "@/lib/constants";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function Hero() {
   const { t } = useLanguage();
-  const proofPoints = ["GST billing", "Online booking", "Staff & inventory"];
 
   return (
     <section className="relative overflow-hidden bg-[linear-gradient(180deg,#fff_0%,#fff_62%,var(--aura-off-white)_100%)]">
       <Container size="wide" className="relative z-10">
-        <div className="flex flex-col items-center pt-8 pb-14 text-center md:pt-12 md:pb-20 lg:pt-16 lg:pb-24">
+        <div className="flex flex-col items-center pt-10 pb-16 text-center md:pt-16 md:pb-24 lg:pt-20 lg:pb-32">
           {/* Badge */}
           <div
-            className="mb-5 inline-flex items-center rounded-full border border-[var(--aura-border)] bg-white/90 px-4 py-1.5 text-xs font-medium text-[var(--aura-body)] shadow-[var(--aura-shadow-xs)]"
+            className="mb-6 inline-flex items-center rounded-full bg-[var(--aura-lavender)] px-4 py-1.5 text-xs font-semibold text-[var(--aura-purple)]"
             style={{ animation: "fadeInUp 0.5s ease-out both" }}
           >
-            <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-[var(--aura-purple)]" aria-hidden="true" />
             {t("home.hero.badge")}
           </div>
 
           {/* Headline */}
           <h1
-            className="max-w-4xl text-[clamp(2.35rem,5.6vw,4.6rem)] font-semibold leading-[1.06] tracking-[-0.045em] text-[var(--aura-heading)]"
+            className="max-w-4xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.05] tracking-[-0.04em] text-[var(--aura-heading)]"
             style={{ animation: "fadeInUp 0.55s ease-out 0.08s both" }}
           >
             {t("home.hero.title.line1")}
@@ -36,7 +34,7 @@ export function Hero() {
 
           {/* Supporting copy */}
           <p
-            className="mt-5 max-w-2xl text-base leading-7 text-[var(--aura-body)] md:text-lg md:leading-8"
+            className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--aura-body)] md:text-xl md:leading-8"
             style={{ animation: "fadeInUp 0.55s ease-out 0.16s both" }}
           >
             {t("home.hero.subtitle")}
@@ -44,67 +42,87 @@ export function Hero() {
 
           {/* CTAs */}
           <div
-            className="mt-7 flex w-full max-w-md flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
+            className="mt-8 flex w-full max-w-md flex-col gap-4 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
             style={{ animation: "fadeInUp 0.55s ease-out 0.24s both" }}
           >
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)]"
+              className="inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-[var(--aura-purple)] px-8 py-3.5 text-base font-semibold text-white shadow-[var(--aura-shadow-md)] transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-lg)]"
             >
               {t("home.hero.cta.primary")}
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
             <Link
               href="/features"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--aura-border)] bg-white px-6 py-3 text-sm font-semibold text-[var(--aura-heading)] transition-all duration-300 hover:border-[var(--aura-border-strong)] hover:bg-[var(--aura-off-white)]"
+              className="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-[var(--aura-border)] bg-white px-8 py-3.5 text-base font-semibold text-[var(--aura-heading)] shadow-sm transition-all duration-300 hover:border-[var(--aura-border-strong)] hover:bg-[var(--aura-off-white)] hover:-translate-y-1 hover:shadow-md"
             >
               {t("home.hero.cta.secondary")}
             </Link>
           </div>
 
+          {/* Trust Micro-copy */}
           <div
-            className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-[var(--aura-muted)]"
+            className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm font-medium text-[var(--aura-muted)]"
             style={{ animation: "fadeInUp 0.55s ease-out 0.3s both" }}
           >
-            {proofPoints.map((point) => (
-              <span key={point} className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--aura-purple)]/45" aria-hidden="true" />
-                {point}
-              </span>
-            ))}
+            <span>No credit card required</span>
+            <span className="h-1 w-1 rounded-full bg-[var(--aura-border)]" aria-hidden="true" />
+            <span>15-min setup</span>
+            <span className="h-1 w-1 rounded-full bg-[var(--aura-border)]" aria-hidden="true" />
+            <span>Free migration</span>
           </div>
 
           {/* Dashboard Screenshot in Browser Frame */}
           <div
-            className="mt-10 w-full max-w-5xl md:mt-12 lg:mt-14"
+            className="relative mt-12 w-full max-w-5xl md:mt-16 lg:mt-20"
             style={{ animation: "fadeInUp 0.65s ease-out 0.36s both" }}
           >
             {/* Subtle lavender glow behind */}
-            <div className="absolute left-1/2 top-auto h-[340px] w-[74%] max-w-4xl -translate-x-1/2 rounded-full bg-[var(--aura-lavender-strong)] opacity-35 blur-[90px] pointer-events-none" aria-hidden="true" />
+            <div className="absolute left-1/2 top-1/2 h-[500px] w-[80%] max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--aura-lavender-strong)] opacity-50 blur-[100px] pointer-events-none" aria-hidden="true" />
+
+            {/* Floating Metric Card 1 (Left) */}
+            <div className="float-card absolute -left-8 top-12 z-20 hidden items-center gap-3 rounded-2xl border border-[var(--aura-border)] bg-white p-4 shadow-[var(--aura-shadow-xl)] lg:flex">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 text-green-600">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--aura-heading)]">+42% Repeat Visits</p>
+              </div>
+            </div>
+
+            {/* Floating Metric Card 2 (Right) */}
+            <div className="float-card-delayed absolute -right-8 bottom-24 z-20 hidden items-center gap-3 rounded-2xl border border-[var(--aura-border)] bg-white p-4 shadow-[var(--aura-shadow-xl)] lg:flex">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--aura-lavender)] text-[var(--aura-purple)] text-lg font-bold">
+                ₹
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--aura-heading)]">₹0 Commission on Bookings</p>
+              </div>
+            </div>
 
             {/* Browser Chrome */}
-            <div className="relative overflow-hidden rounded-[1.7rem] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] ring-1 ring-white/80">
+            <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-xl)] ring-1 ring-white/80">
               {/* Title bar */}
-              <div className="flex items-center gap-2 border-b border-[var(--aura-border)] bg-white px-4 py-3">
+              <div className="flex items-center gap-2 border-b border-[var(--aura-border)] bg-white/80 px-4 py-3 backdrop-blur-sm">
                 <div className="flex gap-1.5" aria-hidden="true">
                   <span className="h-3 w-3 rounded-full bg-[#FF5F57]" />
                   <span className="h-3 w-3 rounded-full bg-[#FFBD2E]" />
                   <span className="h-3 w-3 rounded-full bg-[#28CA42]" />
                 </div>
-                <div className="mx-auto flex items-center gap-2 rounded-full bg-[var(--aura-off-white)] border border-[var(--aura-border)] px-3 py-1 text-xs text-[var(--aura-muted)]">
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg>
+                <div className="mx-auto flex items-center gap-2 rounded-lg bg-[var(--aura-off-white)] border border-[var(--aura-border)] px-4 py-1.5 text-xs text-[var(--aura-muted)] shadow-inner">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg>
                   app.aurasalon.com
                 </div>
               </div>
 
               {/* Dashboard content */}
-              <div className="relative bg-white">
+              <div className="relative bg-[var(--aura-off-white)]">
                 <Image
                   src="/media/home-product-demo.svg"
                   alt={t("home.hero.dashboardAlt")}
                   width={1600}
                   height={1000}
-                  className="w-full h-auto"
+                  className="w-full h-auto object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 85vw, 1024px"
                   priority
                 />

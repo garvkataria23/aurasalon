@@ -115,6 +115,9 @@
   /* Animations */
   --animate-marquee: marquee 40s linear infinite;
   --animate-breathe: breathe 3s ease-in-out infinite;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-marquee-reverse: marqueeReverse 40s linear infinite;
 }
 
 /* ===== KEYFRAMES ===== */
@@ -138,6 +141,15 @@
     transform: translateY(0);
   }
 }
+
+@keyframes slideInLeft { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInRight { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+@keyframes scaleIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+@keyframes blurIn { from { opacity:0; filter:blur(8px); } to { opacity:1; filter:blur(0); } }
+@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+@keyframes countUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes marqueeReverse { 0% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
 
 /* ===== GLOBAL STYLES ===== */
 * {
@@ -371,6 +383,29 @@ button, a { touch-action: manipulation; }
 .animate-in.slide-in-from-bottom-2 { --tw-translate-y: 8px; animation: animateIn 0.3s ease-out both; }
 .animate-in.slide-in-from-bottom-5 { --tw-translate-y: 20px; animation: animateIn 0.4s ease-out both; }
 .fill-mode-both { animation-fill-mode: both; }
+
+/* ===== SCROLL REVEAL & ANIMATIONS ===== */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-left { opacity: 0; transform: translateX(-30px); transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal-left.visible { opacity: 1; transform: translateX(0); }
+.reveal-right { opacity: 0; transform: translateX(30px); transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal-right.visible { opacity: 1; transform: translateX(0); }
+.reveal-scale { opacity: 0; transform: scale(0.95); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal-scale.visible { opacity: 1; transform: scale(1); }
+
+.stagger-1 { transition-delay: 0.05s; }
+.stagger-2 { transition-delay: 0.1s; }
+.stagger-3 { transition-delay: 0.15s; }
+.stagger-4 { transition-delay: 0.2s; }
+.stagger-5 { transition-delay: 0.25s; }
+.stagger-6 { transition-delay: 0.3s; }
+
+.card-hover { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.card-hover:hover { transform: translateY(-4px); box-shadow: var(--aura-shadow-lg); }
+
+.float-card { animation: float 4s ease-in-out infinite; }
+.float-card-delayed { animation: float 4s ease-in-out infinite; animation-delay: 1.5s; }
 
 /* Legacy gradient vars used by some components */
 :root {
