@@ -20,10 +20,13 @@ import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { SecuritySection } from "@/components/landing/SecuritySection";
 import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
 import { CTASection } from "@/components/landing/CTASection";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function HomePageClient() {
+  const containerRef = useScrollReveal();
+
   return (
-    <main className="aura-home min-h-screen">
+    <main ref={containerRef as React.RefObject<HTMLElement>} className="aura-home min-h-screen">
       <Hero />
       <TrustStrip />
       <ProblemSection />
