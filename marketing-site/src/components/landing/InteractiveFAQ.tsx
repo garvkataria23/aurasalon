@@ -1,112 +1,86 @@
 "use client";
 
-import { useState } from "react";
-import { Search, ChevronDown, HelpCircle } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { useLanguage } from "@/components/providers/LanguageProvider";
 
-const FAQ_ITEMS = [
-  { questionKey: "home.faq.q1", answerKey: "home.faq.a1" },
-  { questionKey: "home.faq.q2", answerKey: "home.faq.a2" },
-  { questionKey: "home.faq.q3", answerKey: "home.faq.a3" },
-  { questionKey: "home.faq.q4", answerKey: "home.faq.a4" },
-  { questionKey: "home.faq.q5", answerKey: "home.faq.a5" },
-  { questionKey: "home.faq.q6", answerKey: "home.faq.a6" },
-  { questionKey: "home.faq.q7", answerKey: "home.faq.a7" },
-  { questionKey: "home.faq.q8", answerKey: "home.faq.a8" },
-  { questionKey: "home.faq.q9", answerKey: "home.faq.a9" },
-  { questionKey: "home.faq.q10", answerKey: "home.faq.a10" },
+const FAQS = [
+  {
+    question: "How long does it take to set up Aura?",
+    answer: "15 minutes. Our team handles migration from your existing software or spreadsheets at no extra cost.",
+  },
+  {
+    question: "Is there a free trial?",
+    answer: "We offer a personalised demo where you can see Aura working with your salon's data. Book a demo to get started.",
+  },
+  {
+    question: "Does Aura work on mobile?",
+    answer: "Yes. Aura works on any device with a browser. We also have dedicated apps for staff and customers.",
+  },
+  {
+    question: "Can I manage multiple branches?",
+    answer: "Absolutely. Aura supports multi-branch management with centralized reports and branch-level controls.",
+  },
+  {
+    question: "How does GST billing work?",
+    answer: "Aura auto-generates GST-compliant invoices with HSAC codes, and provides GST reports ready for filing.",
+  },
+  {
+    question: "What kind of support do you offer?",
+    answer: "Dedicated WhatsApp support, email support, and a comprehensive help centre. Enterprise plans get a dedicated account manager.",
+  },
 ];
 
 export function InteractiveFAQ() {
-  const { t } = useLanguage();
-  const [query, setQuery] = useState("");
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
-  const translatedFaqs = FAQ_ITEMS.map((faq) => ({
-    question: t(faq.questionKey),
-    answer: t(faq.answerKey),
-  }));
-
-  const filteredFaqs = translatedFaqs.filter((faq) =>
-    faq.question.toLowerCase().includes(query.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(query.toLowerCase())
-  );
-
-  const toggle = (idx: number) => {
-    setOpenIndex(openIndex === idx ? null : idx);
-  };
+  const col1 = FAQS.slice(0, 3);
+  const col2 = FAQS.slice(3, 6);
 
   return (
-    <section className="bg-[var(--aura-off-white)] py-20 md:py-28 border-t border-[var(--aura-border)]" id="faq">
-      <Container>
+    <section className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]" id="faq">
+      <Container className="reveal">
         {/* Section Heading */}
-        <div className="mx-auto max-w-3xl text-center mb-10">
+        <div className="mx-auto max-w-3xl text-center mb-16">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
-            {t("home.faq.badge")}
+            FAQ
           </span>
           <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-            {t("home.faq.title")}
+            Frequently Asked Questions
           </h2>
-          <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
-            {t("home.faq.body")}
-          </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="mx-auto max-w-xl relative mb-10">
-          <Search className="absolute left-4 top-3.5 h-4 w-4 text-[var(--aura-muted)]" />
-          <input
-            aria-label={t("home.faq.searchLabel")}
-            type="text"
-            placeholder={t("home.faq.searchPlaceholder")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-xl border border-[var(--aura-border)] bg-white pl-11 pr-4 py-3 text-xs sm:text-sm text-[var(--aura-heading)] outline-none focus:border-[var(--aura-purple)] focus:ring-2 focus:ring-[var(--aura-purple-soft)] shadow-xs transition-all placeholder:text-[var(--aura-muted)]"
-          />
-        </div>
-
-        {/* Accordion List */}
-        <div className="mx-auto max-w-3xl space-y-3">
-          {filteredFaqs.length === 0 ? (
-            <div className="text-center py-10 rounded-2xl border border-[var(--aura-border)] bg-white p-6">
-              <p className="text-xs text-[var(--aura-muted)]">{t("home.faq.empty", { query })}</p>
-              <p className="text-xs font-semibold text-[var(--aura-purple)] mt-1">{t("home.faq.emptyHelp")}</p>
-            </div>
-          ) : (
-            filteredFaqs.map((faq, idx) => {
-              const isOpen = openIndex === idx;
-              return (
-                <div
-                  key={faq.question}
-                  className="rounded-[var(--aura-radius-lg)] border border-[var(--aura-border)] bg-white overflow-hidden shadow-xs transition-all hover:border-[var(--aura-purple)]/30"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggle(idx)}
-                    aria-expanded={isOpen}
-                    className="flex w-full items-center justify-between p-5 text-left transition-colors"
-                  >
-                    <span className="text-sm font-bold text-[var(--aura-heading)] pr-4">
-                      {faq.question}
-                    </span>
-                    <ChevronDown
-                      className={`h-4 w-4 text-[var(--aura-purple)] shrink-0 transition-transform duration-200 ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
-                      aria-hidden="true"
-                    />
-                  </button>
-
-                  {isOpen && (
-                    <div className="px-5 pb-5 text-xs sm:text-sm text-[var(--aura-body)] leading-relaxed border-t border-[var(--aura-border)]/50 pt-3">
-                      {faq.answer}
-                    </div>
-                  )}
+        {/* 2-Column FAQ Grid */}
+        <div className="grid gap-4 md:grid-cols-2 max-w-5xl mx-auto">
+          <div className="space-y-4">
+            {col1.map((faq, i) => (
+              <details
+                key={i}
+                className="group rounded-xl border border-[var(--aura-border)] bg-white shadow-xs transition-all hover:border-[var(--aura-purple)]/30 open:border-[var(--aura-purple)]/30"
+              >
+                <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-bold text-[var(--aura-heading)] list-none [&::-webkit-details-marker]:hidden">
+                  {faq.question}
+                  <ChevronDown className="h-4 w-4 text-[var(--aura-purple)] shrink-0 transition-transform duration-300 group-open:rotate-180" />
+                </summary>
+                <div className="px-5 pb-5 text-sm leading-relaxed text-[var(--aura-body)] border-t border-[var(--aura-border)]/50 pt-3">
+                  {faq.answer}
                 </div>
-              );
-            })
-          )}
+              </details>
+            ))}
+          </div>
+          <div className="space-y-4">
+            {col2.map((faq, i) => (
+              <details
+                key={i}
+                className="group rounded-xl border border-[var(--aura-border)] bg-white shadow-xs transition-all hover:border-[var(--aura-purple)]/30 open:border-[var(--aura-purple)]/30"
+              >
+                <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-bold text-[var(--aura-heading)] list-none [&::-webkit-details-marker]:hidden">
+                  {faq.question}
+                  <ChevronDown className="h-4 w-4 text-[var(--aura-purple)] shrink-0 transition-transform duration-300 group-open:rotate-180" />
+                </summary>
+                <div className="px-5 pb-5 text-sm leading-relaxed text-[var(--aura-body)] border-t border-[var(--aura-border)]/50 pt-3">
+                  {faq.answer}
+                </div>
+              </details>
+            ))}
+          </div>
         </div>
       </Container>
     </section>
