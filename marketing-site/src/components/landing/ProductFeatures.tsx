@@ -48,9 +48,9 @@ function CalendarMockup() {
     { time: "14:00", client: "Meera K.", service: "Keratin Treatment", stylist: "Ananya", color: "bg-amber-50 border-amber-200 text-amber-700" },
   ];
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] overflow-hidden">
+    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)] overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
-        <span className="text-xs font-semibold text-[var(--aura-heading)]">Today's Schedule</span>
+        <span className="text-xs font-semibold text-[var(--aura-heading)]">Today&apos;s Schedule</span>
         <span className="text-xs text-[var(--aura-muted)]">Aug 17, 2026</span>
       </div>
       {/* Day headers */}
@@ -90,7 +90,7 @@ function POSMockup() {
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
   const gst = Math.round(subtotal * 0.18);
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] overflow-hidden">
+    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)] overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Express Checkout</span>
         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">GST Ready</span>
@@ -122,7 +122,7 @@ function POSMockup() {
 
 function ClientMockup() {
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] overflow-hidden">
+    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)] overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Client Profile</span>
         <span className="text-[10px] text-[var(--aura-muted)]">ID #1042</span>
@@ -173,7 +173,7 @@ function StaffMockup() {
     { name: "Riya P.", role: "Therapist", status: "On Floor", services: 6, target: 8, commission: "₹2,400" },
   ];
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] overflow-hidden">
+    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)] overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Team Dashboard</span>
         <span className="text-[10px] text-[var(--aura-muted)]">Today</span>
@@ -311,10 +311,10 @@ function ProductSection({
   return (
     <section
       ref={ref}
-      className={`py-20 md:py-28 ${index % 2 === 0 ? "bg-white" : "bg-[var(--aura-off-white)]"}`}
+      className={`py-16 md:py-24 ${index % 2 === 0 ? "bg-white" : "bg-[var(--aura-off-white)]"}`}
     >
       <Container>
-        <div className={`grid items-center gap-12 lg:gap-20 lg:grid-cols-2 ${reversed ? "lg:[direction:rtl]" : ""}`}>
+        <div className={`grid items-center gap-10 lg:gap-16 lg:grid-cols-2 ${reversed ? "lg:[direction:rtl]" : ""}`}>
           {/* Text */}
           <div
             className={reversed ? "lg:[direction:ltr]" : ""}
@@ -327,14 +327,14 @@ function ProductSection({
             <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
               {section.badge}
             </span>
-            <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.12] tracking-[-0.02em] text-[var(--aura-heading)]">
+            <h2 className="text-[clamp(1.75rem,4vw,2.65rem)] font-semibold leading-[1.12] tracking-[-0.035em] text-[var(--aura-heading)]">
               {section.headline}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)] max-w-lg">
               {section.body}
             </p>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-              {section.features.map(({ icon, label }, i) => (
+            <ul className="mt-7 grid gap-3 sm:grid-cols-2">
+              {section.features.map(({ icon, label }) => (
                 <FeaturePill key={label} icon={icon} label={label} />
               ))}
             </ul>

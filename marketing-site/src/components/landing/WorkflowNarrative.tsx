@@ -9,7 +9,7 @@ import { ECOSYSTEM_CONTENT } from "@/lib/ecosystem-content";
 
 export function WorkflowNarrative({ compact = false }: { compact?: boolean }) {
   const { language } = useLanguage();
-  const copy = ECOSYSTEM_CONTENT[language];
+  const copy = ECOSYSTEM_CONTENT[language as "en" | "hi"] ?? ECOSYSTEM_CONTENT.en;
   return (
     <section className="overflow-hidden bg-aura-bg-warm py-20 md:py-28">
       <Container size="wide">

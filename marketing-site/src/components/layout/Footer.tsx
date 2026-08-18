@@ -4,60 +4,69 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
 const FOOTER_SECTIONS = [
   {
     title: "Product",
+    titleKey: "footer.product",
     links: [
-      { label: "Appointments", href: "/features/appointments" },
-      { label: "POS & Billing", href: "/features/billing" },
-      { label: "Client CRM", href: "/features/client-crm" },
-      { label: "Staff & Shifts", href: "/features/staff-management" },
-      { label: "Inventory", href: "/features/inventory" },
-      { label: "Memberships & Loyalty", href: "/features" },
-      { label: "Marketing AI", href: "/features/marketing-ai" },
-      { label: "Finance & Analytics", href: "/features/finance" },
+      { label: "Appointments", labelKey: "footer.appointments", href: "/features/appointments" },
+      { label: "POS & Billing", labelKey: "footer.posBilling", href: "/features/billing" },
+      { label: "Client CRM", labelKey: "footer.clientCrm", href: "/features/client-crm" },
+      { label: "Staff & Shifts", labelKey: "footer.staffShifts", href: "/features/staff-management" },
+      { label: "Inventory", labelKey: "footer.inventory", href: "/features/inventory" },
+      { label: "Memberships & Loyalty", labelKey: "footer.memberships", href: "/features" },
+      { label: "Marketing AI", labelKey: "footer.marketingAi", href: "/features/marketing-ai" },
+      { label: "Finance & Analytics", labelKey: "footer.financeAnalytics", href: "/features/finance" },
     ],
   },
   {
     title: "Solutions",
+    titleKey: "footer.solutions",
     links: [
-      { label: "Hair Salons", href: "/platform" },
-      { label: "Luxury Spas", href: "/workflows" },
-      { label: "Nail Studios", href: "/owner-crm" },
-      { label: "Beauty Clinics", href: "/customer-app" },
-      { label: "Multi-Location Chains", href: "/platform" },
+      { label: "Hair Salons", labelKey: "footer.hairSalons", href: "/platform" },
+      { label: "Luxury Spas", labelKey: "footer.luxurySpas", href: "/workflows" },
+      { label: "Nail Studios", labelKey: "footer.nailStudios", href: "/owner-crm" },
+      { label: "Beauty Clinics", labelKey: "footer.beautyClinics", href: "/customer-app" },
+      { label: "Multi-Location Chains", labelKey: "footer.multiLocation", href: "/platform" },
     ],
   },
   {
     title: "Company",
+    titleKey: "footer.company",
     links: [
-      { label: "About Us", href: "/about" },
-      { label: "Contact Sales", href: "/contact" },
-      { label: "Customers", href: "/customers" },
-      { label: "Book a Demo", href: "/demo" },
+      { label: "About Us", labelKey: "footer.aboutUs", href: "/about" },
+      { label: "Contact Sales", labelKey: "footer.contactSales", href: "/contact" },
+      { label: "Customers", labelKey: "footer.customers", href: "/customers" },
+      { label: "Book a Demo", labelKey: "navigation.demo", href: "/demo" },
     ],
   },
   {
     title: "Resources",
+    titleKey: "footer.resources",
     links: [
-      { label: "Industry Blog", href: "/blog" },
-      { label: "Help Centre & FAQ", href: "/faq" },
-      { label: "Growth Guides", href: "/blog" },
-      { label: "Support Desk", href: "/contact" },
+      { label: "Industry Blog", labelKey: "footer.industryBlog", href: "/blog" },
+      { label: "Help Centre & FAQ", labelKey: "footer.helpFaq", href: "/faq" },
+      { label: "Growth Guides", labelKey: "footer.growthGuides", href: "/blog" },
+      { label: "Support Desk", labelKey: "footer.supportDesk", href: "/contact" },
     ],
   },
   {
     title: "Legal",
+    titleKey: "footer.legal",
     links: [
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
-      { label: "Cookie Policy", href: "/cookies" },
+      { label: "Privacy Policy", labelKey: "footer.privacy", href: "/privacy" },
+      { label: "Terms of Service", labelKey: "footer.terms", href: "/terms" },
+      { label: "Cookie Policy", labelKey: "footer.cookies", href: "/cookies" },
     ],
   },
 ];
 
 export function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] text-[var(--aura-body)]">
       <Container>
@@ -73,23 +82,24 @@ export function Footer() {
                 <span className="text-lg font-bold tracking-tight text-[var(--aura-heading)]">Aura</span>
               </Link>
               <p className="mt-4 text-xs sm:text-sm leading-relaxed text-[var(--aura-body)] max-w-sm">
-                Everything your salon needs to grow. The connected operating system for modern salons, spas, and aesthetic clinics across India.
+                {t("footer.description")}
               </p>
 
-              <div className="mt-6 flex items-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link
                   href={CTA_LINKS.demo}
                   className="inline-flex items-center gap-1.5 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-[var(--aura-purple-hover)]"
                 >
-                  <span>Book a Demo</span>
+                  <span>{t("navigation.demo")}</span>
                   <ArrowRight className="h-3 w-3" />
                 </Link>
                 <Link
                   href={CTA_LINKS.login}
                   className="rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--aura-heading)] hover:bg-[var(--aura-lavender)]"
                 >
-                  Log in
+                  {t("navigation.login")}
                 </Link>
+                <LanguageSelector compact align="left" />
               </div>
             </div>
 
@@ -97,7 +107,7 @@ export function Footer() {
             {FOOTER_SECTIONS.map((section) => (
               <div key={section.title} className="col-span-1">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)] mb-4">
-                  {section.title}
+                  {t(section.titleKey, section.title)}
                 </h3>
                 <ul className="space-y-2.5">
                   {section.links.map((link) => (
@@ -106,7 +116,7 @@ export function Footer() {
                         href={link.href}
                         className="text-xs text-[var(--aura-body)] transition-colors hover:text-[var(--aura-purple)]"
                       >
-                        {link.label}
+                        {t(link.labelKey, link.label)}
                       </Link>
                     </li>
                   ))}
@@ -118,16 +128,16 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-[var(--aura-border)] py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--aura-muted)]">
-          <p>&copy; {new Date().getFullYear()} Aura Salon Software. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {t("footer.copyright")}</p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-[var(--aura-heading)] transition-colors">
-              Privacy
+              {t("footer.privacyShort")}
             </Link>
             <Link href="/terms" className="hover:text-[var(--aura-heading)] transition-colors">
-              Terms
+              {t("footer.termsShort")}
             </Link>
             <Link href="/cookies" className="hover:text-[var(--aura-heading)] transition-colors">
-              Cookies
+              {t("footer.cookiesShort")}
             </Link>
           </div>
         </div>

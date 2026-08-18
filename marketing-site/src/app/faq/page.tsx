@@ -82,7 +82,7 @@ export default function FAQPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <FAQPageContent faqData={FAQ_DATA} />
+      <FAQPageContent />
     </>
   );
 }

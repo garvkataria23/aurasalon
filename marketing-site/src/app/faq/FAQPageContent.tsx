@@ -6,51 +6,21 @@ import { Container } from "@/components/ui/Container";
 import { GridBackground } from "@/components/ui/GridBackground";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
-interface FAQItem {
-  q: string;
-  a: string;
-}
+const FAQ_KEYS = Array.from({ length: 12 }, (_, index) => index + 1);
 
-const FAQ_ITEMS_HI: Record<string, string> = {
-  "What is Aura?": "Aura क्या है?",
-  "Is Aura only for large salon chains?": "क्या Aura केवल बड़े सैलून चेन के लिए है?",
-  "How does multi-branch work?": "मल्टी-ब्रांच कैसे काम करता है?",
-  "Does Aura support GST billing?": "क्या Aura GST बिलिंग सपोर्ट करता है?",
-  "Can clients book online?": "क्या क्लाइंट ऑनलाइन बुकिंग कर सकते हैं?",
-  "Is there a mobile app for staff?": "क्या स्टाफ के लिए मोबाइल ऐप है?",
-  "What about data security?": "डेटा सिक्योरिटी के बारे में क्या?",
-  "Can I import data from another tool?": "क्या मैं दूसरे टूल से डेटा इम्पोर्ट कर सकता हूँ?",
-  "How do I get started?": "मैं शुरू कैसे करूँ?",
-  "What payment methods does Aura accept?": "Aura कौन-से पेमेंट मेथड स्वीकार करता है?",
-  "Does Aura handle staff payroll?": "क्या Aura स्टाफ पेऑल सँभालता है?",
-  "Can I white-label the customer app?": "क्या मैं कस्टमर ऐप को व्हाइट-लेबल कर सकता हूँ?",
-};
-
-const ANSWERS_HI: Record<string, string> = {
-  "What is Aura?": "Aura एक connected salon operating system है। Owner CRM और POS, pay-at-salon customer booking, qualified staff operations, inventory, finance और branch-aware records एक salon day के अनुसार बने हैं।",
-  "Is Aura only for large salon chains?": "Aura plans single branch, पाँच branch तक बढ़ते operation और proposal-based enterprise operation के लिए structured हैं। सही fit और final scope demo व proposal में confirm करें।",
-  "How does multi-branch work?": "हर रिकॉर्ड — अपॉइंटमेंट, इनवॉइस, स्टाफ, इन्वेंटरी, खर्च — में tenant और branch ID होती है। ओनर्स को कंसोलिडेटेड डैशबोर्ड दिखता है। ब्रांच मैनेजर सिर्फ अपनी लोकेशन देखते हैं। क्रॉस-ब्रांच एनालिटिक्स Growth टियर में उपलब्ध है।",
-  "Does Aura support GST billing?": "हाँ। Aura GST-रेडी इनवॉइस जनरेट करता है HSN/SAC कॉन्टेक्सट के साथ, CGST/SGST या IGST कैल्कुलेट करता है, और GST रिपोर्ट समरी बनाता है। फाइलिंग आपके CA या सरकारी पोर्टल के जरिए होती है।",
-  "Can clients book online?": "हाँ। Current public booking story pay at salon है: client service, professional और slot चुनकर online prepayment के बिना confirm करता है।",
-  "Is there a mobile app for staff?": "Staff App qualified workday journey देता है। Secure attendance owner policy और configuration enabled होने पर Android-only है। Complete iOS attendance claim नहीं है।",
-  "What about data security?": "Aura tenant और branch isolation, role-based access और audit trail के लिए बना है। Hosting, encryption, backup, retention और compliance commitments proposal में confirm होंगे।",
-  "Can I import data from another tool?": "Data preparation और agreed imports onboarding का हिस्सा हैं। Source format, validation और migration scope assessment में confirm होंगे।",
-  "How do I get started?": "डेमो का अनुरोध करें। Team workflow review के बाद assessment, data preparation, configuration, role training, go-live checks और suitable trial access proposal में confirm करेगी।",
-  "What payment methods does Aura accept?": "Subscription payment methods और provider proposal में confirm होंगे। Customer booking का current flow pay at salon है।",
-  "Does Aura handle staff payroll?": "हाँ। Growth और Enterprise प्लान में अटेंडेंस ट्रैकिंग, शिफ्ट शेड्यूलिंग, कमीशन कैल्कुलेशन और पेऑल प्रोसेसिंग शामिल है। Aura PF, ESI, TDS, प्रोफेशनल टैक्स, ग्रैच्युटी और बोनस कैल्कुलेट करता है।",
-  "Can I white-label the customer app?": "हाँ। व्हाइट-लेबल ब्रांडिंग — कस्टम डोमेन, लोगो, कलर्स — Enterprise प्लान में उपलब्ध है। कस्टमर-फेसिंग बुकिंग पोर्टल आपके सैलून की ब्रांड आइडेंटिटी कैरी कर सकता है।",
-};
-
-export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
-  const { language } = useLanguage();
+export default function FAQPageContent() {
+  const { t } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filtered = faqData.filter((item) => {
-    const q = language === "hi" ? (FAQ_ITEMS_HI[item.q] || item.q) : item.q;
-    const a = language === "hi" ? (ANSWERS_HI[item.q] || item.a) : item.a;
+  const faqs = FAQ_KEYS.map((item) => ({
+    question: t(`faq.q${item}`),
+    answer: t(`faq.a${item}`),
+  }));
+
+  const filtered = faqs.filter((item) => {
     const query = searchQuery.toLowerCase();
-    return q.toLowerCase().includes(query) || a.toLowerCase().includes(query);
+    return item.question.toLowerCase().includes(query) || item.answer.toLowerCase().includes(query);
   });
 
   return (
@@ -59,14 +29,12 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
       <section className="pt-28 pb-20 md:pt-36">
         <Container size="narrow">
           <div className="mb-12">
-            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-aura-primary mb-4">FAQ</p>
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-aura-primary mb-4">{t("faq.page.badge")}</p>
             <h1 className="text-3xl md:text-4xl font-bold text-aura-text leading-tight mb-4">
-              {language === "hi" ? "अक्सर पूछे जाने वाले सवाल" : "Frequently asked questions"}
+              {t("faq.page.title")}
             </h1>
             <p className="text-base text-aura-text-secondary max-w-xl">
-              {language === "hi"
-                ? "Aura के बारे में सबसे ज़्यादा पूछे जाने वाले सवालों के जवाब।"
-                : "Quick answers about Aura — features, pricing, setup and security."}
+              {t("faq.page.body")}
             </p>
           </div>
 
@@ -76,17 +44,17 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === "hi" ? "सवाल खोजें..." : "Search questions..."}
+              placeholder={t("faq.page.search")}
               className="w-full rounded-xl border border-aura-border bg-white pl-10 pr-4 py-3 text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:border-aura-primary focus:ring-2 focus:ring-aura-primary/10 transition-all"
-              aria-label={language === "hi" ? "सवाल खोजें" : "Search questions"}
+              aria-label={t("faq.page.searchLabel")}
             />
           </div>
 
           <div className="space-y-2">
             {filtered.map((item, i) => {
               const isOpen = openIndex === i;
-              const question = language === "hi" ? (FAQ_ITEMS_HI[item.q] || item.q) : item.q;
-              const answer = language === "hi" ? (ANSWERS_HI[item.q] || item.a) : item.a;
+              const question = item.question;
+              const answer = item.answer;
 
               return (
                 <div
@@ -124,20 +92,20 @@ export default function FAQPageContent({ faqData }: { faqData: FAQItem[] }) {
 
             {filtered.length === 0 && (
               <div className="py-16 text-center text-sm text-aura-text-muted">
-                {language === "hi" ? "कोई सवाल नहीं मिला" : "No matching questions found"}
+                  {t("faq.page.empty")}
               </div>
             )}
           </div>
 
           <div className="mt-16 text-center">
             <p className="text-sm text-aura-text-secondary mb-4">
-              {language === "hi" ? "अभी भी सवाल हैं?" : "Still have questions?"}
+              {t("faq.page.more")}
             </p>
             <a
               href="/contact"
               className="inline-flex items-center gap-2 rounded-xl bg-aura-primary px-6 py-3 text-sm font-medium text-white transition-all hover:bg-aura-primary-dark hover:shadow-lg"
             >
-              {language === "hi" ? "हमसे संपर्क करें" : "Contact us"}
+              {t("faq.page.contact")}
             </a>
           </div>
         </Container>

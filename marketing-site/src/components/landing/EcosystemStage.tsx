@@ -9,7 +9,7 @@ const roleIcons = { flow: Workflow, owner: Monitor, customer: Smartphone, staff:
 
 export function EcosystemStage({ selected, onSelect }: { selected: EcosystemRole; onSelect: (role: EcosystemRole) => void }) {
   const { language } = useLanguage();
-  const copy = ECOSYSTEM_CONTENT[language];
+  const copy = ECOSYSTEM_CONTENT[language as "en" | "hi"] ?? ECOSYSTEM_CONTENT.en;
   const role = copy.ecosystem.roles[selected];
 
   return (

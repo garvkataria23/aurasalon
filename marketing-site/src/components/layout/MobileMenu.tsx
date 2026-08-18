@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, Languages } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import type { NavLink } from "@/lib/types";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +21,7 @@ function isRouteActive(pathname: string, href: string) {
 }
 
 export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileMenuProps) {
-  const { language, setLanguage, bilingual, setBilingual, t } = useLanguage();
+  const { t } = useLanguage();
   const panelRef = useRef<HTMLDivElement>(null);
   const firstFocusable = useRef<HTMLAnchorElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -78,7 +79,7 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
       className="fixed inset-0 z-[9996] lg:hidden"
       role="dialog"
       aria-modal="true"
-      aria-label="Navigation menu"
+      aria-label={t("a11y.navigationMenu")}
     >
       {/* Backdrop */}
       <div
@@ -102,44 +103,11 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--aura-purple)] text-white text-xs font-semibold">A</span>
               <span className="text-base font-semibold text-[var(--aura-heading)]">Aura</span>
             </div>
-            <div className="flex items-center rounded-lg border border-[var(--aura-border)] p-0.5" role="group" aria-label="Language">
-              <Languages className="ml-1.5 mr-1 h-3.5 w-3.5 text-[var(--aura-muted)]" aria-hidden="true" />
-              {(["en", "hi"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setLanguage(opt)}
-                  aria-pressed={language === opt}
-                  className={cn(
-                    "grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-xs font-semibold transition-colors",
-                    language === opt
-                      ? "bg-[var(--aura-purple)] text-white"
-                      : "text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
-                  )}
-                >
-                  {opt === "en" ? "EN" : "हिं"}
-                </button>
-              ))}
-              {language !== "en" && (
-                <button
-                  type="button"
-                  onClick={() => setBilingual(!bilingual)}
-                  aria-label={bilingual ? "Show Hindi only" : "Show English and Hindi"}
-                  className={cn(
-                    "grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-[10px] font-semibold transition-colors border ml-1",
-                    bilingual
-                      ? "border-[var(--aura-purple)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
-                      : "border-[var(--aura-border)] text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
-                  )}
-                >
-                  {bilingual ? "EN+HI" : "HI"}
-                </button>
-              )}
-            </div>
+            <LanguageSelector compact align="right" />
           </div>
 
           {/* Nav Links */}
-          <nav className="flex flex-col gap-0.5" aria-label="Navigation">
+          <nav className="flex flex-col gap-0.5" aria-label={t("a11y.navigation")}>
             {links.map((link, i) => {
               const active = isRouteActive(pathname, link.href);
               return (
@@ -156,7 +124,7 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
                       : "text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)]"
                   )}
                 >
-                  <span>{link.label}</span>
+                  <span>{t(link.labelKey ?? link.label, link.label)}</span>
                   <ChevronRight
                     className={cn("h-4 w-4 shrink-0", active ? "text-[var(--aura-purple)]" : "text-[var(--aura-muted)]")}
                     aria-hidden="true"
@@ -173,14 +141,14 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
               onClick={onClose}
               className="flex h-11 w-full items-center justify-center rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] text-sm font-medium text-[var(--aura-heading)] transition-colors hover:bg-[var(--aura-off-white)]"
             >
-              Log in
+              {t("navigation.login")}
             </Link>
             <Link
               href={ctaLinks.demo}
               onClick={onClose}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] text-sm font-semibold text-white transition-colors hover:bg-[var(--aura-purple-hover)]"
             >
-              Book a Demo
+              {t("navigation.demo")}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>

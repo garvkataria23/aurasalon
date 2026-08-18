@@ -29,7 +29,6 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
   const title = translated?.title ?? data.title;
   const subtitle = translated?.subtitle ?? data.subtitle;
   const capabilities = translated?.capabilities ?? data.capabilities;
-  const interpolate = (text: string) => text.replace("{name}", title);
 
   const breadcrumbs = breadcrumbJsonLd([
     { name: "Home", url: "/" },
@@ -110,10 +109,10 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
         <Container>
           <div className="text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-aura-text mb-4">
-              {interpolate(t("feature.experience"))}
+              {t("feature.experience", { name: title })}
             </h2>
             <p className="text-aura-text-secondary mb-8 max-w-xl mx-auto">
-              {interpolate(t("feature.experienceBody"))}
+              {t("feature.experienceBody", { name: title })}
             </p>
             <a href={CTA_LINKS.trial}>
               <Button variant="primary" size="lg">

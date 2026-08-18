@@ -13,7 +13,7 @@ const icons = { flow: Workflow, owner: Monitor, customer: Smartphone, staff: Use
 
 export function ProductTour() {
   const { language } = useLanguage();
-  const copy = ECOSYSTEM_CONTENT[language];
+  const copy = ECOSYSTEM_CONTENT[language as "en" | "hi"] ?? ECOSYSTEM_CONTENT.en;
   const roles = Object.keys(copy.tour.roles) as EcosystemRole[];
   const [active, setActive] = useState<EcosystemRole>("flow");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);

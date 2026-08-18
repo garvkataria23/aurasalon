@@ -11,7 +11,7 @@ const chapterRoutes = { owner: "/owner-crm", customer: "/customer-app", staff: "
 
 export function RoleChapters() {
   const { language } = useLanguage();
-  const copy = ECOSYSTEM_CONTENT[language];
+  const copy = ECOSYSTEM_CONTENT[language as "en" | "hi"] ?? ECOSYSTEM_CONTENT.en;
   const chapters = (["owner", "customer", "staff"] as const).map((role) => ({ role, content: copy.chapters[role] }));
   return (
     <section className="bg-aura-surface py-20 md:py-28">

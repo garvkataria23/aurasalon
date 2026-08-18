@@ -18,7 +18,7 @@ const routeLinks = [
 
 export function EcosystemRoutePage({ route }: { route: EcosystemRoute }) {
   const { language } = useLanguage();
-  const copy = ECOSYSTEM_CONTENT[language];
+  const copy = ECOSYSTEM_CONTENT[language as "en" | "hi"] ?? ECOSYSTEM_CONTENT.en;
   const page = copy.route[route];
   const role = roleForRoute[route];
   const panel = copy.tour.roles[role];

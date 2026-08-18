@@ -14,7 +14,7 @@ const routes = { flow: "/workflows", owner: "/owner-crm", customer: "/customer-a
 
 export function EcosystemSelector() {
   const { language } = useLanguage();
-  const copy = ECOSYSTEM_CONTENT[language];
+  const copy = ECOSYSTEM_CONTENT[language as "en" | "hi"] ?? ECOSYSTEM_CONTENT.en;
   const [active, setActive] = useState<EcosystemRole>("flow");
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const roles = Object.keys(copy.ecosystem.roles) as EcosystemRole[];

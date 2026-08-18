@@ -1,5 +1,6 @@
 export interface NavLink {
   label: string;
+  labelKey?: string;
   href: string;
   description?: string;
 }

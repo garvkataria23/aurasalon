@@ -23,7 +23,7 @@ import { CTASection } from "@/components/landing/CTASection";
 
 export default function HomePageClient() {
   return (
-    <main className="min-h-screen">
+    <main className="aura-home min-h-screen">
       <Hero />
       <TrustStrip />
       <ProblemSection />

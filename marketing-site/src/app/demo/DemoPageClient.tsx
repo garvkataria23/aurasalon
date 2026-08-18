@@ -5,22 +5,16 @@ import { Calendar, Clock, User, Building2, CheckCircle, ArrowRight, Phone } from
 import { Container } from "@/components/ui/Container";
 import { GridBackground } from "@/components/ui/GridBackground";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { DEMO_BENEFITS_HI } from "@/lib/translations";
 
 const TIME_SLOTS = [
   "10:00 AM", "11:00 AM", "12:00 PM",
   "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
 ];
 
-const BENEFITS = [
-  "A focused walkthrough; timing confirmed by the team",
-  "See features relevant to your salon size",
-  "Review questions relevant to your workflow",
-  "Clear guidance on setup and migration",
-];
+const BENEFITS = ["demo.benefit1", "demo.benefit2", "demo.benefit3", "demo.benefit4"];
 
 export default function DemoPage() {
-  const { businessType, language, t } = useLanguage();
+  const { businessType, t } = useLanguage();
   const [status, setStatus] = useState<"idle" | "sending" | "submitted" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [form, setForm] = useState({
@@ -48,7 +42,7 @@ export default function DemoPage() {
       const payload = await response.json().catch(() => null) as { code?: string; error?: string } | null;
       if (!response.ok) {
         setErrorMessage(payload?.code === "DELIVERY_NOT_CONFIGURED"
-          ? (language === "hi" ? "Demo request delivery अभी configured नहीं है। Approved contact channel configure होने के बाद यहाँ दिखेगा।" : "Demo request delivery is not configured yet. An approved contact channel will be shown here once configured.")
+          ? t("demo.deliveryPending")
           : t("demo.error"));
         setStatus("error");
         return;
@@ -111,12 +105,12 @@ export default function DemoPage() {
                      <label htmlFor="demo-name" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.name")} *</label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 w-4 h-4 text-aura-text-muted" />
-                       <input id="demo-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="Priya Sharma" />
+                       <input id="demo-name" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder={t("contact.placeholder.name")} />
                     </div>
                   </div>
                   <div>
                      <label htmlFor="demo-email" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.email")} *</label>
-                     <input id="demo-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="priya@salon.com" />
+                     <input id="demo-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder={t("contact.placeholder.email")} />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -124,24 +118,24 @@ export default function DemoPage() {
                      <label htmlFor="demo-phone" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.phone")} *</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 w-4 h-4 text-aura-text-muted" />
-                       <input id="demo-phone" type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="+91 98765 43210" />
+                       <input id="demo-phone" type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder={t("contact.placeholder.phone")} />
                     </div>
                   </div>
                   <div>
                      <label htmlFor="demo-salon" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.salon")} *</label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-3 w-4 h-4 text-aura-text-muted" />
-                       <input id="demo-salon" type="text" required value={form.salon} onChange={(e) => setForm({ ...form, salon: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder="Glow Studio" />
+                       <input id="demo-salon" type="text" required value={form.salon} onChange={(e) => setForm({ ...form, salon: e.target.value })} className="w-full pl-10 pr-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all" placeholder={t("contact.placeholder.salon")} />
                     </div>
                   </div>
                 </div>
                 <div>
                    <label htmlFor="demo-size" className="block text-sm font-medium text-aura-text mb-1.5">{t("demo.size")}</label>
                    <select id="demo-size" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-aura-border bg-white text-sm text-aura-text focus:outline-none focus:ring-2 focus:ring-aura-primary/30 focus:border-aura-primary/50 transition-all">
-                     <option value="1-2">1-2 {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
-                     <option value="3-5">3-5 {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
-                     <option value="6-10">6-10 {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
-                     <option value="10+">10+ {language === "hi" ? "टीम सदस्य" : "staff members"}</option>
+                     <option value="1-2">1-2 {t("demo.teamMembers")}</option>
+                     <option value="3-5">3-5 {t("demo.teamMembers")}</option>
+                     <option value="6-10">6-10 {t("demo.teamMembers")}</option>
+                     <option value="10+">10+ {t("demo.teamMembers")}</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -170,10 +164,10 @@ export default function DemoPage() {
               <div className="rounded-2xl border border-aura-border bg-aura-bg p-8">
                  <h3 className="text-lg font-bold text-aura-text mb-4">{t("demo.expect")}</h3>
                 <ul className="space-y-4">
-                   {(language === "hi" ? DEMO_BENEFITS_HI : BENEFITS).map((b) => (
+                   {BENEFITS.map((b) => (
                     <li key={b} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-aura-text-secondary">{b}</span>
+                      <span className="text-sm text-aura-text-secondary">{t(b)}</span>
                     </li>
                   ))}
                 </ul>

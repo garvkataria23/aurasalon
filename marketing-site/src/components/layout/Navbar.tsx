@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronDown, ArrowRight, Languages } from "lucide-react";
+import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { MobileMenu } from "./MobileMenu";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
 /* ── Navigation Structure ──
    Maps old destinations into the new IA:
@@ -18,10 +19,11 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
    Resources → Blog, FAQ, Contact
 */
 
-type DropdownItem = { label: string; href: string; description?: string };
+type DropdownItem = { label: string; labelKey: string; href: string; description?: string; descriptionKey?: string };
 
 type NavItem = {
   label: string;
+  labelKey: string;
   href?: string;
   children?: DropdownItem[];
 };
@@ -29,34 +31,37 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   {
     label: "Products",
+    labelKey: "navigation.products",
     children: [
-      { label: "Owner CRM", href: "/owner-crm", description: "GST billing, client CRM, inventory & finance" },
-      { label: "Customer App", href: "/customer-app", description: "Pay-at-salon booking & visit history" },
-      { label: "Staff App", href: "/staff-app", description: "Attendance, shifts & commission tracking" },
+      { label: "Owner CRM", labelKey: "nav.owner-crm", href: "/owner-crm", description: "GST billing, client CRM, inventory & finance" },
+      { label: "Customer App", labelKey: "nav.customer-app", href: "/customer-app", description: "Pay-at-salon booking & visit history" },
+      { label: "Staff App", labelKey: "nav.staff-app", href: "/staff-app", description: "Attendance, shifts & commission tracking" },
     ],
   },
   {
     label: "Solutions",
+    labelKey: "navigation.solutions",
     children: [
-      { label: "Platform Overview", href: "/platform", description: "See the connected operating system" },
-      { label: "Workflows", href: "/workflows", description: "Booking to billing to owner insight" },
+      { label: "Platform Overview", labelKey: "navigation.platformOverview", href: "/platform", description: "See the connected operating system" },
+      { label: "Workflows", labelKey: "nav.workflows", href: "/workflows", description: "Booking to billing to owner insight" },
     ],
   },
-  { label: "Features", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Features", labelKey: "nav.features", href: "/features" },
+  { label: "Pricing", labelKey: "nav.pricing", href: "/pricing" },
   {
     label: "Resources",
+    labelKey: "navigation.resources",
     children: [
-      { label: "Blog", href: "/blog", description: "Guides & industry insights" },
-      { label: "FAQ", href: "/faq", description: "Common questions answered" },
-      { label: "Contact", href: "/contact", description: "Get in touch with our team" },
+      { label: "Blog", labelKey: "nav.blog", href: "/blog", description: "Guides & industry insights" },
+      { label: "FAQ", labelKey: "navigation.faq", href: "/faq", description: "Common questions answered" },
+      { label: "Contact", labelKey: "navigation.contact", href: "/contact", description: "Get in touch with our team" },
     ],
   },
 ];
 
 /* Flat list of all hrefs for mobile menu */
 const ALL_NAV_LINKS = NAV_ITEMS.flatMap((item) =>
-  item.children ? item.children.map((c) => ({ label: c.label, href: c.href })) : [{ label: item.label, href: item.href! }]
+  item.children ? item.children.map((c) => ({ label: c.label, labelKey: c.labelKey, href: c.href })) : [{ label: item.label, labelKey: item.labelKey, href: item.href! }]
 );
 
 function isRouteActive(pathname: string, href: string) {
@@ -74,12 +79,14 @@ function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
-
   const enter = () => { if (timeout.current) clearTimeout(timeout.current); setOpen(true); };
   const leave = () => { timeout.current = setTimeout(() => setOpen(false), 150); };
 
   /* Close on route change */
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    const id = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(id);
+  }, [pathname]);
 
   /* Close on outside click */
   useEffect(() => {
@@ -104,7 +111,7 @@ function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
           active ? "text-[var(--aura-purple)]" : "text-[var(--aura-body)] hover:text-[var(--aura-heading)]"
         )}
       >
-        {item.label}
+        {t(item.labelKey, item.label)}
         <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")} aria-hidden="true" />
       </button>
 
@@ -131,10 +138,10 @@ function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
                   )}
                 >
                   <span className={cn("text-sm font-medium", childActive ? "text-[var(--aura-purple)]" : "text-[var(--aura-heading)]")}>
-                    {child.label}
+                    {t(child.labelKey, child.label)}
                   </span>
                   {child.description && (
-                    <span className="text-xs text-[var(--aura-muted)] leading-relaxed">{child.description}</span>
+                    <span className="text-xs text-[var(--aura-muted)] leading-relaxed">{child.descriptionKey ? t(child.descriptionKey, child.description) : child.description}</span>
                   )}
                 </Link>
               );
@@ -148,7 +155,7 @@ function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
 
 /* ── Main Navbar ── */
 export function Navbar() {
-  const { language, setLanguage, bilingual, setBilingual, t } = useLanguage();
+  const { t } = useLanguage();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -178,15 +185,15 @@ export function Navbar() {
         className={cn(
           "fixed inset-x-0 top-0 z-[9997] transition-all duration-300",
           scrolled
-            ? "bg-white/85 backdrop-blur-xl border-b border-[var(--aura-border)] shadow-[var(--aura-shadow-xs)]"
+            ? "bg-white/90 backdrop-blur-xl border-b border-[var(--aura-border)] shadow-[var(--aura-shadow-xs)]"
             : "bg-white border-b border-transparent"
         )}
       >
-        <nav className="mx-auto flex h-16 max-w-[82rem] items-center justify-between px-4 sm:px-6 lg:px-10" aria-label="Primary navigation">
+        <nav className="mx-auto flex h-16 max-w-[82rem] items-center justify-between px-4 sm:px-6 lg:px-10" aria-label={t("a11y.primaryNavigation")}>
           {/* Logo */}
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 group" aria-label="Aura — Home">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 group" aria-label={t("a11y.home")}>
             <span
-              className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--aura-purple)] font-semibold text-white text-sm transition-transform duration-200 group-hover:scale-105"
+              className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--aura-purple)] font-semibold text-white text-sm shadow-[var(--aura-shadow-xs)] transition-transform duration-200 group-hover:scale-105"
               aria-hidden="true"
             >
               A
@@ -211,7 +218,7 @@ export function Navbar() {
                       : "text-[var(--aura-body)] hover:text-[var(--aura-heading)]"
                   )}
                 >
-                  {item.label}
+                  {t(item.labelKey, item.label)}
                 </Link>
               )
             )}
@@ -219,53 +226,20 @@ export function Navbar() {
 
           {/* Desktop Right */}
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            {/* Language toggle */}
-            <div className="flex items-center gap-1 rounded-lg border border-[var(--aura-border)] p-0.5" role="group" aria-label="Language">
-              {(["en", "hi"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setLanguage(opt)}
-                  aria-pressed={language === opt}
-                  className={cn(
-                    "grid h-8 min-w-8 place-items-center rounded-md px-1.5 text-xs font-semibold transition-colors",
-                    language === opt
-                      ? "bg-[var(--aura-purple)] text-white"
-                      : "text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
-                  )}
-                >
-                  {opt === "en" ? "EN" : "हिं"}
-                </button>
-              ))}
-            </div>
-            {language !== "en" && (
-              <button
-                type="button"
-                onClick={() => setBilingual(!bilingual)}
-                aria-label={bilingual ? "Show Hindi only" : "Show English and Hindi"}
-                className={cn(
-                  "h-8 rounded-md px-2 text-[10px] font-semibold transition-colors border",
-                  bilingual
-                    ? "border-[var(--aura-purple)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
-                    : "border-[var(--aura-border)] text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
-                )}
-              >
-                {bilingual ? "EN+HI" : "HI"}
-              </button>
-            )}
+            <LanguageSelector />
 
             <Link
               href={CTA_LINKS.login}
               className="px-3 py-2 text-sm font-medium text-[var(--aura-body)] transition-colors hover:text-[var(--aura-heading)]"
             >
-              Log in
+              {t("navigation.login")}
             </Link>
 
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex items-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-200 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)]"
             >
-              Book a Demo
+              {t("navigation.demo")}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
@@ -274,9 +248,9 @@ export function Navbar() {
           <div className="flex items-center gap-2 lg:hidden">
             <Link
               href={CTA_LINKS.demo}
-              className="hidden sm:inline-flex items-center rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm"
+              className="hidden sm:inline-flex items-center rounded-full bg-[var(--aura-purple)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm"
             >
-              Book a Demo
+              {t("navigation.demo")}
             </Link>
             <button
               type="button"

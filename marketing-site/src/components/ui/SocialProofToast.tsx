@@ -5,7 +5,7 @@ import { Radio } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function SocialProofToast() {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -24,10 +24,10 @@ export function SocialProofToast() {
         </div>
         <div className="min-w-0">
           <div className="text-sm font-semibold text-aura-text truncate">
-            {language === "hi" ? "रियल-टाइम संचालन" : "Real-time operations"}
+            {t("trust.realtime")}
           </div>
           <div className="text-xs text-aura-text-muted">
-            {language === "hi" ? "बुकिंग, कतार और डैशबोर्ड जुड़े रहें" : "Bookings, queue and dashboards stay connected"}
+            {t("trust.realtimeSub")}
           </div>
         </div>
       </div>

@@ -142,7 +142,7 @@ export default function ContactPage() {
       } else {
         const payload = await res.json().catch(() => null) as { code?: string } | null;
         setSubmitError(payload?.code === "DELIVERY_NOT_CONFIGURED"
-          ? (language === "hi" ? "Contact delivery अभी configured नहीं है। Approved public channel configure होने के बाद यहाँ दिखेगा।" : "Contact delivery is not configured yet. An approved public channel will be shown here once configured.")
+          ? t("contact.deliveryPending")
           : t("common.error"));
         setStatus("error");
       }
@@ -189,14 +189,14 @@ export default function ContactPage() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-busy={status === "sending"} aria-describedby={status === "error" ? "contact-submit-error" : undefined}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                     <FloatingInput label={t("contact.name")} required value={formData.name} onChange={(v) => setFormData({ ...formData, name: v })} placeholder="Priya Sharma" error={errors.name} />
-                     <FloatingInput label={t("contact.email")} type="email" required value={formData.email} onChange={(v) => setFormData({ ...formData, email: v })} placeholder="priya@salon.com" error={errors.email} />
+                     <FloatingInput label={t("contact.name")} required value={formData.name} onChange={(v) => setFormData({ ...formData, name: v })} placeholder={t("contact.placeholder.name")} error={errors.name} />
+                     <FloatingInput label={t("contact.email")} type="email" required value={formData.email} onChange={(v) => setFormData({ ...formData, email: v })} placeholder={t("contact.placeholder.email")} error={errors.email} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                     <FloatingInput label={t("contact.phone")} value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} placeholder="+91 98765 43210" />
-                     <FloatingInput label={t("contact.salon")} value={formData.salonName} onChange={(v) => setFormData({ ...formData, salonName: v })} placeholder="Glow Studio" />
+                     <FloatingInput label={t("contact.phone")} value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} placeholder={t("contact.placeholder.phone")} />
+                     <FloatingInput label={t("contact.salon")} value={formData.salonName} onChange={(v) => setFormData({ ...formData, salonName: v })} placeholder={t("contact.placeholder.salon")} />
                   </div>
-                   <FloatingTextarea label={t("contact.message")} required value={formData.message} onChange={(v) => setFormData({ ...formData, message: v })} placeholder="Tell us about your salon and what you're looking for..." maxLength={MAX_MESSAGE} error={errors.message} />
+                   <FloatingTextarea label={t("contact.message")} required value={formData.message} onChange={(v) => setFormData({ ...formData, message: v })} placeholder={t("contact.placeholder.message")} maxLength={MAX_MESSAGE} error={errors.message} />
 
                   <button
                     type="submit"
@@ -224,8 +224,8 @@ export default function ContactPage() {
             <div className="md:col-span-2">
               <div className="space-y-6">
                  {[
-                    { icon: MessageSquareText, label: language === "hi" ? "संपर्क चैनल" : "Contact channel", value: language === "hi" ? "Approved public phone या messaging channel configure होने तक इस form का उपयोग करें।" : "Use this form until an approved public phone or messaging channel is configured." },
-                    { icon: FileCheck2, label: language === "hi" ? "सेवा की जानकारी" : "Service details", value: language === "hi" ? "Support hours, भाषाएँ, response targets और escalation proposal में confirm होंगे।" : "Support hours, languages, response targets and escalation paths are confirmed in the proposal." },
+                    { icon: MessageSquareText, label: t("contact.channel"), value: t("contact.channelBody") },
+                    { icon: FileCheck2, label: t("contact.serviceDetails"), value: t("contact.serviceDetailsBody") },
                  ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-aura-border bg-aura-bg-warm p-6 hover:shadow-md hover:border-aura-border-strong transition-all duration-300">
                     <div className="flex items-start gap-3">

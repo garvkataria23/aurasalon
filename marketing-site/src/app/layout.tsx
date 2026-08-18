@@ -7,6 +7,7 @@ import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvide
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { CookieConsent } from "@/components/ui/CookieConsent";
+import { SkipLink } from "@/components/ui/SkipLink";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { softwareAppJsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
@@ -101,8 +102,8 @@ export default function RootLayout({
         ))}
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
-        <a href="#main-content" className="skip-link">Skip to content / मुख्य सामग्री</a>
         <LanguageProvider>
+        <SkipLink />
         <SmoothScrollProvider>
           <FloatingConversionDock />
           <ScrollProgress />

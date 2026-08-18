@@ -187,7 +187,7 @@ export function CommandPalette() {
               {Object.entries(grouped).map(([group, items]) => (
                 <div key={group} className="mb-1">
                   <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[.14em] text-aura-text-muted">
-                    {groupLabels[group]?.[language] || group}
+                    {groupLabels[group]?.[language as "en" | "hi"] || group}
                   </p>
                   {items.map((item) => {
                     const globalIndex = filtered.indexOf(item);

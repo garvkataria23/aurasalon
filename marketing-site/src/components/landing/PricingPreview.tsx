@@ -5,66 +5,68 @@ import Link from "next/link";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { PRICING_TIERS, CTA_LINKS } from "@/lib/constants";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function PricingPreview() {
+  const { t, formatNumber } = useLanguage();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
 
   const plans = [
     {
-      name: "Starter",
-      subtitle: "For independent salons getting started",
+      name: t("pricing.tier.0.name"),
+      subtitle: t("home.pricing.starterSubtitle"),
       monthlyPrice: PRICING_TIERS[0].monthlyPrice,
       yearlyPrice: PRICING_TIERS[0].yearlyPrice,
       popular: false,
       features: [
-        "1 Branch Location",
-        "Unlimited Appointments & Calendar",
-        "GST-Compliant Express Billing",
-        "Client 360 CRM & Visit History",
-        "Basic Reports & Daily Summary",
-        "Online Booking Portal (Pay-at-Salon)",
-        "WhatsApp Booking Notifications",
-        "Standard Email & Chat Support",
+        t("pricing.feature.1branch"),
+        t("pricing.feature.unlimitedAppointments"),
+        t("pricing.feature.gstBilling"),
+        t("pricing.feature.client360"),
+        t("pricing.feature.basicReports"),
+        t("pricing.feature.onlineBooking"),
+        t("pricing.feature.whatsappNotifications"),
+        t("pricing.feature.standardSupport"),
       ],
-      cta: "Book a Demo",
+      cta: t("navigation.demo"),
       href: CTA_LINKS.demo,
     },
     {
-      name: "Growth",
-      subtitle: "For busy, growing salons needing automation",
+      name: t("pricing.tier.1.name"),
+      subtitle: t("home.pricing.growthSubtitle"),
       monthlyPrice: PRICING_TIERS[1].monthlyPrice,
       yearlyPrice: PRICING_TIERS[1].yearlyPrice,
       popular: true,
       features: [
-        "Up to 5 Branch Locations",
-        "Everything in Starter, plus:",
-        "Staff Shifts, Targets & Commissions",
-        "Live Inventory & Service Consumption",
-        "Memberships, Packages & Wallets",
-        "Automated WhatsApp Retention Flows",
-        "Dynamic UPI QR at POS Terminal",
-        "Priority Onboarding & Dedicated Support",
+        t("pricing.feature.upTo5Branches"),
+        t("pricing.feature.everythingStarter"),
+        t("pricing.feature.staffTargets"),
+        t("pricing.feature.liveInventory"),
+        t("pricing.feature.membershipsWallets"),
+        t("pricing.feature.retentionFlows"),
+        t("pricing.feature.dynamicUpi"),
+        t("pricing.feature.prioritySupport"),
       ],
-      cta: "Book a Demo",
+      cta: t("navigation.demo"),
       href: CTA_LINKS.demo,
     },
     {
-      name: "Multi-Location",
-      subtitle: "For multi-outlet salon brands & chains",
+      name: t("home.pricing.multiLocation"),
+      subtitle: t("home.pricing.multiSubtitle"),
       monthlyPrice: PRICING_TIERS[2].monthlyPrice,
       yearlyPrice: PRICING_TIERS[2].yearlyPrice,
       popular: false,
       features: [
-        "Unlimited Branch Locations",
-        "Everything in Growth, plus:",
-        "Centralized Multi-Branch Inventory Transfers",
-        "Cross-Branch Member Loyalty & Redemption",
-        "Executive Consolidated P&L Analytics",
-        "Custom Staff Role & Access Permissions",
-        "Tally & CA Export Formats",
-        "Dedicated Account Manager & SLA Support",
+        t("pricing.feature.unlimitedBranches"),
+        t("pricing.feature.everythingGrowth"),
+        t("pricing.feature.inventoryTransfers"),
+        t("pricing.feature.crossBranchLoyalty"),
+        t("pricing.feature.executiveAnalytics"),
+        t("pricing.feature.customRoles"),
+        t("pricing.feature.tallyExport"),
+        t("pricing.feature.dedicatedSla"),
       ],
-      cta: "Contact Sales",
+      cta: t("advisor.contact"),
       href: "/contact",
     },
   ];
@@ -75,13 +77,13 @@ export function PricingPreview() {
         {/* Section Heading */}
         <div className="mx-auto max-w-3xl text-center mb-12">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
-            Transparent Pricing
+            {t("home.pricing.badge")}
           </span>
           <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-            Simple pricing. No surprises.
+            {t("home.pricing.title")}
           </h2>
           <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
-            Choose the right plan to power your salon. No hidden fees or surprise transaction cuts.
+            {t("home.pricing.body")}
           </p>
 
           {/* Monthly / Yearly Billing Switch */}
@@ -95,7 +97,7 @@ export function PricingPreview() {
                   : "text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
               }`}
             >
-              Monthly Billing
+              {t("home.pricing.monthly")}
             </button>
             <button
               type="button"
@@ -106,9 +108,9 @@ export function PricingPreview() {
                   : "text-[var(--aura-muted)] hover:text-[var(--aura-heading)]"
               }`}
             >
-              <span>Yearly Billing</span>
+              <span>{t("home.pricing.yearly")}</span>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                Save 20%
+                {t("pricing.save")}
               </span>
             </button>
           </div>
@@ -145,12 +147,12 @@ export function PricingPreview() {
                   <div className="mt-6 mb-8 border-y border-[var(--aura-border)] py-5">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl sm:text-4xl font-bold text-[var(--aura-heading)] tabular-nums">
-                        ₹{price.toLocaleString("en-IN")}
+                        ₹{formatNumber(price)}
                       </span>
-                      <span className="text-xs text-[var(--aura-muted)]">/month</span>
+                      <span className="text-xs text-[var(--aura-muted)]">{t("common.month")}</span>
                     </div>
                     {billingCycle === "yearly" && (
-                      <p className="mt-1 text-[11px] text-emerald-700 font-medium">Billed annually</p>
+                      <p className="mt-1 text-[11px] text-emerald-700 font-medium">{t("home.pricing.billedAnnually")}</p>
                     )}
                   </div>
 
