@@ -1,13 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Hero } from "@/components/landing/Hero";
 import { TrustStrip } from "@/components/landing/TrustStrip";
 import { ProblemSection } from "@/components/landing/ProblemSection";
-import { ProductFeatures } from "@/components/landing/ProductFeatures";
-import { AdvancedFeatures } from "@/components/landing/AdvancedFeatures";
-import { AnalyticsAndPlatform } from "@/components/landing/AnalyticsAndPlatform";
-import { POSSandbox } from "@/components/landing/POSSandbox";
-import { ROICalculator } from "@/components/landing/ROICalculator";
 import { Stats } from "@/components/landing/Stats";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { IndustriesAndIntegrations } from "@/components/landing/IndustriesAndIntegrations";
@@ -17,6 +13,12 @@ import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
 import { CTASection } from "@/components/landing/CTASection";
 import { SectionDivider } from "@/components/landing/SectionDivider";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+
+const ProductFeatures = dynamic(() => import("@/components/landing/ProductFeatures").then((m) => m.ProductFeatures));
+const AdvancedFeatures = dynamic(() => import("@/components/landing/AdvancedFeatures").then((m) => m.AdvancedFeatures));
+const AnalyticsAndPlatform = dynamic(() => import("@/components/landing/AnalyticsAndPlatform").then((m) => m.AnalyticsAndPlatform));
+const POSSandbox = dynamic(() => import("@/components/landing/POSSandbox").then((m) => m.POSSandbox));
+const ROICalculator = dynamic(() => import("@/components/landing/ROICalculator").then((m) => m.ROICalculator));
 
 export default function HomePageClient() {
   const containerRef = useScrollReveal();

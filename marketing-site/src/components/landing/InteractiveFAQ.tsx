@@ -55,13 +55,13 @@ export function InteractiveFAQ() {
             {col1.map((faq, i) => (
               <details
                 key={i}
-                className="group rounded-xl border border-white/50 bg-white/30 shadow-[0_16px_48px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/35 transition-all hover:border-[var(--aura-purple)]/30 hover:bg-white/45 open:border-[var(--aura-purple)]/30 open:bg-white/40"
+                className="group rounded-2xl border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] transition-all duration-200 hover:border-[var(--aura-purple)]/40 hover:shadow-[var(--aura-shadow-md)] open:border-[var(--aura-purple)]/40 open:shadow-[var(--aura-shadow-md)]"
               >
                 <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-bold text-[var(--aura-heading)] list-none [&::-webkit-details-marker]:hidden">
                   {faq.question}
                   <ChevronDown className="h-4 w-4 text-[var(--aura-purple)] shrink-0 transition-transform duration-300 group-open:rotate-180" />
                 </summary>
-                <div className="px-5 pb-5 text-sm leading-relaxed text-[var(--aura-body)] border-t border-[var(--aura-border)]/50 pt-3">
+                <div className="px-5 pb-5 text-sm leading-relaxed text-[var(--aura-body)] border-t border-[var(--aura-border)] pt-3">
                   {faq.answer}
                 </div>
               </details>
@@ -71,13 +71,13 @@ export function InteractiveFAQ() {
             {col2.map((faq, i) => (
               <details
                 key={i}
-                className="group rounded-xl border border-white/50 bg-white/30 shadow-[0_16px_48px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/35 transition-all hover:border-[var(--aura-purple)]/30 hover:bg-white/45 open:border-[var(--aura-purple)]/30 open:bg-white/40"
+                className="group rounded-2xl border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] transition-all duration-200 hover:border-[var(--aura-purple)]/40 hover:shadow-[var(--aura-shadow-md)] open:border-[var(--aura-purple)]/40 open:shadow-[var(--aura-shadow-md)]"
               >
                 <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-bold text-[var(--aura-heading)] list-none [&::-webkit-details-marker]:hidden">
                   {faq.question}
                   <ChevronDown className="h-4 w-4 text-[var(--aura-purple)] shrink-0 transition-transform duration-300 group-open:rotate-180" />
                 </summary>
-                <div className="px-5 pb-5 text-sm leading-relaxed text-[var(--aura-body)] border-t border-[var(--aura-border)]/50 pt-3">
+                <div className="px-5 pb-5 text-sm leading-relaxed text-[var(--aura-body)] border-t border-[var(--aura-border)] pt-3">
                   {faq.answer}
                 </div>
               </details>

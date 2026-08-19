@@ -16,23 +16,24 @@ const SALONS = [
 
 export function TrustStrip() {
   return (
-    <section className="relative border-y border-[var(--aura-border)] bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-14 md:py-16 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-14 md:py-16 overflow-hidden">
       <LandingDecor variant="quiet" />
       <Container className="relative z-10">
-        <p className="text-center text-sm font-semibold text-[var(--aura-heading)] mb-10">
+        <p className="text-center text-xs sm:text-sm font-semibold uppercase tracking-[.12em] text-[var(--aura-purple)] mb-8">
           Trusted by growing salons across India
         </p>
       </Container>
       
       {/* Marquee Wrapper */}
       <div className="relative z-10 flex w-full overflow-hidden">
-        <div className="flex animate-marquee whitespace-nowrap items-center gap-4 md:gap-6 min-w-max pl-4">
+        <div className="flex animate-marquee whitespace-nowrap items-center gap-3 md:gap-5 min-w-max pl-4">
           {[...SALONS, ...SALONS, ...SALONS, ...SALONS].map((salon, i) => (
             <div
               key={i}
-              className="flex items-center rounded-full border border-white/50 bg-white/30 px-5 py-2.5 shadow-[0_12px_32px_rgba(109,63,209,0.12)] backdrop-blur-md ring-1 ring-white/35"
+              className="flex items-center gap-2 rounded-full border border-[var(--aura-border)] bg-white px-5 py-2 shadow-xs transition-all hover:shadow-sm"
             >
-              <span className="text-sm font-medium text-[var(--aura-heading)] whitespace-nowrap">
+              <span className="h-2 w-2 rounded-full bg-[var(--aura-purple)]" />
+              <span className="text-xs sm:text-sm font-semibold text-[var(--aura-heading)] whitespace-nowrap">
                 {salon}
               </span>
             </div>

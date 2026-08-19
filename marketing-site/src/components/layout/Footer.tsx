@@ -101,6 +101,19 @@ export function Footer() {
                 </Link>
                 <LanguageSelector compact align="left" />
               </div>
+
+              {/* Trust Badges */}
+              <div className="mt-6 flex flex-wrap items-center gap-2 pt-4 border-t border-[var(--aura-border)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white border border-[var(--aura-border)] px-2.5 py-1 text-[11px] font-medium text-[var(--aura-heading)] shadow-xs">
+                  🇮🇳 Made for Indian Salons
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white border border-[var(--aura-border)] px-2.5 py-1 text-[11px] font-medium text-[var(--aura-heading)] shadow-xs">
+                  🛡️ 256-Bit Encrypted
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white border border-[var(--aura-border)] px-2.5 py-1 text-[11px] font-medium text-[var(--aura-heading)] shadow-xs">
+                  ⚡ GST Ready
+                </span>
+              </div>
             </div>
 
             {/* Navigation Columns */}
