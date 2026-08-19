@@ -52,12 +52,126 @@ function useReveal() {
    SECTION 1: ANALYTICS
    =================================================================== */
 function AnalyticsMockup() {
-  const topServices = [
-    { name: "Hair Treatments & Keratin", count: 84, rev: "₹1,18,000", share: "42%" },
-    { name: "Hydra & Brightening Facials", count: 62, rev: "₹86,800", share: "31%" },
-    { name: "Styling, Cut & Blowdry", count: 142, rev: "₹45,440", share: "16%" },
-    { name: "Nail Art & Manicures", count: 54, rev: "₹31,320", share: "11%" },
+  const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [activeMetric, setActiveMetric] = useState("Gross Revenue");
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportDetails, setShowExportDetails] = useState(false);
+  const [exportStatus, setExportStatus] = useState("Ready to export");
+  const [lastExportFormat, setLastExportFormat] = useState("XLSX");
+  const metrics = [
+    {
+      label: "Gross Revenue",
+      Icon: TrendingUp,
+      color: "text-emerald-600",
+      monthly: { value: "₹2,81,560", note: "+18.4% vs last mo", detail: "This Month (1 Aug - 17 Aug)", rows: [["Hair Treatments", "₹1,18,000", "42% revenue share"], ["Facials", "₹86,800", "31% revenue share"], ["Cut & Blowdry", "₹45,440", "142 services"]] },
+      yearly: { value: "₹38.4L", note: "+24.8% vs last yr", detail: "FY 2026 performance", rows: [["Hair Treatments", "₹14.2L", "37% annual share"], ["Facials", "₹9.6L", "25% annual share"], ["Retail Add-ons", "₹5.1L", "High margin growth"]] },
+    },
+    {
+      label: "Appointments",
+      Icon: CalendarCheck,
+      color: "text-[var(--aura-purple)]",
+      monthly: { value: "342", note: "94% seat capacity", detail: "Bookings this month", rows: [["Completed", "301", "88% completion"], ["Upcoming", "31", "Next 7 days"], ["No-shows", "10", "2.9% no-show rate"]] },
+      yearly: { value: "7,840", note: "91% annual occupancy", detail: "Bookings this year", rows: [["Completed", "6,920", "Across all services"], ["Online bookings", "2,180", "27.8% digital share"], ["No-shows saved", "418", "Reminder automation"]] },
+    },
+    {
+      label: "Average Bill",
+      Icon: Receipt,
+      color: "text-indigo-600",
+      monthly: { value: "₹1,640", note: "+12% ticket upsell", detail: "Average bill value", rows: [["Service avg", "₹1,420", "Core bill value"], ["Retail add-on", "+₹220", "Attach uplift"], ["Top bill", "₹18,500", "Bridal package"]] },
+      yearly: { value: "₹1,780", note: "+16% YoY ticket", detail: "Annual average bill", rows: [["Service avg", "₹1,510", "Improved pricing"], ["Retail add-on", "+₹270", "Product push"], ["Package impact", "+₹4.2L", "Prepaid plans"]] },
+    },
+    {
+      label: "Client Retention",
+      Icon: Users2,
+      color: "text-amber-600",
+      monthly: { value: "68.2%", note: "233 returning clients", detail: "Repeat client health", rows: [["Returning clients", "233", "Visited before"], ["New clients", "109", "First-time visits"], ["Win-back", "34", "Recovered clients"]] },
+      yearly: { value: "72.5%", note: "2,940 repeat clients", detail: "Annual retention", rows: [["Repeat clients", "2,940", "Strong loyalty"], ["VIP retained", "84%", "Gold members"], ["At-risk saved", "418", "Campaign recovery"]] },
+    },
+    {
+      label: "Staff Utilisation",
+      Icon: Briefcase,
+      color: "text-[var(--aura-purple)]",
+      monthly: { value: "86%", note: "6.8 hrs / stylist", detail: "Team productivity", rows: [["Ananya", "92%", "Top booked stylist"], ["Vikram", "78%", "Needs walk-ins"], ["Riya", "88%", "Therapy capacity"]] },
+      yearly: { value: "83%", note: "6.5 hrs / stylist", detail: "Annual utilisation", rows: [["Top stylist", "89%", "Ananya average"], ["Peak month", "94%", "May rush"], ["Training lift", "+11%", "New services"]] },
+    },
+    {
+      label: "Inventory Cost",
+      Icon: Boxes,
+      color: "text-rose-600",
+      monthly: { value: "7.8%", note: "Controlled ratio", detail: "Cost of consumption", rows: [["Hair color", "₹18,400", "Highest usage"], ["Facial kits", "₹9,800", "Stable ratio"], ["Variance", "-₹820", "Audit adjustment"]] },
+      yearly: { value: "8.4%", note: "Below 10% target", detail: "Annual inventory cost", rows: [["Total usage", "₹3.22L", "All services"], ["Waste reduced", "14%", "Recipe tracking"], ["Stock-outs", "6", "Down from 22"]] },
+    },
+    {
+      label: "Memberships",
+      Icon: Crown,
+      color: "text-amber-500",
+      monthly: { value: "₹54,000", note: "24 new signups", detail: "Membership performance", rows: [["Gold plans", "14", "₹1.4L pipeline"], ["Wallet reloads", "₹54,000", "Prepaid cash"], ["Renewals", "8", "Due this month"]] },
+      yearly: { value: "₹8.6L", note: "312 signups", detail: "Annual membership revenue", rows: [["Active members", "482", "Paid plans"], ["Wallet reserve", "₹14.2L", "Unused balance"], ["Renewal rate", "76%", "Healthy retention"]] },
+    },
+    {
+      label: "Net Profit Est.",
+      Icon: Sparkles,
+      color: "text-emerald-600",
+      monthly: { value: "₹1,12,400", note: "39.9% Net Margin", detail: "Estimated profit", rows: [["Gross revenue", "₹2,81,560", "Before expenses"], ["Direct cost", "₹52,400", "Stock + payouts"], ["Net margin", "39.9%", "Healthy month"]] },
+      yearly: { value: "₹13.8L", note: "35.9% Net Margin", detail: "Estimated annual profit", rows: [["Gross revenue", "₹38.4L", "Annualized"], ["Direct cost", "₹8.2L", "Cost controlled"], ["Profit trend", "+21%", "YoY improvement"]] },
+    },
   ];
+  const active = metrics.find((metric) => metric.label === activeMetric) ?? metrics[0];
+  const activeData = active[period];
+  const exportOptions = [
+    { format: "PDF", label: "GST summary", detail: "Owner-ready printable report" },
+    { format: "XLSX", label: "Excel workbook", detail: "Invoices, tax split, payments" },
+    { format: "CSV", label: "Tally import", detail: "Line-wise taxable values" },
+    { format: "JSON", label: "API export", detail: "Structured audit payload" },
+  ];
+  const selectExport = (format: string) => {
+    setLastExportFormat(format);
+    setExportStatus(`${period === "monthly" ? "Monthly" : "Yearly"} GST ${format} download prepared`);
+    setShowExportMenu(false);
+    setShowExportDetails(true);
+  };
+  const buildGstReport = () => {
+    const rows = [
+      ["Period", period === "monthly" ? "Monthly" : "Yearly"],
+      ["Metric", activeMetric],
+      ["Value", activeData.value],
+      ["Note", activeData.note],
+      ...activeData.rows.map(([name, value, detail]) => [name, value, detail]),
+    ];
+
+    if (lastExportFormat === "JSON") {
+      return JSON.stringify({ period, metric: activeMetric, value: activeData.value, note: activeData.note, rows: activeData.rows }, null, 2);
+    }
+
+    if (lastExportFormat === "PDF") {
+      return `GST Report\n${rows.map((row) => row.join(" - ")).join("\n")}`;
+    }
+
+    return rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+  };
+  const downloadGstReport = () => {
+    const report = buildGstReport();
+    const extension = lastExportFormat.toLowerCase() === "xlsx" ? "csv" : lastExportFormat.toLowerCase();
+    const mime = lastExportFormat === "JSON" ? "application/json" : "text/plain";
+    const blob = new Blob([report], { type: `${mime};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `aura-gst-${period}-${activeMetric.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+  const previewGstReport = () => {
+    const report = buildGstReport();
+    const escapedReport = report.replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char] ?? char));
+    const html = `<!doctype html><html><head><title>Aura GST Report Print</title><style>body{font-family:Inter,Arial,sans-serif;margin:32px;color:#17151f}pre{white-space:pre-wrap;border:1px solid #e8e3f5;border-radius:16px;padding:20px;background:#fbf9ff;line-height:1.6}.badge{display:inline-block;background:#ede7ff;color:#6f43e8;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700}@media print{body{margin:18mm}.badge{color:#17151f;background:#f3f0ff}}</style></head><body><span class="badge">${lastExportFormat} Print Preview</span><h1>Aura GST Report</h1><p>${period === "monthly" ? "Monthly" : "Yearly"} export for ${activeMetric}</p><pre>${escapedReport}</pre><script>window.onload=function(){setTimeout(function(){window.focus();window.print()},300)}</script></body></html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+  };
 
   return (
     <div className="relative rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-xl)] overflow-hidden">
@@ -68,118 +182,111 @@ function AnalyticsMockup() {
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <h3 className="text-sm font-bold text-[var(--aura-heading)]">Executive Salon Performance</h3>
           </div>
-          <p className="text-[11px] text-[var(--aura-muted)]">This Month (1 Aug – 17 Aug) &bull; Bandra West Branch</p>
+          <p className="text-[11px] text-[var(--aura-muted)]">{activeData.detail} &bull; Bandra West Branch</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-lg border border-[var(--aura-border)] bg-white px-2.5 py-1 text-xs font-semibold text-[var(--aura-heading)]">
-            Monthly View
-          </span>
-          <span className="rounded-lg bg-[var(--aura-purple)] px-2.5 py-1 text-xs font-semibold text-white">
-            Export GST Report
-          </span>
+          <button
+            type="button"
+            onClick={() => setPeriod("monthly")}
+            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${period === "monthly" ? "border-[var(--aura-purple)] bg-[var(--aura-purple)] text-white" : "border-[var(--aura-border)] bg-white text-[var(--aura-heading)]"}`}
+          >Monthly</button>
+          <button
+            type="button"
+            onClick={() => setPeriod("yearly")}
+            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${period === "yearly" ? "border-[var(--aura-purple)] bg-[var(--aura-purple)] text-white" : "border-[var(--aura-border)] bg-white text-[var(--aura-heading)]"}`}
+          >Yearly</button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowExportMenu((open) => !open)}
+              className="rounded-lg bg-[var(--aura-purple)] px-2.5 py-1 text-xs font-semibold text-white"
+            >
+              Export GST Report
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full z-10 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--aura-border)] bg-white text-left shadow-[var(--aura-shadow-lg)]">
+                {exportOptions.map((option) => (
+                  <button
+                    key={option.format}
+                    type="button"
+                    onClick={() => selectExport(option.format)}
+                    className="flex w-full items-start justify-between gap-3 border-b border-[var(--aura-border)] px-3 py-2.5 text-left last:border-b-0 hover:bg-[var(--aura-lavender)]/50"
+                  >
+                    <span>
+                      <span className="block text-xs font-bold text-[var(--aura-heading)]">{option.label}</span>
+                      <span className="block text-[10px] text-[var(--aura-muted)]">{option.detail}</span>
+                    </span>
+                    <span className="rounded-md bg-[var(--aura-lavender)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--aura-purple)]">{option.format}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 8 Genuine Supported Metric Cards Grid */}
       <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4">
-        {/* Metric 1 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Gross Revenue</span>
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">₹2,81,560</p>
-          <span className="text-[10px] font-bold text-emerald-600">+18.4% vs last mo</span>
-        </div>
-
-        {/* Metric 2 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Appointments</span>
-            <CalendarCheck className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">342</p>
-          <span className="text-[10px] text-[var(--aura-muted)]">94% seat capacity</span>
-        </div>
-
-        {/* Metric 3 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Average Bill</span>
-            <Receipt className="h-3.5 w-3.5 text-indigo-600" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">₹1,640</p>
-          <span className="text-[10px] font-bold text-emerald-600">+12% ticket upsell</span>
-        </div>
-
-        {/* Metric 4 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Client Retention</span>
-            <Users2 className="h-3.5 w-3.5 text-amber-600" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">68.2%</p>
-          <span className="text-[10px] text-[var(--aura-muted)]">233 returning clients</span>
-        </div>
-
-        {/* Metric 5 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Staff Utilisation</span>
-            <Briefcase className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">86%</p>
-          <span className="text-[10px] text-[var(--aura-muted)]">6.8 hrs / stylist</span>
-        </div>
-
-        {/* Metric 6 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Inventory Cost</span>
-            <Boxes className="h-3.5 w-3.5 text-rose-600" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">7.8%</p>
-          <span className="text-[10px] text-emerald-600">Controlled ratio</span>
-        </div>
-
-        {/* Metric 7 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Memberships</span>
-            <Crown className="h-3.5 w-3.5 text-amber-500" />
-          </div>
-          <p className="text-lg font-bold text-[var(--aura-heading)] tabular-nums">₹54,000</p>
-          <span className="text-[10px] text-[var(--aura-muted)]">24 new signups</span>
-        </div>
-
-        {/* Metric 8 */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5">
-          <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Net Profit Est.</span>
-            <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-          </div>
-          <p className="text-lg font-bold text-emerald-700 tabular-nums">₹1,12,400</p>
-          <span className="text-[10px] font-bold text-emerald-600">39.9% Net Margin</span>
-        </div>
+        {metrics.map(({ label, Icon, color, monthly, yearly }) => {
+          const data = period === "monthly" ? monthly : yearly;
+          const selected = activeMetric === label;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setActiveMetric(label)}
+              className={`rounded-xl border p-3.5 text-left transition-all ${selected ? "border-[var(--aura-purple)]/30 bg-[var(--aura-lavender)] shadow-md" : "border-[var(--aura-border)] bg-[var(--aura-off-white)] hover:border-[var(--aura-purple)]/30"}`}
+            >
+              <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wider">{label}</span>
+                <Icon className={`h-3.5 w-3.5 ${color}`} />
+              </div>
+              <p className={`text-lg font-bold tabular-nums ${label === "Net Profit Est." ? "text-emerald-700" : "text-[var(--aura-heading)]"}`}>{data.value}</p>
+              <span className={`text-[10px] ${data.note.includes("+") || data.note.includes("Margin") || data.note.includes("Controlled") ? "font-bold text-emerald-600" : "text-[var(--aura-muted)]"}`}>{data.note}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Service Breakdown */}
+      {/* Metric Breakdown */}
       <div className="border-t border-[var(--aura-border)] p-5">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)] mb-3">
-          Top Category Revenue &amp; Volume
-        </h4>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)]">{activeMetric} Breakdown</h4>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-lg bg-[var(--aura-lavender)] px-2.5 py-1 text-[10px] font-bold text-[var(--aura-purple)]">{period === "monthly" ? "Monthly" : "Yearly"} view</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowExportDetails((open) => !open)}
+                className="rounded-lg border border-[var(--aura-border)] bg-white px-2.5 py-1 text-[10px] font-semibold text-[var(--aura-muted)] transition-colors hover:border-[var(--aura-purple)]/30 hover:text-[var(--aura-purple)]"
+              >
+                {exportStatus}
+              </button>
+              {showExportDetails && (
+                <div className="absolute right-0 top-full z-10 mt-2 w-60 rounded-xl border border-[var(--aura-border)] bg-white p-3 text-left shadow-[var(--aura-shadow-lg)]">
+                  <p className="text-xs font-bold text-[var(--aura-heading)]">Download ready</p>
+                  <p className="mt-1 text-[10px] text-[var(--aura-muted)]">{period === "monthly" ? "Monthly" : "Yearly"} GST report prepared as {lastExportFormat}.</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button type="button" onClick={downloadGstReport} className="rounded-lg bg-[var(--aura-purple)] px-2 py-1.5 text-[10px] font-bold text-white">Download</button>
+                    <button type="button" onClick={previewGstReport} className="rounded-lg border border-[var(--aura-border)] px-2 py-1.5 text-[10px] font-bold text-[var(--aura-heading)]">Preview</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
         <div className="space-y-3">
-          {topServices.map((svc) => (
-            <div key={svc.name} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-xs">
+          {activeData.rows.map(([name, value, detail], index) => (
+            <div key={name} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-xs">
               <div className="min-w-0 sm:w-1/3">
-                <p className="font-semibold text-[var(--aura-heading)] truncate">{svc.name}</p>
-                <p className="text-[10px] text-[var(--aura-muted)]">{svc.count} services performed</p>
+                <p className="font-semibold text-[var(--aura-heading)] truncate">{name}</p>
+                <p className="text-[10px] text-[var(--aura-muted)]">{detail}</p>
               </div>
               <div className="flex flex-1 items-center gap-3">
                 <div className="h-2 flex-1 rounded-full bg-[var(--aura-lavender)] overflow-hidden">
-                  <div className="h-full rounded-full bg-[var(--aura-purple)]" style={{ width: svc.share }} />
+                  <div className="h-full rounded-full bg-[var(--aura-purple)]" style={{ width: `${85 - index * 22}%` }} />
                 </div>
-                <span className="font-bold text-[var(--aura-heading)] tabular-nums sm:w-20 text-right">{svc.rev}</span>
+                <span className="font-bold text-[var(--aura-heading)] tabular-nums sm:w-24 text-right">{value}</span>
               </div>
             </div>
           ))}
@@ -197,31 +304,37 @@ const WHY_AURA_CARDS = [
     icon: Scissors,
     title: "Built specifically for salons",
     description: "No unnecessary generic business-software complexity. Every feature is tuned for chair turns, service recipes, and stylist workflows.",
+    chips: ["Chair turns", "Recipes", "Stylist flow"],
   },
   {
     icon: Layers,
     title: "One system, every operation",
     description: "From online booking and GST billing to staff attendance, commission tracking, and stock depletion.",
+    chips: ["Booking", "Billing", "Stock"],
   },
   {
     icon: IndianRupee,
     title: "Designed for Indian businesses",
     description: "Full GST invoicing with itemized tax splits, dynamic UPI QR at checkout, and automated WhatsApp appointment reminders.",
+    chips: ["GST", "UPI", "WhatsApp"],
   },
   {
     icon: Smartphone,
     title: "Simple enough for your team",
     description: "Clear, intuitive touch-friendly workflows that your receptionists and stylists can master in 15 minutes.",
+    chips: ["Touch-ready", "15 min", "Staff friendly"],
   },
   {
     icon: Building,
     title: "Made to grow with you",
     description: "Effortlessly scale from an independent single-outlet boutique to multi-location chains with unified owner controls.",
+    chips: ["1 to many", "Owner view", "Branches"],
   },
   {
     icon: BarChart3,
     title: "Real business visibility",
     description: "Instant clarity on net margin, staff productivity, and customer lifetime value — without waiting for monthly spreadsheets.",
+    chips: ["Margin", "CLV", "Live reports"],
   },
 ];
 
@@ -384,17 +497,24 @@ export function AnalyticsAndPlatform() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {WHY_AURA_CARDS.map((card, i) => {
               const Icon = card.icon;
+              const featured = i === 0;
               return (
                 <div
                   key={card.title}
-                  className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-7 shadow-[var(--aura-shadow-xs)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1"
+                  className={`group relative overflow-hidden rounded-[var(--aura-radius-xl)] border p-7 shadow-[var(--aura-shadow-xs)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--aura-shadow-md)] ${featured ? "border-[var(--aura-purple)]/25 bg-gradient-to-br from-white via-white to-[var(--aura-lavender)]" : "border-[var(--aura-border)] bg-white"}`}
                   style={{
                     opacity: whyReveal.visible ? 1 : 0,
                     transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
                     transition: `opacity 0.5s ease-out ${0.1 + i * 0.05}s, transform 0.5s ease-out ${0.1 + i * 0.05}s`,
                   }}
                 >
-                  <div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
+                  <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[var(--aura-purple)]/5 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
+                  {featured && (
+                    <span className="mb-4 inline-flex rounded-full bg-[var(--aura-purple)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                      Best fit
+                    </span>
+                  )}
+                  <div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)] ring-1 ring-[var(--aura-purple)]/10 transition-transform duration-300 group-hover:scale-105">
                     <Icon className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <h3 className="text-lg font-bold text-[var(--aura-heading)] leading-snug">
@@ -403,6 +523,13 @@ export function AnalyticsAndPlatform() {
                   <p className="mt-3 text-sm leading-relaxed text-[var(--aura-body)]">
                     {card.description}
                   </p>
+                  <div className="mt-5 flex flex-wrap gap-1.5">
+                    {card.chips.map((chip) => (
+                      <span key={chip} className="rounded-md bg-[var(--aura-lavender)] px-2 py-1 text-[10px] font-semibold text-[var(--aura-purple)]">
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             })}

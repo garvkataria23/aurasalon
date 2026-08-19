@@ -6,6 +6,7 @@ import { SOURCE_MESSAGES } from "./source";
 const apiUrl = process.env.NEXT_PUBLIC_TOLGEE_API_URL;
 const apiKey = process.env.NEXT_PUBLIC_TOLGEE_API_KEY;
 const cdnUrl = process.env.NEXT_PUBLIC_TOLGEE_CDN_URL;
+const enableTolgeeDev = process.env.NEXT_PUBLIC_TOLGEE_DEV === "true";
 
 export function resolveInitialLanguage(): Language {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE;
@@ -31,7 +32,7 @@ export function createTolgee(language: Language) {
     tolgee.use(BackendFetch({ prefix: cdnUrl, fallbackOnFail: true }));
   }
 
-  if (apiUrl && apiKey) {
+  if (enableTolgeeDev && apiUrl && apiKey) {
     tolgee.use(DevBackend());
     tolgee.use(DevTools());
   }

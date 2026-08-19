@@ -23,6 +23,9 @@ export function POSSandbox() {
   const [cart, setCart] = useState<ServiceItem[]>([AVAILABLE_SERVICES[0], AVAILABLE_SERVICES[1]]);
   const [gstEnabled, setGstEnabled] = useState(true);
   const [printed, setPrinted] = useState(false);
+  const [paymentMode, setPaymentMode] = useState("UPI");
+  const [discount, setDiscount] = useState(0);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const addItem = (item: ServiceItem) => {
     setCart((prev) => [...prev, item]);
@@ -35,8 +38,10 @@ export function POSSandbox() {
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.price, 0);
-  const gstAmount = gstEnabled ? Math.round(subtotal * 0.18) : 0;
-  const total = subtotal + gstAmount;
+  const discountAmount = Math.round(subtotal * (discount / 100));
+  const taxableTotal = Math.max(0, subtotal - discountAmount);
+  const gstAmount = gstEnabled ? Math.round(taxableTotal * 0.18) : 0;
+  const total = taxableTotal + gstAmount;
 
   return (
     <section className="bg-[var(--aura-off-white)] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
@@ -55,7 +60,11 @@ export function POSSandbox() {
             </p>
 
             <div className="mt-8 space-y-3">
-              <div className="rounded-xl border border-[var(--aura-border)] bg-white p-4 flex items-center gap-3 shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setPrinted(true); setShowReceipt(true); }}
+                className={`w-full rounded-xl border p-4 flex items-center gap-3 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:border-[var(--aura-purple)] hover:shadow-md ${showReceipt ? "border-[var(--aura-purple)] bg-[var(--aura-lavender)]/40" : "border-[var(--aura-border)] bg-white"}`}
+              >
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)] font-bold text-xs">
                   ⚡
                 </div>
@@ -63,8 +72,12 @@ export function POSSandbox() {
                   <h4 className="text-xs font-bold text-[var(--aura-heading)]">Instant WhatsApp + Print Receipt</h4>
                   <p className="text-[11px] text-[var(--aura-body)]">Auto-sends digital bills to client WhatsApp while printing thermal paper receipts.</p>
                 </div>
-              </div>
-              <div className="rounded-xl border border-[var(--aura-border)] bg-white p-4 flex items-center gap-3 shadow-xs">
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPaymentMode("Split"); setPrinted(false); }}
+                className={`w-full rounded-xl border p-4 flex items-center gap-3 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md ${paymentMode === "Split" ? "border-emerald-200 bg-emerald-50" : "border-[var(--aura-border)] bg-white"}`}
+              >
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs">
                   ₹
                 </div>
@@ -72,7 +85,7 @@ export function POSSandbox() {
                   <h4 className="text-xs font-bold text-[var(--aura-heading)]">Split Payments &amp; Dual QR Code</h4>
                   <p className="text-[11px] text-[var(--aura-body)]">Accept Cash, UPI, Credit Cards, and Loyalty Points in a single bill transaction.</p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -81,7 +94,10 @@ export function POSSandbox() {
             <div className="flex items-center justify-between border-b border-[var(--aura-border)] pb-4">
               <div className="flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-[var(--aura-purple)]" />
-                <span className="text-base font-bold text-[var(--aura-heading)]">Express Front Desk Terminal</span>
+                <div>
+                  <span className="text-base font-bold text-[var(--aura-heading)]">Express Front Desk Terminal</span>
+                  <p className="text-[10px] text-[var(--aura-muted)]">Walk-in customer · Gold member preview</p>
+                </div>
               </div>
               <label className="flex items-center gap-2 text-xs font-semibold text-[var(--aura-heading)] cursor-pointer">
                 <input
@@ -116,6 +132,21 @@ export function POSSandbox() {
                     </button>
                   ))}
                 </div>
+                <div className="mt-3 rounded-xl border border-[var(--aura-border)] bg-white p-3">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--aura-muted)]">Payment Mode</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {["UPI", "Cash", "Card", "Split"].map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => { setPaymentMode(mode); setPrinted(false); }}
+                        className={`rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-colors ${paymentMode === mode ? "border-[var(--aura-purple)] bg-[var(--aura-purple)] text-white" : "border-[var(--aura-border)] bg-white text-[var(--aura-heading)] hover:bg-[var(--aura-lavender)]"}`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Cart & Billing Summary */}
@@ -147,10 +178,28 @@ export function POSSandbox() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-[var(--aura-border)] space-y-1.5 text-xs">
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {[0, 10, 15].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => { setDiscount(value); setPrinted(false); }}
+                        className={`rounded-md px-2 py-1 text-[10px] font-bold ${discount === value ? "bg-[var(--aura-purple)] text-white" : "bg-white text-[var(--aura-purple)] ring-1 ring-[var(--aura-border)]"}`}
+                      >
+                        {value === 0 ? "No discount" : `${value}% off`}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex justify-between text-[var(--aura-body)]">
                     <span>Subtotal</span>
                     <span className="font-semibold text-[var(--aura-heading)]">₹{subtotal.toLocaleString("en-IN")}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Discount ({discount}%)</span>
+                      <span className="font-semibold">-₹{discountAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                   {gstEnabled && (
                     <div className="flex justify-between text-[var(--aura-body)]">
                       <span>GST (18%)</span>
@@ -164,7 +213,7 @@ export function POSSandbox() {
 
                   <button
                     type="button"
-                    onClick={() => setPrinted(true)}
+                    onClick={() => { setPrinted(true); setShowReceipt(true); }}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-[var(--aura-purple-hover)]"
                   >
                     <Printer className="h-3.5 w-3.5" />
@@ -173,12 +222,38 @@ export function POSSandbox() {
 
                   {printed && (
                     <p className="text-[10px] text-emerald-700 font-semibold text-center flex items-center justify-center gap-1 mt-1">
-                      <CheckCircle2 className="h-3 w-3" /> Digital invoice sent to client WhatsApp
+                      <CheckCircle2 className="h-3 w-3" /> {paymentMode} payment captured · invoice sent to WhatsApp
                     </p>
                   )}
                 </div>
               </div>
             </div>
+
+            {showReceipt && (
+              <div className="mt-4 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-[var(--aura-heading)]">Receipt Preview</p>
+                    <p className="text-[10px] text-[var(--aura-muted)]">INV-AUR-2084 · {paymentMode} · WhatsApp queued</p>
+                  </div>
+                  <button type="button" onClick={() => setShowReceipt(false)} className="rounded-lg border border-[var(--aura-border)] bg-white px-2 py-1 text-[10px] font-bold text-[var(--aura-muted)]">Close</button>
+                </div>
+                <div className="grid gap-2 text-xs sm:grid-cols-3">
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-[10px] text-[var(--aura-muted)]">Amount Paid</p>
+                    <p className="font-bold text-[var(--aura-heading)]">₹{total.toLocaleString("en-IN")}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-[10px] text-[var(--aura-muted)]">GST</p>
+                    <p className="font-bold text-[var(--aura-heading)]">₹{gstAmount.toLocaleString("en-IN")}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-[10px] text-[var(--aura-muted)]">Discount</p>
+                    <p className="font-bold text-[var(--aura-heading)]">₹{discountAmount.toLocaleString("en-IN")}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Container>

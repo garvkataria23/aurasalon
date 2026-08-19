@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Send, CheckCheck, Sparkles, Calendar, Clock, User, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 
@@ -19,6 +19,38 @@ type Message = {
 };
 
 export function WhatsAppSimulator() {
+  const bookingMessages: Message[] = [
+    {
+      id: "1",
+      sender: "user",
+      text: "Hi Aura! Need to book a Hair Spa & Cut for tomorrow evening.",
+      time: "04:15 PM",
+    },
+    {
+      id: "2",
+      sender: "bot",
+      text: "Namaste Priya! I found 3 open slots for Hair Spa & Cut with Senior Stylist Ananya at Bandra West tomorrow:",
+      time: "04:15 PM",
+      options: ["Book 04:30 PM", "Book 06:00 PM", "Book 07:15 PM"],
+    },
+  ];
+  const reminderMessages: Message[] = [
+    {
+      id: "r1",
+      sender: "bot",
+      text: "Hi Priya, reminder for your Signature Hair Spa + Haircut appointment tomorrow at 06:00 PM with Ananya K. at Aura Bandra West.",
+      time: "09:00 AM",
+      options: ["Confirm visit", "Reschedule", "Need directions"],
+    },
+    {
+      id: "r2",
+      sender: "bot",
+      text: "Please arrive 10 minutes early. Your estimated bill is ₹2,800. Reply Confirm to lock the slot.",
+      time: "09:00 AM",
+    },
+  ];
+  const [activeMode, setActiveMode] = useState<"booking" | "reminder">("booking");
+  const chatBodyRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -37,6 +69,27 @@ export function WhatsAppSimulator() {
 
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
+  useEffect(() => {
+    const chatBody = chatBodyRef.current;
+    if (!chatBody) return;
+
+    requestAnimationFrame(() => {
+      chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: "smooth" });
+    });
+  }, [messages]);
+
+  const showBookingFlow = () => {
+    setActiveMode("booking");
+    setBookingConfirmed(false);
+    setMessages(bookingMessages);
+  };
+
+  const showReminderFlow = () => {
+    setActiveMode("reminder");
+    setBookingConfirmed(false);
+    setMessages(reminderMessages);
+  };
+
   const handleOptionClick = (option: string) => {
     const timeStr = option.replace("Book ", "");
 
@@ -47,18 +100,33 @@ export function WhatsAppSimulator() {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
+    if (option === "Need directions") {
+      setMessages((prev) => [...prev, userMsg, {
+        id: String(Date.now() + 1),
+        sender: "bot",
+        text: "Here is the Aura Bandra West location pin. Parking is available near the main entrance.",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }]);
+      return;
+    }
+
     const botMsg: Message = {
       id: String(Date.now() + 1),
       sender: "bot",
-      text: `Awesome! Your booking is confirmed. We've reserved Senior Stylist Ananya for you. 🎟️`,
+      text: activeMode === "reminder" ? "Confirmed. Your visit is locked for tomorrow at 06:00 PM. See you soon!" : `Awesome! Your booking is confirmed. We've reserved Senior Stylist Ananya for you.`,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       card: {
-        service: "Signature Hair Spa + Haircut",
+        service: activeMode === "reminder" ? "Visit Reminder Confirmed" : "Signature Hair Spa + Haircut",
         stylist: "Ananya K. (Senior Stylist)",
-        slot: `Tomorrow at ${timeStr}`,
+        slot: activeMode === "reminder" && option === "Confirm visit" ? "Tomorrow at 06:00 PM" : `Tomorrow at ${timeStr}`,
         price: "₹2,800 (Pay at salon)",
       },
     };
+
+    if (option === "Reschedule") {
+      setMessages((prev) => [...prev, userMsg, { ...botMsg, text: "No problem. Here are alternate slots for tomorrow:", options: ["Book 04:30 PM", "Book 07:15 PM"], card: undefined }]);
+      return;
+    }
 
     setMessages((prev) => [...prev, userMsg, botMsg]);
     setBookingConfirmed(true);
@@ -66,21 +134,7 @@ export function WhatsAppSimulator() {
 
   const handleReset = () => {
     setBookingConfirmed(false);
-    setMessages([
-      {
-        id: "1",
-        sender: "user",
-        text: "Hi Aura! Need to book a Hair Spa & Cut for tomorrow evening.",
-        time: "04:15 PM",
-      },
-      {
-        id: "2",
-        sender: "bot",
-        text: "Namaste Priya! 🙏 I found 3 open slots for Hair Spa & Cut with Senior Stylist Ananya at Bandra West tomorrow:",
-        time: "04:15 PM",
-        options: ["Book 04:30 PM", "Book 06:00 PM", "Book 07:15 PM"],
-      },
-    ]);
+    setMessages(activeMode === "reminder" ? reminderMessages : bookingMessages);
   };
 
   return (
@@ -100,7 +154,7 @@ export function WhatsAppSimulator() {
             </p>
 
             <div className="mt-8 space-y-3">
-              <div className="flex items-start gap-3 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4 shadow-xs">
+              <button type="button" onClick={showBookingFlow} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md ${activeMode === "booking" ? "border-emerald-200 bg-emerald-50" : "border-[var(--aura-border)] bg-[var(--aura-off-white)]"}`}>
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
                   <MessageSquare className="h-4 w-4" />
                 </div>
@@ -110,9 +164,9 @@ export function WhatsAppSimulator() {
                     Directly reads available calendar slots from your appointment calendar and lets clients pick their stylist.
                   </p>
                 </div>
-              </div>
+              </button>
 
-              <div className="flex items-start gap-3 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4 shadow-xs">
+              <button type="button" onClick={showReminderFlow} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md ${activeMode === "reminder" ? "border-[var(--aura-purple)]/30 bg-[var(--aura-lavender)]" : "border-[var(--aura-border)] bg-[var(--aura-off-white)]"}`}>
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                   <ShieldCheck className="h-4 w-4" />
                 </div>
@@ -122,7 +176,7 @@ export function WhatsAppSimulator() {
                     Auto-sends WhatsApp reminders with 1-tap confirmation or reschedule buttons to virtually eliminate no-shows.
                   </p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -144,7 +198,7 @@ export function WhatsAppSimulator() {
               </div>
 
               {/* WhatsApp Chat Body */}
-              <div className="h-[360px] overflow-y-auto bg-[#e5ddd5] p-4 space-y-3">
+              <div ref={chatBodyRef} className="h-[360px] overflow-y-auto bg-[#e5ddd5] p-4 space-y-3">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}

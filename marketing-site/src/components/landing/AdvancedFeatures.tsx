@@ -56,31 +56,45 @@ function FeaturePill({
   icon: Icon,
   label,
   comingSoon = false,
+  active,
+  onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   comingSoon?: boolean;
+  active?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <li className="flex items-center justify-between gap-2 rounded-xl border border-[var(--aura-border)] bg-white px-3.5 py-2.5 shadow-[var(--aura-shadow-xs)]">
+  const content = (
+    <>
       <div className="flex items-center gap-2.5 min-w-0">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)]">
-          <Icon className="h-3.5 w-3.5 text-[var(--aura-purple)]" aria-hidden="true" />
+        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${active ? "bg-[var(--aura-purple)]" : "bg-[var(--aura-lavender)]"}`}>
+          <Icon className={`h-3.5 w-3.5 ${active ? "text-white" : "text-[var(--aura-purple)]"}`} aria-hidden="true" />
         </span>
-        <span className="truncate text-xs font-medium text-[var(--aura-heading)]">{label}</span>
+        <span className={`truncate text-xs font-medium ${active ? "text-[var(--aura-purple)]" : "text-[var(--aura-heading)]"}`}>{label}</span>
       </div>
       {comingSoon && (
         <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 uppercase tracking-wider shrink-0">
           Coming Soon
         </span>
       )}
+    </>
+  );
+
+  return (
+    <li className={`flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 shadow-[var(--aura-shadow-xs)] transition-all ${active ? "border-[var(--aura-purple)]/20 bg-[var(--aura-lavender)] shadow-md" : "border-[var(--aura-border)] bg-white"}`}>
+      {onClick ? (
+        <button type="button" onClick={onClick} className="flex w-full items-center justify-between gap-2 text-left">
+          {content}
+        </button>
+      ) : content}
     </li>
   );
 }
 
 /* ── Inventory UI Showcase ── */
-function InventoryMockup() {
-  const stockItems = [
+function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeature?: string }) {
+  const [stockItems, setStockItems] = useState([
     {
       name: "L'Oréal Serie Expert Shampoo 500ml",
       sku: "LOR-SH-500",
@@ -89,6 +103,7 @@ function InventoryMockup() {
       minStock: 5,
       status: "In Stock",
       cost: "₹1,450",
+      unit: "bottle",
     },
     {
       name: "Olaplex No. 1 Bond Multiplier 525ml",
@@ -98,6 +113,7 @@ function InventoryMockup() {
       minStock: 4,
       status: "Low Stock",
       cost: "₹6,200",
+      unit: "bottle",
     },
     {
       name: "Wella Koleston Perfect 60g #5/0",
@@ -107,6 +123,7 @@ function InventoryMockup() {
       minStock: 10,
       status: "In Stock",
       cost: "₹580",
+      unit: "tube",
     },
     {
       name: "Moroccanoil Treatment Original 100ml",
@@ -116,11 +133,189 @@ function InventoryMockup() {
       minStock: 6,
       status: "Out of Stock",
       cost: "₹3,150",
+      unit: "bottle",
     },
-  ];
+  ]);
+  const [selectedSku, setSelectedSku] = useState("OLA-B1-525");
+  const emptyDraft = {
+    name: "",
+    sku: "",
+    category: "Retail",
+    inStock: "",
+    minStock: "",
+    cost: "",
+    unit: "unit",
+  };
+  const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
+  const [draft, setDraft] = useState(emptyDraft);
+  const [customRows, setCustomRows] = useState<Record<string, string[][]>>({});
+  const [selectedPanelRow, setSelectedPanelRow] = useState(0);
+  const [recordDraft, setRecordDraft] = useState({ label: "", value: "", detail: "" });
+  const selectedItem = stockItems.find((item) => item.sku === selectedSku) ?? stockItems[0];
+  const lowStockCount = stockItems.filter((item) => item.inStock <= item.minStock).length;
+  const isStockLedger = activeFeature === "Live stock tracking";
+  useEffect(() => {
+    setFormMode(null);
+    setSelectedPanelRow(0);
+  }, [activeFeature]);
+  const getStatus = (inStock: number, minStock: number) => {
+    if (inStock <= 0) return "Out of Stock";
+    if (inStock <= minStock) return "Low Stock";
+    return "In Stock";
+  };
+
+  const startCreate = () => {
+    if (!isStockLedger) {
+      setRecordDraft({ label: `New ${activeFeature}`, value: "Draft", detail: `Created under ${activeFeature}` });
+      setFormMode("create");
+      return;
+    }
+
+    const nextSku = `NEW-${stockItems.length + 101}`;
+    setDraft({ ...emptyDraft, name: "New Retail Serum 100ml", sku: nextSku, inStock: "8", minStock: "4", cost: "₹1,250", unit: "bottle" });
+    setFormMode("create");
+  };
+
+  const startEdit = () => {
+    if (!isStockLedger) {
+      const row = panelRows[selectedPanelRow] ?? panelRows[0];
+      if (!row) return;
+      setRecordDraft({ label: row[0], value: row[1], detail: row[2] });
+      setFormMode("edit");
+      return;
+    }
+
+    if (!selectedItem) return;
+    setDraft({
+      name: selectedItem.name,
+      sku: selectedItem.sku,
+      category: selectedItem.category,
+      inStock: String(selectedItem.inStock),
+      minStock: String(selectedItem.minStock),
+      cost: selectedItem.cost,
+      unit: selectedItem.unit,
+    });
+    setFormMode("edit");
+  };
+
+  const saveDraft = () => {
+    if (!isStockLedger) {
+      const row = [
+        recordDraft.label.trim() || `New ${activeFeature}`,
+        recordDraft.value.trim() || "Draft",
+        recordDraft.detail.trim() || `Updated under ${activeFeature}`,
+      ];
+
+      setCustomRows((rowsByFeature) => {
+        const rows = rowsByFeature[activeFeature] ?? panelRows;
+        const nextRows = formMode === "edit"
+          ? rows.map((existing, index) => (index === selectedPanelRow ? row : existing))
+          : [...rows, row];
+        setSelectedPanelRow(formMode === "edit" ? selectedPanelRow : nextRows.length - 1);
+        return { ...rowsByFeature, [activeFeature]: nextRows };
+      });
+      setFormMode(null);
+      return;
+    }
+
+    const inStock = Number(draft.inStock) || 0;
+    const minStock = Number(draft.minStock) || 0;
+    const sku = draft.sku.trim() || `SKU-${Date.now().toString().slice(-4)}`;
+    const item = {
+      name: draft.name.trim() || "Unnamed Inventory Item",
+      sku,
+      category: draft.category,
+      inStock,
+      minStock,
+      status: getStatus(inStock, minStock),
+      cost: draft.cost.trim() || "₹0",
+      unit: draft.unit.trim() || "unit",
+    };
+
+    setStockItems((items) => (
+      formMode === "edit"
+        ? items.map((existing) => (existing.sku === selectedSku ? item : existing))
+        : [...items, item]
+    ));
+    setSelectedSku(sku);
+    setFormMode(null);
+  };
+
+  const deleteItem = () => {
+    if (!isStockLedger) {
+      setCustomRows((rowsByFeature) => {
+        const rows = rowsByFeature[activeFeature] ?? panelRows;
+        const nextRows = rows.filter((_, index) => index !== selectedPanelRow);
+        setSelectedPanelRow(Math.max(0, selectedPanelRow - 1));
+        return { ...rowsByFeature, [activeFeature]: nextRows };
+      });
+      setFormMode(null);
+      return;
+    }
+
+    setStockItems((items) => {
+      const remaining = items.filter((item) => item.sku !== selectedSku);
+      setSelectedSku(remaining[0]?.sku ?? "");
+      return remaining;
+    });
+    setFormMode(null);
+  };
+
+  const panels = {
+    "Service consumption": {
+      title: "Service Consumption",
+      meta: "Auto deducted",
+      summary: "Keratin service used 3 items",
+      rows: [["Shampoo", "-20ml", "Deducted after checkout"], ["Bond multiplier", "-12ml", "Mapped to keratin recipe"], ["Treatment mask", "-35g", "Cost added to service margin"]],
+      accent: "from-sky-500 to-blue-600",
+      footer: "Consumption recipes convert every service into accurate stock movement.",
+    },
+    "Purchase orders (PO)": {
+      title: "Purchase Order Desk",
+      meta: "Draft ready",
+      summary: "PO #1085 to Wella",
+      rows: [["Low items", `${lowStockCount} SKUs`, "Added automatically"], ["Supplier", "Wella Professional", "Best last price"], ["Expected", "Tomorrow", "Based on lead time"]],
+      accent: "from-violet-500 to-indigo-500",
+      footer: "POs can be created before stock-outs block appointments.",
+    },
+    "Low-stock alerts": {
+      title: "Low-Stock Alert Center",
+      meta: `${lowStockCount} alerts`,
+      summary: "Moroccanoil needs reorder",
+      rows: [["Critical", "0 / 6 min", "Retail sale blocked"], ["Warning", "2 / 4 min", "Olaplex reorder suggested"], ["Safe", "2 days", "Before weekend rush"]],
+      accent: "from-amber-500 to-orange-500",
+      footer: "Alerts are prioritized by service impact and supplier lead time.",
+    },
+    "Retail product sales": {
+      title: "Retail Sales Shelf",
+      meta: "Attach rate",
+      summary: "₹18,400 retail this week",
+      rows: [["Top seller", "Shampoo 500ml", "12 units sold"], ["Recommended", "Hair serum", "After color service"], ["Margin", "48%", "Visible before discount"]],
+      accent: "from-emerald-500 to-teal-500",
+      footer: "Front desk can sell retail products from the same stock ledger.",
+    },
+    "Supplier records": {
+      title: "Supplier Records",
+      meta: "3 vendors",
+      summary: "Best price matched",
+      rows: [["Wella", "1 day lead", "Color inventory"], ["Olaplex", "3 day lead", "Bond treatments"], ["L'Oréal", "2 day lead", "Retail shampoo"]],
+      accent: "from-cyan-500 to-sky-500",
+      footer: "Supplier price, lead time and SKU mapping stay connected to PO creation.",
+    },
+    "Stock audit history": {
+      title: "Stock Audit History",
+      meta: "Traceable",
+      summary: "Last audit variance: -₹820",
+      rows: [["Aug 19", "Stock +3", "Manual correction"], ["Aug 18", "Service -12ml", "Keratin recipe"], ["Aug 17", "PO received", "Invoice matched"]],
+      accent: "from-slate-700 to-slate-500",
+      footer: "Every create, update, delete and stock movement is visible in the audit trail.",
+    },
+  };
+  const panel = panels[activeFeature as keyof typeof panels];
+  const panelRows = panel ? (customRows[activeFeature] ?? panel.rows) : [];
 
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] overflow-hidden">
+    <div className="min-h-[362px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)]">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3.5">
         <div>
@@ -130,14 +325,103 @@ function InventoryMockup() {
           </div>
           <span className="text-[10px] text-[var(--aura-muted)]">Automatic consumption deducted upon checkout</span>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--aura-purple)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm"
-        >
-          <ShoppingCart className="h-3 w-3" />
-          Create PO
-        </button>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" onClick={startCreate} className="rounded-lg bg-[var(--aura-purple)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">{isStockLedger ? "Add Item" : "Create"}</button>
+          <button type="button" onClick={startEdit} disabled={isStockLedger ? !selectedItem : panelRows.length === 0} className="rounded-lg border border-[var(--aura-border)] bg-white px-2.5 py-1 text-[11px] font-semibold text-[var(--aura-heading)] disabled:opacity-40">{isStockLedger ? "Edit Stock" : "Edit"}</button>
+          <button type="button" onClick={deleteItem} disabled={isStockLedger ? !selectedItem : panelRows.length === 0} className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 disabled:opacity-40">Delete</button>
+        </div>
       </div>
+
+      {formMode && (
+        <div className="border-b border-[var(--aura-border)] bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold text-[var(--aura-heading)]">{isStockLedger ? (formMode === "create" ? "Create inventory item" : "Edit selected stock") : `${formMode === "create" ? "Create" : "Edit"} ${activeFeature}`}</p>
+              <p className="text-[10px] text-[var(--aura-muted)]">{isStockLedger ? "Change name, stock, price, SKU, type and unit from the frontend preview." : "This create/edit form belongs to the selected feature card."}</p>
+            </div>
+            <button type="button" onClick={() => setFormMode(null)} className="rounded-lg border border-[var(--aura-border)] px-2 py-1 text-[10px] font-semibold text-[var(--aura-muted)]">Cancel</button>
+          </div>
+          {isStockLedger ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Product name" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input value={draft.sku} onChange={(e) => setDraft({ ...draft, sku: e.target.value })} placeholder="SKU" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]">
+                <option>Retail</option>
+                <option>In-Salon</option>
+              </select>
+              <input value={draft.cost} onChange={(e) => setDraft({ ...draft, cost: e.target.value })} placeholder="Price / cost" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input type="number" value={draft.inStock} onChange={(e) => setDraft({ ...draft, inStock: e.target.value })} placeholder="Current stock" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input type="number" value={draft.minStock} onChange={(e) => setDraft({ ...draft, minStock: e.target.value })} placeholder="Minimum stock" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} placeholder="Unit: bottle / tube / ml" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <button type="button" onClick={saveDraft} className="rounded-lg bg-[var(--aura-purple)] px-3 py-2 text-xs font-bold text-white shadow-sm">{formMode === "create" ? "Create item" : "Save changes"}</button>
+            </div>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input value={recordDraft.label} onChange={(e) => setRecordDraft({ ...recordDraft, label: e.target.value })} placeholder="Record name" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input value={recordDraft.value} onChange={(e) => setRecordDraft({ ...recordDraft, value: e.target.value })} placeholder="Value" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input value={recordDraft.detail} onChange={(e) => setRecordDraft({ ...recordDraft, detail: e.target.value })} placeholder="Detail" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)] sm:col-span-2" />
+              <button type="button" onClick={saveDraft} className="rounded-lg bg-[var(--aura-purple)] px-3 py-2 text-xs font-bold text-white shadow-sm sm:col-span-2">{formMode === "create" ? `Create ${activeFeature}` : "Save changes"}</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {panel ? (
+        <>
+          <div className="border-b border-[var(--aura-border)] bg-white px-4 py-3">
+            <div className="rounded-xl bg-[var(--aura-lavender)]/60 px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-purple)]">Smart inventory control</p>
+              <p className="mt-0.5 text-sm font-bold text-[var(--aura-heading)]">{panel.summary}</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto p-4">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-[var(--aura-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-muted)]">
+                  <th className="pb-2">Record</th>
+                  <th className="pb-2">Detail</th>
+                  <th className="pb-2 text-center">Value</th>
+                  <th className="pb-2 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--aura-border)]">
+                {panelRows.map(([label, value, detail], index) => (
+                  <tr key={`${label}-${index}`} onClick={() => setSelectedPanelRow(index)} className={`cursor-pointer transition-colors ${selectedPanelRow === index ? "bg-[var(--aura-lavender)]/50" : "hover:bg-[var(--aura-off-white)]"}`}>
+                    <td className="py-2.5 pr-2">
+                      <p className="font-semibold leading-tight text-[var(--aura-heading)]">{label}</p>
+                      <p className="text-[10px] text-[var(--aura-muted)]">{detail}</p>
+                    </td>
+                    <td className="py-2.5">
+                      <span className="rounded-md bg-[var(--aura-lavender)] px-2 py-0.5 text-[10px] font-medium text-[var(--aura-purple)]">
+                        {panel.meta}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span className="font-bold text-[var(--aura-heading)] tabular-nums">{value}</span>
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Active
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
+            <span className="flex items-center gap-1.5">
+              <Truck className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
+              {panel.footer}
+            </span>
+            <button type="button" onClick={startCreate} className="font-semibold text-emerald-600">Create</button>
+          </div>
+        </>
+      ) : (
+        <>
 
       {/* Stock Table */}
       <div className="overflow-x-auto p-4">
@@ -152,10 +436,10 @@ function InventoryMockup() {
           </thead>
           <tbody className="divide-y divide-[var(--aura-border)]">
             {stockItems.map((item) => (
-              <tr key={item.sku} className="group hover:bg-[var(--aura-off-white)] transition-colors">
+              <tr key={item.sku} onClick={() => setSelectedSku(item.sku)} className={`group cursor-pointer transition-colors ${selectedSku === item.sku ? "bg-[var(--aura-lavender)]/50" : "hover:bg-[var(--aura-off-white)]"}`}>
                 <td className="py-2.5 pr-2">
                   <p className="font-semibold text-[var(--aura-heading)] leading-tight">{item.name}</p>
-                  <p className="text-[10px] text-[var(--aura-muted)]">{item.sku}</p>
+                  <p className="text-[10px] text-[var(--aura-muted)]">{item.sku} · {item.cost} / {item.unit}</p>
                 </td>
                 <td className="py-2.5">
                   <span className="rounded-md bg-[var(--aura-lavender)] px-2 py-0.5 text-[10px] font-medium text-[var(--aura-purple)]">
@@ -164,7 +448,7 @@ function InventoryMockup() {
                 </td>
                 <td className="py-2.5 text-center">
                   <span className="font-bold text-[var(--aura-heading)] tabular-nums">{item.inStock}</span>
-                  <span className="text-[10px] text-[var(--aura-muted)]"> / {item.minStock} min</span>
+                  <span className="text-[10px] text-[var(--aura-muted)]"> / {item.minStock} min {item.unit}</span>
                 </td>
                 <td className="py-2.5 text-right">
                   {item.status === "In Stock" && (
@@ -196,16 +480,69 @@ function InventoryMockup() {
       <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
         <span className="flex items-center gap-1.5">
           <Truck className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
-          PO #1084 en route from Wella Professional
+          Selected: {selectedItem?.sku ?? "No item"} · CRUD changes are frontend preview
         </span>
         <span className="font-semibold text-emerald-600">Expected Tomorrow</span>
       </div>
+        </>
+      )}
     </div>
   );
 }
 
 /* ── Memberships & Loyalty Dashboard ── */
-function MembershipDashboard() {
+function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeFeature?: string }) {
+  const seedRows: Record<string, string[][]> = {
+    "Tiered memberships": [["Gold Privilege", "₹9,999/yr", "15% off + monthly scalp spa"], ["Platinum Elite", "₹18,999/yr", "20% off + priority booking"], ["Family Club", "₹24,999/yr", "Shared benefits for 4 members"]],
+    "Custom prepaid packages": [["Bridal Glow Series", "₹18,500", "6 sessions tracked automatically"], ["Hair Revival Pack", "₹8,999", "4 spas + 2 trims"], ["Grooming Pass", "₹4,500", "6 beard/hair services"]],
+    "Wallet recharge bonus": [["Recharge ₹10,000", "+15%", "Customer gets ₹11,500 credit"], ["Recharge ₹5,000", "+8%", "Customer gets ₹5,400 credit"], ["Family Wallet", "Shared", "Can be used by linked members"]],
+    "Points-per-rupee reward": [["Service spend", "1 pt / ₹10", "Standard earning rule"], ["Retail spend", "2 pt / ₹10", "Pushes product sales"], ["Redemption", "100 pts = ₹50", "Applied at POS"]],
+    "Digital gift cards": [["Birthday Card", "₹2,000", "WhatsApp delivery"], ["Festive Voucher", "₹5,000", "Limited validity"], ["Corporate Pack", "₹25,000", "Bulk issue ready"]],
+    "Prepaid service balance": [["Hair Spa", "3 left", "Expires in 42 days"], ["Facial Cleanup", "2 left", "OTP redemption enabled"], ["Blowdry", "5 left", "Transferable to family"]],
+    "Flexible OTP redemption": [["Priya Sharma", "Verified", "OTP used at POS"], ["Naina Kapoor", "Pending", "OTP expires in 8 min"], ["Family member", "Allowed", "Shared wallet redemption"]],
+    "WhatsApp expiry alerts": [["Wallet expiry", "18 days", "Reminder scheduled"], ["Package expiry", "7 days", "Offer follow-up ready"], ["Points expiry", "30 days", "Win-back message queued"]],
+  };
+  const [rowsByFeature, setRowsByFeature] = useState(seedRows);
+  const [selectedRow, setSelectedRow] = useState(0);
+  const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
+  const [draft, setDraft] = useState({ name: "", value: "", detail: "" });
+  const rows = rowsByFeature[activeFeature] ?? seedRows["Tiered memberships"];
+
+  useEffect(() => {
+    setSelectedRow(0);
+    setFormMode(null);
+  }, [activeFeature]);
+
+  const startCreate = () => {
+    setDraft({ name: `New ${activeFeature}`, value: "Draft", detail: "Frontend preview record" });
+    setFormMode("create");
+  };
+  const startEdit = () => {
+    const row = rows[selectedRow] ?? rows[0];
+    if (!row) return;
+    setDraft({ name: row[0], value: row[1], detail: row[2] });
+    setFormMode("edit");
+  };
+  const saveDraft = () => {
+    const row = [draft.name.trim() || `New ${activeFeature}`, draft.value.trim() || "Draft", draft.detail.trim() || "Frontend preview record"];
+    setRowsByFeature((current) => {
+      const currentRows = current[activeFeature] ?? rows;
+      const nextRows = formMode === "edit" ? currentRows.map((item, index) => (index === selectedRow ? row : item)) : [...currentRows, row];
+      setSelectedRow(formMode === "edit" ? selectedRow : nextRows.length - 1);
+      return { ...current, [activeFeature]: nextRows };
+    });
+    setFormMode(null);
+  };
+  const deleteRow = () => {
+    setRowsByFeature((current) => {
+      const currentRows = current[activeFeature] ?? rows;
+      const nextRows = currentRows.filter((_, index) => index !== selectedRow);
+      setSelectedRow(Math.max(0, selectedRow - 1));
+      return { ...current, [activeFeature]: nextRows };
+    });
+    setFormMode(null);
+  };
+
   return (
     <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-xl)] overflow-hidden">
       {/* Top Banner */}
@@ -216,140 +553,212 @@ function MembershipDashboard() {
               <Crown className="h-3.5 w-3.5 text-amber-300" />
               Aura Loyalty &amp; Membership Hub
             </span>
-            <h3 className="mt-2 text-xl font-bold tracking-tight">Privilege Club &amp; Prepaid Wallet</h3>
-            <p className="text-xs text-white/70">Boost retention, lock in repeat visits, and increase upfront cash flow.</p>
+            <h3 className="mt-2 text-xl font-bold tracking-tight">{activeFeature}</h3>
+            <p className="text-xs text-white/70">Create, edit and manage loyalty records from the selected module.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-white/10 p-3 text-center backdrop-blur-sm border border-white/10">
-              <p className="text-lg font-bold tabular-nums">482</p>
-              <p className="text-[10px] text-white/70 uppercase tracking-wider">Active Members</p>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-wrap justify-end gap-1.5">
+              <button type="button" onClick={startCreate} className="rounded-lg bg-white px-3 py-1.5 text-[11px] font-bold text-[var(--aura-purple)]">Create</button>
+              <button type="button" onClick={startEdit} disabled={rows.length === 0} className="rounded-lg bg-white/15 px-3 py-1.5 text-[11px] font-bold text-white ring-1 ring-white/20 disabled:opacity-40">Edit</button>
+              <button type="button" onClick={deleteRow} disabled={rows.length === 0} className="rounded-lg bg-red-500/20 px-3 py-1.5 text-[11px] font-bold text-white ring-1 ring-red-200/20 disabled:opacity-40">Delete</button>
             </div>
-            <div className="rounded-xl bg-white/10 p-3 text-center backdrop-blur-sm border border-white/10">
-              <p className="text-lg font-bold text-amber-300 tabular-nums">₹14.2L</p>
-              <p className="text-[10px] text-white/70 uppercase tracking-wider">Wallet Reserves</p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-white/10 p-3 text-center backdrop-blur-sm border border-white/10">
+                <p className="text-lg font-bold tabular-nums">482</p>
+                <p className="text-[10px] text-white/70 uppercase tracking-wider">Active Members</p>
+              </div>
+              <div className="rounded-xl bg-white/10 p-3 text-center backdrop-blur-sm border border-white/10">
+                <p className="text-lg font-bold text-amber-300 tabular-nums">₹14.2L</p>
+                <p className="text-[10px] text-white/70 uppercase tracking-wider">Wallet Reserves</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Grid of 3 Core Loyalty Modules */}
-      <div className="grid gap-4 p-5 sm:grid-cols-3">
-        {/* Card 1: VIP Tier */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--aura-lavender)] text-amber-600">
-                <Crown className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-[var(--aura-heading)]">Gold Privilege</p>
-                <p className="text-[10px] text-[var(--aura-muted)]">Annual Plan</p>
-              </div>
+      {formMode && (
+        <div className="border-b border-[var(--aura-border)] bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold text-[var(--aura-heading)]">{formMode === "create" ? "Create" : "Edit"} {activeFeature}</p>
+              <p className="text-[10px] text-[var(--aura-muted)]">This CRUD form belongs to the selected loyalty card.</p>
             </div>
-            <span className="text-xs font-bold text-[var(--aura-purple)]">₹9,999/yr</span>
+            <button type="button" onClick={() => setFormMode(null)} className="rounded-lg border border-[var(--aura-border)] px-2 py-1 text-[10px] font-semibold text-[var(--aura-muted)]">Cancel</button>
           </div>
-          <ul className="space-y-1.5 text-[11px] text-[var(--aura-body)]">
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> 15% flat off all salon services</li>
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> Free monthly scalp spa (worth ₹1,500)</li>
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> Priority booking window</li>
-          </ul>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Name" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+            <input value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} placeholder="Price / value" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+            <input value={draft.detail} onChange={(e) => setDraft({ ...draft, detail: e.target.value })} placeholder="Benefit / detail" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+            <button type="button" onClick={saveDraft} className="rounded-lg bg-[var(--aura-purple)] px-3 py-2 text-xs font-bold text-white shadow-sm sm:col-span-3">{formMode === "create" ? "Create record" : "Save changes"}</button>
+          </div>
         </div>
+      )}
 
-        {/* Card 2: Prepaid Wallet */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
-                <Wallet className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-[var(--aura-heading)]">Prepaid Wallet</p>
-                <p className="text-[10px] text-[var(--aura-muted)]">Recharge Bonus</p>
-              </div>
-            </div>
-            <span className="text-xs font-bold text-emerald-600">+15% Bonus</span>
-          </div>
-          <ul className="space-y-1.5 text-[11px] text-[var(--aura-body)]">
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> Pay ₹10,000 &rarr; Get ₹11,500 credit</li>
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> Shareable across family members</li>
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> One-tap OTP redemption at POS</li>
-          </ul>
-        </div>
+      <div className="overflow-x-auto p-5">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-[var(--aura-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-muted)]">
+              <th className="pb-2">Name</th>
+              <th className="pb-2">Module</th>
+              <th className="pb-2 text-center">Value</th>
+              <th className="pb-2 text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--aura-border)]">
+            {rows.map(([name, value, detail], index) => (
+              <tr key={`${name}-${index}`} onClick={() => setSelectedRow(index)} className={`cursor-pointer transition-colors ${selectedRow === index ? "bg-[var(--aura-lavender)]/50" : "hover:bg-[var(--aura-off-white)]"}`}>
+                <td className="py-3 pr-2">
+                  <p className="font-semibold leading-tight text-[var(--aura-heading)]">{name}</p>
+                  <p className="text-[10px] text-[var(--aura-muted)]">{detail}</p>
+                </td>
+                <td className="py-3">
+                  <span className="rounded-md bg-[var(--aura-lavender)] px-2 py-0.5 text-[10px] font-medium text-[var(--aura-purple)]">{activeFeature}</span>
+                </td>
+                <td className="py-3 text-center">
+                  <span className="font-bold text-[var(--aura-heading)] tabular-nums">{value}</span>
+                </td>
+                <td className="py-3 text-right">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    Active
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Card 3: Service Package */}
-        <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--aura-lavender)] text-indigo-600">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-[var(--aura-heading)]">Bridal Glow Series</p>
-                <p className="text-[10px] text-[var(--aura-muted)]">6 Sessions</p>
-              </div>
-            </div>
-            <span className="text-xs font-bold text-[var(--aura-heading)]">₹18,500</span>
-          </div>
-          <ul className="space-y-1.5 text-[11px] text-[var(--aura-body)]">
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> 4 Hydra-Facials + 2 Hair Spas</li>
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> Session counter tracked automatically</li>
-            <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" /> Automatic WhatsApp expiry alerts</li>
-          </ul>
-        </div>
+      <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3 text-[11px] text-[var(--aura-body)]">
+        <span className="flex items-center gap-1.5">
+          <Gift className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
+          Selected: {rows[selectedRow]?.[0] ?? "No record"} · Loyalty CRUD frontend preview
+        </span>
+        <button type="button" onClick={startCreate} className="font-semibold text-emerald-600">Create</button>
       </div>
     </div>
   );
 }
 
 /* ── Marketing Automation Flow Showcase ── */
-function MarketingAutomationMockup() {
-  const campaigns = [
-    {
-      title: "Inactive Client Win-Back",
-      trigger: "No visit in 45 days",
-      audience: "142 clients",
-      channel: "WhatsApp",
-      status: "Active",
-      roi: "34 bookings (₹58,400 rev)",
-      badge: "High ROI",
+function MarketingAutomationMockup({ activeFeature = "WhatsApp campaigns" }: { activeFeature?: string }) {
+  const dashboards = {
+    "WhatsApp campaigns": {
+      title: "WhatsApp Campaign Cockpit",
+      summary: "8 flows running today",
+      metric: "42% reply rate",
+      footer: "Broadcasts, follow-ups and offer reminders stay automated without staff chasing manually.",
+      campaigns: [
+        { title: "Weekend Slots Push", trigger: "Friday 11 AM", audience: "318 clients", channel: "WhatsApp", roi: "41 bookings (₹72,800 rev)", badge: "Live" },
+        { title: "Hair Spa Upsell", trigger: "After haircut bill", audience: "126 clients", channel: "WhatsApp", roi: "19 add-ons booked", badge: "Upsell" },
+        { title: "Festival Glow Offer", trigger: "Manual segment launch", audience: "540 clients", channel: "WhatsApp", roi: "₹1.2L pipeline", badge: "Promo" },
+      ],
     },
-    {
-      title: "Birthday Celebration Treat",
-      trigger: "Birthday in next 7 days",
-      audience: "18 clients this week",
-      channel: "WhatsApp + SMS",
-      status: "Automated",
-      roi: "72% claim rate",
-      badge: "Automated",
+    "Birthday greeting offers": {
+      title: "Birthday Offer Engine",
+      summary: "18 birthdays this week",
+      metric: "72% claim rate",
+      footer: "Birthday greetings are converted into timed offers, not generic messages.",
+      campaigns: [
+        { title: "Birthday Celebration Treat", trigger: "Birthday in next 7 days", audience: "18 clients", channel: "WhatsApp + SMS", roi: "13 vouchers claimed", badge: "Automated" },
+        { title: "VIP Birthday Upgrade", trigger: "Gold member birthday", audience: "5 clients", channel: "WhatsApp", roi: "₹28,400 booked", badge: "VIP" },
+        { title: "Family Birthday Nudge", trigger: "Linked member birthday", audience: "11 families", channel: "WhatsApp", roi: "8 group visits", badge: "Family" },
+      ],
     },
-    {
-      title: "Post-Service Review Collector",
-      trigger: "2 hours after bill generation",
-      audience: "All completed visits",
-      channel: "WhatsApp",
-      status: "Active",
-      roi: "4.9 ★ (180+ Google Reviews)",
-      badge: "Reputation",
+    "Inactive client win-back": {
+      title: "Win-Back Automation",
+      summary: "142 clients targeted",
+      metric: "34 bookings recovered",
+      footer: "Inactive clients get the right offer based on last service and spend history.",
+      campaigns: [
+        { title: "45-Day No Visit", trigger: "No visit in 45 days", audience: "142 clients", channel: "WhatsApp", roi: "34 bookings (₹58,400 rev)", badge: "High ROI" },
+        { title: "Lost Keratin Client", trigger: "No keratin in 90 days", audience: "38 clients", channel: "WhatsApp", roi: "9 premium bookings", badge: "Premium" },
+        { title: "Dormant VIP Recovery", trigger: "VIP inactive 60 days", audience: "24 clients", channel: "Call + WhatsApp", roi: "₹44,000 recovered", badge: "VIP" },
+      ],
     },
-  ];
+    "Appointment reminders": {
+      title: "Reminder Timeline",
+      summary: "96 reminders queued",
+      metric: "28% fewer no-shows",
+      footer: "Clients receive reminders at the right time with confirm/reschedule actions.",
+      campaigns: [
+        { title: "T-24 Hour Reminder", trigger: "One day before visit", audience: "56 appointments", channel: "WhatsApp", roi: "48 confirmed", badge: "Confirm" },
+        { title: "T-3 Hour Reminder", trigger: "Same-day visit", audience: "31 appointments", channel: "WhatsApp", roi: "6 rescheduled early", badge: "Smart" },
+        { title: "Late Arrival Alert", trigger: "10 min overdue", audience: "9 clients", channel: "WhatsApp", roi: "5 arrivals recovered", badge: "Live" },
+      ],
+    },
+    "Google review requests": {
+      title: "Review Growth Engine",
+      summary: "4.9 rating protected",
+      metric: "180+ reviews",
+      footer: "Happy clients are asked for reviews while poor experiences route to service recovery.",
+      campaigns: [
+        { title: "Post-Service Review Collector", trigger: "2 hours after bill", audience: "All completed visits", channel: "WhatsApp", roi: "4.9 ★ (180+ reviews)", badge: "Reputation" },
+        { title: "5-Star Fast Link", trigger: "Positive feedback", audience: "64 clients", channel: "WhatsApp", roi: "37 new reviews", badge: "Growth" },
+        { title: "Recovery Follow-Up", trigger: "Low rating", audience: "7 clients", channel: "Manager call", roi: "5 issues closed", badge: "Care" },
+      ],
+    },
+    "Targeted discount coupons": {
+      title: "Coupon Targeting Desk",
+      summary: "₹86k coupon pipeline",
+      metric: "31% conversion",
+      footer: "Discounts go only to the right segment so revenue grows without margin leakage.",
+      campaigns: [
+        { title: "Color Client Upgrade", trigger: "Root touch-up due", audience: "88 clients", channel: "WhatsApp", roi: "₹42,000 pipeline", badge: "Targeted" },
+        { title: "Retail Bundle Coupon", trigger: "Product stock high", audience: "120 clients", channel: "WhatsApp", roi: "28 bundles sold", badge: "Retail" },
+        { title: "First-Time Second Visit", trigger: "New client + 21 days", audience: "54 clients", channel: "SMS + WhatsApp", roi: "22 repeat visits", badge: "Repeat" },
+      ],
+    },
+    "Smart customer segments": {
+      title: "AI Segment Builder",
+      summary: "9 live segments",
+      metric: "642 clients classified",
+      footer: "Segments are built from visits, spend, service preference and inactivity windows.",
+      campaigns: [
+        { title: "High Value Hair Clients", trigger: "Avg spend above ₹2,500", audience: "96 clients", channel: "WhatsApp", roi: "₹1.8L segment value", badge: "Premium" },
+        { title: "Retail Buyers", trigger: "Bought product twice", audience: "118 clients", channel: "WhatsApp", roi: "44% attach rate", badge: "Retail" },
+        { title: "At-Risk Regulars", trigger: "Visit gap increasing", audience: "73 clients", channel: "WhatsApp", roi: "21 saved clients", badge: "Risk" },
+      ],
+    },
+    "Campaign ROI analytics": {
+      title: "Campaign ROI Analytics",
+      summary: "₹3.4L attributed revenue",
+      metric: "6.8x ROI",
+      footer: "Every flow shows bookings, revenue, claims and conversion so owners know what works.",
+      campaigns: [
+        { title: "Win-Back Revenue", trigger: "45-day inactive", audience: "142 clients", channel: "WhatsApp", roi: "6.8x ROI", badge: "Winner" },
+        { title: "Birthday Claims", trigger: "Birthday offer", audience: "18 clients", channel: "WhatsApp + SMS", roi: "72% claim rate", badge: "Claims" },
+        { title: "Review Conversion", trigger: "Post-service", audience: "240 visits", channel: "WhatsApp", roi: "37 reviews added", badge: "Brand" },
+      ],
+    },
+  };
+  const dashboard = dashboards[activeFeature as keyof typeof dashboards] ?? dashboards["WhatsApp campaigns"];
 
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] overflow-hidden">
+    <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)]">
       {/* Top Bar */}
-      <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3.5">
-        <div className="flex items-center gap-2">
-          <Send className="h-4 w-4 text-[var(--aura-purple)]" />
-          <span className="text-xs font-semibold text-[var(--aura-heading)]">Automated WhatsApp Flows</span>
+      <div className="border-b border-[var(--aura-border)] bg-gradient-to-r from-white via-[var(--aura-off-white)] to-[var(--aura-lavender)] px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Send className="h-4 w-4 text-[var(--aura-purple)]" />
+            <div>
+              <span className="text-xs font-semibold text-[var(--aura-heading)]">{dashboard.title}</span>
+              <p className="text-[10px] text-[var(--aura-muted)]">{dashboard.summary}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-xl bg-white px-3 py-2 text-center text-xs font-bold text-[var(--aura-purple)] shadow-sm ring-1 ring-[var(--aura-border)]">{dashboard.metric}</span>
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              AI Scheduler Running
+            </span>
+          </div>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          AI Scheduler Running
-        </span>
       </div>
 
       {/* Campaigns list */}
       <div className="p-4 space-y-3">
-        {campaigns.map((camp) => (
+        {dashboard.campaigns.map((camp) => (
           <div
             key={camp.title}
             className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5 transition-all hover:border-[var(--aura-purple)]/40 hover:shadow-sm"
@@ -378,6 +787,10 @@ function MarketingAutomationMockup() {
           </div>
         ))}
       </div>
+      <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3 text-[11px] text-[var(--aura-body)]">
+        <span>{dashboard.footer}</span>
+        <span className="font-semibold text-[var(--aura-purple)]">Auto optimized</span>
+      </div>
     </div>
   );
 }
@@ -386,6 +799,38 @@ export function AdvancedFeatures() {
   const inv = useReveal();
   const mem = useReveal();
   const mkt = useReveal();
+  const [activeInventoryFeature, setActiveInventoryFeature] = useState("Live stock tracking");
+  const [activeMembershipFeature, setActiveMembershipFeature] = useState("Tiered memberships");
+  const [activeMarketingFeature, setActiveMarketingFeature] = useState("WhatsApp campaigns");
+  const inventoryFeatures = [
+    { icon: Boxes, label: "Live stock tracking" },
+    { icon: TrendingDown, label: "Service consumption" },
+    { icon: ShoppingCart, label: "Purchase orders (PO)" },
+    { icon: AlertTriangle, label: "Low-stock alerts" },
+    { icon: Tag, label: "Retail product sales" },
+    { icon: Truck, label: "Supplier records" },
+    { icon: History, label: "Stock audit history" },
+  ];
+  const membershipFeatures = [
+    { icon: Crown, label: "Tiered memberships" },
+    { icon: Sparkles, label: "Custom prepaid packages" },
+    { icon: Wallet, label: "Wallet recharge bonus" },
+    { icon: Coins, label: "Points-per-rupee reward" },
+    { icon: Gift, label: "Digital gift cards" },
+    { icon: CreditCard, label: "Prepaid service balance" },
+    { icon: CheckCircle2, label: "Flexible OTP redemption" },
+    { icon: Clock, label: "WhatsApp expiry alerts" },
+  ];
+  const marketingFeatures = [
+    { icon: MessageSquare, label: "WhatsApp campaigns" },
+    { icon: Cake, label: "Birthday greeting offers" },
+    { icon: UserCheck, label: "Inactive client win-back" },
+    { icon: Clock, label: "Appointment reminders" },
+    { icon: Star, label: "Google review requests" },
+    { icon: Tag, label: "Targeted discount coupons" },
+    { icon: Users, label: "Smart customer segments" },
+    { icon: BarChart2, label: "Campaign ROI analytics" },
+  ];
 
   return (
     <>
@@ -412,13 +857,15 @@ export function AdvancedFeatures() {
               </p>
 
               <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">
-                <FeaturePill icon={Boxes} label="Live stock tracking" />
-                <FeaturePill icon={TrendingDown} label="Service consumption" />
-                <FeaturePill icon={ShoppingCart} label="Purchase orders (PO)" />
-                <FeaturePill icon={AlertTriangle} label="Low-stock alerts" />
-                <FeaturePill icon={Tag} label="Retail product sales" />
-                <FeaturePill icon={Truck} label="Supplier records" />
-                <FeaturePill icon={History} label="Stock audit history" />
+                {inventoryFeatures.map(({ icon, label }) => (
+                  <FeaturePill
+                    key={label}
+                    icon={icon}
+                    label={label}
+                    active={activeInventoryFeature === label}
+                    onClick={() => setActiveInventoryFeature(label)}
+                  />
+                ))}
               </ul>
             </div>
 
@@ -430,7 +877,7 @@ export function AdvancedFeatures() {
                 transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
               }}
             >
-              <InventoryMockup />
+              <InventoryMockup activeFeature={activeInventoryFeature} />
             </div>
           </div>
         </Container>
@@ -469,19 +916,20 @@ export function AdvancedFeatures() {
               transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
             }}
           >
-            <MembershipDashboard />
+            <MembershipDashboard activeFeature={activeMembershipFeature} />
           </div>
 
           {/* Feature highlights grid */}
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <FeaturePill icon={Crown} label="Tiered memberships" />
-            <FeaturePill icon={Sparkles} label="Custom prepaid packages" />
-            <FeaturePill icon={Wallet} label="Wallet recharge bonus" />
-            <FeaturePill icon={Coins} label="Points-per-rupee reward" />
-            <FeaturePill icon={Gift} label="Digital gift cards" />
-            <FeaturePill icon={CreditCard} label="Prepaid service balance" />
-            <FeaturePill icon={CheckCircle2} label="Flexible OTP redemption" />
-            <FeaturePill icon={Clock} label="WhatsApp expiry alerts" />
+            {membershipFeatures.map(({ icon, label }) => (
+              <FeaturePill
+                key={label}
+                icon={icon}
+                label={label}
+                active={activeMembershipFeature === label}
+                onClick={() => setActiveMembershipFeature(label)}
+              />
+            ))}
           </div>
         </Container>
       </section>
@@ -512,14 +960,15 @@ export function AdvancedFeatures() {
               </p>
 
               <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">
-                <FeaturePill icon={MessageSquare} label="WhatsApp campaigns" />
-                <FeaturePill icon={Cake} label="Birthday greeting offers" />
-                <FeaturePill icon={UserCheck} label="Inactive client win-back" />
-                <FeaturePill icon={Clock} label="Appointment reminders" />
-                <FeaturePill icon={Star} label="Google review requests" />
-                <FeaturePill icon={Tag} label="Targeted discount coupons" />
-                <FeaturePill icon={Users} label="Smart customer segments" />
-                <FeaturePill icon={BarChart2} label="Campaign ROI analytics" />
+                {marketingFeatures.map(({ icon, label }) => (
+                  <FeaturePill
+                    key={label}
+                    icon={icon}
+                    label={label}
+                    active={activeMarketingFeature === label}
+                    onClick={() => setActiveMarketingFeature(label)}
+                  />
+                ))}
               </ul>
             </div>
 
@@ -531,7 +980,7 @@ export function AdvancedFeatures() {
                 transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
               }}
             >
-              <MarketingAutomationMockup />
+              <MarketingAutomationMockup activeFeature={activeMarketingFeature} />
             </div>
           </div>
         </Container>
