@@ -7,17 +7,12 @@ import { ProductFeatures } from "@/components/landing/ProductFeatures";
 import { AdvancedFeatures } from "@/components/landing/AdvancedFeatures";
 import { AnalyticsAndPlatform } from "@/components/landing/AnalyticsAndPlatform";
 import { POSSandbox } from "@/components/landing/POSSandbox";
-import { WhatsAppSimulator } from "@/components/landing/WhatsAppSimulator";
 import { ROICalculator } from "@/components/landing/ROICalculator";
-import { MultiBranchShowcase } from "@/components/landing/MultiBranchShowcase";
-import { HardwareShowcase } from "@/components/landing/HardwareShowcase";
 import { Stats } from "@/components/landing/Stats";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { IndustriesAndIntegrations } from "@/components/landing/IndustriesAndIntegrations";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { PricingPreview } from "@/components/landing/PricingPreview";
-import { ComparisonSection } from "@/components/landing/ComparisonSection";
-import { SecuritySection } from "@/components/landing/SecuritySection";
 import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
 import { CTASection } from "@/components/landing/CTASection";
 import { SectionDivider } from "@/components/landing/SectionDivider";
@@ -37,21 +32,15 @@ export default function HomePageClient() {
       <AdvancedFeatures />
       <AnalyticsAndPlatform />
       <POSSandbox />
-      <SectionDivider variant="light-to-dark" />
-      <WhatsAppSimulator />
-      <SectionDivider variant="dark-to-light" flip />
       <ROICalculator />
-      <MultiBranchShowcase />
-      <HardwareShowcase />
       <Stats />
       <HowItWorks />
       <IndustriesAndIntegrations />
       <Testimonials />
       <PricingPreview />
-      <ComparisonSection />
-      <SecuritySection />
       <InteractiveFAQ />
       <CTASection />
     </main>
   );
 }
+

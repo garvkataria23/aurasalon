@@ -45,7 +45,7 @@ export function POSSandbox() {
   const total = taxableTotal + gstAmount;
 
   return (
-    <section className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-24 md:py-32">
       <LandingDecor variant="soft" />
       <Container className="relative z-10">
         <div className="grid gap-12 lg:grid-cols-[.45fr_.55fr] lg:items-center">

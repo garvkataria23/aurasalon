@@ -5,36 +5,12 @@ import { Scissors, Sparkles, HandHeart, Stethoscope, Zap, Building2 } from "luci
 import { LandingDecor } from "./LandingDecor";
 
 const INDUSTRIES = [
-  {
-    icon: Scissors,
-    title: "Hair Salon",
-    description: "Chair scheduling, chemical service timing, and stylist turns.",
-  },
-  {
-    icon: Sparkles,
-    title: "Spa & Wellness",
-    description: "Treatment room availability and therapist turn management.",
-  },
-  {
-    icon: HandHeart,
-    title: "Nail Studio",
-    description: "Fast station turnaround and nail art add-on pricing.",
-  },
-  {
-    icon: Stethoscope,
-    title: "Beauty Clinic",
-    description: "Detailed client consultation histories and treatment plans.",
-  },
-  {
-    icon: Zap,
-    title: "Barbershop",
-    description: "High-speed walk-in queue management and quick billing.",
-  },
-  {
-    icon: Building2,
-    title: "Multi-chain Brands",
-    description: "Centralized owner dashboard and cross-branch loyalty.",
-  },
+  { icon: Scissors, title: "Hair Salon" },
+  { icon: Sparkles, title: "Spa & Wellness" },
+  { icon: HandHeart, title: "Nail Studio" },
+  { icon: Stethoscope, title: "Beauty Clinic" },
+  { icon: Zap, title: "Barbershop" },
+  { icon: Building2, title: "Multi-chain" },
 ];
 
 const INTEGRATIONS = [
@@ -43,61 +19,50 @@ const INTEGRATIONS = [
   "Google Calendar",
   "Plausible",
   "Tally",
-  "Custom API"
+  "Custom API",
 ];
 
 export function IndustriesAndIntegrations() {
   return (
-    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]">
+    <section className="relative overflow-hidden py-16 md:py-20 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]">
       <LandingDecor variant="warm" />
       <Container className="relative z-10">
-        {/* Industries */}
-        <div className="mb-20">
-          <div className="mx-auto max-w-3xl text-center mb-16 reveal">
-            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-              Built for every beauty business
-            </h2>
-          </div>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {INDUSTRIES.map((ind, i) => {
+        {/* Industries — compact icon strip */}
+        <div className="reveal mx-auto max-w-4xl text-center">
+          <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm">
+            BUILT FOR EVERY BEAUTY BUSINESS
+          </span>
+          <div className="mt-8 flex flex-wrap justify-center gap-6 md:gap-10">
+            {INDUSTRIES.map((ind) => {
               const Icon = ind.icon;
               return (
-                <div
-                  key={ind.title}
-                  className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-6 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1 flex flex-col`}
-                >
-                  <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+                <div key={ind.title} className="flex flex-col items-center gap-2.5 group">
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] transition-all duration-300 group-hover:shadow-[var(--aura-shadow-md)] group-hover:-translate-y-0.5">
+                    <Icon className="h-6 w-6 text-[var(--aura-purple)]" aria-hidden="true" />
                   </div>
-                  <h3 className="text-base font-bold text-[var(--aura-heading)]">{ind.title}</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-[var(--aura-body)] flex-1">
-                    {ind.description}
-                  </p>
+                  <span className="text-xs font-semibold text-[var(--aura-heading)]">{ind.title}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Integrations */}
-        <div className="reveal">
-          <div className="mx-auto max-w-3xl text-center mb-10">
-            <h2 className="text-2xl font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)]">
-              Connects with your tools
-            </h2>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
+        {/* Integrations — inline text */}
+        <div className="reveal mt-12 text-center">
+          <p className="text-sm text-[var(--aura-body)]">
+            Integrates with{" "}
             {INTEGRATIONS.map((name, i) => (
-              <span
-                key={name}
-                className={`reveal stagger-${i + 1} inline-flex items-center rounded-full bg-white/30 border border-white/50 px-4 py-2 text-sm font-medium text-[var(--aura-body)] shadow-[0_12px_32px_rgba(109,63,209,0.12)] backdrop-blur-md ring-1 ring-white/35`}
-              >
-                {name}
+              <span key={name}>
+                <span className="font-semibold text-[var(--aura-heading)]">{name}</span>
+                {i < INTEGRATIONS.length - 1 && (
+                  <span className="mx-1 text-[var(--aura-border)]">·</span>
+                )}
               </span>
             ))}
-          </div>
+          </p>
         </div>
       </Container>
     </section>
   );
 }
+
