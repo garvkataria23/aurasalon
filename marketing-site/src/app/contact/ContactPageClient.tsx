@@ -154,45 +154,49 @@ export default function ContactPage() {
 
   return (
     <>
-      <section className="relative pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-aura-bg to-white overflow-hidden">
-        <GridBackground className="opacity-30" />
-        <Container className="relative z-10">
-          <SectionHeading
-            badge={t("contact.badge")}
-            title={t("contact.title")}
-            subtitle={t("contact.body")}
-          />
+      <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] relative overflow-hidden">
+        <GridBackground className="opacity-25" />
+        <Container className="relative z-10 text-center max-w-2xl mx-auto">
+          <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
+            {t("contact.badge")}
+          </span>
+          <h1 className="text-[clamp(2.25rem,5vw,3.75rem)] font-bold tracking-[-0.03em] text-[var(--aura-heading)] leading-[1.1] text-balance">
+            {t("contact.title")}
+          </h1>
+          <p className="mt-4 text-base md:text-lg text-[var(--aura-body)] leading-relaxed max-w-xl mx-auto text-pretty">
+            {t("contact.body")}
+          </p>
         </Container>
       </section>
 
-      <section className="pb-20 md:pb-28 bg-white">
+      <section className="py-16 md:py-24 bg-[var(--aura-off-white)]">
         <Container>
-          <div className="grid md:grid-cols-5 gap-12 max-w-5xl mx-auto">
-            <div className="md:col-span-3">
+          <div className="grid md:grid-cols-5 gap-8 lg:gap-12 max-w-5xl mx-auto items-start">
+            <div className="md:col-span-3 rounded-2xl border border-[var(--aura-border)] bg-white p-6 sm:p-8 shadow-[var(--aura-shadow-sm)]">
               {status === "sent" ? (
                 <div
                    className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-12 text-center"
                    role="status"
                 >
                   <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                   <h3 className="text-xl font-bold text-aura-text mb-2">{t("contact.sent")}</h3>
-                  <p className="text-sm text-aura-text-secondary">
+                   <h3 className="text-xl font-bold text-[var(--aura-heading)] mb-2">{t("contact.sent")}</h3>
+                  <p className="text-sm text-[var(--aura-body)]">
                      {t("contact.sentBody")}
                   </p>
                   <button
                     onClick={() => setStatus("idle")}
-                    className="mt-6 text-sm font-semibold text-aura-primary hover:underline"
+                    className="mt-6 text-sm font-semibold text-[var(--aura-purple)] hover:underline"
                   >
                      {t("contact.another")}
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-busy={status === "sending"} aria-describedby={status === "error" ? "contact-submit-error" : undefined}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <FloatingInput label={t("contact.name")} required value={formData.name} onChange={(v) => setFormData({ ...formData, name: v })} placeholder={t("contact.placeholder.name")} error={errors.name} />
                      <FloatingInput label={t("contact.email")} type="email" required value={formData.email} onChange={(v) => setFormData({ ...formData, email: v })} placeholder={t("contact.placeholder.email")} error={errors.email} />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <FloatingInput label={t("contact.phone")} value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} placeholder={t("contact.placeholder.phone")} />
                      <FloatingInput label={t("contact.salon")} value={formData.salonName} onChange={(v) => setFormData({ ...formData, salonName: v })} placeholder={t("contact.placeholder.salon")} />
                   </div>
@@ -201,7 +205,7 @@ export default function ContactPage() {
                   <button
                     type="submit"
                     disabled={status === "sending"}
-                    className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-aura-primary via-aura-primary-light to-aura-primary-light shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] shadow-[var(--aura-shadow-sm)] hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {status === "sending" ? (
                       <>
@@ -215,35 +219,47 @@ export default function ContactPage() {
                     )}
                   </button>
                   {status === "error" && (
-                     <p id="contact-submit-error" className="text-sm text-danger" role="alert">{submitError || t("common.error")}</p>
+                     <p id="contact-submit-error" className="text-sm text-[var(--aura-danger)]" role="alert">{submitError || t("common.error")}</p>
                   )}
                 </form>
               )}
             </div>
 
-            <div className="md:col-span-2">
-              <div className="space-y-6">
+            <div className="md:col-span-2 space-y-6">
+              <div className="rounded-2xl border border-[var(--aura-border)] bg-white p-6 sm:p-7 shadow-[var(--aura-shadow-sm)] space-y-6">
                  {[
                     { icon: MessageSquareText, label: t("contact.channel"), value: t("contact.channelBody") },
                     { icon: FileCheck2, label: t("contact.serviceDetails"), value: t("contact.serviceDetailsBody") },
                  ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-aura-border bg-aura-bg-warm p-6 hover:shadow-md hover:border-aura-border-strong transition-all duration-300">
+                  <div key={item.label} className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
                     <div className="flex items-start gap-3">
-                      <item.icon className="w-5 h-5 text-aura-primary mt-0.5" />
+                      <item.icon className="w-5 h-5 text-[var(--aura-purple)] mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-sm font-semibold text-aura-text">{item.label}</div>
-                        <div className="text-sm text-aura-text-secondary whitespace-pre-line">{item.value}</div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)]">{item.label}</div>
+                        <div className="text-xs text-[var(--aura-body)] mt-1 whitespace-pre-line leading-relaxed">{item.value}</div>
                       </div>
                     </div>
                   </div>
                 ))}
 
-                <div className="rounded-2xl border border-aura-border bg-white p-6">
-                   <h3 className="text-sm font-bold text-aura-text mb-3">{t("contact.quick")}</h3>
-                  <ul className="space-y-2">
-                     <li><a href={CTA_LINKS.demo} className="text-sm text-aura-primary hover:underline">{t("contact.schedule")}</a></li>
-                     <li><a href="/features" className="text-sm text-aura-primary hover:underline">{t("contact.viewFeatures")}</a></li>
-                     <li><a href="/pricing" className="text-sm text-aura-primary hover:underline">{t("contact.viewPricing")}</a></li>
+                {/* Direct WhatsApp Quick Connect */}
+                <div className="pt-2">
+                  <a
+                    href="https://wa.me/919999999999?text=Hi%2C%20I%20am%20interested%20in%20Aura%20Salon%20CRM"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] border border-emerald-300 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 transition-all hover:bg-emerald-100 hover:shadow-xs"
+                  >
+                    <span>💬 Chat with Sales on WhatsApp</span>
+                  </a>
+                </div>
+
+                <div className="border-t border-[var(--aura-border)] pt-4">
+                   <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)] mb-2.5">{t("contact.quick")}</h3>
+                  <ul className="space-y-2 text-xs">
+                     <li><a href={CTA_LINKS.demo} className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.schedule")}</a></li>
+                     <li><a href="/features" className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.viewFeatures")}</a></li>
+                     <li><a href="/pricing" className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.viewPricing")}</a></li>
                   </ul>
                 </div>
               </div>
