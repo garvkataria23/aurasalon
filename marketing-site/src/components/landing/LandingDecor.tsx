@@ -26,11 +26,11 @@ export function LandingDecor({ variant = "soft", className }: LandingDecorProps)
 
       <div
         className={cn(
-          "absolute -left-24 top-12 hidden h-72 w-72 rounded-full blur-3xl sm:block",
+          "absolute -left-20 top-8 h-56 w-56 rounded-full blur-3xl sm:h-72 sm:w-72 sm:-left-24 sm:top-12",
           isWarm ? "bg-white/35" : "bg-[#F7D9FF]/28"
         )}
       />
-      <div className="absolute -right-28 top-1/4 hidden h-80 w-80 rounded-full bg-[var(--aura-purple)]/8 blur-3xl md:block" />
+      <div className="absolute -right-20 top-1/4 h-64 w-64 rounded-full bg-[var(--aura-purple)]/8 blur-3xl sm:h-80 sm:w-80 sm:-right-28" />
 
       <div className="absolute left-[4%] top-[18%] hidden h-36 w-20 rounded-t-full border border-white/45 border-b-0 sm:block" />
       <div className="absolute right-[7%] bottom-[16%] hidden h-28 w-16 rounded-t-full border border-[var(--aura-purple)]/12 border-b-0 md:block" />

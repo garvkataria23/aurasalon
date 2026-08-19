@@ -130,6 +130,18 @@ export function Hero() {
                 />
               </div>
             </div>
+
+            {/* Mobile Metric Pill Strip (Visible below lg) */}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 lg:hidden">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/40 px-3.5 py-1.5 text-xs font-semibold text-[var(--aura-heading)] shadow-xs backdrop-blur-md">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                <span>+42% Repeat Visits</span>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/40 px-3.5 py-1.5 text-xs font-semibold text-[var(--aura-heading)] shadow-xs backdrop-blur-md">
+                <span className="font-bold text-[var(--aura-purple)]">₹0</span>
+                <span>Commission on Bookings</span>
+              </div>
+            </div>
           </div>
         </div>
       </Container>

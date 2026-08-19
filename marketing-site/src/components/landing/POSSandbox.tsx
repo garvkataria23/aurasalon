@@ -51,8 +51,9 @@ export function POSSandbox() {
         <div className="grid gap-12 lg:grid-cols-[.45fr_.55fr] lg:items-center">
           {/* Left Info */}
           <div>
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
-              Interactive POS Sandbox
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live Interactive Sandbox
             </span>
             <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
               Test express billing live right now.

@@ -46,12 +46,13 @@ export function ROICalculator() {
   const recoveredShare = result.monthly > 0 ? Math.round((result.recoveredRevenue / result.monthly) * 100) : 0;
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28 border-t border-[var(--aura-border)]">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
       <LandingDecor variant="soft" />
       <Container className="relative z-10">
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16 items-center">
           <div>
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
+              <Calculator className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
               Value Calculator
             </span>
             <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">

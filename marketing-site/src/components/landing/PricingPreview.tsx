@@ -54,8 +54,8 @@ export function PricingPreview() {
       <Container className="relative z-10">
         {/* Section Heading */}
         <div className="reveal mx-auto max-w-3xl text-center mb-16">
-          <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
-            PRICING
+          <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
+            TRANSPARENT PLANS
           </span>
           <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
             Simple, transparent pricing
@@ -72,13 +72,13 @@ export function PricingPreview() {
               key={plan.name}
               className={`reveal stagger-${i + 1} relative flex flex-col justify-between rounded-2xl border p-8 transition-all duration-300 ${
                 plan.popular
-                  ? "border-[var(--aura-purple)]/35 bg-white/40 shadow-[0_24px_80px_rgba(109,63,209,0.18)] backdrop-blur-xl ring-1 ring-white/35 lg:-translate-y-2"
-                  : "border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)]"
+                  ? "border-[var(--aura-purple)] bg-white shadow-[0_24px_80px_rgba(109,63,209,0.18)] ring-2 ring-[var(--aura-purple)]/20 lg:-translate-y-2"
+                  : "border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1"
               }`}
             >
               {/* Popular Badge */}
               {plan.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-[var(--aura-purple)] px-4 py-1 text-[11px] font-bold text-white shadow-sm">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full bg-[var(--aura-purple)] px-4 py-1 text-[11px] font-bold text-white shadow-md">
                   <Sparkles className="h-3 w-3" />
                   Most Popular
                 </div>

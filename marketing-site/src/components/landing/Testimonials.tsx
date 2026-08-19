@@ -82,7 +82,7 @@ export function Testimonials() {
             return (
               <article
                 key={t.name}
-                className={`group relative flex flex-col justify-between rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-7 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] hover:-translate-y-1 card-hover reveal stagger-${i + 1}`}
+                className={`group relative flex flex-col justify-between rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-7 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1 card-hover reveal stagger-${i + 1}`}
                 style={{
                   opacity: visible ? 1 : 0,
                   transform: visible ? "translateY(0)" : "translateY(20px)",
@@ -100,6 +100,9 @@ export function Testimonials() {
                         />
                       ))}
                     </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      Verified Salon
+                    </span>
                   </div>
 
                   <blockquote className="text-sm leading-relaxed text-[var(--aura-heading)] font-medium">
@@ -108,7 +111,7 @@ export function Testimonials() {
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-[var(--aura-border)] flex items-center gap-3.5">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--aura-lavender)] text-xs font-bold text-[var(--aura-purple)]">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--aura-purple)] to-[#9B7FE6] text-xs font-bold text-white shadow-xs">
                     {initials}
                   </div>
                   <div className="min-w-0 flex-1">

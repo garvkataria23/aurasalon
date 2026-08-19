@@ -32,8 +32,11 @@ export function ProblemSection() {
       
       <Container className="relative z-10">
         <div className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-50/80 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-amber-700 mb-4 backdrop-blur-sm shadow-xs">
+            THE SALON REALITY
+          </span>
           {/* Heading */}
-          <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.15] tracking-[-0.02em] text-[var(--aura-heading)] text-balance">
+          <h2 className="text-[clamp(2rem,4.5vw,3rem)] font-bold leading-[1.12] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
             {t("home.problem.title")}
           </h2>
           <p className="mt-4 text-base text-[var(--aura-body)] leading-relaxed md:text-lg">
