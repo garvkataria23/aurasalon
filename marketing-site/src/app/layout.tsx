@@ -90,7 +90,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-IN" className={`${inter.variable} h-full`} suppressHydrationWarning>
+    <html lang="en-IN" className={`${inter.variable} h-full`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script defer data-domain="aurasalon.in" src="https://plausible.io/js/script.js" />
         {jsonLdScripts.map((ld, i) => (
