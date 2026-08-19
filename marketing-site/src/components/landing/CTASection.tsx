@@ -32,7 +32,7 @@ export function CTASection() {
   const { ref, visible } = useReveal();
 
   return (
-    <section className="relative py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] overflow-hidden border-t border-[var(--aura-border)]">
+    <section className="relative py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] overflow-hidden">
       <LandingDecor variant="cta" />
       <Container className="relative z-10">
         <div

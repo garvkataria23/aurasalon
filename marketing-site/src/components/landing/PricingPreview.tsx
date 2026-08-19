@@ -49,7 +49,7 @@ const PLANS = [
 
 export function PricingPreview() {
   return (
-    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] border-t border-[var(--aura-border)]" id="pricing">
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]" id="pricing">
       <LandingDecor variant="warm" />
       <Container className="relative z-10">
         {/* Section Heading */}

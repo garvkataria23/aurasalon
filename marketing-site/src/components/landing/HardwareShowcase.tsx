@@ -24,7 +24,7 @@ const HARDWARE = [
 
 export function HardwareShowcase() {
   return (
-    <section className="relative bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
+    <section className="relative bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28 overflow-hidden">
       <LandingDecor variant="quiet" />
       <Container className="relative z-10">
         <div className="mx-auto max-w-3xl text-center mb-16 reveal">
@@ -39,7 +39,7 @@ export function HardwareShowcase() {
             return (
               <div
                 key={idx}
-                className={`reveal stagger-${idx + 1} rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-6 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] flex flex-col items-center text-center`}
+                className={`reveal stagger-${idx + 1} rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-6 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] flex flex-col items-center text-center`}
               >
                 <div className="grid h-12 w-12 place-items-center rounded-full bg-[var(--aura-lavender)] text-[var(--aura-purple)] mb-4">
                   <Icon className="h-6 w-6" />

@@ -34,7 +34,7 @@ export function SecuritySection() {
       <Container className="relative z-10">
         {/* Section Heading */}
         <div className="reveal mx-auto max-w-3xl text-center mb-16">
-          <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+          <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm">
             TRUST & SECURITY
           </span>
           <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">

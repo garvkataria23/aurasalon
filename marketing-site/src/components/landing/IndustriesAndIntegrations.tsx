@@ -48,7 +48,7 @@ const INTEGRATIONS = [
 
 export function IndustriesAndIntegrations() {
   return (
-    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] border-t border-[var(--aura-border)]">
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]">
       <LandingDecor variant="warm" />
       <Container className="relative z-10">
         {/* Industries */}
@@ -64,7 +64,7 @@ export function IndustriesAndIntegrations() {
               return (
                 <div
                   key={ind.title}
-                  className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-6 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] hover:-translate-y-1 flex flex-col`}
+                  className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-6 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1 flex flex-col`}
                 >
                   <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                     <Icon className="h-5 w-5" aria-hidden="true" />
