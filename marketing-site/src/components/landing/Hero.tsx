@@ -49,7 +49,7 @@ export function Hero() {
           >
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-[var(--aura-purple)] px-8 py-3.5 text-base font-semibold text-white shadow-[var(--aura-shadow-md)] transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-lg)]"
+              className="btn-glow inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-[var(--aura-purple)] px-8 py-3.5 text-base font-semibold text-white shadow-[var(--aura-shadow-md)] transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-lg)]"
             >
               {t("home.hero.cta.primary")}
               <ArrowRight className="h-5 w-5" aria-hidden="true" />
@@ -103,7 +103,7 @@ export function Hero() {
             </div>
 
             {/* Browser Chrome */}
-            <div className="relative z-10 overflow-hidden rounded-[1.7rem] border border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
+            <div className="shadow-breathe-subtle relative z-10 overflow-hidden rounded-[1.7rem] border border-white/50 bg-white/30 backdrop-blur-xl ring-1 ring-white/35">
               {/* Title bar */}
               <div className="flex items-center gap-2 border-b border-white/45 bg-white/25 px-4 py-3 backdrop-blur-sm">
                 <div className="flex gap-1.5" aria-hidden="true">

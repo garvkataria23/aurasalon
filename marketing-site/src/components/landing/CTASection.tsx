@@ -37,7 +37,7 @@ export function CTASection() {
       <Container className="relative z-10">
         <div
           ref={ref}
-          className={`reveal relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/30 p-8 sm:p-12 md:p-16 lg:p-20 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-700 ease-out ${
+          className={`shadow-breathe-subtle reveal relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/30 p-8 sm:p-12 md:p-16 lg:p-20 backdrop-blur-xl ring-1 ring-white/35 transition-all duration-700 ease-out ${
             visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
@@ -53,10 +53,9 @@ export function CTASection() {
 
           <div className="relative z-10 mx-auto max-w-3xl text-center">
             {/* Badge */}
-            <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-[var(--aura-border)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--aura-purple)] shadow-sm">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
-              Get Started Today
-            </div>
+            <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
+              START YOUR TRANSFORMATION
+            </span>
 
             {/* Headline */}
             <h2 className="text-[clamp(2.25rem,5.5vw,4.25rem)] font-bold leading-[1.08] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
@@ -67,7 +66,7 @@ export function CTASection() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href={CTA_LINKS.demo}
-                className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-8 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-200 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)]"
+                className="btn-glow inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-8 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-200 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-0.5"
               >
                 Book a Demo
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />

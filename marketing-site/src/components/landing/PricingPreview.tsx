@@ -72,7 +72,7 @@ export function PricingPreview() {
               key={plan.name}
               className={`reveal stagger-${i + 1} relative flex flex-col justify-between rounded-2xl border p-8 transition-all duration-300 ${
                 plan.popular
-                  ? "border-[var(--aura-purple)] bg-white shadow-[0_24px_80px_rgba(109,63,209,0.18)] ring-2 ring-[var(--aura-purple)]/20 lg:-translate-y-2"
+                  ? "shadow-breathe border-[var(--aura-purple)] bg-white ring-2 ring-[var(--aura-purple)]/20 lg:-translate-y-2"
                   : "border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1"
               }`}
             >

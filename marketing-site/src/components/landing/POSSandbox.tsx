@@ -93,7 +93,7 @@ export function POSSandbox() {
           </div>
 
           {/* Right Live Clickable POS Sandbox UI */}
-          <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 p-5 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50 md:p-6">
+          <div className="shadow-breathe overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/60 p-5 backdrop-blur-xl ring-1 ring-white/50 md:p-6">
             <div className="flex items-center justify-between border-b border-white/45 pb-4">
               <div className="flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-[var(--aura-purple)]" />
