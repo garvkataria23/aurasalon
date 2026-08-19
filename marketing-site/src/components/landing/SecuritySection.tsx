@@ -2,6 +2,7 @@
 
 import { ShieldCheck, Lock, Users, Database } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 const SECURITY_FEATURES = [
   {
@@ -28,8 +29,9 @@ const SECURITY_FEATURES = [
 
 export function SecuritySection() {
   return (
-    <section className="py-20 md:py-28 bg-[var(--aura-off-white)]">
-      <Container>
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]">
+      <LandingDecor variant="quiet" />
+      <Container className="relative z-10">
         {/* Section Heading */}
         <div className="reveal mx-auto max-w-3xl text-center mb-16">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
@@ -47,7 +49,7 @@ export function SecuritySection() {
             return (
               <div
                 key={feature.title}
-                className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-8 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1`}
+                className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-8 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] hover:-translate-y-1`}
               >
                 <div className="mb-5 grid h-12 w-12 place-items-center rounded-full bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                   <Icon className="h-6 w-6" aria-hidden="true" />

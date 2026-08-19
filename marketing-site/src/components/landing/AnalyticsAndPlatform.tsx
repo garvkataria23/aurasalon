@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 import {
   TrendingUp,
   CalendarCheck,
@@ -174,9 +175,9 @@ function AnalyticsMockup() {
   };
 
   return (
-    <div className="relative rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-xl)] overflow-hidden">
+    <div className="relative rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 overflow-hidden">
       {/* Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/45 bg-white/25 px-5 py-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -204,7 +205,7 @@ function AnalyticsMockup() {
               Export GST Report
             </button>
             {showExportMenu && (
-              <div className="absolute right-0 top-full z-10 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--aura-border)] bg-white text-left shadow-[var(--aura-shadow-lg)]">
+              <div className="absolute right-0 top-full z-10 mt-2 w-56 overflow-hidden rounded-xl border border-white/50 bg-white/80 text-left shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
                 {exportOptions.map((option) => (
                   <button
                     key={option.format}
@@ -235,7 +236,7 @@ function AnalyticsMockup() {
               key={label}
               type="button"
               onClick={() => setActiveMetric(label)}
-              className={`rounded-xl border p-3.5 text-left transition-all ${selected ? "border-[var(--aura-purple)]/30 bg-[var(--aura-lavender)] shadow-md" : "border-[var(--aura-border)] bg-[var(--aura-off-white)] hover:border-[var(--aura-purple)]/30"}`}
+              className={`rounded-xl border p-3.5 text-left backdrop-blur-sm transition-all ${selected ? "border-[var(--aura-purple)]/30 bg-white/40 shadow-md ring-1 ring-white/35" : "border-white/45 bg-white/25 hover:border-[var(--aura-purple)]/30 hover:bg-white/35"}`}
             >
               <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
                 <span className="text-[11px] font-semibold uppercase tracking-wider">{label}</span>
@@ -263,7 +264,7 @@ function AnalyticsMockup() {
                 {exportStatus}
               </button>
               {showExportDetails && (
-                <div className="absolute right-0 top-full z-10 mt-2 w-60 rounded-xl border border-[var(--aura-border)] bg-white p-3 text-left shadow-[var(--aura-shadow-lg)]">
+                <div className="absolute right-0 top-full z-10 mt-2 w-60 rounded-xl border border-white/50 bg-white/80 p-3 text-left shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
                   <p className="text-xs font-bold text-[var(--aura-heading)]">Download ready</p>
                   <p className="mt-1 text-[10px] text-[var(--aura-muted)]">{period === "monthly" ? "Monthly" : "Yearly"} GST report prepared as {lastExportFormat}.</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -382,7 +383,7 @@ function OnePlatformVisual() {
               key={mod.name}
               className={`absolute z-10 ${mod.pos}`}
             >
-              <div className="flex items-center gap-2.5 rounded-2xl border border-[var(--aura-border)] bg-white px-4 py-2.5 shadow-[var(--aura-shadow-md)] transition-all hover:border-[var(--aura-purple)] hover:shadow-lg hover:-translate-y-0.5">
+              <div className="flex items-center gap-2.5 rounded-2xl border border-white/50 bg-white/30 px-4 py-2.5 shadow-[0_18px_48px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/35 transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/45 hover:shadow-[0_24px_64px_rgba(109,63,209,0.18)] hover:-translate-y-0.5">
                 <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                   <Icon className="h-3.5 w-3.5" />
                 </span>
@@ -407,7 +408,7 @@ function OnePlatformVisual() {
             return (
               <div
                 key={mod.name}
-                className="flex items-center gap-2 rounded-xl border border-[var(--aura-border)] bg-white p-3 shadow-xs"
+                className="flex items-center gap-2 rounded-xl border border-white/50 bg-white/30 p-3 shadow-[0_12px_32px_rgba(109,63,209,0.12)] backdrop-blur-md ring-1 ring-white/35"
               >
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                   <Icon className="h-3.5 w-3.5" />
@@ -435,9 +436,10 @@ export function AnalyticsAndPlatform() {
       {/* ── SECTION 1: ANALYTICS ── */}
       <section
         ref={analyticsReveal.ref}
-        className="py-20 md:py-28 bg-white border-t border-[var(--aura-border)]"
+        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28"
       >
-        <Container>
+        <LandingDecor variant="warm" />
+        <Container className="relative z-10">
           <div
             className="mx-auto max-w-3xl text-center mb-14"
             style={{
@@ -472,9 +474,10 @@ export function AnalyticsAndPlatform() {
       {/* ── SECTION 2: WHY AURA (6 CARDS) ── */}
       <section
         ref={whyReveal.ref}
-        className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]"
+        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28"
       >
-        <Container>
+        <LandingDecor variant="soft" />
+        <Container className="relative z-10">
           <div
             className="mx-auto max-w-3xl text-center mb-16"
             style={{
@@ -501,7 +504,7 @@ export function AnalyticsAndPlatform() {
               return (
                 <div
                   key={card.title}
-                  className={`group relative overflow-hidden rounded-[var(--aura-radius-xl)] border p-7 shadow-[var(--aura-shadow-xs)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--aura-shadow-md)] ${featured ? "border-[var(--aura-purple)]/25 bg-gradient-to-br from-white via-white to-[var(--aura-lavender)]" : "border-[var(--aura-border)] bg-white"}`}
+                  className={`group relative overflow-hidden rounded-[var(--aura-radius-xl)] border p-7 shadow-[0_14px_48px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/45 transition-all duration-300 hover:-translate-y-1 hover:bg-white/60 hover:shadow-[0_18px_56px_rgba(82,58,138,0.10)] ${featured ? "border-[var(--aura-purple)]/25 bg-white/55" : "border-white/65 bg-white/35"}`}
                   style={{
                     opacity: whyReveal.visible ? 1 : 0,
                     transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
@@ -540,9 +543,10 @@ export function AnalyticsAndPlatform() {
       {/* ── SECTION 3: ONE CONNECTED PLATFORM VISUAL ── */}
       <section
         ref={platformReveal.ref}
-        className="py-20 md:py-28 bg-white border-t border-[var(--aura-border)]"
+        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28"
       >
-        <Container>
+        <LandingDecor variant="warm" />
+        <Container className="relative z-10">
           <div
             className="mx-auto max-w-3xl text-center mb-10"
             style={{

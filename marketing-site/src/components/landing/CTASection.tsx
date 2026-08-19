@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles, Check } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { useEffect, useRef, useState } from "react";
+import { LandingDecor } from "./LandingDecor";
 
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null);
@@ -31,11 +32,12 @@ export function CTASection() {
   const { ref, visible } = useReveal();
 
   return (
-    <section className="py-20 md:py-28 bg-white overflow-hidden border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] overflow-hidden border-t border-[var(--aura-border)]">
+      <LandingDecor variant="cta" />
+      <Container className="relative z-10">
         <div
           ref={ref}
-          className={`reveal relative overflow-hidden rounded-[2rem] border border-[var(--aura-border)] bg-[var(--aura-lavender)] p-8 sm:p-12 md:p-16 lg:p-20 shadow-[var(--aura-shadow-lg)] transition-all duration-700 ease-out ${
+          className={`reveal relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/30 p-8 sm:p-12 md:p-16 lg:p-20 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-700 ease-out ${
             visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >

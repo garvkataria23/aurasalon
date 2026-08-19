@@ -2,6 +2,7 @@
 
 import { Container } from "@/components/ui/Container";
 import { Scissors, Sparkles, HandHeart, Stethoscope, Zap, Building2 } from "lucide-react";
+import { LandingDecor } from "./LandingDecor";
 
 const INDUSTRIES = [
   {
@@ -47,8 +48,9 @@ const INTEGRATIONS = [
 
 export function IndustriesAndIntegrations() {
   return (
-    <section className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] border-t border-[var(--aura-border)]">
+      <LandingDecor variant="warm" />
+      <Container className="relative z-10">
         {/* Industries */}
         <div className="mb-20">
           <div className="mx-auto max-w-3xl text-center mb-16 reveal">
@@ -62,7 +64,7 @@ export function IndustriesAndIntegrations() {
               return (
                 <div
                   key={ind.title}
-                  className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-6 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1 flex flex-col`}
+                  className={`reveal stagger-${i + 1} rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-6 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] hover:-translate-y-1 flex flex-col`}
                 >
                   <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                     <Icon className="h-5 w-5" aria-hidden="true" />
@@ -88,7 +90,7 @@ export function IndustriesAndIntegrations() {
             {INTEGRATIONS.map((name, i) => (
               <span
                 key={name}
-                className={`reveal stagger-${i + 1} inline-flex items-center rounded-full bg-white border border-[var(--aura-border)] px-4 py-2 text-sm font-medium text-[var(--aura-body)] shadow-[var(--aura-shadow-sm)]`}
+                className={`reveal stagger-${i + 1} inline-flex items-center rounded-full bg-white/30 border border-white/50 px-4 py-2 text-sm font-medium text-[var(--aura-body)] shadow-[0_12px_32px_rgba(109,63,209,0.12)] backdrop-blur-md ring-1 ring-white/35`}
               >
                 {name}
               </span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Building2, TrendingUp, Users, Package, ArrowUpRight, CheckCircle2, Repeat, BarChart3, AlertTriangle } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 type BranchData = {
   id: string;
@@ -40,8 +41,9 @@ export function MultiBranchShowcase() {
   ];
 
   return (
-    <section className="bg-[var(--aura-off-white)] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
+      <LandingDecor variant="warm" />
+      <Container className="relative z-10">
         <div className="mx-auto max-w-3xl text-center mb-10">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
             Multi-Location Scale
@@ -86,8 +88,8 @@ export function MultiBranchShowcase() {
         </div>
 
         {/* Interactive Stats Dashboard Card */}
-        <div className="mx-auto max-w-4xl rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-6 md:p-8 shadow-[var(--aura-shadow-lg)]">
-          <div className="flex flex-wrap items-center justify-between border-b border-[var(--aura-border)] pb-4 gap-3">
+        <div className="mx-auto max-w-4xl rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-6 md:p-8 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
+          <div className="flex flex-wrap items-center justify-between border-b border-white/45 pb-4 gap-3">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--aura-purple)]">{isAllBranches ? "Owner Control Center" : "Active Branch View"}</span>
               <h3 className="text-xl font-bold text-[var(--aura-heading)]">{isAllBranches ? "All Branches Overview" : selectedBranch.name}</h3>
@@ -112,7 +114,7 @@ export function MultiBranchShowcase() {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+            <div className="rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
                 <span className="text-xs font-medium">{period} Sales</span>
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
@@ -120,7 +122,7 @@ export function MultiBranchShowcase() {
               <p className="text-lg font-bold text-[var(--aura-heading)]">{isAllBranches ? formatRevenue(totalRevenue) : formatRevenue(Number(selectedBranch.todayRevenue.replace(/[^0-9]/g, "")))}</p>
             </div>
 
-            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+            <div className="rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
                 <span className="text-xs font-medium">Appointments</span>
                 <Users className="h-4 w-4 text-[var(--aura-purple)]" />
@@ -128,7 +130,7 @@ export function MultiBranchShowcase() {
               <p className="text-lg font-bold text-[var(--aura-heading)]">{(isAllBranches ? totalAppointments : selectedBranch.appointments) * periodMultiplier} bookings</p>
             </div>
 
-            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+            <div className="rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
                 <span className="text-xs font-medium">Staff on Floor</span>
                 <Users className="h-4 w-4 text-amber-600" />
@@ -136,7 +138,7 @@ export function MultiBranchShowcase() {
               <p className="text-lg font-bold text-[var(--aura-heading)]">{isAllBranches ? totalStaff : selectedBranch.activeStaff} stylists</p>
             </div>
 
-            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+            <div className="rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between text-[var(--aura-muted)] mb-1">
                 <span className="text-xs font-medium">Stock Status</span>
                 <Package className="h-4 w-4 text-emerald-600" />
@@ -146,14 +148,14 @@ export function MultiBranchShowcase() {
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
-            <div className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+            <div className="rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
               <div className="mb-3 flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)]">Branch Comparison</h4>
                 <span className="text-[10px] font-bold text-[var(--aura-purple)]">{avgUtilization}% avg utilisation</span>
               </div>
               <div className="space-y-2">
                 {BRANCHES.map((branch) => (
-                  <button key={branch.id} type="button" onClick={() => setSelectedBranchId(branch.id)} className="flex w-full items-center gap-3 rounded-lg bg-white px-3 py-2 text-left hover:bg-[var(--aura-lavender)]/50">
+                  <button key={branch.id} type="button" onClick={() => setSelectedBranchId(branch.id)} className="flex w-full items-center gap-3 rounded-lg bg-white/35 px-3 py-2 text-left backdrop-blur-sm hover:bg-white/50">
                     <span className={`h-2.5 w-2.5 rounded-full ${branch.stockStatus.includes("Low") ? "bg-amber-500" : "bg-emerald-500"}`} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-bold text-[var(--aura-heading)]">{branch.city}</p>
@@ -167,7 +169,7 @@ export function MultiBranchShowcase() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--aura-border)] bg-white p-4">
+            <div className="rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
               <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)]">Owner Actions</h4>
               <div className="grid gap-2">
                 {[{ icon: Repeat, label: "Transfer stock" }, { icon: Users, label: "Move staff" }, { icon: BarChart3, label: "View P&L" }, { icon: ArrowUpRight, label: "Open branch" }].map(({ icon: Icon, label }) => (
@@ -186,7 +188,7 @@ export function MultiBranchShowcase() {
             </div>
             <div className="grid gap-2 sm:grid-cols-3">
               {alerts.map((alert) => (
-                <div key={alert} className="rounded-lg bg-white px-3 py-2 text-[11px] font-medium text-[var(--aura-body)] shadow-xs">{alert}</div>
+                <div key={alert} className="rounded-lg bg-white/45 px-3 py-2 text-[11px] font-medium text-[var(--aura-body)] shadow-xs backdrop-blur-sm">{alert}</div>
               ))}
             </div>
           </div>

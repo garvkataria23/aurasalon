@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 const TESTIMONIALS = [
   {
@@ -52,9 +53,10 @@ export function Testimonials() {
   return (
     <section
       ref={ref}
-      className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]"
+      className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] border-t border-[var(--aura-border)]"
     >
-      <Container>
+      <LandingDecor variant="soft" />
+      <Container className="relative z-10">
         {/* Section Heading */}
         <div
           className={`mx-auto max-w-3xl text-center mb-16 transition-all duration-700 ease-out ${
@@ -80,7 +82,7 @@ export function Testimonials() {
             return (
               <article
                 key={t.name}
-                className={`group relative flex flex-col justify-between rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-7 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1 card-hover reveal stagger-${i + 1}`}
+                className={`group relative flex flex-col justify-between rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-7 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] hover:-translate-y-1 card-hover reveal stagger-${i + 1}`}
                 style={{
                   opacity: visible ? 1 : 0,
                   transform: visible ? "translateY(0)" : "translateY(20px)",

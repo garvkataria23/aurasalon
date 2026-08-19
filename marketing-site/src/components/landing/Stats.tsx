@@ -1,6 +1,7 @@
 "use client";
 
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 export function Stats() {
   const metrics = [
@@ -27,12 +28,13 @@ export function Stats() {
   ];
 
   return (
-    <section className="relative py-20 md:py-28 overflow-hidden bg-gradient-to-br from-[#EEE5FF] via-[#E3D5FF] to-[#D6C3FF] text-[var(--aura-heading)] shadow-sm">
+    <section className="relative py-20 md:py-28 overflow-hidden bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] text-[var(--aura-heading)] shadow-sm">
       {/* Decorative background aura shapes */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-white/80 blur-3xl" />
         <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-[var(--aura-purple)]/10 blur-3xl" />
       </div>
+      <LandingDecor variant="warm" />
 
       <Container className="relative z-10">
         {/* Section Header */}
@@ -47,7 +49,7 @@ export function Stats() {
           {metrics.map((item, idx) => (
             <div
               key={idx}
-              className="group rounded-[var(--aura-radius-xl)] border border-[var(--aura-purple)]/12 bg-white/70 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[var(--aura-purple)]/25 hover:bg-white hover:shadow-[var(--aura-shadow-md)] flex flex-col"
+              className="group rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 p-6 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--aura-purple)]/25 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)] flex flex-col"
             >
               <div className="mb-6">
                 <span className="text-5xl font-bold text-[var(--aura-purple)] tabular-nums tracking-tight">

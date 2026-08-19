@@ -10,6 +10,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { LandingDecor } from "./LandingDecor";
 
 const PROBLEMS = [
   { icon: CalendarX, key: "home.problem.item.appointments" },
@@ -24,9 +25,10 @@ export function ProblemSection() {
   const { t } = useLanguage();
 
   return (
-    <section className="relative overflow-hidden bg-[var(--aura-off-white)] py-20 md:py-28">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28">
       {/* Background Orb */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--aura-purple)]/5 rounded-full blur-[100px] pointer-events-none" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(243,240,255,0.95),transparent_36%),radial-gradient(circle_at_12%_70%,rgba(111,79,216,0.08),transparent_28%)] pointer-events-none" aria-hidden="true" />
+      <LandingDecor variant="warm" />
       
       <Container className="relative z-10">
         <div className="mx-auto max-w-3xl text-center">
@@ -44,7 +46,7 @@ export function ProblemSection() {
           {PROBLEMS.map(({ icon: Icon, key }, i) => (
             <div
               key={key}
-              className={`reveal stagger-${i + 1} card-hover flex items-start gap-4 rounded-2xl border border-[var(--aura-border)] bg-white p-5 transition-shadow duration-300 hover:shadow-[var(--aura-shadow-md)]`}
+              className={`reveal stagger-${i + 1} card-hover flex items-start gap-4 rounded-2xl border border-white/65 bg-white/35 p-5 shadow-[0_14px_48px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/45 transition-all duration-300 hover:bg-white/60 hover:shadow-[0_18px_56px_rgba(82,58,138,0.10)]`}
             >
               <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50">
                 <Icon className="h-5 w-5 text-amber-500" aria-hidden="true" />

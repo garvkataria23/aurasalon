@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 import {
-  Calendar, Clock, Users, UserPlus, ListChecks, Globe, Bell, RefreshCw,
+  Calendar, CheckCircle2, Clock, Users, UserPlus, ListChecks, Globe, Bell, RefreshCw,
   Receipt, CreditCard, Percent, Gift, Wallet, ArrowLeftRight, BadgeDollarSign, History,
   User, Heart, Star, StickyNote, Cake, Award, TrendingUp, ShoppingBag,
   Fingerprint, CalendarDays, Target, Coins, FileText, BarChart3, Repeat, Shield,
@@ -40,10 +41,10 @@ function FeaturePill({
 }) {
   const content = (
     <>
-      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${active ? "bg-[var(--aura-purple)]" : "bg-[var(--aura-lavender)]"}`}>
-        <Icon className={`h-3.5 w-3.5 ${active ? "text-white" : "text-[var(--aura-purple)]"}`} aria-hidden="true" />
+      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors ${active ? "bg-[var(--aura-purple)] text-white" : "bg-white/70 text-[var(--aura-purple)] ring-1 ring-[var(--aura-purple)]/10"}`}>
+        {active ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
       </span>
-      {label}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
     </>
   );
 
@@ -53,12 +54,12 @@ function FeaturePill({
         <button
           type="button"
           onClick={onClick}
-          className={`flex w-full items-center gap-2 rounded-xl p-1 text-left text-sm transition-all ${active ? "bg-[var(--aura-lavender)] text-[var(--aura-purple)] shadow-sm" : "text-[var(--aura-body)] hover:bg-[var(--aura-lavender)]/50 hover:text-[var(--aura-purple)]"}`}
+          className={`flex w-full items-center gap-2.5 rounded-full border px-2.5 py-2 text-left text-sm transition-all duration-300 ${active ? "border-[var(--aura-purple)]/20 bg-white/75 text-[var(--aura-purple)] shadow-[0_10px_30px_rgba(109,63,209,0.08)]" : "border-white/55 bg-white/35 text-[var(--aura-body)] hover:border-[var(--aura-purple)]/18 hover:bg-white/60 hover:text-[var(--aura-heading)]"}`}
         >
           {content}
         </button>
       ) : (
-        <span className="flex items-center gap-2 text-sm text-[var(--aura-body)]">{content}</span>
+        <span className="flex items-center gap-2.5 text-sm text-[var(--aura-body)]">{content}</span>
       )}
     </li>
   );
@@ -200,8 +201,8 @@ function CalendarMockup({ activeFeature = "Real-time calendar" }: { activeFeatur
 
   if (panel) {
     return (
-      <div className="min-h-[332px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-        <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+      <div className="min-h-[332px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+        <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
           <span className="text-xs font-semibold text-[var(--aura-heading)]">{panel.title}</span>
           <span className="text-xs text-[var(--aura-muted)]">{panel.meta}</span>
         </div>
@@ -225,13 +226,13 @@ function CalendarMockup({ activeFeature = "Real-time calendar" }: { activeFeatur
   }
 
   return (
-    <div className="min-h-[332px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-      <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+    <div className="min-h-[332px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+      <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Today&apos;s Schedule</span>
         <span className="text-xs text-[var(--aura-muted)]">{selectedDay.date}</span>
       </div>
       {/* Day headers */}
-      <div className="grid grid-cols-7 border-b border-[var(--aura-border)] bg-[var(--aura-off-white)]">
+      <div className="grid grid-cols-7 border-b border-white/45 bg-white/20">
         {days.map((day, i) => (
           <button
             key={day.label}
@@ -369,8 +370,8 @@ function POSMockup({ activeFeature = "GST invoices" }: { activeFeature?: string 
 
   if (activeFeature !== "Multiple payment methods") {
     return (
-      <div className="min-h-[462px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-        <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+      <div className="min-h-[462px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+        <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
           <span className="text-xs font-semibold text-[var(--aura-heading)]">{panel.title}</span>
           <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">{panel.meta}</span>
         </div>
@@ -380,7 +381,7 @@ function POSMockup({ activeFeature = "GST invoices" }: { activeFeature?: string 
             <p className="mt-1 text-lg font-bold">{panel.summary}</p>
           </div>
           {panel.rows.map(([label, value, detail]) => (
-            <div key={label} className="flex items-center justify-between rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] px-3 py-3">
+            <div key={label} className="flex items-center justify-between rounded-xl border border-white/45 bg-white/25 px-3 py-3 backdrop-blur-sm">
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-[var(--aura-heading)]">{label}</p>
                 <p className="truncate text-[10px] text-[var(--aura-muted)]">{detail}</p>
@@ -397,14 +398,14 @@ function POSMockup({ activeFeature = "GST invoices" }: { activeFeature?: string 
   }
 
   return (
-    <div className="min-h-[462px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-      <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+    <div className="min-h-[462px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+      <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Express Checkout</span>
         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">GST Ready</span>
       </div>
       <div className="p-4 space-y-2">
         {items.map((item) => (
-          <div key={item.name} className="flex items-center justify-between rounded-lg bg-[var(--aura-off-white)] px-3 py-2.5">
+          <div key={item.name} className="flex items-center justify-between rounded-lg bg-white/25 px-3 py-2.5 backdrop-blur-sm">
             <div>
               <p className="text-xs font-semibold text-[var(--aura-heading)]">{item.name}</p>
               <p className="text-[10px] text-[var(--aura-muted)]">Qty: {item.qty}</p>
@@ -573,8 +574,8 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
 
   if (panel) {
     return (
-      <div className="min-h-[442px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-        <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+      <div className="min-h-[442px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+        <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
           <span className="text-xs font-semibold text-[var(--aura-heading)]">{panel.title}</span>
           <span className="text-[10px] text-[var(--aura-muted)]">{panel.meta}</span>
         </div>
@@ -584,7 +585,7 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
             <p className="mt-1 text-lg font-bold">{panel.summary}</p>
           </div>
           {panel.rows.map(([label, value, detail]) => (
-            <div key={label} className="flex items-center justify-between rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] px-3 py-3">
+            <div key={label} className="flex items-center justify-between rounded-xl border border-white/45 bg-white/25 px-3 py-3 backdrop-blur-sm">
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-[var(--aura-heading)]">{label}</p>
                 <p className="truncate text-[10px] text-[var(--aura-muted)]">{detail}</p>
@@ -601,14 +602,14 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
   }
 
   return (
-    <div className="min-h-[442px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-      <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+    <div className="min-h-[442px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+      <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Client Profile</span>
         <span className="text-[10px] text-[var(--aura-muted)]">Swipe clients</span>
       </div>
       <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {clients.map((client) => (
-          <div key={client.id} className="w-full shrink-0 snap-center rounded-2xl bg-white">
+          <div key={client.id} className="w-full shrink-0 snap-center rounded-2xl border border-white/45 bg-white/25 p-3 backdrop-blur-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--aura-lavender)] text-sm font-bold text-[var(--aura-purple)]">{client.initials}</div>
@@ -622,7 +623,7 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
 
             <div className="mb-3 grid grid-cols-3 gap-2">
               {client.stats.map(([val, lbl]) => (
-                <div key={lbl} className="rounded-xl bg-[var(--aura-off-white)] p-2.5 text-center">
+                <div key={lbl} className="rounded-xl bg-white/25 p-2.5 text-center backdrop-blur-sm">
                   <p className="text-sm font-bold text-[var(--aura-heading)] tabular-nums">{val}</p>
                   <p className="text-[9px] text-[var(--aura-muted)]">{lbl}</p>
                 </div>
@@ -638,7 +639,7 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
             <div className="space-y-1.5">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-muted)]">Recent Visits</p>
               {client.visits.map(([date, svc, amt]) => (
-                <div key={`${client.id}-${date}`} className="flex items-center justify-between rounded-lg bg-[var(--aura-off-white)] px-3 py-2">
+                <div key={`${client.id}-${date}`} className="flex items-center justify-between rounded-lg bg-white/25 px-3 py-2 backdrop-blur-sm">
                   <div><p className="text-[11px] font-medium text-[var(--aura-heading)]">{svc}</p><p className="text-[10px] text-[var(--aura-muted)]">{date}</p></div>
                   <span className="text-[11px] font-bold text-[var(--aura-heading)] tabular-nums">{amt}</span>
                 </div>
@@ -647,7 +648,7 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
           </div>
         ))}
       </div>
-      <div className="flex justify-center gap-1.5 border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-2">
+      <div className="flex justify-center gap-1.5 border-t border-white/45 bg-white/25 px-5 py-2">
         {clients.map((client, index) => (
           <span key={client.id} className={`h-1.5 rounded-full ${index === 0 ? "w-5 bg-[var(--aura-purple)]" : "w-1.5 bg-[var(--aura-border)]"}`} />
         ))}
@@ -749,8 +750,8 @@ function StaffMockup({ activeFeature = "Attendance tracking" }: { activeFeature?
   };
   const dashboard = dashboards[activeFeature as keyof typeof dashboards] ?? dashboards["Attendance tracking"];
   return (
-    <div className="min-h-[336px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
-      <div className="flex items-center justify-between border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3">
+    <div className="min-h-[336px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+      <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Team Dashboard</span>
         <span className="text-[10px] text-[var(--aura-muted)]">{dashboard.label}</span>
       </div>
@@ -775,7 +776,7 @@ function StaffMockup({ activeFeature = "Attendance tracking" }: { activeFeature?
               : "bg-[var(--aura-lavender)] text-[var(--aura-purple)]";
 
           return (
-          <div key={m.name} className="rounded-xl border border-[var(--aura-border)] bg-white p-3 shadow-sm shadow-[var(--aura-purple)]/5">
+          <div key={m.name} className="rounded-xl border border-white/45 bg-white/25 p-3 shadow-sm shadow-[var(--aura-purple)]/5 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[10px] font-bold text-[var(--aura-purple)] ring-1 ring-[var(--aura-purple)]/10">
@@ -915,10 +916,12 @@ function ProductSection({
   return (
     <section
       ref={ref}
-      className={`py-16 md:py-24 ${index % 2 === 0 ? "bg-white" : "bg-[var(--aura-off-white)]"}`}
+      className={`relative overflow-hidden border-t border-white/70 py-16 md:py-24 ${index % 2 === 0 ? "bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF]" : "bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]"}`}
     >
-      <Container>
-        <div className={`grid items-center gap-10 lg:gap-16 lg:grid-cols-2 ${reversed ? "lg:[direction:rtl]" : ""}`}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_82%_52%,rgba(111,79,216,0.10),transparent_30%)]" aria-hidden="true" />
+      <LandingDecor variant={index % 2 === 0 ? "soft" : "warm"} />
+      <Container className="relative z-10">
+        <div className={`grid items-center gap-10 rounded-[2rem] border border-white/65 bg-white/20 p-5 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm md:p-8 lg:gap-16 lg:grid-cols-2 lg:p-10 ${reversed ? "lg:[direction:rtl]" : ""}`}>
           {/* Text */}
           <div
             className={reversed ? "lg:[direction:ltr]" : ""}
@@ -928,16 +931,20 @@ function ProductSection({
               transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
             }}
           >
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+            <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
               {section.badge}
             </span>
-            <h2 className="text-[clamp(1.75rem,4vw,2.65rem)] font-semibold leading-[1.12] tracking-[-0.035em] text-[var(--aura-heading)]">
+            <h2 className="max-w-xl text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)]">
               {section.headline}
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)] max-w-lg">
+            <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
               {section.body}
             </p>
-            <ul className="mt-7 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-semibold text-[var(--aura-purple)]">
+              <span className="rounded-full bg-white/60 px-3 py-1 ring-1 ring-white/70">Live preview</span>
+              <span className="rounded-full bg-[var(--aura-lavender)]/75 px-3 py-1 ring-1 ring-[var(--aura-purple)]/10">Front desk ready</span>
+            </div>
+            <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">
               {section.features.map(({ icon, label }) => (
                 <FeaturePill
                   key={label}
@@ -952,13 +959,16 @@ function ProductSection({
 
           {/* Mockup */}
           <div
-            className={reversed ? "lg:[direction:ltr]" : ""}
+            className={`relative ${reversed ? "lg:[direction:ltr]" : ""}`}
             style={{
               opacity: visible ? 1 : 0,
               transform: visible ? "translateY(0)" : "translateY(24px)",
               transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
             }}
           >
+            <div className="pointer-events-none absolute -top-4 left-4 z-10 hidden rounded-full border border-white/70 bg-white/75 px-3 py-1.5 text-[11px] font-semibold text-[var(--aura-heading)] shadow-[0_12px_40px_rgba(82,58,138,0.10)] backdrop-blur-md sm:block">
+              {activeFeature}
+            </div>
             {isAppointmentSection ? <CalendarMockup activeFeature={activeFeature} /> : isBillingSection ? <POSMockup activeFeature={activeFeature} /> : isCrmSection ? <ClientMockup activeFeature={activeFeature} /> : isStaffSection ? <StaffMockup activeFeature={activeFeature} /> : <Mockup />}
           </div>
         </div>

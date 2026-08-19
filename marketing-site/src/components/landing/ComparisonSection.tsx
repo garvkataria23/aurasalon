@@ -2,6 +2,7 @@
 
 import { Check, X } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 const FEATURES = [
   {
@@ -56,8 +57,9 @@ const FEATURES = [
 
 export function ComparisonSection() {
   return (
-    <section className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] border-t border-[var(--aura-border)]">
+      <LandingDecor variant="soft" />
+      <Container className="relative z-10">
         {/* Section Heading */}
         <div className="mx-auto max-w-3xl text-center mb-14 reveal">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
@@ -69,19 +71,19 @@ export function ComparisonSection() {
         </div>
 
         {/* Comparison Table */}
-        <div className="reveal mx-auto max-w-4xl overflow-hidden rounded-2xl border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-md)]">
+        <div className="reveal mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-[var(--aura-border)]">
-                  <th className="p-5 font-semibold text-[var(--aura-heading)] bg-white">Feature</th>
+                  <th className="p-5 font-semibold text-[var(--aura-heading)] bg-white/25 backdrop-blur-sm">Feature</th>
                   <th className="p-5 font-bold text-white bg-[var(--aura-purple)]">
                     Aura
                   </th>
-                  <th className="p-5 font-semibold text-[var(--aura-heading)] bg-white text-center">
+                  <th className="p-5 font-semibold text-[var(--aura-heading)] bg-white/25 text-center backdrop-blur-sm">
                     Traditional Software
                   </th>
-                  <th className="p-5 font-semibold text-[var(--aura-heading)] bg-white text-center">
+                  <th className="p-5 font-semibold text-[var(--aura-heading)] bg-white/25 text-center backdrop-blur-sm">
                     Excel/WhatsApp
                   </th>
                 </tr>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { CTA_LINKS } from "@/lib/constants";
+import { LandingDecor } from "./LandingDecor";
 
 const PLANS = [
   {
@@ -48,8 +49,9 @@ const PLANS = [
 
 export function PricingPreview() {
   return (
-    <section className="py-20 md:py-28 bg-white border-t border-[var(--aura-border)]" id="pricing">
-      <Container>
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] border-t border-[var(--aura-border)]" id="pricing">
+      <LandingDecor variant="warm" />
+      <Container className="relative z-10">
         {/* Section Heading */}
         <div className="reveal mx-auto max-w-3xl text-center mb-16">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
@@ -70,8 +72,8 @@ export function PricingPreview() {
               key={plan.name}
               className={`reveal stagger-${i + 1} relative flex flex-col justify-between rounded-2xl border p-8 transition-all duration-300 ${
                 plan.popular
-                  ? "border-[var(--aura-purple)] bg-[var(--aura-off-white)] shadow-[var(--aura-shadow-lg)] lg:-translate-y-2"
-                  : "border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] hover:shadow-[var(--aura-shadow-md)]"
+                  ? "border-[var(--aura-purple)]/35 bg-white/40 shadow-[0_24px_80px_rgba(109,63,209,0.18)] backdrop-blur-xl ring-1 ring-white/35 lg:-translate-y-2"
+                  : "border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35 hover:bg-white/45 hover:shadow-[0_28px_90px_rgba(109,63,209,0.2)]"
               }`}
             >
               {/* Popular Badge */}

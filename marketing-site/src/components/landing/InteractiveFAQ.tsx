@@ -2,6 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 const FAQS = [
   {
@@ -35,8 +36,9 @@ export function InteractiveFAQ() {
   const col2 = FAQS.slice(3, 6);
 
   return (
-    <section className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]" id="faq">
-      <Container className="reveal">
+    <section className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] border-t border-[var(--aura-border)]" id="faq">
+      <LandingDecor variant="quiet" />
+      <Container className="reveal relative z-10">
         {/* Section Heading */}
         <div className="mx-auto max-w-3xl text-center mb-16">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
@@ -53,7 +55,7 @@ export function InteractiveFAQ() {
             {col1.map((faq, i) => (
               <details
                 key={i}
-                className="group rounded-xl border border-[var(--aura-border)] bg-white shadow-xs transition-all hover:border-[var(--aura-purple)]/30 open:border-[var(--aura-purple)]/30"
+                className="group rounded-xl border border-white/50 bg-white/30 shadow-[0_16px_48px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/35 transition-all hover:border-[var(--aura-purple)]/30 hover:bg-white/45 open:border-[var(--aura-purple)]/30 open:bg-white/40"
               >
                 <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-bold text-[var(--aura-heading)] list-none [&::-webkit-details-marker]:hidden">
                   {faq.question}
@@ -69,7 +71,7 @@ export function InteractiveFAQ() {
             {col2.map((faq, i) => (
               <details
                 key={i}
-                className="group rounded-xl border border-[var(--aura-border)] bg-white shadow-xs transition-all hover:border-[var(--aura-purple)]/30 open:border-[var(--aura-purple)]/30"
+                className="group rounded-xl border border-white/50 bg-white/30 shadow-[0_16px_48px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/35 transition-all hover:border-[var(--aura-purple)]/30 hover:bg-white/45 open:border-[var(--aura-purple)]/30 open:bg-white/40"
               >
                 <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-bold text-[var(--aura-heading)] list-none [&::-webkit-details-marker]:hidden">
                   {faq.question}

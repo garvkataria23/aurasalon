@@ -20,6 +20,7 @@ import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { SecuritySection } from "@/components/landing/SecuritySection";
 import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
 import { CTASection } from "@/components/landing/CTASection";
+import { SectionDivider } from "@/components/landing/SectionDivider";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function HomePageClient() {
@@ -28,13 +29,17 @@ export default function HomePageClient() {
   return (
     <main ref={containerRef as React.RefObject<HTMLElement>} className="aura-home min-h-screen">
       <Hero />
+      <SectionDivider variant="dark-to-light" />
       <TrustStrip />
+      <SectionDivider variant="light-to-dark" flip />
       <ProblemSection />
       <ProductFeatures />
       <AdvancedFeatures />
       <AnalyticsAndPlatform />
       <POSSandbox />
+      <SectionDivider variant="light-to-dark" />
       <WhatsAppSimulator />
+      <SectionDivider variant="dark-to-light" flip />
       <ROICalculator />
       <MultiBranchShowcase />
       <HardwareShowcase />

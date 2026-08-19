@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Receipt, Plus, Trash2, CheckCircle2, ShieldCheck, Printer, ArrowRight, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 type ServiceItem = {
   id: string;
@@ -44,8 +45,9 @@ export function POSSandbox() {
   const total = taxableTotal + gstAmount;
 
   return (
-    <section className="bg-[var(--aura-off-white)] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
+      <LandingDecor variant="soft" />
+      <Container className="relative z-10">
         <div className="grid gap-12 lg:grid-cols-[.45fr_.55fr] lg:items-center">
           {/* Left Info */}
           <div>
@@ -63,7 +65,7 @@ export function POSSandbox() {
               <button
                 type="button"
                 onClick={() => { setPrinted(true); setShowReceipt(true); }}
-                className={`w-full rounded-xl border p-4 flex items-center gap-3 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:border-[var(--aura-purple)] hover:shadow-md ${showReceipt ? "border-[var(--aura-purple)] bg-[var(--aura-lavender)]/40" : "border-[var(--aura-border)] bg-white"}`}
+                className={`w-full rounded-xl border p-4 flex items-center gap-3 text-left shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:shadow-md ${showReceipt ? "border-[var(--aura-purple)]/25 bg-white/65 ring-1 ring-white/45" : "border-white/65 bg-white/35 hover:bg-white/60"}`}
               >
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)] font-bold text-xs">
                   ⚡
@@ -76,7 +78,7 @@ export function POSSandbox() {
               <button
                 type="button"
                 onClick={() => { setPaymentMode("Split"); setPrinted(false); }}
-                className={`w-full rounded-xl border p-4 flex items-center gap-3 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md ${paymentMode === "Split" ? "border-emerald-200 bg-emerald-50" : "border-[var(--aura-border)] bg-white"}`}
+                className={`w-full rounded-xl border p-4 flex items-center gap-3 text-left shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:shadow-md ${paymentMode === "Split" ? "border-emerald-200 bg-emerald-50/80" : "border-white/65 bg-white/35 hover:bg-white/60"}`}
               >
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs">
                   ₹
@@ -90,8 +92,8 @@ export function POSSandbox() {
           </div>
 
           {/* Right Live Clickable POS Sandbox UI */}
-          <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)] p-5 md:p-6">
-            <div className="flex items-center justify-between border-b border-[var(--aura-border)] pb-4">
+          <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 p-5 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50 md:p-6">
+            <div className="flex items-center justify-between border-b border-white/45 pb-4">
               <div className="flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-[var(--aura-purple)]" />
                 <div>
@@ -120,7 +122,7 @@ export function POSSandbox() {
                       key={item.id}
                       type="button"
                       onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-between rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3 text-left transition-all hover:border-[var(--aura-purple)] hover:bg-white shadow-xs"
+                      className="w-full flex items-center justify-between rounded-xl border border-white/45 bg-white/25 p-3 text-left shadow-xs backdrop-blur-sm transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/40"
                     >
                       <div>
                         <p className="text-xs font-bold text-[var(--aura-heading)]">{item.name}</p>
@@ -132,7 +134,7 @@ export function POSSandbox() {
                     </button>
                   ))}
                 </div>
-                <div className="mt-3 rounded-xl border border-[var(--aura-border)] bg-white p-3">
+                <div className="mt-3 rounded-xl border border-white/45 bg-white/25 p-3 backdrop-blur-sm">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--aura-muted)]">Payment Mode</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {["UPI", "Cash", "Card", "Split"].map((mode) => (
@@ -150,7 +152,7 @@ export function POSSandbox() {
               </div>
 
               {/* Cart & Billing Summary */}
-              <div className="flex flex-col justify-between rounded-xl bg-[var(--aura-off-white)] border border-[var(--aura-border)] p-4 shadow-xs">
+              <div className="flex flex-col justify-between rounded-xl bg-white/25 border border-white/45 p-4 shadow-xs backdrop-blur-sm">
                 <div>
                   <div className="flex items-center justify-between border-b border-[var(--aura-border)] pb-2 mb-3">
                     <span className="text-xs font-bold text-[var(--aura-heading)]">Customer Bill</span>
@@ -230,7 +232,7 @@ export function POSSandbox() {
             </div>
 
             {showReceipt && (
-              <div className="mt-4 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4">
+              <div className="mt-4 rounded-xl border border-white/45 bg-white/25 p-4 backdrop-blur-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-[var(--aura-heading)]">Receipt Preview</p>
@@ -239,15 +241,15 @@ export function POSSandbox() {
                   <button type="button" onClick={() => setShowReceipt(false)} className="rounded-lg border border-[var(--aura-border)] bg-white px-2 py-1 text-[10px] font-bold text-[var(--aura-muted)]">Close</button>
                 </div>
                 <div className="grid gap-2 text-xs sm:grid-cols-3">
-                  <div className="rounded-lg bg-white p-2">
+                  <div className="rounded-lg bg-white/35 p-2 backdrop-blur-sm">
                     <p className="text-[10px] text-[var(--aura-muted)]">Amount Paid</p>
                     <p className="font-bold text-[var(--aura-heading)]">₹{total.toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="rounded-lg bg-white p-2">
+                  <div className="rounded-lg bg-white/35 p-2 backdrop-blur-sm">
                     <p className="text-[10px] text-[var(--aura-muted)]">GST</p>
                     <p className="font-bold text-[var(--aura-heading)]">₹{gstAmount.toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="rounded-lg bg-white p-2">
+                  <div className="rounded-lg bg-white/35 p-2 backdrop-blur-sm">
                     <p className="text-[10px] text-[var(--aura-muted)]">Discount</p>
                     <p className="font-bold text-[var(--aura-heading)]">₹{discountAmount.toLocaleString("en-IN")}</p>
                   </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 import {
   Boxes,
   AlertTriangle,
@@ -68,8 +69,8 @@ function FeaturePill({
   const content = (
     <>
       <div className="flex items-center gap-2.5 min-w-0">
-        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${active ? "bg-[var(--aura-purple)]" : "bg-[var(--aura-lavender)]"}`}>
-          <Icon className={`h-3.5 w-3.5 ${active ? "text-white" : "text-[var(--aura-purple)]"}`} aria-hidden="true" />
+        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors ${active ? "bg-[var(--aura-purple)] text-white" : "bg-white/70 text-[var(--aura-purple)] ring-1 ring-[var(--aura-purple)]/10"}`}>
+          {active ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
         </span>
         <span className={`truncate text-xs font-medium ${active ? "text-[var(--aura-purple)]" : "text-[var(--aura-heading)]"}`}>{label}</span>
       </div>
@@ -82,7 +83,7 @@ function FeaturePill({
   );
 
   return (
-    <li className={`flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 shadow-[var(--aura-shadow-xs)] transition-all ${active ? "border-[var(--aura-purple)]/20 bg-[var(--aura-lavender)] shadow-md" : "border-[var(--aura-border)] bg-white"}`}>
+    <li className={`flex items-center justify-between gap-2 rounded-full border px-3 py-2 shadow-[var(--aura-shadow-xs)] backdrop-blur-md transition-all duration-300 ${active ? "border-[var(--aura-purple)]/20 bg-white/75 shadow-[0_10px_30px_rgba(109,63,209,0.08)] ring-1 ring-white/50" : "border-white/55 bg-white/35 hover:border-[var(--aura-purple)]/18 hover:bg-white/60"}`}>
       {onClick ? (
         <button type="button" onClick={onClick} className="flex w-full items-center justify-between gap-2 text-left">
           {content}
@@ -315,9 +316,9 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
   const panelRows = panel ? (customRows[activeFeature] ?? panel.rows) : [];
 
   return (
-    <div className="min-h-[362px] overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)]">
+    <div className="min-h-[362px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/45 bg-white/25 px-5 py-3.5">
         <div>
           <div className="flex items-center gap-2">
             <Boxes className="h-4 w-4 text-[var(--aura-purple)]" />
@@ -333,7 +334,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
       </div>
 
       {formMode && (
-        <div className="border-b border-[var(--aura-border)] bg-white p-4">
+        <div className="border-b border-white/45 bg-white/25 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <p className="text-xs font-bold text-[var(--aura-heading)]">{isStockLedger ? (formMode === "create" ? "Create inventory item" : "Edit selected stock") : `${formMode === "create" ? "Create" : "Edit"} ${activeFeature}`}</p>
@@ -343,23 +344,23 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
           </div>
           {isStockLedger ? (
             <div className="grid gap-2 sm:grid-cols-2">
-              <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Product name" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <input value={draft.sku} onChange={(e) => setDraft({ ...draft, sku: e.target.value })} placeholder="SKU" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]">
+              <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Product name" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <input value={draft.sku} onChange={(e) => setDraft({ ...draft, sku: e.target.value })} placeholder="SKU" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]">
                 <option>Retail</option>
                 <option>In-Salon</option>
               </select>
-              <input value={draft.cost} onChange={(e) => setDraft({ ...draft, cost: e.target.value })} placeholder="Price / cost" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <input type="number" value={draft.inStock} onChange={(e) => setDraft({ ...draft, inStock: e.target.value })} placeholder="Current stock" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <input type="number" value={draft.minStock} onChange={(e) => setDraft({ ...draft, minStock: e.target.value })} placeholder="Minimum stock" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <input value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} placeholder="Unit: bottle / tube / ml" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+              <input value={draft.cost} onChange={(e) => setDraft({ ...draft, cost: e.target.value })} placeholder="Price / cost" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <input type="number" value={draft.inStock} onChange={(e) => setDraft({ ...draft, inStock: e.target.value })} placeholder="Current stock" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <input type="number" value={draft.minStock} onChange={(e) => setDraft({ ...draft, minStock: e.target.value })} placeholder="Minimum stock" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <input value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} placeholder="Unit: bottle / tube / ml" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
               <button type="button" onClick={saveDraft} className="rounded-lg bg-[var(--aura-purple)] px-3 py-2 text-xs font-bold text-white shadow-sm">{formMode === "create" ? "Create item" : "Save changes"}</button>
             </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              <input value={recordDraft.label} onChange={(e) => setRecordDraft({ ...recordDraft, label: e.target.value })} placeholder="Record name" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <input value={recordDraft.value} onChange={(e) => setRecordDraft({ ...recordDraft, value: e.target.value })} placeholder="Value" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-              <input value={recordDraft.detail} onChange={(e) => setRecordDraft({ ...recordDraft, detail: e.target.value })} placeholder="Detail" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)] sm:col-span-2" />
+              <input value={recordDraft.label} onChange={(e) => setRecordDraft({ ...recordDraft, label: e.target.value })} placeholder="Record name" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <input value={recordDraft.value} onChange={(e) => setRecordDraft({ ...recordDraft, value: e.target.value })} placeholder="Value" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+              <input value={recordDraft.detail} onChange={(e) => setRecordDraft({ ...recordDraft, detail: e.target.value })} placeholder="Detail" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)] sm:col-span-2" />
               <button type="button" onClick={saveDraft} className="rounded-lg bg-[var(--aura-purple)] px-3 py-2 text-xs font-bold text-white shadow-sm sm:col-span-2">{formMode === "create" ? `Create ${activeFeature}` : "Save changes"}</button>
             </div>
           )}
@@ -368,7 +369,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
 
       {panel ? (
         <>
-          <div className="border-b border-[var(--aura-border)] bg-white px-4 py-3">
+          <div className="border-b border-white/45 bg-white/20 px-4 py-3">
             <div className="rounded-xl bg-[var(--aura-lavender)]/60 px-3 py-2.5">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-purple)]">Smart inventory control</p>
               <p className="mt-0.5 text-sm font-bold text-[var(--aura-heading)]">{panel.summary}</p>
@@ -387,7 +388,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
               </thead>
               <tbody className="divide-y divide-[var(--aura-border)]">
                 {panelRows.map(([label, value, detail], index) => (
-                  <tr key={`${label}-${index}`} onClick={() => setSelectedPanelRow(index)} className={`cursor-pointer transition-colors ${selectedPanelRow === index ? "bg-[var(--aura-lavender)]/50" : "hover:bg-[var(--aura-off-white)]"}`}>
+                  <tr key={`${label}-${index}`} onClick={() => setSelectedPanelRow(index)} className={`cursor-pointer transition-colors duration-200 ${selectedPanelRow === index ? "bg-[#D8C6FF]/75 hover:bg-[#CDB8FF]/85" : "hover:bg-[#E5D8FF]/70"}`}>
                     <td className="py-2.5 pr-2">
                       <p className="font-semibold leading-tight text-[var(--aura-heading)]">{label}</p>
                       <p className="text-[10px] text-[var(--aura-muted)]">{detail}</p>
@@ -412,7 +413,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
             </table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
+          <div className="flex items-center justify-between border-t border-white/45 bg-white/25 px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
             <span className="flex items-center gap-1.5">
               <Truck className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
               {panel.footer}
@@ -436,7 +437,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
           </thead>
           <tbody className="divide-y divide-[var(--aura-border)]">
             {stockItems.map((item) => (
-              <tr key={item.sku} onClick={() => setSelectedSku(item.sku)} className={`group cursor-pointer transition-colors ${selectedSku === item.sku ? "bg-[var(--aura-lavender)]/50" : "hover:bg-[var(--aura-off-white)]"}`}>
+              <tr key={item.sku} onClick={() => setSelectedSku(item.sku)} className={`group cursor-pointer transition-colors duration-200 ${selectedSku === item.sku ? "bg-[#D8C6FF]/75 hover:bg-[#CDB8FF]/85" : "hover:bg-[#E5D8FF]/70"}`}>
                 <td className="py-2.5 pr-2">
                   <p className="font-semibold text-[var(--aura-heading)] leading-tight">{item.name}</p>
                   <p className="text-[10px] text-[var(--aura-muted)]">{item.sku} · {item.cost} / {item.unit}</p>
@@ -477,7 +478,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
       </div>
 
       {/* Footer Alert */}
-      <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
+      <div className="flex items-center justify-between border-t border-white/45 bg-white/25 px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
         <span className="flex items-center gap-1.5">
           <Truck className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
           Selected: {selectedItem?.sku ?? "No item"} · CRUD changes are frontend preview
@@ -544,7 +545,7 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
   };
 
   return (
-    <div className="rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-xl)] overflow-hidden">
+    <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
       {/* Top Banner */}
       <div className="border-b border-[var(--aura-border)] bg-gradient-to-r from-[#18181B] via-[#2A1E4A] to-[var(--aura-purple)] p-6 text-white">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -577,7 +578,7 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
       </div>
 
       {formMode && (
-        <div className="border-b border-[var(--aura-border)] bg-white p-4">
+        <div className="border-b border-white/45 bg-white/25 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <p className="text-xs font-bold text-[var(--aura-heading)]">{formMode === "create" ? "Create" : "Edit"} {activeFeature}</p>
@@ -586,9 +587,9 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
             <button type="button" onClick={() => setFormMode(null)} className="rounded-lg border border-[var(--aura-border)] px-2 py-1 text-[10px] font-semibold text-[var(--aura-muted)]">Cancel</button>
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
-            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Name" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-            <input value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} placeholder="Price / value" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
-            <input value={draft.detail} onChange={(e) => setDraft({ ...draft, detail: e.target.value })} placeholder="Benefit / detail" className="rounded-lg border border-[var(--aura-border)] px-3 py-2 text-xs outline-none focus:border-[var(--aura-purple)]" />
+            <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Name" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+            <input value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} placeholder="Price / value" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
+            <input value={draft.detail} onChange={(e) => setDraft({ ...draft, detail: e.target.value })} placeholder="Benefit / detail" className="rounded-lg border border-white/55 bg-white/35 px-3 py-2 text-xs outline-none backdrop-blur-sm focus:border-[var(--aura-purple)]" />
             <button type="button" onClick={saveDraft} className="rounded-lg bg-[var(--aura-purple)] px-3 py-2 text-xs font-bold text-white shadow-sm sm:col-span-3">{formMode === "create" ? "Create record" : "Save changes"}</button>
           </div>
         </div>
@@ -606,7 +607,7 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
           </thead>
           <tbody className="divide-y divide-[var(--aura-border)]">
             {rows.map(([name, value, detail], index) => (
-              <tr key={`${name}-${index}`} onClick={() => setSelectedRow(index)} className={`cursor-pointer transition-colors ${selectedRow === index ? "bg-[var(--aura-lavender)]/50" : "hover:bg-[var(--aura-off-white)]"}`}>
+              <tr key={`${name}-${index}`} onClick={() => setSelectedRow(index)} className={`cursor-pointer transition-colors duration-200 ${selectedRow === index ? "bg-[#D8C6FF]/75 hover:bg-[#CDB8FF]/85" : "hover:bg-[#E5D8FF]/70"}`}>
                 <td className="py-3 pr-2">
                   <p className="font-semibold leading-tight text-[var(--aura-heading)]">{name}</p>
                   <p className="text-[10px] text-[var(--aura-muted)]">{detail}</p>
@@ -629,7 +630,7 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
         </table>
       </div>
 
-      <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3 text-[11px] text-[var(--aura-body)]">
+      <div className="flex items-center justify-between border-t border-white/45 bg-white/25 px-5 py-3 text-[11px] text-[var(--aura-body)]">
         <span className="flex items-center gap-1.5">
           <Gift className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
           Selected: {rows[selectedRow]?.[0] ?? "No record"} · Loyalty CRUD frontend preview
@@ -735,9 +736,9 @@ function MarketingAutomationMockup({ activeFeature = "WhatsApp campaigns" }: { a
   const dashboard = dashboards[activeFeature as keyof typeof dashboards] ?? dashboards["WhatsApp campaigns"];
 
   return (
-    <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)]">
+    <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
       {/* Top Bar */}
-      <div className="border-b border-[var(--aura-border)] bg-gradient-to-r from-white via-[var(--aura-off-white)] to-[var(--aura-lavender)] px-5 py-4">
+      <div className="border-b border-white/45 bg-white/25 px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Send className="h-4 w-4 text-[var(--aura-purple)]" />
@@ -761,7 +762,7 @@ function MarketingAutomationMockup({ activeFeature = "WhatsApp campaigns" }: { a
         {dashboard.campaigns.map((camp) => (
           <div
             key={camp.title}
-            className="rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-3.5 transition-all hover:border-[var(--aura-purple)]/40 hover:shadow-sm"
+            className="rounded-xl border border-white/45 bg-white/25 p-3.5 backdrop-blur-sm transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/35 hover:shadow-sm"
           >
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
@@ -787,7 +788,7 @@ function MarketingAutomationMockup({ activeFeature = "WhatsApp campaigns" }: { a
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between border-t border-[var(--aura-border)] bg-[var(--aura-off-white)] px-5 py-3 text-[11px] text-[var(--aura-body)]">
+      <div className="flex items-center justify-between border-t border-white/45 bg-white/25 px-5 py-3 text-[11px] text-[var(--aura-body)]">
         <span>{dashboard.footer}</span>
         <span className="font-semibold text-[var(--aura-purple)]">Auto optimized</span>
       </div>
@@ -835,9 +836,11 @@ export function AdvancedFeatures() {
   return (
     <>
       {/* ── SECTION 1: INVENTORY ── */}
-      <section ref={inv.ref} className="py-20 md:py-28 bg-white border-t border-[var(--aura-border)]">
-        <Container>
-          <div className="grid items-center gap-12 lg:gap-20 lg:grid-cols-2">
+      <section ref={inv.ref} className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_84%_42%,rgba(111,79,216,0.11),transparent_31%)]" aria-hidden="true" />
+        <LandingDecor variant="soft" />
+        <Container className="relative z-10">
+          <div className="grid items-center gap-12 rounded-[2rem] border border-white/65 bg-white/20 p-5 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm md:p-8 lg:gap-20 lg:grid-cols-2 lg:p-10">
             {/* Text column */}
             <div
               style={{
@@ -846,15 +849,19 @@ export function AdvancedFeatures() {
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
-              <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+              <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
                 Inventory &amp; Consumption
               </span>
-              <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.12] tracking-[-0.02em] text-[var(--aura-heading)]">
+              <h2 className="max-w-xl text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)]">
                 Never discover you're out of stock during a service.
               </h2>
-              <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)] max-w-lg">
+              <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
                 Eliminate pilferage, track real consumption for every hair wash, color tube or facial kit, and reorder automatically before you run out.
               </p>
+              <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-semibold text-[var(--aura-purple)]">
+                <span className="rounded-full bg-white/60 px-3 py-1 ring-1 ring-white/70">Barcode-to-reorder flow</span>
+                <span className="rounded-full bg-[var(--aura-lavender)]/75 px-3 py-1 ring-1 ring-[var(--aura-purple)]/10">Low-stock clarity</span>
+              </div>
 
               <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">
                 {inventoryFeatures.map(({ icon, label }) => (
@@ -871,12 +878,16 @@ export function AdvancedFeatures() {
 
             {/* Mockup column */}
             <div
+              className="relative"
               style={{
                 opacity: inv.visible ? 1 : 0,
                 transform: inv.visible ? "translateY(0)" : "translateY(24px)",
                 transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
               }}
             >
+              <div className="pointer-events-none absolute -top-4 left-4 z-10 hidden rounded-full border border-white/70 bg-white/75 px-3 py-1.5 text-[11px] font-semibold text-[var(--aura-heading)] shadow-[0_12px_40px_rgba(82,58,138,0.10)] backdrop-blur-md sm:block">
+                {activeInventoryFeature}
+              </div>
               <InventoryMockup activeFeature={activeInventoryFeature} />
             </div>
           </div>
@@ -886,24 +897,26 @@ export function AdvancedFeatures() {
       {/* ── SECTION 2: MEMBERSHIPS & LOYALTY (HIGH IMPACT SHOWCASE) ── */}
       <section
         ref={mem.ref}
-        className="py-20 md:py-28 bg-[var(--aura-off-white)] border-t border-[var(--aura-border)]"
+        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28"
       >
-        <Container>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(243,240,255,0.95),transparent_38%),radial-gradient(circle_at_12%_78%,rgba(111,79,216,0.08),transparent_30%)]" aria-hidden="true" />
+        <LandingDecor variant="warm" />
+        <Container className="relative z-10">
           <div
-            className="mx-auto max-w-3xl text-center mb-14"
+            className="mx-auto max-w-3xl text-center mb-12"
             style={{
               opacity: mem.visible ? 1 : 0,
               transform: mem.visible ? "translateY(0)" : "translateY(20px)",
               transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
             }}
           >
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+            <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
               Memberships &amp; Loyalty
             </span>
-            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
+            <h2 className="text-[clamp(2.1rem,5vw,3.7rem)] font-bold leading-[1.02] tracking-[-0.055em] text-[var(--aura-heading)] text-balance">
               Turn occasional visits into lasting relationships.
             </h2>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-[1.8] text-[var(--aura-body)] md:text-lg text-pretty">
               Lock in predictable recurring revenue with high-yield salon memberships, prepaid packages, wallet bonuses, and loyalty rewards that keep chairs booked year-round.
             </p>
           </div>
@@ -920,7 +933,7 @@ export function AdvancedFeatures() {
           </div>
 
           {/* Feature highlights grid */}
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
             {membershipFeatures.map(({ icon, label }) => (
               <FeaturePill
                 key={label}
@@ -937,10 +950,12 @@ export function AdvancedFeatures() {
       {/* ── SECTION 3: MARKETING AUTOMATION (SOFT LAVENDER BACKGROUND) ── */}
       <section
         ref={mkt.ref}
-        className="py-20 md:py-28 bg-[var(--aura-lavender)] border-t border-[var(--aura-border)]"
+        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28"
       >
-        <Container>
-          <div className="grid items-center gap-12 lg:gap-20 lg:grid-cols-2">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_30%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_86%_70%,rgba(111,79,216,0.10),transparent_32%)]" aria-hidden="true" />
+        <LandingDecor variant="soft" />
+        <Container className="relative z-10">
+          <div className="grid items-center gap-12 rounded-[2rem] border border-white/65 bg-white/20 p-5 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm md:p-8 lg:gap-20 lg:grid-cols-2 lg:p-10">
             {/* Text column */}
             <div
               style={{
@@ -949,15 +964,19 @@ export function AdvancedFeatures() {
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
-              <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+              <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
                 Marketing &amp; Retention
               </span>
-              <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.12] tracking-[-0.02em] text-[var(--aura-heading)]">
+              <h2 className="max-w-xl text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)]">
                 Bring clients back automatically.
               </h2>
-              <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)] max-w-lg">
+              <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
                 Set up automated triggers that send personalised WhatsApp &amp; SMS messages based on customer visit history, birthdays, and inactivity windows.
               </p>
+              <div className="mt-6 flex flex-wrap gap-2 text-[11px] font-semibold text-[var(--aura-purple)]">
+                <span className="rounded-full bg-white/60 px-3 py-1 ring-1 ring-white/70">Trigger-based journeys</span>
+                <span className="rounded-full bg-[var(--aura-lavender)]/75 px-3 py-1 ring-1 ring-[var(--aura-purple)]/10">WhatsApp follow-ups</span>
+              </div>
 
               <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">
                 {marketingFeatures.map(({ icon, label }) => (
@@ -974,12 +993,16 @@ export function AdvancedFeatures() {
 
             {/* Automation flow mockup */}
             <div
+              className="relative"
               style={{
                 opacity: mkt.visible ? 1 : 0,
                 transform: mkt.visible ? "translateY(0)" : "translateY(24px)",
                 transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
               }}
             >
+              <div className="pointer-events-none absolute -top-4 left-4 z-10 hidden rounded-full border border-white/70 bg-white/75 px-3 py-1.5 text-[11px] font-semibold text-[var(--aura-heading)] shadow-[0_12px_40px_rgba(82,58,138,0.10)] backdrop-blur-md sm:block">
+                {activeMarketingFeature}
+              </div>
               <MarketingAutomationMockup activeFeature={activeMarketingFeature} />
             </div>
           </div>

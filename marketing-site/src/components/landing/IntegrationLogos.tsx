@@ -19,7 +19,7 @@ export function IntegrationLogos() {
   const doubled = [...INTEGRATIONS, ...INTEGRATIONS];
 
   return (
-    <section ref={ref} className="py-16 md:py-24 bg-white border-t border-aura-border overflow-hidden">
+    <section ref={ref} className="py-16 md:py-24 bg-gradient-to-br from-[#F6F1FF] via-[#EEE6FF] to-[#E1D4FF] border-t border-aura-border overflow-hidden">
       <Container>
         <p className="text-center text-sm font-medium text-aura-text-muted mb-12 uppercase tracking-wider">
           Integrates with your favorite tools

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowRight, Calculator } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { CTA_LINKS } from "@/lib/constants";
+import { LandingDecor } from "./LandingDecor";
 
 type Assumptions = { appointments: number; ticket: number; noShow: number; recovery: number; hours: number; hourValue: number };
 const limits: Record<keyof Assumptions, [number, number]> = { appointments: [0, 100000], ticket: [0, 1000000], noShow: [0, 100], recovery: [0, 100], hours: [0, 744], hourValue: [0, 100000] };
@@ -45,8 +46,9 @@ export function ROICalculator() {
   const recoveredShare = result.monthly > 0 ? Math.round((result.recoveredRevenue / result.monthly) * 100) : 0;
 
   return (
-    <section className="bg-white py-20 md:py-28 border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28 border-t border-[var(--aura-border)]">
+      <LandingDecor variant="soft" />
+      <Container className="relative z-10">
         <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16 items-center">
           <div>
             <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
@@ -59,7 +61,7 @@ export function ROICalculator() {
               See how automated WhatsApp reminders and streamlined front desk operations translate into recovered revenue and saved admin hours.
             </p>
 
-            <div className="mt-8 rounded-xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-4 flex items-start gap-3 shadow-xs">
+            <div className="mt-8 rounded-xl border border-white/50 bg-white/30 p-4 flex items-start gap-3 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
               <Calculator className="h-5 w-5 text-[var(--aura-purple)] shrink-0 mt-0.5" />
               <p className="text-xs leading-relaxed text-[var(--aura-body)]">
                 Based on averages from Indian salons using automated reminder workflows and integrated GST express checkout.
@@ -79,8 +81,8 @@ export function ROICalculator() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-lg)]">
-            <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 bg-[var(--aura-off-white)]">
+          <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
+            <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 bg-white/25 backdrop-blur-sm">
               {fields.map((field) => (
                 <label key={field.key} className="grid gap-1.5 text-xs font-semibold text-[var(--aura-heading)]">
                   <span>{field.label}</span>

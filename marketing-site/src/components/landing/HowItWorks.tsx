@@ -2,6 +2,7 @@
 
 import { Container } from "@/components/ui/Container";
 import { Calendar, Settings, Rocket } from "lucide-react";
+import { LandingDecor } from "./LandingDecor";
 
 const STEPS = [
   {
@@ -26,10 +27,11 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="py-20 md:py-28 bg-white relative border-t border-[var(--aura-border)]">
+    <section className="py-20 md:py-28 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] relative overflow-hidden border-t border-[var(--aura-border)]">
       {/* Subtle off-white tint in background */}
-      <div className="absolute inset-0 bg-[var(--aura-off-white)]/50 pointer-events-none" />
-      
+      <div className="absolute inset-0 bg-transparent pointer-events-none" />
+      <LandingDecor variant="quiet" />
+       
       <Container className="relative z-10">
         <div className="mx-auto max-w-3xl text-center mb-16">
           <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">

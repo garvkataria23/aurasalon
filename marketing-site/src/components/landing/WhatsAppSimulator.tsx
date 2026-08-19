@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Send, CheckCheck, Sparkles, Calendar, Clock, User, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { LandingDecor } from "./LandingDecor";
 
 type Message = {
   id: string;
@@ -138,8 +139,9 @@ export function WhatsAppSimulator() {
   };
 
   return (
-    <section className="bg-white py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
-      <Container>
+    <section className="relative bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
+      <LandingDecor variant="warm" />
+      <Container className="relative z-10">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           {/* Left Description */}
           <div>
@@ -154,7 +156,7 @@ export function WhatsAppSimulator() {
             </p>
 
             <div className="mt-8 space-y-3">
-              <button type="button" onClick={showBookingFlow} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md ${activeMode === "booking" ? "border-emerald-200 bg-emerald-50" : "border-[var(--aura-border)] bg-[var(--aura-off-white)]"}`}>
+              <button type="button" onClick={showBookingFlow} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:shadow-md ${activeMode === "booking" ? "border-emerald-200 bg-emerald-50/80" : "border-white/50 bg-white/30 hover:bg-white/45"}`}>
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
                   <MessageSquare className="h-4 w-4" />
                 </div>
@@ -166,7 +168,7 @@ export function WhatsAppSimulator() {
                 </div>
               </button>
 
-              <button type="button" onClick={showReminderFlow} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md ${activeMode === "reminder" ? "border-[var(--aura-purple)]/30 bg-[var(--aura-lavender)]" : "border-[var(--aura-border)] bg-[var(--aura-off-white)]"}`}>
+              <button type="button" onClick={showReminderFlow} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left shadow-xs backdrop-blur-md transition-all hover:-translate-y-0.5 hover:shadow-md ${activeMode === "reminder" ? "border-[var(--aura-purple)]/30 bg-white/40 ring-1 ring-white/35" : "border-white/50 bg-white/30 hover:bg-white/45"}`}>
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
                   <ShieldCheck className="h-4 w-4" />
                 </div>
@@ -182,7 +184,7 @@ export function WhatsAppSimulator() {
 
           {/* Right Simulated WhatsApp Phone Window */}
           <div className="mx-auto w-full max-w-md">
-            <div className="overflow-hidden rounded-[2rem] border-4 border-gray-900 bg-white shadow-[var(--aura-shadow-xl)]">
+            <div className="overflow-hidden rounded-[2rem] border-4 border-gray-900/90 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
               {/* WhatsApp Header */}
               <div className="flex items-center gap-3 bg-[#075e54] p-4 text-white">
                 <div className="relative">
