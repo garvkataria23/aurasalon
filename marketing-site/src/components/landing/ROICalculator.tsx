@@ -46,11 +46,11 @@ export function ROICalculator() {
   const recoveredShare = result.monthly > 0 ? Math.round((result.recoveredRevenue / result.monthly) * 100) : 0;
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-14 md:py-20">
       <LandingDecor variant="soft" />
       <Container className="relative z-10">
-        <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16 items-center">
-          <div>
+        <div className="grid items-stretch gap-10 lg:grid-cols-[.72fr_1.28fr] lg:gap-16">
+          <div className="flex h-full flex-col justify-center rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/20 p-5 shadow-[0_24px_80px_rgba(109,63,209,0.10)] backdrop-blur-xl ring-1 ring-white/35 md:p-7">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
               <Calculator className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
               Value Calculator
@@ -83,9 +83,9 @@ export function ROICalculator() {
           </div>
 
           <div className="overflow-hidden rounded-[var(--aura-radius-xl)] border border-white/50 bg-white/30 shadow-[0_24px_80px_rgba(109,63,209,0.16)] backdrop-blur-xl ring-1 ring-white/35">
-            <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 bg-white/25 backdrop-blur-sm">
+            <div className="grid gap-x-4 gap-y-2.5 p-4 sm:grid-cols-2 sm:p-5 bg-white/25 backdrop-blur-sm">
               {fields.map((field) => (
-                <label key={field.key} className="grid gap-1.5 text-xs font-semibold text-[var(--aura-heading)]">
+                <label key={field.key} className="grid gap-1 text-xs font-semibold text-[var(--aura-heading)]">
                   <span>{field.label}</span>
                   <input
                     type="number"
@@ -95,7 +95,7 @@ export function ROICalculator() {
                     inputMode="decimal"
                     value={values[field.key]}
                     onChange={(event) => update(field.key, event.target.value)}
-                    className="w-full rounded-xl border border-[var(--aura-border)] bg-white px-3.5 py-2.5 text-sm font-semibold text-[var(--aura-heading)] outline-none focus:border-[var(--aura-purple)] focus:ring-2 focus:ring-[var(--aura-purple-soft)] shadow-xs transition-all"
+                    className="w-full rounded-xl border border-[var(--aura-border)] bg-white px-3 py-1.5 text-sm font-semibold text-[var(--aura-heading)] outline-none focus:border-[var(--aura-purple)] focus:ring-2 focus:ring-[var(--aura-purple-soft)] shadow-xs transition-all"
                   />
                   <input
                     type="range"
@@ -104,14 +104,14 @@ export function ROICalculator() {
                     step={field.step ?? 1}
                     value={values[field.key]}
                     onChange={(event) => update(field.key, event.target.value)}
-                    className="accent-[var(--aura-purple)]"
+                    className="h-4 accent-[var(--aura-purple)]"
                   />
                 </label>
               ))}
             </div>
 
-            <div className="bg-[var(--aura-heading)] p-6 text-white sm:p-8" aria-live="polite" aria-atomic="true">
-              <div className="mb-5 flex flex-wrap gap-2">
+            <div className="bg-[var(--aura-heading)] p-5 text-white" aria-live="polite" aria-atomic="true">
+              <div className="mb-3 flex flex-wrap gap-2">
                 {["Conservative", "Realistic", "Aggressive"].map((mode) => (
                   <button
                     key={mode}
@@ -123,10 +123,10 @@ export function ROICalculator() {
                   </button>
                 ))}
               </div>
-              <div className="grid gap-6 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-white/60 font-medium">Estimated Monthly Upside</p>
-                  <strong className="mt-1 block text-3xl font-bold sm:text-4xl text-emerald-400 tabular-nums">
+                  <strong className="mt-1 block text-3xl font-bold text-emerald-400 tabular-nums">
                     {currency.format(result.monthly)}
                   </strong>
                 </div>
@@ -138,7 +138,7 @@ export function ROICalculator() {
                 </div>
               </div>
 
-              <dl className="mt-6 grid gap-3 border-t border-white/10 pt-5 text-xs sm:grid-cols-2">
+              <dl className="mt-4 grid gap-3 border-t border-white/10 pt-3 text-xs sm:grid-cols-2">
                 <div className="flex justify-between gap-3 sm:block">
                   <dt className="text-white/60">Recovered No-Show Revenue</dt>
                   <dd className="mt-1 font-bold text-white">{currency.format(result.recoveredRevenue)}</dd>
@@ -149,7 +149,7 @@ export function ROICalculator() {
                 </div>
               </dl>
 
-              <div className="mt-5 space-y-2 rounded-xl bg-white/5 p-3 text-xs ring-1 ring-white/10">
+              <div className="mt-3 space-y-1.5 rounded-xl bg-white/5 p-2.5 text-xs ring-1 ring-white/10">
                 <div className="flex h-2 overflow-hidden rounded-full bg-white/10">
                   <div className="bg-emerald-400" style={{ width: `${recoveredShare}%` }} />
                   <div className="bg-[var(--aura-purple)]" style={{ width: `${100 - recoveredShare}%` }} />
@@ -163,7 +163,7 @@ export function ROICalculator() {
                 </p>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+              <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
                 <a
                   href={CTA_LINKS.demo}
                   className="inline-flex items-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-6 py-2.5 text-xs font-bold text-white hover:bg-[var(--aura-purple-hover)] shadow-xs transition-all"

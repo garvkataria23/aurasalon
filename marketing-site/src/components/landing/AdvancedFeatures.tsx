@@ -430,7 +430,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
           <thead>
             <tr className="border-b border-[var(--aura-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-muted)]">
               <th className="pb-2">Product &amp; SKU</th>
-              <th className="pb-2">Type</th>
+              <th className="hidden pb-2 sm:table-cell">Type</th>
               <th className="pb-2 text-center">Stock</th>
               <th className="pb-2 text-right">Status</th>
             </tr>
@@ -442,7 +442,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
                   <p className="font-semibold text-[var(--aura-heading)] leading-tight">{item.name}</p>
                   <p className="text-[10px] text-[var(--aura-muted)]">{item.sku} · {item.cost} / {item.unit}</p>
                 </td>
-                <td className="py-2.5">
+                <td className="hidden py-2.5 sm:table-cell">
                   <span className="rounded-md bg-[var(--aura-lavender)] px-2 py-0.5 text-[10px] font-medium text-[var(--aura-purple)]">
                     {item.category}
                   </span>
@@ -478,8 +478,8 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
       </div>
 
       {/* Footer Alert */}
-      <div className="flex items-center justify-between border-t border-white/45 bg-white/25 px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
-        <span className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/45 bg-white/25 px-4 py-2.5 text-[11px] text-[var(--aura-body)]">
+        <span className="flex min-w-0 items-center gap-1.5">
           <Truck className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
           Selected: {selectedItem?.sku ?? "No item"} · CRUD changes are frontend preview
         </span>
@@ -545,16 +545,16 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
   };
 
   return (
-    <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
+      <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
       {/* Top Banner */}
-      <div className="border-b border-[var(--aura-border)] bg-gradient-to-r from-[#18181B] via-[#2A1E4A] to-[var(--aura-purple)] p-6 text-white">
+      <div className="border-b border-[var(--aura-border)] bg-gradient-to-r from-[#18181B] via-[#2A1E4A] to-[var(--aura-purple)] p-5 text-white lg:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
               <Crown className="h-3.5 w-3.5 text-amber-300" />
               Aura Loyalty &amp; Membership Hub
             </span>
-            <h3 className="mt-2 text-xl font-bold tracking-tight">{activeFeature}</h3>
+             <h3 className="mt-2 text-xl font-bold tracking-tight lg:text-2xl">{activeFeature}</h3>
             <p className="text-xs text-white/70">Create, edit and manage loyalty records from the selected module.</p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -565,11 +565,11 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
             </div>
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-white/10 p-3 text-center backdrop-blur-sm border border-white/10">
-                <p className="text-lg font-bold tabular-nums">482</p>
+                <p className="text-xl font-bold tabular-nums">482</p>
                 <p className="text-[10px] text-white/70 uppercase tracking-wider">Active Members</p>
               </div>
               <div className="rounded-xl bg-white/10 p-3 text-center backdrop-blur-sm border border-white/10">
-                <p className="text-lg font-bold text-amber-300 tabular-nums">₹14.2L</p>
+                <p className="text-xl font-bold text-amber-300 tabular-nums">₹14.2L</p>
                 <p className="text-[10px] text-white/70 uppercase tracking-wider">Wallet Reserves</p>
               </div>
             </div>
@@ -595,12 +595,12 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
         </div>
       )}
 
-      <div className="overflow-x-auto p-5">
+      <div className="overflow-x-auto p-5 lg:p-6">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-[var(--aura-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--aura-muted)]">
               <th className="pb-2">Name</th>
-              <th className="pb-2">Module</th>
+              <th className="hidden pb-2 sm:table-cell">Module</th>
               <th className="pb-2 text-center">Value</th>
               <th className="pb-2 text-right">Status</th>
             </tr>
@@ -612,7 +612,7 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
                   <p className="font-semibold leading-tight text-[var(--aura-heading)]">{name}</p>
                   <p className="text-[10px] text-[var(--aura-muted)]">{detail}</p>
                 </td>
-                <td className="py-3">
+                <td className="hidden py-3 sm:table-cell">
                   <span className="rounded-md bg-[var(--aura-lavender)] px-2 py-0.5 text-[10px] font-medium text-[var(--aura-purple)]">{activeFeature}</span>
                 </td>
                 <td className="py-3 text-center">
@@ -630,8 +630,8 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
         </table>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/45 bg-white/25 px-5 py-3 text-[11px] text-[var(--aura-body)]">
-        <span className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/45 bg-white/25 px-5 py-3 text-[11px] text-[var(--aura-body)]">
+        <span className="flex min-w-0 items-center gap-1.5">
           <Gift className="h-3.5 w-3.5 text-[var(--aura-purple)]" />
           Selected: {rows[selectedRow]?.[0] ?? "No record"} · Loyalty CRUD frontend preview
         </span>
@@ -840,7 +840,7 @@ export function AdvancedFeatures() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_84%_42%,rgba(111,79,216,0.11),transparent_31%)]" aria-hidden="true" />
         <LandingDecor variant="soft" />
         <Container className="relative z-10">
-          <div className="grid items-center gap-12 rounded-[2rem] border border-white/65 bg-white/20 p-5 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm md:p-8 lg:gap-20 lg:grid-cols-2 lg:p-10">
+          <div className="grid min-w-0 items-center gap-8 rounded-[2rem] border border-white/65 bg-white/20 p-4 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm sm:p-5 md:p-8 lg:gap-20 lg:grid-cols-2 lg:p-10">
             {/* Text column */}
             <div
               style={{
@@ -852,7 +852,7 @@ export function AdvancedFeatures() {
               <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
                 Inventory &amp; Consumption
               </span>
-              <h2 className="max-w-xl text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)]">
+              <h2 className="max-w-full text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)] md:max-w-xl">
                 Never discover you're out of stock during a service.
               </h2>
               <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
@@ -878,7 +878,7 @@ export function AdvancedFeatures() {
 
             {/* Mockup column */}
             <div
-              className="relative"
+              className="relative min-w-0"
               style={{
                 opacity: inv.visible ? 1 : 0,
                 transform: inv.visible ? "translateY(0)" : "translateY(24px)",
@@ -897,52 +897,52 @@ export function AdvancedFeatures() {
       {/* ── SECTION 2: MEMBERSHIPS & LOYALTY (HIGH IMPACT SHOWCASE) ── */}
       <section
         ref={mem.ref}
-        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28"
+        className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-12 md:py-16"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(243,240,255,0.95),transparent_38%),radial-gradient(circle_at_12%_78%,rgba(111,79,216,0.08),transparent_30%)]" aria-hidden="true" />
         <LandingDecor variant="warm" />
         <Container className="relative z-10">
-          <div
-            className="mx-auto max-w-3xl text-center mb-12"
-            style={{
-              opacity: mem.visible ? 1 : 0,
-              transform: mem.visible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
-            }}
-          >
-            <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
-              Memberships &amp; Loyalty
-            </span>
-            <h2 className="text-[clamp(2.1rem,5vw,3.7rem)] font-bold leading-[1.02] tracking-[-0.055em] text-[var(--aura-heading)] text-balance">
-              Turn occasional visits into lasting relationships.
-            </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-[1.8] text-[var(--aura-body)] md:text-lg text-pretty">
-              Lock in predictable recurring revenue with high-yield salon memberships, prepaid packages, wallet bonuses, and loyalty rewards that keep chairs booked year-round.
-            </p>
-          </div>
+          <div className="grid items-center gap-8 lg:grid-cols-[0.74fr_1.26fr] lg:gap-10 xl:gap-12">
+            <div
+              style={{
+                opacity: mem.visible ? 1 : 0,
+                transform: mem.visible ? "translateY(0)" : "translateY(20px)",
+                transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
+              }}
+            >
+              <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3 shadow-sm shadow-[var(--aura-purple)]/5">
+                Memberships &amp; Loyalty
+              </span>
+               <h2 className="max-w-full text-[clamp(2.15rem,4.2vw,3.2rem)] font-bold leading-[1.02] tracking-[-0.055em] text-[var(--aura-heading)] text-balance md:max-w-xl">
+                Turn occasional visits into lasting relationships.
+              </h2>
+              <p className="mt-4 max-w-lg text-sm leading-relaxed text-[var(--aura-body)] md:text-base text-pretty">
+                Lock in predictable recurring revenue with memberships, prepaid packages, wallet bonuses, and loyalty rewards that keep chairs booked year-round.
+              </p>
 
-          {/* Full-width interactive dashboard presentation */}
-          <div
-            style={{
-              opacity: mem.visible ? 1 : 0,
-              transform: mem.visible ? "translateY(0)" : "translateY(24px)",
-              transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
-            }}
-          >
-            <MembershipDashboard activeFeature={activeMembershipFeature} />
-          </div>
+              <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                {membershipFeatures.map(({ icon, label }) => (
+                  <FeaturePill
+                    key={label}
+                    icon={icon}
+                    label={label}
+                    active={activeMembershipFeature === label}
+                    onClick={() => setActiveMembershipFeature(label)}
+                  />
+                ))}
+              </div>
+            </div>
 
-          {/* Feature highlights grid */}
-          <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            {membershipFeatures.map(({ icon, label }) => (
-              <FeaturePill
-                key={label}
-                icon={icon}
-                label={label}
-                active={activeMembershipFeature === label}
-                onClick={() => setActiveMembershipFeature(label)}
-              />
-            ))}
+            <div
+              className="min-w-0"
+              style={{
+                opacity: mem.visible ? 1 : 0,
+                transform: mem.visible ? "translateY(0)" : "translateY(24px)",
+                transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
+              }}
+            >
+              <MembershipDashboard activeFeature={activeMembershipFeature} />
+            </div>
           </div>
         </Container>
       </section>
@@ -950,12 +950,12 @@ export function AdvancedFeatures() {
       {/* ── SECTION 3: MARKETING AUTOMATION (SOFT LAVENDER BACKGROUND) ── */}
       <section
         ref={mkt.ref}
-        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28"
+        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-12 md:py-20"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_30%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_86%_70%,rgba(111,79,216,0.10),transparent_32%)]" aria-hidden="true" />
         <LandingDecor variant="soft" />
         <Container className="relative z-10">
-          <div className="grid items-center gap-12 rounded-[2rem] border border-white/65 bg-white/20 p-5 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm md:p-8 lg:gap-20 lg:grid-cols-2 lg:p-10">
+          <div className="grid min-w-0 items-center gap-8 rounded-[2rem] border border-white/65 bg-white/20 p-4 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm sm:p-5 md:p-8 lg:gap-20 lg:grid-cols-2 lg:p-10">
             {/* Text column */}
             <div
               style={{
@@ -967,7 +967,7 @@ export function AdvancedFeatures() {
               <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
                 Marketing &amp; Retention
               </span>
-              <h2 className="max-w-xl text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)]">
+              <h2 className="max-w-full text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)] md:max-w-xl">
                 Bring clients back automatically.
               </h2>
               <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
@@ -993,7 +993,7 @@ export function AdvancedFeatures() {
 
             {/* Automation flow mockup */}
             <div
-              className="relative"
+              className="relative min-w-0"
               style={{
                 opacity: mkt.visible ? 1 : 0,
                 transform: mkt.visible ? "translateY(0)" : "translateY(24px)",

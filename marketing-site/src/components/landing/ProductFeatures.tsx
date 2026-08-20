@@ -449,6 +449,8 @@ function POSMockup({ activeFeature = "GST invoices" }: { activeFeature?: string 
 }
 
 function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: string }) {
+  const [activeClientIndex, setActiveClientIndex] = useState(0);
+  const clientTrackRef = useRef<HTMLDivElement>(null);
   const clients = [
     {
       id: "#1042",
@@ -572,6 +574,15 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
   };
   const panel = panels[activeFeature as keyof typeof panels];
 
+  const scrollToClient = (index: number) => {
+    const nextIndex = (index + clients.length) % clients.length;
+    setActiveClientIndex(nextIndex);
+    clientTrackRef.current?.scrollTo({
+      left: nextIndex * clientTrackRef.current.clientWidth,
+      behavior: "smooth",
+    });
+  };
+
   if (panel) {
     return (
       <div className="min-h-[442px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
@@ -605,9 +616,29 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
     <div className="min-h-[442px] overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/45 shadow-[0_22px_70px_rgba(82,58,138,0.10)] backdrop-blur-xl ring-1 ring-white/50">
       <div className="flex items-center justify-between border-b border-white/45 bg-white/25 px-5 py-3">
         <span className="text-xs font-semibold text-[var(--aura-heading)]">Client Profile</span>
-        <span className="text-[10px] text-[var(--aura-muted)]">Swipe clients</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[var(--aura-muted)]">Swipe clients</span>
+          <div className="hidden items-center gap-1 md:flex">
+            <button
+              type="button"
+              onClick={() => scrollToClient(activeClientIndex - 1)}
+              className="text-lg font-bold leading-none text-[var(--aura-purple)] transition hover:-translate-y-0.5 hover:text-[var(--aura-heading)]"
+              aria-label="Previous client"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToClient(activeClientIndex + 1)}
+              className="text-lg font-bold leading-none text-[var(--aura-purple)] transition hover:-translate-y-0.5 hover:text-[var(--aura-heading)]"
+              aria-label="Next client"
+            >
+              ›
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={clientTrackRef} className="flex snap-x snap-mandatory gap-3 overflow-x-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {clients.map((client) => (
           <div key={client.id} className="w-full shrink-0 snap-center rounded-2xl border border-white/45 bg-white/25 p-3 backdrop-blur-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -650,7 +681,13 @@ function ClientMockup({ activeFeature = "Visit history" }: { activeFeature?: str
       </div>
       <div className="flex justify-center gap-1.5 border-t border-white/45 bg-white/25 px-5 py-2">
         {clients.map((client, index) => (
-          <span key={client.id} className={`h-1.5 rounded-full ${index === 0 ? "w-5 bg-[var(--aura-purple)]" : "w-1.5 bg-[var(--aura-border)]"}`} />
+          <button
+            type="button"
+            key={client.id}
+            onClick={() => scrollToClient(index)}
+            className={`h-1.5 rounded-full transition-all ${index === activeClientIndex ? "w-5 bg-[var(--aura-purple)]" : "w-1.5 bg-[var(--aura-border)]"}`}
+            aria-label={`Show client ${index + 1}`}
+          />
         ))}
       </div>
     </div>
@@ -916,15 +953,15 @@ function ProductSection({
   return (
     <section
       ref={ref}
-      className={`relative overflow-hidden border-t border-white/70 py-16 md:py-24 ${index % 2 === 0 ? "bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF]" : "bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]"}`}
+      className={`relative overflow-hidden border-t border-white/70 py-12 md:py-20 ${index % 2 === 0 ? "bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF]" : "bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF]"}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_82%_52%,rgba(111,79,216,0.10),transparent_30%)]" aria-hidden="true" />
       <LandingDecor variant={index % 2 === 0 ? "soft" : "warm"} />
       <Container className="relative z-10">
-        <div className={`grid items-center gap-10 rounded-[2rem] border border-white/65 bg-white/20 p-5 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm md:p-8 lg:gap-16 lg:grid-cols-2 lg:p-10 ${reversed ? "lg:[direction:rtl]" : ""}`}>
+        <div className={`grid min-w-0 items-center gap-8 rounded-[2rem] border border-white/65 bg-white/20 p-4 shadow-[0_18px_80px_rgba(82,58,138,0.07)] backdrop-blur-sm sm:p-5 md:p-8 lg:gap-16 lg:grid-cols-2 lg:p-10 ${reversed ? "lg:[direction:rtl]" : ""}`}>
           {/* Text */}
           <div
-            className={reversed ? "lg:[direction:ltr]" : ""}
+            className={`min-w-0 ${reversed ? "lg:[direction:ltr]" : ""}`}
             style={{
               opacity: visible ? 1 : 0,
               transform: visible ? "translateY(0)" : "translateY(20px)",
@@ -934,7 +971,7 @@ function ProductSection({
             <span className="inline-flex rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 shadow-sm shadow-[var(--aura-purple)]/5">
               {section.badge}
             </span>
-            <h2 className="max-w-xl text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)]">
+            <h2 className="max-w-full text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)] md:max-w-xl">
               {section.headline}
             </h2>
             <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
@@ -959,7 +996,7 @@ function ProductSection({
 
           {/* Mockup */}
           <div
-            className={`relative ${reversed ? "lg:[direction:ltr]" : ""}`}
+            className={`relative min-w-0 ${reversed ? "lg:[direction:ltr]" : ""}`}
             style={{
               opacity: visible ? 1 : 0,
               transform: visible ? "translateY(0)" : "translateY(24px)",

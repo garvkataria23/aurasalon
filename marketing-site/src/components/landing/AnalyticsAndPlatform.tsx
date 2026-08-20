@@ -303,20 +303,20 @@ function AnalyticsMockup() {
 const WHY_AURA_CARDS = [
   {
     icon: Scissors,
-    title: "Built specifically for salons",
-    description: "No unnecessary generic business-software complexity. Every feature is tuned for chair turns, service recipes, and stylist workflows.",
-    chips: ["Chair turns", "Recipes", "Stylist flow"],
+    title: "Salon-first, not generic ERP",
+    description: "Every flow is tuned for chair turns, stylist handoffs, service recipes, packages, memberships, and front-desk speed.",
+    chips: ["Chair turns", "Recipes", "Front desk"],
   },
   {
     icon: Layers,
-    title: "One system, every operation",
-    description: "From online booking and GST billing to staff attendance, commission tracking, and stock depletion.",
-    chips: ["Booking", "Billing", "Stock"],
+    title: "Appointments, billing, staff, stock. One flow.",
+    description: "Online bookings, POS, attendance, commissions, inventory depletion, and reports stay connected without manual double-entry.",
+    chips: ["Booking", "POS", "Inventory"],
   },
   {
     icon: IndianRupee,
     title: "Designed for Indian businesses",
-    description: "Full GST invoicing with itemized tax splits, dynamic UPI QR at checkout, and automated WhatsApp appointment reminders.",
+    description: "GST-ready invoices, itemized tax splits, dynamic UPI QR at checkout, and WhatsApp reminders built into daily operations.",
     chips: ["GST", "UPI", "WhatsApp"],
   },
   {
@@ -333,44 +333,56 @@ const WHY_AURA_CARDS = [
   },
   {
     icon: BarChart3,
-    title: "Real business visibility",
-    description: "Instant clarity on net margin, staff productivity, and customer lifetime value — without waiting for monthly spreadsheets.",
-    chips: ["Margin", "CLV", "Live reports"],
+    title: "Know what is profitable, every day",
+    description: "See margin, staff productivity, repeat visits, and customer lifetime value without waiting for month-end spreadsheets.",
+    chips: ["Margin", "Repeat visits", "Live reports"],
   },
 ];
+
+const WHY_AURA_STATS = [
+  { value: "15 min", label: "team onboarding" },
+  { value: "0%", label: "booking commission" },
+  { value: "GST", label: "billing ready" },
+  { value: "Multi", label: "branch controls" },
+];
+
+const ANALYTICS_CHIPS = ["Revenue pulse", "Staff occupancy", "Client retention", "Margin view"];
 
 /* ===================================================================
    SECTION 3: ONE PLATFORM VISUAL (CUSTOM OPERATING SYSTEM DIAGRAM)
    =================================================================== */
 const MODULES = [
-  { name: "Appointments", icon: Calendar, pos: "top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" },
-  { name: "GST Billing & UPI", icon: CreditCard, pos: "top-[15%] right-[10%]" },
-  { name: "Client CRM", icon: UserCheck, pos: "top-[50%] right-0 translate-x-1/2 -translate-y-1/2" },
-  { name: "Staff & Payroll", icon: Briefcase, pos: "bottom-[15%] right-[10%]" },
-  { name: "Inventory", icon: Boxes, pos: "bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2" },
-  { name: "Memberships", icon: Crown, pos: "bottom-[15%] left-[10%]" },
-  { name: "Marketing AI", icon: Megaphone, pos: "top-[50%] left-0 -translate-x-1/2 -translate-y-1/2" },
-  { name: "Analytics", icon: LineChart, pos: "top-[15%] left-[10%]" },
+  { name: "Appointments", icon: Calendar, pos: "left-[50%] top-[-1%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "GST Billing & UPI", icon: CreditCard, pos: "left-[89%] top-[21%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "Client CRM", icon: UserCheck, pos: "left-[101%] top-[50%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "Staff & Payroll", icon: Briefcase, pos: "left-[87%] top-[82%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "Inventory", icon: Boxes, pos: "left-[50%] top-[99%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "Memberships", icon: Crown, pos: "left-[13%] top-[82%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "Marketing AI", icon: Megaphone, pos: "left-[-1%] top-[50%] -translate-x-1/2 -translate-y-1/2" },
+  { name: "Analytics", icon: LineChart, pos: "left-[11%] top-[21%] -translate-x-1/2 -translate-y-1/2" },
 ];
+
+const PLATFORM_CHIPS = ["Auto inventory", "GST posted", "Commission ready", "Live owner view"];
 
 function OnePlatformVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-4xl py-12">
+    <div className="relative mx-auto w-full max-w-3xl py-4 md:py-6 lg:translate-x-8 lg:max-w-none xl:translate-x-12">
       {/* Desktop Radial Visual */}
-      <div className="relative hidden md:block aspect-[16/10] w-full">
+      <div className="relative hidden md:block aspect-[16/9] w-full overflow-visible">
         {/* Pulsing Concentric Rings */}
         <div className="absolute inset-0 grid place-items-center pointer-events-none" aria-hidden="true">
-          <div className="h-[75%] w-[75%] rounded-full border border-[var(--aura-purple)]/15 animate-[spin_60s_linear_infinite]" />
-          <div className="absolute h-[55%] w-[55%] rounded-full border border-dashed border-[var(--aura-purple)]/25" />
-          <div className="absolute h-[35%] w-[35%] rounded-full bg-[var(--aura-lavender)]/50 blur-xl" />
+          <div className="h-[78%] w-[72%] rounded-full border border-[var(--aura-purple)]/14 animate-[spin_60s_linear_infinite]" />
+          <div className="absolute h-[54%] w-[58%] rounded-full border border-dashed border-[var(--aura-purple)]/26" />
+          <div className="absolute h-[48%] w-[44%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72),rgba(243,240,255,0.30)_52%,transparent_74%)] blur-xl" />
         </div>
 
         {/* Center Aura Hub */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="grid h-28 w-28 place-items-center rounded-3xl bg-[var(--aura-purple)] text-white shadow-[0_12px_40px_rgba(118,81,216,0.35)] transition-transform hover:scale-105">
+          <div className="relative grid h-36 w-36 place-items-center rounded-[2.25rem] bg-[linear-gradient(135deg,#7B57EA,#5F3FD2)] text-white shadow-[0_22px_74px_rgba(118,81,216,0.44)] ring-1 ring-white/35 transition-transform hover:scale-105">
+            <div className="absolute inset-0 rounded-[2.25rem] bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.28),transparent_44%)]" aria-hidden="true" />
             <div className="text-center">
-              <span className="font-bold text-2xl tracking-tight">AURA</span>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-white/80 mt-0.5">Salon OS</p>
+              <span className="relative font-bold text-[2.1rem] tracking-tight">AURA</span>
+              <p className="relative mt-1 text-[10px] font-semibold uppercase tracking-widest text-white/80">Salon OS</p>
             </div>
           </div>
         </div>
@@ -383,11 +395,11 @@ function OnePlatformVisual() {
               key={mod.name}
               className={`absolute z-10 ${mod.pos}`}
             >
-              <div className="flex items-center gap-2.5 rounded-2xl border border-white/50 bg-white/30 px-4 py-2.5 shadow-[0_18px_48px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/35 transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/45 hover:shadow-[0_24px_64px_rgba(109,63,209,0.18)] hover:-translate-y-0.5">
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
-                  <Icon className="h-3.5 w-3.5" />
+              <div className="flex min-w-[10.5rem] items-center gap-3 rounded-[1.2rem] border border-white/60 bg-white/40 px-4 py-3 shadow-[0_18px_54px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/45 transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/55 hover:shadow-[0_26px_70px_rgba(109,63,209,0.20)] hover:-translate-y-0.5">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
+                  <Icon className="h-4 w-4" />
                 </span>
-                <span className="text-xs font-bold text-[var(--aura-heading)] whitespace-nowrap">{mod.name}</span>
+                <span className="whitespace-nowrap text-[13px] font-bold text-[var(--aura-heading)]">{mod.name}</span>
               </div>
             </div>
           );
@@ -436,37 +448,47 @@ export function AnalyticsAndPlatform() {
       {/* ── SECTION 1: ANALYTICS ── */}
       <section
         ref={analyticsReveal.ref}
-        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28"
+        className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-10 md:py-11"
       >
         <LandingDecor variant="warm" />
         <Container className="relative z-10">
-          <div
-            className="mx-auto max-w-3xl text-center mb-14"
-            style={{
-              opacity: analyticsReveal.visible ? 1 : 0,
-              transform: analyticsReveal.visible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
-            }}
-          >
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
-              Real-Time Intelligence
-            </span>
-            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-              Know what's happening before you ask.
-            </h2>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
-              Get an instant, unified pulse on revenue, staff occupancy, client retention, and margin — directly on your phone or desktop.
-            </p>
-          </div>
+          <div className="grid items-center gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:gap-10">
+            <div
+              className="mx-auto max-w-2xl text-center lg:mx-0 lg:max-w-xl lg:text-left"
+              style={{
+                opacity: analyticsReveal.visible ? 1 : 0,
+                transform: analyticsReveal.visible ? "translateY(0)" : "translateY(20px)",
+                transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
+              }}
+            >
+              <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-2">
+                Real-Time Intelligence
+              </span>
+              <h2 className="text-[clamp(2.15rem,4.4vw,3.35rem)] font-bold leading-[1.02] tracking-[-0.04em] text-[var(--aura-heading)] text-balance">
+                Know what's happening before you ask.
+              </h2>
+              <p className="mt-4 text-sm md:text-base leading-relaxed text-[var(--aura-body)] text-pretty">
+                Get an instant, unified pulse on revenue, staff occupancy, client retention, and margin directly on your phone or desktop.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2 lg:justify-start">
+                {ANALYTICS_CHIPS.map((chip) => (
+                  <span key={chip} className="rounded-full border border-white/70 bg-white/45 px-3 py-1.5 text-[11px] font-bold text-[var(--aura-purple)] shadow-[0_10px_28px_rgba(109,63,209,0.10)] backdrop-blur-xl ring-1 ring-white/40">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-          <div
-            style={{
-              opacity: analyticsReveal.visible ? 1 : 0,
-              transform: analyticsReveal.visible ? "translateY(0)" : "translateY(24px)",
-              transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
-            }}
-          >
-            <AnalyticsMockup />
+            <div
+              className="min-w-0"
+              style={{
+                opacity: analyticsReveal.visible ? 1 : 0,
+                transform: analyticsReveal.visible ? "translateY(0)" : "translateY(24px)",
+                transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
+              }}
+            >
+              <AnalyticsMockup />
+            </div>
           </div>
         </Container>
       </section>
@@ -474,61 +496,79 @@ export function AnalyticsAndPlatform() {
       {/* ── SECTION 2: WHY AURA (6 CARDS) ── */}
       <section
         ref={whyReveal.ref}
-        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28"
+        className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-[radial-gradient(circle_at_50%_0%,rgba(111,79,216,0.16),transparent_34%),linear-gradient(135deg,#FCFAFF_0%,#F6F1FF_48%,#ECE4FF_100%)] py-12 md:py-16"
       >
         <LandingDecor variant="soft" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-20 mx-auto h-40 max-w-5xl rounded-full bg-white/35 blur-3xl" />
         <Container className="relative z-10">
           <div
-            className="mx-auto max-w-3xl text-center mb-16"
+            className="mx-auto max-w-3xl text-center mb-7 md:mb-8"
             style={{
               opacity: whyReveal.visible ? 1 : 0,
               transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
               transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
             }}
           >
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
+            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-2">
               The Aura Advantage
             </span>
-            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
+            <h2 className="text-[clamp(2rem,4.2vw,3rem)] font-bold leading-[1.06] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
               Why salons choose Aura
             </h2>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
-              Engineered exclusively for modern beauty salons, luxury spas, nail bars, and multi-location aesthetic clinics.
+            <p className="mt-3 text-sm md:text-base leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
+              Built for beauty teams that need faster counters, cleaner GST billing, commission clarity, and owner-level control without spreadsheet chaos.
             </p>
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {WHY_AURA_STATS.map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/70 bg-white/45 px-3 py-2.5 shadow-[0_14px_40px_rgba(82,58,138,0.07)] backdrop-blur-xl ring-1 ring-white/45">
+                  <p className="text-base font-black leading-none tracking-[-0.03em] text-[var(--aura-heading)]">{stat.value}</p>
+                  <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--aura-muted)]">{stat.label}</p>
+                </div>
+              ))}
+              <a href="/demo" className="inline-flex min-h-[3.625rem] items-center justify-center gap-1.5 rounded-2xl bg-[var(--aura-purple)] px-3 text-xs font-black text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] sm:text-[13px]">
+                Demo
+                <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
+            </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {WHY_AURA_CARDS.map((card, i) => {
               const Icon = card.icon;
               const featured = i === 0;
               return (
                 <div
                   key={card.title}
-                  className={`group relative overflow-hidden rounded-[var(--aura-radius-xl)] border p-7 shadow-[0_14px_48px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/45 transition-all duration-300 hover:-translate-y-1 hover:bg-white/60 hover:shadow-[0_18px_56px_rgba(82,58,138,0.10)] ${featured ? "border-[var(--aura-purple)]/25 bg-white/55" : "border-white/65 bg-white/35"}`}
+                  className={`group relative min-h-[14.75rem] overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_16px_52px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[var(--aura-purple)]/30 hover:shadow-[0_24px_72px_rgba(82,58,138,0.14)] md:p-6 ${featured ? "border-[var(--aura-purple)]/30 bg-white/68 shadow-[0_20px_72px_rgba(111,79,216,0.15)]" : "border-white/70 bg-white/42"}`}
                   style={{
                     opacity: whyReveal.visible ? 1 : 0,
                     transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
                     transition: `opacity 0.5s ease-out ${0.1 + i * 0.05}s, transform 0.5s ease-out ${0.1 + i * 0.05}s`,
                   }}
                 >
-                  <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[var(--aura-purple)]/5 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent" />
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[var(--aura-purple)]/8 opacity-60 blur-3xl transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="pointer-events-none absolute -bottom-16 left-8 h-28 w-40 rounded-full bg-white/40 opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100" />
                   {featured && (
-                    <span className="mb-4 inline-flex rounded-full bg-[var(--aura-purple)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                      Best fit
-                    </span>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="inline-flex rounded-full bg-[var(--aura-purple)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow-[0_12px_30px_rgba(111,79,216,0.24)]">
+                        Best fit
+                      </span>
+                      <span className="h-px flex-1 bg-gradient-to-r from-[var(--aura-purple)]/25 to-transparent" />
+                    </div>
                   )}
-                  <div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)] ring-1 ring-[var(--aura-purple)]/10 transition-transform duration-300 group-hover:scale-105">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  <div className="relative z-10 mb-4 grid h-11 w-11 place-items-center rounded-2xl bg-[linear-gradient(135deg,#F7F2FF,#ECE3FF)] text-[var(--aura-purple)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_28px_rgba(111,79,216,0.10)] ring-1 ring-[var(--aura-purple)]/10 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-[-2deg]">
+                    <Icon className="h-4.5 w-4.5" aria-hidden="true" />
                   </div>
-                  <h3 className="text-lg font-bold text-[var(--aura-heading)] leading-snug">
+                  <h3 className="relative z-10 text-base font-black text-[var(--aura-heading)] leading-snug tracking-[-0.02em] md:text-[1.05rem]">
                     {card.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[var(--aura-body)]">
+                  <p className="relative z-10 mt-2.5 text-sm leading-relaxed text-[var(--aura-body)]">
                     {card.description}
                   </p>
-                  <div className="mt-5 flex flex-wrap gap-1.5">
+                  <div className="relative z-10 mt-4 flex flex-wrap gap-1.5">
                     {card.chips.map((chip) => (
-                      <span key={chip} className="rounded-md bg-[var(--aura-lavender)] px-2 py-1 text-[10px] font-semibold text-[var(--aura-purple)]">
+                      <span key={chip} className="rounded-full border border-[var(--aura-purple)]/10 bg-[var(--aura-lavender)]/70 px-2.5 py-1 text-[10px] font-bold text-[var(--aura-purple)]">
                         {chip}
                       </span>
                     ))}
@@ -537,43 +577,58 @@ export function AnalyticsAndPlatform() {
               );
             })}
           </div>
+
         </Container>
       </section>
 
       {/* ── SECTION 3: ONE CONNECTED PLATFORM VISUAL ── */}
       <section
         ref={platformReveal.ref}
-        className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-20 md:py-28"
+        className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-14 md:flex md:min-h-[calc(100svh-4.25rem)] md:items-center md:py-16"
       >
         <LandingDecor variant="warm" />
         <Container className="relative z-10">
-          <div
-            className="mx-auto max-w-3xl text-center mb-10"
-            style={{
-              opacity: platformReveal.visible ? 1 : 0,
-              transform: platformReveal.visible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
-            }}
-          >
-            <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-3">
-              Unified Operating System
-            </span>
-            <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-              One connected brain for your entire business
-            </h2>
-            <p className="mt-4 text-base md:text-lg leading-relaxed text-[var(--aura-body)] max-w-2xl mx-auto text-pretty">
-              Every appointment updates your inventory, calculates staff commissions, records GST, and feeds your profit analytics automatically.
-            </p>
-          </div>
+          <div className="grid items-center gap-10 lg:grid-cols-[0.76fr_1.24fr] lg:gap-12 xl:gap-14">
+            <div
+              className="mx-auto max-w-2xl text-center lg:mx-0 lg:max-w-xl lg:text-left"
+              style={{
+                opacity: platformReveal.visible ? 1 : 0,
+                transform: platformReveal.visible ? "translateY(0)" : "translateY(20px)",
+                transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
+              }}
+            >
+              <span className="inline-block text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-2">
+                Unified Operating System
+              </span>
+              <h2 className="text-[clamp(2.35rem,4.8vw,3.75rem)] font-bold leading-[1.02] tracking-[-0.04em] text-[var(--aura-heading)] text-balance">
+                One connected brain for your entire business
+              </h2>
+              <p className="mt-5 text-sm md:text-[1.05rem] leading-relaxed text-[var(--aura-body)] text-pretty">
+                Every appointment updates inventory, calculates staff commissions, records GST, and feeds profit analytics automatically.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2 lg:justify-start">
+                {PLATFORM_CHIPS.map((chip) => (
+                  <span key={chip} className="rounded-full border border-white/70 bg-white/45 px-3 py-1.5 text-[11px] font-bold text-[var(--aura-purple)] shadow-[0_10px_28px_rgba(109,63,209,0.10)] backdrop-blur-xl ring-1 ring-white/40">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              <a href="/demo" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-5 text-sm font-bold text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)]">
+                See connected workflow
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
 
-          <div
-            style={{
-              opacity: platformReveal.visible ? 1 : 0,
-              transform: platformReveal.visible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
-            }}
-          >
-            <OnePlatformVisual />
+            <div
+              className="min-w-0"
+              style={{
+                opacity: platformReveal.visible ? 1 : 0,
+                transform: platformReveal.visible ? "translateY(0)" : "translateY(20px)",
+                transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
+              }}
+            >
+              <OnePlatformVisual />
+            </div>
           </div>
         </Container>
       </section>

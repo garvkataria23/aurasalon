@@ -32,15 +32,15 @@ export function IndustriesAndIntegrations() {
           <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm">
             BUILT FOR EVERY BEAUTY BUSINESS
           </span>
-          <div className="mt-8 flex flex-wrap justify-center gap-6 md:gap-10">
+          <div className="mt-10 flex flex-wrap justify-center gap-8 md:gap-14">
             {INDUSTRIES.map((ind) => {
               const Icon = ind.icon;
               return (
-                <div key={ind.title} className="flex flex-col items-center gap-2.5 group">
-                  <div className="grid h-14 w-14 place-items-center rounded-2xl border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] transition-all duration-300 group-hover:shadow-[var(--aura-shadow-md)] group-hover:-translate-y-0.5">
-                    <Icon className="h-6 w-6 text-[var(--aura-purple)]" aria-hidden="true" />
+                <div key={ind.title} className="flex flex-col items-center gap-3.5 group">
+                  <div className="grid h-20 w-20 place-items-center rounded-[1.5rem] border border-[var(--aura-border)] bg-white shadow-[var(--aura-shadow-sm)] transition-all duration-300 group-hover:shadow-[var(--aura-shadow-md)] group-hover:-translate-y-0.5 md:h-24 md:w-24">
+                    <Icon className="h-9 w-9 text-[var(--aura-purple)] md:h-11 md:w-11" aria-hidden="true" />
                   </div>
-                  <span className="text-xs font-semibold text-[var(--aura-heading)]">{ind.title}</span>
+                  <span className="text-sm font-semibold text-[var(--aura-heading)] md:text-base">{ind.title}</span>
                 </div>
               );
             })}
@@ -65,4 +65,3 @@ export function IndustriesAndIntegrations() {
     </section>
   );
 }
-
