@@ -542,6 +542,86 @@ button, a { touch-action: manipulation; }
     0 0 0 1px rgba(93, 63, 194, 0.35) !important;
 }
 
+/* ===== FEATURE PAGE INTERACTIVE SHADOWS & ANIMATIONS ===== */
+.feature-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.feature-card-hover:hover {
+  transform: translateY(-6px) scale(1.008);
+  border-color: rgba(111, 79, 216, 0.42);
+  box-shadow:
+    0 24px 64px -16px rgba(111, 79, 216, 0.22),
+    0 10px 28px -8px rgba(45, 18, 77, 0.08),
+    0 0 0 1px rgba(111, 79, 216, 0.12);
+}
+
+.feature-hero-card {
+  animation: float 7s ease-in-out infinite;
+  transition: box-shadow 0.4s ease, transform 0.4s ease;
+}
+
+.feature-hero-card:hover {
+  animation-play-state: paused;
+  transform: translateY(-4px) scale(1.01);
+  box-shadow:
+    0 32px 84px -12px rgba(111, 79, 216, 0.48),
+    0 12px 32px -6px rgba(0, 0, 0, 0.35);
+}
+
+.stat-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-card-hover:hover {
+  transform: translateY(-3px);
+  background-color: rgba(243, 240, 255, 0.65);
+}
+
+.impact-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.impact-card-hover:hover {
+  transform: translateY(-6px) scale(1.02);
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  box-shadow:
+    0 22px 60px -10px rgba(168, 85, 247, 0.38),
+    0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.btn-aura-glow {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-aura-glow:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 14px 38px -6px rgba(111, 79, 216, 0.55),
+    0 0 24px rgba(147, 51, 234, 0.35);
+}
+
+.btn-aura-glow:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-white-glow {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-white-glow:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 14px 38px -6px rgba(255, 255, 255, 0.45),
+    0 0 24px rgba(255, 255, 255, 0.2);
+}
+
+.btn-white-glow:active {
+  transform: translateY(0) scale(0.98);
+}
+
 .platform-orbit-ring {
   position: relative;
   animation: platformRingIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both, spin 64s linear 0.9s infinite;
