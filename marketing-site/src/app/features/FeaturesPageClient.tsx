@@ -130,7 +130,7 @@ export default function FeaturesPage() {
                 <Link
                   key={feature.title}
                   href={feature.href}
-                  className="feature-card-hover group flex flex-col justify-between rounded-2xl border border-[var(--aura-border)] bg-white p-5 md:p-6 cursor-pointer shadow-xs"
+                  className="feature-card-hover group flex flex-col justify-between rounded-2xl border border-[var(--aura-border)] bg-white p-5 md:p-6 cursor-pointer"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3.5">

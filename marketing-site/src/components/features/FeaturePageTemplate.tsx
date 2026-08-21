@@ -248,7 +248,7 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
               return (
                 <div
                   key={cap.title}
-                  className="feature-card-hover group rounded-3xl border border-[var(--aura-border)] bg-white p-8 shadow-[var(--aura-shadow-sm)] cursor-default flex flex-col justify-between"
+                  className="feature-card-hover group rounded-3xl border border-[var(--aura-border)] bg-white p-8 cursor-default flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--aura-purple)] to-[#9B7FE6] text-white mb-6 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 group-hover:shadow-[0_10px_28px_rgba(111,79,216,0.4)]">
