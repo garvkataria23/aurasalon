@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PhoneCall, CheckCircle2, ShieldCheck, Sparkles, Send } from "lucide-react";
+import { PhoneCall, CheckCircle2, Send } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 
 export function LeadCallbackSection() {

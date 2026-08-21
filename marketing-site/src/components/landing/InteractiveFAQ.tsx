@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, ChevronDown, HelpCircle, Sparkles } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 
 const ALL_FAQS = [
@@ -125,7 +125,7 @@ export function InteractiveFAQ() {
             })
           ) : (
             <div className="rounded-2xl border border-dashed border-[var(--aura-border)] p-8 text-center text-sm text-[var(--aura-muted)]">
-              No matching questions found for "{searchQuery}". Ask our support team directly!
+              No matching questions found for &ldquo;{searchQuery}&rdquo;. Ask our support team directly!
             </div>
           )}
         </div>

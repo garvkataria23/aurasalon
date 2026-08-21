@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Smartphone, Apple, Play, CheckCircle2, ShieldCheck, Zap, Sparkles } from "lucide-react";
+import { Apple, Play, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 
 export function AppDownloadSection() {
@@ -108,7 +108,7 @@ export function AppDownloadSection() {
                 {/* Day Summary */}
                 <div className="rounded-xl bg-white/10 p-3 backdrop-blur-md">
                   <div className="flex items-center justify-between text-[11px] text-purple-200">
-                    <span>Today's Target</span>
+                    <span>Today&apos;s Target</span>
                     <span className="font-bold text-amber-300">₹8,500 / ₹10,000</span>
                   </div>
                   <div className="mt-2 h-1.5 w-full rounded-full bg-white/15 overflow-hidden">

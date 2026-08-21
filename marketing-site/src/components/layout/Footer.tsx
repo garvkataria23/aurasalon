@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Send, CheckCircle2, ShieldCheck, Sparkles, Globe } from "lucide-react";
-import { CTA_LINKS } from "@/lib/constants";
+import { CheckCircle2, Globe } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 
 const CITIES_LIST = [
@@ -94,7 +93,7 @@ export function Footer() {
               </p>
               {subscribed ? (
                 <div className="rounded-xl bg-emerald-500/20 border border-emerald-500/30 p-3 text-xs text-emerald-300 flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" /> You're subscribed! Welcome aboard.
+                  <CheckCircle2 className="h-4 w-4" /> You&apos;re subscribed! Welcome aboard.
                 </div>
               ) : (
                 <form onSubmit={handleSubscribe} className="flex items-center gap-2">

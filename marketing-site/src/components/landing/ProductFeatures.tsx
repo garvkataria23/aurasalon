@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
 import {
-  Calendar, CheckCircle2, Clock, Users, UserPlus, ListChecks, Globe, Bell, RefreshCw,
+  Calendar, CheckCircle2, Users, UserPlus, ListChecks, Globe, Bell, RefreshCw,
   Receipt, CreditCard, Percent, Gift, Wallet, ArrowLeftRight, BadgeDollarSign, History,
-  User, Heart, Star, StickyNote, Cake, Award, TrendingUp, ShoppingBag,
+  User, Heart, Star, StickyNote, Cake, ShoppingBag,
   Fingerprint, CalendarDays, Target, Coins, FileText, BarChart3, Repeat, Shield, ArrowRight,
 } from "lucide-react";
 

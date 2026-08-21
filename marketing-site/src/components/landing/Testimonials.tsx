@@ -115,7 +115,7 @@ export function Testimonials() {
             <div className="mt-8 relative">
               <Quote className="h-10 w-10 text-[var(--aura-purple)]/15 absolute -left-2 -top-4 pointer-events-none" />
               <p className="relative z-10 text-base sm:text-xl md:text-2xl font-medium leading-relaxed text-[var(--aura-heading)] italic">
-                "{review.text}"
+                &ldquo;{review.text}&rdquo;
               </p>
             </div>
 

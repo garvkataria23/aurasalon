@@ -4,11 +4,9 @@ import Link from "next/link";
 import { ArrowRight, Star, Sparkles, CheckCircle2, TrendingUp, Calendar, UserCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { CTA_LINKS } from "@/lib/constants";
-import { useLanguage } from "@/components/providers/LanguageProvider";
 import { LandingDecor } from "./LandingDecor";
 
 export function Hero() {
-  const { t } = useLanguage();
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#2D124D] via-[#431A72] to-[#FCFBF8] text-white pt-24 pb-16 md:pt-28 md:pb-24 lg:pt-32 lg:pb-28">
@@ -199,7 +197,7 @@ export function Hero() {
                   <div className="flex items-center justify-between text-xs text-purple-200 mb-2">
                     <span className="font-semibold text-white flex items-center gap-1.5">
                       <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-                      Today's Revenue
+                      Today&apos;s Revenue
                     </span>
                     <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
                       +42% YoY
@@ -242,7 +240,7 @@ export function Hero() {
                     </div>
                   </div>
                   <div className="mt-3 rounded-xl bg-purple-900/40 border border-purple-500/20 p-2 text-[11px] text-purple-200">
-                    💬 <span className="font-semibold text-white">WhatsApp AI:</span> "Birthday special voucher sent! 🎁"
+                    💬 <span className="font-semibold text-white">WhatsApp AI:</span> &ldquo;Birthday special voucher sent! 🎁&rdquo;
                   </div>
                 </div>
 
