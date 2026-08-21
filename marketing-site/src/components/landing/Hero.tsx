@@ -9,7 +9,7 @@ import { LandingDecor } from "./LandingDecor";
 export function Hero() {
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#2D124D] via-[#431A72] to-[#FCFBF8] text-white pt-24 pb-16 md:pt-28 md:pb-24 lg:pt-32 lg:pb-28">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#EFE7FF] to-[#D9C5FF] pt-24 pb-16 text-[var(--aura-heading)] md:pt-28 md:pb-24 lg:pt-32 lg:pb-28">
       {/* Background ambient lighting */}
       <div
         className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[90%] max-w-6xl rounded-full bg-[radial-gradient(ellipse_at_center,rgba(168,85,247,0.22),transparent_70%)] blur-3xl"
@@ -23,11 +23,10 @@ export function Hero() {
           {/* Rating Badges Strip */}
           <div
             className="mb-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
-            style={{ animation: "fadeInUp 0.5s ease-out both" }}
           >
             {/* Capterra */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
-              <span className="font-semibold text-xs text-white">Capterra</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/14 bg-white/62 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
+              <span className="font-semibold text-xs text-[var(--aura-heading)]">Capterra</span>
               <div className="flex items-center gap-0.5" aria-label="4.8 out of 5 stars">
                 <span className="text-xs font-bold text-amber-300">4.8</span>
                 <div className="flex text-amber-400">
@@ -39,8 +38,8 @@ export function Hero() {
             </div>
 
             {/* GetApp */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
-              <span className="font-semibold text-xs text-white">GetApp</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/14 bg-white/62 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
+              <span className="font-semibold text-xs text-[var(--aura-heading)]">GetApp</span>
               <div className="flex items-center gap-0.5" aria-label="4.8 out of 5 stars">
                 <span className="text-xs font-bold text-amber-300">4.8</span>
                 <div className="flex text-amber-400">
@@ -52,8 +51,8 @@ export function Hero() {
             </div>
 
             {/* Google Reviews */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
-              <span className="font-semibold text-xs text-white">Google</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/14 bg-white/62 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
+              <span className="font-semibold text-xs text-[var(--aura-heading)]">Google</span>
               <div className="flex items-center gap-0.5" aria-label="4.9 out of 5 stars">
                 <span className="text-xs font-bold text-amber-300">4.9</span>
                 <div className="flex text-amber-400">
@@ -67,19 +66,17 @@ export function Hero() {
 
           {/* Main Headline */}
           <h1
-            className="max-w-4xl text-[clamp(2.4rem,5.5vw,4.8rem)] font-extrabold leading-[1.08] tracking-[-0.04em] text-white"
-            style={{ animation: "fadeInUp 0.55s ease-out 0.08s both" }}
+            className="max-w-4xl text-[clamp(2.4rem,5.5vw,4.8rem)] font-extrabold leading-[1.08] tracking-[-0.04em] text-[var(--aura-heading)]"
           >
             Automate, Manage and Grow Your Salon &amp; Med Spas with{" "}
-            <span className="bg-gradient-to-r from-amber-200 via-rose-200 to-purple-200 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#5D3FC2] via-[#7B57EA] to-[#2D176F] bg-clip-text text-transparent">
               Aura
             </span>
           </h1>
 
           {/* Subtitle */}
           <p
-            className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg md:leading-8"
-            style={{ animation: "fadeInUp 0.55s ease-out 0.16s both" }}
+            className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--aura-body)] md:text-lg md:leading-8"
           >
             Stop juggling, start scaling. Aura all-in-one salon software automates your entire business operations — bookings, GST billing, staff payroll, client CRM, and marketing — equipping you with the time and resources to reach new heights.
           </p>
@@ -87,18 +84,17 @@ export function Hero() {
           {/* Action CTAs */}
           <div
             className="mt-8 flex w-full max-w-md flex-col gap-3.5 sm:w-auto sm:max-w-none sm:flex-row sm:items-center"
-            style={{ animation: "fadeInUp 0.55s ease-out 0.24s both" }}
           >
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-bold text-[#2D124D] shadow-[0_12px_36px_rgba(0,0,0,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-purple-50 hover:shadow-[0_18px_48px_rgba(0,0,0,0.32)]"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--aura-purple)] px-8 text-base font-bold text-white shadow-[0_14px_42px_rgba(93,63,194,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] hover:shadow-[0_20px_54px_rgba(93,63,194,0.36)]"
             >
               BOOK A DEMO
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/features"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-8 text-base font-semibold text-white shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/20 hover:border-white/50"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[var(--aura-purple)]/18 bg-white/58 px-8 text-base font-semibold text-[var(--aura-heading)] shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--aura-purple)]/30 hover:bg-white/76"
             >
               Explore Features
             </Link>
@@ -106,19 +102,18 @@ export function Hero() {
 
           {/* Trust Guarantees */}
           <div
-            className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-medium text-white/70"
-            style={{ animation: "fadeInUp 0.55s ease-out 0.3s both" }}
+            className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-medium text-[var(--aura-body)]"
           >
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
               No credit card required
             </span>
-            <span className="h-1 w-1 rounded-full bg-white/30" aria-hidden="true" />
+            <span className="h-1 w-1 rounded-full bg-[var(--aura-purple)]/25" aria-hidden="true" />
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
               15-min instant setup
             </span>
-            <span className="h-1 w-1 rounded-full bg-white/30" aria-hidden="true" />
+            <span className="h-1 w-1 rounded-full bg-[var(--aura-purple)]/25" aria-hidden="true" />
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
               Free 100% data migration
@@ -128,7 +123,6 @@ export function Hero() {
           {/* Interactive Hero Dashboard Frame */}
           <div
             className="relative mt-12 w-full max-w-5xl md:mt-16"
-            style={{ animation: "fadeInUp 0.65s ease-out 0.36s both" }}
           >
             {/* Soft backdrop glow */}
             <div className="absolute left-1/2 top-1/2 h-[350px] w-[85%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[90px] pointer-events-none" />

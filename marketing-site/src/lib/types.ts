@@ -55,4 +55,16 @@ export interface FeaturePageData {
     value: string;
     label: string;
   }[];
+  heroDescription?: string;
+  painPoints?: string[];
+  solutions?: string[];
+  impactMetrics?: {
+    value: string;
+    label: string;
+    description: string;
+  }[];
+  relatedFeatures?: {
+    label: string;
+    href: string;
+  }[];
 }

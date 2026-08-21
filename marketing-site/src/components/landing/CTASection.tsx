@@ -4,42 +4,15 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, Check } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
-import { useEffect, useRef, useState } from "react";
 import { LandingDecor } from "./LandingDecor";
 
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return { ref, visible };
-}
-
 export function CTASection() {
-  const { ref, visible } = useReveal();
-
   return (
     <section className="relative py-24 md:py-32 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] overflow-hidden">
       <LandingDecor variant="cta" />
       <Container className="relative z-10">
         <div
-          ref={ref}
-          className={`shadow-breathe-subtle reveal relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/30 p-8 sm:p-12 md:p-16 lg:p-20 backdrop-blur-xl ring-1 ring-white/35 transition-all duration-700 ease-out ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
+          className="shadow-breathe-subtle relative overflow-hidden rounded-[2rem] border border-white/50 bg-white/30 p-8 sm:p-12 md:p-16 lg:p-20 backdrop-blur-xl ring-1 ring-white/35 transition-all duration-700 ease-out"
         >
           {/* Subtle decorative background glow */}
           <div
