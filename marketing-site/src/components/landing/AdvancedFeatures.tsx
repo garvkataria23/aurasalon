@@ -874,6 +874,16 @@ export function AdvancedFeatures() {
                   />
                 ))}
               </ul>
+
+              <div className="mt-8 pt-2">
+                <a
+                  href="/demo"
+                  className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  Book a Demo
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
             </div>
 
             {/* Mockup column */}
@@ -930,6 +940,16 @@ export function AdvancedFeatures() {
                     onClick={() => setActiveMembershipFeature(label)}
                   />
                 ))}
+              </div>
+
+              <div className="mt-8 pt-2">
+                <a
+                  href="/demo"
+                  className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  Book a Demo
+                  <ArrowRight className="h-4 w-4" />
+                </a>
               </div>
             </div>
 
@@ -989,6 +1009,16 @@ export function AdvancedFeatures() {
                   />
                 ))}
               </ul>
+
+              <div className="mt-8 pt-2">
+                <a
+                  href="/demo"
+                  className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  Book a Demo
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
             </div>
 
             {/* Automation flow mockup */}

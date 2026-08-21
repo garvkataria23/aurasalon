@@ -30,31 +30,46 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    label: "Products",
-    labelKey: "navigation.products",
-    children: [
-      { label: "Owner CRM", labelKey: "nav.owner-crm", href: "/owner-crm", description: "GST billing, client CRM, inventory & finance" },
-      { label: "Customer App", labelKey: "nav.customer-app", href: "/customer-app", description: "Pay-at-salon booking & visit history" },
-      { label: "Staff App", labelKey: "nav.staff-app", href: "/staff-app", description: "Attendance, shifts & commission tracking" },
-    ],
-  },
-  {
     label: "Solutions",
     labelKey: "navigation.solutions",
     children: [
-      { label: "Platform Overview", labelKey: "navigation.platformOverview", href: "/platform", description: "See the connected operating system" },
-      { label: "Workflows", labelKey: "nav.workflows", href: "/workflows", description: "Booking to billing to owner insight" },
+      { label: "Hair Salons & Barbershops", labelKey: "nav.hair-salons", href: "/platform", description: "Smart chair booking, walk-in queues & fast GST billing" },
+      { label: "Spas & Wellness Centers", labelKey: "nav.spas-wellness", href: "/workflows", description: "Therapy rooms, packages & therapist rosters" },
+      { label: "Nail Studios & Beauty Clinics", labelKey: "nav.beauty-clinics", href: "/customer-app", description: "Client treatment courses, history & loyalty" },
+      { label: "Multi-Location Chains", labelKey: "nav.multi-location", href: "/owner-crm", description: "Centralized sales, cross-branch stock & analytics" },
     ],
   },
-  { label: "Features", labelKey: "nav.features", href: "/features" },
+  {
+    label: "Features",
+    labelKey: "nav.features",
+    children: [
+      { label: "Online Booking & Scheduling", labelKey: "nav.appointments", href: "/features/appointments", description: "24/7 self-service booking & WhatsApp reminders" },
+      { label: "POS & GST Invoicing", labelKey: "nav.billing", href: "/features/billing", description: "3-click checkout, split payments & GST bills" },
+      { label: "Client CRM & Loyalty", labelKey: "nav.crm", href: "/features/client-crm", description: "Visit history, preferences & wallet points" },
+      { label: "Staff Roster & Payroll", labelKey: "nav.staff", href: "/features/staff-management", description: "Shifts, biometric attendance & auto-commissions" },
+      { label: "Inventory & Recipe Control", labelKey: "nav.inventory", href: "/features/inventory", description: "Stock deductions, auto-PO & low stock alerts" },
+      { label: "Marketing AI & Automation", labelKey: "nav.marketing", href: "/features/marketing-ai", description: "2-way WhatsApp campaigns & winback journeys" },
+      { label: "All Features Overview", labelKey: "nav.allFeatures", href: "/features", description: "Explore the complete operating suite" },
+    ],
+  },
+  {
+    label: "Products",
+    labelKey: "navigation.products",
+    children: [
+      { label: "Owner CRM & POS", labelKey: "nav.owner-crm", href: "/owner-crm", description: "GST billing, client CRM, inventory & finance" },
+      { label: "Customer Booking App", labelKey: "nav.customer-app", href: "/customer-app", description: "Pay-at-salon booking & visit history" },
+      { label: "Staff & Stylist App", labelKey: "nav.staff-app", href: "/staff-app", description: "Attendance, shifts & commission tracking" },
+    ],
+  },
   { label: "Pricing", labelKey: "nav.pricing", href: "/pricing" },
   {
     label: "Resources",
     labelKey: "navigation.resources",
     children: [
-      { label: "Blog", labelKey: "nav.blog", href: "/blog", description: "Guides & industry insights" },
-      { label: "FAQ", labelKey: "navigation.faq", href: "/faq", description: "Common questions answered" },
-      { label: "Contact", labelKey: "navigation.contact", href: "/contact", description: "Get in touch with our team" },
+      { label: "Blog & Guides", labelKey: "nav.blog", href: "/blog", description: "Salon growth strategies & industry insights" },
+      { label: "FAQ & Help Center", labelKey: "navigation.faq", href: "/faq", description: "Common questions and onboarding support" },
+      { label: "Customer Stories", labelKey: "nav.customers", href: "/customers", description: "See how top salons scale with Aura" },
+      { label: "Contact Sales", labelKey: "navigation.contact", href: "/contact", description: "Get in touch with our salon consultants" },
     ],
   },
 ];
@@ -108,7 +123,7 @@ function NavDropdown({ item, pathname }: { item: NavItem; pathname: string }) {
         aria-expanded={open}
         className={cn(
           "flex items-center gap-1 px-3 py-2 text-[13.5px] font-medium transition-colors rounded-lg",
-          active ? "text-[var(--aura-purple)]" : "text-[var(--aura-body)] hover:text-[var(--aura-heading)]"
+          active ? "bg-white/12 text-white" : "text-white/74 hover:bg-white/10 hover:text-white"
         )}
       >
         {t(item.labelKey, item.label)}
@@ -185,20 +200,20 @@ export function Navbar() {
         className={cn(
           "fixed inset-x-0 top-0 z-[9997] transition-all duration-300",
           scrolled
-            ? "bg-white/90 backdrop-blur-xl border-b border-[var(--aura-border)] shadow-[var(--aura-shadow-xs)]"
-            : "bg-white border-b border-transparent"
+            ? "bg-[#2D176F]/95 backdrop-blur-xl border-b border-white/10 shadow-[0_14px_40px_rgba(45,23,111,0.18)]"
+            : "bg-[#2D176F] border-b border-white/10"
         )}
       >
         <nav className="mx-auto flex h-16 max-w-[82rem] items-center justify-between px-4 sm:px-6 lg:px-10" aria-label={t("a11y.primaryNavigation")}>
           {/* Logo */}
           <Link href="/" className="flex shrink-0 items-center gap-2.5 group" aria-label={t("a11y.home")}>
             <span
-              className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--aura-purple)] font-semibold text-white text-sm shadow-[var(--aura-shadow-xs)] transition-transform duration-200 group-hover:scale-105"
+              className="grid h-8 w-8 place-items-center rounded-xl bg-white font-semibold text-[#2D176F] text-sm shadow-[0_10px_26px_rgba(0,0,0,0.14)] transition-transform duration-200 group-hover:scale-105"
               aria-hidden="true"
             >
               A
             </span>
-            <span className="text-lg font-semibold tracking-tight text-[var(--aura-heading)]">Aura</span>
+            <span className="text-lg font-semibold tracking-tight text-white">Aura</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -214,8 +229,8 @@ export function Navbar() {
                   className={cn(
                     "px-3 py-2 text-[13.5px] font-medium transition-colors rounded-lg",
                     isRouteActive(pathname, item.href!)
-                      ? "text-[var(--aura-purple)]"
-                      : "text-[var(--aura-body)] hover:text-[var(--aura-heading)]"
+                      ? "bg-white/12 text-white"
+                      : "text-white/74 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   {t(item.labelKey, item.label)}
@@ -226,18 +241,18 @@ export function Navbar() {
 
           {/* Desktop Right */}
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            <LanguageSelector />
+            <LanguageSelector tone="dark" />
 
             <Link
               href={CTA_LINKS.login}
-              className="px-3 py-2 text-sm font-medium text-[var(--aura-body)] transition-colors hover:text-[var(--aura-heading)]"
+              className="px-3 py-2 text-sm font-medium text-white/74 transition-colors hover:text-white"
             >
               {t("navigation.login")}
             </Link>
 
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-4 py-2 text-sm font-semibold text-white shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] hover:shadow-[var(--aura-shadow-md)]"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2D176F] shadow-[0_14px_34px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-lavender)] hover:shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
             >
               {t("navigation.demo")}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -248,7 +263,7 @@ export function Navbar() {
           <div className="flex items-center gap-2 lg:hidden">
             <Link
               href={CTA_LINKS.demo}
-              className="hidden sm:inline-flex items-center rounded-full bg-[var(--aura-purple)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm"
+              className="hidden sm:inline-flex items-center rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-[#2D176F] shadow-sm"
             >
               {t("navigation.demo")}
             </Link>
@@ -259,7 +274,7 @@ export function Navbar() {
                 "grid h-10 w-10 place-items-center rounded-lg border transition-colors",
                 mobileOpen
                   ? "border-[var(--aura-border)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
-                  : "border-[var(--aura-border)] text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)]"
+                  : "border-white/18 text-white hover:bg-white/10"
               )}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
@@ -269,6 +284,7 @@ export function Navbar() {
             </button>
           </div>
         </nav>
+        <div className="nav-zigzag-edge" aria-hidden="true" />
       </header>
 
       <MobileMenu

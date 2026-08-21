@@ -3,15 +3,16 @@
 import dynamic from "next/dynamic";
 import { Hero } from "@/components/landing/Hero";
 import { TrustStrip } from "@/components/landing/TrustStrip";
+import { ValuePillarsSection } from "@/components/landing/ValuePillarsSection";
+import { IndustriesGridSection } from "@/components/landing/IndustriesGridSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
-import { Stats } from "@/components/landing/Stats";
-import { HowItWorks } from "@/components/landing/HowItWorks";
-import { IndustriesAndIntegrations } from "@/components/landing/IndustriesAndIntegrations";
+import { FeatureDirectoryPills } from "@/components/landing/FeatureDirectoryPills";
 import { Testimonials } from "@/components/landing/Testimonials";
-import { PricingPreview } from "@/components/landing/PricingPreview";
+import { AppDownloadSection } from "@/components/landing/AppDownloadSection";
 import { InteractiveFAQ } from "@/components/landing/InteractiveFAQ";
+import { LeadCallbackSection } from "@/components/landing/LeadCallbackSection";
+import { CityDirectorySection } from "@/components/landing/CityDirectorySection";
 import { CTASection } from "@/components/landing/CTASection";
-import { SectionDivider } from "@/components/landing/SectionDivider";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const ProductFeatures = dynamic(() => import("@/components/landing/ProductFeatures").then((m) => m.ProductFeatures));
@@ -24,25 +25,55 @@ export default function HomePageClient() {
   const containerRef = useScrollReveal();
 
   return (
-    <main ref={containerRef as React.RefObject<HTMLElement>} className="aura-home min-h-screen">
+    <main ref={containerRef as React.RefObject<HTMLElement>} className="aura-home min-h-screen bg-white">
+      {/* 1. Hero with rating badges and live interactive dashboard */}
       <Hero />
-      <SectionDivider variant="dark-to-light" />
+      
+      {/* 2. Top Brands Social Proof Marquee */}
       <TrustStrip />
-      <SectionDivider variant="light-to-dark" flip />
+      
+      {/* 3. The Best Software in Industry — 3 Value Pillars & Tour Preview */}
+      <ValuePillarsSection />
+      
+      {/* 4. Industries We Serve (8 Photo Cards) */}
+      <IndustriesGridSection />
+      
+      {/* 5. The Salon Reality & Problem/Solution */}
       <ProblemSection />
+      
+      {/* 6. All-in-One Solution Feature Showcases (10 alternating modules) */}
       <ProductFeatures />
       <AdvancedFeatures />
       <AnalyticsAndPlatform />
+      
+      {/* 7. Complete List of Features Explorer Pills */}
+      <FeatureDirectoryPills />
+      
+      {/* 8. Interactive POS Sandbox & Live Billing Simulator */}
       <POSSandbox />
+      
+      {/* 9. Salon ROI & Profit Calculator */}
       <ROICalculator />
-      <Stats />
-      <HowItWorks />
-      <IndustriesAndIntegrations />
+      
+      {/* 10. Client Testimonials Slider with Brand Logos */}
       <Testimonials />
-      <PricingPreview />
+      
+      {/* 11. Download Mobile Companion App */}
+      <AppDownloadSection />
+      
+      {/* 12. Searchable Frequently Asked Questions */}
       <InteractiveFAQ />
+      
+      {/* 13. Instant Lead Callback Form */}
+      <LeadCallbackSection />
+      
+      {/* 14. Aura Across India City Directory */}
+      <CityDirectorySection />
+      
+      {/* 15. Final Transformation CTA */}
       <CTASection />
     </main>
   );
 }
+
 

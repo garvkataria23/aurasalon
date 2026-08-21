@@ -5,7 +5,7 @@ import { Check, ChevronDown, Globe2, Search } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
 
-export function LanguageSelector({ compact = false, align = "right" }: { compact?: boolean; align?: "left" | "right" }) {
+export function LanguageSelector({ compact = false, align = "right", tone = "light" }: { compact?: boolean; align?: "left" | "right"; tone?: "light" | "dark" }) {
   const { language, setLanguage, allLanguages, t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -49,15 +49,18 @@ export function LanguageSelector({ compact = false, align = "right" }: { compact
         aria-expanded={open}
         aria-label={t("language.selector", "Select language")}
         className={cn(
-          "inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--aura-border)] bg-white px-3 text-sm font-medium text-[var(--aura-heading)] shadow-[var(--aura-shadow-xs)] transition-colors hover:bg-[var(--aura-off-white)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aura-purple)] focus-visible:ring-offset-2",
+          "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-[var(--aura-shadow-xs)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          tone === "dark"
+            ? "border-white/16 bg-white/10 text-white hover:bg-white/16 focus-visible:ring-white/70 focus-visible:ring-offset-[#2D176F]"
+            : "border-[var(--aura-border)] bg-white text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)] focus-visible:ring-[var(--aura-purple)]",
           compact && "h-10 min-w-0 justify-between"
         )}
       >
         <span className="inline-flex items-center gap-2 truncate">
-          <Globe2 className="h-4 w-4 shrink-0 text-[var(--aura-purple)]" aria-hidden="true" />
+          <Globe2 className={cn("h-4 w-4 shrink-0", tone === "dark" ? "text-white/90" : "text-[var(--aura-purple)]")} aria-hidden="true" />
           <span className="truncate">{compact ? selected.nativeName : selected.name}</span>
         </span>
-        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[var(--aura-muted)] transition-transform", open && "rotate-180")} aria-hidden="true" />
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform", tone === "dark" ? "text-white/70" : "text-[var(--aura-muted)]", open && "rotate-180")} aria-hidden="true" />
       </button>
 
       {open && (

@@ -369,37 +369,76 @@ function OnePlatformVisual() {
     <div className="relative mx-auto w-full max-w-3xl py-4 md:py-6 lg:translate-x-8 lg:max-w-none xl:translate-x-12">
       {/* Desktop Radial Visual */}
       <div className="relative hidden md:block aspect-[16/9] w-full overflow-visible">
-        {/* Pulsing Concentric Rings */}
+        {/* Connected Platform Lines */}
         <div className="absolute inset-0 grid place-items-center pointer-events-none" aria-hidden="true">
-          <div className="h-[78%] w-[72%] rounded-full border border-[var(--aura-purple)]/14 animate-[spin_60s_linear_infinite]" />
-          <div className="absolute h-[54%] w-[58%] rounded-full border border-dashed border-[var(--aura-purple)]/26" />
-          <div className="absolute h-[48%] w-[44%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72),rgba(243,240,255,0.30)_52%,transparent_74%)] blur-xl" />
+          <div className="platform-orbit-glow absolute h-[48%] w-[44%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.72),rgba(243,240,255,0.30)_52%,transparent_74%)] blur-xl" />
+          <svg className="platform-connection-map absolute inset-0 h-full w-full" viewBox="0 0 1000 562" fill="none" preserveAspectRatio="none">
+            <g className="platform-connection-backdrop">
+              <path d="M500 281 C500 214 500 140 500 54" />
+              <path d="M500 281 C594 214 682 154 790 118" />
+              <path d="M500 281 C642 264 746 268 936 281" />
+              <path d="M500 281 C610 336 694 416 840 460" />
+              <path d="M500 281 C500 348 500 440 500 540" />
+              <path d="M500 281 C386 336 288 416 150 460" />
+              <path d="M500 281 C360 264 244 268 64 281" />
+              <path d="M500 281 C402 214 314 154 112 118" />
+            </g>
+            <path id="platform-line-appointments" className="platform-connection-line" d="M500 281 C500 214 500 140 500 54" />
+            <path id="platform-line-gst" className="platform-connection-line" d="M500 281 C594 214 682 154 790 118" />
+            <path id="platform-line-crm" className="platform-connection-line" d="M500 281 C642 264 746 268 936 281" />
+            <path id="platform-line-staff" className="platform-connection-line" d="M500 281 C610 336 694 416 840 460" />
+            <path id="platform-line-inventory" className="platform-connection-line" d="M500 281 C500 348 500 440 500 540" />
+            <path id="platform-line-memberships" className="platform-connection-line" d="M500 281 C386 336 288 416 150 460" />
+            <path id="platform-line-marketing" className="platform-connection-line" d="M500 281 C360 264 244 268 64 281" />
+            <path id="platform-line-analytics" className="platform-connection-line" d="M500 281 C402 214 314 154 112 118" />
+            <circle className="platform-data-particle" r="4">
+              <animateMotion dur="5.8s" repeatCount="indefinite" begin="0s">
+                <mpath href="#platform-line-gst" />
+              </animateMotion>
+            </circle>
+            <circle className="platform-data-particle platform-data-particle-soft" r="3.4">
+              <animateMotion dur="6.8s" repeatCount="indefinite" begin="-2.2s">
+                <mpath href="#platform-line-memberships" />
+              </animateMotion>
+            </circle>
+            <circle className="platform-data-particle" r="3.6">
+              <animateMotion dur="7.2s" repeatCount="indefinite" begin="-3.4s">
+                <mpath href="#platform-line-appointments" />
+              </animateMotion>
+            </circle>
+          </svg>
         </div>
 
         {/* Center Aura Hub */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="relative grid h-36 w-36 place-items-center rounded-[2.25rem] bg-[linear-gradient(135deg,#7B57EA,#5F3FD2)] text-white shadow-[0_22px_74px_rgba(118,81,216,0.44)] ring-1 ring-white/35 transition-transform hover:scale-105">
-            <div className="absolute inset-0 rounded-[2.25rem] bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.28),transparent_44%)]" aria-hidden="true" />
-            <div className="text-center">
-              <span className="relative font-bold text-[2.1rem] tracking-tight">AURA</span>
-              <p className="relative mt-1 text-[10px] font-semibold uppercase tracking-widest text-white/80">Salon OS</p>
+          <div className="platform-hub-in">
+            <div className="platform-hub relative grid h-36 w-36 place-items-center rounded-[2.25rem] bg-[linear-gradient(135deg,#7B57EA,#5F3FD2)] text-white shadow-[0_22px_74px_rgba(118,81,216,0.44)] ring-1 ring-white/35 transition-transform hover:scale-105">
+              <div className="absolute inset-0 rounded-[2.25rem] bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.28),transparent_44%)]" aria-hidden="true" />
+              <div className="text-center">
+                <span className="relative font-bold text-[2.1rem] tracking-tight">AURA</span>
+                <p className="relative mt-1 text-[10px] font-semibold uppercase tracking-widest text-white/80">Salon OS</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Satellite Module Nodes */}
-        {MODULES.map((mod) => {
+        {MODULES.map((mod, i) => {
           const Icon = mod.icon;
           return (
             <div
               key={mod.name}
               className={`absolute z-10 ${mod.pos}`}
             >
-              <div className="flex min-w-[10.5rem] items-center gap-3 rounded-[1.2rem] border border-white/60 bg-white/40 px-4 py-3 shadow-[0_18px_54px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/45 transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/55 hover:shadow-[0_26px_70px_rgba(109,63,209,0.20)] hover:-translate-y-0.5">
-                <span className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="whitespace-nowrap text-[13px] font-bold text-[var(--aura-heading)]">{mod.name}</span>
+              <div className="platform-node-in" style={{ animationDelay: `${420 + i * 85}ms` }}>
+                <div className="platform-node-float" style={{ animationDelay: `${i * 180}ms` }}>
+                  <div className="flex min-w-[10.5rem] items-center gap-3 rounded-[1.2rem] border border-white/60 bg-white/40 px-4 py-3 shadow-[0_18px_54px_rgba(109,63,209,0.14)] backdrop-blur-xl ring-1 ring-white/45 transition-all hover:border-[var(--aura-purple)]/40 hover:bg-white/55 hover:shadow-[0_26px_70px_rgba(109,63,209,0.20)] hover:-translate-y-0.5">
+                    <span className="platform-node-icon grid h-8 w-8 place-items-center rounded-xl bg-[var(--aura-lavender)] text-[var(--aura-purple)]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="whitespace-nowrap text-[13px] font-bold text-[var(--aura-heading)]">{mod.name}</span>
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -520,12 +559,12 @@ export function AnalyticsAndPlatform() {
             </p>
             <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
               {WHY_AURA_STATS.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/70 bg-white/45 px-3 py-2.5 shadow-[0_14px_40px_rgba(82,58,138,0.07)] backdrop-blur-xl ring-1 ring-white/45">
+                <div key={stat.label} className="why-aura-stat rounded-2xl border border-white/70 bg-white/45 px-3 py-2.5 shadow-[0_14px_40px_rgba(82,58,138,0.07)] backdrop-blur-xl ring-1 ring-white/45">
                   <p className="text-base font-black leading-none tracking-[-0.03em] text-[var(--aura-heading)]">{stat.value}</p>
                   <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--aura-muted)]">{stat.label}</p>
                 </div>
               ))}
-              <a href="/demo" className="inline-flex min-h-[3.625rem] items-center justify-center gap-1.5 rounded-2xl bg-[var(--aura-purple)] px-3 text-xs font-black text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] sm:text-[13px]">
+              <a href="/demo" className="why-aura-demo-pulse inline-flex min-h-[3.625rem] items-center justify-center gap-1.5 rounded-2xl bg-[var(--aura-purple)] px-3 text-xs font-black text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] sm:text-[13px]">
                 Demo
                 <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
               </a>
@@ -539,7 +578,7 @@ export function AnalyticsAndPlatform() {
               return (
                 <div
                   key={card.title}
-                  className={`group relative min-h-[14.75rem] overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_16px_52px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[var(--aura-purple)]/30 hover:shadow-[0_24px_72px_rgba(82,58,138,0.14)] md:p-6 ${featured ? "border-[var(--aura-purple)]/30 bg-white/68 shadow-[0_20px_72px_rgba(111,79,216,0.15)]" : "border-white/70 bg-white/42"}`}
+                  className={`why-aura-card group relative min-h-[14.75rem] overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_16px_52px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/50 transition-all duration-300 md:p-6 ${featured ? "border-[var(--aura-purple)]/30 bg-white/68 shadow-[0_20px_72px_rgba(111,79,216,0.15)]" : "border-white/70 bg-white/42"}`}
                   style={{
                     opacity: whyReveal.visible ? 1 : 0,
                     transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",

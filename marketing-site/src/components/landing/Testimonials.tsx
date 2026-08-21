@@ -1,132 +1,150 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Star, Quote } from "lucide-react";
+import { useState } from "react";
+import { Star, ChevronLeft, ChevronRight, Quote, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { LandingDecor } from "./LandingDecor";
 
-const TESTIMONIALS = [
+const REVIEWS = [
   {
-    name: "Priya Sharma",
-    salon: "Glow Salon",
+    brand: "LEMON SALON",
+    author: "Lemon",
+    role: "Admin & Operations Head",
     city: "Mumbai",
-    quote: "Aura has completely transformed how we manage appointments. The time saved on front-desk tasks allows us to focus entirely on our clients' experience.",
+    rating: 5,
+    text: "This software has completely streamlined our salon workflow. Smart scheduling, smooth POS, and easy client history tracking make daily operations effortless. The support team is quick and helpful every time. Truly a game changer for our business.",
   },
   {
-    name: "Rajesh Khanna",
-    salon: "Style Studio",
-    city: "Delhi",
-    quote: "Since switching to Aura, our daily revenue has grown consistently. The automated follow-ups and seamless billing have made a huge impact on our bottom line.",
+    brand: "PURPLE SALON & SPA",
+    author: "Shruti",
+    role: "Managing Director",
+    city: "Delhi NCR",
+    rating: 5,
+    text: "Our favorite feature is appointment reminder, birthday texts, confirmation emails, thank you for visiting, come back text, client profiles and daily sales report. The after-sales customer support is excellent. We highly recommend the software.",
   },
   {
-    name: "Anita Desai",
-    salon: "Blossom Spa",
+    brand: "LOOKS SALON",
+    author: "Kavita S.",
+    role: "Franchise Partner",
     city: "Bangalore",
-    quote: "Client retention is crucial for our spa, and Aura makes it effortless. The detailed client profiles and easy rebooking features keep our customers coming back.",
-  }
+    rating: 5,
+    text: "Managing 4 branches with 35 stylists was a constant spreadsheet mess. Aura's centralized multi-outlet dashboard, instant GST bills, and automated WhatsApp appointment confirmations reduced our front-desk chaos by 80%.",
+  },
+  {
+    brand: "GEETANJALI SALON",
+    author: "Vikram Mehta",
+    role: "Salon Director",
+    city: "Hyderabad",
+    rating: 5,
+    text: "The inventory and recipe consumption tracking saved us over ₹75,000 in hair color pilferage in our first quarter alone. Staff love the real-time commission calculator on their phones!",
+  },
 ];
 
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return { ref, visible };
-}
-
 export function Testimonials() {
-  const { ref, visible } = useReveal();
+  const [currentIdx, setCurrentIdx] = useState(0);
+
+  const prev = () => {
+    setCurrentIdx((curr) => (curr === 0 ? REVIEWS.length - 1 : curr - 1));
+  };
+
+  const next = () => {
+    setCurrentIdx((curr) => (curr === REVIEWS.length - 1 ? 0 : curr + 1));
+  };
+
+  const review = REVIEWS[currentIdx];
 
   return (
-    <section
-      ref={ref}
-      className="relative overflow-hidden py-20 md:py-28 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF]"
-    >
-      <LandingDecor variant="soft" />
+    <section className="relative bg-white py-20 md:py-28 overflow-hidden border-t border-[var(--aura-border)]">
       <Container className="relative z-10">
-        {/* Section Heading */}
-        <div
-          className={`mx-auto max-w-3xl text-center mb-16 transition-all duration-700 ease-out ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
-          <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/55 px-3 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm">
-            TESTIMONIALS
-          </span>
-          <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-            Loved by salon owners across India
-          </h2>
+        
+        {/* Header with Navigation Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+          <div>
+            <p className="font-serif italic text-base md:text-lg text-[var(--aura-purple)] font-medium mb-2">
+              Reviews
+            </p>
+            <h2 className="text-[clamp(2.2rem,4.5vw,3.4rem)] font-extrabold tracking-[-0.04em] text-[var(--aura-heading)] leading-tight">
+              Client Testimonials
+            </h2>
+          </div>
+
+          {/* Navigation Arrows */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={prev}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--aura-border)] bg-white text-[var(--aura-heading)] shadow-xs transition-all hover:bg-[var(--aura-lavender)] hover:text-[var(--aura-purple)] hover:border-[var(--aura-purple)]/30"
+              aria-label="Previous testimonial"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--aura-border)] bg-white text-[var(--aura-heading)] shadow-xs transition-all hover:bg-[var(--aura-lavender)] hover:text-[var(--aura-purple)] hover:border-[var(--aura-purple)]/30"
+              aria-label="Next testimonial"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
-        {/* 3-column grid of testimonial cards */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {TESTIMONIALS.map((t, i) => {
-            const initials = t.name
-              .split(" ")
-              .map((w) => w[0])
-              .join("");
+        {/* Testimonial Active Slide Card */}
+        <div className="mx-auto max-w-4xl">
+          <div className="relative overflow-hidden rounded-3xl border border-[var(--aura-border)] bg-[#FCFBF8] p-8 sm:p-12 md:p-14 shadow-[0_12px_40px_rgba(0,0,0,0.04)] transition-all">
+            
+            {/* Top Bar with Brand and Stars */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--aura-border)] pb-6">
+              <div className="flex items-center gap-3">
+                <span className="font-extrabold text-xl sm:text-2xl tracking-wider text-[var(--aura-heading)] uppercase">
+                  {review.brand}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                  <CheckCircle2 className="h-3 w-3" /> Verified Client
+                </span>
+              </div>
 
-            return (
-              <article
-                key={t.name}
-                className={`group relative flex flex-col justify-between rounded-[var(--aura-radius-xl)] border border-[var(--aura-border)] bg-white p-7 shadow-[var(--aura-shadow-sm)] transition-all duration-300 hover:shadow-[var(--aura-shadow-md)] hover:-translate-y-1 card-hover reveal stagger-${i + 1}`}
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "translateY(0)" : "translateY(20px)",
-                  transition: `opacity 0.5s ease-out ${0.1 + i * 0.08}s, transform 0.5s ease-out ${0.1 + i * 0.08}s`,
-                }}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex gap-1" aria-label="5 out of 5 stars">
-                      {Array.from({ length: 5 }, (_, idx) => (
-                        <Star
-                          key={idx}
-                          className="h-4 w-4 fill-amber-400 text-amber-400"
-                          aria-hidden="true"
-                        />
-                      ))}
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                      Verified Salon
-                    </span>
-                  </div>
+              {/* Star Rating */}
+              <div className="flex gap-1" aria-label="5 out of 5 stars">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+            </div>
 
-                  <blockquote className="text-sm leading-relaxed text-[var(--aura-heading)] font-medium">
-                    &ldquo;{t.quote}&rdquo;
-                  </blockquote>
-                </div>
+            {/* Testimonial Quote */}
+            <div className="mt-8 relative">
+              <Quote className="h-10 w-10 text-[var(--aura-purple)]/15 absolute -left-2 -top-4 pointer-events-none" />
+              <p className="relative z-10 text-base sm:text-xl md:text-2xl font-medium leading-relaxed text-[var(--aura-heading)] italic">
+                "{review.text}"
+              </p>
+            </div>
 
-                <div className="mt-6 pt-5 border-t border-[var(--aura-border)] flex items-center gap-3.5">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--aura-purple)] to-[#9B7FE6] text-xs font-bold text-white shadow-xs">
-                    {initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-bold text-[var(--aura-heading)] truncate">{t.name}</p>
-                    </div>
-                    <p className="text-xs text-[var(--aura-muted)] truncate">
-                      {t.salon} &bull; {t.city}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+            {/* Author Footer */}
+            <div className="mt-8 flex items-center justify-between border-t border-[var(--aura-border)] pt-6">
+              <div>
+                <p className="text-base font-bold text-[var(--aura-heading)]">{review.author}</p>
+                <p className="text-xs text-[var(--aura-body)]">{review.role} · {review.city}</p>
+              </div>
+
+              {/* Dots Pagination */}
+              <div className="flex gap-1.5">
+                {REVIEWS.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setCurrentIdx(i)}
+                    className={`h-2 rounded-full transition-all ${
+                      currentIdx === i ? "w-6 bg-[var(--aura-purple)]" : "w-2 bg-zinc-300"
+                    }`}
+                    aria-label={`Go to slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+          </div>
         </div>
+
       </Container>
     </section>
   );

@@ -81,6 +81,7 @@ export const metadata: Metadata = {
 };
 
 import { FloatingConversionDock } from "@/components/ui/FloatingConversionDock";
+import { FloatingWhatsApp } from "@/components/ui/FloatingWhatsApp";
 
 const jsonLdScripts = [softwareAppJsonLd, organizationJsonLd, websiteJsonLd];
 
@@ -106,6 +107,7 @@ export default function RootLayout({
         <SkipLink />
         <SmoothScrollProvider>
           <FloatingConversionDock />
+          <FloatingWhatsApp />
           <ScrollProgress />
           <CommandPalette />
           <CookieConsent />
