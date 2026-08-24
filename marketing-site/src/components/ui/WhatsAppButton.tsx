@@ -35,7 +35,9 @@ export function WhatsAppButton() {
 
       {/* Button */}
       <a
-        href="/contact"
+        href="https://wa.me/917208283341?text=Hi%20Aura%20Team!%20I%20am%20interested%20in%20Aura%20Salon%20CRM%20%26%20POS%20and%20would%20like%20to%20learn%20more."
+        target="_blank"
+        rel="noopener noreferrer"
         className="flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-[#25D366]/30 hover:shadow-xl hover:shadow-[#25D366]/40 hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-all duration-300 animate-in zoom-in fill-mode-both"
         aria-label={t("overlay.chat")}
         aria-describedby={tooltip ? tooltipId : undefined}

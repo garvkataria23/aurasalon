@@ -1,27 +1,34 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, ChevronLeft, Mail, Mic, Phone, Send, Sparkles, Volume2, X } from "lucide-react";
+import { Bot, ChevronDown, ChevronUp, Mail, MessageCircle, Mic, Phone, Send, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 
 type ChatMessage = {
   role: "assistant" | "user";
   content: string;
 };
 
+const WHATSAPP_NUMBER = "917208283341";
+const WHATSAPP_MESSAGE = encodeURIComponent(
+  "Hi Aura Team! I am interested in Aura Salon CRM & POS software and would like to learn more."
+);
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;
+
 const starterMessages: ChatMessage[] = [
   {
     role: "assistant",
     content:
-      "Hi, I am Aura AI. I can help with salon CRM, POS billing, booking, staff, inventory, pricing, setup, GST, WhatsApp workflows and demo questions.",
-  },
-  {
-    role: "assistant",
-    content:
-      "Ask me anything about Aura Salon CRM/POS, or share your mobile number and I can pass your demo request to the team.",
+      "Hi! I'm Aura AI. How can I help you today? Ask me anything about salon billing, GST, booking, staff commissions, or WhatsApp marketing.",
   },
 ];
 
-const quickPrompts = ["Pricing", "Book demo", "GST billing", "Staff payroll"];
+const quickPrompts = [
+  { label: "Continue on WhatsApp", isWhatsApp: true },
+  { label: "Pricing & Plans", prompt: "What are the pricing plans for Aura Salon POS?" },
+  { label: "Book a Demo", prompt: "I would like to schedule a product demo." },
+  { label: "GST Billing & POS", prompt: "How does GST billing and split payment work?" },
+  { label: "Staff & Payroll", prompt: "How does staff attendance and commission calculation work?" },
+];
 
 export function FloatingWhatsApp() {
   const [open, setOpen] = useState(false);
@@ -29,6 +36,7 @@ export function FloatingWhatsApp() {
   const [input, setInput] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [showContactForm, setShowContactForm] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [leadStatus, setLeadStatus] = useState("");
@@ -66,14 +74,14 @@ export function FloatingWhatsApp() {
         ...current,
         {
           role: "assistant",
-          content: data.reply || "I could not process that right now. Please ask again or book a demo from the site.",
+          content: data.reply || "I could not process that right now. Please ask again or connect with us on WhatsApp.",
         },
       ]);
       if (data.leadCaptured) setLeadStatus("Demo request shared with Aura team.");
     } catch {
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: "I am having trouble connecting right now. Please try again in a moment." },
+        { role: "assistant", content: "I am having trouble connecting right now. Please try again or chat directly on WhatsApp." },
       ]);
     } finally {
       setIsSending(false);
@@ -87,101 +95,249 @@ export function FloatingWhatsApp() {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="group fixed bottom-6 right-6 z-[9990] flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#6C63FF] to-[#5146E8] text-white shadow-[0_18px_42px_rgba(81,70,232,0.38)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#6C63FF]"
-        aria-label="Open Aura AI chat"
-      >
-        <span className="absolute inset-0 rounded-full bg-[#6C63FF]/30 animate-ping" aria-hidden="true" />
-        <Bot className="relative z-10 h-8 w-8" aria-hidden="true" />
-        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-emerald-400" aria-hidden="true">
-          <span className="h-2 w-2 rounded-full bg-white" />
-        </span>
-      </button>
+      <div className="fixed bottom-6 right-6 z-[9990] flex items-center gap-3">
+        {/* Small quick WhatsApp floating badge */}
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-2 rounded-full border border-emerald-500/20 bg-white/95 px-3.5 py-2 text-xs font-semibold text-emerald-700 shadow-[0_8px_24px_rgba(16,185,129,0.22)] backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-[0_12px_28px_rgba(16,185,129,0.3)] focus-visible:outline-2 focus-visible:outline-emerald-500"
+          aria-label="Chat on WhatsApp +91 7208283341"
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#25D366] text-white">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3" aria-hidden="true">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+            </svg>
+          </span>
+          <span className="hidden sm:inline">WhatsApp</span>
+        </a>
+
+        {/* AI Chat Button */}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-[#6366F1] via-[#4F46E5] to-[#7C3AED] text-white shadow-[0_14px_36px_rgba(79,70,229,0.38)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4F46E5]"
+          aria-label="Open Aura AI chat"
+        >
+          <Bot className="h-7 w-7 transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+          <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-white bg-emerald-500" aria-hidden="true">
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+          </span>
+        </button>
+      </div>
     );
   }
 
   return (
-    <aside className="fixed inset-x-3 bottom-3 z-[9990] mx-auto max-w-[400px] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-[0_26px_80px_rgba(42,36,89,0.25)] sm:inset-x-auto sm:right-6 sm:bottom-6" aria-label="Aura AI assistant">
-      <div className="relative flex items-center gap-3 bg-gradient-to-r from-[#6C63FF] via-[#625BF4] to-[#5A4FEA] px-4 py-4 text-white">
-        <button type="button" className="grid h-8 w-8 place-items-center rounded-full text-white/90 transition hover:bg-white/12" aria-label="Back">
-          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <div className="relative grid h-12 w-12 place-items-center rounded-full bg-white text-[#5A4FEA] shadow-lg">
-          <Bot className="h-7 w-7" aria-hidden="true" />
-          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-400" aria-hidden="true" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-base font-bold leading-5">Chat with us</p>
-          <p className="text-xs font-medium text-white/82">Your AI Assistant</p>
-        </div>
-        <button type="button" onClick={() => setIsMuted((value) => !value)} className="grid h-8 w-8 place-items-center rounded-full text-white/90 transition hover:bg-white/12" aria-label={isMuted ? "Unmute chat" : "Mute chat"}>
-          <Volume2 className={`h-5 w-5 ${isMuted ? "opacity-45" : ""}`} aria-hidden="true" />
-        </button>
-        <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-white/90 transition hover:bg-white/12" aria-label="Close chat">
-          <X className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
-
-      <div className="h-[430px] overflow-y-auto bg-[#F7F8FC] px-4 py-5 sm:h-[435px]">
-        <div className="mb-4 rounded-2xl border border-[#E7EAF4] bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[#625BF4]"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Aura product expert</div>
-          <p className="text-sm leading-6 text-slate-700">I know Aura features, plans, setup flow, Indian salon operations, GST POS, booking, CRM, staff, inventory and marketing workflows.</p>
-        </div>
-
-        <div className="space-y-3">
-          {messages.map((message, index) => (
-            <div key={`${message.role}-${index}`} className={message.role === "user" ? "flex justify-end" : "flex justify-start"}>
-              <div className={message.role === "user" ? "max-w-[82%] rounded-2xl rounded-br-md bg-[#625BF4] px-4 py-3 text-sm leading-6 text-white shadow-sm" : "max-w-[88%] rounded-2xl rounded-bl-md border border-[#E7EAF4] bg-white px-4 py-3 text-sm leading-6 text-slate-700 shadow-sm"}>
-                {message.content}
-              </div>
+    <aside
+      className="fixed inset-x-3 bottom-3 z-[9990] mx-auto flex max-h-[85vh] w-full max-w-[390px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_-15px_rgba(15,23,42,0.3)] backdrop-blur-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6"
+      aria-label="Aura AI assistant"
+    >
+      {/* Header */}
+      <div className="relative flex items-center justify-between border-b border-indigo-500/20 bg-gradient-to-r from-[#5B50EA] via-[#4F46E5] to-[#7C3AED] px-4 py-3.5 text-white">
+        <div className="flex items-center gap-3">
+          <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-white shadow-inner backdrop-blur-md">
+            <Bot className="h-6 w-6" aria-hidden="true" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#4F46E5] bg-emerald-400" aria-hidden="true" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm font-bold tracking-tight">Aura AI</h2>
+              <span className="inline-flex items-center rounded-full bg-emerald-400/20 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-200">Online</span>
             </div>
-          ))}
-          {isSending && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl rounded-bl-md border border-[#E7EAF4] bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">Typing...</div>
-            </div>
-          )}
-          <div ref={endRef} />
-        </div>
-      </div>
-
-      <div className="border-t border-slate-200 bg-white px-4 py-3">
-        <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-          {quickPrompts.map((prompt) => (
-            <button key={prompt} type="button" onClick={() => sendMessage(prompt)} className="shrink-0 rounded-full border border-[#E1E5F2] bg-[#F7F8FC] px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[#625BF4]/40 hover:text-[#625BF4]">
-              {prompt}
-            </button>
-          ))}
+            <p className="text-[11px] text-white/80">Salon OS &amp; Product Expert</p>
+          </div>
         </div>
 
-        <div className="mb-3 grid grid-cols-[88px_1fr] gap-2">
-          <label className="flex h-11 items-center justify-center gap-1 rounded-xl border border-[#E1E5F2] bg-white px-2 text-xs font-semibold text-slate-700">
-            <Phone className="h-3.5 w-3.5 text-[#625BF4]" aria-hidden="true" /> IN +91
-          </label>
-          <input value={phone} onChange={(event) => setPhone(event.target.value)} className="h-11 rounded-xl border border-[#E1E5F2] px-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#625BF4] focus:ring-4 focus:ring-[#625BF4]/10" placeholder="Enter your mobile" inputMode="tel" />
-        </div>
-        <div className="mb-3 flex items-center gap-2 rounded-xl border border-[#E1E5F2] px-3">
-          <Mail className="h-4 w-4 text-[#625BF4]" aria-hidden="true" />
-          <input value={email} onChange={(event) => setEmail(event.target.value)} className="h-11 min-w-0 flex-1 text-sm text-slate-800 outline-none placeholder:text-slate-400" placeholder="Email optional" type="email" />
-        </div>
+        <div className="flex items-center gap-1">
+          {/* Quick WhatsApp Header Link */}
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Chat with us on WhatsApp (+91 7208283341)"
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/20 px-2 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/30 hover:text-white"
+            aria-label="Chat on WhatsApp"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+            </svg>
+            <span className="hidden xs:inline">WhatsApp</span>
+          </a>
 
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 rounded-2xl border border-[#E1E5F2] bg-white p-2 shadow-sm">
-          <input value={input} onChange={(event) => setInput(event.target.value)} className="min-h-10 min-w-0 flex-1 px-2 text-sm text-slate-800 outline-none placeholder:text-slate-400" placeholder="Message..." aria-label="Chat message" />
-          <button type="button" className="grid h-10 w-10 place-items-center rounded-full text-slate-400 transition hover:bg-slate-50" aria-label="Voice input">
-            <Mic className="h-5 w-5" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setIsMuted((v) => !v)}
+            className="grid h-8 w-8 place-items-center rounded-lg text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label={isMuted ? "Unmute sound" : "Mute sound"}
+          >
+            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
-          <button type="submit" disabled={!input.trim() || isSending} className="grid h-10 w-10 place-items-center rounded-full bg-[#625BF4] text-white transition hover:bg-[#5146E8] disabled:bg-slate-100 disabled:text-slate-300" aria-label="Send message">
-            <Send className="h-4 w-4" aria-hidden="true" />
+
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="grid h-8 w-8 place-items-center rounded-lg text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Close chat"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto bg-slate-50/70 p-3.5 space-y-3 min-h-[260px] max-h-[340px]">
+        {/* Intro badge */}
+        <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-2.5 text-xs text-slate-600 shadow-2xs">
+          <div className="flex items-center gap-1.5 font-semibold text-indigo-700 mb-1">
+            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+            <span>Aura Product Assistant</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-slate-600">
+            Ask about POS, GST billing, multi-branch, staff payroll, online booking or WhatsApp features.
+          </p>
+        </div>
+
+        {/* Message bubbles */}
+        {messages.map((message, index) => (
+          <div
+            key={`${message.role}-${index}`}
+            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-2xs ${
+                message.role === "user"
+                  ? "bg-gradient-to-r from-[#5B50EA] to-[#4F46E5] text-white rounded-br-xs"
+                  : "border border-slate-200/90 bg-white text-slate-800 rounded-bl-xs"
+              }`}
+            >
+              {message.content}
+            </div>
+          </div>
+        ))}
+
+        {isSending && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-1 rounded-2xl rounded-bl-xs border border-slate-200/90 bg-white px-3.5 py-2.5 text-xs text-slate-400 shadow-2xs">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500" />
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {/* Quick Prompts Bar */}
+      <div className="border-t border-slate-100 bg-white px-3 py-2">
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          {quickPrompts.map((item, i) =>
+            item.isWhatsApp ? (
+              <a
+                key={i}
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/80 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100 hover:border-emerald-400 shadow-2xs"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 text-[#25D366]" aria-hidden="true">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                </svg>
+                {item.label}
+              </a>
+            ) : (
+              <button
+                key={i}
+                type="button"
+                onClick={() => sendMessage(item.prompt || item.label)}
+                className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700 shadow-2xs"
+              >
+                {item.label}
+              </button>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* Collapsible Callback / Lead Form */}
+      <div className="border-t border-slate-100 bg-slate-50/50 px-3 py-1.5">
+        <button
+          type="button"
+          onClick={() => setShowContactForm((v) => !v)}
+          className="flex w-full items-center justify-between text-[11px] font-semibold text-slate-600 hover:text-indigo-600 transition"
+        >
+          <span className="flex items-center gap-1">
+            <Phone className="h-3 w-3 text-indigo-600" />
+            <span>Request Instant Callback</span>
+          </span>
+          {showContactForm ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {showContactForm && (
+          <div className="mt-2 space-y-2 pb-1 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="grid grid-cols-[80px_1fr] gap-1.5">
+              <span className="flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-700">
+                🇮🇳 +91
+              </span>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Mobile number"
+                type="tel"
+                className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2">
+              <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email (optional)"
+                type="email"
+                className="h-8 min-w-0 flex-1 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input Message Form */}
+      <div className="border-t border-slate-200/80 bg-white p-2.5">
+        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/50 p-1 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+          <input
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            className="min-h-8 min-w-0 flex-1 bg-transparent px-2 text-xs text-slate-800 outline-none placeholder:text-slate-400"
+            placeholder="Type your question..."
+            aria-label="Chat message"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || isSending}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-tr from-[#5B50EA] to-[#4F46E5] text-white shadow-sm transition hover:opacity-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Send message"
+          >
+            <Send className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </form>
 
-        <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-          <span>{leadStatus || "Chat with us"}</span>
-          <span>Powered by <strong className="text-slate-600">Aura AI</strong></span>
+        {/* Footer Subtext with WhatsApp link */}
+        <div className="mt-2 flex items-center justify-between px-0.5 text-[10px] text-slate-400">
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-semibold text-emerald-600 hover:text-emerald-700 transition"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            WhatsApp: +91 7208283341
+          </a>
+          <span>
+            Powered by <strong className="font-semibold text-slate-600">Aura OS</strong>
+          </span>
         </div>
       </div>
     </aside>
   );
 }
+
