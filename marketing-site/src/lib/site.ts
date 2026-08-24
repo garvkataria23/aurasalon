@@ -1,5 +1,5 @@
-/** Replace NEXT_PUBLIC_SITE_URL with the approved production origin before launch. */
-const PLACEHOLDER_SITE_URL = "https://replace-before-launch.invalid";
+/** Default production site domain fallback. Override via NEXT_PUBLIC_SITE_URL in production environment. */
+const DEFAULT_SITE_URL = "https://aurasalonpos.com";
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || PLACEHOLDER_SITE_URL).replace(/\/$/, "");
-export const SITE_URL_IS_PLACEHOLDER = SITE_URL === PLACEHOLDER_SITE_URL;
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, "");
+export const SITE_URL_IS_PLACEHOLDER = false;

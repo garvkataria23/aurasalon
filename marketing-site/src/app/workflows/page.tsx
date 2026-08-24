@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PAGE_SEO, breadcrumbJsonLd } from "@/lib/seo";
-import { EcosystemRoutePage } from "@/components/ecosystem/EcosystemRoutePage";
+import { WorkflowsClient } from "@/app/workflows/WorkflowsClient";
 
 export const metadata: Metadata = PAGE_SEO["/workflows"];
 
@@ -12,7 +12,8 @@ export default function WorkflowsPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
-      <EcosystemRoutePage route="workflows" />
+      <WorkflowsClient />
     </>
   );
 }
+

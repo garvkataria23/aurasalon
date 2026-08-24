@@ -87,6 +87,16 @@ export const CITY_PAGES = [
   { slug: "prayagraj", name: "Prayagraj" },
   { slug: "gaya", name: "Gaya" },
   { slug: "karnal", name: "Karnal" },
+  { slug: "london", name: "London" },
+  { slug: "new-york", name: "New York" },
+  { slug: "dubai", name: "Dubai" },
+  { slug: "singapore", name: "Singapore" },
+  { slug: "sydney", name: "Sydney" },
+  { slug: "toronto", name: "Toronto" },
+  { slug: "los-angeles", name: "Los Angeles" },
+  { slug: "melbourne", name: "Melbourne" },
+  { slug: "paris", name: "Paris" },
+  { slug: "tokyo", name: "Tokyo" },
 ] as const;
 
 export const SEGMENT_PAGES = [
@@ -105,6 +115,26 @@ export const SEGMENT_PAGES = [
   { slug: "home-salon-business-software", name: "Home Salon Business Software", audience: "home salon businesses" },
   { slug: "unisex-salon-software", name: "Unisex Salon Software", audience: "unisex salons" },
   { slug: "luxury-salon-software", name: "Luxury Salon Software", audience: "premium and luxury salons" },
+  { slug: "tattoo-studio-software", name: "Tattoo & Piercing Studio Software", audience: "tattoo artists and piercing studios" },
+  { slug: "pet-grooming-software", name: "Pet Grooming & Pet Spa Software", audience: "pet salons and dog spas" },
+  { slug: "hair-clinic-software", name: "Trichology & Hair Clinic Software", audience: "hair clinics and trichology centers" },
+  { slug: "ayurvedic-spa-software", name: "Ayurvedic Spa & Panchakarma Software", audience: "ayurvedic spas and panchakarma centers" },
+  { slug: "booth-renter-software", name: "Freelance & Booth Renter Salon Software", audience: "booth renters and independent stylists" },
+  { slug: "salon-academy-software", name: "Makeup Academy & Salon Studio Software", audience: "beauty academies and training salons" },
+  { slug: "lash-brow-studio-software", name: "Lash & Brow Studio Software", audience: "lash extensions and microblading studios" },
+  { slug: "blow-dry-bar-software", name: "Blow Dry Bar & Express Hair Studio Software", audience: "blow dry bars and express styling bars" },
+  { slug: "tanning-salon-software", name: "Tanning & Body Bronze Salon Software", audience: "spray tanning and tanning salons" },
+  { slug: "mobile-beauty-software", name: "Mobile Salon & Home Beauty Services Software", audience: "mobile hair, makeup and beauty specialists" },
+  { slug: "kids-salon-software", name: "Kids Salon & Children Haircut Studio Software", audience: "kids salons and family grooming centers" },
+  { slug: "cosmetic-dentistry-software", name: "Cosmetic Teeth Whitening & Smile Studio Software", audience: "teeth whitening and smile aesthetic studios" },
+  { slug: "laser-clinic-software", name: "Laser Hair Reduction & Aesthetics Clinic Software", audience: "laser hair removal and skin aesthetic clinics" },
+  { slug: "massage-therapy-software", name: "Massage Therapy & Bodywork Center Software", audience: "massage therapists and bodywork clinics" },
+  { slug: "permanent-makeup-software", name: "Permanent Makeup (PMU) & Micro-pigmentation Software", audience: "permanent makeup artists and PMU clinics" },
+  { slug: "scalp-micropigmentation-software", name: "Scalp Micropigmentation (SMP) Studio Software", audience: "scalp micropigmentation clinics and hair loss artists" },
+  { slug: "float-spa-software", name: "Float Therapy & Sensory Deprivation Spa Software", audience: "float spas and contrast therapy studios" },
+  { slug: "weight-loss-clinic-software", name: "Slimming Center & Body Contouring Clinic Software", audience: "slimming clinics and body sculpting centers" },
+  { slug: "nail-art-academy-software", name: "Nail Art Academy & Extension Studio Software", audience: "nail academies and nail technician training centers" },
+  { slug: "hotel-resort-spa-software", name: "Hotel & Luxury Resort Spa Software", audience: "hotel spas, luxury resorts and guest wellness facilities" },
 ] as const;
 
 export const COMPARISON_PAGES = [
@@ -128,6 +158,12 @@ export const COMPARISON_PAGES = [
   { slug: "whatsapp-and-excel", name: "WhatsApp and Excel" },
   { slug: "manual-salon-management", name: "Manual Salon Management" },
   { slug: "tally-only", name: "Tally-only Workflows" },
+  { slug: "invoay", name: "Invoay" },
+  { slug: "cleomitra", name: "Cleomitra" },
+  { slug: "zylu", name: "Zylu" },
+  { slug: "boulevard", name: "Boulevard" },
+  { slug: "phorest", name: "Phorest" },
+  { slug: "timely", name: "Timely" },
 ] as const;
 
 const CATEGORY_FEATURE_LINKS: Record<string, { href: string; label: string }[]> = {

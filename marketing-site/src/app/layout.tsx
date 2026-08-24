@@ -21,16 +21,16 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Aura — Salon CRM, POS & Booking Software for India",
-    template: "%s | Aura Salon CRM/POS",
+    default: "Aura — All-in-One Salon CRM, POS, Booking & Business Operating System",
+    template: "%s | Aura Salon OS",
   },
   description:
-    "Aura is a connected salon operating system. Run CRM, GST billing, online booking, staff payroll, inventory and finance from one platform — built for Indian salons.",
+    "Aura is the modern cloud operating system for salons, spas, and aesthetic clinics worldwide. Manage pay-at-salon booking, smart POS billing, staff rosters, client 360 CRM, and automated marketing from one connected screen.",
   keywords: [
-    "salon software India", "salon CRM", "salon POS", "salon billing software",
-    "salon management app", "salon booking software", "salon staff management",
-    "GST billing salon", "salon inventory", "salon marketing automation",
-    "salon POS India", "salon app India", "salon billing GST", "salon management software India",
+    "salon software", "salon CRM", "salon POS system", "all in one salon software",
+    "salon booking software", "spa management software", "salon appointment app",
+    "cloud salon pos", "salon staff management", "salon marketing automation",
+    "salon billing software", "hair salon POS", "aesthetic clinic software", "best salon software",
   ],
   authors: [{ name: "Aura" }],
   creator: "Aura",

@@ -82,6 +82,12 @@ export const CALCULATORS = [
   { slug: "customer-retention", title: "Customer retention calculator", inputs: ["Returning clients", "Total clients"], formula: "returning clients / total clients" },
   { slug: "salon-break-even", title: "Salon break-even calculator", inputs: ["Fixed costs", "Average margin"], formula: "fixed costs / average margin" },
   { slug: "marketing-roi", title: "Marketing ROI calculator", inputs: ["Campaign revenue", "Campaign cost"], formula: "(revenue - cost) / cost" },
+  { slug: "hair-color-waste", title: "Hair color waste estimator", inputs: ["Bowls mixed per day", "Avg leftover grams", "Cost per gram"], formula: "bowls x grams wasted x cost/gram x 30 days" },
+  { slug: "client-lifetime-value", title: "Salon client lifetime value (CLV) calculator", inputs: ["Avg spend per visit", "Visits per year", "Avg client lifespan (years)"], formula: "spend per visit x visits per year x lifespan" },
+  { slug: "booth-rent-roi", title: "Booth rent vs commission profit calculator", inputs: ["Weekly booth rent", "Weekly client revenue", "Product expense"], formula: "revenue - rent - product expense" },
+  { slug: "staff-utilization", title: "Stylist productive utilization rate calculator", inputs: ["Service hours delivered", "Total shift hours", "Working days"], formula: "(service hours / shift hours) x 100" },
+  { slug: "discount-impact", title: "Salon discount profit erosion calculator", inputs: ["Service price", "Discount percentage", "Direct supply & staff cost"], formula: "discounted profit margin vs original margin" },
+  { slug: "retail-profit-margin", title: "Salon retail product margin calculator", inputs: ["Retail selling price", "Wholesale purchase cost", "Units sold per month"], formula: "(selling price - purchase cost) x units" },
 ] as const;
 
 export const TEMPLATES = [
