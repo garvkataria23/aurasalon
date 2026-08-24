@@ -130,11 +130,11 @@ export function FloatingWhatsApp() {
 
   return (
     <aside
-      className="fixed inset-x-3 bottom-3 z-[9990] mx-auto flex max-h-[85vh] w-full max-w-[390px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_-15px_rgba(15,23,42,0.3)] backdrop-blur-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6"
+      className="fixed inset-x-3 bottom-3 z-[9990] mx-auto flex h-[580px] max-h-[92vh] w-full max-w-[410px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_70px_-12px_rgba(15,23,42,0.35)] backdrop-blur-xl transition-all duration-300 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:h-[640px]"
       aria-label="Aura AI assistant"
     >
       {/* Header */}
-      <div className="relative flex items-center justify-between border-b border-indigo-500/20 bg-gradient-to-r from-[#5B50EA] via-[#4F46E5] to-[#7C3AED] px-4 py-3.5 text-white">
+      <div className="relative flex items-center justify-between border-b border-indigo-500/20 bg-gradient-to-r from-[#5B50EA] via-[#4F46E5] to-[#7C3AED] px-4 py-3.5 text-white shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-white shadow-inner backdrop-blur-md">
             <Bot className="h-6 w-6" aria-hidden="true" />
@@ -185,15 +185,15 @@ export function FloatingWhatsApp() {
         </div>
       </div>
 
-      {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto bg-slate-50/70 p-3.5 space-y-3 min-h-[260px] max-h-[340px]">
+      {/* Messages Scroll Area - Expanded full height */}
+      <div className="flex-1 overflow-y-auto bg-slate-50/70 p-4 space-y-3 min-h-0">
         {/* Intro badge */}
-        <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-2.5 text-xs text-slate-600 shadow-2xs">
+        <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-3 text-xs text-slate-600 shadow-2xs">
           <div className="flex items-center gap-1.5 font-semibold text-indigo-700 mb-1">
             <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
             <span>Aura Product Assistant</span>
           </div>
-          <p className="text-[11px] leading-relaxed text-slate-600">
+          <p className="text-xs leading-relaxed text-slate-600">
             Ask about POS, GST billing, multi-branch, staff payroll, online booking or WhatsApp features.
           </p>
         </div>
@@ -205,7 +205,7 @@ export function FloatingWhatsApp() {
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-2xs ${
+              className={`max-w-[86%] rounded-2xl px-4 py-3 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${
                 message.role === "user"
                   ? "bg-gradient-to-r from-[#5B50EA] to-[#4F46E5] text-white rounded-br-xs"
                   : "border border-slate-200/90 bg-white text-slate-800 rounded-bl-xs"
@@ -218,7 +218,7 @@ export function FloatingWhatsApp() {
 
         {isSending && (
           <div className="flex justify-start">
-            <div className="flex items-center gap-1 rounded-2xl rounded-bl-xs border border-slate-200/90 bg-white px-3.5 py-2.5 text-xs text-slate-400 shadow-2xs">
+            <div className="flex items-center gap-1 rounded-2xl rounded-bl-xs border border-slate-200/90 bg-white px-4 py-3 text-xs text-slate-400 shadow-2xs">
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.3s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.15s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500" />
