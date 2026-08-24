@@ -7,6 +7,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { GridBackground } from "@/components/ui/GridBackground";
 import { CTA_LINKS } from "@/lib/constants";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const MAX_MESSAGE = 500;
 
@@ -101,6 +102,7 @@ function FloatingTextarea({
 
 export default function ContactPage() {
   const { t, language } = useLanguage();
+  const reveal = useScrollReveal();
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState("");
@@ -153,10 +155,10 @@ export default function ContactPage() {
   };
 
   return (
-    <>
+    <div ref={reveal as React.RefObject<HTMLDivElement | null>} className="overflow-x-clip">
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] relative overflow-hidden">
         <GridBackground className="opacity-25" />
-        <Container className="relative z-10 text-center max-w-2xl mx-auto">
+        <Container className="fade-in-up relative z-10 text-center max-w-2xl mx-auto">
           <span className="inline-flex items-center rounded-full border border-[var(--aura-purple)]/15 bg-white/65 px-3.5 py-1 text-xs font-semibold uppercase tracking-[.14em] text-[var(--aura-purple)] mb-4 backdrop-blur-sm shadow-xs">
             {t("contact.badge")}
           </span>
@@ -172,7 +174,7 @@ export default function ContactPage() {
       <section className="py-16 md:py-24 bg-[var(--aura-off-white)]">
         <Container>
           <div className="grid md:grid-cols-5 gap-8 lg:gap-12 max-w-5xl mx-auto items-start">
-            <div className="md:col-span-3 rounded-2xl border border-[var(--aura-border)] bg-white p-6 sm:p-8 shadow-[var(--aura-shadow-sm)]">
+            <div className="reveal-left md:col-span-3 rounded-2xl border border-[var(--aura-border)] bg-white p-6 sm:p-8 shadow-[var(--aura-shadow-sm)]">
               {status === "sent" ? (
                 <div
                    className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-12 text-center"
@@ -225,7 +227,7 @@ export default function ContactPage() {
               )}
             </div>
 
-            <div className="md:col-span-2 space-y-6">
+            <div className="reveal-right md:col-span-2 space-y-6">
               <div className="rounded-2xl border border-[var(--aura-border)] bg-white p-6 sm:p-7 shadow-[var(--aura-shadow-sm)] space-y-6">
                  {[
                     { icon: MessageSquareText, label: t("contact.channel"), value: t("contact.channelBody") },
@@ -267,6 +269,6 @@ export default function ContactPage() {
           </div>
         </Container>
       </section>
-    </>
+    </div>
   );
 }

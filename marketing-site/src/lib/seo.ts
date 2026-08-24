@@ -428,6 +428,11 @@ export const websiteJsonLd = {
   "@type": "WebSite",
   name: "Aura Salon CRM/POS",
   url: SITE,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE}/blog?search={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
 };
 
 /* ===== JSON-LD: SoftwareApplication (enhanced) ===== */

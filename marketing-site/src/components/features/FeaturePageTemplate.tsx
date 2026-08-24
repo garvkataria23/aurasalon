@@ -45,12 +45,30 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
     { name: "Features", url: "/features" },
     { name: data.title, url: `/features/${data.translationKey}` },
   ]);
+  const featureFaq = [
+    { question: `What does ${data.title} help salons improve?`, answer: data.heroDescription || data.subtitle },
+    { question: "Can this connect with other Aura workflows?", answer: "Yes. Aura connects booking, billing, CRM, staff, inventory, marketing and owner reporting around the same salon day." },
+    { question: "Is this useful for single and multi-branch salons?", answer: "Yes. Single-location salons get clearer daily operations, while multi-branch teams get more consistent reporting and workflow control." },
+  ];
+  const featureFaqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: featureFaq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
 
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(featureFaqJsonLd) }}
       />
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -242,27 +260,27 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+          <div className="grid gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
             {data.capabilities.map((cap, i) => {
               const Icon = CAPABILITY_ICONS[i % CAPABILITY_ICONS.length];
               return (
                 <div
                   key={cap.title}
-                  className="feature-card-hover group rounded-3xl border border-[var(--aura-border)] bg-white p-8 cursor-default flex flex-col justify-between"
+                  className="feature-card-hover group rounded-2xl border border-[var(--aura-border)] bg-white p-5 md:p-6 cursor-default flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--aura-purple)] to-[#9B7FE6] text-white mb-6 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 group-hover:shadow-[0_10px_28px_rgba(111,79,216,0.4)]">
-                      <Icon className="h-6 w-6" />
+                    <div className="flex w-10 h-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--aura-purple)] to-[#9B7FE6] text-white mb-3.5 shadow-xs transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 group-hover:shadow-[0_10px_28px_rgba(111,79,216,0.4)]">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-[var(--aura-heading)] mb-2.5 transition-colors duration-200 group-hover:text-[var(--aura-purple)]">
+                    <h3 className="text-base font-bold text-[var(--aura-heading)] mb-1.5 transition-colors duration-200 group-hover:text-[var(--aura-purple)]">
                       {cap.title}
                     </h3>
-                    <p className="text-sm text-[var(--aura-body)] leading-relaxed">
+                    <p className="text-xs sm:text-sm text-[var(--aura-body)] leading-relaxed line-clamp-2">
                       {cap.description}
                     </p>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-[var(--aura-border)]/50 flex items-center justify-between text-xs font-semibold text-[var(--aura-purple)] opacity-0 -translate-y-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+                  <div className="mt-4 pt-3 border-t border-[var(--aura-border)]/50 flex items-center justify-between text-xs font-semibold text-[var(--aura-purple)] opacity-0 -translate-y-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
                     <span>Feature Included</span>
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -343,6 +361,23 @@ export function FeaturePageTemplate({ data }: FeaturePageTemplateProps) {
           </Container>
         </section>
       )}
+
+      <section className="bg-white py-16 md:py-20">
+        <Container>
+          <div className="mx-auto max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--aura-purple)]">Feature FAQ</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-[var(--aura-heading)]">Common questions about {data.title}</h2>
+            <div className="mt-8 space-y-4">
+              {featureFaq.map((item) => (
+                <article key={item.question} className="rounded-3xl border border-[var(--aura-border)] bg-[var(--aura-off-white)] p-6">
+                  <h3 className="font-bold text-[var(--aura-heading)]">{item.question}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--aura-body)]">{item.answer}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </Container>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 7 — BOTTOM CTA

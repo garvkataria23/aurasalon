@@ -26,7 +26,7 @@ export function useScrollReveal(rootMargin = "-60px") {
     );
 
     const targets = node.querySelectorAll(
-      ".reveal, .reveal-left, .reveal-right, .reveal-scale"
+      ".reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-stagger"
     );
     targets.forEach((el) => observer.observe(el));
 

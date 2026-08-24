@@ -6,7 +6,20 @@ import { CheckCircle2, Globe } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 
 const CITIES_LIST = [
-  "Pune", "Mumbai", "Hyderabad", "Bangalore", "Delhi NCR", "Chennai", "Kolkata", "Ahmedabad", "Jaipur", "Surat", "Chandigarh", "Lucknow", "Kochi", "Indore"
+  { label: "Pune", href: "/salon-software/pune" },
+  { label: "Mumbai", href: "/salon-software/mumbai" },
+  { label: "Hyderabad", href: "/salon-software/hyderabad" },
+  { label: "Bangalore", href: "/salon-software/bangalore" },
+  { label: "Delhi NCR", href: "/salon-software/delhi" },
+  { label: "Chennai", href: "/salon-software/chennai" },
+  { label: "Kolkata", href: "/salon-software/kolkata" },
+  { label: "Ahmedabad", href: "/salon-software/ahmedabad" },
+  { label: "Jaipur", href: "/salon-software/jaipur" },
+  { label: "Surat", href: "/salon-software/surat" },
+  { label: "Chandigarh", href: "/salon-software/chandigarh" },
+  { label: "Lucknow", href: "/salon-software/lucknow" },
+  { label: "Kochi", href: "/salon-software/kochi" },
+  { label: "Indore", href: "/salon-software/indore" },
 ];
 
 const SOLUTIONS_GROUPS = [
@@ -14,27 +27,28 @@ const SOLUTIONS_GROUPS = [
     title: "Salon & Grooming",
     links: [
       { label: "Salon Booking Software", href: "/features/appointments", desc: "Online booking & calendar for hair salons" },
-      { label: "Barbershop Booking Software", href: "/owner-crm", desc: "Streamline walk-ins & fast checkouts" },
-      { label: "Nail Salon Booking Software", href: "/features/billing", desc: "Appointment scheduling & technician turns" },
+      { label: "Salon POS Software", href: "/salon-pos-software", desc: "GST billing, payments & daily closing" },
+      { label: "Salon CRM Software", href: "/salon-crm-software", desc: "Client 360, preferences & retention" },
+      { label: "Salon Management Software", href: "/salon-management-software", desc: "Run booking, billing, staff & inventory together" },
       { label: "Pet Salon Booking Software", href: "/features/client-crm", desc: "Customer data & pet grooming profiles" },
     ],
   },
   {
     title: "Spa & Wellness",
     links: [
-      { label: "Spa Booking Software", href: "/workflows", desc: "Schedule therapists & manage room inventory" },
-      { label: "Wellness Center Booking", href: "/platform", desc: "Holistic health & prepaid package tracking" },
-      { label: "Gym & Yoga Booking", href: "/features", desc: "Recurring memberships & attendance" },
-      { label: "Massage Studio Software", href: "/features/appointments", desc: "Therapist roster & commission management" },
+      { label: "Spa Management Software", href: "/spa-management-software", desc: "Rooms, therapists & prepaid packages" },
+      { label: "Beauty Salon Software", href: "/beauty-salon-software", desc: "Services, packages & repeat visits" },
+      { label: "Hair Salon Software", href: "/hair-salon-software", desc: "Colour notes, rebooking & retail sales" },
+      { label: "Nail Salon Software", href: "/nail-salon-software", desc: "Technicians, add-ons & hygiene workflows" },
     ],
   },
   {
     title: "Clinics & Studios",
     links: [
-      { label: "Beauty Clinic Software", href: "/customer-app", desc: "Treatment procedures & client histories" },
-      { label: "Skin Clinic Booking Software", href: "/features/client-crm", desc: "Consultation forms & session packages" },
-      { label: "Tattoo Studio Software", href: "/features", desc: "Book tattoo sessions & manage artist rosters" },
-      { label: "Aesthetic Med Spa", href: "/platform", desc: "Multi-session courses & practitioner charts" },
+      { label: "Skin Clinic Software", href: "/skin-clinic-software", desc: "Consultations, consent & session packages" },
+      { label: "Bridal Salon Software", href: "/bridal-salon-software", desc: "Trials, deposits, artists & event dates" },
+      { label: "Salon Inventory Software", href: "/salon-inventory-software", desc: "Batch, expiry & service recipe control" },
+      { label: "Salon Chain Software", href: "/salon-chain-software", desc: "Multi-branch reports & SOP control" },
     ],
   },
   {
@@ -124,9 +138,9 @@ export function Footer() {
               </h3>
               <ul className="space-y-1.5 text-xs text-white/70">
                 {CITIES_LIST.slice(0, 7).map((city) => (
-                  <li key={city}>
-                    <Link href="/demo" className="hover:text-purple-300 transition-colors">
-                      {city} Salons
+                  <li key={city.href}>
+                    <Link href={city.href} className="hover:text-purple-300 transition-colors">
+                      {city.label} Salons
                     </Link>
                   </li>
                 ))}
@@ -140,8 +154,16 @@ export function Footer() {
               <ul className="space-y-1.5 text-xs text-white/70">
                 <li><Link href="/about" className="hover:text-purple-300 transition-colors">About Us</Link></li>
                 <li><Link href="/blog" className="hover:text-purple-300 transition-colors">Salon Growth Blog</Link></li>
-                <li><Link href="/faq" className="hover:text-purple-300 transition-colors">Help Docs &amp; FAQ</Link></li>
+                <li><Link href="/resources" className="hover:text-purple-300 transition-colors">Resource Hubs</Link></li>
+                <li><Link href="/use-cases" className="hover:text-purple-300 transition-colors">Use Cases</Link></li>
+                <li><Link href="/integrations" className="hover:text-purple-300 transition-colors">Integrations</Link></li>
+                <li><Link href="/help" className="hover:text-purple-300 transition-colors">Help Center</Link></li>
+                <li><Link href="/faq" className="hover:text-purple-300 transition-colors">FAQ</Link></li>
                 <li><Link href="/customers" className="hover:text-purple-300 transition-colors">Customer Stories</Link></li>
+                <li><Link href="/case-studies" className="hover:text-purple-300 transition-colors">Case Studies</Link></li>
+                <li><Link href="/calculators" className="hover:text-purple-300 transition-colors">Salon Calculators</Link></li>
+                <li><Link href="/templates" className="hover:text-purple-300 transition-colors">Templates</Link></li>
+                <li><Link href="/glossary" className="hover:text-purple-300 transition-colors">Glossary</Link></li>
                 <li><Link href="/pricing" className="hover:text-purple-300 transition-colors">Pricing Plans</Link></li>
                 <li><Link href="/contact" className="hover:text-purple-300 transition-colors">Contact Support</Link></li>
               </ul>
@@ -153,6 +175,9 @@ export function Footer() {
               </h3>
               <ul className="space-y-1.5 text-xs text-white/70">
                 <li><Link href="/demo" className="hover:text-purple-300 transition-colors">Book a Demo</Link></li>
+                <li><Link href="/for" className="hover:text-purple-300 transition-colors">For Salon Teams</Link></li>
+                <li><Link href="/salon-software" className="hover:text-purple-300 transition-colors">City Pages</Link></li>
+                <li><Link href="/compare" className="hover:text-purple-300 transition-colors">Compare Software</Link></li>
                 <li><Link href="/contact" className="hover:text-purple-300 transition-colors">Franchise Partner</Link></li>
                 <li><Link href="/contact" className="hover:text-purple-300 transition-colors">Affiliate Program</Link></li>
                 <li><Link href="/privacy" className="hover:text-purple-300 transition-colors">Data Privacy &amp; Security</Link></li>

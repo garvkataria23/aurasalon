@@ -431,12 +431,39 @@ button, a { touch-action: manipulation; }
 .reveal-scale { opacity: 0; transform: scale(0.95); transition: opacity 0.6s ease, transform 0.6s ease; }
 .reveal-scale.visible { opacity: 1; transform: scale(1); }
 
+/* Stagger children entrance without touching their own hover transitions */
+.reveal-stagger > * { opacity: 0; }
+.reveal-stagger.visible > * { animation: revealStaggerIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.reveal-stagger.visible > *:nth-child(1) { animation-delay: 0.05s; }
+.reveal-stagger.visible > *:nth-child(2) { animation-delay: 0.13s; }
+.reveal-stagger.visible > *:nth-child(3) { animation-delay: 0.21s; }
+.reveal-stagger.visible > *:nth-child(4) { animation-delay: 0.29s; }
+.reveal-stagger.visible > *:nth-child(5) { animation-delay: 0.37s; }
+.reveal-stagger.visible > *:nth-child(6) { animation-delay: 0.45s; }
+@keyframes revealStaggerIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-stagger > * { opacity: 1; }
+  .reveal-stagger.visible > * { animation: none; }
+}
+
 .stagger-1 { transition-delay: 0.05s; }
 .stagger-2 { transition-delay: 0.1s; }
 .stagger-3 { transition-delay: 0.15s; }
 .stagger-4 { transition-delay: 0.2s; }
 .stagger-5 { transition-delay: 0.25s; }
 .stagger-6 { transition-delay: 0.3s; }
+
+@media print {
+  nav, footer, .fixed, [data-print-hide="true"] { display: none !important; }
+  body { background: white !important; color: #111827 !important; }
+  a { color: #111827 !important; text-decoration: none !important; }
+  section { padding: 1rem 0 !important; }
+  .rounded-3xl, .rounded-2xl, .rounded-\[1\.75rem\] { border-radius: 0.75rem !important; }
+  .shadow-\[var\(--aura-shadow-sm\)\], .shadow-\[0_28px_90px_rgba\(72\,45\,151\,0\.16\)\] { box-shadow: none !important; }
+}
 
 .card-hover { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .card-hover:hover { transform: translateY(-4px); box-shadow: var(--aura-shadow-lg); }
@@ -552,12 +579,14 @@ button, a { touch-action: manipulation; }
 }
 
 .feature-card-hover:hover {
-  transform: translateY(-6px) scale(1.008);
-  border-color: rgba(111, 79, 216, 0.55);
+  transform: translateY(-7px) scale(1.01);
+  border-color: rgba(93, 63, 194, 0.75);
   box-shadow:
-    0 28px 70px -12px rgba(45, 18, 77, 0.32),
-    0 12px 32px -8px rgba(111, 79, 216, 0.36),
-    0 0 0 1.5px rgba(111, 79, 216, 0.45);
+    0 40px 92px -16px rgba(45, 18, 77, 0.62),
+    0 22px 56px -12px rgba(93, 63, 194, 0.7),
+    0 9px 30px -6px rgba(111, 79, 216, 0.45),
+    0 0 0 2px rgba(111, 79, 216, 0.65),
+    0 0 60px -4px rgba(111, 79, 216, 0.38) !important;
 }
 
 .feature-hero-card {

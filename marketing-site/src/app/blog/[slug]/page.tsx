@@ -3,6 +3,9 @@ import { BLOG_POSTS } from "@/lib/constants";
 import { breadcrumbJsonLd } from "@/lib/seo";
 import { BlogPostContent } from "./BlogPostContent";
 import { SITE_URL } from "@/lib/site";
+import { getBlogImage } from "@/lib/blog-images";
+import { getBlogCitations } from "@/lib/blog-authority";
+import { getArticleJsonLdExtras } from "@/lib/seo-enhancements";
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));
@@ -14,6 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!post) return { title: "Post Not Found" };
 
   const url = `${SITE_URL}/blog/${post.slug}`;
+  const image = getBlogImage(post);
 
   return {
     title: post.title,
@@ -27,15 +31,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: post.excerpt,
       type: "article",
       publishedTime: post.date,
+      modifiedTime: post.date,
+      authors: ["Aura Editorial Team"],
       tags: [post.category, "salon", "India"],
       url,
-      images: [{ url: "/og?path=blog", width: 1200, height: 630 }],
+      images: [{ url: image, width: 1200, height: 675, alt: post.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt,
-      images: ["/og?path=blog"],
+      images: [image],
     },
     alternates: {
       canonical: url,
@@ -46,6 +52,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = BLOG_POSTS.find((p) => p.slug === slug);
+  const citations = post ? getBlogCitations(post) : [];
+  const extras = post ? getArticleJsonLdExtras(post) : null;
 
   const breadcrumbs = breadcrumbJsonLd([
     { name: "Home", url: "/" },
@@ -57,13 +65,21 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     ? {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
+        "@id": `${SITE_URL}/blog/${post.slug}#article`,
         headline: post.title,
         description: post.excerpt,
         datePublished: post.date,
+        dateModified: post.date,
         url: `${SITE_URL}/blog/${post.slug}`,
+        image: [getBlogImage(post)],
+        inLanguage: "en-IN",
+        articleSection: post.category,
+        keywords: [post.category, "salon software India", "salon CRM", "salon POS", "salon operations"],
+        citation: citations.map((citation) => citation.url),
+        isAccessibleForFree: true,
         author: {
           "@type": "Organization",
-          name: "Aura Salon CRM/POS",
+          name: "Aura Editorial Team",
           url: SITE_URL,
         },
         publisher: {
@@ -74,6 +90,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         mainEntityOfPage: {
           "@type": "WebPage",
           "@id": `${SITE_URL}/blog/${post.slug}`,
+        },
+        about: {
+          "@type": "SoftwareApplication",
+          name: "Aura Salon CRM/POS",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
         },
       }
     : null;
@@ -89,6 +111,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+      )}
+      {extras && (
+        <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(extras.faqJsonLd) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(extras.howToJsonLd) }} />
+        </>
       )}
       <BlogPostContent slug={slug} />
     </>
