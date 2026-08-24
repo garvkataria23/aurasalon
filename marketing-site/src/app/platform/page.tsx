@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PAGE_SEO, breadcrumbJsonLd } from "@/lib/seo";
-import { EcosystemRoutePage } from "@/components/ecosystem/EcosystemRoutePage";
+import { PlatformClient } from "@/app/platform/PlatformClient";
 
 export const metadata: Metadata = PAGE_SEO["/platform"];
 
@@ -12,7 +12,7 @@ export default function PlatformPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
-      <EcosystemRoutePage route="platform" />
+      <PlatformClient />
     </>
   );
 }
