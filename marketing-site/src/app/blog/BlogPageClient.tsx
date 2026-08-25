@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Clock, Filter, SearchX, Sparkles } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/constants";
@@ -94,11 +95,11 @@ export default function BlogPage() {
                     <Link href={`/blog/${post.slug}`} className="group block h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--aura-purple)]">
                       <div className={`h-full overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/85 shadow-[0_18px_60px_rgba(72,45,151,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[var(--aura-purple)]/25 hover:shadow-[0_28px_80px_rgba(72,45,151,0.16)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${isFeatured ? "lg:flex" : ""}`}>
                         <div className={`relative shrink-0 overflow-hidden bg-[var(--aura-lavender)] ${isFeatured ? "h-56 lg:h-auto lg:w-2/5" : "h-44"}`}>
-                          <img
+                          <Image
                             src={image}
                             alt=""
-                            loading={i < 3 ? "eager" : "lazy"}
-                            decoding="async"
+                            fill
+                            priority={i < 3}
                             sizes={isFeatured ? "(min-width: 1024px) 40vw, 100vw" : "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"}
                             onError={(event) => {
                               event.currentTarget.onerror = null;

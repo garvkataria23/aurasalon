@@ -43,7 +43,8 @@ export function FloatingWhatsApp() {
 
   useEffect(() => {
     if (open) {
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      endRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
     }
   }, [messages, open]);
 
@@ -216,9 +217,9 @@ export function FloatingWhatsApp() {
         {isSending && (
           <div className="flex justify-start">
             <div className="flex items-center gap-1 rounded-2xl rounded-bl-xs border border-slate-200/90 bg-white px-4 py-3 text-xs text-slate-400 shadow-2xs">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500 [animation-delay:-0.3s] motion-reduce:animate-none" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500 [animation-delay:-0.15s] motion-reduce:animate-none" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500 motion-reduce:animate-none" />
             </div>
           </div>
         )}
@@ -261,6 +262,8 @@ export function FloatingWhatsApp() {
         <button
           type="button"
           onClick={() => setShowContactForm((v) => !v)}
+          aria-expanded={showContactForm}
+          aria-controls="aura-chat-callback-fields"
           className="flex min-h-11 w-full items-center justify-between text-[11px] font-semibold text-slate-600 hover:text-indigo-600 transition"
         >
           <span className="flex items-center gap-1">
@@ -271,7 +274,7 @@ export function FloatingWhatsApp() {
         </button>
 
         {showContactForm && (
-          <div className="mt-2 space-y-2 pb-1 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div id="aura-chat-callback-fields" className="mt-2 space-y-2 pb-1 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none">
             <div className="grid grid-cols-[80px_1fr] gap-1.5">
               <span className="flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-700">
                 🇮🇳 +91
@@ -281,6 +284,8 @@ export function FloatingWhatsApp() {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Mobile number"
                 type="tel"
+                aria-label="Mobile number"
+                autoComplete="tel-national"
                 className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
               />
             </div>
@@ -291,6 +296,8 @@ export function FloatingWhatsApp() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email (optional)"
                 type="email"
+                aria-label="Email address optional"
+                autoComplete="email"
                 className="h-8 min-w-0 flex-1 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none"
               />
             </div>

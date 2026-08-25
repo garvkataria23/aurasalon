@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight, Clock, ChevronRight, Share2, Link2, Check } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/constants";
@@ -299,17 +300,18 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
               {post.excerpt}
             </p>
           </div>
-          <div className="mt-10 overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 shadow-[0_28px_90px_rgba(72,45,151,0.16)]">
-            <img
+          <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 shadow-[0_28px_90px_rgba(72,45,151,0.16)]">
+            <Image
               src={image}
               alt={`${translated?.title ?? post.title} illustration`}
-              decoding="async"
+              fill
+              priority
               sizes="(min-width: 1024px) 960px, 100vw"
               onError={(event) => {
                 event.currentTarget.onerror = null;
                 event.currentTarget.src = getBlogFallbackImage(post);
               }}
-              className="aspect-[16/9] w-full object-cover"
+              className="object-cover"
             />
           </div>
         </Container>
