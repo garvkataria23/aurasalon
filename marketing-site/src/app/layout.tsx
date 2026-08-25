@@ -1,22 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
-import { ScrollProgress } from "@/components/ui/ScrollProgress";
-import { CommandPalette } from "@/components/ui/CommandPalette";
-import { CookieConsent } from "@/components/ui/CookieConsent";
+import { StaticNavbar } from "@/components/layout/StaticNavbar";
+import { NavbarDeferredLoader } from "@/components/layout/NavbarDeferredLoader";
+import { StaticFooter } from "@/components/layout/StaticFooter";
+import { FooterDeferredLoader } from "@/components/layout/FooterDeferredLoader";
 import { SkipLink } from "@/components/ui/SkipLink";
-import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import { DeferredMarketingWidgets } from "@/components/ui/DeferredMarketingWidgets";
 import { softwareAppJsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -80,9 +71,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { FloatingConversionDock } from "@/components/ui/FloatingConversionDock";
-import { FloatingWhatsApp } from "@/components/ui/FloatingWhatsApp";
-
 const jsonLdScripts = [softwareAppJsonLd, organizationJsonLd, websiteJsonLd];
 
 export default function RootLayout({
@@ -91,9 +79,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-IN" className={`${inter.variable} h-full`} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en-IN" className="h-full" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script defer data-domain="aurasalon.in" src="https://plausible.io/js/script.js" />
         {jsonLdScripts.map((ld, i) => (
           <script
             key={i}
@@ -103,19 +90,13 @@ export default function RootLayout({
         ))}
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
-        <LanguageProvider>
         <SkipLink />
-        <SmoothScrollProvider>
-          <FloatingConversionDock />
-          <FloatingWhatsApp />
-          <ScrollProgress />
-          <CommandPalette />
-          <CookieConsent />
-          <Navbar />
+          <DeferredMarketingWidgets />
+          <StaticNavbar />
+          <NavbarDeferredLoader />
           <main id="main-content" className="flex-1">{children}</main>
-          <Footer />
-        </SmoothScrollProvider>
-        </LanguageProvider>
+          <StaticFooter />
+          <FooterDeferredLoader />
       </body>
     </html>
   );

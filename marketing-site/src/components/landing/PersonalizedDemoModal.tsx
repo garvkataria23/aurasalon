@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ArrowRight, CheckCircle2, Store } from "lucide-react";
+import { ArrowRight, CheckCircle2, Store } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
@@ -73,7 +73,7 @@ export function PersonalizedDemoModal() {
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
                 <div className="rounded-xl bg-aura-surface p-3">
-                  <p className="text-aura-text-secondary text-[10px]">Today's Target</p>
+                  <p className="text-aura-text-secondary text-[10px]">Today&apos;s Target</p>
                   <p className="text-lg font-bold text-aura-text mt-1">₹45,000</p>
                 </div>
                 <div className="rounded-xl bg-aura-surface p-3">

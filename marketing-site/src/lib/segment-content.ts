@@ -3,7 +3,6 @@ import {
   Activity,
   Award,
   Baby,
-  BookOpen,
   Brush,
   Building2,
   Car,
@@ -1789,6 +1788,5 @@ export const SEGMENT_CONTENT: SegmentContent[] = [
 export function getSegmentContent(slug: string): SegmentContent | undefined {
   return SEGMENT_CONTENT.find((item) => item.slug === slug);
 }
-
 
 

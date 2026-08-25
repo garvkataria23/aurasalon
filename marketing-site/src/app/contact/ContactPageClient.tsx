@@ -1,9 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState } from "react";
 import { Send, CheckCircle, FileCheck2, MessageSquareText, AlertCircle } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 import { GridBackground } from "@/components/ui/GridBackground";
 import { CTA_LINKS } from "@/lib/constants";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -101,7 +101,7 @@ function FloatingTextarea({
 }
 
 export default function ContactPage() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const reveal = useScrollReveal();
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -263,8 +263,8 @@ export default function ContactPage() {
                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)] mb-2.5">{t("contact.quick")}</h3>
                   <ul className="space-y-2 text-xs">
                      <li><a href={CTA_LINKS.demo} className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.schedule")}</a></li>
-                     <li><a href="/features" className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.viewFeatures")}</a></li>
-                     <li><a href="/pricing" className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.viewPricing")}</a></li>
+                     <li><Link href="/features" className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.viewFeatures")}</Link></li>
+                     <li><Link href="/pricing" className="text-[var(--aura-purple)] font-semibold hover:underline">{t("contact.viewPricing")}</Link></li>
                   </ul>
                 </div>
               </div>

@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Calendar,
   CheckCircle2,
-  Phone,
   RotateCcw,
   Scissors,
   Smartphone,

@@ -79,7 +79,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="border-t border-[var(--aura-border)] bg-[#181224] text-white/80 pt-16 pb-12">
+    <footer className="aura-footer border-t border-[var(--aura-border)] bg-[#181224] text-white/80 pt-16 pb-12">
       <Container size="wide">
         
         {/* Top Newsletter & Brand Header */}
@@ -133,7 +133,7 @@ export function Footer() {
           {/* Quick Links Group (Cities, About, Partners) */}
           <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF] mb-3">
                 Top Hubs
               </h3>
               <ul className="space-y-1.5 text-xs text-white/70">
@@ -148,7 +148,7 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF] mb-3">
                 About &amp; Resources
               </h3>
               <ul className="space-y-1.5 text-xs text-white/70">
@@ -170,7 +170,7 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF] mb-3">
                 For Business
               </h3>
               <ul className="space-y-1.5 text-xs text-white/70">
@@ -192,7 +192,7 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 py-12 border-b border-white/10">
           {SOLUTIONS_GROUPS.map((group) => (
             <div key={group.title}>
-              <h4 className="text-sm font-bold text-white mb-4 border-l-2 border-[var(--aura-purple)] pl-2.5">
+              <h4 className="text-sm font-bold text-[#FFFFFF] mb-4 border-l-2 border-[var(--aura-purple)] pl-2.5">
                 {group.title}
               </h4>
               <ul className="space-y-3">
@@ -217,7 +217,7 @@ export function Footer() {
         <div className="py-6 border-b border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-white/60">
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-purple-400" />
-            <span className="font-semibold text-white">Serving Salons &amp; Spas Across:</span>
+            <span className="font-semibold text-[#FFFFFF]">Serving Salons &amp; Spas Across:</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {COUNTRIES.map((country, idx) => (

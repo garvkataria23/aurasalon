@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { CTA_LINKS } from "@/lib/constants";
 import { LandingDecor } from "./LandingDecor";
 
 const PLANS = [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calculator, Check, ArrowRight, Share2, Sparkles, Building, Users } from "lucide-react";
+import { Check, Share2, Building, Users } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { soundEngine } from "@/components/ui/SoundEffects";
@@ -10,8 +10,6 @@ export function InstantQuotationModal() {
   const [chairs, setChairs] = useState(6);
   const [branches, setBranches] = useState(1);
   const [whatsappAddon, setWhatsappAddon] = useState(true);
-  const [copied, setCopied] = useState(false);
-
   // Price Calculation: Base ₹1,499 per branch/mo + ₹199 per chair
   const baseMonthly = branches * 1499 + chairs * 199 + (whatsappAddon ? 499 : 0);
   const annualTotal = baseMonthly * 12 * 0.8; // 20% annual discount

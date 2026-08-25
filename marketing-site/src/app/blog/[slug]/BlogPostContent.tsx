@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { ArrowLeft, ArrowRight, Clock, ChevronRight, Share2, Link2, Check } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
@@ -87,12 +86,11 @@ function LinkedInIcon({ className }: { className?: string }) {
 }
 
 function ShareBar({ title, excerpt }: { title: string; excerpt: string }) {
-  const pathname = usePathname();
   const [copied, setCopied] = useState(false);
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    setUrl(window.location.href);
+    void Promise.resolve().then(() => setUrl(window.location.href));
   }, []);
 
   const shareLinks = [
@@ -109,7 +107,7 @@ function ShareBar({ title, excerpt }: { title: string; excerpt: string }) {
     {
       name: "WhatsApp",
       icon: Share2,
-      href: `https://wa.me/?text=${encodeURIComponent(`${title}\n${url}`)}`,
+      href: `https://wa.me/?text=${encodeURIComponent(`${title}\n${excerpt}\n${url}`)}`,
     },
   ];
 
@@ -264,13 +262,10 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
     });
   };
 
-  const toc = useMemo(() => {
-    if (!content) return [];
-    return content.split("\n").filter((l) => l.trim().startsWith("## ")).map((l) => ({
-      id: l.trim().replace(/^##\s+/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      label: l.trim().replace(/^##\s+/, ""),
-    }));
-  }, [content]);
+  const toc = content.split("\n").filter((l) => l.trim().startsWith("## ")).map((l) => ({
+    id: l.trim().replace(/^##\s+/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    label: l.trim().replace(/^##\s+/, ""),
+  }));
 
   return (
     <>
@@ -367,7 +362,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
                   </ul>
                 </div>
                 <div className="rounded-[1.5rem] border border-[var(--aura-border)] bg-white p-5 shadow-[var(--aura-shadow-sm)]">
-                  <p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--aura-muted)]">Don't</p>
+                  <p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--aura-muted)]">Don&apos;t</p>
                   <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--aura-body)]">
                     <li>Depend on WhatsApp chats as the source of truth.</li>
                     <li>Review operations only at month-end.</li>

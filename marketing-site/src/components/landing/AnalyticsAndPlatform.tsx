@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
@@ -24,12 +25,11 @@ import {
   Megaphone,
   LineChart,
   ArrowUpRight,
-  ShieldCheck,
 } from "lucide-react";
 
 /* ── Scroll Reveal Hook ── */
 function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const el = ref.current;
@@ -478,15 +478,15 @@ function OnePlatformVisual() {
    MAIN COMPONENT EXPORT
    =================================================================== */
 export function AnalyticsAndPlatform() {
-  const analyticsReveal = useReveal();
-  const whyReveal = useReveal();
-  const platformReveal = useReveal();
+  const { ref: analyticsRef, visible: analyticsVisible } = useReveal();
+  const { ref: whyRef, visible: whyVisible } = useReveal();
+  const { ref: platformRef, visible: platformVisible } = useReveal();
 
   return (
     <>
       {/* ── SECTION 1: ANALYTICS ── */}
       <section
-        ref={analyticsReveal.ref}
+        ref={analyticsRef}
         className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-10 md:py-11"
       >
         <LandingDecor variant="warm" />
@@ -495,8 +495,8 @@ export function AnalyticsAndPlatform() {
             <div
               className="mx-auto max-w-2xl text-center lg:mx-0 lg:max-w-xl lg:text-left"
               style={{
-                opacity: analyticsReveal.visible ? 1 : 0,
-                transform: analyticsReveal.visible ? "translateY(0)" : "translateY(20px)",
+                opacity: analyticsVisible ? 1 : 0,
+                transform: analyticsVisible ? "translateY(0)" : "translateY(20px)",
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
@@ -504,7 +504,7 @@ export function AnalyticsAndPlatform() {
                 Real-Time Intelligence
               </span>
               <h2 className="text-[clamp(2.15rem,4.4vw,3.35rem)] font-bold leading-[1.02] tracking-[-0.04em] text-[var(--aura-heading)] text-balance">
-                Know what's happening before you ask.
+                Know what&apos;s happening before you ask.
               </h2>
               <p className="mt-4 text-sm md:text-base leading-relaxed text-[var(--aura-body)] text-pretty">
                 Get an instant, unified pulse on revenue, staff occupancy, client retention, and margin directly on your phone or desktop.
@@ -521,8 +521,8 @@ export function AnalyticsAndPlatform() {
             <div
               className="min-w-0"
               style={{
-                opacity: analyticsReveal.visible ? 1 : 0,
-                transform: analyticsReveal.visible ? "translateY(0)" : "translateY(24px)",
+                opacity: analyticsVisible ? 1 : 0,
+                transform: analyticsVisible ? "translateY(0)" : "translateY(24px)",
                 transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
               }}
             >
@@ -534,7 +534,7 @@ export function AnalyticsAndPlatform() {
 
       {/* ── SECTION 2: WHY AURA (6 CARDS) ── */}
       <section
-        ref={whyReveal.ref}
+        ref={whyRef}
         className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-[radial-gradient(circle_at_50%_0%,rgba(111,79,216,0.16),transparent_34%),linear-gradient(135deg,#FCFAFF_0%,#F6F1FF_48%,#ECE4FF_100%)] py-12 md:py-16"
       >
         <LandingDecor variant="soft" />
@@ -543,8 +543,8 @@ export function AnalyticsAndPlatform() {
           <div
             className="mx-auto max-w-3xl text-center mb-7 md:mb-8"
             style={{
-              opacity: whyReveal.visible ? 1 : 0,
-              transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
+              opacity: whyVisible ? 1 : 0,
+              transform: whyVisible ? "translateY(0)" : "translateY(20px)",
               transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
             }}
           >
@@ -564,10 +564,10 @@ export function AnalyticsAndPlatform() {
                   <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--aura-muted)]">{stat.label}</p>
                 </div>
               ))}
-              <a href="/demo" className="why-aura-demo-pulse inline-flex min-h-[3.625rem] items-center justify-center gap-1.5 rounded-2xl bg-[var(--aura-purple)] px-3 text-xs font-black text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] sm:text-[13px]">
+              <Link href="/demo" className="why-aura-demo-pulse inline-flex min-h-[3.625rem] items-center justify-center gap-1.5 rounded-2xl bg-[var(--aura-purple)] px-3 text-xs font-black text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] sm:text-[13px]">
                 Demo
                 <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -580,8 +580,8 @@ export function AnalyticsAndPlatform() {
                   key={card.title}
                   className={`why-aura-card group relative min-h-[14.75rem] overflow-hidden rounded-[1.5rem] border p-5 shadow-[0_16px_52px_rgba(82,58,138,0.08)] backdrop-blur-xl ring-1 ring-white/50 transition-all duration-300 md:p-6 ${featured ? "border-[var(--aura-purple)]/30 bg-white/68 shadow-[0_20px_72px_rgba(111,79,216,0.15)]" : "border-white/70 bg-white/42"}`}
                   style={{
-                    opacity: whyReveal.visible ? 1 : 0,
-                    transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
+                    opacity: whyVisible ? 1 : 0,
+                    transform: whyVisible ? "translateY(0)" : "translateY(20px)",
                     transition: `opacity 0.5s ease-out ${0.1 + i * 0.05}s, transform 0.5s ease-out ${0.1 + i * 0.05}s`,
                   }}
                 >
@@ -622,7 +622,7 @@ export function AnalyticsAndPlatform() {
 
       {/* ── SECTION 3: ONE CONNECTED PLATFORM VISUAL ── */}
       <section
-        ref={platformReveal.ref}
+        ref={platformRef}
         className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-14 md:flex md:min-h-[calc(100svh-4.25rem)] md:items-center md:py-16"
       >
         <LandingDecor variant="warm" />
@@ -631,8 +631,8 @@ export function AnalyticsAndPlatform() {
             <div
               className="mx-auto max-w-2xl text-center lg:mx-0 lg:max-w-xl lg:text-left"
               style={{
-                opacity: platformReveal.visible ? 1 : 0,
-                transform: platformReveal.visible ? "translateY(0)" : "translateY(20px)",
+                opacity: platformVisible ? 1 : 0,
+                transform: platformVisible ? "translateY(0)" : "translateY(20px)",
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
@@ -652,17 +652,17 @@ export function AnalyticsAndPlatform() {
                   </span>
                 ))}
               </div>
-              <a href="/demo" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-5 text-sm font-bold text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)]">
+              <Link href="/demo" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--aura-radius-btn)] bg-[var(--aura-purple)] px-5 text-sm font-bold text-white shadow-[0_14px_36px_rgba(111,79,216,0.24)] transition-all hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)]">
                 See connected workflow
                 <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
 
             <div
               className="min-w-0"
               style={{
-                opacity: platformReveal.visible ? 1 : 0,
-                transform: platformReveal.visible ? "translateY(0)" : "translateY(20px)",
+                opacity: platformVisible ? 1 : 0,
+                transform: platformVisible ? "translateY(0)" : "translateY(20px)",
                 transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
               }}
             >

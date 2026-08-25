@@ -1,11 +1,12 @@
 import { BLOG_POSTS } from "@/lib/constants";
-import { SITE_URL } from "@/lib/site";
+
+const LLMS_SITE_URL = "https://marketing-site-lake-pi.vercel.app";
 
 export const dynamic = "force-static";
 
 export function GET() {
   const newestPosts = BLOG_POSTS.slice(0, 24)
-    .map((post) => `- ${post.title}: ${SITE_URL}/blog/${post.slug}`)
+    .map((post) => `- [${post.title}](${LLMS_SITE_URL}/blog/${post.slug})`)
     .join("\n");
 
   const body = `# Aura Salon CRM/POS
@@ -13,31 +14,31 @@ export function GET() {
 Aura is a connected salon operating system for Indian salons, salon chains and beauty businesses. It combines salon CRM, POS and GST billing, online booking, staff attendance and payroll, inventory, marketing automation, customer app workflows and owner reporting.
 
 ## Canonical Site
-${SITE_URL}
+[Aura Salon CRM/POS](${LLMS_SITE_URL}/)
 
 ## Primary Product Pages
-- Platform overview: ${SITE_URL}/platform
-- Features overview: ${SITE_URL}/features
-- Smart booking and appointments: ${SITE_URL}/features/appointments
-- POS and GST billing: ${SITE_URL}/features/billing
-- Client CRM: ${SITE_URL}/features/client-crm
-- Staff management: ${SITE_URL}/features/staff-management
-- Inventory management: ${SITE_URL}/features/inventory
-- Marketing AI workflows: ${SITE_URL}/features/marketing-ai
-- Pricing: ${SITE_URL}/pricing
-- Demo request: ${SITE_URL}/demo
-- FAQ: ${SITE_URL}/faq
-- Salon POS Software: ${SITE_URL}/salon-pos-software
-- Salon CRM Software: ${SITE_URL}/salon-crm-software
-- Salon Booking Software: ${SITE_URL}/salon-booking-software
-- Salon Management Software: ${SITE_URL}/salon-management-software
-- Salon software city pages: ${SITE_URL}/salon-software
-- Use cases: ${SITE_URL}/use-cases
-- Integrations: ${SITE_URL}/integrations
-- Personas: ${SITE_URL}/for
-- Help center: ${SITE_URL}/help
-- Resource hubs: ${SITE_URL}/resources
-- Glossary: ${SITE_URL}/glossary
+- [Platform overview](${LLMS_SITE_URL}/platform)
+- [Features overview](${LLMS_SITE_URL}/features)
+- [Smart booking and appointments](${LLMS_SITE_URL}/features/appointments)
+- [POS and GST billing](${LLMS_SITE_URL}/features/billing)
+- [Client CRM](${LLMS_SITE_URL}/features/client-crm)
+- [Staff management](${LLMS_SITE_URL}/features/staff-management)
+- [Inventory management](${LLMS_SITE_URL}/features/inventory)
+- [Marketing AI workflows](${LLMS_SITE_URL}/features/marketing-ai)
+- [Pricing](${LLMS_SITE_URL}/pricing)
+- [Demo request](${LLMS_SITE_URL}/demo)
+- [FAQ](${LLMS_SITE_URL}/faq)
+- [Salon POS Software](${LLMS_SITE_URL}/salon-pos-software)
+- [Salon CRM Software](${LLMS_SITE_URL}/salon-crm-software)
+- [Salon Booking Software](${LLMS_SITE_URL}/salon-booking-software)
+- [Salon Management Software](${LLMS_SITE_URL}/salon-management-software)
+- [Salon software city pages](${LLMS_SITE_URL}/salon-software)
+- [Use cases](${LLMS_SITE_URL}/use-cases)
+- [Integrations](${LLMS_SITE_URL}/integrations)
+- [Personas](${LLMS_SITE_URL}/for)
+- [Help center](${LLMS_SITE_URL}/help)
+- [Resource hubs](${LLMS_SITE_URL}/resources)
+- [Glossary](${LLMS_SITE_URL}/glossary)
 
 ## Product Positioning
 Aura is built for Indian salon operations: UPI/card/cash billing, GST invoices, client history, service preferences, WhatsApp reminders, staff shifts and commissions, batch/expiry inventory, branch-level reporting and salon owner dashboards.

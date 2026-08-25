@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { X, Cookie } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -13,9 +14,9 @@ export function CookieConsent() {
   useEffect(() => {
     try {
       const consent = localStorage.getItem(CONSENT_KEY);
-      if (!consent) setVisible(true);
+      if (!consent) window.setTimeout(() => setVisible(true), 0);
     } catch {
-      setVisible(true);
+      window.setTimeout(() => setVisible(true), 0);
     }
   }, []);
 
@@ -42,18 +43,18 @@ export function CookieConsent() {
             <p className="text-sm font-semibold text-aura-text mb-1">{t("cookie.title")}</p>
             <p className="text-xs text-aura-text-secondary leading-relaxed">{t("cookie.body")}</p>
             <div className="mt-3 flex items-center gap-2">
-              <button type="button" onClick={accept} className="rounded-lg bg-aura-primary px-4 py-2 text-xs font-medium text-white transition-all hover:bg-aura-primary-dark hover:shadow-md">
+              <button type="button" onClick={accept} className="min-h-11 rounded-lg bg-aura-primary px-4 py-2 text-xs font-medium text-white transition-all hover:bg-aura-primary-dark hover:shadow-md">
                 {t("cookie.accept")}
               </button>
-              <button type="button" onClick={dismiss} className="rounded-lg border border-aura-border px-4 py-2 text-xs font-medium text-aura-text-secondary transition-all hover:bg-aura-surface-muted">
+              <button type="button" onClick={dismiss} className="min-h-11 rounded-lg border border-aura-border px-4 py-2 text-xs font-medium text-aura-text-secondary transition-all hover:bg-aura-surface-muted">
                 {t("cookie.decline")}
               </button>
-              <a href="/cookies" className="text-[11px] text-aura-text-muted underline underline-offset-2 hover:text-aura-text transition-colors ml-1">
+              <Link href="/cookies" className="inline-flex min-h-11 items-center text-[11px] text-aura-text-muted underline underline-offset-2 hover:text-aura-text transition-colors ml-1">
                 {t("cookie.policy")}
-              </a>
+              </Link>
             </div>
           </div>
-          <button type="button" onClick={dismiss} aria-label={t("overlay.close")} className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-aura-text-muted hover:text-aura-text hover:bg-aura-surface-muted transition-colors">
+          <button type="button" onClick={dismiss} aria-label={t("overlay.close")} className="shrink-0 flex h-11 w-11 items-center justify-center rounded-lg text-aura-text-muted hover:text-aura-text hover:bg-aura-surface-muted transition-colors">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Container } from "@/components/ui/Container";
@@ -52,9 +50,9 @@ export function CityDirectorySection() {
                 <span className="font-bold text-sm text-[var(--aura-heading)] group-hover:text-[var(--aura-purple)] transition-colors">
                   {market.name}
                 </span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-[var(--aura-muted)] group-hover:text-[var(--aura-purple)] transition-colors" />
+                <ArrowUpRight className="h-3.5 w-3.5 text-[var(--aura-body)] group-hover:text-[var(--aura-purple)] transition-colors" aria-hidden="true" />
               </div>
-              <span className="text-[10px] text-[var(--aura-muted)] mt-1.5">
+              <span className="text-[10px] text-[var(--aura-body)] mt-1.5">
                 {market.detail}
               </span>
             </Link>

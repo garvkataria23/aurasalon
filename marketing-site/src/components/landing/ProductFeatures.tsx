@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
@@ -994,13 +995,13 @@ function ProductSection({
             </ul>
 
             <div className="mt-8 pt-2">
-              <a
+              <Link
                 href="/demo"
                 className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
               >
                 Book a Demo
                 <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
           </div>
 

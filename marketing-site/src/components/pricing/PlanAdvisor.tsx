@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
@@ -39,7 +40,7 @@ export function PlanAdvisor() {
             <p className="text-xs leading-5 text-aura-text-muted">{t("advisor.teamNote")} ({team})</p>
           </form>
           <aside className="flex flex-col bg-aura-bg p-6 text-aura-text sm:p-8" aria-live="polite" aria-atomic="true">
-            <CheckCircle2 className="h-6 w-6 text-aura-primary" aria-hidden="true" /><p className="mt-5 text-xs uppercase tracking-[.14em] text-aura-text-muted">{t("advisor.recommendation")}</p><h3 className="mt-2 font-display text-4xl font-normal">{planName}</h3><p className="mt-2 text-lg font-semibold text-aura-text">{t("advisor.from")} {price}</p><div className="mt-6 border-t border-aura-border pt-5"><strong className="text-xs uppercase tracking-wider text-aura-text-muted">{t("advisor.why")}</strong><p className="mt-2 text-sm leading-6 text-aura-text-secondary">{t(result.reason)}</p></div><div className="mt-auto flex flex-col gap-3 pt-8"><a href={CTA_LINKS.demo} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-aura-primary">{t("advisor.demo")}<ArrowRight className="h-4 w-4" /></a><a href="/contact" className="inline-flex min-h-11 items-center justify-center rounded-full border border-aura-border px-5 text-sm text-aura-text-secondary hover:bg-aura-surface">{t("advisor.contact")}</a></div>
+            <CheckCircle2 className="h-6 w-6 text-aura-primary" aria-hidden="true" /><p className="mt-5 text-xs uppercase tracking-[.14em] text-aura-text-muted">{t("advisor.recommendation")}</p><h3 className="mt-2 font-display text-4xl font-normal">{planName}</h3><p className="mt-2 text-lg font-semibold text-aura-text">{t("advisor.from")} {price}</p><div className="mt-6 border-t border-aura-border pt-5"><strong className="text-xs uppercase tracking-wider text-aura-text-muted">{t("advisor.why")}</strong><p className="mt-2 text-sm leading-6 text-aura-text-secondary">{t(result.reason)}</p></div><div className="mt-auto flex flex-col gap-3 pt-8"><a href={CTA_LINKS.demo} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-aura-primary">{t("advisor.demo")}<ArrowRight className="h-4 w-4" /></a><Link href="/contact" className="inline-flex min-h-11 items-center justify-center rounded-full border border-aura-border px-5 text-sm text-aura-text-secondary hover:bg-aura-surface">{t("advisor.contact")}</Link></div>
           </aside>
         </div>
       </Container>

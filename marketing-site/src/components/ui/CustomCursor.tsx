@@ -8,7 +8,7 @@ export function CustomCursor() {
   const glowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
+    queueMicrotask(() => setIsMobile(window.matchMedia("(pointer: coarse)").matches));
   }, []);
 
   const onMove = useCallback((e: MouseEvent) => {

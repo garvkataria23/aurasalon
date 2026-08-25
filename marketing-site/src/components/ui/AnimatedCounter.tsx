@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface AnimatedCounterProps {
@@ -23,8 +23,10 @@ export function AnimatedCounter({
   const hasAnimated = useRef(false);
   const rafId = useRef<number>(0);
 
-  const animate = useCallback(
-    (startTime: number, currentTime: number) => {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const animate = (startTime: number, currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
@@ -32,13 +34,7 @@ export function AnimatedCounter({
       if (progress < 1) {
         rafId.current = requestAnimationFrame((t) => animate(startTime, t));
       }
-    },
-    [value, duration],
-  );
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    };
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
@@ -51,7 +47,7 @@ export function AnimatedCounter({
     );
     observer.observe(el);
     return () => { observer.disconnect(); cancelAnimationFrame(rafId.current); };
-  }, [animate]);
+  }, [duration, value]);
 
   const displayValue =
     value >= 1000 && !suffix.includes("Cr") && !suffix.includes("L")

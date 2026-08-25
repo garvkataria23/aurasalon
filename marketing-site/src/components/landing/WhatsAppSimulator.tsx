@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Send, CheckCheck, Sparkles, Calendar, Clock, User, ShieldCheck } from "lucide-react";
+import { MessageSquare, CheckCheck, Clock, User, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
 
@@ -52,6 +52,7 @@ export function WhatsAppSimulator() {
   ];
   const [activeMode, setActiveMode] = useState<"booking" | "reminder">("booking");
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const messageIdRef = useRef(3);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -93,9 +94,10 @@ export function WhatsAppSimulator() {
 
   const handleOptionClick = (option: string) => {
     const timeStr = option.replace("Book ", "");
+    const nextMessageId = () => String(messageIdRef.current++);
 
     const userMsg: Message = {
-      id: String(Date.now()),
+      id: nextMessageId(),
       sender: "user",
       text: option,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -103,7 +105,7 @@ export function WhatsAppSimulator() {
 
     if (option === "Need directions") {
       setMessages((prev) => [...prev, userMsg, {
-        id: String(Date.now() + 1),
+        id: nextMessageId(),
         sender: "bot",
         text: "Here is the Aura Bandra West location pin. Parking is available near the main entrance.",
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -112,7 +114,7 @@ export function WhatsAppSimulator() {
     }
 
     const botMsg: Message = {
-      id: String(Date.now() + 1),
+      id: nextMessageId(),
       sender: "bot",
       text: activeMode === "reminder" ? "Confirmed. Your visit is locked for tomorrow at 06:00 PM. See you soon!" : `Awesome! Your booking is confirmed. We've reserved Senior Stylist Ananya for you.`,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),

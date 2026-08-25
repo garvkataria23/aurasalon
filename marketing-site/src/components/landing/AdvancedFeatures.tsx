@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
 import {
   Boxes,
   AlertTriangle,
   ShoppingCart,
-  FileCheck,
   TrendingDown,
   Truck,
   History,
@@ -155,10 +155,6 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
   const selectedItem = stockItems.find((item) => item.sku === selectedSku) ?? stockItems[0];
   const lowStockCount = stockItems.filter((item) => item.inStock <= item.minStock).length;
   const isStockLedger = activeFeature === "Live stock tracking";
-  useEffect(() => {
-    setFormMode(null);
-    setSelectedPanelRow(0);
-  }, [activeFeature]);
   const getStatus = (inStock: number, minStock: number) => {
     if (inStock <= 0) return "Out of Stock";
     if (inStock <= minStock) return "Low Stock";
@@ -221,7 +217,7 @@ function InventoryMockup({ activeFeature = "Live stock tracking" }: { activeFeat
 
     const inStock = Number(draft.inStock) || 0;
     const minStock = Number(draft.minStock) || 0;
-    const sku = draft.sku.trim() || `SKU-${Date.now().toString().slice(-4)}`;
+    const sku = draft.sku.trim() || `SKU-${stockItems.length + 101}`;
     const item = {
       name: draft.name.trim() || "Unnamed Inventory Item",
       sku,
@@ -509,11 +505,6 @@ function MembershipDashboard({ activeFeature = "Tiered memberships" }: { activeF
   const [draft, setDraft] = useState({ name: "", value: "", detail: "" });
   const rows = rowsByFeature[activeFeature] ?? seedRows["Tiered memberships"];
 
-  useEffect(() => {
-    setSelectedRow(0);
-    setFormMode(null);
-  }, [activeFeature]);
-
   const startCreate = () => {
     setDraft({ name: `New ${activeFeature}`, value: "Draft", detail: "Frontend preview record" });
     setFormMode("create");
@@ -797,9 +788,9 @@ function MarketingAutomationMockup({ activeFeature = "WhatsApp campaigns" }: { a
 }
 
 export function AdvancedFeatures() {
-  const inv = useReveal();
-  const mem = useReveal();
-  const mkt = useReveal();
+  const { ref: inventoryRef, visible: inventoryVisible } = useReveal();
+  const { ref: membershipRef, visible: membershipVisible } = useReveal();
+  const { ref: marketingRef, visible: marketingVisible } = useReveal();
   const [activeInventoryFeature, setActiveInventoryFeature] = useState("Live stock tracking");
   const [activeMembershipFeature, setActiveMembershipFeature] = useState("Tiered memberships");
   const [activeMarketingFeature, setActiveMarketingFeature] = useState("WhatsApp campaigns");
@@ -836,7 +827,7 @@ export function AdvancedFeatures() {
   return (
     <>
       {/* ── SECTION 1: INVENTORY ── */}
-      <section ref={inv.ref} className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
+      <section ref={inventoryRef} className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-20 md:py-28">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_84%_42%,rgba(111,79,216,0.11),transparent_31%)]" aria-hidden="true" />
         <LandingDecor variant="soft" />
         <Container className="relative z-10">
@@ -844,8 +835,8 @@ export function AdvancedFeatures() {
             {/* Text column */}
             <div
               style={{
-                opacity: inv.visible ? 1 : 0,
-                transform: inv.visible ? "translateY(0)" : "translateY(20px)",
+                opacity: inventoryVisible ? 1 : 0,
+                transform: inventoryVisible ? "translateY(0)" : "translateY(20px)",
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
@@ -853,7 +844,7 @@ export function AdvancedFeatures() {
                 Inventory &amp; Consumption
               </span>
               <h2 className="max-w-full text-[clamp(2rem,4.8vw,3.4rem)] font-bold leading-[1.03] tracking-[-0.055em] text-[var(--aura-heading)] md:max-w-xl">
-                Never discover you're out of stock during a service.
+                Never discover you&apos;re out of stock during a service.
               </h2>
               <p className="mt-5 max-w-lg text-[1.02rem] leading-[1.8] text-[var(--aura-body)]">
                 Eliminate pilferage, track real consumption for every hair wash, color tube or facial kit, and reorder automatically before you run out.
@@ -876,13 +867,13 @@ export function AdvancedFeatures() {
               </ul>
 
               <div className="mt-8 pt-2">
-                <a
+                <Link
                   href="/demo"
                   className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   Book a Demo
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -890,15 +881,15 @@ export function AdvancedFeatures() {
             <div
               className="relative min-w-0"
               style={{
-                opacity: inv.visible ? 1 : 0,
-                transform: inv.visible ? "translateY(0)" : "translateY(24px)",
+                opacity: inventoryVisible ? 1 : 0,
+                transform: inventoryVisible ? "translateY(0)" : "translateY(24px)",
                 transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
               }}
             >
               <div className="pointer-events-none absolute -top-4 left-4 z-10 hidden rounded-full border border-white/70 bg-white/75 px-3 py-1.5 text-[11px] font-semibold text-[var(--aura-heading)] shadow-[0_12px_40px_rgba(82,58,138,0.10)] backdrop-blur-md sm:block">
                 {activeInventoryFeature}
               </div>
-              <InventoryMockup activeFeature={activeInventoryFeature} />
+              <InventoryMockup key={activeInventoryFeature} activeFeature={activeInventoryFeature} />
             </div>
           </div>
         </Container>
@@ -906,7 +897,7 @@ export function AdvancedFeatures() {
 
       {/* ── SECTION 2: MEMBERSHIPS & LOYALTY (HIGH IMPACT SHOWCASE) ── */}
       <section
-        ref={mem.ref}
+        ref={membershipRef}
         className="relative scroll-mt-24 overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#F1E9FF] via-[#E5D8FF] to-[#D7C3FF] py-12 md:py-16"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(243,240,255,0.95),transparent_38%),radial-gradient(circle_at_12%_78%,rgba(111,79,216,0.08),transparent_30%)]" aria-hidden="true" />
@@ -915,8 +906,8 @@ export function AdvancedFeatures() {
           <div className="grid items-center gap-8 lg:grid-cols-[0.74fr_1.26fr] lg:gap-10 xl:gap-12">
             <div
               style={{
-                opacity: mem.visible ? 1 : 0,
-                transform: mem.visible ? "translateY(0)" : "translateY(20px)",
+                opacity: membershipVisible ? 1 : 0,
+                transform: membershipVisible ? "translateY(0)" : "translateY(20px)",
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
@@ -930,7 +921,7 @@ export function AdvancedFeatures() {
                 Lock in predictable recurring revenue with memberships, prepaid packages, wallet bonuses, and loyalty rewards that keep chairs booked year-round.
               </p>
 
-              <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <ul className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {membershipFeatures.map(({ icon, label }) => (
                   <FeaturePill
                     key={label}
@@ -940,28 +931,28 @@ export function AdvancedFeatures() {
                     onClick={() => setActiveMembershipFeature(label)}
                   />
                 ))}
-              </div>
+              </ul>
 
               <div className="mt-8 pt-2">
-                <a
+                <Link
                   href="/demo"
                   className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   Book a Demo
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </div>
             </div>
 
             <div
               className="min-w-0"
               style={{
-                opacity: mem.visible ? 1 : 0,
-                transform: mem.visible ? "translateY(0)" : "translateY(24px)",
+                opacity: membershipVisible ? 1 : 0,
+                transform: membershipVisible ? "translateY(0)" : "translateY(24px)",
                 transition: "opacity 0.6s ease-out 0.15s, transform 0.6s ease-out 0.15s",
               }}
             >
-              <MembershipDashboard activeFeature={activeMembershipFeature} />
+              <MembershipDashboard key={activeMembershipFeature} activeFeature={activeMembershipFeature} />
             </div>
           </div>
         </Container>
@@ -969,7 +960,7 @@ export function AdvancedFeatures() {
 
       {/* ── SECTION 3: MARKETING AUTOMATION (SOFT LAVENDER BACKGROUND) ── */}
       <section
-        ref={mkt.ref}
+        ref={marketingRef}
         className="relative overflow-hidden border-t border-white/70 bg-gradient-to-br from-[#FBF8FF] via-[#F6F1FF] to-[#EFE7FF] py-12 md:py-20"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_30%,rgba(243,240,255,0.95),transparent_34%),radial-gradient(circle_at_86%_70%,rgba(111,79,216,0.10),transparent_32%)]" aria-hidden="true" />
@@ -979,8 +970,8 @@ export function AdvancedFeatures() {
             {/* Text column */}
             <div
               style={{
-                opacity: mkt.visible ? 1 : 0,
-                transform: mkt.visible ? "translateY(0)" : "translateY(20px)",
+                opacity: marketingVisible ? 1 : 0,
+                transform: marketingVisible ? "translateY(0)" : "translateY(20px)",
                 transition: "opacity 0.55s ease-out, transform 0.55s ease-out",
               }}
             >
@@ -1011,13 +1002,13 @@ export function AdvancedFeatures() {
               </ul>
 
               <div className="mt-8 pt-2">
-                <a
+                <Link
                   href="/demo"
                   className="inline-flex items-center gap-2 rounded-full bg-[var(--aura-purple)] px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-[var(--aura-purple-hover)] hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   Book a Demo
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -1025,15 +1016,15 @@ export function AdvancedFeatures() {
             <div
               className="relative min-w-0"
               style={{
-                opacity: mkt.visible ? 1 : 0,
-                transform: mkt.visible ? "translateY(0)" : "translateY(24px)",
+                opacity: marketingVisible ? 1 : 0,
+                transform: marketingVisible ? "translateY(0)" : "translateY(24px)",
                 transition: "opacity 0.6s ease-out 0.12s, transform 0.6s ease-out 0.12s",
               }}
             >
               <div className="pointer-events-none absolute -top-4 left-4 z-10 hidden rounded-full border border-white/70 bg-white/75 px-3 py-1.5 text-[11px] font-semibold text-[var(--aura-heading)] shadow-[0_12px_40px_rgba(82,58,138,0.10)] backdrop-blur-md sm:block">
                 {activeMarketingFeature}
               </div>
-              <MarketingAutomationMockup activeFeature={activeMarketingFeature} />
+              <MarketingAutomationMockup key={activeMarketingFeature} activeFeature={activeMarketingFeature} />
             </div>
           </div>
         </Container>

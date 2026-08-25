@@ -47,13 +47,13 @@ export function LanguageSelector({ compact = false, align = "right", tone = "lig
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={t("language.selector", "Select language")}
+        aria-label={`${compact ? selected.nativeName : selected.name}, ${t("language.selector", "Select language")}`}
         className={cn(
-          "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-[var(--aura-shadow-xs)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          "inline-flex h-11 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-[var(--aura-shadow-xs)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           tone === "dark"
             ? "border-white/16 bg-white/10 text-white hover:bg-white/16 focus-visible:ring-white/70 focus-visible:ring-offset-[#2D176F]"
             : "border-[var(--aura-border)] bg-white text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)] focus-visible:ring-[var(--aura-purple)]",
-          compact && "h-10 min-w-0 justify-between"
+          compact && "min-w-0 justify-between"
         )}
       >
         <span className="inline-flex items-center gap-2 truncate">
@@ -98,7 +98,7 @@ export function LanguageSelector({ compact = false, align = "right", tone = "lig
                     setQuery("");
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aura-purple)]",
+                    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aura-purple)]",
                     active ? "bg-[var(--aura-lavender)] text-[var(--aura-purple)]" : "text-[var(--aura-heading)] hover:bg-[var(--aura-off-white)]"
                   )}
                 >

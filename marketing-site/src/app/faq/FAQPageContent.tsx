@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Clock, Plus, Search, SearchX, ShieldCheck, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
@@ -163,13 +164,13 @@ export default function FAQPageContent() {
               <h2 className="text-balance text-2xl font-bold tracking-[-0.03em] text-white sm:text-3xl">
                 {t("faq.page.more")}
               </h2>
-              <a
+              <Link
                 href="/contact"
                 className="group mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-[var(--aura-purple)] shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none motion-reduce:hover:translate-y-0"
               >
                 {t("faq.page.contact")}
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
           </div>
         </Container>

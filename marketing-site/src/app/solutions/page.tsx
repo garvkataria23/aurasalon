@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Breadcrumbs, breadcrumbJsonLdFromCrumbs } from "@/components/seo/Breadcrumbs";
+import { breadcrumbJsonLdFromCrumbs } from "@/components/seo/Breadcrumbs";
 import { SITE_URL } from "@/lib/site";
 import { SolutionsHubClient } from "./SolutionsHubClient";
 

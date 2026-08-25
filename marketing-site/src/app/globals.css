@@ -154,28 +154,34 @@
 /* ===== SUBTLE SHADOW & GLOW ANIMATIONS ===== */
 @keyframes shadowBreathe {
   0%, 100% {
-    box-shadow: 0 12px 36px -6px rgba(111, 79, 216, 0.12), 0 0 0 1px rgba(111, 79, 216, 0.08);
+    opacity: 0.98;
+    transform: translateZ(0) scale(1);
   }
   50% {
-    box-shadow: 0 24px 64px -4px rgba(111, 79, 216, 0.26), 0 0 0 1.5px rgba(111, 79, 216, 0.22);
+    opacity: 1;
+    transform: translateZ(0) scale(1.006);
   }
 }
 
 @keyframes shadowBreatheSubtle {
   0%, 100% {
-    box-shadow: 0 16px 48px -8px rgba(111, 79, 216, 0.14), 0 1px 3px rgba(0, 0, 0, 0.04);
+    opacity: 0.985;
+    transform: translateZ(0) scale(1);
   }
   50% {
-    box-shadow: 0 28px 72px -6px rgba(111, 79, 216, 0.24), 0 1px 3px rgba(0, 0, 0, 0.04);
+    opacity: 1;
+    transform: translateZ(0) scale(1.004);
   }
 }
 
 @keyframes shadowPulseSoft {
   0%, 100% {
-    box-shadow: 0 4px 14px 0 rgba(111, 79, 216, 0.24);
+    opacity: 0.96;
+    transform: translateZ(0) scale(1);
   }
   50% {
-    box-shadow: 0 8px 24px 2px rgba(111, 79, 216, 0.42);
+    opacity: 1;
+    transform: translateZ(0) scale(1.012);
   }
 }
 
@@ -204,6 +210,12 @@ body {
   color: var(--aura-body);
   font-family: var(--aura-font);
   line-height: 1.6;
+}
+
+.aura-home {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(111, 79, 216, 0.08), transparent 32rem),
+    linear-gradient(180deg, #ffffff 0%, #fcfbf8 42%, #ffffff 100%);
 }
 
 a, button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
@@ -302,7 +314,7 @@ button, a { touch-action: manipulation; }
   padding: .625rem 1.25rem;
   font-size: .875rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .cta-btn-primary {
   background: var(--aura-purple);
@@ -312,7 +324,9 @@ button, a { touch-action: manipulation; }
 .cta-btn-primary:hover {
   background: var(--aura-purple-hover);
   box-shadow: var(--aura-shadow-md);
+  transform: translateY(-1px);
 }
+.cta-btn-primary:active { transform: translateY(0); }
 .cta-btn-outline {
   border: 1px solid var(--aura-border);
   color: var(--aura-heading);
@@ -322,7 +336,9 @@ button, a { touch-action: manipulation; }
   border-color: var(--aura-purple);
   color: var(--aura-purple);
   background: var(--aura-purple-soft);
+  transform: translateY(-1px);
 }
+.cta-btn-outline:active { transform: translateY(0); }
 
 /* Legacy CTA classes used in HomePageClient etc. */
 .cta-light {
@@ -478,12 +494,18 @@ button, a { touch-action: manipulation; }
 
 .shadow-breathe {
   animation: shadowBreathe 4.5s ease-in-out infinite;
+  box-shadow: 0 18px 54px -10px rgba(111, 79, 216, 0.2), 0 0 0 1px rgba(111, 79, 216, 0.12);
+  will-change: transform, opacity;
 }
 .shadow-breathe-subtle {
   animation: shadowBreatheSubtle 5.5s ease-in-out infinite;
+  box-shadow: 0 20px 60px -14px rgba(111, 79, 216, 0.2), 0 1px 3px rgba(0, 0, 0, 0.04);
+  will-change: transform, opacity;
 }
 .btn-glow {
   animation: shadowPulseSoft 3s ease-in-out infinite;
+  box-shadow: 0 6px 20px rgba(111, 79, 216, 0.3);
+  will-change: transform, opacity;
 }
 .glow-breathe {
   animation: subtleGlow 5s ease-in-out infinite;
@@ -498,10 +520,25 @@ button, a { touch-action: manipulation; }
   bottom: -32px;
   height: 34px;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 90' preserveAspectRatio='none'%3E%3Cpath fill='%232D176F' fill-opacity='0.98' d='M0 0H1440V34C1260 58 1080 58 900 34C720 10 540 10 360 34C180 58 90 50 0 34V0Z'/%3E%3Cpath fill='none' stroke='%23ffffff' stroke-opacity='0.16' stroke-width='2.5' d='M0 34C90 50 180 58 360 34C540 10 720 10 900 34C1080 58 1260 58 1440 34'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: 100% 34px;
+  background: linear-gradient(180deg, rgba(45, 23, 111, 0.98), rgba(45, 23, 111, 0.94));
+  clip-path: polygon(0 0, 100% 0, 100% 42%, 88% 66%, 75% 42%, 63% 18%, 50% 42%, 38% 66%, 25% 42%, 13% 18%, 0 42%);
   filter: drop-shadow(0 12px 18px rgba(93, 63, 194, 0.12));
+}
+
+.aura-footer a {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+}
+
+.aura-footer h3,
+.aura-footer h4 {
+  color: #ffffff;
+}
+
+.aura-home > section:nth-of-type(n + 2) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }
 
 .why-aura-stat {
@@ -538,6 +575,8 @@ button, a { touch-action: manipulation; }
 
 .why-aura-demo-pulse {
   animation: whyAuraDemoPulse 3.4s ease-in-out infinite;
+  box-shadow: 0 16px 42px rgba(111, 79, 216, 0.32);
+  will-change: transform, opacity;
 }
 
 @keyframes whyAuraStatSheen {
@@ -546,8 +585,8 @@ button, a { touch-action: manipulation; }
 }
 
 @keyframes whyAuraDemoPulse {
-  0%, 100% { box-shadow: 0 14px 36px rgba(111, 79, 216, 0.24); }
-  50% { box-shadow: 0 18px 48px rgba(93, 63, 194, 0.42), 0 0 0 5px rgba(93, 63, 194, 0.08); }
+  0%, 100% { opacity: 0.96; transform: translateZ(0) scale(1); }
+  50% { opacity: 1; transform: translateZ(0) scale(1.012); }
 }
 
 .why-aura-card {
@@ -833,6 +872,11 @@ main p { text-wrap: pretty; }
   border-top-color: rgba(236, 232, 241, 0.72);
 }
 
+.aura-home section[id],
+.aura-home section[aria-labelledby] {
+  isolation: isolate;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 639px) {
   body { min-width: 320px; max-width: 100vw; }
@@ -851,6 +895,12 @@ main p { text-wrap: pretty; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .motion-reduce\:hover\:translate-y-0:hover,
+  .motion-reduce\:transition-none {
+    transition: none !important;
+    transform: none !important;
   }
 }
 

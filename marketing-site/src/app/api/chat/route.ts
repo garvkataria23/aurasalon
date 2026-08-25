@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { Resend } from "resend";
 import { z } from "zod";
 
@@ -85,25 +83,10 @@ function buildReply(message: string) {
   return "Aura is a connected salon CRM/POS for Indian salons. It covers booking, GST billing, Customer 360 CRM, staff payroll, inventory, marketing workflows, finance and multi-branch operations. Ask about any module, pricing, setup, or demo booking.";
 }
 
-function readWorkspaceEnv(name: string) {
-  const appRoot = process.cwd();
-  const workspaceRoot = dirname(appRoot);
-  const candidates = [
-    join(/* turbopackIgnore: true */ appRoot, ".env.local"),
-    join(/* turbopackIgnore: true */ workspaceRoot, ".env.local"),
-    join(/* turbopackIgnore: true */ workspaceRoot, ".env"),
-  ];
-  for (const file of candidates) {
-    if (!existsSync(file)) continue;
-    const match = readFileSync(file, "utf8").match(new RegExp(`^${name}=([^\r\n]*)`, "m"));
-    if (match?.[1]) return match[1].trim().replace(/^['"]|['"]$/g, "");
-  }
-  return "";
-}
 
 function envValue(...names: string[]) {
   for (const name of names) {
-    const value = process.env[name] || readWorkspaceEnv(name);
+    const value = process.env[name];
     if (value) return value;
   }
   return "";

@@ -1,7 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-
 interface TextRevealProps {
   text: string;
   className?: string;

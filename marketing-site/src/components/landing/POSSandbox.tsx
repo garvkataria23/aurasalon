@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Receipt, Plus, Trash2, CheckCircle2, ShieldCheck, Printer, ArrowRight, Sparkles } from "lucide-react";
+import { Receipt, Trash2, CheckCircle2, Printer } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
 
@@ -72,7 +72,7 @@ export function POSSandbox() {
                   ⚡
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--aura-heading)]">Instant WhatsApp + Print Receipt</h4>
+                  <p className="text-xs font-bold text-[var(--aura-heading)]">Instant WhatsApp + Print Receipt</p>
                   <p className="text-[11px] text-[var(--aura-body)]">Auto-sends digital bills to client WhatsApp while printing thermal paper receipts.</p>
                 </div>
               </button>
@@ -85,7 +85,7 @@ export function POSSandbox() {
                   ₹
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--aura-heading)]">Split Payments &amp; Dual QR Code</h4>
+                  <p className="text-xs font-bold text-[var(--aura-heading)]">Split Payments &amp; Dual QR Code</p>
                   <p className="text-[11px] text-[var(--aura-body)]">Accept Cash, UPI, Credit Cards, and Loyalty Points in a single bill transaction.</p>
                 </div>
               </button>
@@ -116,7 +116,7 @@ export function POSSandbox() {
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               {/* Service Catalog Picker */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--aura-muted)] mb-2">Tap to Add Service</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--aura-body)] mb-2">Tap to Add Service</p>
                 <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                   {AVAILABLE_SERVICES.map((item) => (
                     <button
@@ -127,7 +127,7 @@ export function POSSandbox() {
                     >
                       <div>
                         <p className="text-xs font-bold text-[var(--aura-heading)]">{item.name}</p>
-                        <p className="text-[10px] text-[var(--aura-muted)]">{item.category}</p>
+                        <p className="text-[10px] text-[var(--aura-body)]">{item.category}</p>
                       </div>
                       <span className="text-xs font-bold text-[var(--aura-purple)] flex items-center gap-1">
                         +₹{item.price}
@@ -136,7 +136,7 @@ export function POSSandbox() {
                   ))}
                 </div>
                 <div className="mt-3 rounded-xl border border-white/45 bg-white/25 p-3 backdrop-blur-sm">
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--aura-muted)]">Payment Mode</p>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--aura-body)]">Payment Mode</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {["UPI", "Cash", "Card", "Split"].map((mode) => (
                       <button

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, ArrowRight, Globe, FileText, Layout, Phone, CreditCard, Users, Briefcase, Workflow, BookOpen } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -95,10 +94,6 @@ export function CommandPalette() {
   }, [open]);
 
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
@@ -128,12 +123,11 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 left-6 z-[9990] hidden items-center gap-2 rounded-full border border-aura-border bg-white/80 px-4 py-2.5 text-xs font-medium text-aura-text-muted shadow-lg backdrop-blur-md transition-colors hover:border-aura-border-strong hover:text-aura-text xl:flex"
-        aria-label="Open command palette (Ctrl+K)"
+        className="fixed bottom-6 left-6 z-[9990] hidden min-h-11 items-center gap-2 rounded-full border border-aura-border bg-white/80 px-4 py-2.5 text-xs font-medium text-aura-text-muted shadow-lg backdrop-blur-md transition-colors hover:border-aura-border-strong hover:text-aura-text xl:flex"
       >
         <Search className="h-3.5 w-3.5" aria-hidden="true" />
         <span>Search</span>
-        <kbd className="ml-2 rounded-md border border-aura-border bg-aura-surface-muted px-1.5 py-0.5 text-[10px] font-semibold">⌘K</kbd>
+        <kbd className="ml-2 rounded-md border border-aura-border-strong bg-aura-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-aura-text">⌘K</kbd>
       </button>
 
       {/* Overlay */}
@@ -157,7 +151,10 @@ export function CommandPalette() {
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setSelectedIndex(0);
+                }}
                 placeholder={language === "hi" ? "खोजें..." : "Search pages, features..."}
                 className="flex-1 bg-transparent text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none"
                 aria-label="Search"
@@ -168,7 +165,7 @@ export function CommandPalette() {
                     key={opt}
                     type="button"
                     onClick={() => setLanguage(opt)}
-                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors ${language === opt ? "bg-aura-primary text-white" : "text-aura-text-muted hover:bg-aura-surface-muted"}`}
+                    className={`min-h-11 min-w-11 rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors ${language === opt ? "bg-aura-primary text-white" : "text-aura-text-muted hover:bg-aura-surface-muted"}`}
                     aria-label={`Switch to ${opt === "en" ? "English" : "Hindi"}`}
                   >
                     {opt === "en" ? "EN" : "हिं"}

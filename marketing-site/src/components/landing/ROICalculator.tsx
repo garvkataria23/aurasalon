@@ -56,7 +56,7 @@ export function ROICalculator() {
               Value Calculator
             </span>
             <h2 className="text-[clamp(2rem,4.5vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[var(--aura-heading)] text-balance">
-              Calculate your salon's monthly upside
+              Calculate your salon&apos;s monthly upside
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--aura-body)]">
               See how automated WhatsApp reminders and streamlined front desk operations translate into recovered revenue and saved admin hours.

@@ -36,7 +36,6 @@ function useCountUp(target: string, duration = 1600) {
 }
 
 export function Stats() {
-  const sectionRef = useRef<HTMLElement>(null);
   const metrics = [
     { value: "85%",  title: "Reduction in No-Shows",  description: "With automated WhatsApp reminders" },
     { value: "3x",   title: "Faster Checkout",         description: "GST billing in under 30 seconds" },
@@ -44,28 +43,8 @@ export function Stats() {
     { value: "4hrs", title: "Saved Daily",             description: "Automate operations that drain your time" },
   ];
 
-  const counters = metrics.map((m) => useCountUp(m.value));
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          counters.forEach((c) => c.start());
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.25 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <section
-      ref={sectionRef}
       className="relative py-24 md:py-32 overflow-hidden bg-[#1D1B2F] text-white"
     >
       {/* Ambient purple glow orbs */}
@@ -95,23 +74,8 @@ export function Stats() {
 
         {/* Metric Cards */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {metrics.map((item, idx) => (
-            <div
-              key={idx}
-              className="group rounded-[var(--aura-radius-xl)] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/8 flex flex-col"
-            >
-              <div className="mb-6">
-                <span className="text-5xl font-bold text-[#C4B5FD] tabular-nums tracking-tight drop-shadow-[0_0_20px_rgba(196,181,253,0.4)]">
-                  {counters[idx].display}
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white leading-snug">
-                {item.title}
-              </h3>
-              <p className="mt-2.5 text-xs leading-relaxed text-white/55">
-                {item.description}
-              </p>
-            </div>
+          {metrics.map((item) => (
+            <MetricCard key={item.title} {...item} />
           ))}
         </div>
       </Container>
@@ -119,3 +83,42 @@ export function Stats() {
   );
 }
 
+function MetricCard({ value, title, description }: { value: string; title: string; description: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const counter = useCountUp(value);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          counter.start();
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.25 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [counter]);
+
+  return (
+    <div
+      ref={cardRef}
+      className="group rounded-[var(--aura-radius-xl)] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/8 flex flex-col"
+    >
+      <div className="mb-6">
+        <span className="text-5xl font-bold text-[#C4B5FD] tabular-nums tracking-tight drop-shadow-[0_0_20px_rgba(196,181,253,0.4)]">
+          {counter.display}
+        </span>
+      </div>
+      <h3 className="text-lg font-bold text-white leading-snug">
+        {title}
+      </h3>
+      <p className="mt-2.5 text-xs leading-relaxed text-white/55">
+        {description}
+      </p>
+    </div>
+  );
+}

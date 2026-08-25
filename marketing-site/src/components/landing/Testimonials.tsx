@@ -104,9 +104,9 @@ export function Testimonials() {
               </div>
 
               {/* Star Rating */}
-              <div className="flex gap-1" aria-label="5 out of 5 stars">
+              <div className="flex gap-1" role="img" aria-label="5 out of 5 stars">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
                 ))}
               </div>
             </div>
@@ -127,17 +127,19 @@ export function Testimonials() {
               </div>
 
               {/* Dots Pagination */}
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {REVIEWS.map((_, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setCurrentIdx(i)}
-                    className={`h-2 rounded-full transition-all ${
-                      currentIdx === i ? "w-6 bg-[var(--aura-purple)]" : "w-2 bg-zinc-300"
+                    className={`flex min-h-6 min-w-6 items-center justify-center rounded-full transition-all ${
+                      currentIdx === i ? "bg-[var(--aura-purple)]" : "bg-transparent"
                     }`}
                     aria-label={`Go to slide ${i + 1}`}
-                  />
+                  >
+                    <span className={`block h-2 rounded-full ${currentIdx === i ? "w-2 bg-white" : "w-2 bg-zinc-300"}`} aria-hidden="true" />
+                  </button>
                 ))}
               </div>
             </div>

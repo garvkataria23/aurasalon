@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Building2, Calendar, CheckCircle, Clock, ClipboardCheck, Phone, ShieldCheck, Sparkles, TrendingUp, User, Users } from "lucide-react";
 import { Container } from "@/components/ui/Container";
@@ -75,9 +76,9 @@ export default function DemoPage() {
             <p className="mb-7 text-aura-text-secondary">
               {t("demo.doneBody").replace("{email}", form.email).replace("{time}", form.time).replace("{date}", form.date)}
             </p>
-            <a href="/" className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-aura-primary transition-colors hover:bg-[var(--aura-lavender)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--aura-purple)]">
+            <Link href="/" className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-aura-primary transition-colors hover:bg-[var(--aura-lavender)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--aura-purple)]">
               ← {t("common.backHome")}
-            </a>
+            </Link>
           </div>
         </Container>
       </section>

@@ -1,0 +1,39 @@
+# Aura
+
+> Aura is a salon and med spa CRM, POS, appointment, billing, client management and business management platform.
+
+## Main Pages
+
+- [Home](https://marketing-site-lake-pi.vercel.app/)
+- [Features](https://marketing-site-lake-pi.vercel.app/features)
+- [Pricing](https://marketing-site-lake-pi.vercel.app/pricing)
+- [Demo](https://marketing-site-lake-pi.vercel.app/demo)
+- [Contact](https://marketing-site-lake-pi.vercel.app/contact)
+- [FAQ](https://marketing-site-lake-pi.vercel.app/faq)
+
+## Product Areas
+
+- [Appointments](https://marketing-site-lake-pi.vercel.app/features/appointments)
+- [Billing and POS](https://marketing-site-lake-pi.vercel.app/features/billing)
+- [Client CRM](https://marketing-site-lake-pi.vercel.app/features/client-crm)
+- [Inventory](https://marketing-site-lake-pi.vercel.app/features/inventory)
+- [Marketing AI](https://marketing-site-lake-pi.vercel.app/features/marketing-ai)
+- [Staff Management](https://marketing-site-lake-pi.vercel.app/features/staff-management)
+
+## Business Pages
+
+- [Salon POS Software](https://marketing-site-lake-pi.vercel.app/salon-pos-software)
+- [Salon CRM Software](https://marketing-site-lake-pi.vercel.app/salon-crm-software)
+- [Salon Management Software](https://marketing-site-lake-pi.vercel.app/salon-management-software)
+- [Spa Management Software](https://marketing-site-lake-pi.vercel.app/spa-management-software)
+
+## Resources
+
+- [Blog](https://marketing-site-lake-pi.vercel.app/blog)
+- [Resources](https://marketing-site-lake-pi.vercel.app/resources)
+- [Use Cases](https://marketing-site-lake-pi.vercel.app/use-cases)
+- [Glossary](https://marketing-site-lake-pi.vercel.app/glossary)
+
+## About Aura
+
+Aura helps salons and med spas manage appointments, customers, billing, payments, inventory, staff and business operations.

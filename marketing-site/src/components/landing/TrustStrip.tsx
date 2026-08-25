@@ -1,5 +1,3 @@
-"use client";
-
 import { Container } from "@/components/ui/Container";
 import { LandingDecor } from "./LandingDecor";
 
@@ -49,22 +47,22 @@ export function TrustStrip() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-center">
           <div className="flex flex-col items-center">
             <span className="text-2xl md:text-3xl font-extrabold text-[var(--aura-heading)]">3,500+</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-muted)] mt-0.5">Partner Salons</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-body)] mt-0.5">Partner Salons</span>
           </div>
           <div className="h-8 w-[1px] bg-[var(--aura-border)] hidden sm:block" />
           <div className="flex flex-col items-center">
             <span className="text-2xl md:text-3xl font-extrabold text-[var(--aura-heading)]">12M+</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-muted)] mt-0.5">Appointments Booked</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-body)] mt-0.5">Appointments Booked</span>
           </div>
           <div className="h-8 w-[1px] bg-[var(--aura-border)] hidden sm:block" />
           <div className="flex flex-col items-center">
             <span className="text-2xl md:text-3xl font-extrabold text-[var(--aura-heading)]">₹250Cr+</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-muted)] mt-0.5">GST Bills Processed</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-body)] mt-0.5">GST Bills Processed</span>
           </div>
           <div className="h-8 w-[1px] bg-[var(--aura-border)] hidden sm:block" />
           <div className="flex flex-col items-center">
-            <span className="text-2xl md:text-3xl font-extrabold text-amber-500">4.9★</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-muted)] mt-0.5">Capterra &amp; Google</span>
+            <span className="text-2xl md:text-3xl font-extrabold text-[#B45309]">4.9★</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--aura-body)] mt-0.5">Capterra &amp; Google</span>
           </div>
         </div>
       </Container>

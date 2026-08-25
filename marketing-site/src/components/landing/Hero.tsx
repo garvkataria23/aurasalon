@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowRight, Star, Sparkles, CheckCircle2, TrendingUp, Calendar, UserCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
@@ -9,10 +7,10 @@ import { LandingDecor } from "./LandingDecor";
 export function Hero() {
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#FBF8FF] via-[#EFE7FF] to-[#D9C5FF] pt-24 pb-16 text-[var(--aura-heading)] md:pt-28 md:pb-24 lg:pt-32 lg:pb-28">
+    <section className="relative overflow-hidden border-b border-white/70 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.58)_18%,transparent_35%),linear-gradient(135deg,#FFFCF8_0%,#F4EDFF_42%,#DED0FF_100%)] pt-20 pb-14 text-[var(--aura-heading)] sm:pt-24 sm:pb-16 md:pt-28 md:pb-24 lg:pt-32 lg:pb-28">
       {/* Background ambient lighting */}
       <div
-        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[90%] max-w-6xl rounded-full bg-[radial-gradient(ellipse_at_center,rgba(168,85,247,0.22),transparent_70%)] blur-3xl"
+        className="pointer-events-none absolute -top-44 left-1/2 h-[620px] w-[92%] max-w-6xl -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(111,79,216,0.22),rgba(217,197,255,0.18)_36%,transparent_72%)] blur-3xl"
         aria-hidden="true"
       />
       <LandingDecor variant="hero" />
@@ -22,42 +20,42 @@ export function Hero() {
           
           {/* Rating Badges Strip */}
           <div
-            className="mb-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
+            className="mb-8 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3"
           >
             {/* Capterra */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/14 bg-white/62 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/72 px-3.5 py-1.5 shadow-[0_10px_26px_rgba(82,58,138,0.08)] backdrop-blur-md ring-1 ring-[var(--aura-purple)]/8">
               <span className="font-semibold text-xs text-[var(--aura-heading)]">Capterra</span>
               <div className="flex items-center gap-0.5" aria-label="4.8 out of 5 stars">
-                <span className="text-xs font-bold text-amber-300">4.8</span>
+                <span className="text-xs font-bold text-amber-600">4.8</span>
                 <div className="flex text-amber-400">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden="true" />
                   ))}
                 </div>
               </div>
             </div>
 
             {/* GetApp */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/14 bg-white/62 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/72 px-3.5 py-1.5 shadow-[0_10px_26px_rgba(82,58,138,0.08)] backdrop-blur-md ring-1 ring-[var(--aura-purple)]/8">
               <span className="font-semibold text-xs text-[var(--aura-heading)]">GetApp</span>
               <div className="flex items-center gap-0.5" aria-label="4.8 out of 5 stars">
-                <span className="text-xs font-bold text-amber-300">4.8</span>
+                <span className="text-xs font-bold text-amber-600">4.8</span>
                 <div className="flex text-amber-400">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden="true" />
                   ))}
                 </div>
               </div>
             </div>
 
             {/* Google Reviews */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--aura-purple)]/14 bg-white/62 px-3.5 py-1.5 backdrop-blur-md shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/72 px-3.5 py-1.5 shadow-[0_10px_26px_rgba(82,58,138,0.08)] backdrop-blur-md ring-1 ring-[var(--aura-purple)]/8">
               <span className="font-semibold text-xs text-[var(--aura-heading)]">Google</span>
               <div className="flex items-center gap-0.5" aria-label="4.9 out of 5 stars">
-                <span className="text-xs font-bold text-amber-300">4.9</span>
+                <span className="text-xs font-bold text-amber-600">4.9</span>
                 <div className="flex text-amber-400">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" aria-hidden="true" />
                   ))}
                 </div>
               </div>
@@ -66,17 +64,17 @@ export function Hero() {
 
           {/* Main Headline */}
           <h1
-            className="max-w-4xl text-[clamp(2.4rem,5.5vw,4.8rem)] font-extrabold leading-[1.08] tracking-[-0.04em] text-[var(--aura-heading)]"
+            className="max-w-4xl text-[clamp(2.25rem,10vw,3.15rem)] font-extrabold leading-[1.03] tracking-[-0.045em] text-[var(--aura-heading)] sm:text-[clamp(2.55rem,5.5vw,4.95rem)] sm:leading-[1.05]"
           >
             Automate, Manage and Grow Your Salon &amp; Med Spas with{" "}
-            <span className="bg-gradient-to-r from-[#5D3FC2] via-[#7B57EA] to-[#2D176F] bg-clip-text text-transparent">
+            <span className="text-[#5D3FC2] sm:bg-gradient-to-r sm:from-[#5D3FC2] sm:via-[#7B57EA] sm:to-[#2D176F] sm:bg-clip-text sm:text-transparent">
               Aura
             </span>
           </h1>
 
           {/* Subtitle */}
           <p
-            className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--aura-body)] md:text-lg md:leading-8"
+            className="mt-6 max-w-2xl text-base leading-7 text-[var(--aura-body)] md:text-lg md:leading-8"
           >
             Stop juggling, start scaling. Aura all-in-one salon software automates your entire business operations — bookings, GST billing, staff payroll, client CRM, and marketing — equipping you with the time and resources to reach new heights.
           </p>
@@ -87,14 +85,14 @@ export function Hero() {
           >
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--aura-purple)] px-8 text-base font-bold text-white shadow-[0_14px_42px_rgba(93,63,194,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] hover:shadow-[0_20px_54px_rgba(93,63,194,0.36)]"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--aura-purple)] px-8 text-base font-bold text-white shadow-[0_14px_42px_rgba(93,63,194,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-purple-hover)] hover:shadow-[0_20px_54px_rgba(93,63,194,0.36)] active:translate-y-0 focus-visible:outline-white focus-visible:ring-4 focus-visible:ring-[var(--aura-purple-ring)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
             >
               BOOK A DEMO
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/features"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[var(--aura-purple)]/18 bg-white/58 px-8 text-base font-semibold text-[var(--aura-heading)] shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--aura-purple)]/30 hover:bg-white/76"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/70 bg-white/66 px-8 text-base font-semibold text-[var(--aura-heading)] shadow-sm ring-1 ring-[var(--aura-purple)]/10 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/82 hover:text-[var(--aura-purple-hover)] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
             >
               Explore Features
             </Link>
@@ -128,7 +126,7 @@ export function Hero() {
             <div className="absolute left-1/2 top-1/2 h-[350px] w-[85%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[90px] pointer-events-none" />
 
             {/* Hero Main Card */}
-            <div className="relative z-10 overflow-hidden rounded-3xl border border-white/20 bg-[#1D1236]/90 p-4 sm:p-6 md:p-8 shadow-[0_32px_90px_rgba(20,5,40,0.45)] backdrop-blur-xl text-left">
+            <div className="relative z-10 overflow-hidden rounded-3xl border border-white/20 bg-[linear-gradient(145deg,rgba(29,18,54,0.96),rgba(38,21,83,0.92)_52%,rgba(18,12,35,0.96))] p-4 text-left shadow-[0_32px_90px_rgba(20,5,40,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-6 md:p-8">
               
               {/* Card Header */}
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
@@ -137,7 +135,7 @@ export function Hero() {
                     A
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Aura Salon OS — Live Operations</h3>
+                    <p className="text-base font-bold text-white">Aura Salon OS — Live Operations</p>
                     <p className="text-xs text-purple-200/70">Flagship Branch: Indiranagar, Bengaluru</p>
                   </div>
                 </div>
@@ -253,7 +251,7 @@ export function Hero() {
                   href="/demo"
                   className="font-bold text-amber-300 hover:text-amber-200 transition-colors inline-flex items-center gap-1 text-xs"
                 >
-                  See full demo →
+                  See full demo -&gt;
                 </Link>
               </div>
 

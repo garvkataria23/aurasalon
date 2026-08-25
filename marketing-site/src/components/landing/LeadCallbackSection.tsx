@@ -40,7 +40,7 @@ export function LeadCallbackSection() {
             <p className="mt-2 text-base font-semibold text-[var(--aura-purple)]">
               No spam, No pressure, Only Solutions Made for YOU!!
             </p>
-            <p className="mt-2 text-xs sm:text-sm text-[var(--aura-muted)]">
+            <p className="mt-2 text-xs sm:text-sm text-[var(--aura-body)]">
               Talk directly with an experienced salon operations specialist who understands your city and business scale.
             </p>
           </div>
@@ -59,10 +59,11 @@ export function LeadCallbackSection() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
+                  <label htmlFor="lead-full-name" className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
                     Full Name *
                   </label>
                   <input
+                    id="lead-full-name"
                     type="text"
                     required
                     value={formData.fullName}
@@ -73,10 +74,11 @@ export function LeadCallbackSection() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
+                  <label htmlFor="lead-email" className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
                     Email Address *
                   </label>
                   <input
+                    id="lead-email"
                     type="email"
                     required
                     value={formData.email}
@@ -89,10 +91,11 @@ export function LeadCallbackSection() {
 
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
+                  <label htmlFor="lead-city" className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
                     City *
                   </label>
                   <input
+                    id="lead-city"
                     type="text"
                     required
                     value={formData.city}
@@ -103,10 +106,11 @@ export function LeadCallbackSection() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
+                  <label htmlFor="lead-mobile" className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
                     Mobile Number *
                   </label>
                   <input
+                    id="lead-mobile"
                     type="tel"
                     required
                     value={formData.mobileNo}
@@ -117,10 +121,11 @@ export function LeadCallbackSection() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
+                  <label htmlFor="lead-business-name" className="block text-xs font-bold text-[var(--aura-heading)] mb-1.5">
                     Business / Salon Name *
                   </label>
                   <input
+                    id="lead-business-name"
                     type="text"
                     required
                     value={formData.businessName}
@@ -142,7 +147,7 @@ export function LeadCallbackSection() {
                 </button>
               </div>
 
-              <p className="text-center text-xs text-[var(--aura-muted)] pt-2">
+              <p className="text-center text-xs text-[var(--aura-body)] pt-2">
                 🔒 Your contact details are 100% confidential. No spam, guaranteed.
               </p>
             </form>

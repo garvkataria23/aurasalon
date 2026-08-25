@@ -9,10 +9,8 @@ import {
   Scissors,
   Flower2,
   Stethoscope,
-  GraduationCap,
   Dog,
   Building2,
-  CheckCircle2,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";

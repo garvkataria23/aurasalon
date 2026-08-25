@@ -11,6 +11,16 @@ export type BusinessType = "salon" | "spa" | "nail" | "bridal" | "multi";
 
 type TranslationParams = Record<string, string | number | Date | boolean | null | undefined>;
 
+function humanizeTranslationKey(key: string) {
+  const lastSegment = key.split(".").filter(Boolean).pop() ?? key;
+  return lastSegment
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
 type LanguageContextValue = {
   language: Language;
   setLanguage: (language: Language) => void;
@@ -29,6 +39,34 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+function resolveFallbackMessage(key: string, fallbackOrParams?: string | TranslationParams, params?: TranslationParams) {
+  const template = typeof fallbackOrParams === "string" ? fallbackOrParams : SOURCE_MESSAGES[key] ?? humanizeTranslationKey(key);
+  const values = typeof fallbackOrParams === "object" ? fallbackOrParams : params;
+
+  if (!values) return template;
+
+  return template.replace(/\{(\w+)\}/g, (match, name) => {
+    const value = values[name];
+    return value === null || value === undefined ? match : String(value);
+  });
+}
+
+const fallbackLanguageValue: LanguageContextValue = {
+  language: DEFAULT_LANGUAGE,
+  setLanguage: () => {},
+  bilingual: false,
+  setBilingual: () => {},
+  businessType: "salon",
+  setBusinessType: () => {},
+  t: resolveFallbackMessage,
+  allLanguages: SUPPORTED_LANGUAGES,
+  direction: "ltr",
+  locale: getLanguageMeta(DEFAULT_LANGUAGE).locale,
+  formatDate: (value, options) => new Intl.DateTimeFormat(getLanguageMeta(DEFAULT_LANGUAGE).locale, options).format(new Date(value)),
+  formatNumber: (value, options) => new Intl.NumberFormat(getLanguageMeta(DEFAULT_LANGUAGE).locale, options).format(value),
+  formatCurrency: (value, currency = "INR", options) => new Intl.NumberFormat(getLanguageMeta(DEFAULT_LANGUAGE).locale, { style: "currency", currency, ...options }).format(value),
+};
+
 function applyDocumentLanguage(language: Language) {
   const meta = getLanguageMeta(language);
   document.documentElement.lang = meta.locale;
@@ -43,15 +81,21 @@ function InnerLanguageProvider({ children, initialLanguage }: { children: React.
   const [businessType, setBusinessTypeState] = useState<BusinessType>("salon");
 
   useEffect(() => {
+    let cancelled = false;
     const active = tolgee.getLanguage();
     const next = isSupportedLanguage(active) ? active : DEFAULT_LANGUAGE;
-    setLanguageState(next);
     applyDocumentLanguage(next);
+    queueMicrotask(() => {
+      if (!cancelled) setLanguageState(next);
+    });
 
     const savedBusinessType = window.localStorage.getItem("aura.marketing.businessType");
     if (savedBusinessType === "salon" || savedBusinessType === "spa" || savedBusinessType === "nail" || savedBusinessType === "bridal" || savedBusinessType === "multi") {
-      setBusinessTypeState(savedBusinessType);
+      queueMicrotask(() => {
+        if (!cancelled) setBusinessTypeState(savedBusinessType);
+      });
     }
+    return () => { cancelled = true; };
   }, [tolgee]);
 
   const setLanguage = useCallback((next: Language) => {
@@ -73,7 +117,7 @@ function InnerLanguageProvider({ children, initialLanguage }: { children: React.
   }, []);
 
   const t = useCallback((key: string, fallbackOrParams?: string | TranslationParams, params?: TranslationParams) => {
-    const fallback = typeof fallbackOrParams === "string" ? fallbackOrParams : SOURCE_MESSAGES[key] ?? key;
+    const fallback = typeof fallbackOrParams === "string" ? fallbackOrParams : SOURCE_MESSAGES[key] ?? humanizeTranslationKey(key);
     const values = typeof fallbackOrParams === "object" ? fallbackOrParams : params;
     return tolgeeT(key, fallback, values ?? {});
   }, [tolgeeT]);
@@ -125,6 +169,5 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
 export function useLanguage() {
   const context = useContext(LanguageContext);
-  if (!context) throw new Error("useLanguage must be used within LanguageProvider");
-  return context;
+  return context ?? fallbackLanguageValue;
 }

@@ -1,15 +1,5 @@
 import type { BlogPost } from "@/lib/types";
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "Business Growth": ["salon", "business", "beauty", "entrepreneur"],
-  Marketing: ["salon", "marketing", "social-media", "beauty"],
-  Operations: ["salon", "reception", "beauty", "workspace"],
-  "Staff Management": ["hair-stylist", "salon", "team", "training"],
-  "Client CRM": ["salon", "customer", "beauty", "consultation"],
-  Compliance: ["salon", "clean", "hygiene", "tools"],
-  "Industry Insights": ["beauty-salon", "spa", "interior", "technology"],
-};
-
 const CATEGORY_PHOTOS: Record<string, string[]> = {
   "Business Growth": [
     "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80",
@@ -69,13 +59,6 @@ function initials(title: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase())
     .join("");
-}
-
-function slugKeywords(slug: string) {
-  return slug
-    .split("-")
-    .filter((word) => !["salon", "guide", "for", "and", "the"].includes(word))
-    .slice(0, 3);
 }
 
 function hashSlug(slug: string) {

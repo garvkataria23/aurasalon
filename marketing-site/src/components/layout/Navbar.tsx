@@ -221,7 +221,7 @@ export function Navbar() {
       >
         <nav className="mx-auto flex h-16 max-w-[82rem] items-center justify-between px-4 sm:px-6 lg:px-10" aria-label={t("a11y.primaryNavigation")}>
           {/* Logo */}
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 group" aria-label={t("a11y.home")}>
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 group">
             <span
               className="grid h-8 w-8 place-items-center rounded-xl bg-white font-semibold text-[#2D176F] text-sm shadow-[0_10px_26px_rgba(0,0,0,0.14)] transition-transform duration-200 group-hover:scale-105"
               aria-hidden="true"
@@ -260,14 +260,14 @@ export function Navbar() {
 
             <Link
               href={CTA_LINKS.login}
-              className="px-3 py-2 text-sm font-medium text-white/74 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center px-3 py-2 text-sm font-medium text-white/74 transition-colors hover:text-white"
             >
               {t("navigation.login")}
             </Link>
 
             <Link
               href={CTA_LINKS.demo}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2D176F] shadow-[0_14px_34px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-lavender)] hover:shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2D176F] shadow-[0_14px_34px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--aura-lavender)] hover:shadow-[0_18px_44px_rgba(0,0,0,0.22)]"
             >
               {t("navigation.demo")}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -278,7 +278,7 @@ export function Navbar() {
           <div className="flex items-center gap-2 lg:hidden">
             <Link
               href={CTA_LINKS.demo}
-              className="hidden sm:inline-flex items-center rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-[#2D176F] shadow-sm"
+              className="hidden min-h-11 items-center rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-[#2D176F] shadow-sm sm:inline-flex"
             >
               {t("navigation.demo")}
             </Link>
@@ -286,7 +286,7 @@ export function Navbar() {
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
               className={cn(
-                "grid h-10 w-10 place-items-center rounded-lg border transition-colors",
+                "grid h-11 w-11 place-items-center rounded-lg border transition-colors",
                 mobileOpen
                   ? "border-[var(--aura-border)] bg-[var(--aura-lavender)] text-[var(--aura-purple)]"
                   : "border-white/18 text-white hover:bg-white/10"

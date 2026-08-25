@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Heart, Target, Users, Lightbulb, ArrowRight, Sparkles, Check } from "lucide-react";
 import { CTA_LINKS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
@@ -182,9 +183,9 @@ export default function AboutPage() {
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </MagneticElement>
-              <a href="/contact">
+              <Link href="/contact">
                  <Button variant="outline" size="lg">{t("about.contact")}</Button>
-              </a>
+              </Link>
             </div>
           </div>
         </Container>

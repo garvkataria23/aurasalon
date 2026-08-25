@@ -13,15 +13,11 @@ import {
   ChevronRight,
   Clock,
   Cpu,
-  CreditCard,
   FileText,
   Info,
-  Layers,
   Monitor,
   Package,
   Receipt,
-  Scissors,
-  ShieldCheck,
   Smartphone,
   Sparkles,
   UserCheck,
@@ -404,7 +400,7 @@ export function PlatformClient() {
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--aura-heading)] flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-[var(--aura-purple)]" />
-                        Today's Floor Schedule (18 Appointments)
+                        Today&apos;s Floor Schedule (18 Appointments)
                       </h4>
                       <span className="text-xs text-purple-700 font-bold">₹42,800 Est. Revenue</span>
                     </div>
@@ -555,7 +551,7 @@ export function PlatformClient() {
 
                   <div className="p-3 rounded-xl bg-white border border-amber-200/60 text-xs space-y-1.5">
                     <div className="flex justify-between text-[var(--aura-body)]"><span>Attendance Status:</span><span className="font-bold text-emerald-700">Punched In (10:02 AM)</span></div>
-                    <div className="flex justify-between text-[var(--aura-body)]"><span>Today's Target:</span><span className="font-bold">₹8,000 / ₹10,000</span></div>
+                    <div className="flex justify-between text-[var(--aura-body)]"><span>Today&apos;s Target:</span><span className="font-bold">₹8,000 / ₹10,000</span></div>
                     <div className="flex justify-between text-[var(--aura-body)]"><span>Attributed Commission:</span><span className="font-bold text-purple-700">₹940 (Est.)</span></div>
                   </div>
 
@@ -778,7 +774,7 @@ export function PlatformClient() {
               Frequently Asked Questions
             </h2>
             <p className="mt-3 text-sm text-[var(--aura-body)]">
-              Everything salon owners ask about migrating to Aura's connected architecture.
+              Everything salon owners ask about migrating to Aura&apos;s connected architecture.
             </p>
           </div>
 

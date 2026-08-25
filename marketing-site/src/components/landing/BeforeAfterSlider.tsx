@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { XCircle, CheckCircle2, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { XCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
