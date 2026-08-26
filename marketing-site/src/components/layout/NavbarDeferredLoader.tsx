@@ -10,11 +10,13 @@ export function NavbarDeferredLoader() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const idleId = window.setTimeout(() => setReady(true), 0);
     const load = () => setReady(true);
     window.addEventListener("pointerdown", load, { once: true, passive: true });
     window.addEventListener("keydown", load, { once: true });
 
     return () => {
+      window.clearTimeout(idleId);
       window.removeEventListener("pointerdown", load);
       window.removeEventListener("keydown", load);
     };

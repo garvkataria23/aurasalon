@@ -128,7 +128,8 @@ export const routes: Routes = [
       {
         path: "gallery",
         canActivate: [customerAuthGuard],
-        loadComponent: () => import("./features/wishlist/wishlist.page").then((m) => m.WishlistPage)
+        data: { hub: "gallery" },
+        loadComponent: () => import("./features/customer-hub/customer-hub.page").then((m) => m.CustomerHubPage)
       },
       {
         path: "family",
@@ -253,6 +254,12 @@ export const routes: Routes = [
         path: "saved-salons",
         canActivate: [customerAuthGuard],
         loadComponent: () => import("./features/saved-salons/saved-salons.page").then((m) => m.SavedSalonsPage)
+      },
+      {
+        path: "gallery",
+        canActivate: [customerAuthGuard],
+        data: { hub: "gallery" },
+        loadComponent: () => import("./features/customer-hub/customer-hub.page").then((m) => m.CustomerHubPage)
       },
       {
         path: "profile",

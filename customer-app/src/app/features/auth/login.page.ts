@@ -1598,9 +1598,16 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
   private safeReturnUrl(returnUrl: string | null): string {
-    if (!returnUrl || !returnUrl.startsWith("/")) return "/tabs/home";
-    if (/^\/(login|signup|verify-otp)(?:\?|#|$)/.test(returnUrl)) return "/tabs/home";
-    return returnUrl;
+    if (!returnUrl || !returnUrl.startsWith("/") || returnUrl.startsWith("//")) return "/tabs/home";
+    try {
+      const url = new URL(returnUrl, window.location.origin);
+      if (url.origin !== window.location.origin) return "/tabs/home";
+      const path = `${url.pathname}${url.search}${url.hash}`;
+      if (/^\/(login|signup|verify-otp)(?:\?|#|$)/.test(path)) return "/tabs/home";
+      return path;
+    } catch {
+      return "/tabs/home";
+    }
   }
 
   private async resumeExistingSession() {

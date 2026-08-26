@@ -40,8 +40,8 @@ import { MarketplaceService } from "../../core/marketplace.service";
 
           <section class="premium-card price-card">
             <div><span>Service price</span><strong>{{ money(servicePricePaise()) }}</strong></div>
-            <div><span>Estimated taxes</span><strong>{{ taxLabel() }}</strong></div>
-            <div class="total-row"><span>Estimated total</span><strong>{{ money(totalPaise()) }}</strong></div>
+            <div><span>{{ hasServerTotal() ? "Taxes" : "Estimated taxes" }}</span><strong>{{ taxLabel() }}</strong></div>
+            <div class="total-row"><span>{{ hasServerTotal() ? "Total" : "Estimated total" }}</span><strong>{{ money(totalPaise()) }}</strong></div>
           </section>
 
           <section class="premium-card policy-card">
@@ -214,9 +214,9 @@ import { MarketplaceService } from "../../core/marketplace.service";
 export class BookingSummaryPage {
   readonly booking = computed(() => this.marketplace.latestBooking());
   readonly service = computed(() => this.findService(this.booking()));
-  readonly servicePricePaise = computed(() => this.service()?.pricePaise ?? 0);
-  readonly taxPaise = computed(() => this.servicePricePaise() > 0 ? Math.round(this.servicePricePaise() * 0.18) : 0);
-  readonly totalPaise = computed(() => this.servicePricePaise() + this.taxPaise());
+  readonly servicePricePaise = computed(() => this.moneyField(this.booking(), "subtotalPaise") || this.moneyField(this.booking(), "amountPaise") || this.service()?.pricePaise || 0);
+  readonly taxPaise = computed(() => this.moneyField(this.booking(), "taxPaise") || (!this.hasServerTotal() && this.servicePricePaise() > 0 ? Math.round(this.servicePricePaise() * 0.18) : 0));
+  readonly totalPaise = computed(() => this.moneyField(this.booking(), "totalPaise") || this.servicePricePaise() + this.taxPaise());
 
   constructor(private readonly marketplace: MarketplaceService) {
     addIcons({ calendarOutline, checkmarkDoneOutline, shareSocialOutline, ticketOutline });
@@ -235,6 +235,10 @@ export class BookingSummaryPage {
 
   taxLabel(): string {
     return this.taxPaise() > 0 ? this.money(this.taxPaise()) : "Calculated at checkout";
+  }
+
+  hasServerTotal(): boolean {
+    return this.moneyField(this.booking(), "totalPaise") > 0;
   }
 
   money(pricePaise: number): string {
@@ -274,6 +278,11 @@ export class BookingSummaryPage {
   private findService(booking: Booking | null): ServiceItem | null {
     if (!booking?.serviceId) return null;
     return this.marketplace.selectedBusiness()?.services.find((service) => service.id === booking.serviceId) ?? null;
+  }
+
+  private moneyField(booking: Booking | null, field: "subtotalPaise" | "taxPaise" | "totalPaise" | "amountPaise"): number {
+    const value = booking ? (booking as Booking & Partial<Record<typeof field, number>>)[field] : 0;
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
   }
 
   private dateForCalendar(value?: string, addMinutes = 0): string {

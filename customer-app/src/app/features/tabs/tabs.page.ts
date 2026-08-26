@@ -1105,8 +1105,8 @@ bottomNavVisible(): boolean {
   mySalonHref(): string {
     const context = this.marketplace.salonModeContext();
     const primary = this.marketplace.primarySalon();
-    const tenantId = primary?.tenantId || context?.tenantId;
-    const branchId = primary?.branchId || context?.branchId;
+    const tenantId = context?.tenantId || primary?.tenantId;
+    const branchId = context?.branchId || primary?.branchId;
     return tenantId && branchId ? `/my-salon/${encodeURIComponent(tenantId)}/${encodeURIComponent(branchId)}` : "/tabs/my-salon";
   }
 

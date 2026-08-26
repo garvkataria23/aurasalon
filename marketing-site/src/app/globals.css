@@ -917,3 +917,80 @@ input, select, textarea { min-height: 44px; }
 [dir="rtl"] [aria-hidden="true"].lucide-chevron-right {
   transform: scaleX(-1);
 }
+.google-translate {
+  position: relative;
+  height: 2.75rem;
+  width: 9.75rem;
+}
+
+.google-translate-engine {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.google-translate-select {
+  height: 100%;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  outline: none;
+  padding: 0 2rem 0 0.95rem;
+}
+
+.google-translate::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  right: 0.95rem;
+  top: 50%;
+  height: 0.45rem;
+  width: 0.45rem;
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  color: #fff;
+  transform: translateY(-65%) rotate(45deg);
+}
+
+.google-translate-select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.google-translate-select option {
+  color: #1d1b20;
+}
+
+.google-translate-light {
+  width: 8.75rem;
+}
+
+.google-translate-light .google-translate-select {
+  border-color: var(--aura-border);
+  background: var(--aura-off-white);
+  color: var(--aura-heading);
+}
+
+.google-translate-light::after {
+  color: var(--aura-heading);
+}
+
+.goog-te-banner-frame.skiptranslate,
+body > .skiptranslate {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}

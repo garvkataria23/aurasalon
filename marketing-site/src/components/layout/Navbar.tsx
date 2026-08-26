@@ -8,7 +8,7 @@ import { CTA_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { MobileMenu } from "./MobileMenu";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import { GoogleTranslate } from "@/components/ui/GoogleTranslate";
 
 /* ── Navigation Structure ──
    Maps old destinations into the new IA:
@@ -256,14 +256,7 @@ export function Navbar() {
 
           {/* Desktop Right */}
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            <LanguageSelector tone="dark" />
-
-            <Link
-              href={CTA_LINKS.login}
-              className="inline-flex min-h-11 items-center px-3 py-2 text-sm font-medium text-white/74 transition-colors hover:text-white"
-            >
-              {t("navigation.login")}
-            </Link>
+            <GoogleTranslate id="google_translate_desktop" />
 
             <Link
               href={CTA_LINKS.demo}

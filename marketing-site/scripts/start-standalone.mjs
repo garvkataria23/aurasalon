@@ -15,8 +15,22 @@ if (!serverFile) {
   process.exit(1);
 }
 
+const standaloneRoot = dirname(serverFile);
+const requiredArtifacts = [
+  join(standaloneRoot, ".next", "BUILD_ID"),
+  join(standaloneRoot, ".next", "server", "app"),
+  join(standaloneRoot, ".next", "server", "app-paths-manifest.json"),
+];
+const missingArtifact = requiredArtifacts.find((file) => !existsSync(file));
+
+if (missingArtifact) {
+  console.error("Standalone build is incomplete. Stop the running server and run `npm run build` before `npm start`.");
+  console.error(`Missing: ${missingArtifact}`);
+  process.exit(1);
+}
+
 const child = spawn(process.execPath, [serverFile], {
-  cwd: dirname(serverFile),
+  cwd: standaloneRoot,
   stdio: "inherit",
   env: process.env,
 });

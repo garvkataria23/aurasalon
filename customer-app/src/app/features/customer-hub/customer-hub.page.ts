@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { AlertController, IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
 import { firstValueFrom } from "rxjs";
+import { environment } from "../../../environments/environment";
 import {
   arrowBackOutline,
   arrowUndoOutline,
@@ -3819,7 +3820,7 @@ export class CustomerHubPage implements OnInit {
     date: this.supportTicketDate(ticket.updatedAt || ticket.createdAt),
     route: ticket.bookingId ? `/bookings/${ticket.bookingId}` : undefined
   })));
-  readonly demoMode = computed(() => this.slug() !== "support" && this.marketplace.isAuthenticated() && !this.marketplace.loading() && this.liveRecords().length === 0);
+  readonly demoMode = computed(() => !environment.production && this.slug() !== "support" && this.marketplace.isAuthenticated() && !this.marketplace.loading() && this.liveRecords().length === 0);
   readonly records = computed(() => {
     if (this.slug() === "support") return this.supportRecords();
     const live = this.liveRecords();

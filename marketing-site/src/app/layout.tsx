@@ -81,6 +81,12 @@ export default function RootLayout({
   return (
     <html lang="en-IN" className="h-full" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://translate.google.com" />
+        <link rel="preconnect" href="https://translate.googleapis.com" />
+        <link rel="preconnect" href="https://www.gstatic.com" />
+        <link rel="dns-prefetch" href="https://translate.google.com" />
+        <link rel="dns-prefetch" href="https://translate.googleapis.com" />
+        <link rel="dns-prefetch" href="https://www.gstatic.com" />
         {jsonLdScripts.map((ld, i) => (
           <script
             key={i}

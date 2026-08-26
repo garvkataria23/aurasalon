@@ -6,12 +6,12 @@ import { firstValueFrom } from "rxjs";
 import { AuthService } from "./auth.service";
 import { CustomerApiService } from "./customer-api.service";
 import { MarketplaceService } from "./marketplace.service";
+import { environment } from "../../environments/environment";
 
 @Injectable({ providedIn: "root" })
 export class CustomerPushNotificationService {
   private initialization?: Promise<void>;
   private registrationRequested = false;
-  private readonly fcmConfigured = false;
 
   constructor(
     private readonly auth: AuthService,
@@ -29,9 +29,13 @@ export class CustomerPushNotificationService {
   }
 
   initialize(): Promise<void> {
-    if (!this.isSupported() || !this.fcmConfigured) return Promise.resolve();
+    if (!this.isSupported() || !this.fcmConfigured()) return Promise.resolve();
     if (!this.initialization) this.initialization = this.attachListeners();
     return this.initialization;
+  }
+
+  private fcmConfigured(): boolean {
+    return Boolean(environment.firebase.projectId && environment.firebase.messagingSenderId);
   }
 
   private isSupported(): boolean {
@@ -61,7 +65,7 @@ export class CustomerPushNotificationService {
   }
 
   private async registerForPush(): Promise<void> {
-    if (!this.isSupported() || !this.fcmConfigured || this.registrationRequested) return;
+    if (!this.isSupported() || !this.fcmConfigured() || this.registrationRequested) return;
     this.registrationRequested = true;
     try {
       await this.initialize();

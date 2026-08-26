@@ -200,6 +200,11 @@ enterSalonMode(context?: SalonModeContext | null): void {
     this.enterSalonMode(context);
   }
 
+  hasSalonRelationship(tenantId: string, branchId: string): boolean {
+    return this.primarySalons().some((salon) => salon.tenantId === tenantId && salon.branchId === branchId)
+      || this.mySalons().some((salon) => salon.tenantId === tenantId && salon.branchId === branchId);
+  }
+
   salonModeUrl(...segments: Array<string | number | null | undefined>): string {
     const context = this.salonModeContext();
     const primary = this.primarySalon();

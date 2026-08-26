@@ -3173,9 +3173,10 @@ async reload() {
       return;
     }
     let createdCount = 0;
+    const createdBookingIds: string[] = [];
     try {
       for (const item of items) {
-        await this.marketplace.createBooking({
+        const booking = await this.marketplace.createBooking({
           businessSlug: business.slug,
           businessId: business.id,
           serviceId: item.serviceId,
@@ -3186,12 +3187,21 @@ async reload() {
           paymentMode: "pay_at_venue"
         });
         createdCount += 1;
+        createdBookingIds.push(booking.id);
       }
 } catch {
       const remaining = items.length - createdCount;
       this.marketplace.error.set(createdCount > 0
-        ? `${createdCount} service${createdCount === 1 ? "" : "s"} were booked, but ${remaining} could not be completed. Please check My bookings before trying again.`
+        ? `${createdCount} service${createdCount === 1 ? "" : "s"} were booked, but ${remaining} could not be completed. Opening My bookings so you can verify before retrying.`
         : this.marketplace.error() || "Could not complete booking. Please try again.");
+      if (this.activeHoldId()) {
+        await this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+        this.activeHoldId.set(null);
+      }
+      this.clearPendingIntent();
+      this.marketplace.clearBookingDraft();
+      const target = createdBookingIds.length === 1 ? this.bookingDetailUrl(createdBookingIds[0]) : (this.marketplace.salonMode() ? this.marketplace.salonModeUrl("bookings") : "/tabs/bookings");
+      await this.router.navigateByUrl(target);
       this.step.set(4);
       return;
     }

@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import type { NavLink } from "@/lib/types";
-import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import { GoogleTranslate } from "@/components/ui/GoogleTranslate";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
 
@@ -103,7 +103,9 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--aura-purple)] text-white text-xs font-semibold">A</span>
               <span className="text-base font-semibold text-[var(--aura-heading)]">Aura</span>
             </div>
-            <LanguageSelector compact align="right" />
+            <div className="flex items-center gap-2">
+              <GoogleTranslate id="google_translate_mobile" tone="light" />
+            </div>
           </div>
 
           {/* Nav Links */}
@@ -136,13 +138,6 @@ export function MobileMenu({ open, onClose, links, ctaLinks, pathname }: MobileM
 
           {/* CTA Buttons */}
           <div className="mt-auto flex flex-col gap-2.5 pt-6 border-t border-[var(--aura-border)] mt-6">
-            <Link
-              href={ctaLinks.login}
-              onClick={onClose}
-              className="flex h-11 w-full items-center justify-center rounded-[var(--aura-radius-btn)] border border-[var(--aura-border)] text-sm font-medium text-[var(--aura-heading)] transition-colors hover:bg-[var(--aura-off-white)]"
-            >
-              {t("navigation.login")}
-            </Link>
             <Link
               href={ctaLinks.demo}
               onClick={onClose}
